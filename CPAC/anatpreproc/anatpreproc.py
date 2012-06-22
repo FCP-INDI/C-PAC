@@ -86,17 +86,17 @@ def create_anat_preproc():
     High Level Workflow Graph:
     --------------------------
     
-    .. image:: anat_graph.dot.png
+    .. image:: anatpreproc_graph.dot.png
        :width: 500
-       :target: anat_graph.dot.png
+       :target: ../images/anatpreproc_graph.dot.png
     
     
     Detailed Workflow Graph:
     ------------------------
     
-    .. image:: anat_graph_detailed.dot.png
+    .. image:: anatpreproc_graph_detailed.dot.png
        :width: 500
-       :target: anat_graph_detailed.dot.png
+       :target: ../images/anatpreproc_graph_detailed.dot.png
             
     """
     preproc = pe.Workflow(name='anatpreproc')
