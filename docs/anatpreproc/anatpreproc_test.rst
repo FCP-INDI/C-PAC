@@ -36,7 +36,7 @@ Constructor to initialize the workflow
 
   
 
-Setup Workflow Object
+Setup workflow object
 ---------------------
 
 ::
@@ -55,7 +55,7 @@ This method is run once before _each_ test method is executed
 
   
 
-Delete Workflow  Object
+Delete workflow  object
 -----------------------
 
 ::
@@ -92,7 +92,7 @@ is T1 image and is in right format
 
   
 
-Test to verify Deoblique Image
+Test to verify deoblique Image
 ------------------------------
 
 ::
@@ -105,8 +105,8 @@ is deobliqued correctly or not
 
 **Parameters**
 
- *deoblique_img* : (nifti file)
-                   De-obliqued mprage file
+*deoblique_img* : (nifti file)
+                  De-obliqued mprage file
 
 **Returns**
 
@@ -123,16 +123,16 @@ is deobliqued correctly or not
 
   
 
-Test to verify RPI output Image
--------------------------------
+Test to verify reorientation
+----------------------------
 
 ::
   
-  def anat_RPI_test(self, standard_img, rpi_img):
+  def anat_reorient_test(self, standard_img, rpi_img):
   assert False
 
-method to check if the input file
-is deobliqued correctly or not
+method to check if the output reorient is coorectly
+in RPI orientation or not
 
 **Parameters**
 
@@ -157,7 +157,7 @@ is deobliqued correctly or not
 
   
 
-Test to verify SkulStrip Image with normalized/scaled intensities
+Test to verify skulStrip image with normalized/scaled intensities
 -----------------------------------------------------------------
 
 ::
@@ -179,12 +179,12 @@ correct or not
 
 **Tests**
 
-  -Since afni scales/normalizes the intensity values
-   its hard to test it.Can be tested in the next step
+  - Since afni scales/normalizes the intensity values
+    its hard to test it.Can be tested in the next step
 
   
 
-Test to verify SKullStrip Image with original intensity values
+Test to verify skullstrip image with original intensity values
 --------------------------------------------------------------
 
 ::
@@ -213,6 +213,4 @@ is skull stripped and the intensity values are unchanged
    the edge. From the origin, choose a sphere of resonable diameter
    and check the intensity values should be zero. Then check the
    edges for non-zero values.
-
-
 

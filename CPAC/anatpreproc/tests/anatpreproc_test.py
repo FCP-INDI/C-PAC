@@ -99,8 +99,8 @@ class anatPreprocTest(object):
         
         **Parameters**
          
-         *deoblique_img* : (nifti file) 
-                           De-obliqued mprage file
+        *deoblique_img* : (nifti file) 
+                          De-obliqued mprage file
         
         **Returns**
         
@@ -117,15 +117,15 @@ class anatPreprocTest(object):
         """    
         
     """
-    Test to verify rpi image
-    ------------------------
+    Test to verify re-orientation
+    -----------------------------
     """
     
-    def anat_RPI_test(self, standard_img, rpi_img):
+    def anat_reorient_test(self, standard_img, rpi_img):
         assert False
         """
-        method to check if the input file
-        is deobliqued correctly or not
+        method to check if the output reorient is coorectly
+        in RPI orientation or not
         
         **Parameters**
        
