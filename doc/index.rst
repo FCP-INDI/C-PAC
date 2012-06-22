@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    developer/index
+   workflows/index
 
 Indices and tables
 ==================
