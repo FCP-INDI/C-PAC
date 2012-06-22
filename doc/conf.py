@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# CPAC Developer documentation build configuration file, created by
-# sphinx-quickstart on Thu Jun 21 14:49:46 2012.
+# CPAC documentation build configuration file, created by
+# sphinx-quickstart on Fri Jun 22 13:46:06 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
 #
@@ -25,7 +25,7 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = []
+extensions = ['sphinx.ext.autodoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'CPAC Developer'
+project = u'CPAC'
 copyright = u'2012, Brian'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'CPACDeveloperdoc'
+htmlhelp_basename = 'CPACdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -178,7 +178,7 @@ htmlhelp_basename = 'CPACDeveloperdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'CPACDeveloper.tex', u'CPAC Developer Documentation',
+  ('index', 'CPAC.tex', u'CPAC Documentation',
    u'Brian', 'manual'),
 ]
 
@@ -211,6 +211,6 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'cpacdeveloper', u'CPAC Developer Documentation',
+    ('index', 'cpac', u'CPAC Documentation',
      [u'Brian'], 1)
 ]
