@@ -25,8 +25,8 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-sys.path.insert(0, os.path.abspath('sphinxext'))
-sys.path.insert(1, os.path.abspath('../CPAC/anatpreproc/'))
+sys.path.append(os.path.abspath('sphinxext'))
+sys.path.append(os.path.abspath('../CPAC/anatpreproc/'))
 
 extensions = ['sphinx.ext.autodoc', 'numpy_ext.numpydoc']
 
