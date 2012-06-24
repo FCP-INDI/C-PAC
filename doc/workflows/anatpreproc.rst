@@ -1,7 +1,5 @@
 .. _anatpreproc:
 
-
-
 ************************
 Anatomical Preprocessing
 ************************
