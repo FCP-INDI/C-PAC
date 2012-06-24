@@ -1,6 +1,6 @@
 #!/Library/Frameworks/EPD64.framework/Versions/Current/bin/python
 import sys
-import e_afni
+#import e_afni
 import os
 import commands
 import nipype.pipeline.engine as pe
@@ -9,14 +9,14 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from utils import *
+#from utils import *
 
 
 def create_anat_preproc():
     """ 
         
     Anatomical Preprocessing
-    ===============================
+    ========================
     
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented 
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image 
@@ -24,36 +24,37 @@ def create_anat_preproc():
     
     Source code: `anat_preproc <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L250>`_
     
-    **Inputs**:
-    -----------
+    Parameters
+    ----------
     
-    - *inputspec.anat* : (mprage file or a list of mprage nifti file) 
+    inputspec.anat : mprage file or a list of mprage nifti file 
         User input anatomical(T1) Image, in any of the 8 orientations
     
-    **Outputs**:
-    ------------
+    Returns 
+    -------
     
-    - *outputspec.refit* : (a nifti file) 
+    outputspec.refit : nifti file
         Deobliqued anatomical data 
-    - *outputspec.reorient* : (a nifti file) 
+    outputspec.reorient : nifti file
         RPI oriented anatomical data 
-    - *outputspec.skullstrip* : (a nifti file)
+    outputspec.skullstrip : nifti file
         Skull Stripped RPI oriented mprage file with normalized intensities.
-    - *outputspec.brain* : (a nifti file)
+    outputspec.brain : nifti file
         Skull Stripped RPI Brain Image with original intensity values and not normalized or scaled.
     
-    Example
-    -------
+    Examples
+    --------
     
     >>> import anat
     >>> prproc = create_anat_preproc()
     >>> preproc.inputs.inputspec.anat='sub1/anat/mprage.nii.gz'
     >>> preporc.run() #doctest: +SKIP
     
+    Notes
+    -----
     
-    **Commands in Order of Execution**
-    ----------------------------------
-    
+    Order of commands:
+
     - Deobliqing the scans
     .. code-block:: python
     
@@ -70,7 +71,7 @@ def create_anat_preproc():
     
     - SkullStripping the Image
     .. code-block:: python
-        
+    
         3dSkullStrip -input mprage_RPI.nii.gz -o_ply mprage_RPI_3dT.nii.gz
     
     For information on Command and the options used, please refer to : `3dSkullStrip <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dSkullStrip.html>`_
@@ -78,25 +79,21 @@ def create_anat_preproc():
     - The skull strippping step modifies the intensity values. To get back the original intensity values,
       we do an element wise product of  RPI data with step function of skull Stripped data.
     .. code-block:: python
-        
+    
         3dcalc -a mprage_RPI.nii.gz -b mprage_RPI_3dT.nii.gz -expr 'a*step(b)' -prefix mprage_RPI_3dc.nii.gz
      
     For information on Command and the options used, please refer to : `3dcalc <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html>`_
     
     High Level Workflow Graph:
-    --------------------------
     
-    .. image:: anatpreproc_graph.dot.png
+    .. image:: ../images/anatpreproc_graph.dot.png
        :width: 500
-       :target: ../images/anatpreproc_graph.dot.png
     
     
     Detailed Workflow Graph:
-    ------------------------
     
-    .. image:: anatpreproc_graph_detailed.dot.png
+    .. image:: ../images/anatpreproc_graph_detailed.dot.png
        :width: 500
-       :target: ../images/anatpreproc_graph_detailed.dot.png
             
     """
     preproc = pe.Workflow(name='anatpreproc')
