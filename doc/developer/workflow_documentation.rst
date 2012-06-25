@@ -32,7 +32,7 @@ After workflow code has been properly documented, the documentation must be inte
 
 To add a documented workflow to the CPAC documentation site:
 
-* In ./CPAC/docs/workflows/, create a *workflow_name*.rst file with the following text::
+* In ./CPAC/doc/workflows/, create a *workflow_name*.rst file with the following text::
 
     .. _workflow_name:
 
@@ -43,7 +43,7 @@ To add a documented workflow to the CPAC documentation site:
     .. automodule:: workflow_name
         :members:
 
-* Add your workflow to the table of contents in ./CPAC/docs/workflows/index.rst::
+* Add your workflow to the table of contents in ./CPAC/doc/workflows/index.rst::
 
     Workflows
     =========
@@ -55,9 +55,12 @@ To add a documented workflow to the CPAC documentation site:
        ...
        workflow_name
 
-* Make your workflow code available to sphinx by adding the following line to ./CPAC/docs/conf.py::
+* Make your workflow code available to sphinx by adding the following line to ./CPAC/doc/conf.py::
 
     sys.path.append(os.path.abspath('sphinxext'))
     ...
     sys.path.append(os.path.abspath('../CPAC/workflow_name/'))
 
+* Generate the html documentation using sphinx by running the command in ./CPAC/doc/::
+
+    make html
