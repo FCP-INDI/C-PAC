@@ -1,8 +1,5 @@
-.. _anatpreproc:
-
-************************
 Anatomical Preprocessing
-************************
+========================
 
-.. automodule:: anatpreproc
-    :members:
+.. currentmodule:: anatpreproc
+.. autofunction:: create_anat_preproc
