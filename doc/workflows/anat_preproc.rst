@@ -1,5 +1,5 @@
 Anatomical Preprocessing
 ========================
 
-.. currentmodule:: anatpreproc
+.. currentmodule:: anat_preproc
 .. autofunction:: create_anat_preproc
