@@ -11,7 +11,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 #from utils import *
 
-class sca_preproc_test(object):
+class sca_test(object):
 
     def __init__(self, rest_res_filt, ref, standard, fwhm, seed_list, rest_mask2standard, premat, postmat, extraction_space):
 
@@ -49,6 +49,7 @@ class sca_preproc_test(object):
         
         Nothing            
         
+
         """
 
         self.rest_res_filt = rest_res_filt
@@ -103,7 +104,7 @@ class sca_preproc_test(object):
     def inputs_test(self):
         """
 
-          Test the workflow inputs
+        Test the workflow inputs
  
         Parameters
         ----------

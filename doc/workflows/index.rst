@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    anat_preproc
-   sca_preproc
+   sca
 
 Indices and tables
 ==================

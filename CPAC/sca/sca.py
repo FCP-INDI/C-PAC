@@ -1,4 +1,4 @@
-#!/Library/Frameworks/EPD64.framework/Versions/Current/bin/python
+#!/usr/bin/env python
 import sys
 #import e_afni
 import os
@@ -14,74 +14,87 @@ import nipype.interfaces.utility as util
 
 
 
-def create_sca_preproc(extraction_space):
+def create_sca(extraction_space):
 
     """
+    Seed Based Correlation Analysis
+    -------------------------------
+
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
 
-    Source code: `sca_preproc <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L1540>`_ 
-
     Parameters
     ----------
- 
-    seed_list_input.seed_list : (a list of existing nifti files)
-        A list of seeds/ ROI iin MNI space.
 
-    extraction_space : (a string)
+    extraction_space : a string
         Options are 'mni' or 'native'.
         Extract time series from ROI in MNI space or extract it in subjects native space.
 
-    inputspec.rest_res_filt : (an existing nifti file) 
-        Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
-        (rest_res_bandpassed.nii.gz)
-
-    inputspec.rest_mask2standard : (an existing nifti file)
-        A mask volume(derived from the functional volume) in standard in standard space.
-        Used in spatial smoothing the Z-transformed correlations in MNI space
-
-    inputspec.premat : (an existing affine transformation .mat file for transformation from native functional space to T1 space)
-        Specifies an affine transform that should be applied to the data prior to the non-linear warping(example_func2highres.mat).
-
-    inputspec.postmat : (an existing affine transformation .mat file for transformation from T1 space to native functional space)
-        Specifies an affine transform that should be applied to the data following to the non-linear warping(highres2example_func.mat).
-
-    inputspec.fieldcoeff_file : (an existing nifti file)
-        File with warp coefficients/fields.
-        This typically the output given by the -cout parameter of fnirt during registration step
-        (stand2highres_warp.nii.gz,  highres2standard_warp.nii.gz).
-
-    inputspec.ref : (an existing nifti file)
-        When Registering from MNI space to native space use the mean functional image in native space example_func.nii.gz is used.
-        When registering from native to MNI MNI152_T1_STANDARD_RES.nii.gz is used(target space).
-
-    fwhm_input.fwhm : (A list of floating point numbers)
-        For spatial smoothing the Z-transformed correlations in MNI space.
-        Generally the value of this parameter is 1.5 or 2 times the voxel size of the input Image.
-        
     Returns
     -------
 
-    outputspec.correlations : (a nifti file)
-        Correlations for the seed (corr.nii.gz)
+    sca_workflow : workflow
 
-    outputspec.z_trans_correlations : (a nifti file)
-        Fisher Z transformed correlations of the seed (corr_Z.nii.gz)
+        Seed Based Correlation Analysis Workflow
 
-    outputspec.z_2standard : (a nifti file)
-        Registered Z-Transformed Correlations to Standard Space (corr_Z_2standard.nii.gz)
 
-    outputspec.z_2standard_FWHM : (a nifti file)
-        Spatially smoothed corr_Z_2standard.nii.gz (corr_Z_2standard_FWHM.nii.gz)
 
     Notes
     -----
+
+    `Source <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L1540>`_ 
+
+    Workflow Inputs::
+ 
+        seed_list_input.seed_list : a list of existing nifti files
+            A list of seeds/ ROI iin MNI space.
+
+        inputspec.rest_res_filt : an existing nifti file 
+            Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
+
+        inputspec.rest_mask2standard : an existing nifti file
+            A mask volume(derived from the functional volume) in standard in standard space.
+            Used in spatial smoothing the Z-transformed correlations in MNI space
+
+        inputspec.premat : an existing affine transformation .mat file for transformation from native functional space to T1 space
+            Specifies an affine transform that should be applied to the data prior to the non-linear warping.
+
+        inputspec.postmat : an existing affine transformation .mat file for transformation from T1 space to native functional space
+            Specifies an affine transform that should be applied to the data following to the non-linear warping.
+
+        inputspec.fieldcoeff_file : an existing nifti file
+            File with warp coefficients/fields.
+            This typically the output given by the -cout parameter of fnirt during registration step
+
+
+        inputspec.ref : an existing nifti file
+            When Registering from MNI space to native space use the mean functional image in native space is used.
+            When registering from native to MNI MNI152_T1_STANDARD_RES nifti file is used(target space).
+
+        fwhm_input.fwhm : A list of floating point numbers
+            For spatial smoothing the Z-transformed correlations in MNI space.
+            Generally the value of this parameter is 1.5 or 2 times the voxel size of the input Image.
+
+        
+    Workflow Outputs::
+
+        outputspec.correlations : a nifti file
+            Correlations for the seed 
+
+        outputspec.z_trans_correlations : a nifti file
+            Fisher Z transformed correlations of the seed 
+
+        outputspec.z_2standard : a nifti file
+            Registered Z-Transformed Correlations to Standard Space
+
+        outputspec.z_2standard_FWHM : a nifti file
+            Spatially smoothed corr_Z_2standard.nii.gz
 
     Order of commands:
 
     When Extracting Time Series from ROI in standard space
     
-    - Register rest_res_bandpassed.nii.gz to standard space. For details see `applywarp <http://www.fmrib.ox.ac.uk/fsl/fnirt/warp_utils.html#applywarp>`_::
+    - Register rest_res_filt to standard space. For details see `applywarp <http://www.fmrib.ox.ac.uk/fsl/fnirt/warp_utils.html#applywarp>`_::
     
         applywarp 
         -ref=${FSLDIR}/data/standard/MNI152_T1_STANDARD_RES.nii.gz
@@ -135,6 +148,8 @@ def create_sca_preproc(extraction_space):
         -fim_thr 0
         -out Correlation
         -bucket corr.nii.gz
+
+    Common Steps
     
     - Fisher Z Transform the correlation. For details see `3dcalc <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html>`_::
         
@@ -154,7 +169,6 @@ def create_sca_preproc(extraction_space):
         -premat=example_func2highres.mat
         
         
-        
     - Spatially Smooth the Z-transformed map in standard space. For details see `PrinciplesSmoothing <http://imaging.mrc-cbu.cam.ac.uk/imaging/PrinciplesSmoothing>`_ `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm>`_  ::
         
         fslmaths
@@ -163,6 +177,8 @@ def create_sca_preproc(extraction_space):
         -fmean
         -mas rest_mask2standard.nii.gz
         corr_Z_2standard_FWHM.nii.gz
+    
+    
     
     Workflow Seed in MNI Space:
     
@@ -174,25 +190,25 @@ def create_sca_preproc(extraction_space):
     .. image:: ../images/sca_preproc_graph_native.dot.png
         :width: 500 
 
+
     Examples
     --------
     
-    >>> sca_preproc = create_sca_preproc("mni")
-    >>> sca_preproc.inputs.fwhm_input.fwhm = [4.5, 6]
-    >>> sca_preproc.get_node('fwhm_input').iterables = ('fwhm', [4.5, 6])
-    >>> sca_preproc.inputs.seed_list_input.seed_list = ['seed_pcc.nii.gz', 'seed_dMPFC.nii.gz']
-    >>> sca_preproc.inputs.inputspec.premat = '/home/data/subject/func/example_func2highres.mat'
-    >>> sca_preproc.inputs.inputspec.postmat = '/home/data/subject/func/highres2example_func.mat'
-    >>> sca_preproc.inputs.inputspec.rest_res_filt = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> sca_preproc.inputs.inputspec.fieldcoeff_file = '/home/data/subject/func/highres2standard_warp.nii.gz'
-    >>> sca_preproc.inputs.inputspec.rest_mask2standard = '/home/data/subject/func/rest_mask2standard.nii.gz' 
-    >>> sca_preproc.inputs.inputspec.ref = '/home/data/subject/func/example_func.nii.gz' 
-    >>> sca_preproc.run() # doctest: +SKIP
-
+    >>> sca_w = create_sca("mni")
+    >>> sca_w.inputs.fwhm_input.fwhm = [4.5, 6]
+    >>> sca_w.get_node('fwhm_input').iterables = ('fwhm', [4.5, 6])
+    >>> sca_w.inputs.seed_list_input.seed_list = ['seed_pcc.nii.gz', 'seed_dMPFC.nii.gz']
+    >>> sca_w.inputs.inputspec.premat = '/home/data/subject/func/example_func2highres.mat'
+    >>> sca_w.inputs.inputspec.postmat = '/home/data/subject/func/highres2example_func.mat'
+    >>> sca_w.inputs.inputspec.rest_res_filt = '/home/data/subject/func/rest_bandpassed.nii.gz'
+    >>> sca_w.inputs.inputspec.fieldcoeff_file = '/home/data/subject/func/highres2standard_warp.nii.gz'
+    >>> sca_w.inputs.inputspec.rest_mask2standard = '/home/data/subject/func/rest_mask2standard.nii.gz' 
+    >>> sca_w.inputs.inputspec.ref = '/home/data/subject/func/example_func.nii.gz' 
+    >>> sca_w.run() # doctest: +SKIP
 
     """
 
-    rsfc = pe.Workflow(name='sca_preproc')
+    rsfc = pe.Workflow(name='sca_workflow')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'premat',
                                                 'rest_res_filt',
