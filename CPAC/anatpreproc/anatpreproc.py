@@ -27,6 +27,8 @@ def create_anat_preproc():
     Notes
     -----
     
+    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/anatpreproc/anatpreproc.py>`_
+    
     Workflow Inputs::
     
         inputspec.anat : mprage file or a list of mprage nifti file 
@@ -42,8 +44,6 @@ def create_anat_preproc():
             Skull Stripped RPI oriented mprage file with normalized intensities.
         outputspec.brain : nifti file
             Skull Stripped RPI Brain Image with original intensity values and not normalized or scaled.
-    
-    Source code: `anat_preproc <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L250>`_
     
     Order of commands:
 

@@ -11,19 +11,43 @@ The bulk of documentation for workflows is to be done in the source file itself.
 How to write workflow code with proper documentation
 ====================================================
 
-Proper workflow documentation will follow the general standards provided by numpy (https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt).
+Proper workflow documentation will follow the general standards provided by numpy (https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt).  Because workflow creation functions are themselves python functions, their parameters and what they return should be documented as such.  Please refer to the `example.py <https://github.com/numpy/numpy/blob/master/doc/example.py>`_ provided by numpy for syntax.
+
 
 :doc:`Example of a documented workflow <../workflows/anatpreproc>`
 
-**Required Information:**
 
-*Parameters*: refer to workflow inputs
+**Notes section:**
 
-*Returns*: refer to workflow outputs.
+Workflows have nipype inputs and outputs which are specific to the workflow returned.  Any workflow specific information should be documented in the *Notes* section.  At a minimum, workflows are required to have the following information:
 
-*Notes*: should provide an in-depth description of the proccessing which occurs inside a workflow.
+* A link pointing to the file on GitHub.
+* *Workflow Inputs*: refer to workflow inputs. This is often received by an IdentityInterface node named 'inputspec'.
+* *Workflow Outputs*: refer to workflow outputs.  This is often received by an IdentityInterface node named 'outputspec'.
+* Explanation of the processing which occurs inside the workflow
 
-*Examples*: should provide at least one example of how to appropriately use the workflow.  The example should be completely standalone and executable directly from a python interpreter with CPAC correctly installed.  The outputs of a workflow should be displayed to the user in a relevant manner.  For instance, the names of the files created or the numerical values of the resulting output run for example data.
+Example of *Notes* section for a workflow::
+
+    Notes
+    -----
+    
+    `Source <GitHub link pointing to workflow source file>`_
+    
+    Workflow Inputs::
+    
+        inputspec.X : possible data type(s) of X
+            Detailed description of X
+    
+    Workflow Outputs::
+    
+        outputspec.Y : possible data type(s) of Y
+            Detailed description of Y
+
+    X is denoised and spatially smoothed.
+
+**Examples Section:**
+
+This section should provide at least one example of how to appropriately use the workflow.  The example should be completely standalone and executable directly from a python interpreter with CPAC correctly installed.  The outputs of a workflow should be displayed to the user in a relevant manner.  For instance, the names of the files created or the numerical values of the resulting output run for example data.
 
 Generating website documenation for workflows
 =============================================
