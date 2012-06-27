@@ -19,28 +19,31 @@ def create_anat_preproc():
     into RPI and skullstripped. Also, a whole brain only mask is generated from the skull stripped image 
     for later use in registration.
     
-    Source code: `anat_preproc <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L250>`_
-    
-    Parameters
-    ----------
-    
-    inputspec.anat : mprage file or a list of mprage nifti file 
-        User input anatomical(T1) Image, in any of the 8 orientations
-    
     Returns 
     -------
-    
-    outputspec.refit : nifti file
-        Deobliqued anatomical data 
-    outputspec.reorient : nifti file
-        RPI oriented anatomical data 
-    outputspec.skullstrip : nifti file
-        Skull Stripped RPI oriented mprage file with normalized intensities.
-    outputspec.brain : nifti file
-        Skull Stripped RPI Brain Image with original intensity values and not normalized or scaled.
+    anat_preproc : workflow
+        Anatomical preprocessing workflow
     
     Notes
     -----
+    
+    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/anatpreproc/anatpreproc.py>`_
+    
+    Workflow Inputs::
+    
+        inputspec.anat : mprage file or a list of mprage nifti file 
+            User input anatomical(T1) Image, in any of the 8 orientations
+    
+    Workflow Outputs::
+    
+        outputspec.refit : nifti file
+            Deobliqued anatomical data 
+        outputspec.reorient : nifti file
+            RPI oriented anatomical data 
+        outputspec.skullstrip : nifti file
+            Skull Stripped RPI oriented mprage file with normalized intensities.
+        outputspec.brain : nifti file
+            Skull Stripped RPI Brain Image with original intensity values and not normalized or scaled.
     
     Order of commands:
 
