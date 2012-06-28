@@ -11,7 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   anatpreproc
+   anat_preproc
+   sca
 
 Indices and tables
 ==================
