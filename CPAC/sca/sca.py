@@ -1,6 +1,5 @@
-#!/usr/bin/env python
 import sys
-#import e_afni
+import e_afni
 import os
 import commands
 import nipype.pipeline.engine as pe
@@ -9,7 +8,7 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-#from utils import *
+from utils import *
 
 
 
@@ -17,9 +16,6 @@ import nipype.interfaces.utility as util
 def create_sca(extraction_space):
 
     """
-    Seed Based Correlation Analysis
-    -------------------------------
-
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
 
@@ -209,11 +205,11 @@ def create_sca(extraction_space):
     """
 
     rsfc = pe.Workflow(name='sca_workflow')
-    inputNode = pe.Node(util.IdentityInterface(fields=[
+    inputNode = pe.Node(util.IdentityInterface(fields=['ref',
                                                 'premat',
+                                                'postmat',
                                                 'rest_res_filt',
                                                 'fieldcoeff_file',
-                                                'residual_file',
                                                 'rest_mask2standard',
                                                 'standard']),
                         name='inputspec')
@@ -235,15 +231,22 @@ def create_sca(extraction_space):
     printToFile = pe.MapNode(util.Function(input_names=['time_series'],
                                            output_names=['ts_oneD'],
                              function=pToFile),
-                             name='printToFile',
+                             name='print_timeseries_to_file',
                              iterfield=['time_series'])
 
+    ## 0. Register Seed template in to native space
+    warp_to_native = pe.MapNode(interface=fsl.ApplyWarp(),
+                      name='warp_to_native',
+                      iterfield=['ref_file',
+                      'postmat'])
+    warp_to_native.inputs.interp = 'nn'
+
     warp = pe.MapNode(interface=fsl.ApplyWarp(),
-                      name='warp',
+                      name='warp_to_standard',
                       iterfield=['in_file',
                                  'premat'])
 
-    warp_filt = warp.clone('warp_filt')
+    warp_filt = warp.clone('warp_to_standard_input_functional')
     ## 1. Extract Timeseries
 
     time_series = pe.MapNode(interface=afni.ROIStats(),
@@ -281,75 +284,70 @@ def create_sca(extraction_space):
 
     smooth_mni = smooth.clone('smooth_mni')
 
-    rsfc.connect(inputNode, 'rest_res_filt',
-                 warp_filt, 'in_file')
-    rsfc.connect(inputNode, 'standard',
-                 warp_filt, 'ref_file')
-    rsfc.connect(inputNode, 'fieldcoeff_file',
-                 warp_filt, 'field_file')
-    rsfc.connect(inputNode, 'premat',
-                 warp_filt, 'premat')
-    rsfc.connect(warp_filt, 'out_file',
-                 time_series, 'in_file')
-    rsfc.connect(time_series, 'stats',
-                 printToFile, 'time_series')
-    rsfc.connect(inputnode_seed_list, 'seed_list',
-                time_series, 'mask')
-    rsfc.connect(printToFile, 'ts_oneD',
-                 corr, 'ideal_file')
-
     if extraction_space == 'native':
+        rsfc.connect(inputNode, 'ref',
+                     warp_to_native, 'ref_file')
+        rsfc.connect(inputNode, 'fieldcoeff_file',
+                     warp_to_native, 'field_file')
+        rsfc.connect(inputNode, 'postmat',
+                     warp_to_native, 'postmat')
+        rsfc.connect(inputnode_seed_list, 'seed_list',
+                     warp_to_native, 'in_file')
+
+        rsfc.connect(inputNode, 'rest_res_filt',
+                     time_series, 'in_file')
+        rsfc.connect(warp_to_native, 'out_file',
+                     time_series, 'mask')
+        rsfc.connect(time_series, 'stats',
+                     printToFile, 'time_series')
+        rsfc.connect(printToFile, 'ts_oneD',
+                     corr, 'ideal_file')
         rsfc.connect(inputNode, 'rest_res_filt',
                      corr, 'in_file')
-        rsfc.connect(corr, 'out_file',
-                     z_trans, 'infile_a')
-        rsfc.connect(z_trans, 'out_file',
-                     register, 'in_file')
-        rsfc.connect(inputNode, 'standard',
-                     register, 'ref_file')
-        rsfc.connect(inputNode, 'fieldcoeff_file',
-                     register, 'field_file')
-        rsfc.connect(inputNode, 'premat',
-                     register, 'premat')
-        rsfc.connect(register, 'out_file',
-                     smooth, 'in_file')
-        rsfc.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                     smooth, 'op_string')
-        rsfc.connect(inputNode, 'rest_mask2standard',
-                     smooth, 'operand_files')
-
-        rsfc.connect(register, 'out_file',
-                     outputNode, 'Z_2standard')
-
-        rsfc.connect(smooth, 'out_file',
-                     outputNode, 'Z_2standard_FWHM')
     else:
         rsfc.connect(inputNode, 'rest_res_filt',
-                     corr, 'in_file')
-        rsfc.connect(corr, 'out_file',
-                     z_trans, 'infile_a')
-
-        rsfc.connect(z_trans, 'out_file',
-                     warp, 'in_file')
+                     warp_filt, 'in_file')
         rsfc.connect(inputNode, 'standard',
-                     warp, 'ref_file')
+                     warp_filt, 'ref_file')
         rsfc.connect(inputNode, 'fieldcoeff_file',
-                     warp, 'field_file')
+                     warp_filt, 'field_file')
         rsfc.connect(inputNode, 'premat',
-                     warp, 'premat')
-        rsfc.connect(warp, 'out_file',
-                     smooth_mni, 'in_file')
-        rsfc.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                     smooth_mni, 'op_string')
-        rsfc.connect(inputNode, 'rest_mask2standard',
-                     smooth_mni, 'operand_files')
-        rsfc.connect(smooth_mni, 'out_file',
-                     outputNode, 'Z_FWHM')
+                     warp_filt, 'premat')
+        rsfc.connect(warp_filt, 'out_file',
+                     time_series, 'in_file')
+        rsfc.connect(time_series, 'stats',
+                     printToFile, 'time_series')
+        rsfc.connect(inputnode_seed_list, 'seed_list',
+                     time_series, 'mask')
+        rsfc.connect(printToFile, 'ts_oneD',
+                     corr, 'ideal_file')
+        rsfc.connect(inputNode, 'rest_res_filt',
+                     corr, 'in_file')
 
+    rsfc.connect(corr, 'out_file',
+                 z_trans, 'infile_a')
+
+
+
+    rsfc.connect(z_trans, 'out_file',
+                 warp, 'in_file')
+    rsfc.connect(inputNode, 'standard',
+                 warp, 'ref_file')
+    rsfc.connect(inputNode, 'fieldcoeff_file',
+                 warp, 'field_file')
+    rsfc.connect(inputNode, 'premat',
+                 warp, 'premat')
+    rsfc.connect(warp, 'out_file',
+                 smooth_mni, 'in_file')
+    rsfc.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                 smooth_mni, 'op_string')
+    rsfc.connect(inputNode, 'rest_mask2standard',
+                 smooth_mni, 'operand_files')
+    rsfc.connect(smooth_mni, 'out_file',
+                 outputNode, 'Z_FWHM')
     rsfc.connect(corr, 'out_file',
                  outputNode, 'correlations')
     rsfc.connect(z_trans, 'out_file',
                  outputNode, 'Z_trans_correlations')
 
     return rsfc
-
