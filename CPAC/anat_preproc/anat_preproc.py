@@ -21,7 +21,7 @@ def create_anat_preproc():
     Returns 
     -------
     anat_preproc : workflow
-        Anatomical ng workflow
+        Anatomical Preprocessing Workflow
     
     Notes
     -----
