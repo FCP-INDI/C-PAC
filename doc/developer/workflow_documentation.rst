@@ -14,7 +14,7 @@ How to write workflow code with proper documentation
 Proper workflow documentation will follow the general standards provided by numpy (https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt).  Because workflow creation functions are themselves python functions, their parameters and what they return should be documented as such.  Please refer to the `example.py <https://github.com/numpy/numpy/blob/master/doc/example.py>`_ provided by numpy for syntax.
 
 
-:doc:`Example of a documented workflow <../workflows/anatpreproc>`
+:doc:`Example of a documented workflow <../workflows/anat_preproc>`
 
 
 **Notes section:**
@@ -56,7 +56,7 @@ After workflow code has been properly documented, the documentation must be inte
 
 To add a documented workflow to the CPAC documentation site:
 
-* In ./CPAC/doc/workflows/, create a *workflow_name*.rst file with the following text (`example <https://raw.github.com/openconnectome/C-PAC/master/doc/workflows/anatpreproc.rst>`_)::
+* In ./CPAC/doc/workflows/, create a *workflow_name*.rst file with the following text (`example <https://raw.github.com/openconnectome/C-PAC/master/doc/workflows/anat_preproc.rst>`_)::
 
     Human readable name of workflow (eg. Anatomical Preprocessing)
     ==============================================================

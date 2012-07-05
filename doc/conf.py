@@ -12,6 +12,10 @@
 # serve to show the default.
 
 import sys, os
+cpacpath = os.path.abspath('..')
+sys.path.insert(1, cpacpath)
+
+import CPAC
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -26,8 +30,9 @@ import sys, os
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 sys.path.append(os.path.abspath('sphinxext'))
-sys.path.append(os.path.abspath('../CPAC/anatpreproc/'))
+sys.path.append(os.path.abspath('../CPAC/anat_preproc/'))
 sys.path.append(os.path.abspath('../CPAC/sca/'))
+#sys.path.append(os.path.abspath('..'))
 
 extensions = ['sphinx.ext.autodoc', 'numpy_ext.numpydoc']
 

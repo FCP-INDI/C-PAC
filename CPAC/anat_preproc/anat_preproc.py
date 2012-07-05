@@ -1,6 +1,5 @@
-#!/Library/Frameworks/EPD64.framework/Versions/Current/bin/python
 import sys
-#import e_afni
+from CPAC.interfaces.afni import preprocess
 import os
 import commands
 import nipype.pipeline.engine as pe
@@ -22,12 +21,12 @@ def create_anat_preproc():
     Returns 
     -------
     anat_preproc : workflow
-        Anatomical preprocessing workflow
+        Anatomical ng workflow
     
     Notes
     -----
     
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/anatpreproc/anatpreproc.py>`_
+    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/anat_preproc/anat_preproc.py>`_
     
     Workflow Inputs::
     
@@ -83,33 +82,33 @@ def create_anat_preproc():
     >>> preporc.run() #doctest: +SKIP
             
     """
-    preproc = pe.Workflow(name='anatpreproc')
-    
+    preproc = pe.Workflow(name='anat_preproc')
+
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),
                         name='inputspec')
-    
+
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
                                                     'reorient',
                                                     'skullstrip',
                                                     'brain']),
                          name='outputspec')
-    
-    anat_deoblique = pe.Node(interface=e_afni.Threedrefit(),
+
+    anat_deoblique = pe.Node(interface=preprocess.Threedrefit(),
                          name='anat_deoblique')
     anat_deoblique.inputs.deoblique = True
-    
+
     anat_reorient = pe.Node(interface=afni.Resample(),
                             name='anat_reorient')
     anat_reorient.inputs.orientation = 'RPI'
-    
+
     anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
                               name='anat_skullstrip')
     anat_skullstrip.inputs.options = '-o_ply'
-    
-    anat_brain_only = pe.Node(interface=e_afni.Threedcalc(),
+
+    anat_brain_only = pe.Node(interface=preprocess.Threedcalc(),
                         name='anat_brain_only')
     anat_brain_only.inputs.expr = '\'a*step(b)\''
-    
+
     preproc.connect(inputNode, 'anat',
                     anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file',
@@ -120,7 +119,7 @@ def create_anat_preproc():
                     anat_brain_only, 'infile_b')
     preproc.connect(anat_reorient, 'out_file',
                     anat_brain_only, 'infile_a')
-    
+
     preproc.connect(anat_deoblique, 'out_file',
                     outputNode, 'refit')
     preproc.connect(anat_reorient, 'out_file',
@@ -129,5 +128,5 @@ def create_anat_preproc():
                     outputNode, 'skullstrip')
     preproc.connect(anat_brain_only, 'out_file',
                     outputNode, 'brain')
-    
+
     return preproc

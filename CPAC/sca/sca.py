@@ -1,5 +1,6 @@
 import sys
-import e_afni
+#import e_afni
+from CPAC.interfaces.afni import preprocess
 import os
 import commands
 import nipype.pipeline.engine as pe
@@ -8,7 +9,7 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from utils import *
+from CPAC.utils.utils import *
 
 
 
