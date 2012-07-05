@@ -15,5 +15,5 @@ class _NoseTester(nosetester.NoseTester):
     
 test = _NoseTester().test
 
-__all__ = ['anatpreproc', 'sca']
+__all__ = ['anat_preproc', 'sca']
 __version__ = ['0.1-git']

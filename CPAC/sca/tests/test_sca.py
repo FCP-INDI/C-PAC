@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import sys
 #import e_afni
 import os
@@ -11,7 +10,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 #from utils import *
 
-class sca_test(object):
+class TestSCA(object):
 
     def __init__(self, rest_res_filt, ref, standard, fwhm, seed_list, rest_mask2standard, premat, postmat, extraction_space):
 
@@ -101,7 +100,7 @@ class sca_test(object):
         """
         del self.sca_preproc
 
-    def inputs_test(self):
+    def test_inputs(self):
         """
 
         Test the workflow inputs
@@ -154,7 +153,7 @@ class sca_test(object):
 
         assert False
 
-    def outputs_test(self):
+    def test_output(self):
         """
         
         Run the sca_preproc workflow and test all the outputs 
@@ -252,7 +251,7 @@ class sca_test(object):
 
 
 
-    def warp_to_native_test(self):
+    def test_warp_to_native(self):
         """
         Checks if warping to native space works as expected
         Set up the workflow object by initializing it
@@ -287,7 +286,7 @@ class sca_test(object):
         assert False
 
 
-    def time_series_test(self):
+    def test_time_series(self):
         """
         checks if extraction of timeseries works as expected
         
@@ -322,7 +321,7 @@ class sca_test(object):
         assert False
 
 
-    def print_timeseries_to_file_test(self):
+    def test_print_timeseries_to_file(self):
         """
         checks if outputing timeseries list to a file works as expected
         
@@ -353,7 +352,7 @@ class sca_test(object):
         assert False
 
 
-    def warp_filt_test(self):
+    def test_warp_filt(self):
 
 
         """
@@ -389,7 +388,7 @@ class sca_test(object):
         assert False
 
 
-    def z_trans_test(self):
+    def test_z_trans(self):
 
         """
         checks if fisher Z transformation works as expected
@@ -419,7 +418,7 @@ class sca_test(object):
         assert False
 
 
-    def warp_to_standard_test(self):
+    def test_warp_to_standard(self):
 
         """
         checks if warping from functional space to MNI space works as expected
@@ -455,7 +454,7 @@ class sca_test(object):
         assert False
 
 
-    def corr_test(self):
+    def test_corr(self):
 
         """
         tests if computing correlations works as expected
@@ -491,7 +490,7 @@ class sca_test(object):
         assert False
 
 
-    def smooth_mni_test(self):
+    def test_smooth_mni(self):
 
         """
         test if spatial smoothing works as expected
