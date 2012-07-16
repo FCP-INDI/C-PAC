@@ -14,6 +14,8 @@ Contents:
    anat_preproc
    seg_preproc
    sca
+   alff
+   vmhc
 
 Indices and tables
 ==================
