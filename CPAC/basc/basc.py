@@ -1,4 +1,3 @@
-import numpy as np
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -16,6 +15,11 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters):
         Number of clusters
         
     """
+    print 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.'
+    
+    from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries
+    import numpy as np
+    
     indiv_stability_set = np.asarray(indiv_stability_list)
     V = indiv_stability_set.shape[2]
     
@@ -30,7 +34,7 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters):
 def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cbb_block_size = None):
     print 'Calculating individual stability matrix of:', subject_file
 
-    from utils import individual_stability_matrix
+    from CPAC.basc import individual_stability_matrix
     import nibabel as nb
 
     data = nb.load(subject_file).get_data().astype('float64')
@@ -141,7 +145,7 @@ def create_basc(name='basc'):
                                              'k_clusters'],
                                 output_names=['group_stability_matrix'],
                                 function=group_stability_matrix),
-                     name='gsm')
+                  name='gsm')
 
     # Gather outside workflow inputs
     basc.connect(inputspec, 'subjects',
@@ -152,13 +156,13 @@ def create_basc(name='basc'):
                  nis, 'n_bootstraps')
     basc.connect(inputspec, 'k_clusters',
                  nis, 'k_clusters')
-    basc.connect(inputspec, 'dataset_bootstraps',
-                 gsm, 'n_bootstraps')
-    basc.connect(inputspec, 'k_clusters',
-                 gsm, 'k_clusters')
-    
-    basc.connect(nis, 'individual_stability_matrices',
-                 gsm, 'indiv_stability_list')
+#    basc.connect(inputspec, 'dataset_bootstraps',
+#                 gsm, 'n_bootstraps')
+#    basc.connect(inputspec, 'k_clusters',
+#                 gsm, 'k_clusters')
+#    
+#    basc.connect(nis, 'individual_stability_matrices',
+#                 gsm, 'indiv_stability_list')
     
     
     

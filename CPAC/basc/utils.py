@@ -1,3 +1,5 @@
+import numpy as np
+
 def timeseries_bootstrap(tseries, block_size):
     """
     Generates a bootstrap sample derived from the input time-series.  Utilizes Circular-block-bootstrap method described in [1]_.
@@ -72,7 +74,7 @@ def standard_bootstrap(dataset):
     b = np.random.random_integers(0, high=n-1, size=n)
     return dataset[b]
 
-def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_threshold = 0.0, neighbors = 10):
+def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_threshold = 0.0, neighbors = 5):
     """
     Cluster a given timeseries
     
@@ -106,7 +108,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         from sklearn.neighbors import kneighbors_graph
         C_X = kneighbors_graph(X, n_neighbors=neighbors)
         C_X = 0.5 * (C_X + C_X.T)
-    
+
     from sklearn import cluster
     algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
     algorithm.fit(C_X)
@@ -175,12 +177,12 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
     
     if(cbb_block_size is None):
         cbb_block_size = int(np.sqrt(N))
-        
+
     S = np.zeros((V,V))
     for bootstrap_i in range(n_bootstraps):
         Y_b = timeseries_bootstrap(Y, cbb_block_size)
         S += adjacency_matrix(cluster_timeseries(Y_b.T, k_clusters)[:,np.newaxis])
     S /= n_bootstraps
-    
+
     return S
 

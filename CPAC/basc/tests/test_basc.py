@@ -62,7 +62,7 @@ def test_group_stability_matrix():
 def test_basc():
     import glob
     g_string = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/func_in_mnioutputs/fmri_mnioutputs/_session_id_NYU_TRT_session*_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/apply_warp/mapflow/_apply_warp0/residual_warp.nii.gz'
-    roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/AH/AH_Ne_PCC.nii.gz'
+    roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/AH/AH_Ne_all.nii.gz'
     
     subjects_list = glob.glob(g_string)
     b = basc.create_basc()
