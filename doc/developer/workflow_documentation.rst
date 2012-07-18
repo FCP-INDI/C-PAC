@@ -61,9 +61,8 @@ To add a documented workflow to the CPAC documentation site:
     Human readable name of workflow (eg. Anatomical Preprocessing)
     ==============================================================
     
-    .. currentmodule:: workflow_name
-    .. autofunction:: create_workflow_name
-
+    .. automodule:: CPAC.workflow_name
+        :members:
 
 * Add your workflow to the table of contents in ./CPAC/doc/workflows/index.rst (`example <https://raw.github.com/openconnectome/C-PAC/master/doc/workflows/index.rst>`_)::
 
@@ -76,12 +75,6 @@ To add a documented workflow to the CPAC documentation site:
        :maxdepth: 2
        ...
        workflow_name
-
-* Make your workflow code available to sphinx by adding the following line to ./CPAC/doc/conf.py (`example <https://github.com/openconnectome/C-PAC/blob/master/doc/conf.py#L29>`_)::
-
-    sys.path.append(os.path.abspath('sphinxext'))
-    ...
-    sys.path.append(os.path.abspath('../CPAC/workflow_name/'))
 
 * Generate the html documentation using sphinx by running the command in ./CPAC/doc/::
 

@@ -32,9 +32,10 @@ import CPAC
 sys.path.append(os.path.abspath('sphinxext'))
 sys.path.append(os.path.abspath('../CPAC/anat_preproc/'))
 sys.path.append(os.path.abspath('../CPAC/sca/'))
+
 #sys.path.append(os.path.abspath('..'))
 
-extensions = ['sphinx.ext.autodoc', 'numpy_ext.numpydoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'numpy_ext.numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
