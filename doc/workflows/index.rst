@@ -9,10 +9,12 @@ Workflows
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   anat_preproc
-   sca
+    anat_preproc
+    sca
+    basc
+    nuisance
 
 Indices and tables
 ==================

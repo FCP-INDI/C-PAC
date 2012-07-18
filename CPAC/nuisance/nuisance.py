@@ -147,9 +147,7 @@ def extract_compcor_components(nc,
     
     References
     ----------
-    .. [1] Y. Behzadi, K. Restom, J. Liau, and T. T. Liu, “A component based noise correction 
-    method (CompCor) for BOLD and perfusion based fMRI.,” NeuroImage, vol. 37, no. 1, pp. 90-101,
-     Aug. 2007.
+    .. [1] Y. Behzadi, K. Restom, J. Liau, and T. T. Liu, A component based noise correction method (CompCor) for BOLD and perfusion based fMRI., NeuroImage, vol. 37, no. 1, pp. 90-101, Aug. 2007.
      
     """
     
@@ -392,8 +390,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
     
     References
     ----------
-﻿    .. [1] H. He and T. T. Liu, “A geometric view of global signal confounds in resting-state 
-    functional MRI,” NeuroImage, Sep. 2011.
+    .. [1] H. He and T. T. Liu, "A geometric view of global signal confounds in resting-state functional MRI," NeuroImage, Sep. 2011.
     
     """
     import numpy as np

@@ -77,7 +77,6 @@ def standard_bootstrap(dataset):
 def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_threshold = 0.0, neighbors = 5):
     """
     Cluster a given timeseries
-    
         
     Parameters
     ----------
@@ -85,14 +84,25 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         A matrix of shape (`N`, `M`) with `N` samples and `M` dimensions
     n_clusters : integer
         Number of clusters
+    similarity_metric : {None, 'correlation', 'data'}
+        Type of similarity measure for spectral clustering.  The pairwise similarity measure
+        specifies the edges of the similarity graph. 'data' option assumes X as the similarity
+        matrix and hence must be symmetric.  None will default to kneighbors_graph [1]_ (forced 
+        to by symmetric) 
     affinity_threshold : float
-    
+        Threshold of similarity metric when 'correlation' similarity metric is used.
+        
     Returns
     -------
     y_pred : array_like
 
     Examples
     --------
+    
+    
+    References
+    ----------
+    .. [1] http://scikit-learn.org/dev/modules/generated/sklearn.neighbors.kneighbors_graph.html
     
     """
 
@@ -104,11 +114,13 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         C_X[C_X < affinity_threshold] = 0
     elif similarity_metric == 'data':
         C_X = X
-    else:
+    elif similarity_metric is None:
         from sklearn.neighbors import kneighbors_graph
         C_X = kneighbors_graph(X, n_neighbors=neighbors)
         C_X = 0.5 * (C_X + C_X.T)
-
+    else:
+        raise ValueError("Unknown value for similarity_metric: '%s'." % similarity_metric)
+    
     from sklearn import cluster
     algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
     algorithm.fit(C_X)
@@ -152,6 +164,40 @@ def adjacency_matrix(cluster_pred):
     
     return A
 
+def cluster_matrix_average(M, cluster_assignments):
+    """
+    Calculate the average element value within a similarity matrix for each cluster assignment, a measure
+    of within cluster similarity.  Self similarity (diagonal of similarity matrix) is removed.
+    
+    Parameters
+    ----------
+    M : array_like
+    cluster_assignments : array_like
+    
+    Returns
+    -------
+    s : array_like
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from CPAC import basc
+    >>> S = np.arange(25).reshape(5,5)
+    >>> assign = np.array([0,0,0,1,1])
+    >>> basc.cluster_matrix_average(S, assign)
+    array([  6.,   6.,   6.,  21.,  21.])
+    
+    """
+    cluster_ids = np.unique(cluster_assignments)
+    s = np.zeros_like(cluster_assignments, dtype='float64')
+    for cluster_id in cluster_ids:
+        k = (cluster_assignments == cluster_id)[:, np.newaxis]
+        K = np.dot(k,k.T)
+        K[np.diag_indices_from(K)] = False
+        s[k[:,0]] = M[K].mean()
+
+    return s
+
 def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = None):
     """
     Calculate the individual stability matrix of a single subject by bootstrapping their time-series
@@ -181,7 +227,7 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
     S = np.zeros((V,V))
     for bootstrap_i in range(n_bootstraps):
         Y_b = timeseries_bootstrap(Y, cbb_block_size)
-        S += adjacency_matrix(cluster_timeseries(Y_b.T, k_clusters)[:,np.newaxis])
+        S += adjacency_matrix(cluster_timeseries(Y_b.T, k_clusters, similarity_metric = 'correlation')[:,np.newaxis])
     S /= n_bootstraps
 
     return S
