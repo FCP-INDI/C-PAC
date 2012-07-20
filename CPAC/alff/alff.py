@@ -7,7 +7,7 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from CPAC.utils.utils import *
+from CPAC.alff import *
 
 def create_alff(tr):
 
@@ -17,7 +17,7 @@ def create_alff(tr):
     Parameters
     ----------
 
-    tr : Temporal Resolution of the functional alff
+    tr : (float) Temporal Resolution of the functional alff
 
     Returns
     -------
@@ -46,53 +46,53 @@ def create_alff(tr):
         fwhm_input.fwhm : (A list of floating point numbers)
             full width half max for spatial alff_Z_to_standard_FWHMing
 
-        inputspec.rest_res : (an existing nifti file)
+        inputspec.rest_res : string (an existing nifti file)
             Nuisance signal regressed functional image
 
-        inputspec.rest_mask : (an existing nifti file)
+        inputspec.rest_mask : string (an existing nifti file)
             A mask volume(derived by dilating the motion corrected functional volume) in native space
 
-        inputspec.rest_mask2standard : (an existing nifti file)
+        inputspec.rest_mask2standard : string (an existing nifti file)
             A mask volume(derived from the functional volume) in standard in standard space
             Used in spatial alff_Z_to_standard_FWHMing the Z-transformed correlations in MNI space
 
-        inputspec.premat : (an existing affine transformation .mat file)
+        inputspec.premat : string (an existing affine transformation .mat file)
             Specifies an affine transform that should be applied to the data prior to the non-linear warping(example_func2highres.mat).
 
-        inputspec.standard : (an existing nifti file)
+        inputspec.standard : string (an existing nifti file)
             FSL standard nifti file in user specified resolution
 
-        inputspec.fieldcoeff_file : (an existing nifti file)
+        inputspec.fieldcoeff_file : string (an existing nifti file)
             File with warp coefficients/fields. This typically the output given by the --cout parameter of fnirt during registration step
 
 
     Workflow Outputs: ::
 
-        outputspec.power_spectrum_distribution : (a nifti file)
+        outputspec.power_spectrum_distribution : string (nifti file)
             outputs image containing the spectral power density of residual functional image
 
-        outputspec.alff_img : (a nifti file)
+        outputspec.alff_img : string (nifti file)
             outputs image containing the sum of the amplitudes in the low frequency band
 
-        outputspec.falff_img : (a nifti file)
+        outputspec.falff_img : string (nifti file)
             outputs image containing the sum of the amplitudes in the low frequency band divided by the amplitude of the total frequency
 
-        outputspec.alff_Z_img : (a nifti file)
+        outputspec.alff_Z_img : string (nifti file)
             outputs image containing Normalized ALFF Z scores across full brain in native space
 
-        outputspec.falff_Z_img : (a nifti file)
+        outputspec.falff_Z_img : string (nifti file)
             outputs image containing Normalized fALFF Z scores across full brain in native space
 
-        outputspec.alff_Z_2standard_img : (a nifti file)
+        outputspec.alff_Z_2standard_img : string (nifti file)
             outputs image containing normalized  ALFF Z scores in MNI space
 
-        outputspec.falff_Z_2standard_img : (a nifti file)
+        outputspec.falff_Z_2standard_img : string (nifti file)
             outputs image containing normalized  fALFF Z scores in MNI space
 
-        outputspec.alff_Z_2standard_fwhm_img : (a nifti file)
+        outputspec.alff_Z_2standard_fwhm_img : string (nifti file)
             outputs image containing normalized ALFF Z scores in MNI space with spatial alff_Z_to_standard_FWHMing applied to them
 
-        outputspec.falff_Z_2standard_fwhm_img : (a nifti file)
+        outputspec.falff_Z_2standard_fwhm_img : string (nifti file)
             outputs image containing normalized fALFF Z scores in MNI space with spatial alff_Z_to_standard_FWHMing applied to them
 
 

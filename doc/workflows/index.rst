@@ -9,13 +9,16 @@ Workflows
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   anat_preproc
-   seg_preproc
-   sca
-   alff
-   vmhc
+    anat_preproc
+    seg_preproc
+    sca
+    basc
+    nuisance
+    alff
+    vmhc
+
 
 Indices and tables
 ==================

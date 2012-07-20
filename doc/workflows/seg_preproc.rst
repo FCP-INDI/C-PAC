@@ -1,5 +1,5 @@
 Segmentation Workflow
 =====================
 
-.. currentmodule:: seg_preproc
-.. autofunction:: create_seg_preproc
+.. automodule:: CPAC.seg_preproc
+    :members:

@@ -1,5 +1,4 @@
 import sys
-#import e_afni
 from CPAC.interfaces.afni import preprocess
 import os
 import commands
@@ -9,7 +8,7 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from CPAC.utils.utils import *
+from CPAC.sca import *
 
 
 

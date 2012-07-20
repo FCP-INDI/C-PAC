@@ -36,7 +36,9 @@ sys.path.append(os.path.abspath('../CPAC/sca/'))
 sys.path.append(os.path.abspath('../CPAC/alff/'))
 sys.path.append(os.path.abspath('../CPAC/vmhc/'))
 
-extensions = ['sphinx.ext.autodoc', 'numpy_ext.numpydoc']
+#sys.path.append(os.path.abspath('..'))
+
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'numpy_ext.numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

@@ -8,7 +8,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 #from utils import *
-from CPAC.utils.utils import *
+from CPAC.vmhc import *
 from CPAC.interfaces.afni import preprocess
 
 def create_vmhc():
@@ -76,31 +76,31 @@ def create_vmhc():
         
     Workflow Outputs::
 
-        outputspec.highres2symmstandard : (a nifti file)
+        outputspec.highres2symmstandard : (nifti file)
             Linear registration of T1 image to symmetric standard image
 
         outputspec.highres2symmstandard_mat : (an affine transformation .mat file)
             An affine transformation .mat file from linear registration and used in non linear registration
 
-        outputspec.highres2symmstandard_warp : (a nifti file)
+        outputspec.highres2symmstandard_warp : (nifti file)
             warp file from Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.fnirt_highres2symmstandard : (a nifti file)
+        outputspec.fnirt_highres2symmstandard : (nifti file)
             Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.highres2symmstandard_jac : (a nifti file)
+        outputspec.highres2symmstandard_jac : (nifti file)
             jacobian determinant image from Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.rest_res_2symmstandard : (a nifti file)
+        outputspec.rest_res_2symmstandard : (nifti file)
             nonlinear registration (func to standard) image
 
-        outputspec.VMHC_FWHM_img : (a nifti file)
+        outputspec.VMHC_FWHM_img : (nifti file)
             pearson correlation between res2standard and flipped res2standard
 
-        outputspec.VMHC_Z_FWHM_img : (a nifti file)
+        outputspec.VMHC_Z_FWHM_img : (nifti file)
             Fisher Z transform map
 
-        outputspec.VMHC_Z_stat_FWHM_img : (a nifti file)
+        outputspec.VMHC_Z_stat_FWHM_img : (nifti file)
             Z statistic map
 
     Order of commands:
