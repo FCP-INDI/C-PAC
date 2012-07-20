@@ -8,6 +8,22 @@ import nipype.interfaces.utility as util
 
 def set_gauss(fwhm):
 
+    """
+    Compute the sigma value, given Full Width Half Max. 
+    Further it builds an operand string and returns it
+
+    Parameters
+    ----------
+
+    fwhm : float
+
+    Returns
+    -------
+
+    op_string : string
+
+    """
+
     op_string = ""
 
     fwhm = float(fwhm)
@@ -22,6 +38,21 @@ def set_gauss(fwhm):
 
 def getImgNVols(in_files, stopIdx, startIdx):
 
+    """
+    Calculates the number of volumes in the given nifti images
+
+    Parameters
+    ----------
+
+    in_files : list (nifti files)
+
+    Returns
+    -------
+
+    out : list (int)
+        number of volumes of each input nifti file
+
+    """
     out = []
     from nibabel import load
     if(isinstance(in_files, list)):
@@ -47,6 +78,21 @@ def getImgNVols(in_files, stopIdx, startIdx):
 
 
 def getEXP(nvols):
+
+    """
+    Generates a list of operand strings/expressions
+
+    Parameters
+    ----------
+
+    nvols : list (int)
+
+    Returns
+    -------
+
+    expr : list (string)
+
+    """
 
     expr = []
     for vol in nvols:

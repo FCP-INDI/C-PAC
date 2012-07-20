@@ -39,68 +39,68 @@ def create_vmhc():
 
     Workflow Inputs::
 
-        inputspec.brain : (an existing nifti file)
+        inputspec.brain : string (existing nifti file)
             Anatomical image(without skull)
 
-        inputspec.brain_symmetric : (an existing nifti file)
+        inputspec.brain_symmetric : string (existing nifti file)
             MNI152_T1_2mm_brain_symmetric.nii.gz
  
-        inputspec.rest_res_filt : (an existing nifti file)
+        inputspec.rest_res_filt : string (existing nifti file)
             Band passed Image with nuisance signal regressed out(and optionally scrubbed). Recommended bandpass filter (0.001,0.1) )
 
-        inputspec.reorient : (an existing nifti file)
+        inputspec.reorient : string (existing nifti file)
             RPI oriented anatomical data
 
-        inputspec.example_func2highres_mat : (an existing affine transformation .mat file)
+        inputspec.example_func2highres_mat : string (existing affine transformation .mat file)
             Specifies an affine transform that should be applied to the example_func before non linear warping
 
-        inputspec.standard : (an existing nifti file)
+        inputspec.standard : string (existing nifti file)
             MNI152_T1_standard_resolution_brain.nii.gz
 
-        inputspec.symm_standard : (an existing nifti file)
+        inputspec.symm_standard : string (existing nifti file)
             MNI152_T1_2mm_symmetric.nii.gz
 
-        inputspec.twomm_brain_mask_dil : (an existing nifti file)
+        inputspec.twomm_brain_mask_dil : string (existing nifti file)
             MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz
 
-        inputspec.config_file_twomm_symmetric : (an existing .cnf file)
+        inputspec.config_file_twomm_symmetric : string (existing .cnf file)
             T1_2_MNI152_2mm_symmetric.cnf
 
-        inputspec.rest_mask : (an existing nifti file)
+        inputspec.rest_mask : string (existing nifti file)
             A mask functional volume(derived by dilation from motion corrected functional volume)
 
-        fwhm_input.fwhm : (A list of floating point numbers)
+        fwhm_input.fwhm : list (float) 
             For spatial smoothing the Z-transformed correlations in MNI space.
             Generally the value of this parameter is 1.5 or 2 times the voxel size of the input Image.
 
         
     Workflow Outputs::
 
-        outputspec.highres2symmstandard : (nifti file)
+        outputspec.highres2symmstandard : string (nifti file)
             Linear registration of T1 image to symmetric standard image
 
-        outputspec.highres2symmstandard_mat : (an affine transformation .mat file)
+        outputspec.highres2symmstandard_mat : string (affine transformation .mat file)
             An affine transformation .mat file from linear registration and used in non linear registration
 
-        outputspec.highres2symmstandard_warp : (nifti file)
+        outputspec.highres2symmstandard_warp : string (nifti file)
             warp file from Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.fnirt_highres2symmstandard : (nifti file)
+        outputspec.fnirt_highres2symmstandard : string (nifti file)
             Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.highres2symmstandard_jac : (nifti file)
+        outputspec.highres2symmstandard_jac : string (nifti file)
             jacobian determinant image from Non Linear registration of T1 to symmetrical standard brain
 
-        outputspec.rest_res_2symmstandard : (nifti file)
+        outputspec.rest_res_2symmstandard : string (nifti file)
             nonlinear registration (func to standard) image
 
-        outputspec.VMHC_FWHM_img : (nifti file)
+        outputspec.VMHC_FWHM_img : string (nifti file)
             pearson correlation between res2standard and flipped res2standard
 
-        outputspec.VMHC_Z_FWHM_img : (nifti file)
+        outputspec.VMHC_Z_FWHM_img : string (nifti file)
             Fisher Z transform map
 
-        outputspec.VMHC_Z_stat_FWHM_img : (nifti file)
+        outputspec.VMHC_Z_stat_FWHM_img : string (nifti file)
             Z statistic map
 
     Order of commands:

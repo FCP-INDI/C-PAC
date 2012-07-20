@@ -8,6 +8,23 @@ import nipype.interfaces.utility as util
 
 def set_gauss(fwhm):
 
+    """
+    Compute the sigma value, given Full Width Half Max. 
+    Further it builds an operand string and returns it
+
+    Parameters
+    ----------
+
+    fwhm : float
+
+    Returns
+    -------
+
+    op_string : string
+
+    """
+
+
     op_string = ""
 
     fwhm = float(fwhm)
@@ -21,6 +38,22 @@ def set_gauss(fwhm):
 
 
 def pToFile(time_series):
+
+    """
+    Write Timeseries values in an emty time series file
+
+    Parameters
+    ----------
+
+    time_series : list (float)
+
+    Returns
+    -------
+
+    ts_oneD : string (.txt file)
+        file contains timeseries values, one value per line
+
+    """
 
     import os
     import re
