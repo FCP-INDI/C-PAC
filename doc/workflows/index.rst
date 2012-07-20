@@ -12,9 +12,13 @@ Contents:
     :maxdepth: 2
 
     anat_preproc
+    seg_preproc
     sca
     basc
     nuisance
+    alff
+    vmhc
+
 
 Indices and tables
 ==================

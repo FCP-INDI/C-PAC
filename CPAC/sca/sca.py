@@ -1,5 +1,4 @@
 import sys
-#import e_afni
 from CPAC.interfaces.afni import preprocess
 import os
 import commands
@@ -9,7 +8,7 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from CPAC.utils.utils import *
+from CPAC.sca import *
 
 
 
@@ -43,48 +42,50 @@ def create_sca(extraction_space):
 
     Workflow Inputs::
  
-        seed_list_input.seed_list : a list of existing nifti files
+        seed_list_input.seed_list : list (string existing nifti file) 
             A list of seeds/ ROI iin MNI space.
 
-        inputspec.rest_res_filt : an existing nifti file 
+        inputspec.rest_res_filt : string (existing nifti file)
             Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
 
-        inputspec.rest_mask2standard : an existing nifti file
+        inputspec.rest_mask2standard : string (existing nifti file)
             A mask volume(derived from the functional volume) in standard in standard space.
             Used in spatial smoothing the Z-transformed correlations in MNI space
 
-        inputspec.premat : an existing affine transformation .mat file for transformation from native functional space to T1 space
+        inputspec.premat : string (existing affine transformation .mat file)
+			Transformation from native functional space to T1 space
             Specifies an affine transform that should be applied to the data prior to the non-linear warping.
 
-        inputspec.postmat : an existing affine transformation .mat file for transformation from T1 space to native functional space
+        inputspec.postmat : string (existing affine transformation .mat file)
+			Transformation from T1 space to native functional space
             Specifies an affine transform that should be applied to the data following to the non-linear warping.
 
-        inputspec.fieldcoeff_file : an existing nifti file
+        inputspec.fieldcoeff_file : string (existing nifti file)
             File with warp coefficients/fields.
             This typically the output given by the -cout parameter of fnirt during registration step
 
 
-        inputspec.ref : an existing nifti file
+        inputspec.ref : string (existing nifti file)
             When Registering from MNI space to native space use the mean functional image in native space is used.
             When registering from native to MNI MNI152_T1_STANDARD_RES nifti file is used(target space).
 
-        fwhm_input.fwhm : A list of floating point numbers
+        fwhm_input.fwhm : list (float)
             For spatial smoothing the Z-transformed correlations in MNI space.
             Generally the value of this parameter is 1.5 or 2 times the voxel size of the input Image.
 
         
     Workflow Outputs::
 
-        outputspec.correlations : a nifti file
+        outputspec.correlations : string (nifti file)
             Correlations for the seed 
 
-        outputspec.z_trans_correlations : a nifti file
+        outputspec.z_trans_correlations : string (nifti file)
             Fisher Z transformed correlations of the seed 
 
-        outputspec.z_2standard : a nifti file
+        outputspec.z_2standard : string (nifti file)
             Registered Z-Transformed Correlations to Standard Space
 
-        outputspec.z_2standard_FWHM : a nifti file
+        outputspec.z_2standard_FWHM : string (nifti file)
             Spatially smoothed corr_Z_2standard.nii.gz
 
     Order of commands:
