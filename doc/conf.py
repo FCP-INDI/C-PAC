@@ -31,7 +31,10 @@ import CPAC
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 sys.path.append(os.path.abspath('sphinxext'))
 sys.path.append(os.path.abspath('../CPAC/anat_preproc/'))
+sys.path.append(os.path.abspath('../CPAC/seg_preproc/'))
 sys.path.append(os.path.abspath('../CPAC/sca/'))
+sys.path.append(os.path.abspath('../CPAC/alff/'))
+sys.path.append(os.path.abspath('../CPAC/vmhc/'))
 
 #sys.path.append(os.path.abspath('..'))
 
