@@ -19,7 +19,10 @@ Contents:
     nuisance
     alff
     vmhc
+    generate_parameters
     scrubbing
+    group_analysis
+    easy_thresh     
 
 Indices and tables
 ==================

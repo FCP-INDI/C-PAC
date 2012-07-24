@@ -11,7 +11,7 @@ def create_func_preproc():
     """
     
     The main purpose of this workflow is to process T2 scans. Raw rest file is deobliqued and reoriented 
-    into RPI. Then take the mean intensity values over all time points for each voxel ans use this image 
+    into RPI. Then take the mean intensity values over all time points for each voxel and use this image 
     to calaculate motion parameters. The image is then skullstripped, normalized and a processed mask is 
     obtained to use it further in Image analysis.
     
@@ -38,49 +38,49 @@ def create_func_preproc():
     
     Workflow Outputs::
     
-        outputspec.drop_tr : nifti file
-          Output image with the inital few slices dropped
+        outputspec.drop_tr : string (nifti file)
+          Path to Output image with the inital few slices dropped
           
-        outputspec.refit : nifti file
-            Deobliqued anatomical data 
+        outputspec.refit : string (nifti file)
+           Path to Deobliqued anatomical data 
         
-        outputspec.reorient : nifti file
-            RPI oriented anatomical data 
+        outputspec.reorient : string (nifti file)
+            Path to RPI oriented anatomical data 
         
-        outputspec.motion_correct_ref : file
-             Mean intensity Motion corrected image 
+        outputspec.motion_correct_ref : string (nifti file)
+             Path to Mean intensity Motion corrected image 
              (base reference image for the second motion correction run)
         
-        outputspec.motion_correct : nifti file
-            motion corrected output file
+        outputspec.motion_correct : string (nifti file)
+            Path to motion corrected output file
         
-        outputspec.max_displacement : Mat file
-            maximum displacement (in mm) for brain voxels in each volume
+        outputspec.max_displacement : string (Mat file)
+            Path to maximum displacement (in mm) for brain voxels in each volume
         
-        outputspec.movement_parameters : Mat file
-            1D file containing six movement/motion parameters(3 Translation, 3 Rotations) 
+        outputspec.movement_parameters : string (Mat file)
+            Path to 1D file containing six movement/motion parameters(3 Translation, 3 Rotations) 
             in different columns (roll pitch yaw dS  dL  dP)
         
-        outputspec.skullstrip : nifti file
-            Skull Stripped Motion Corrected Image 
+        outputspec.skullstrip : string (nifti file)
+            Path to skull stripped Motion Corrected Image 
         
-        outputspec.mask : nifti file
-            Dilated brain-only mask
+        outputspec.mask : string (nifti file)
+            Path to Dilated brain-only mask
             
-        outputspec.example_func : nifti file
-            Mean, Skull Stripped, Motion Corrected output T2 Image
+        outputspec.example_func : string (nifti file)
+            Mean, Skull Stripped, Motion Corrected output T2 Image path
             (Image with mean intensity values across voxels) 
         
-        outputpsec.preprocessed : nifti file
+        outputpsec.preprocessed : string (nifti file)
             output skull stripped, motion corrected T2 image 
             with normalized intensity values 
 
-        outspec.preprocessed_mask : nifti file
+        outspec.preprocessed_mask : string (nifti file)
            Mask obtained from normalized preprocessed image
     
     Order of commands:
     
-    - Get the start and the end volume number of the functional run. If not defined by the user, return the first and last volume.
+    - Get the start and the end volume index of the functional run. If not defined by the user, return the first and last volume.
     
         get_idx(in_files, stop_idx, start_idx)
         
@@ -361,16 +361,13 @@ def get_idx(in_files, stop_idx, start_idx):
     
     Parameters
     ----------
-    
-    in_file : file
-        input functional run
+    in_file : string (nifti file)
+       Path to input functional run
         
     Returns
     -------
-    
     stop_idx :  string
         First considered volume of the functional run
-    
     start_idx :
         Last considered volume of the functional run
     

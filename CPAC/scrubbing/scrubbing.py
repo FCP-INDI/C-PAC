@@ -1,4 +1,3 @@
-#import e_afni
 import CPAC.interfaces.afni.preprocess as e_afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -9,56 +8,48 @@ def create_scrubbing_preproc():
     This workflow essentially takes the list of offending timepoints that are to be removed
     and removes it from the motion corrected input image. Also, it removes the information
     of discarded time points from the movement parameters file obtained during motion correction.
-
     
     Returns
     -------
-    scrub: object
+    scrub : object
         Scrubbing workfow object
-
     
     Notes
     -----
     `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/scrubbing/scrubbing.py>`_
-
     
     Workflow Inputs::
         
-        inputspec.frames_in_ID : file
-            List of time points for which FD > threshold
-        inputspec.movement_parameters : mat file
-            1D file containing six movement/motion parameters
+        inputspec.frames_in_ID : string (mat file)
+            path to file containing list of time points for which FD > threshold
+        inputspec.movement_parameters : string (mat file)
+            path to file containing 1D file containing six movement/motion parameters
             (3 Translation, 3 Rotations) in different columns 
-        inputspec.preprocessed : nifti file
-            Preprocessed input image
-
+        inputspec.preprocessed : string (nifti file)
+            preprocessed input image path
             
     Workflow Outputs::
         
-        outputspec.preprocessed : nifti file
-            Preprocessed scrubbed output image 
-        outputspec.scrubbed_movement_parameters : mat file
-            1D file containing six movement/motion parameters
+        outputspec.preprocessed : string (nifti file)
+            preprocessed scrubbed output image 
+        outputspec.scrubbed_movement_parameters : string (mat file)
+            path to 1D file containing six movement/motion parameters
             for the timepoints which are not discarded by scrubbing
-
         
     Order of Commands:
     
-    - Remove the movement parameters for all the time frames other than 
-      those that are present in frames_in_1D file
+    - Remove all movement parameters for all the time frames other than those that are present
+      in the frames_in_1D file
       
-    - Remove the discarded timepoints from the input image
+    - Remove the discarded timepoints from the input image. For details see `3dcalc <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html>`_::
         
         3dcalc -a bandpassed_demeaned_filtered.nii.gz[0,1,5,6,7,8,9,10,15,16,17,18,19,20,24,25,287,288,289,290,291,292,293,294,295] 
-               -expr 'a' 
-	       -prefix bandpassed_demeaned_filtered_3dc.nii.gz
-
+               -expr 'a' -prefix bandpassed_demeaned_filtered_3dc.nii.gz
                
     High Level Workflow Graph:
     
     .. image:: ../images/scrubbing.dot.png
        :width: 500
-    
     
     Detailed Workflow Graph:
     
