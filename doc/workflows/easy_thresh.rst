@@ -1,4 +1,4 @@
-easy thresh
+Easy thresh
 ==============
 
 .. automodule:: CPAC.easy_thresh
