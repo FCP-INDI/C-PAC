@@ -177,19 +177,19 @@ def create_func_preproc():
     High Level Workflow Graph:
     
     .. image:: ../images/func_preproc.dot.png
-       :width: 500
+       :width: 1000
     
     
     Detailed Workflow Graph:
     
     .. image:: ../images/func_preproc_detailed.dot.png
-       :width: 500
+       :width: 1000
 
     Examples
     --------
     
     >>> import func_preproc
-    >>> prproc = create_func_preproc()
+    >>> preproc = create_func_preproc()
     >>> preproc.inputs.inputspec.func='sub1/func/rest.nii.gz'
     >>> preporc.run() #doctest: +SKIP
 
@@ -254,7 +254,7 @@ def create_func_preproc():
     func_motion_correct.inputs.zpad = '4'
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
-    
+
     func_get_dilate_mask = pe.MapNode(interface=e_afni.ThreedAutomask(),
                                name='func_get_dilate_mask',
                                iterfield=['in_file'])
@@ -354,23 +354,34 @@ def create_func_preproc():
 
 
 def get_idx(in_files, stop_idx, start_idx):
-    
+
     """
     Method to get the first and the last slice for
-    the functional run
+    the functional run. It verifies the user specified
+    first and last slice. If the values are not valid, it 
+    calculates and returns the very first and the last slice 
     
     Parameters
     ----------
     in_file : string (nifti file)
        Path to input functional run
         
+    stop_idx : int
+        Last volume to be considered, specified by user
+        in the configuration file 
+    
+    stop_idx : int
+        First volume to be considered, specified by user 
+        in the configuration file 
+    
     Returns
     -------
-    stop_idx :  string
-        First considered volume of the functional run
-    start_idx :
-        Last considered volume of the functional run
-    
+    stop_idx :  int
+        Value of first slice to consider for the functional run 
+        
+    start_idx : int 
+        Value of last slice to consider for the functional run
+        
     """
 
     stopidx = None

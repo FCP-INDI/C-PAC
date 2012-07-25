@@ -1,4 +1,4 @@
-from generate_parameters import  mov_pow_parameters,\
+from generate_motion_parameters import  motion_power_parameters,\
                                  last_vol,\
                                  trend_minus1,\
                                  set_FD,\
@@ -12,7 +12,7 @@ from generate_parameters import  mov_pow_parameters,\
                                  get_img_nvols
 
 
-__all__ = ['mov_pow_parameters', \
+__all__ = ['motion_power_parameters', \
            'last_vol', \
            'trend_minus1', \
            'set_FD', \

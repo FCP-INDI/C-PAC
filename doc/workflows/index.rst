@@ -19,7 +19,7 @@ Contents:
     nuisance
     alff
     vmhc
-    generate_parameters
+    generate_motion_parameters
     scrubbing
     group_analysis
     easy_thresh     
