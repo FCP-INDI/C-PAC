@@ -37,32 +37,32 @@ def create_alff(tr):
 
     Workflow Inputs: ::
 
-        hp_input.hp : (A list of floating point numbers)
+        hp_input.hp : list (float) 
             high pass frequencies
 
-        lp_input.lp : (A list of floating point numbers)
+        lp_input.lp : list (float) 
             low pass frequencies
 
-        fwhm_input.fwhm : (A list of floating point numbers)
+        fwhm_input.fwhm : list (float)
             full width half max for spatial alff_Z_to_standard_FWHMing
 
-        inputspec.rest_res : string (an existing nifti file)
+        inputspec.rest_res : string (existing nifti file)
             Nuisance signal regressed functional image
 
-        inputspec.rest_mask : string (an existing nifti file)
+        inputspec.rest_mask : string (existing nifti file)
             A mask volume(derived by dilating the motion corrected functional volume) in native space
 
-        inputspec.rest_mask2standard : string (an existing nifti file)
+        inputspec.rest_mask2standard : string (existing nifti file)
             A mask volume(derived from the functional volume) in standard in standard space
             Used in spatial alff_Z_to_standard_FWHMing the Z-transformed correlations in MNI space
 
-        inputspec.premat : string (an existing affine transformation .mat file)
+        inputspec.premat : string (existing affine transformation .mat file)
             Specifies an affine transform that should be applied to the data prior to the non-linear warping(example_func2highres.mat).
 
-        inputspec.standard : string (an existing nifti file)
+        inputspec.standard : string (existing nifti file)
             FSL standard nifti file in user specified resolution
 
-        inputspec.fieldcoeff_file : string (an existing nifti file)
+        inputspec.fieldcoeff_file : string (existing nifti file)
             File with warp coefficients/fields. This typically the output given by the --cout parameter of fnirt during registration step
 
 
