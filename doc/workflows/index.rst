@@ -12,13 +12,17 @@ Contents:
     :maxdepth: 2
 
     anat_preproc
+    func_preproc
     seg_preproc
     sca
     basc
     nuisance
     alff
     vmhc
-
+    generate_parameters
+    scrubbing
+    group_analysis
+    easy_thresh     
 
 Indices and tables
 ==================
