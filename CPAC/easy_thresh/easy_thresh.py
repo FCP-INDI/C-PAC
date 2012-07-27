@@ -5,8 +5,8 @@ import nipype.interfaces.utility as util
 
 def easy_thresh(wf_name):
     """
-     Workflow for carrying out cluster-based thresholding 
-     and colour activation overlaying
+    Workflow for carrying out cluster-based thresholding 
+    and colour activation overlaying
     
     Parameters
     ----------
@@ -138,13 +138,13 @@ def easy_thresh(wf_name):
     High Level Workflow Graph:
     
     .. image:: ../images/easy_thresh.dot.png
-       :width: 500
+       :width: 1000
     
     
     Detailed Workflow Graph:
     
     .. image:: ../images/easy_thresh_detailed.dot.png
-       :width: 500
+       :width: 1000
                
     Examples
     --------
@@ -159,14 +159,14 @@ def easy_thresh(wf_name):
     >>> preporc.run()  -- SKIP doctest
     
     """
-    
+
     easy_thresh = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(fields=[ 'z_stats',
-                                                        'merge_mask',
-                                                        'z_threshold',
-                                                        'p_threshold',
-                                                        'parameters']),
+    inputnode = pe.Node(util.IdentityInterface(fields=['z_stats',
+                                                       'merge_mask',
+                                                       'z_threshold',
+                                                       'p_threshold',
+                                                       'parameters']),
                          name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['cluster_threshold',
@@ -176,22 +176,20 @@ def easy_thresh(wf_name):
                                                         'rendered_image']),
                          name='outputspec')
 
-    
     ### fsl easythresh 
     # estimate image smoothness
     smooth_estimate = pe.MapNode(interface=fsl.SmoothEstimate(),
                                     name='smooth_estimate',
                                     iterfield=['zstat_file'])
-    
+
     # run clustering after fixing stats header for talspace
     zstat_mask = pe.MapNode(interface=fsl.MultiImageMaths(),
                                   name='zstat_mask',
                                   iterfield=['in_file'])
     #operations to perform
     #-mas use (following image>0) to mask current image
-    zstat_mask.inputs.op_string = '-mas %s'  
-    
-    
+    zstat_mask.inputs.op_string = '-mas %s'
+
     #fslcpgeom
     #copy certain parts of the header information (image dimensions, 
     #voxel dimensions, voxel dimensions units string, image orientation/origin 
@@ -201,7 +199,7 @@ def easy_thresh(wf_name):
                                              function=copy_geom),
                                              name='copy_geometry',
                                              iterfield=['infile_a', 'infile_b'])
-    
+
     ##cluster-based thresholding
     #After carrying out the initial statistical test, the resulting 
     #Z statistic image is then normally thresholded to show which voxels or 
@@ -222,10 +220,8 @@ def easy_thresh(wf_name):
     #local maxima text file
     #defines the cluster cordinates
     cluster.inputs.out_localmax_txt_file = True
-    
 
-   
-    
+
     #max and minimum intensity values
     image_stats = pe.MapNode(interface=fsl.ImageStats(),
                              name='image_stats',
@@ -237,10 +233,10 @@ def easy_thresh(wf_name):
     create_tuple = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'],
                                             output_names=['out_file'],
                                             function=get_tuple),
-                                            name='create_tuple', 
+                                            name='create_tuple',
                                             iterfield=['infile_b'])
 
-    
+
     #colour activation overlaying
     overlay = pe.MapNode(interface=fsl.Overlay(),
                             name='overlay',
@@ -254,11 +250,10 @@ def easy_thresh(wf_name):
     slicer = pe.MapNode(interface=fsl.Slicer(), name='slicer',
                            iterfield=['in_file'])
     #set max picture width
-    slicer.inputs.image_width = 750  
+    slicer.inputs.image_width = 750
     # set output all axial slices into one picture
-    slicer.inputs.all_axial = True 
+    slicer.inputs.all_axial = True
 
-    
     #function mapnode to get the standard fsl brain image 
     #based on parameters as FSLDIR,MNI and voxel size
     get_backgroundimage = pe.MapNode(util.Function(input_names=['in_file',
@@ -266,7 +261,7 @@ def easy_thresh(wf_name):
                                                      output_names=['out_file'],
                             function=get_standard_background_img),
                             name='get_backgroundimage', iterfield=['in_file'])
-    
+
     #function node to get the standard fsl brain image
     #outputs single file
     get_backgroundimage2 = pe.Node(util.Function(input_names=['in_file',
@@ -278,24 +273,24 @@ def easy_thresh(wf_name):
     #connections
     easy_thresh.connect(inputnode, 'z_stats', smooth_estimate, 'zstat_file' )
     easy_thresh.connect(inputnode, 'merge_mask', smooth_estimate, 'mask_file' )
-    
+
     easy_thresh.connect(inputnode, 'z_stats', zstat_mask, 'in_file')
     easy_thresh.connect(inputnode, 'merge_mask', zstat_mask, 'operand_files')
-    
+
     easy_thresh.connect(zstat_mask, 'out_file', get_backgroundimage, 'in_file' )
     easy_thresh.connect(inputnode, 'parameters', get_backgroundimage, 'file_parameters')
-    
+
     easy_thresh.connect(get_backgroundimage, 'out_file', copy_geometry, 'infile_a' )
     easy_thresh.connect(zstat_mask, 'out_file', copy_geometry, 'infile_b')
-    
+
     easy_thresh.connect(copy_geometry, 'out_file', cluster, 'in_file')
     easy_thresh.connect(inputnode, 'z_threshold', cluster, 'threshold')
     easy_thresh.connect(inputnode, 'p_threshold', cluster, 'pthreshold')
     easy_thresh.connect(smooth_estimate, 'volume', cluster, 'volume')
     easy_thresh.connect(smooth_estimate, 'dlh', cluster, 'dlh')
-    
+
     easy_thresh.connect(cluster, 'threshold_file', image_stats, 'in_file')
-    
+
     easy_thresh.connect(image_stats, 'out_stat', create_tuple, 'infile_b')
     easy_thresh.connect(inputnode, 'z_threshold', create_tuple, 'infile_a')
 
@@ -304,12 +299,10 @@ def easy_thresh(wf_name):
 
     easy_thresh.connect(inputnode, 'merge_mask', get_backgroundimage2, 'in_file' )
     easy_thresh.connect(inputnode, 'parameters', get_backgroundimage2, 'file_parameters')
-    
-    easy_thresh.connect(get_backgroundimage2, 'out_file', overlay, 'background_image')
-    
-    easy_thresh.connect(overlay, 'out_file', slicer, 'in_file')
 
-    
+    easy_thresh.connect(get_backgroundimage2, 'out_file', overlay, 'background_image')
+
+    easy_thresh.connect(overlay, 'out_file', slicer, 'in_file')
 
     easy_thresh.connect(cluster, 'threshold_file', outputnode, 'cluster_threshold')
     easy_thresh.connect(cluster, 'index_file', outputnode, 'cluster_index')
@@ -342,7 +335,6 @@ def copy_geom(infile_a, infile_b):
         in the header.
     
     """
-    
     import subprocess as sb
     out_file = infile_b
     cmd = sb.Popen(['fslcpgeom',
@@ -377,7 +369,7 @@ def get_standard_background_img(in_file, file_parameters):
     import os
     from nibabel import load
     try:
-    
+
         img = load(in_file)
         hdr = img.get_header()
         group_mm = int(hdr.get_zooms()[2])
@@ -386,14 +378,14 @@ def get_standard_background_img(in_file, file_parameters):
         standard_path = FSLDIR + '/data/standard/' + MNI +'_T1_%smm_brain.nii.gz' % (group_mm)
         print "path ->", standard_path
         return os.path.abspath(standard_path)
-    
+
     except Exception:
         print "Error while loading background image"
         raise
 
 
 def get_tuple(z_threshold, intensity_stat):
-    
+
     """
     Simple method to return tuple of z_threhsold
     maximum intensity values of Zstatistic image
