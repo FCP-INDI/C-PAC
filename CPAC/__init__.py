@@ -15,7 +15,13 @@ class _NoseTester(nosetester.NoseTester):
 
 test = _NoseTester().test
 
-import anat_preproc, sca, basc, nuisance, alff, seg_preproc, vmhc
+import anat_preproc, \
+       sca, \
+       basc, \
+       nuisance, \
+       alff, \
+       seg_preproc, \
+       vmhc
 
 __all__ = ['anat_preproc', 'seg_preproc', 'sca', 'basc', 'nuisance', 'alff', 'vmhc']
 

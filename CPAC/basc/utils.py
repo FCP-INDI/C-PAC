@@ -74,7 +74,7 @@ def standard_bootstrap(dataset):
     b = np.random.random_integers(0, high=n-1, size=n)
     return dataset[b]
 
-def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_threshold = 0.0, neighbors = 5):
+def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinity_threshold = 0.0, neighbors = 10):
     """
     Cluster a given timeseries
         
@@ -84,11 +84,11 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         A matrix of shape (`N`, `M`) with `N` samples and `M` dimensions
     n_clusters : integer
         Number of clusters
-    similarity_metric : {None, 'correlation', 'data'}
+    similarity_metric : {'k_neighbors', 'correlation', 'data'}
         Type of similarity measure for spectral clustering.  The pairwise similarity measure
         specifies the edges of the similarity graph. 'data' option assumes X as the similarity
-        matrix and hence must be symmetric.  None will default to kneighbors_graph [1]_ (forced 
-        to by symmetric) 
+        matrix and hence must be symmetric.  Default is kneighbors_graph [1]_ (forced to be 
+        symmetric)
     affinity_threshold : float
         Threshold of similarity metric when 'correlation' similarity metric is used.
         
@@ -114,7 +114,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         C_X[C_X < affinity_threshold] = 0
     elif similarity_metric == 'data':
         C_X = X
-    elif similarity_metric is None:
+    elif similarity_metric == 'k_neighbors':
         from sklearn.neighbors import kneighbors_graph
         C_X = kneighbors_graph(X, n_neighbors=neighbors)
         C_X = 0.5 * (C_X + C_X.T)
@@ -122,7 +122,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = None, affinity_thresho
         raise ValueError("Unknown value for similarity_metric: '%s'." % similarity_metric)
     
     from sklearn import cluster
-    algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
+    algorithm = cluster.SpectralClustering(n_clusters=n_clusters, mode='arpack')
     algorithm.fit(C_X)
     y_pred = algorithm.labels_.astype(np.int)
     return y_pred
@@ -188,6 +188,10 @@ def cluster_matrix_average(M, cluster_assignments):
     array([  6.,   6.,   6.,  21.,  21.])
     
     """
+    if np.any(np.isnan(M)):
+        np.save('bad_M.npz', M)
+        raise ValueError('M matrix has a nan value')
+    
     cluster_ids = np.unique(cluster_assignments)
     s = np.zeros_like(cluster_assignments, dtype='float64')
     for cluster_id in cluster_ids:

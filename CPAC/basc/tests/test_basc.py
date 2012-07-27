@@ -28,9 +28,9 @@ def test_sample_bootstrap():
 
 def generate_blobs():
     np.random.seed(27)
-    x1 = np.random.randn(100,2) + np.array([1.4, 1.8])
+    x1 = np.random.randn(200,2) + np.array([1.4, 1.8])
     x2 = np.random.randn(100,2) + np.array([4.7, 4.0])
-    x3 = np.random.randn(100,2) + np.array([100.7, 100.0])
+    x3 = np.random.randn(400,2) + np.array([100.7, 100.0])
     blobs = np.vstack((x1,x2,x3))
     return blobs
 
@@ -51,24 +51,26 @@ def test_group_stability_matrix():
     """
     blobs = generate_blobs()
     
-    blobs_dataset = np.zeros((5, blobs.shape[1], blobs.shape[0]))
-    for i in range(blobs_dataset.shape[0]):
-        blobs_dataset[i] = blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0])
+    ism_dataset = np.zeros((5, blobs.shape[0], blobs.shape[0]))
+    for i in range(ism_dataset.shape[0]):
+        ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3)
         
-    gsm = group_stability_matrix(blobs_dataset, 10, 100, 3)
+    gsm_stratified = group_stability_matrix(ism_dataset, 10, 100, [0,1,1,1,0])
+    gsm = group_stability_matrix(ism_dataset)
     
     assert False
     
 def test_basc():
-    import glob
-    g_string = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/func_in_mnioutputs/fmri_mnioutputs/_session_id_NYU_TRT_session*_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/apply_warp/mapflow/_apply_warp0/residual_warp.nii.gz'
-    roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/AH/AH_Ne_all.nii.gz'
+    import glob, os
+    g_string = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/func_in_mnioutputs/fmri_mnioutputs/_session_id_NYU_TRT_session1_subject_id_sub*/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/apply_warp/mapflow/_apply_warp0/residual_warp.nii.gz'
+    roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
     
     subjects_list = glob.glob(g_string)
     b = basc.create_basc()
+    b.base_dir = os.getcwd()
     b.inputs.inputspec.roi = roi_file
     b.inputs.inputspec.subjects = subjects_list
-    b.inputs.inputspec.k_clusters = 3
-    b.inputs.inputspec.dataset_bootstraps = 4
-    b.inputs.inputspec.timeseries_bootstraps = 5
+    b.inputs.inputspec.k_clusters = 6
+    b.inputs.inputspec.dataset_bootstraps = 10
+    b.inputs.inputspec.timeseries_bootstraps = 1000
     

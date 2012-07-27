@@ -1,18 +1,21 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters):
+def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, stratification=None):
     """
     Calculate the group stability matrix of the entire dataset by bootstrapping the dataset
     
     Parameters
     ----------
     indiv_stability_list : array_like
-        A length `N` list of matrices of shape (`T`, `V`), `N` subjects, `T` timepoints, `V` voxels
+        A length `N` list of matrices of shape (`V`, `V`), `N` subjects, `V` voxels
     n_bootstraps : integer
         Number of bootstrap datasets
     k_clusters : integer
         Number of clusters
+    stratification : array_like, optional
+        List of integer entries denoting stratums for indiv_stability_list
+    
     
     Returns
     -------
@@ -24,16 +27,30 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters):
         Length `V` array of within-cluster average values for each voxel
     """
     print 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.'
-    
+
+    if stratification is not None:
+        print 'Applying stratification to group dataset'
+        
+        
     from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average
     import numpy as np
     
     indiv_stability_set = np.asarray(indiv_stability_list)
+    
+    print 'Individual stability list dimensions:', indiv_stability_set.shape
+    
     V = indiv_stability_set.shape[2]
     
     G = np.zeros((V,V))
     for bootstrap_i in range(n_bootstraps):
-        J = standard_bootstrap(indiv_stability_set).mean(0)
+        if stratification is not None:
+            strata = np.unique(stratification)
+            J = np.zeros((V,V))
+            for stratum in strata:
+                J += standard_bootstrap(indiv_stability_set[np.where(stratification == stratum)]).sum(0)
+            J /= indiv_stability_set.shape[0]
+        else:
+            J = standard_bootstrap(indiv_stability_set).mean(0)
         G += adjacency_matrix(cluster_timeseries(J, k_clusters, similarity_metric = 'data')[:,np.newaxis])
     G /= n_bootstraps
 
@@ -73,10 +90,11 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     data = nb.load(subject_file).get_data().astype('float64')
     roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
     Y = data[roi_mask_file].T
-    print '(timepoints,voxels):', Y.shape
-    print 'Circular bootstrap block size:', cbb_block_size
+    print '(%i timepoints, %i voxels) and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
     
     ism = individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size=cbb_block_size)
+    
+    print 'Individual stability matrix completed for', subject_file
     
     return ism
 
@@ -146,7 +164,13 @@ def create_basc(name='basc'):
             Mask of region(s) of interest
         inputpsec.subjects : list (nifti files)
             4-D timeseries of a group of subjects normalized to MNI space
-    
+        inputspec.dataset_bootstraps : integer
+            Number of bootstrap samples of the dataset
+        inputspec.timeseries_bootstraps : integer
+            Number of bootstraps of each subject's timeseries
+        inputspec.k_clusters : integer
+            Number of clusters at both the individiual and group level
+            
     Workflow Outputs::
     
         outputspec.gsm : ndarray
@@ -170,6 +194,16 @@ def create_basc(name='basc'):
     6. Cluster the group stability matrix
     7. Calculate average within-cluster stability based on the clustering of step 6
     
+    Workflow Graph:
+    
+    .. image:: ../images/basc.dot.png
+        :width: 500
+        
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/basc_detailed.dot.png
+        :width: 500
+        
     References
     ----------
     .. [1] P. Bellec, P. Rosa-Neto, O. C. Lyttelton, H. Benali, and A. C. Evans, "Multi-level bootstrap analysis of stable clusters in resting-state fMRI.," NeuroImage, vol. 51, no. 3, pp. 1126-39, Jul. 2010.
@@ -201,17 +235,18 @@ def create_basc(name='basc'):
                                                 'cbb_block_size'],
                                    output_names=['individual_stability_matrices'],
                                    function=nifti_individual_stability),
-                     name='nis',
+                     name='individual_stability_matrices',
                      iterfield=['subject_file'])
     
     gsm = pe.Node(util.Function(input_names=['indiv_stability_list',
                                              'n_bootstraps',
-                                             'k_clusters'],
+                                             'k_clusters',
+                                             'stratification'],
                                 output_names=['group_stability_matrix',
                                               'group_stability_clusters',
                                               'group_stability_scores'],
                                 function=group_stability_matrix),
-                  name='gsm')
+                  name='group_stability_matrix')
 
     gs_cluster_vol = pe.Node(util.Function(input_names=['data_array',
                                                         'roi_mask_file',
@@ -219,7 +254,7 @@ def create_basc(name='basc'):
                                                         'filename'],
                                            output_names=['img_file'],
                                            function=ndarray_to_vol),
-                             name='gs_cluster_vol')
+                             name='group_stability_cluster_vol')
 
     gs_score_vol = pe.Node(util.Function(input_names=['data_array',
                                                       'roi_mask_file',
@@ -227,7 +262,7 @@ def create_basc(name='basc'):
                                                       'filename'],
                                          output_names=['img_file'],
                                          function=ndarray_to_vol),
-                           name='gs_score_vol')
+                           name='group_stability_score_vol')
 
     # Gather outside workflow inputs
     basc.connect(inputspec, 'subjects',

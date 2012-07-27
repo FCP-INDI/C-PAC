@@ -1,3 +1,5 @@
+
+
 def create_cwas(name='cwas'):
     """
     Connectome Wide Association Studies
@@ -29,6 +31,14 @@ def create_cwas(name='cwas'):
     Workflow Outputs::
 
         outputspec.diff_map : string (nifti file)
+    
+    CWAS Procedure:
+    
+    1. Calculate spatial correlation of a voxel
+    2. Correlate spatial z-score maps for every subject pair
+    3. Convert matrix to distance matrix, `1-r`
+    4. Calculate MDMR statistics for the voxel
+    5. Determine significance of MDMR statistics with permutation tests
     
     References
     ----------

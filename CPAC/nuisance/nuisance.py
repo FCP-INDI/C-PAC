@@ -543,6 +543,16 @@ def create_nuisance(name='nuisance'):
         outputspec.median_angle_corrected_file : string (nifti file)
         outputspec.angles : string (numpy file)
     
+    Workflow Graph:
+    
+    .. image:: ../images/nuisance.dot.png
+        :width: 500
+        
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/nuisance_detailed.dot.png
+        :width: 500
+    
     """
     inputspec = pe.Node(util.IdentityInterface(fields=['realigned_file',
                                                        'wm_mask',
