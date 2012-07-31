@@ -196,9 +196,14 @@ def cluster_matrix_average(M, cluster_assignments):
     s = np.zeros_like(cluster_assignments, dtype='float64')
     for cluster_id in cluster_ids:
         k = (cluster_assignments == cluster_id)[:, np.newaxis]
+        print 'Cluster %i size: %i' % (cluster_id, k.sum())
         K = np.dot(k,k.T)
         K[np.diag_indices_from(K)] = False
-        s[k[:,0]] = M[K].mean()
+        if K.sum() == 0: # Voxel with its own cluster
+            s[k[:,0]] = 0.0
+        else:
+            s[k[:,0]] = M[K].mean()
+
 
     return s
 

@@ -30,13 +30,11 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
 
     if stratification is not None:
         print 'Applying stratification to group dataset'
-        
-        
+            
     from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average
     import numpy as np
-    
-    indiv_stability_set = np.asarray(indiv_stability_list)
-    
+        
+    indiv_stability_set = np.asarray([np.load(ism_file) for ism_file in indiv_stability_list])
     print 'Individual stability list dimensions:', indiv_stability_set.shape
     
     V = indiv_stability_set.shape[2]
@@ -54,7 +52,12 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
         G += adjacency_matrix(cluster_timeseries(J, k_clusters, similarity_metric = 'data')[:,np.newaxis])
     G /= n_bootstraps
 
+    
     clusters_G = cluster_timeseries(G, k_clusters, similarity_metric = 'data')
+    
+    # Cluster labels normally start from 0, start from 1 to provide contrast when viewing between 0 voxels
+    clusters_G += 1
+    
     voxel_scores = cluster_matrix_average(G, clusters_G)
 
     return G, clusters_G, voxel_scores
@@ -86,17 +89,21 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
 
     from CPAC.basc import individual_stability_matrix
     import nibabel as nb
-
+    import numpy as np
+    import os
+    
     data = nb.load(subject_file).get_data().astype('float64')
     roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
     Y = data[roi_mask_file].T
     print '(%i timepoints, %i voxels) and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
     
     ism = individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size=cbb_block_size)
+    ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
+    np.save(ism_file, ism)
     
-    print 'Individual stability matrix completed for', subject_file
+    print 'Saving individual stability matrix %s for %s' % (ism_file, subject_file)
     
-    return ism
+    return ism_file
 
 def ndarray_to_vol(data_array, roi_mask_file, sample_file, filename):
     """

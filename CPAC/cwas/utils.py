@@ -1,3 +1,4 @@
+import theano
 import theano.tensor as T
 import numpy as np
 
@@ -17,6 +18,11 @@ def TzscorrCols(Xn):
     return 0.5*T.log((1+C_X)/(1-C_X))
 
 def calc_distance_matrix():
+    
+    X,Y = T.dmatrices('X','Y')
+    tdot = theano.function([X,Y], T.dot(X,Y))
+    tnormcols = theano.function([X], TnormCols(X))
+    
     R = np.zeros((nVoxels, nSubjects, nSubjects))
     S = np.zeros((nSubjects, nVoxels))
     
