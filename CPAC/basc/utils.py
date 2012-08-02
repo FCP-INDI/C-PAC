@@ -207,7 +207,7 @@ def cluster_matrix_average(M, cluster_assignments):
 
     return s
 
-def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = None):
+def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = None, affinity_threshold = 0.5):
     """
     Calculate the individual stability matrix of a single subject by bootstrapping their time-series
     
@@ -221,7 +221,9 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
         Number of clusters
     cbb_block_size : integer, optional
         Block size to use for the Circular Block Bootstrap algorithm
-        
+    affinity_threshold : float, optional
+        Minimum threshold for similarity matrix based on correlation to create an edge
+    
     Returns
     -------
     S : array_like
@@ -236,7 +238,7 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
     S = np.zeros((V,V))
     for bootstrap_i in range(n_bootstraps):
         Y_b = timeseries_bootstrap(Y, cbb_block_size)
-        S += adjacency_matrix(cluster_timeseries(Y_b.T, k_clusters, similarity_metric = 'correlation')[:,np.newaxis])
+        S += adjacency_matrix(cluster_timeseries(Y_b.T, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
     S /= n_bootstraps
 
     return S

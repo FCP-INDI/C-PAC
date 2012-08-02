@@ -30,10 +30,10 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
 
     if stratification is not None:
         print 'Applying stratification to group dataset'
-            
+                
     from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average
     import numpy as np
-        
+
     indiv_stability_set = np.asarray([np.load(ism_file) for ism_file in indiv_stability_list])
     print 'Individual stability list dimensions:', indiv_stability_set.shape
     
@@ -52,7 +52,7 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
         G += adjacency_matrix(cluster_timeseries(J, k_clusters, similarity_metric = 'data')[:,np.newaxis])
     G /= n_bootstraps
 
-    
+
     clusters_G = cluster_timeseries(G, k_clusters, similarity_metric = 'data')
     
     # Cluster labels normally start from 0, start from 1 to provide contrast when viewing between 0 voxels
@@ -62,7 +62,7 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
 
     return G, clusters_G, voxel_scores
 
-def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cbb_block_size = None):
+def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cbb_block_size = None, affinity_threshold = 0.5):
     """
     Calculate the individual stability matrix for a single subject by using Circular Block Bootstrapping method
     for time-series data.
@@ -79,7 +79,9 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
         Number of clusters
     cbb_block_size : integer, optional
         Size of the time-series block when performing circular block bootstrap
-    
+    affinity_threshold : float, optional
+        Minimum threshold for similarity matrix based on correlation to create an edge
+        
     Returns
     -------
     ism : array_like
@@ -91,13 +93,13 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     import nibabel as nb
     import numpy as np
     import os
-    
+
     data = nb.load(subject_file).get_data().astype('float64')
     roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
     Y = data[roi_mask_file].T
     print '(%i timepoints, %i voxels) and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
     
-    ism = individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size=cbb_block_size)
+    ism = individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size=cbb_block_size, affinity_threshold=affinity_threshold)
     ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
     np.save(ism_file, ism)
     
@@ -177,6 +179,8 @@ def create_basc(name='basc'):
             Number of bootstraps of each subject's timeseries
         inputspec.k_clusters : integer
             Number of clusters at both the individiual and group level
+        inputspec.affinity_threshold : float
+            Minimum threshold for similarity matrix based on correlation to create an edge
             
     Workflow Outputs::
     
@@ -224,7 +228,8 @@ def create_basc(name='basc'):
                                                        'roi',
                                                        'dataset_bootstraps',
                                                        'timeseries_bootstraps',
-                                                       'k_clusters']),
+                                                       'k_clusters',
+                                                       'affinity_threshold']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['gsm',
                                                         'gsclusters',
@@ -239,7 +244,8 @@ def create_basc(name='basc'):
                                                 'roi_mask_file',
                                                 'n_bootstraps',
                                                 'k_clusters',
-                                                'cbb_block_size'],
+                                                'cbb_block_size',
+                                                'affinity_threshold'],
                                    output_names=['individual_stability_matrices'],
                                    function=nifti_individual_stability),
                      name='individual_stability_matrices',
@@ -280,6 +286,9 @@ def create_basc(name='basc'):
                  nis, 'n_bootstraps')
     basc.connect(inputspec, 'k_clusters',
                  nis, 'k_clusters')
+    basc.connect(inputspec, 'affinity_threshold',
+                 nis, 'affinity_threshold')
+    
     basc.connect(inputspec, 'dataset_bootstraps',
                  gsm, 'n_bootstraps')
     basc.connect(inputspec, 'k_clusters',
