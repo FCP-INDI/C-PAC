@@ -6,6 +6,27 @@ from ..utils import timeseries_bootstrap, \
                     adjacency_matrix, \
                     individual_stability_matrix
 
+def test_timeseries_bootstrap():
+    """
+    Tests the timeseries_bootstrap method of BASC workflow
+    """
+    np.random.seed(27)
+    # Create a 10x5 matrix which counts up by column-wise
+    x = np.arange(50).reshape((5,10)).T
+    actual = timeseries_bootstrap(x,3)
+    desired = np.array([[ 4, 14, 24, 34, 44],
+                       [ 5, 15, 25, 35, 45],
+                       [ 6, 16, 26, 36, 46],
+                       [ 8, 18, 28, 38, 48],
+                       [ 9, 19, 29, 39, 49],
+                       [ 0, 10, 20, 30, 40],
+                       [ 7, 17, 27, 37, 47],
+                       [ 8, 18, 28, 38, 48],
+                       [ 9, 19, 29, 39, 49],
+                       [ 8, 18, 28, 38, 48]])
+    np.testing.assert_equal(actual, desired)
+    
+
 def test_sample_bootstrap():
     """
     Tests the sample_bootstrap method of BASC workflow
@@ -24,8 +45,20 @@ def test_sample_bootstrap():
                        [ 9, 19, 29, 39, 49],
                        [ 8, 18, 28, 38, 48]])
     np.testing.assert_equal(actual, desired)
-    
 
+def test_adjacency_matrix():
+    """
+    Tests the adjacency_matrix of BASC workflow
+    """
+    x = np.asarray([1, 2, 2, 3, 1])[:,np.newaxis]
+    actual = adjacency_matrix(x).astype(int)
+    desired = np.array([[1, 0, 0, 0, 1],
+                       [0, 1, 1, 0, 0],
+                       [0, 1, 1, 0, 0],
+                       [0, 0, 0, 1, 0],
+                       [1, 0, 0, 0, 1]])
+    np.testing.assert_equal(actual, desired)
+    
 def generate_blobs():
     np.random.seed(27)
     x1 = np.random.randn(200,2) + np.array([1.4, 1.8])
@@ -33,6 +66,21 @@ def generate_blobs():
     x3 = np.random.randn(400,2) + np.array([100.7, 100.0])
     blobs = np.vstack((x1,x2,x3))
     return blobs
+
+def generate_blobs_3d():
+    np.random.seed(27)
+    x1 = np.random.randn(200,3) + np.array([1.4, 1.8, 22.2])
+    x2 = np.random.randn(100,3) + np.array([4.7, 4.0, 9.6])
+    x3 = np.random.randn(400,3) + np.array([100.7, 100.0, 100.8])
+    blobs = np.vstack((x1,x2,x3))
+    return blobs
+    
+def test_cluster_timeseries():
+    """
+    Tests the cluster_timeseries method on three blobs in three dimensions (to make correlation possible)
+    """
+    blobs = generate_blobs_3d()
+    y_predict = cluster_timeseries(blobs, 3, similarity_metric = 'correlation')
 
 def test_individual_stability_matrix():
     """

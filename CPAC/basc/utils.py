@@ -7,7 +7,7 @@ def timeseries_bootstrap(tseries, block_size):
     Parameters
     ----------
     tseries : array_like
-        A matrix of shapes (`M`, `N`) with `M` variables and `N` timepoints
+        A matrix of shapes (`M`, `N`) with `M` timepoints and `N` variables
     block_size : integer
         Size of the bootstrapped blocks 
     
@@ -95,6 +95,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     Returns
     -------
     y_pred : array_like
+        Predicted cluster labels
 
     Examples
     --------
@@ -112,6 +113,8 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
         Xn = Xn/np.sqrt( (Xn**2.).sum(1)[:,np.newaxis] )
         C_X = np.dot(Xn, Xn.T)
         C_X[C_X < affinity_threshold] = 0
+        from scipy.sparse import lil_matrix
+        C_X = lil_matrix(C_X)
     elif similarity_metric == 'data':
         C_X = X
     elif similarity_metric == 'k_neighbors':
@@ -121,10 +124,21 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     else:
         raise ValueError("Unknown value for similarity_metric: '%s'." % similarity_metric)
     
-    from sklearn import cluster
-    algorithm = cluster.SpectralClustering(n_clusters=n_clusters, mode='arpack')
-    algorithm.fit(C_X)
-    y_pred = algorithm.labels_.astype(np.int)
+    #sklearn code is not stable for bad clusters
+    #see http://scikit-learn.org/dev/modules/clustering.html#spectral-clustering warning
+#    from sklearn import cluster
+#    algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
+#    algorithm.fit(C_X)
+#    y_pred = algorithm.labels_.astype(np.int)
+
+    from python_ncut_lib import ncut, discretisation
+    eigen_val, eigen_vec = ncut(C_X, n_clusters)
+    eigen_discrete = discretisation(eigen_vec)
+    
+    #np.arange(n_clusters)+1 isn't really necessary since the first cluster can be determined
+    #by the fact that the each cluster is a disjoint set
+    y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters)+1)).sum(1)
+    
     return y_pred
     
 def adjacency_matrix(cluster_pred):
@@ -156,6 +170,9 @@ def adjacency_matrix(cluster_pred):
     """
     x = cluster_pred.copy()
     
+    if(len(x.shape) == 1):
+        x = x[:, np.newaxis]
+        
     # Force the cluster indexing to be positive integers
     if(x.min() <= 0):
         x += -x.min() + 1
