@@ -31,10 +31,11 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, voxel_range):
 
 def merge_cwas_batches(cwas_batches, mask_file):
     import numpy as np
+    import nibabel as nb
     import os
     
     def volumize(mask, data):
-        volume = np.zeros_like(mask)
+        volume = np.zeros_like(mask, dtype=data.dtype)
         volume[np.where(mask==True)] = data
         return volume
     
@@ -44,8 +45,8 @@ def merge_cwas_batches(cwas_batches, mask_file):
     nii = nb.load(mask_file)
     mask = nii.get_data().astype('bool')
     
-    F_set = np.zeros(end_voxel+1)
-    p_set = np.zeros(end_voxel+1)
+    F_set = np.zeros(end_voxel)
+    p_set = np.zeros(end_voxel)
     for F_file, p_file, voxel_range in cwas_batches:
         F_batch = np.load(F_file)
         p_batch = np.load(p_file)
@@ -150,12 +151,17 @@ def create_cwas(name='cwas'):
                                                   'mask_file',
                                                   'regressor',
                                                   'voxel_range'],
-                                     output_names=['F_file',
-                                                   'p_file',
-                                                   'voxel_range'],
+                                     output_names=['result_batch'],
                                      function=nifti_cwas),
                        name='cwas_batch',
                        iterfield=['voxel_range'])
+    
+    mcwasb = pe.Node(util.Function(input_names=['cwas_batches',
+                                                'mask_file'],
+                                   output_names=['F_file',
+                                                 'p_file'],
+                                   function=merge_cwas_batches),
+                     name='cwas_volumes')
     
     
     cwas.connect(inputspec, 'roi',
@@ -171,5 +177,13 @@ def create_cwas(name='cwas'):
                  ncwas, 'regressor')
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
+    
+    cwas.connect(ncwas, 'result_batch',
+                 mcwasb, 'cwas_batches')
+    cwas.connect(inputspec, 'roi',
+                 mcwasb, 'mask_file')
+    
+    
+    
     
     return cwas
