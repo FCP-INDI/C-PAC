@@ -7,15 +7,21 @@ def test_cwas():
     from CPAC.cwas import create_cwas
     import numpy as np
     import os, glob
-
-    g_string = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/func_in_mnioutputs/fmri_mnioutputs/_session_id_NYU_TRT_session1_subject_id_sub*/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/apply_warp/mapflow/_apply_warp0/residual_warp.nii.gz'
-    roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+    import time
+    
+    g_string = '/home/data/Projects/ADHD200/Manuel_sink/*/func/scan_id_rest_1/scan_id_anat_1/csf_threshold_0.4/gm_threshold_0.2/wm_threshold_0.66/nc_5/selector_0.2.3.7/bandpass_freqs_0.009.0.1/rest_residual_filtered_4mm.nii.gz'
+    roi_file = '/usr/share/fsl/4.1/data/standard/MNI152_T1_4mm_brain_mask.nii.gz'
     subjects_list = glob.glob(g_string)
     
     c = create_cwas()
-    c.base_dir = os.getcwd()
     c.inputs.inputspec.roi = roi_file
-    c.inputs.inputspec.subjects = subjects_list[:4]
-    c.inputs.inputspec.regressor = np.arange(len(subjects_list[:4]))[:,np.newaxis]
-    c.inputs.inputspec.parallel_nodes = 3
-    c.run()
+    c.inputs.inputspec.subjects = subjects_list[:5]
+    c.inputs.inputspec.regressor = np.arange(len(subjects_list[:5]))[:,np.newaxis]
+    c.inputs.inputspec.f_samples = 5000
+    c.inputs.inputspec.parallel_nodes = 10
+    c.base_dir = '/home/data/Projects/cwas_tests/results_fs%i_pn%i' % (c.inputs.inputspec.f_samples,
+                                                                       c.inputs.inputspec.parallel_nodes)
+    start = time.clock()
+    c.run(plugin='MultiProc', plugin_args={'n_procs' : 10})
+    end = time.clock()
+    print "%.2gs" % (end-start)
