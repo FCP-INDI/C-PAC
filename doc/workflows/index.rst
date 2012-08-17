@@ -23,6 +23,7 @@ Contents:
     scrubbing
     group_analysis
     easy_thresh     
+    cwas
 
 Indices and tables
 ==================

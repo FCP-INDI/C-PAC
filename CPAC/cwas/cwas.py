@@ -132,6 +132,24 @@ def merge_cwas_batches(cwas_batches, mask_file):
     
     return F_file, p_file
 
+def create_cwas_batches(mask_file, batches):
+    import nibabel as nb
+    import numpy as np
+    mask = nb.load(mask_file).get_data().astype('bool')
+    nVoxels = mask.sum()
+    
+    print 'voxels: ', nVoxels
+    batch_size = nVoxels/batches
+    #batch_indices = np.arange(0, nVoxels, batch_size)
+    
+    batch_list = []
+    for i in range(batches):
+        batch_list.append((i*batch_size, (i+1)*batch_size))
+    # Add remainder voxels to last batch
+    batch_list[-1] = (batch_list[-1][0], nVoxels)
+    
+    return batch_list
+
 def compile_theano_functions():
     """
     Returns compiled theano functions.  
@@ -166,24 +184,6 @@ def compile_theano_functions():
 
     return tdot, tnormcols
 
-def create_cwas_batches(mask_file, batches):
-    import nibabel as nb
-    import numpy as np
-    mask = nb.load(mask_file).get_data().astype('bool')
-    nVoxels = mask.sum()
-    
-    print 'voxels: ', nVoxels
-    batch_size = nVoxels/batches
-    #batch_indices = np.arange(0, nVoxels, batch_size)
-    
-    batch_list = []
-    for i in range(batches):
-        batch_list.append((i*batch_size, (i+1)*batch_size))
-    # Add remainder voxels to last batch
-    batch_list[-1] = (batch_list[-1][0], nVoxels)
-    
-    return batch_list
-    
 def create_cwas(name='cwas'):
     """
     Connectome Wide Association Studies
