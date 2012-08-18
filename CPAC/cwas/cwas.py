@@ -231,6 +231,16 @@ def create_cwas(name='cwas'):
     4. Calculate MDMR statistics for the voxel
     5. Determine significance of MDMR statistics with permutation tests
     
+    Workflow Graph:
+    
+    .. image:: ../images/cwas.dot.png
+        :width: 500
+        
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/cwas_detailed.dot.png
+        :width: 500
+    
     References
     ----------
     .. [1] Shehzad Z, Kelly C, Reiss PT, Emerson JW, McMahon K, Copland DA, Castellanos FX, Milham MP. An Analytic Framework for Connectome-Wide Association Studies. Under Review.

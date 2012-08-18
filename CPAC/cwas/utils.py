@@ -80,6 +80,17 @@ def y_mdmr(yDis, x, iter):
     """
     Multivariate Distance Matrix Regression
     
+    Parameters
+    ----------
+    yDis : ndarray
+    x : ndarray
+    iter : integer
+    
+    Returns
+    --------
+    F : float
+    p : float
+    
     Notes
     -----
     Implementation based on work by YAN Chao-Gan (ycg.yan@gmail.com) and References section.
