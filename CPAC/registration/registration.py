@@ -183,6 +183,10 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     register_func_to_mni.connect(inputspec, 'anat',
                                  linear_reg, 'reference')
     
+    register_func_to_mni.connect(inputspec, 'func',
+                                 mni_warp, 'in_file')
+    register_func_to_mni.connect(inputspec, 'mni',
+                                 mni_warp, 'ref_file')
     register_func_to_mni.connect(inputspec, 'anat_to_mni_xfm',
                                  mni_warp, 'field_file')
     

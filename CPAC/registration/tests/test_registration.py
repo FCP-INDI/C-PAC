@@ -3,7 +3,6 @@ def test_registration():
     import nipype.pipeline.engine as pe
     import nipype.interfaces.fsl as fsl
     
-    
     func_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/nuisance_preproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/regress_nuisance/mapflow/_regress_nuisance0/residual.nii.gz'
     anat_bet_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/anatpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/anat_skullstrip/mprage_anonymized_RPI_3dT.nii.gz'
     mni_file = '/usr/share/fsl/4.1/data/standard/MNI152_T1_3mm_brain.nii.gz'
@@ -11,9 +10,9 @@ def test_registration():
     mni_workflow = pe.Workflow(name='mni_workflow')
     
     nr = create_nonlinear_register()
-    nr.inputs.inputspec.input = func_file
-    nr.inputs.inputspec.reference = anat_bet_file
-    
+    nr.inputs.inputspec.input = anat_bet_file
+    nr.inputs.inputspec.reference = mni_file
+    nr.inputs.inputspec.fnirt_config = '/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_3mm.cnf'
     func2mni = create_register_func_to_mni()
     func2mni.inputs.inputspec.func = func_file
     func2mni.inputs.inputspec.mni = mni_file
