@@ -21,8 +21,9 @@ import anat_preproc, \
        nuisance, \
        alff, \
        seg_preproc, \
-       vmhc
+       vmhc, \
+       median_angle
 
-__all__ = ['anat_preproc', 'seg_preproc', 'sca', 'basc', 'nuisance', 'alff', 'vmhc']
+__all__ = ['anat_preproc', 'seg_preproc', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle']
 
 __version__ = ['0.1-git']

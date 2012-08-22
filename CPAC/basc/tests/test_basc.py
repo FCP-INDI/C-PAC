@@ -61,9 +61,11 @@ def test_adjacency_matrix():
     
 def generate_blobs():
     np.random.seed(27)
-    x1 = np.random.randn(200,2) + np.array([1.4, 1.8])
-    x2 = np.random.randn(100,2) + np.array([4.7, 4.0])
-    x3 = np.random.randn(400,2) + np.array([100.7, 100.0])
+    offset = np.random.randn(30)
+    
+    x1 = np.random.randn(200,30) + 2*offset
+    x2 = np.random.randn(100,30) + 44*np.random.randn(30)
+    x3 = np.random.randn(400,30)
     blobs = np.vstack((x1,x2,x3))
     return blobs
 
@@ -100,12 +102,15 @@ def test_group_stability_matrix():
     blobs = generate_blobs()
     
     ism_dataset = np.zeros((5, blobs.shape[0], blobs.shape[0]))
+    ism_list = []
     for i in range(ism_dataset.shape[0]):
-        ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3)
-        
-    gsm_stratified = group_stability_matrix(ism_dataset, 10, 100, [0,1,1,1,0])
-    gsm = group_stability_matrix(ism_dataset)
+        ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
+        f = 'ism_dataset_%i.npy' % i
+        ism_list.append(f)
+        np.save(f, ism_dataset[i])
     
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3, [0,1,1,1,0])
+
     assert False
     
 def test_basc():

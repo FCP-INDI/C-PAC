@@ -23,6 +23,9 @@ Contents:
     scrubbing
     group_analysis
     easy_thresh     
+    cwas
+    median_angle
+    registration
 
 Indices and tables
 ==================
