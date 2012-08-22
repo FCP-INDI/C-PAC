@@ -24,6 +24,7 @@ Contents:
     group_analysis
     easy_thresh     
     cwas
+    median_angle
 
 Indices and tables
 ==================

@@ -104,8 +104,9 @@ def calc_median_angle_params(subject):
     Returns
     -------
     mean_bold : float
+        Mean bold amplitude of a subject. 
     median_angle : float
-    
+        Median angle of a subject.
     """
     import numpy as np
     import nibabel as nb
@@ -207,7 +208,22 @@ def create_median_angle_correction(name='median_angle_correction'):
         outputspec.pc_angles : string (.npy file)
             Numpy file (.npy file) containing the angles (in radians) of all voxels with 
             the 5 largest principal components.
+
+    Median Angle Correction Procedure:
     
+    1. Compute the median angle with respect to the first principal component of the subject
+    2. Shift the angle of every voxel so that the new median angle equals the target angle
+
+    Workflow Graph:
+    
+    .. image:: ../images/median_angle_correction.dot.png
+        :width: 500
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/median_angle_correction_detailed.dot.png
+        :width: 500    
+
     """
     median_angle_correction = pe.Workflow(name=name)
     
@@ -239,6 +255,47 @@ def create_median_angle_correction(name='median_angle_correction'):
 def create_target_angle(name='target_angle'):
     """
     Target Angle Calculation
+    
+    Parameters
+    ----------
+    name : string, optional
+        Name of the workflow.
+            
+    Returns
+    -------
+    target_angle : nipype.pipeline.engine.Workflow
+        Target angle workflow.
+    
+    Notes
+    -----
+    
+    Workflow Inputs::
+    
+        inputspec.subjects : list (nifti files)
+            List of subject paths.
+    
+    Workflow Outputs::
+    
+        outputspec.target_angle : float
+            Target angle over the provided group of subjects.
+            
+    Target Angle procedure:
+    
+    1. Compute the median angle and mean bold amplitude of each subject in the group.
+    2. Fit a linear model with median angle as the dependent variable.
+    3. Calculate the corresponding median_angle on the fitted model for the subject 
+       with the smallest mean bold amplitude of the group.
+    
+    Workflow Graph:
+    
+    .. image:: ../images/target_angle.dot.png
+        :width: 500
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/target_angle_detailed.dot.png
+        :width: 500
+        
     """
     target_angle = pe.Workflow(name=name)
     
