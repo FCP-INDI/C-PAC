@@ -479,28 +479,20 @@ def process_segment_map(wf_name):
         return '-thr %f -bin ' % (threshold)
 
     
-    tissueprior_mni_to_t1= pe.MapNode(interface=fsl.FLIRT(),
-                           name='%s_prior_mni_to_t1'%(wf_name),
-                           iterfield=['reference',
-                           'in_matrix_file'])
+    tissueprior_mni_to_t1= pe.Node(interface=fsl.FLIRT(),
+                           name='%s_prior_mni_to_t1'%(wf_name))
     tissueprior_mni_to_t1.inputs.apply_xfm = True
     tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
-    overlap_segmentmap_with_prior = pe.MapNode(interface=fsl.MultiImageMaths(),
-                             name='overlap_%s_map_with_prior'%(wf_name),
-                             iterfield=['in_file',
-                             'operand_files'])
+    overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
+                             name='overlap_%s_map_with_prior'%(wf_name))
     overlap_segmentmap_with_prior.inputs.op_string =  '-mas %s '
 
+    binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
+                            name='binarize_threshold_%s'%(wf_name))
 
-    binarize_threshold_segmentmap = pe.MapNode(interface=fsl.ImageMaths(),
-                            name='binarize_threshold_%s'%(wf_name),
-                            iterfield=['in_file'])
-
-    segment_mask = pe.MapNode(interface=fsl.MultiImageMaths(),
-                          name='%s_mask'%(wf_name),
-                          iterfield=['in_file',
-                          'operand_files'])    
+    segment_mask = pe.Node(interface=fsl.MultiImageMaths(),
+                          name='%s_mask'%(wf_name))    
     segment_mask.inputs.op_string =  '-mas %s '
     
     
@@ -512,8 +504,7 @@ def process_segment_map(wf_name):
     preproc.connect(inputNode, 'standard2highres_mat',
                     tissueprior_mni_to_t1, 'in_matrix_file')
     
-    
-    
+        
     #overlapping
     preproc.connect(inputNode,
                     ('probability_maps', pick_wm_1),
@@ -522,13 +513,13 @@ def process_segment_map(wf_name):
                     overlap_segmentmap_with_prior, 'operand_files')
     
     
-    
     #binarize
     preproc.connect(overlap_segmentmap_with_prior, 'out_file',
                     binarize_threshold_segmentmap, 'in_file')
     preproc.connect(inputNode,
                     ('threshold', form_threshold_string),
                     binarize_threshold_segmentmap, 'op_string')
+    
     
     #create segment mask
     preproc.connect(binarize_threshold_segmentmap, 'out_file',
