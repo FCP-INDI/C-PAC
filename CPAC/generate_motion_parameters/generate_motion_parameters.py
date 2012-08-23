@@ -797,14 +797,15 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
 
     f = open(out_file, 'w')
-    print >>f, "Subject,Scan,Mean Relative RMS Displacement,"\
-    "Max Relative RSM Displacement,Movements >threshold,Mean " \
-    "Relative Mean Rotation,Mean Relative Maxdisp,Max Relative Maxdisp," \
-    "Max Abs Maxdisp,Max Relative Roll,Max Relative Pitch," \
-    "Max Relative Yaw,Max Relative dS-I,Max Relative dL-R," \
-    "Max Relative dP-A,Mean Relative Roll,Mean Relative Pitch,Mean Relative Yaw," \
-    "Mean Relative dS-I,Mean Relative dL-R,Mean Relative dP-A,Max Abs Roll," \
-    "Max Abs Pitch,Max Abs Yaw,Max Abs dS-I,Max Abs dL-R,Max Abs dP-A"
+    print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement,"\
+    "Max_Relative RSM_Displacement, Movements_gt_threshold, Mean_" \
+    "Relative_Mean_Rotation, Mean_Relative_Maxdisp, Max_Relative_Maxdisp," \
+    "Max_Abs_Maxdisp, Max Relative_Roll, Max_Relative_Pitch," \
+    "Max_Relative Yaw, Max_Relative_dS-I, Max_Relative_dL-R," \
+    "Max_Relative dP-A, Mean_Relative_Roll, Mean_Relative_Pitch, Mean_Relative_Yaw," \
+    "Mean_Relative_dS-I, Mean_Relative_dL-R, Mean_Relative_dP-A, Max_Abs_Roll," \
+    "Max_Abs_Pitch,Max_Abs_Yaw, Max_Abs_dS-I, Max_Abs_dL-R, Max_Abs_dP-A," \
+    "Mean_Abs_Roll, Mean_Abs_Pitch, Mean_Abs_Yaw, Mean_Abs_dS-I, Mean_Abs_dL-R, Mean_Abs_dP-A"
 
 
     f.write("%s," % (subject_id))
@@ -872,6 +873,11 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
     #Max Abs dS-I,Max Abs dL-R,Max Abs dP-A
     for i in range(6):
         f.write("%.6f," %(np.max(abs(arr[i]))))
+    
+    #Mean Abs Roll,Mean Abs Pitch,Mean Abs Yaw,
+    #Mean Abs dS-I,Mean Abs dL-R,Mean Abs dP-A 
+    for i in range(6):
+        f.write("%.6f," %(np.mean(abs(arr[i]))))
 
     f.close()
     return out_file
@@ -912,8 +918,8 @@ def gen_power_parameters(subject_id, scan_id, rest, FD_1D, threshold, ftof_perce
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
     f= open(out_file,'w')
-    print >>f, "Subject,Scan, MeanFD, rootMeanSquareFD, NumFD > %.2f," \
-    "rmsFD, FDquartile(top 1/4th FD), PercentFD( >%.2f), Num5, \
+    print >>f, "Subject,Scan, MeanFD, NumFD(>%.2f)," \
+    "rootMeanSquareFD, FDquartile(top 1/4th FD), PercentFD( >%.2f), Num5, \
     Num10, MeanDVARS, MeanDVARS_POW"%(threshold,threshold)
 
     f.write("%s," % subject_id)
