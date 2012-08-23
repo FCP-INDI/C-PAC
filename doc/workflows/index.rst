@@ -19,6 +19,7 @@ Contents:
     nuisance
     alff
     vmhc
+    reho
     generate_motion_parameters
     scrubbing
     group_analysis
