@@ -1,23 +1,88 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-def nifti_cwas(subjects_file_list, mask_file, regressor, voxel_range):
+def joint_mask(subjects_file_list, mask_file):
     """
-    Converts a dataset of subjects into a single `S` by `T` by `V` numpy array
+    Creates a joint mask (intersection) common to all the subjects in a provided list
+    and a provided mask
+    
+    Parameters
+    ----------
+    subjects_file_list : list of strings
+        A length `N` list of file paths of the nifti files of subjects
+    mask_file : string
+        Path to a mask file in nifti format
+    
+    Returns
+    -------
+    joint_mask : string
+        Path to joint mask file in nifti format
+    
+    """
+    import nibabel as nb
+    import numpy as np
+    import os
+    
+    nii = nb.load(mask_file)
+    
+    mask = nii.get_data().astype('bool')
+    for subject_file in subjects_file_list:
+        sdata = nb.load(subject_file).get_data().astype(np.float64).sum(-1)
+        mask *= sdata.astype('bool')
+    print '... joint subject/roi mask loaded'
+
+    img = nb.Nifti1Image(mask, header=nii.get_header(), affine=nii.get_affine())
+    img_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
+    img.to_filename(img_file)
+    
+    return img_file
+
+def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range):
+    """
+    Performs CWAS for a group of subjects
+    
+    Parameters
+    ----------
+    subjects_file_list : list of strings
+        A length `N` list of file paths of the nifti files of subjects
+    mask_file : string
+        Path to a mask file in nifti format
+    regressor : ndarray
+        Matrix of shape (`S`, `R`), `S` subjects and `R` regressors
+    f_samples : integer
+        Number of pseudo f values to sample using a random permutation test
+    voxel_range : tuple
+        (start, end) tuple specify the range of voxels (inside the mask) to perform cwas on.
+        Index ordering is based on the np.where(mask) command
+    
+    Returns
+    -------
+    F_file : string
+        .npy file of pseudo-F statistic calculated for every voxel
+    p_file : string
+        .npy file of significance probabilities of pseudo-F values
+    voxel_range : tuple
+        Passed on by the voxel_range provided in parameters, used to make parallelization
+        easier
+        
     """
     import nibabel as nb
     import numpy as np
     import os
     from CPAC.cwas import calc_cwas
 
+
+    #Load the data to produce the joint mask
     mask = nb.load(mask_file).get_data().astype('bool')
-    mask_indices = np.where(mask==True)
+    mask_indices = np.where(mask)
     batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
+
+    #Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
     subjects_data = [nb.load(subject_file).get_data().astype('float64')[batch_indices].T for subject_file in subjects_file_list]
     subjects_data = np.array(subjects_data)
     print '... subject data loaded', subjects_data.shape, 'batch voxel range', voxel_range
-    
-    F_set, p_set = calc_cwas(subjects_data, regressor, 15000)
+
+    F_set, p_set = calc_cwas(subjects_data, regressor, f_samples)
 
     print '... writing cwas data to disk'
     cwd = os.getcwd()
@@ -31,10 +96,11 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, voxel_range):
 
 def merge_cwas_batches(cwas_batches, mask_file):
     import numpy as np
+    import nibabel as nb
     import os
     
     def volumize(mask, data):
-        volume = np.zeros_like(mask)
+        volume = np.zeros_like(mask, dtype=data.dtype)
         volume[np.where(mask==True)] = data
         return volume
     
@@ -44,8 +110,8 @@ def merge_cwas_batches(cwas_batches, mask_file):
     nii = nb.load(mask_file)
     mask = nii.get_data().astype('bool')
     
-    F_set = np.zeros(end_voxel+1)
-    p_set = np.zeros(end_voxel+1)
+    F_set = np.zeros(end_voxel)
+    p_set = np.zeros(end_voxel)
     for F_file, p_file, voxel_range in cwas_batches:
         F_batch = np.load(F_file)
         p_batch = np.load(p_file)
@@ -83,7 +149,41 @@ def create_cwas_batches(mask_file, batches):
     batch_list[-1] = (batch_list[-1][0], nVoxels)
     
     return batch_list
+
+def compile_theano_functions():
+    """
+    Returns compiled theano functions.  
     
+    Notes
+    -----
+    Originally used to speedup multiplication of large matrices and vectors.  Caused strange 
+    issue in nipype where nipype unecessarily reran nodes that use these compiled functions.
+    Not used in current implementation.
+    """
+    import theano.tensor as T
+    import theano
+    
+    def TnormCols(X):
+        """
+        Theano expression which centers and normalizes columns of X `||x_i|| = 1`
+        """
+        Xc = X - X.mean(0)
+        return Xc/T.sqrt( (Xc**2.).sum(0) )
+    
+    def TzscorrCols(Xn):
+        """
+        Theano expression which returns Fisher transformed correlation values between columns of a
+        normalized input, `X_n`.  Diagonal is set to zero.
+        """
+        C_X = T.dot(Xn.T, Xn)-T.eye(Xn.shape[1])
+        return 0.5*T.log((1+C_X)/(1-C_X))
+    
+    X,Y = T.dmatrices('X','Y')
+    tdot = theano.function([X,Y], T.dot(X,Y))
+    tnormcols = theano.function([X], TnormCols(X))
+
+    return tdot, tnormcols
+
 def create_cwas(name='cwas'):
     """
     Connectome Wide Association Studies
@@ -111,13 +211,18 @@ def create_cwas(name='cwas'):
             4-D timeseries of a group of subjects normalized to MNI space
         inputspec.regressor : list (float)
             Corresponding list of the regressor variable for subjects
+        inputspec.f_samples : int
+            Number of permutation samples to draw from the pseudo F distribution
         inputspec.parallel_nodes : integer
             Number of nodes to create and potentially parallelize over
         
     Workflow Outputs::
 
-        outputspec.diff_map : string (nifti file)
-    
+        outputspec.F_map : string (nifti file)
+            Pseudo F values of CWAS
+        outputspec.p_map : string (nifti file)
+            Significance p values calculated from permutation tests
+            
     CWAS Procedure:
     
     1. Calculate spatial correlation of a voxel
@@ -125,6 +230,16 @@ def create_cwas(name='cwas'):
     3. Convert matrix to distance matrix, `1-r`
     4. Calculate MDMR statistics for the voxel
     5. Determine significance of MDMR statistics with permutation tests
+    
+    Workflow Graph:
+    
+    .. image:: ../images/cwas.dot.png
+        :width: 500
+        
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/cwas_detailed.dot.png
+        :width: 500
     
     References
     ----------
@@ -135,8 +250,12 @@ def create_cwas(name='cwas'):
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
                                                        'regressor',
+                                                       'f_samples',
                                                        'parallel_nodes']),
                         name='inputspec')
+    outputspec = pe.Node(util.IdentityInterface(fields=['F_map',
+                                                        'p_map']),
+                         name='outputspec')
     
     cwas = pe.Workflow(name=name)
     
@@ -149,27 +268,69 @@ def create_cwas(name='cwas'):
     ncwas = pe.MapNode(util.Function(input_names=['subjects_file_list',
                                                   'mask_file',
                                                   'regressor',
+                                                  'f_samples',
+                                                  'compiled_func',
                                                   'voxel_range'],
-                                     output_names=['F_file',
-                                                   'p_file',
-                                                   'voxel_range'],
+                                     output_names=['result_batch'],
                                      function=nifti_cwas),
                        name='cwas_batch',
                        iterfield=['voxel_range'])
     
+    mcwasb = pe.Node(util.Function(input_names=['cwas_batches',
+                                                'mask_file'],
+                                   output_names=['F_file',
+                                                 'p_file'],
+                                   function=merge_cwas_batches),
+                     name='cwas_volumes')
+
+#    ctf = pe.Node(util.Function(input_names=[],
+#                                output_names=['compiled_dot_norm'],
+#                                function=compile_theano_functions),
+#                  name='theano_functions')
     
+    jmask = pe.Node(util.Function(input_names=['subjects_file_list', 
+                                               'mask_file'],
+                                  output_names=['joint_mask'],
+                                  function=joint_mask),
+                    name='joint_mask')
+    
+    #Compute the joint mask
+    cwas.connect(inputspec, 'subjects',
+                 jmask, 'subjects_file_list')
     cwas.connect(inputspec, 'roi',
+                 jmask, 'mask_file')
+
+    #Create batches based on the joint mask
+    cwas.connect(jmask, 'joint_mask',
                  ccb, 'mask_file')
     cwas.connect(inputspec, 'parallel_nodes',
                  ccb, 'batches')
     
+    #Compute CWAS over batches of voxels
+    cwas.connect(jmask, 'joint_mask',
+                 ncwas, 'mask_file')
     cwas.connect(inputspec, 'subjects',
                  ncwas, 'subjects_file_list')
-    cwas.connect(inputspec, 'roi',
-                 ncwas, 'mask_file')
     cwas.connect(inputspec, 'regressor',
                  ncwas, 'regressor')
+    cwas.connect(inputspec, 'f_samples',
+                 ncwas, 'f_samples')
+    
+#    cwas.connect(ctf, 'compiled_dot_norm',
+#                 ncwas, 'compiled_func')
+
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
+    
+    #Merge the computed CWAS data
+    cwas.connect(ncwas, 'result_batch',
+                 mcwasb, 'cwas_batches')
+    cwas.connect(jmask, 'joint_mask',
+                 mcwasb, 'mask_file')
+    
+    cwas.connect(mcwasb, 'F_file',
+                 outputspec, 'F_map')
+    cwas.connect(mcwasb, 'p_file',
+                 outputspec, 'p_map')
     
     return cwas

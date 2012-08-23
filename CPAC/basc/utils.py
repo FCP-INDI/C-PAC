@@ -124,8 +124,9 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     else:
         raise ValueError("Unknown value for similarity_metric: '%s'." % similarity_metric)
     
-    #sklearn code is not stable for bad clusters
-    #see http://scikit-learn.org/dev/modules/clustering.html#spectral-clustering warning
+    #sklearn code is not stable for bad clusters which using correlation as a stability metric
+    #tends to give for more info see:
+    #http://scikit-learn.org/dev/modules/clustering.html#spectral-clustering warning
 #    from sklearn import cluster
 #    algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
 #    algorithm.fit(C_X)
@@ -134,10 +135,10 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     from python_ncut_lib import ncut, discretisation
     eigen_val, eigen_vec = ncut(C_X, n_clusters)
     eigen_discrete = discretisation(eigen_vec)
-    
+
     #np.arange(n_clusters)+1 isn't really necessary since the first cluster can be determined
     #by the fact that the each cluster is a disjoint set
-    y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters)+1)).sum(1)
+    y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters))).sum(1)
     
     return y_pred
     
@@ -205,21 +206,25 @@ def cluster_matrix_average(M, cluster_assignments):
     array([  6.,   6.,   6.,  21.,  21.])
     
     """
+
     if np.any(np.isnan(M)):
         np.save('bad_M.npz', M)
         raise ValueError('M matrix has a nan value')
     
     cluster_ids = np.unique(cluster_assignments)
-    s = np.zeros_like(cluster_assignments, dtype='float64')
+    s = np.zeros( (cluster_ids.shape[0], cluster_assignments.shape[0]), dtype='float64')
+    s_idx = 0
     for cluster_id in cluster_ids:
-        k = (cluster_assignments == cluster_id)[:, np.newaxis]
-        print 'Cluster %i size: %i' % (cluster_id, k.sum())
-        K = np.dot(k,k.T)
-        K[np.diag_indices_from(K)] = False
-        if K.sum() == 0: # Voxel with its own cluster
-            s[k[:,0]] = 0.0
-        else:
-            s[k[:,0]] = M[K].mean()
+        s[s_idx, :] = M[:,cluster_assignments == cluster_id].mean(1)
+        s_idx += 1
+#        k = (cluster_assignments == cluster_id)[:, np.newaxis]
+#        print 'Cluster %i size: %i' % (cluster_id, k.sum())
+#        K = np.dot(k,k.T)
+#        K[np.diag_indices_from(K)] = False
+#        if K.sum() == 0: # Voxel with its own cluster
+#            s[k[:,0]] = 0.0
+#        else:
+#            s[k[:,0]] = M[K].mean()
 
 
     return s
@@ -259,4 +264,3 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
     S /= n_bootstraps
 
     return S
-
