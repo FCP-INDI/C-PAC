@@ -290,19 +290,19 @@ def create_seg_preproc():
                                                         'wm_mask']),
                         name='outputspec')
 
-    
+
     segment = pe.Node(interface=fsl.FAST(),
                           name='segment')
     segment.inputs.img_type = 1
     segment.inputs.segments = True
     segment.inputs.probability_maps = True
     segment.inputs.out_basename = 'segment'
-    
+
     #connections
-    
+
     preproc.connect(inputNode, 'brain',
                     segment, 'in_files')
-    
+
     preproc.connect(segment, 'probability_maps',
                     outputNode, 'probability_maps')
     preproc.connect(segment, 'mixeltype',
@@ -311,20 +311,20 @@ def create_seg_preproc():
                     outputNode, 'partial_volume_files')
     preproc.connect(segment, 'partial_volume_map',
                     outputNode, 'partial_volume_map')
-        
+
     ##get binarize thresholded csf mask
     process_csf = process_segment_map('CSF')
-    preproc.connect(inputNode, 'brain', 
+    preproc.connect(inputNode, 'brain',
                     process_csf, 'inputspec.brain',)
-    preproc.connect(inputNode, 'PRIOR_CSF', 
+    preproc.connect(inputNode, 'PRIOR_CSF',
                     process_csf, 'inputspec.tissue_prior')
-    preproc.connect(segment, 'probability_maps', 
-                    process_csf, 'inputspec.probability_maps')
-    preproc.connect(inputnode_csf_threshold,'csf_threshold',
+    preproc.connect(segment, ('probability_maps', pick_wm_0),
+                    process_csf, 'inputspec.probability_map')
+    preproc.connect(inputnode_csf_threshold, 'csf_threshold',
                     process_csf, 'inputspec.threshold')
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_csf, 'inputspec.standard2highres_mat')
-    
+
     preproc.connect(process_csf, 'outputspec.tissueprior_mni2t1',
                     outputNode, 'csf_mni2t1')
     preproc.connect(process_csf, 'outputspec.segment_combo',
@@ -333,20 +333,20 @@ def create_seg_preproc():
                     outputNode, 'csf_bin')
     preproc.connect(process_csf, 'outputspec.segment_mask',
                     outputNode, 'csf_mask')
-    
+
     #get binarize thresholded wm mask
     process_wm = process_segment_map('WM')
-    preproc.connect(inputNode, 'brain', 
+    preproc.connect(inputNode, 'brain',
                     process_wm, 'inputspec.brain',)
-    preproc.connect(inputNode, 'PRIOR_WHITE', 
+    preproc.connect(inputNode, 'PRIOR_WHITE',
                     process_wm, 'inputspec.tissue_prior')
-    preproc.connect(segment, 'probability_maps', 
-                    process_wm, 'inputspec.probability_maps')
-    preproc.connect(inputnode_wm_threshold,'wm_threshold',
+    preproc.connect(segment, ('probability_maps', pick_wm_2),
+                    process_wm, 'inputspec.probability_map')
+    preproc.connect(inputnode_wm_threshold, 'wm_threshold',
                     process_wm, 'inputspec.threshold')
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_wm, 'inputspec.standard2highres_mat')
-    
+
     preproc.connect(process_wm, 'outputspec.tissueprior_mni2t1',
                     outputNode, 'wm_mni2t1')
     preproc.connect(process_wm, 'outputspec.segment_combo',
@@ -358,12 +358,12 @@ def create_seg_preproc():
 
    #get binarize thresholded gm mask
     process_gm = process_segment_map('GM')
-    preproc.connect(inputNode, 'brain', 
+    preproc.connect(inputNode, 'brain',
                     process_gm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_GRAY', 
                     process_gm, 'inputspec.tissue_prior')
-    preproc.connect(segment, 'probability_maps', 
-                    process_gm, 'inputspec.probability_maps')
+    preproc.connect(segment, ('probability_maps', pick_wm_1), 
+                    process_gm, 'inputspec.probability_map')
     preproc.connect(inputnode_gm_threshold,'gm_threshold',
                     process_gm, 'inputspec.threshold')
     preproc.connect(inputNode, 'standard2highres_mat',
@@ -377,14 +377,14 @@ def create_seg_preproc():
                     outputNode, 'gm_bin')
     preproc.connect(process_gm, 'outputspec.segment_mask',
                     outputNode, 'gm_mask')
-    
-    
+
+
     return preproc
 
 
 
 def process_segment_map(wf_name):
-    
+
     """
     This is a sub workflow used inside segmentation workflow to process 
     probability maps obtained in segmententation. Steps include overlapping 
@@ -416,6 +416,9 @@ def process_segment_map(wf_name):
             
         inputspec.threshold : string (float)
             Threshold of Segmentation Probaility Maps
+            
+        inputspec.probability_map : string (nifti file)
+            Tissue Probability map obtained from fsl FAST
         
     Workflow Outputs: ::
 
@@ -457,76 +460,75 @@ def process_segment_map(wf_name):
         
     """
 
-    
-    
+
+
     preproc = pe.Workflow(name=wf_name)
-    
+
     inputNode = pe.Node(util.IdentityInterface(fields=['tissue_prior',
                                                        'threshold',
                                                        'brain',
-                                                       'probability_maps',
+                                                       'probability_map',
                                                        'standard2highres_mat']),
                         name='inputspec')
-    
+
     outputNode = pe.Node(util.IdentityInterface(fields=['tissueprior_mni2t1',
                                                         'segment_combo',
                                                         'segment_bin',
                                                         'segment_mask']),
                         name='outputspec')
-    
-    
+
     def form_threshold_string(threshold):
         return '-thr %f -bin ' % (threshold)
 
-    
-    tissueprior_mni_to_t1= pe.Node(interface=fsl.FLIRT(),
-                           name='%s_prior_mni_to_t1'%(wf_name))
+
+    tissueprior_mni_to_t1 = pe.Node(interface=fsl.FLIRT(),
+                           name='%s_prior_mni_to_t1' % (wf_name))
     tissueprior_mni_to_t1.inputs.apply_xfm = True
     tissueprior_mni_to_t1.inputs.interp = 'nearestneighbour'
 
     overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(),
-                             name='overlap_%s_map_with_prior'%(wf_name))
-    overlap_segmentmap_with_prior.inputs.op_string =  '-mas %s '
+                             name='overlap_%s_map_with_prior' % (wf_name))
+    overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
 
     binarize_threshold_segmentmap = pe.Node(interface=fsl.ImageMaths(),
-                            name='binarize_threshold_%s'%(wf_name))
+                            name='binarize_threshold_%s' % (wf_name))
 
     segment_mask = pe.Node(interface=fsl.MultiImageMaths(),
-                          name='%s_mask'%(wf_name))    
-    segment_mask.inputs.op_string =  '-mas %s '
-    
-    
+                          name='%s_mask' % (wf_name))
+    segment_mask.inputs.op_string = '-mas %s '
+
+
     #mni to t1
-    preproc.connect(inputNode,'tissue_prior',
+    preproc.connect(inputNode, 'tissue_prior',
                     tissueprior_mni_to_t1, 'in_file')
     preproc.connect(inputNode, 'brain',
                     tissueprior_mni_to_t1, 'reference')
     preproc.connect(inputNode, 'standard2highres_mat',
                     tissueprior_mni_to_t1, 'in_matrix_file')
-    
-        
+
+
     #overlapping
     preproc.connect(inputNode,
-                    ('probability_maps', pick_wm_1),
+                    'probability_map',
                     overlap_segmentmap_with_prior, 'in_file')
     preproc.connect(tissueprior_mni_to_t1, 'out_file',
                     overlap_segmentmap_with_prior, 'operand_files')
-    
-    
+
+
     #binarize
     preproc.connect(overlap_segmentmap_with_prior, 'out_file',
                     binarize_threshold_segmentmap, 'in_file')
     preproc.connect(inputNode,
                     ('threshold', form_threshold_string),
                     binarize_threshold_segmentmap, 'op_string')
-    
-    
+
+
     #create segment mask
     preproc.connect(binarize_threshold_segmentmap, 'out_file',
                     segment_mask, 'in_file')
     preproc.connect(tissueprior_mni_to_t1, 'out_file',
                     segment_mask, 'operand_files')
-    
+
 
     #connect to output nodes
     preproc.connect(tissueprior_mni_to_t1, 'out_file',
@@ -538,5 +540,5 @@ def process_segment_map(wf_name):
     preproc.connect(segment_mask, 'out_file',
                     outputNode, 'segment_mask')
 
-    
+
     return preproc
