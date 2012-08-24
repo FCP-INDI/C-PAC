@@ -1,4 +1,3 @@
-import CPAC.interfaces.afni.preprocess as e_afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -22,15 +21,21 @@ def motion_power_parameters():
     
     Workflow Inputs::
     
-        inputspec.rest : func/rest file or a list of func/rest nifti file 
-            User input functional(T2) Image, in any of the 8 orientations
-
         inputspec.subject_id : string 
             Subject name or id
             
         inputspec.scan_id : string
             Functional Scan id or name
             
+        inputspec.rest : string (func/rest file or a list of func/rest nifti file) 
+            Path to user input functional(T2) Image, in any of the 8 orientations
+        
+        inputspec.motion_correct : string (func/rest file or a list of func/rest nifti file) 
+            Path to motion corrected functional data
+            
+        inputspec.mask : string (nifti file)
+            Path to fiel contianing brain-only mask for the functional data
+                
         inputspec.max_displacement : string (Mat file)
             maximum displacement (in mm) vector for brain voxels in each volume.
             This file is obtained in functional preprocessing step
@@ -39,36 +44,20 @@ def motion_power_parameters():
             1D file containing six movement/motion parameters(3 Translation, 3 Rotations) 
             in different columns (roll pitch yaw dS  dL  dP), obtained in functional preprocessing step
         
-        threshold_input.threshold : float
+        threshold_input.threshold : string (float)
             scrubbing threshold
         
     Workflow Outputs::
-    
-        outputspec.mean_deriv_sq_1D : string (1D file)
-          Mean over the masked brain region
-          of the derivative of the raw data  
-        
-        outputspec.mean_raw_sq_1D: string (1D file)
-          Mean over the masked brain region 
-          for the raw data 
         
         outputspec.FD_1D : 1D file
             mean Framewise Displacement (FD)
-        
-        outputspec.sqrt_mean_deriv_sq_1D : 1D file
-            RMS values for each volume of the 
-            derivative file of the raw data
-        
-        outputspec.sqrt_mean_raw_sq_1D : 1D file
-            RMS values for each volume of 
-            the raw data
-        
+            
         outputspec.frames_ex_1D : 1D file
             Number of frames that would be censored ("scrubbed")
             also removing the offending time frames (i.e., those exceeding the threshold), 
             the preceeding frame, and the two subsequent frames
         
-        outputspec.frames_in_1D :
+        outputspec.frames_in_1D : 1d file
             Number of frames left after removing for scrubbing
         
         outputspec.power_params : txt file
@@ -77,9 +66,6 @@ def motion_power_parameters():
         outputspec.motion_params : txt file
            Text file containing various movement parameters
         
-        outputspec.ftof_percent_change_1D : 1D file
-            The frame-wise RMS of the temporal derivative of the RAW (unprocessed) 
-            data as a percentage of the RMS of the first of the two time points.
     
     Order of commands:
     
@@ -103,51 +89,8 @@ def motion_power_parameters():
       DVARS, the volumetric timeseries is differentiated (by backwards differences) and RMS signal 
       change is calculated over the whole brain.DVARS is thus a measure of how much the intensity 
       of a brain image changes in comparison to the previous timepoint (as opposed to the global 
-      signal, which is the average value of a brain image at a timepoint).
-                        
-        - Create a dilated brain mask::
-             
-            3dAutomask -dilate 1  
-                       -prefix mask 
-                        rest.nii.gz
-        
-        - Calculate the difference in Image intensities between I and I-1 frame::
-        
-            3dcalc -a rest.nii.gz[4..299]  
-                   -b rest.nii.gz[3..298] 
-                   -expr '(a-b)' 
-                   -prefix temp_deriv
-        
-        - Square the Intensity values of the derivative file obtained in above step::
-         
-            3dcalc -a temp_deriv 
-                   -expr 'a*a' 
-                   -prefix temp_deriv_sq
-        
-        - Calculate the mean intensity statistics over masked(whole brain) region
-          for each volume of the squared derivative file::
-        
-            3dROIstats -quiet 
-                       -mask mask
-                       temp_deriv_sq
-        
-        - Square the intensity values of raw image::
+      signal, which is the average value of a brain image at a timepoint).[R5]
 
-            3dcalc -a rest.nii.gz[3..298] 
-                   -expr 'a*a' 
-                   -prefix raw_sq
-        
-        - Get the mean intensity over masked region for each volume of the
-          squared raw file::
-        
-            3dROIstats -quiet 
-                       -mask mask
-                        raw_sq
-    
-        - calculate Square root of Mean value for derivative Image 
-            
-        - calculate square root of Mean for the Raw Image
-    
       
     - Calculate Power parameters::
         
@@ -165,17 +108,7 @@ def motion_power_parameters():
         PercentFD( > threshold) : Number of frames (time points) where movement (FD) exceeded threshold 
                                   expressed as a percentage of the total number of frames (time points)
         
-        Num5 : Number of frames (time points) where modDVARS exceeded 5%, expressed as a percentage of 
-               the total number of frames (time points)
-        
-        Num10 : Number of frames (time points) where modDVARS exceeded 10%, expressed as a percentage of 
-                the total number of frames (time points)
-        
-        MeanDVARS : The mean (across time) of a measure similar to DVARS as described by Power et al., 2012a. 
-                    The frame-wise RMS of the temporal derivative of the RAW (unprocessed) data as a percentage of the 
-                    RMS of the first of the two time points
-        
-        MeanDVARS_POW : MeanDVARS as mean of frame wise RMS of the RAW data. 
+        MeanDVARS : Mean of voxel DVARS
             
     - Calculate Motion Parameters
         
@@ -208,6 +141,9 @@ def motion_power_parameters():
     >>> wf = generate_motion_parameters.motion_power_parameters()
     >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sym_link/sub01/rest_1/func/rest_mc.1D'
     >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sym_link/sub01/rest_1/func/max_disp.1D'
+    >>> wf.inputs.inputspec.rest = 'sub01/rest_1/rest.nii.gz'
+    >>> wf.inputs.inputspec.motion_correct =
+    >>> wf.inputs.inputspec.mask =
     >>> wf.inputs.inputspec.subject_id = 'sub01'
     >>> wf.inputs.inputspec.scan_id = 'rest_1'
     >>> wf.inputs.threshold_input.threshold = 0.5
@@ -233,41 +169,22 @@ def motion_power_parameters():
                                                        'scan_id',
                                                        'rest',
                                                        'movement_parameters',
-                                                       'max_displacement'
+                                                       'max_displacement',
+                                                       'motion_correct',
+                                                       'mask'
                                                     ]),
                         name='inputspec')
 
     inputnode_threshold = pe.Node(util.IdentityInterface(fields=['threshold']),
                              name='threshold_input')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['mean_deriv_sq_1D',
-                                                        'mean_raw_sq_1D',
-                                                        'FD_1D',
-                                                        'sqrt_mean_deriv_sq_1D',
-                                                        'sqrt_mean_raw_sq_1D',
+    outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
                                                         'frames_ex_1D',
                                                         'frames_in_1D',
                                                         'power_params',
-                                                        'motion_params',
-                                                        'ftof_percent_change_1D']),
+                                                        'motion_params']),
                         name='outputspec')
 
-    NVOLS = pe.Node(util.Function(input_names=['in_files'],
-                                  output_names=['nvols'],
-                                  function=get_img_nvols),
-                    name='NVOLS')
-
-    last = pe.MapNode(util.Function(input_names=['nvols'],
-                                              output_names=['last_volume'],
-                                              function=last_vol),
-                                name='last',
-                                iterfield=['nvols'])
-
-    last_minus_one = pe.MapNode(util.Function(input_names=['nvols', 'stopIdx', 'startIdx'],
-                                              output_names=['last_vol_minus_one'],
-                                              function=trend_minus1),
-                                name='last_minus_one',
-                                iterfield=['nvols'])
 
     calculate_FD = pe.MapNode(util.Function(input_names=['in_file'],
                                            output_names=['out_file'],
@@ -275,79 +192,34 @@ def motion_power_parameters():
                              name='calculate_FD',
                              iterfield=["in_file"])
 
+    cal_DVARS = pe.MapNode(util.Function(input_names=['rest', 
+                                                      'mask'],
+                                           output_names=['out_file'],
+                                           function=calculate_DVARS),
+                             name='cal_DVARS',
+                             iterfield=["rest", "mask"])
 
-    exclude_frames = pe.MapNode(util.Function(input_names=['in_file', 'threshold'],
+    exclude_frames = pe.MapNode(util.Function(input_names=['in_file', 
+                                                           'threshold'],
                                            output_names=['out_file'],
                                            function=set_frames_ex),
                              name='exclude_frames',
                              iterfield=["in_file"])
 
-    include_frames = pe.MapNode(util.Function(input_names=['in_file', 'threshold', 'exclude_list'],
+    include_frames = pe.MapNode(util.Function(input_names=['in_file', 
+                                                           'threshold', 
+                                                           'exclude_list'],
                                            output_names=['out_file'],
                                            function=set_frames_in),
                              name='include_frames',
                              iterfield=["in_file", "exclude_list"])
 
-    meanDVARS_perc_change = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'],
-                                                    output_names=['out_file'],
-                                                    function=set_ftof_percent_change),
-                                      name='meanDVARS_perc_change',
-                                      iterfield=["infile_a", "infile_b"])
 
-    DVARS_deriv = pe.MapNode(util.Function(input_names=['in_file'], output_names=['out_file'],
-                                                function=set_sqrtmean_deriv),
-                                  name='DVARS_deriv',
-                                  iterfield=["in_file"])
-
-    DVARS_raw = pe.MapNode(util.Function(input_names=['in_file'],
-                                              output_names=['out_file'],
-                                              function=set_sqrtmean_raw),
-                                name='DVARS_raw',
-                                iterfield=["in_file"])
-
-    DVARS_calc1 = pe.MapNode(interface=e_afni.Threedcalc(),
-                          name='DVARS_calc1',
-                          iterfield=["infile_a", "stop_idx", "infile_b", "stop_idx2"])
-    DVARS_calc1.inputs.start_idx = 4
-    DVARS_calc1.inputs.start_idx2 = 3
-    DVARS_calc1.inputs.expr = '\'(a-b)\''
-    DVARS_calc1.inputs.out_file = 'temp_deriv'
-
-    DVARS_calc2 = pe.MapNode(interface=e_afni.Threedcalc(),
-                          name='DVARS_calc2',
-                          iterfield=["infile_a"])
-    DVARS_calc2.inputs.expr = '\'a*a\''
-    DVARS_calc2.inputs.out_file = 'temp_deriv_sq'
-
-    DVARS_calc3 = pe.MapNode(interface=e_afni.Threedcalc(),
-                          name='DVARS_calc3',
-                          iterfield=["infile_a", "stop_idx"])
-    DVARS_calc3.inputs.start_idx = 3
-    DVARS_calc3.inputs.expr = '\'a*a\''
-    DVARS_calc3.inputs.out_file = 'raw_sq'
-
-
-    get_mask = pe.MapNode(interface=e_afni.ThreedAutomask(),
-                             name='get_mask',
-                             iterfield=["in_file"])
-    get_mask.inputs.dilate = 1
-    get_mask.inputs.genbrickhead = True
-    get_mask.inputs.out_file = './mask'
-
-
-    mean_derv = pe.MapNode(interface=e_afni.ThreedROIstats(),
-                                 name='mean_derv',
-                                 iterfield=["in_file", "mask"])
-    mean_derv.inputs.quiet = True
-
-    mean_raw = pe.MapNode(interface=e_afni.ThreedROIstats(),
-                                 name='mean_raw',
-                                 iterfield=["in_file", "mask"])
-    mean_raw.inputs.quiet = True
-
-
-    calc_motion_parameters = pe.MapNode(util.Function(input_names=["subject_id", "scan_id", "rest", "movement_parameters",
-                                                                "max_displacement"],
+    calc_motion_parameters = pe.MapNode(util.Function(input_names=["subject_id", 
+                                                                   "scan_id", 
+                                                                   "rest", 
+                                                                   "movement_parameters",
+                                                                   "max_displacement"],
                                                    output_names=['out_file'],
                                                    function=gen_motion_parameters),
                                      name='calc_motion_parameters',
@@ -355,43 +227,22 @@ def motion_power_parameters():
                                                 "movement_parameters",
                                                 "max_displacement"])
 
-    calc_power_parameters = pe.MapNode(util.Function(input_names=["subject_id", "scan_id", "rest", "FD_1D", "threshold",
-                                                               "ftof_percent", "sqrt_mean_raw"],
+    calc_power_parameters = pe.MapNode(util.Function(input_names=["subject_id", 
+                                                                  "scan_id", 
+                                                                  "FD_1D", 
+                                                                  "threshold",
+                                                                  "DVARS"],
                                                    output_names=['out_file'],
                                                    function=gen_power_parameters),
                                      name='calc_power_parameters',
-                                     iterfield=["rest", "FD_1D",
-                                                "ftof_percent",
-                                                "sqrt_mean_raw"])
+                                     iterfield=[ "FD_1D", 
+                                                "DVARS"])
 
-    pm.connect(inputNode, 'rest', NVOLS, 'in_files')
 
-    pm.connect(inputNode, 'rest', DVARS_calc1, 'infile_a')
-    pm.connect(inputNode, 'rest', DVARS_calc1, 'infile_b')
-    pm.connect(NVOLS, 'nvols', last, 'nvols')
-    pm.connect(last, 'last_volume', DVARS_calc1, 'stop_idx')
-    pm.connect(NVOLS, 'nvols', last_minus_one, 'nvols')
-    pm.connect(last_minus_one, 'last_vol_minus_one', DVARS_calc1, 'stop_idx2')
-
-    pm.connect(DVARS_calc1, 'brik_file', DVARS_calc2, 'infile_a')
-
-    pm.connect(inputNode, 'rest', DVARS_calc3, 'infile_a')
-    pm.connect(last_minus_one, 'last_vol_minus_one', DVARS_calc3, 'stop_idx')
-
-    pm.connect(inputNode, 'rest', get_mask, 'in_file')
-
-    pm.connect(get_mask, 'brik_file', mean_derv, 'mask')
-    pm.connect(DVARS_calc2, 'brik_file', mean_derv, 'in_file')
-
-    pm.connect(get_mask, 'brik_file', mean_raw, 'mask')
-    pm.connect(DVARS_calc3, 'brik_file', mean_raw, 'in_file')
-
-    pm.connect(mean_derv, 'stats', DVARS_deriv, 'in_file' )
-    pm.connect(mean_raw, 'stats', DVARS_raw, 'in_file')
-
-    pm.connect(DVARS_deriv, 'out_file', meanDVARS_perc_change, 'infile_a' )
-    pm.connect(DVARS_raw, 'out_file', meanDVARS_perc_change, 'infile_b')
-
+    ##calculate mean DVARS
+    pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
+    pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
+    
     ###Calculating mean Framewise Displacement
     pm.connect(inputNode, 'movement_parameters', calculate_FD, 'in_file' )
 
@@ -419,75 +270,21 @@ def motion_power_parameters():
                calc_power_parameters, 'subject_id')
     pm.connect(inputNode, 'scan_id',
                calc_power_parameters, 'scan_id')
-    pm.connect(inputNode, 'rest',
-               calc_power_parameters, 'rest')
-    pm.connect(meanDVARS_perc_change, 'out_file',
-               calc_power_parameters, 'ftof_percent')
+    pm.connect(cal_DVARS, 'out_file',
+               calc_power_parameters, 'DVARS')
     pm.connect(calculate_FD, 'out_file',
                calc_power_parameters, 'FD_1D')
     pm.connect(inputnode_threshold, 'threshold',
                calc_power_parameters, 'threshold')
-    pm.connect(DVARS_raw, 'out_file',
-                calc_power_parameters, 'sqrt_mean_raw')
-
-    pm.connect(mean_derv, 'stats', outputNode, 'mean_deriv_sq_1D')
-    pm.connect(mean_raw, 'stats', outputNode, 'mean_raw_sq_1D')
 
     pm.connect(calculate_FD, 'out_file', outputNode, 'FD_1D')
-    pm.connect(DVARS_deriv, 'out_file', outputNode, 'sqrt_mean_deriv_sq_1D')
-    pm.connect(DVARS_raw, 'out_file', outputNode, 'sqrt_mean_raw_sq_1D')
     pm.connect(exclude_frames, 'out_file', outputNode, 'frames_ex_1D')
     pm.connect(include_frames, 'out_file', outputNode, 'frames_in_1D')
-    pm.connect(meanDVARS_perc_change, 'out_file', outputNode, 'ftof_percent_change_1D')
     pm.connect(calc_motion_parameters, 'out_file', outputNode, 'motion_params')
     pm.connect(calc_power_parameters, 'out_file', outputNode, 'power_params')
 
 
     return pm
-
-
-def last_vol(nvols):
-    """
-    Get the last volume of the image 
-    
-    Parameters
-    ----------
-    nvols : int
-        no of scans
-    
-    Returns
-    -------
-    last_volume : int
-        last scan
-    """
-    vol = nvols
-    last_volume = (int(vol) - 1)
-    return last_volume
-
-
-def trend_minus1(nvols):
-    """
-    Get the second to last volume of the image
-    
-    Parameters
-    ----------
-    nvols : int
-        no of scans
-        
-    Returns 
-    -------
-    last_vol_minus_one : int
-        second to last scan
-    
-    """
-
-    vol = nvols
-    last_vol_minus_one = None
-
-    last_volume = (int(vol) - 1)
-    last_vol_minus_one = last_volume - 1
-
-    return last_vol_minus_one
 
 
 def set_FD(in_file):
@@ -658,113 +455,6 @@ def set_frames_in(in_file, threshold, exclude_list):
     return out_file
 
 
-def set_sqrtmean_deriv(in_file):
-
-    """
-    Method to calculate mean of 
-    rms of temporal derivative of raw data
-    
-    Parameters
-    ----------
-    in_file : string
-        path to 1D file containing rms of temporal 
-        derivative of raw data
-    
-    Returns
-    -------
-    out_file : string
-        path to 1D file containing mean of rms of
-        temporal derivative of raw data
-    """
-    import os
-    import numpy
-
-    out_file = os.path.join(os.getcwd(), 'sqrt_mean_deriv_sq.1D')
-
-    data = numpy.loadtxt(in_file)
-    data = numpy.around(numpy.sqrt(data), decimals=6)
-    numpy.savetxt(out_file, data)
-
-    return out_file
-
-
-def set_sqrtmean_raw(in_file):
-
-    """
-    Method to calculate mean of 
-    rms of raw data
-    
-    Parameters
-    ----------
-    in_file : string
-        path to 1D file containing rms 
-        of raw data
-    
-    Returns
-    -------
-    out_file : string
-        path to 1D file containing mean of rms 
-        of raw data
-    """
-
-    import os
-    import numpy
-
-    out_file = os.path.join(os.getcwd(), 'sqrt_mean_raw_sq.1D')
-
-    data = numpy.loadtxt(in_file)
-    data = numpy.around(numpy.sqrt(data), decimals=6)
-    numpy.savetxt(out_file, data)
-
-    return out_file
-
-
-def set_ftof_percent_change(infile_a, infile_b):
-
-    """
-    Method to calculate percentage change in the 
-    RMS value of the timepoints
-    
-    Parameters
-    ----------
-    infile_a : string
-        path to 1D file containing rms of temporal 
-        derivative of raw data
-    infile_b : string
-         path to 1D file containing mean of rms 
-         of raw data
-    
-    Returns
-    -------
-    out_file : string
-        path to file containing percentage change in
-        RMS value of timepoints
-    
-    """
-    import subprocess as sb
-    import os
-
-    out_file = os.path.join(os.getcwd(), 'ftof_percent_change.1D')
-
-    cmd1 = sb.Popen(['awk', 'NR==FNR{a[NR]=$1; next} {print a[FNR], $1}',
-                     infile_a, infile_b], stdin=sb.PIPE, stdout=sb.PIPE,)
-
-    cmd2 = sb.Popen(['awk', '{x=$1} {y=$2} {printf( "%.6f ", ((x/y)*100))}'],
-                    stdin=cmd1.stdout, stdout=sb.PIPE,)
-
-    stdout_value, stderr_value = cmd2.communicate()
-
-    output = stdout_value.split()
-    f = open(out_file, 'a')
-
-    for out in output:
-        print >>f, float(out)
-
-    f.close()
-
-    return out_file
-
-
 def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_displacement):
     """
     Method to calculate all the movement parameters
@@ -797,15 +487,15 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
 
     f = open(out_file, 'w')
-    print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement,"\
-    "Max_Relative RSM_Displacement, Movements_gt_threshold, Mean_" \
-    "Relative_Mean_Rotation, Mean_Relative_Maxdisp, Max_Relative_Maxdisp," \
-    "Max_Abs_Maxdisp, Max Relative_Roll, Max_Relative_Pitch," \
-    "Max_Relative Yaw, Max_Relative_dS-I, Max_Relative_dL-R," \
-    "Max_Relative dP-A, Mean_Relative_Roll, Mean_Relative_Pitch, Mean_Relative_Yaw," \
-    "Mean_Relative_dS-I, Mean_Relative_dL-R, Mean_Relative_dP-A, Max_Abs_Roll," \
-    "Max_Abs_Pitch,Max_Abs_Yaw, Max_Abs_dS-I, Max_Abs_dL-R, Max_Abs_dP-A," \
-    "Mean_Abs_Roll, Mean_Abs_Pitch, Mean_Abs_Yaw, Mean_Abs_dS-I, Mean_Abs_dL-R, Mean_Abs_dP-A"
+    print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
+        "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
+        "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
+        "Max_Abs_Maxdisp,Max Relative_Roll,Max_Relative_Pitch," \
+        "Max_Relative_Yaw,Max_Relative_dS-I,Max_Relative_dL-R," \
+        "Max_Relative_dP-A,Mean_Relative_Roll,Mean_Relative_Pitch,Mean_Relative_Yaw," \
+        "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll," \
+        "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A," \
+        "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A"
 
 
     f.write("%s," % (subject_id))
@@ -883,7 +573,7 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, rest, FD_1D, threshold, ftof_percent, sqrt_mean_raw):
+def gen_power_parameters(subject_id, scan_id, FD_1D, threshold, DVARS):
     
     """
     Method to generate Power parameters for scrubbing
@@ -894,16 +584,12 @@ def gen_power_parameters(subject_id, scan_id, rest, FD_1D, threshold, ftof_perce
         subject name or id
     scan_id : string
         scan name or id
-    rest : string 
-        functional file path
     FD_ID: string 
         framewise displacement file path
     threshold : float
         scrubbing threshold set in the configuration
-    ftof_percent : string 
-        path to 1D file containing percentage change in RMS value of the time points.
-    sqrt_mean_raw : string 
-        path to 1D file containing mean rms value of raw data for each scan
+    DVARS : string 
+        path to numpy file containing DVARS
     
     Returns
     -------
@@ -918,9 +604,9 @@ def gen_power_parameters(subject_id, scan_id, rest, FD_1D, threshold, ftof_perce
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
     f= open(out_file,'w')
-    print >>f, "Subject,Scan, MeanFD, NumFD(>%.2f)," \
-    "rootMeanSquareFD, FDquartile(top 1/4th FD), PercentFD( >%.2f), Num5, \
-    Num10, MeanDVARS, MeanDVARS_POW"%(threshold,threshold)
+    print >>f, "Subject,Scan,MeanFD,NumFD_greater_than_%.2f," \
+    "rootMeanSquareFD,FDquartile(top1/4thFD),PercentFD_greater_than_%.2f," \
+     "MeanDVARS"%(threshold,threshold)
 
     f.write("%s," % subject_id)
     f.write("%s," % scan_id)
@@ -951,70 +637,53 @@ def gen_power_parameters(subject_id, scan_id, rest, FD_1D, threshold, ftof_perce
     percentFD = (count*100/(len(data)+1))
     f.write('%.4f,' %percentFD)
 
-
-    data=loadtxt(ftof_percent)
-    ###NUMBER OF relative FRAMES >5%
-    num5= np.sum(data>=5)*100/len(data)
-    f.write('%.4f,' % num5)
-    
-    #Number of frames (time points) where modDVARS exceeded 10%, 
-    #expressed as a percentage of the total number of frames (time points)
-    num10= np.sum(data>=10)*100/len(data)
-    f.write('%.4f,' % num10)
-
     #Mean DVARS 
-    meanDVARS  = np.mean(data)
+    meanDVARS = np.mean(np.load(DVARS))
     f.write('%.4f,' % meanDVARS)
-
-    #mean DVARS as mean of rms value of raw data
-    # as per powers paper
-    data = loadtxt(sqrt_mean_raw)
-    meanDVARS_POW = np.mean(data)
-    f.write('%.4f,' % meanDVARS_POW)
 
     f.close()
     return out_file
 
 
-def get_img_nvols(in_files):
-    
+def calculate_DVARS(rest, mask):
     """
-    Method to get number of volumes
-    in the image 
+    Method to calculate DVARS as per
+    power's method
     
     Parameters
     ----------
-    in_files: string, list
-        file path or list of file paths for 
-        functional runs
-    
-    Returns 
+    rest : string (nifti file)
+        path to motion correct functional data
+    mask : string (nifti file)
+        path to brain only mask for functional data
+        
+    Returns
     -------
-    out : list
-        list containing no of scans of 
-        each functional run
-    
+    out_file : string (numpy file)
+        path to file containing  array of DVARS 
+        calculation for each voxel
     """
-
-    out = []
-    from nibabel import load
-    if(isinstance(in_files, list)):
-        for in_file in in_files:
-            img = load(in_file)
-            hdr = img.get_header()
-
-            if len(hdr.get_data_shape()) > 3:
-                nvols = int(hdr.get_data_shape()[3])
-            else:
-                nvols = 1
-            out.append(nvols)
-        return out
-
-    else:
-        img = load(in_files)
-        hdr = img.get_header()
-        if len(hdr.get_data_shape()) > 3:
-            nvols = int(hdr.get_data_shape()[3])
-        else:
-            nvols = 1
-        return [nvols]
+    
+    import numpy as np
+    import nibabel as nib
+    import os
+    
+    out_file = os.path.join(os.getcwd(), 'DVARS.npy')
+    
+    rest_data = nib.load(rest).get_data().astype(np.float32)
+    mask_data = nib.load(mask).get_data().astype('bool')
+    
+    #square of relative intensity value for each voxel across
+    #every timepoint 
+    data = np.square(np.diff(rest_data, axis = 3))
+    #applying mask, getting the data in the brain only
+    data = data[mask_data]
+    #square root and mean of all values inside mask
+    DVARS = np.sqrt(np.mean(data, axis=1))
+    
+    np.save(out_file, DVARS)
+    
+    return out_file
+    
+    
+    
