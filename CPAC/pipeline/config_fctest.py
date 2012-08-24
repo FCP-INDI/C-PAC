@@ -406,23 +406,21 @@ TR = None
 			  		For example, if you are using 3x3x3mm voxels, set fwhm = [6]
 
 """
-###Options are 1, 0, [1, 0]
+###Options are [1], [0], [1, 0]
 
-runAnatomicalDataGathering = 1
+runAnatomicalDataGathering = [1]
+runAnatomicalPreprocessing = [1]
+runRegistrationPreprocessing = [1]
+runSegmentationPreprocessing = [1]
 
-runFunctionalDataGathering = 1
 
-runAnatomicalPreprocessing = [1, 0]
+runFunctionalDataGathering = [1]
+runFunctionalPreprocessing = [1]
+runAnatomicalToFunctionalRegistration = [1]
 
-runFunctionalPreprocessing = [1, 0]
-
-runRegistrationPreprocessing = [1, 0]
-
-runSegmentationPreprocessing = [1, 0]
-
+runNuisance = [1]
 
 standardResolution = '2mm'
-
 MNI = 'MNI152'
 
 fwhm = [4]
@@ -491,7 +489,7 @@ scrubbingThreshold = [0.2]
 
 
 
-		1) Corections : Select which nuisance signals you would like to remove. 
+		1) Corrections : Select which nuisance signals you would like to remove. 
 
 
 
@@ -509,7 +507,7 @@ scrubbingThreshold = [0.2]
 
 				4 - GRAY Matter
 
-				5 - First principal component regression
+				5 - First principal component
 
 				6 - Linear trend
 
@@ -537,7 +535,15 @@ scrubbingThreshold = [0.2]
 
 
 
-Corrections = [[1,6,7]]
+Corrections = [{'compcor' : True,
+                'wm' : True,
+                'csf' : True,
+                'gm' : True,
+                'global' : True,
+                'pc1' : True,
+                'motion' : True,
+                'linear' : True,
+                'quadratic' : True}]
 
 nComponents = [5]
 

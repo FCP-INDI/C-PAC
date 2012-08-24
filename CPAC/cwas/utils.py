@@ -137,6 +137,7 @@ def y_mdmr(yDis, x, iter):
         F_perm = np.zeros(iter-1)
         for i in range(iter-1):
             IndexRandPerm = np.random.permutation(n)
+            # Would it be better to permute the regressors x rather than G?
             G_perm = G.take(IndexRandPerm, axis=0)
             G_perm = G_perm.take(IndexRandPerm, axis=1)
             MS_perm = np.trace(H.dot(G_perm).dot(H))/df_among
