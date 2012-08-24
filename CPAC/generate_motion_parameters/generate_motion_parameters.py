@@ -679,7 +679,7 @@ def calculate_DVARS(rest, mask):
     #applying mask, getting the data in the brain only
     data = data[mask_data]
     #square root and mean of all values inside mask
-    DVARS = np.sqrt(np.mean(data, axis=1))
+    DVARS = np.sqrt(np.mean(data, axis=0))
     
     np.save(out_file, DVARS)
     
