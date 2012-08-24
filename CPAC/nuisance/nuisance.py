@@ -101,7 +101,8 @@ def calc_residuals(subject,
     subject : string
         Path of a subject's realigned nifti file.
     selector : dictionary
-        Dictionary of selected regressors
+        Dictionary of selected regressors.  Keys are  represented as a string of the regressor name and keys 
+        are True/False.  See notes for an example.
     wm_mask_file : string, optional
         Path to subject's white matter mask (in the same space as the subject's functional file)
     csf_mask_file : string, optional
@@ -116,7 +117,24 @@ def calc_residuals(subject,
     residual_file : string
         Path of residual file in nifti format
     regressors_file : string
-        Path of matlab file of regressors used 
+        Path of matlab file of regressors used
+        
+    Notes
+    -----
+    
+    Example of selector parameter:
+    
+    >>> selector = {'compcor' : True,
+    >>> 'wm' : True,
+    >>> 'csf' : True,
+    >>> 'gm' : True,
+    >>> 'global' : True,
+    >>> 'pc1' : True,
+    >>> 'motion' : True,
+    >>> 'linear' : True,
+    >>> 'quadratic' : True}
+    
+    
     """
     import numpy as np
     import nibabel as nb

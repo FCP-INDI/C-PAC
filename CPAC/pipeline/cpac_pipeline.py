@@ -3,6 +3,7 @@ import sys
 import copy
 import argparse
 import nipype.pipeline.engine as pe
+import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 
 from multiprocessing import Process
@@ -12,11 +13,14 @@ from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.reg_preproc.reg_preproc import create_reg_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
+
+from CPAC.registration import create_nonlinear_register
+from CPAC.nuisance import create_nuisance
+
 from CPAC.utils.func_datasource import *
 from CPAC.utils.anat_datasource import *
 
 class strategy:
-
 
     def __init__(self):
         self.resource_pool = {}
@@ -24,64 +28,31 @@ class strategy:
         self.leaf_out_file = None
 
     def set_leaf_properties(self, node, out_file):
-
         self.leaf_node = node
         self.leaf_out_file = out_file
 
-
     def get_leaf_properties(self):
-
         return self.leaf_node, self.leaf_out_file
 
-
     def get_resource_pool(self):
-
         return self.resource_pool
 
-
     def get_node_from_resource_pool(self, resource_key):
-
         try:
             if resource_key in self.resource_pool:
                 return self.resource_pool[resource_key]
-
         except:
-
-                print 'no node for output: ', resource_key
-                raise
-
-
+            print 'no node for output: ', resource_key
+            raise
 
     def update_resource_pool(self, resources):
-
-
         for key, value in resources.items():
-
             if key in self.resource_pool:
                 print 'Warning key %s already exists in resource pool, replacing with %s ' % (key, value)
 
-
             self.resource_pool[key] = value
 
-
-
-def getSubjectsandScansList(c, s):
-
-    def get_list(fname):
-        flines = open(fname, 'r').readlines()
-        return [fline.rstrip('\r\n') for fline in flines]
-
-    subjects_list = s.subjects_list
-
-    if c.derivatives[1]:
-        return subjects_list, get_list(c.seedFile)
-    else:
-        return subjects_list, []
-
-
 def prep_workflow(sub_dict, seed_list, c):
-
-
     print "running for subject ", sub_dict
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
@@ -97,28 +68,17 @@ def prep_workflow(sub_dict, seed_list, c):
 
 
     """
-        Initialize Anatomical Input Data Flow
+    Initialize Anatomical Input Data Flow
     """
-
-    run_gather_anat = c.runAnatomicalDataGathering
-
-    if not isinstance(run_gather_anat, list):
-
-        run_gather_anat = [run_gather_anat]
-
     new_strat_list = []
     num_strat = 0
 
-
     strat_initial = None
 
-    for gather_anat in run_gather_anat:
-
-
+    for gather_anat in c.runAnatomicalDataGathering:
         strat_initial = strategy()
 
         if gather_anat == 1:
-
             flow = create_anat_datasource()
             flow.inputs.inputnode.subject = subject_id
             flow.inputs.inputnode.anat = sub_dict['anat']
@@ -130,39 +90,16 @@ def prep_workflow(sub_dict, seed_list, c):
         num_strat += 1
 
         strat_list.append(strat_initial)
-
-
+        
     print strat_list
 
-
-
-
     """
-        Inserting Anatomical Preprocessing workflow
-
+    Inserting Anatomical Preprocessing workflow
     """
-
-    run_anat = c.runAnatomicalPreprocessing
-
-    if not isinstance(run_anat, list):
-
-        run_anat = [run_anat]
-
     new_strat_list = []
     num_strat = 0
 
-    tmp_run_anat = list(run_anat)
-
-    for el in tmp_run_anat:
-
-        if el == 0:
-            tmp_run_anat.remove(el)
-
-
-
-    if len(tmp_run_anat) > 0:
-
-
+    if 1 in c.runAnatomicalPreprocessing:
         for strat in strat_list:
             # create a new node, Remember to change its name! 
             anat_preproc = create_anat_preproc().clone('anat_preproc_%d' % num_strat)
@@ -170,23 +107,14 @@ def prep_workflow(sub_dict, seed_list, c):
             try:
                 # connect the new node to the previous leaf
                 node, out_file = strat.get_leaf_properties()
-#                if('outputspec.anat' in out_file) and ('anat' in node.name):
                 workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
-#                else:
-#                    print num_strat, ' cannot connect ', out_file, ' to Anat Preproc: inputspec.anat '
-
-#                    continue
-
 
             except:
-
                 print 'Invalid Connection: Anat Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 num_strat += 1
                 continue
 
-
-            if 0 in run_anat:
-
+            if 0 in c.runAnatomicalPreprocessing:
                 # we are forking so create a new node
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -195,55 +123,80 @@ def prep_workflow(sub_dict, seed_list, c):
                 strat = tmp
                 new_strat_list.append(strat)
 
-
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             # add stuff to resource pool if we need it 
 
             strat.update_resource_pool({'anatomical_brain':(anat_preproc, 'outputspec.brain')})
             strat.update_resource_pool({'anatomical_reorient':(anat_preproc, 'outputspec.reorient')})
 
-            num_strat = num_strat+1
+            num_strat += 1
 
-    strat_list = list(strat_list) +(list(new_strat_list))
+    strat_list += new_strat_list
 
 
     """
-        Inserting Functional Input Data workflow
+    Inserting Registration Preprocessing
+    Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+    
+    if 1 in c.runRegistrationPreprocessing:
+        for strat in strat_list:
+            reg_anat_mni = create_nonlinear_register('anat_mni_register_%d' % num_strat)
+            
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 reg_anat_mni, 'inputspec.input_brain')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node, out_file,
+                                 reg_anat_mni, 'inputspec.input_skull')
+                
+                reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrain
+                reg_anat_mni.inputs.inputspec.reference_skull = c.standard
+            except:
+                print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runRegistrationPreprocessing:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.set_leaf_properties(reg_anat_mni, 'outputspec.output_brain')
+            
+            strat.update_resource_pool({'anatomical_to_mni_linear_xfm':(reg_anat_mni, 'outputspec.linear_xfm'),
+                                        'anatomical_to_mni_nonlinear_xfm':(reg_anat_mni, 'outputspec.nonlinear_xfm'),
+                                        'mni_to_anatomical_linear_xfm':(reg_anat_mni, 'outputspec.invlinear_xfm'),
+                                        'mni_normalized_anatomical':(reg_anat_mni, 'outputspec.output_brain')})
+            
+            num_strat += 1
+    strat_list += new_strat_list
 
+    """
+    Inserting Segmentation Preprocessing
+    Workflow
+    """
+
+    """
+    Inserting Functional Input Data workflow
     """
     new_strat_list = []
     num_strat = 0
 
-    gather_func = c.runFunctionalDataGathering
-
-    if not isinstance(gather_func, list):
-
-        gather_func = [gather_func]
-
-
-    tmp_gather_func = list(gather_func)
-
-    for el in tmp_gather_func:
-
-        if el == 0:
-            tmp_gather_func.remove(el)
-
-
-    if len(tmp_gather_func) > 0:
-
-
-        tmp_strat = None
+    if 1 in c.runFunctionalDataGathering:
         for strat in strat_list:
-
-
             # create a new node, Remember to change its name! 
             Flow = create_func_datasource(sub_dict['rest'])
             Flow.inputs.inputnode.subject = subject_id
 
             funcFlow = Flow.clone('func_gather_%d' % num_strat)
 
-            if 0 in gather_func:
-
+            if 0 in c.runFunctionalDataGathering:
                 # we are forking so create a new node
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -254,41 +207,20 @@ def prep_workflow(sub_dict, seed_list, c):
 
             strat.set_leaf_properties(funcFlow, 'outputspec.rest')
 
-            num_strat = num_strat+1
+            num_strat += 1
 
-    strat_list = strat_list+new_strat_list
+    strat_list += new_strat_list
 
 
     """
-        Inserting Functional Image Preprocessing
-        Workflow
+    Inserting Functional Image Preprocessing
+    Workflow
     """
-
-
-
     new_strat_list = []
     num_strat = 0
 
-    run_func = c.runFunctionalPreprocessing
-
-    if not isinstance(run_func, list):
-
-        run_func = [run_func]
-
-    tmp_run_func = list(run_func)
-
-    for el in tmp_run_func:
-
-        if el == 0:
-            tmp_run_func.remove(el)
-
-
-
-    if len(tmp_run_func) > 0:
-
-        tmp_strat = None
+    if 1 in c.runFunctionalPreprocessing:
         for strat in strat_list:
-
             # create a new node, Remember to change its name! 
             preproc = create_func_preproc()
             preproc.inputs.inputspec.start_idx = c.startIdx
@@ -298,25 +230,14 @@ def prep_workflow(sub_dict, seed_list, c):
             node = None
             out_file = None
             try:
-                # connect the new node to the previous leaf
                 node, out_file = strat.get_leaf_properties()
-
-#                if('outputspec.rest' ==  out_file) and ('func_gather' in node.name):
                 workflow.connect(node, out_file, func_preproc, 'inputspec.rest')
-#                else:
-
-#                    print num_strat, ' cannot connect ', out_file, ' to Func Preproc: inputspec.rest '
-#
-#                    num_strat += 1
-#                    continue
-
             except:
-
                 print 'Invalid Connection: Functional Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 num_strat += 1
                 continue
 
-            if 0 in run_func:
+            if 0 in c.runFunctionalPreprocessing:
                 # we are forking so create a new node
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -336,202 +257,133 @@ def prep_workflow(sub_dict, seed_list, c):
             strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
             strat.update_resource_pool({'functional_dilated_mask':(func_preproc, 'outputspec.mask')})
 
-            num_strat = num_strat+1
+            num_strat += 1
 
-    strat_list = strat_list+new_strat_list
-
+    strat_list += new_strat_list
 
     """
-        Inserting Registration Preprocessing
-        Workflow
+    Inserting Functional to Anatomical Registration
     """
-
     new_strat_list = []
     num_strat = 0
-
-    run_reg = c.runRegistrationPreprocessing
-
-    if not isinstance(run_reg, list):
-
-        run_reg = [run_reg]
-
-    tmp_run_reg = list(run_reg)
-
-    for el in tmp_run_reg:
-
-        if el == 0:
-            tmp_run_reg.remove(el)
-
-
-    if len(tmp_run_reg) > 0:
-
+    
+    if 1 in c.runAnatomicalToFunctionalRegistration:
         for strat in strat_list:
+            anat_to_func_reg = pe.Node(interface=fsl.FLIRT(),
+                               name = 'anat_to_func_register_%d' % num_strat)
+            anat_to_func_reg.inputs.cost = 'corratio'
+            anat_to_func_reg.inputs.dof = 6
+            
+            func_gm = pe.Node(interface=fsl.ApplyXfm(),
+                               name = 'func_gm_%d' % num_strat)
+            func_gm.inputs.reference = c.standardResolutionBrain
+            func_gm.inputs.apply_xfm = True
 
-            # create a new node, Remember to change its name! 
-            preproc = create_reg_preproc()
-
-            preproc.inputs.inputspec.standard_res_brain = \
-                                                c.standardResolutionBrain
-            preproc.inputs.inputspec.standard = c.standard
-            preproc.inputs.inputspec.config_file = c.configFile
-            preproc.inputs.inputspec.standard_brain_mask_dil = \
-                                                c.standardBrainMaskDiluted
-
-            reg_preproc = preproc.clone('reg_preproc_%d' % num_strat)
-
-            node = None
-            out_file = None
+            func_csf = pe.Node(interface=fsl.ApplyXfm(),
+                               name = 'func_csf_%d' % num_strat)
+            func_csf.inputs.reference = c.standardResolutionBrain
+            func_csf.inputs.apply_xfm = True
+            
+            func_wm = pe.Node(interface=fsl.ApplyXfm(),
+                               name = 'func_wm_%d' % num_strat)
+            func_wm.inputs.reference = c.standardResolutionBrain
+            func_wm.inputs.apply_xfm = True
+            
             try:
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 anat_to_func_reg, 'in_file')
 
-                # connect the new node to the previous leaf
-                node, out_file = strat.get_leaf_properties()
-
-                r_pool_keys = strat.get_resource_pool().keys()
-
-#                if ('outputspec.example_func' == out_file) and ('anatomical_brain' in r_pool_keys) and ('anatomical_reorient' in r_pool_keys):
-                workflow.connect(node, out_file, reg_preproc, 'inputspec.example_func')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('anatomical_brain')
-                workflow.connect(node, var, reg_preproc, 'inputspec.brain')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('anatomical_reorient')
-                workflow.connect(node, var, reg_preproc, 'inputspec.reorient')
-#                else:
-#                    num_strat += 1
-#                    continue
-
-
+                node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                workflow.connect(node, out_file,
+                                 anat_to_func_reg, 'reference')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_gm_mask')
+                workflow.connect(node, out_file,
+                                 func_gm, 'in_file')
+                workflow.connect(anat_to_func_reg, 'out_matrix_file',
+                                 func_gm, 'in_matrix_file')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_csf_mask')
+                workflow.connect(node, out_file,
+                                 func_csf, 'in_file')
+                workflow.connect(anat_to_func_reg, 'out_matrix_file',
+                                 func_csf, 'in_matrix_file')                
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_wm_mask')
+                workflow.connect(node, out_file,
+                                 func_wm, 'in_file')
+                workflow.connect(anat_to_func_reg, 'out_matrix_file',
+                                 func_wm, 'in_matrix_file')
+                
             except:
-                print 'Invalid Connection: Registration Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
-                num_strat += 1
-                continue
-
-
-            if 0 in run_reg:
-                # we are forking so create a new node
+                print 'Invalid Connection: Anatomical to Functional Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runAnatomicalToFunctionalRegistration:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
+            
+            strat.update_resource_pool({'anatomical_to_functional_xfm':(anat_to_func_reg, 'out_matrix_file'),
+                                        'functional_gm_mask':(func_gm, 'out_file'),
+                                        'functional_wm_mask':(func_wm, 'out_file'),
+                                        'functional_csf_mask':(func_csf, 'out_file')})
 
-            strat.set_leaf_properties(reg_preproc, 'outputspec.stand2highres_warp')
-
-            # add stuff to resource pool if we need it 
-            strat.update_resource_pool({'highres2example_func_mat':(reg_preproc, 'outputspec.highres2example_func_mat')})
-            strat.update_resource_pool({'highres2standard_warp':(reg_preproc, 'outputspec.highres2standard_warp')})
-            strat.update_resource_pool({'example_func2highres_mat':(reg_preproc, 'outputspec.example_func2highres_mat')})
-
-            num_strat = num_strat+1
-
-    strat_list = strat_list+new_strat_list
+            num_strat += 1
+    
+    strat_list += new_strat_list
 
     """
-        Inserting Segmentation Preprocessing
-        Workflow
+    Inserting Nuisance Workflow
     """
-
     new_strat_list = []
     num_strat = 0
-
-    run_seg = c.runSegmentationPreprocessing
-
-    if not isinstance(run_seg, list):
-
-        run_seg = [run_seg]
-
-    tmp_run_seg = list(run_seg)
-
-    for el in tmp_run_seg:
-
-        if el == 0:
-            tmp_run_seg.remove(el)
-
-
-    if len(tmp_run_seg) > 0:
-
+    
+    if 1 in c.runNuisance:
         for strat in strat_list:
-
-            # create a new node, Remember to change its name! 
-            preproc = create_seg_preproc()
-
-            preproc.inputs.inputspec.standard_res_brain = c.standardResolutionBrain
-            preproc.inputs.inputspec.PRIOR_CSF = c.PRIOR_CSF
-            preproc.inputs.inputspec.PRIOR_WHITE = c.PRIOR_WHITE
-            preproc.inputs.inputspec.PRIOR_GRAY = c.PRIOR_GRAY
-            preproc.inputs.inputspec.standard_res_brain = c.standardResolutionBrain
-            preproc.inputs.csf_threshold.csf_threshold = c.cerebralSpinalFluidThreshold
-            preproc.inputs.wm_threshold.wm_threshold = c.whiteMatterThreshold
-            preproc.inputs.gm_threshold.gm_threshold = c.grayMatterThreshold
-            preproc.get_node('csf_threshold').iterables = ('csf_threshold', c.cerebralSpinalFluidThreshold)
-            preproc.get_node('wm_threshold').iterables = ('wm_threshold', c.whiteMatterThreshold)
-            preproc.get_node('gm_threshold').iterables = ('gm_threshold', c.grayMatterThreshold)
-            seg_preproc = preproc.clone('seg_preproc_%d' % num_strat)
-
-
-            node = None
-            out_file = None
+            nuisance = create_nuisance('nuisance_%d' % num_strat)
+            nuisance.get_node('residuals').iterables = ('selector', c.Corrections,
+                                                        'compcor_ncomponents', c.nComponents)
             try:
-                # connect the new node to the previous leaf
-                node, out_file = strat.get_leaf_properties()
-
-                r_pool_keys = strat.get_resource_pool().keys()
-#                if 'outputspec.stand2highres_warp' == out_file and ('highres2example_func_mat' in r_pool_keys) and ('functional_preprocessed_mask' in r_pool_keys) and ('anatomical_brain' in r_pool_keys) and ('mean_functional' in r_pool_keys):
-                workflow.connect(node, out_file, seg_preproc, 'inputspec.stand2highres_warp')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('highres2example_func_mat')
-                workflow.connect(node, var, seg_preproc, 'inputspec.highres2example_func_mat')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('functional_preprocessed_mask')
-                workflow.connect(node, var, seg_preproc, 'inputspec.preprocessed_mask')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('anatomical_brain')
-                workflow.connect(node, var, seg_preproc, 'inputspec.brain')
-
-                # connect from resource pool
-                node, var = strat.get_node_from_resource_pool('mean_functional')
-                workflow.connect(node, var, seg_preproc, 'inputspec.example_func')
-
-#                else:
-#                    num_strat += 1
-#                    continue
-
+                node, out_file = strat.get_node_from_resource_pool('functional_gm_mask')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.gm_mask')
+                
+                node, out_file = strat.get_node_from_resource_pool('functional_wm_mask')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.wm_mask')
+                
+                node, out_file = strat.get_node_from_resource_pool('functional_csf_mask')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.csf_mask')
+                
+                node, out_file = strat.get_node_from_resource_pool('movement_parameters')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.motion_components')
             except:
-                print 'Invalid Connection: Segmentation Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
-                num_strat += 1
-                continue
+                print 'Invalid Connection: Nuisance:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
 
-
-            if 0 in run_seg:
-                # we are forking so create a new node
+            if 0 in c.runNuisance:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
+                
+            strat.set_leaf_properties(nuisance, 'outputspec.subject')
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
 
-            strat.set_leaf_properties(seg_preproc, 'outputspec.wm_mask')
 
-            # add stuff to resource pool if we need it 
 
-            strat.update_resource_pool({'wm_mask':(seg_preproc, 'outputspec.wm_mask')})
-            strat.update_resource_pool({'csf_mask':(seg_preproc, 'outputspec.csf_mask')})
-            strat.update_resource_pool({'gm_mask':(seg_preproc, 'outputspec.gm_mask')})
-            strat.update_resource_pool({'probability_maps':(seg_preproc, 'outputspec.probability_maps')})
-            strat.update_resource_pool({'mixeltype':(seg_preproc, 'outputspec.mixeltype')})
-            strat.update_resource_pool({'partial_volume_map':(seg_preproc, 'outputspec.partial_volume_map')})
-            strat.update_resource_pool({'partial_volume_files':(seg_preproc, 'outputspec.partial_volume_files')})
-
-            num_strat = num_strat+1
-
-    strat_list = strat_list+new_strat_list
 
     idx = 0
     for strat in strat_list:
@@ -569,10 +421,10 @@ def run(config_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
+    sublist = s.subject_list
 
-    sublist, seed_list = getSubjectsandScansList(c, s)
-
-
+    flines = open(c.seedFile, 'r').readlines()
+    seed_list = [fline.rstrip('\r\n') for fline in flines]
 
     if not c.runOnGrid:
 

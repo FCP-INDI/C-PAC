@@ -229,7 +229,7 @@ def create_basc(name='basc'):
             Number of bootstraps of each subject's timeseries
         inputspec.k_clusters : integer
             Number of clusters at both the individiual and group level
-        inputspec.affinity_threshold : float
+        inputspec.affinity_threshold : list (floats)
             Minimum threshold for similarity matrix based on correlation to create an edge
             
     Workflow Outputs::
@@ -302,7 +302,8 @@ def create_basc(name='basc'):
                                    output_names=['individual_stability_matrices'],
                                    function=nifti_individual_stability),
                      name='individual_stability_matrices',
-                     iterfield=['subject_file'])
+                     iterfield=['subject_file',
+                                'affinity_threshold'])
     
     gsm = pe.Node(util.Function(input_names=['indiv_stability_list',
                                              'n_bootstraps',
