@@ -1,7 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-def bandpass_voxels(realigned_file, sample_period, bandpass_freqs):
+def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
     """
     Performs ideal bandpass filtering on each voxel time-series.
     
@@ -9,11 +9,12 @@ def bandpass_voxels(realigned_file, sample_period, bandpass_freqs):
     ----------
     realigned_file : string
         Path of a realigned nifti file.
-    sample_period : float
-        Length of sampling period in seconds.
     bandpass_freqs : tuple
         Tuple containing the bandpass frequencies.
-    
+    sample_period : float, optional
+        Length of sampling period in seconds.  If not specified,
+        this value is read from the nifti file provided.
+        
     Returns
     -------
     bandpassed_file : string
@@ -75,6 +76,15 @@ def bandpass_voxels(realigned_file, sample_period, bandpass_freqs):
     Y = data[mask].T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
     
+    if not sample_period:
+        hdr = nii.get_header()
+        sample_period = float(hdr.get_zooms()[3])
+        # Sketchy check to convert TRs in millisecond units
+        if sample_period > 20.0:
+            sample_period /= 1000.0
+
+    print 'Frequency filtering using sample period:', sample_period, 'sec'
+
     Y_bp = np.zeros_like(Y)
     for j in range(Y.shape[1]):
         Y_bp[:,j] = ideal_bandpass(Yc[:,j], sample_period, bandpass_freqs)
