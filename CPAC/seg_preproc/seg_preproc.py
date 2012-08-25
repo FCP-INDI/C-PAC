@@ -9,7 +9,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.seg_preproc.utils import *
 
-def create_seg_preproc():
+def create_seg_preproc(wf_name = 'seg_preproc'):
 
 
     """
@@ -19,7 +19,8 @@ def create_seg_preproc():
     Parameters
     ----------
 
-    None : None
+    wf_name : string
+        name of the workflow
 
     Returns
     -------
@@ -125,12 +126,6 @@ def create_seg_preproc():
         -o segment
         mprage_brain.nii.gz
     
-    - Get Inverse Linear Transformation matrix to convert prior to T1 space.For details see `convert_xfm <http://www.fmrib.ox.ac.uk/fsl/flirt/index.html>`_::
-    
-        convert_xfm 
-        -in highres2standard_mat
-        -invert_xfm
- 
     - Register CSF template in MNI space to t1 space. For details see `flirt <http://www.fmrib.ox.ac.uk/fsl/flirt/index.html>`_::
     
         flirt
@@ -252,7 +247,7 @@ def create_seg_preproc():
         :height: 480
     """
 
-    preproc = pe.Workflow(name='seg_preproc')
+    preproc = pe.Workflow(name = wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
                                                        'standard2highres_mat',
                                                        'PRIOR_CSF',

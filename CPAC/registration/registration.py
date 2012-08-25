@@ -20,21 +20,25 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     Workflow Inputs::
     
-        inputspec.input : string (nifti file)
-            File to be normalized (registered)
-        inputspec.reference : string (nifti file)
-            Target file to normalize to
+        inputspec.input_brain : string (nifti file)
+            File of brain to be normalized (registered)
+        inputspec.input_skull : string (nifti file)
+            File of input brain with skull
+        inputspec.reference_brain : string (nifti file)
+            Target brain file to normalize to
+        inputspec.reference_skull : string (nifti file)
+            Target brain with skull to normalize to
         inputspec.fnirt_config : string (fsl fnirt config file)
             Configuration file containing parameters that can be specified in fnirt
             
     Workflow Outputs::
     
-        outputspec.output : string (nifti file)
-            Normalizion of input file
+        outputspec.output_brain : string (nifti file)
+            Normalizion of input brain file
         outputspec.linear_xfm : string (.mat file)
-            Affine matrix of linear transformation
-        outputspec.linear_invxfm : string
-            Inverse of affine matrix of linear transformation
+            Affine matrix of linear transformation of brain file
+        outputspec.invlinear_xfm : string
+            Inverse of affine matrix of linear transformation of brain file
         outputspec.nonlinear_xfm : string
             Nonlinear field coefficients file of nonlinear transformation
             
@@ -59,21 +63,21 @@ def create_nonlinear_register(name='nonlinear_register'):
     """
     nonlinear_register = pe.Workflow(name=name)
     
-    inputspec = pe.Node(util.IdentityInterface(fields=['input',
-                                                       'reference',
+    inputspec = pe.Node(util.IdentityInterface(fields=['input_brain',
+                                                       'input_skull',
+                                                       'reference_brain',
+                                                       'reference_skull',
                                                        'fnirt_config']),
                         name='inputspec')
-    outputspec = pe.Node(util.IdentityInterface(fields=['output',
+    outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
                                                        'linear_xfm',
-                                                       'linear_invxfm',
+                                                       'invlinear_xfm',
                                                        'nonlinear_xfm']),
                          name='outputspec')
     
     linear_reg = pe.Node(interface =fsl.FLIRT(),
                          name='linear_reg_0')
     linear_reg.inputs.cost = 'corratio'
-    linear_reg.inputs.dof = 6
-    linear_reg.inputs.interp = 'nearestneighbour'
     
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
@@ -81,32 +85,43 @@ def create_nonlinear_register(name='nonlinear_register'):
     nonlinear_reg.inputs.jacobian_file = True
     nonlinear_reg.inputs.warp_resolution = (10,10,10)
     
+    brain_warp = pe.Node(interface=fsl.ApplyWarp(),
+                         name='brain_warp')
+    
+    
     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
                             name='inv_linear_reg0_xfm')
     inv_flirt_xfm.inputs.invert_xfm = True
 
-    nonlinear_register.connect(inputspec, 'input',
+    nonlinear_register.connect(inputspec, 'input_brain',
                                linear_reg, 'in_file')
-    nonlinear_register.connect(inputspec, 'reference',
+    nonlinear_register.connect(inputspec, 'reference_brain',
                                linear_reg, 'reference')
         
-    nonlinear_register.connect(inputspec, 'input',
+    nonlinear_register.connect(inputspec, 'input_skull',
                                nonlinear_reg, 'in_file')
-    nonlinear_register.connect(inputspec, 'reference',
+    nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
     nonlinear_register.connect(inputspec, 'fnirt_config',
                                nonlinear_reg, 'config_file')
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')
-    nonlinear_register.connect(nonlinear_reg, 'warped_file',
-                               outputspec, 'output')
     nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
                                outputspec, 'nonlinear_xfm')
+
+    nonlinear_register.connect(inputspec, 'input_brain',
+                               brain_warp, 'in_file')
+    nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
+                               brain_warp, 'field_file')
+    nonlinear_register.connect(inputspec, 'reference_brain',
+                               brain_warp, 'ref_file')
+    nonlinear_register.connect(brain_warp, 'out_file',
+                               outputspec, 'output_brain')
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                inv_flirt_xfm, 'in_file')
     nonlinear_register.connect(inv_flirt_xfm, 'out_file',
-                               outputspec, 'linear_invxfm')
+                               outputspec, 'invlinear_xfm')
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                outputspec, 'linear_xfm')
@@ -138,6 +153,8 @@ def create_register_func_to_mni(name='register_func_to_mni'):
             Reference MNI file
         inputspec.anat : string (nifti file)
             Corresponding anatomical scan of subject
+        inputspec.interp : string
+            Type of interpolation to use ('trilinear' or 'nearestneighbour' or 'sinc')
         inputspec.anat_to_mni_xfm : string (warp file)
             Corresponding anatomical native space to MNI warp file
             
@@ -163,6 +180,7 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
                                                        'mni',
                                                        'anat',
+                                                       'interp',
                                                        'anat_to_mni_xfm']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_xfm',
@@ -173,7 +191,6 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                          name='linear_func_to_anat')
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
-    linear_reg.inputs.interp = 'nearestneighbour'
     
     mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                        name='mni_warp')
@@ -182,6 +199,8 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                                  linear_reg, 'in_file')
     register_func_to_mni.connect(inputspec, 'anat',
                                  linear_reg, 'reference')
+    register_func_to_mni.connect(inputspec, 'interp',
+                                 linear_reg, 'interp')
     
     register_func_to_mni.connect(inputspec, 'func',
                                  mni_warp, 'in_file')
@@ -192,5 +211,10 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     
     register_func_to_mni.connect(linear_reg, 'out_matrix_file',
                                  mni_warp, 'premat')
+
+    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
+                                 outputspec, 'func_to_anat_xfm')
+    register_func_to_mni.connect(mni_warp, 'out_file',
+                                 outputspec, 'mni_func')
     
     return register_func_to_mni
