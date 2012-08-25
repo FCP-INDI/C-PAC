@@ -109,14 +109,13 @@ numCoresPerSubject = 8
 """
 
 
+workingDirectory = '/home/bcheung/p_integration_test'
 
-workingDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_output'
+crashLogDirectory = '/home/bcheung/p_integration_test'
 
-crashLogDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_output'
+sinkDirectory = '/home/bcheung/p_integration_test'
 
-sinkDirectory = '/home/ssikka/nki_nyu_pipeline/testing/'
-
-dataPath = '/home/ssikka/nki_nyu_pipeline/testing/data/'
+dataPath = '/home/bcheung/p_integration_test'
 
 
 
@@ -362,8 +361,8 @@ priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
 
 
 startIdx = 5
-
 stopIdx = 120
+
 
 TR = None
 
@@ -413,16 +412,16 @@ runAnatomicalPreprocessing = [1]
 runRegistrationPreprocessing = [1]
 runSegmentationPreprocessing = [1]
 
-
 runFunctionalDataGathering = [1]
 runFunctionalPreprocessing = [1]
 runAnatomicalToFunctionalRegistration = [1]
 
-
-
 runNuisance = [1]
+runMedianAngleCorrection = [1]
+runFrequencyFiltering = [1]
 
-standardResolution = '2mm'
+
+standardResolution = '3mm'
 MNI = 'MNI152'
 
 fwhm = [4]
