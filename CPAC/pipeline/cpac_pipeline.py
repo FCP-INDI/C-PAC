@@ -176,11 +176,70 @@ def prep_workflow(sub_dict, seed_list, c):
             
             num_strat += 1
     strat_list += new_strat_list
-
+    
     """
     Inserting Segmentation Preprocessing
     Workflow
     """
+
+    new_strat_list = []
+    num_strat = 0
+    
+    if 1 in c.runSegmentationPreprocessing:
+        for strat in strat_list:
+            
+            seg_preproc = create_seg_preproc('seg_preproc_%d' % num_strat)
+            
+            try:
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 seg_preproc, 'inputspec.brain')
+                
+                node, out_file = strat.get_node_from_resource_pool('mni_to_anatomical_linear_xfm')
+                workflow.connect(node, out_file, 
+                                 seg_preproc, 'inputspec.standard2highres_mat')
+                
+                seg_preproc.inputs.inputspec.PRIOR_CSF = c.PRIOR_CSF
+                seg_preproc.inputs.inputspec.PRIOR_GRAY = c.PRIOR_GRAY
+                seg_preproc.inputs.inputspec.PRIOR_WHITE = c.PRIOR_WHITE
+                
+                seg_preproc.inputs.csf_threshold.csf_threshold = \
+                                        c.cerebralSpinalFluidThreshold
+                seg_preproc.inputs.wm_threshold.wm_threshold = \
+                                        c.whiteMatterThreshold
+                seg_preproc.inputs.gm_threshold.gm_threshold = \
+                                        c.grayMatterThreshold
+                seg_preproc.get_node('csf_threshold').iterables = ('csf_threshold',
+                                        c.cerebralSpinalFluidThreshold)
+                seg_preproc.get_node('wm_threshold').iterables = ('wm_threshold',
+                                        c.whiteMatterThreshold)
+                seg_preproc.get_node('gm_threshold').iterables = ('gm_threshold',
+                                        c.grayMatterThreshold)
+                
+                
+            except:
+                print 'Invalid Connection: Segmentation Preprocessing:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runSegmentationPreprocessing:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.update_resource_pool({'anatomical_gm_mask' : (seg_preproc,'outputspec.gm_mask'),
+                                        'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
+                                        'anatomical_wm_mask' : (seg_preproc, 'outputspec.wm_mask'),
+                                        'seg_probability_maps': (seg_preproc,'outputspec.probability_maps'),
+                                        'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
+                                        'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
+                                        'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')})
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
 
     """
     Inserting Functional Input Data workflow
