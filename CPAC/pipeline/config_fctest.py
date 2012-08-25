@@ -110,13 +110,13 @@ numCoresPerSubject = 8
 
 
 
-workingDirectory = '/home/ssikka/nki_nyu_pipeline/working_dir'
+workingDirectory = '/home/bcheung/p_integration_test'
 
-crashLogDirectory = '/home2/data/Projects/fcon_test/crash'
+crashLogDirectory = '/home/bcheung/p_integration_test'
 
-sinkDirectory = '/home/ssikka/nki_nyu_pipeline/testing/'
+sinkDirectory = '/home/bcheung/p_integration_test'
 
-dataPath = '/home/ssikka/nki_nyu_pipeline/testing/data/'
+dataPath = '/home/bcheung/p_integration_test'
 
 
 
@@ -363,7 +363,7 @@ priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
 
 startIdx = 5
 
-stopIdx = None
+stopIdx = 100
 
 TR = None
 
