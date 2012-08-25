@@ -1,3 +1,4 @@
+#!/frodo/shared/epd/bin/python
 #coding: utf-8
 import warnings
 import os
@@ -1213,7 +1214,8 @@ ${rest}_ss.nii.gz
 """
 
 
-class ThreedcalcInputSpec(CommandLineInputSpec):
+class ThreedcalcInputSpec(AFNITraitedSpec):
+#class ThreedcalcInputSpec(CommandLineInputSpec):
     infile_a = File(desc='input file to 3dcalc',
                           argstr='-a %s', position=0, mandatory=True)
     infile_b = File(desc='operand file to 3dcalc',
@@ -1241,7 +1243,7 @@ class ThreedcalcOutputSpec(TraitedSpec):
     brik_file = File (desc='brik file')
     head_file = File(desc='head_file')
 
-class Threedcalc(CommandLine):
+class Threedcalc(AFNICommand):
     """Merge or edit volumes using AFNI 3dmerge command.
 
 For complete details, see the `3dcalc Documentation.
