@@ -96,18 +96,22 @@ def create_anat_preproc():
     anat_deoblique = pe.Node(interface=preprocess.Threedrefit(),
                          name='anat_deoblique')
     anat_deoblique.inputs.deoblique = True
+    anat_deoblique.inputs.outputtype = 'NIFTI_GZ'
 
-    anat_reorient = pe.Node(interface=afni.Resample(),
+    anat_reorient = pe.Node(interface=preprocess.Threedresample(),
                             name='anat_reorient')
     anat_reorient.inputs.orientation = 'RPI'
+    anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
-    anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
+    anat_skullstrip = pe.Node(interface=preprocess.ThreedSkullStrip(),
                               name='anat_skullstrip')
     anat_skullstrip.inputs.options = '-o_ply'
+    anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
     anat_brain_only = pe.Node(interface=preprocess.Threedcalc(),
                         name='anat_brain_only')
     anat_brain_only.inputs.expr = '\'a*step(b)\''
+    anat_brain_only.inputs.outputtype = 'NIFTI_GZ'
 
     preproc.connect(inputNode, 'anat',
                     anat_deoblique, 'in_file')
@@ -130,3 +134,4 @@ def create_anat_preproc():
                     outputNode, 'brain')
 
     return preproc
+

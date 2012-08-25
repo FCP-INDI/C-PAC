@@ -222,53 +222,62 @@ def create_func_preproc():
                  function=get_idx), name='func_get_idx',
                                     iterfield=['in_files'])
 
-    func_drop_trs = pe.MapNode(interface=e_afni.Threedcalc(),
+    func_drop_trs = pe.MapNode(interface=preprocess.Threedcalc(),
                            name='func_drop_trs',
                            iterfield=['infile_a', 'stop_idx', 'start_idx'])
     func_drop_trs.inputs.expr = '\'a\''
+    func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
 
-    func_deoblique = pe.MapNode(interface=e_afni.Threedrefit(),
+    func_deoblique = pe.MapNode(interface=preprocess.Threedrefit(),
                             name='func_deoblique',
                             iterfield=['in_file'])
     func_deoblique.inputs.deoblique = True
+    func_deoblique.inputs.outputtype = 'NIFTI_GZ'
 
-    func_reorient = pe.MapNode(interface=afni.Resample(),
+    func_reorient = pe.MapNode(interface=preprocess.Threedresample(),
                                name='func_reorient',
                                iterfield=['in_file'])
 
     func_reorient.inputs.orientation = 'RPI'
+    func_reorient.inputs.outputtype = 'NIFTI_GZ'
 
-    func_get_mean_RPI = pe.MapNode(interface=afni.TStat(),
+
+    func_get_mean_RPI = pe.MapNode(interface=preprocess.ThreedTstat(),
                             name='func_get_mean_RPI',
                             iterfield=['in_file'])
     func_get_mean_RPI.inputs.options = '-mean'
+    func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
 
     func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
 
-    func_motion_correct = pe.MapNode(interface=e_afni.Threedvolreg(),
+    func_motion_correct = pe.MapNode(interface=preprocess.Threedvolreg(),
                              name='func_motion_correct',
                              iterfield=['in_file', 'basefile'])
 
     #calculate motion parameters
     func_motion_correct.inputs.other = '-Fourier -twopass'
     func_motion_correct.inputs.zpad = '4'
+    func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
 
-    func_get_dilate_mask = pe.MapNode(interface=e_afni.ThreedAutomask(),
+    func_get_dilate_mask = pe.MapNode(interface=preprocess.ThreedAutomask(),
                                name='func_get_dilate_mask',
                                iterfield=['in_file'])
     func_get_dilate_mask.inputs.dilate = 1
+    func_get_dilate_mask.inputs.outputtype = 'NIFTI_GZ'
 
-    func_edge_detect = pe.MapNode(interface=e_afni.Threedcalc(),
+    func_edge_detect = pe.MapNode(interface=preprocess.Threedcalc(),
                             name='func_edge_detect',
                             iterfield=['infile_a', 'infile_b'])
     func_edge_detect.inputs.expr = '\'a*b\''
+    func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
 
-    func_mean_skullstrip = pe.MapNode(interface=afni.TStat(),
+    func_mean_skullstrip = pe.MapNode(interface=preprocess.ThreedTstat(),
                            name='func_mean_skullstrip',
                            iterfield=['in_file'])
     func_mean_skullstrip.inputs.options = '-mean'
+    func_mean_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
     func_normalize = pe.MapNode(interface=fsl.ImageMaths(),
                             name='func_normalize',
