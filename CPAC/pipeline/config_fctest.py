@@ -109,7 +109,6 @@ numCoresPerSubject = 8
 """
 
 
-
 workingDirectory = '/home/bcheung/p_integration_test'
 
 crashLogDirectory = '/home/bcheung/p_integration_test'
@@ -362,8 +361,8 @@ priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
 
 
 startIdx = 5
+stopIdx = 120
 
-stopIdx = 100
 
 TR = None
 
@@ -413,16 +412,16 @@ runAnatomicalPreprocessing = [1]
 runRegistrationPreprocessing = [1]
 runSegmentationPreprocessing = [1]
 
-
 runFunctionalDataGathering = [1]
 runFunctionalPreprocessing = [1]
 runAnatomicalToFunctionalRegistration = [1]
 
-
-
 runNuisance = [1]
+runMedianAngleCorrection = [1]
+runFrequencyFiltering = [1]
 
-standardResolution = '2mm'
+
+standardResolution = '3mm'
 MNI = 'MNI152'
 
 fwhm = [4]

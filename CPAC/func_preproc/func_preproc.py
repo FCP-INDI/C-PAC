@@ -3,7 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-
+import CPAC.interfaces.afni.preprocess as preprocess
 
 #functional preprocessing
 
@@ -217,43 +217,36 @@ def create_func_preproc():
 
                           name='outputspec')
 
-    func_get_idx = pe.MapNode(util.Function(input_names=['in_files', 'stop_idx', 'start_idx'],
+    func_get_idx = pe.Node(util.Function(input_names=['in_files', 'stop_idx', 'start_idx'],
                                output_names=['stopidx', 'startidx'],
-                 function=get_idx), name='func_get_idx',
-                                    iterfield=['in_files'])
+                 function=get_idx), name='func_get_idx')
 
-    func_drop_trs = pe.MapNode(interface=preprocess.Threedcalc(),
-                           name='func_drop_trs',
-                           iterfield=['infile_a', 'stop_idx', 'start_idx'])
+    func_drop_trs = pe.Node(interface=preprocess.Threedcalc(),
+                           name='func_drop_trs')
     func_drop_trs.inputs.expr = '\'a\''
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
 
-    func_deoblique = pe.MapNode(interface=preprocess.Threedrefit(),
-                            name='func_deoblique',
-                            iterfield=['in_file'])
+    func_deoblique = pe.Node(interface=preprocess.Threedrefit(),
+                            name='func_deoblique')
     func_deoblique.inputs.deoblique = True
     func_deoblique.inputs.outputtype = 'NIFTI_GZ'
 
-    func_reorient = pe.MapNode(interface=preprocess.Threedresample(),
-                               name='func_reorient',
-                               iterfield=['in_file'])
+    func_reorient = pe.Node(interface=preprocess.Threedresample(),
+                               name='func_reorient')
 
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
 
 
-    func_get_mean_RPI = pe.MapNode(interface=preprocess.ThreedTstat(),
-                            name='func_get_mean_RPI',
-                            iterfield=['in_file'])
+    func_get_mean_RPI = pe.Node(interface=preprocess.ThreedTstat(),
+                            name='func_get_mean_RPI')
     func_get_mean_RPI.inputs.options = '-mean'
     func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
 
     func_get_mean_motion = func_get_mean_RPI.clone('func_get_mean_motion')
 
-    func_motion_correct = pe.MapNode(interface=preprocess.Threedvolreg(),
-                             name='func_motion_correct',
-                             iterfield=['in_file', 'basefile'])
-
+    func_motion_correct = pe.Node(interface=preprocess.Threedvolreg(),
+                             name='func_motion_correct')
     #calculate motion parameters
     func_motion_correct.inputs.other = '-Fourier -twopass'
     func_motion_correct.inputs.zpad = '4'
@@ -261,33 +254,28 @@ def create_func_preproc():
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
 
-    func_get_dilate_mask = pe.MapNode(interface=preprocess.ThreedAutomask(),
-                               name='func_get_dilate_mask',
-                               iterfield=['in_file'])
+    func_get_dilate_mask = pe.Node(interface=preprocess.ThreedAutomask(),
+                               name='func_get_dilate_mask')
     func_get_dilate_mask.inputs.dilate = 1
     func_get_dilate_mask.inputs.outputtype = 'NIFTI_GZ'
 
-    func_edge_detect = pe.MapNode(interface=preprocess.Threedcalc(),
-                            name='func_edge_detect',
-                            iterfield=['infile_a', 'infile_b'])
+    func_edge_detect = pe.Node(interface=preprocess.Threedcalc(),
+                            name='func_edge_detect')
     func_edge_detect.inputs.expr = '\'a*b\''
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
 
-    func_mean_skullstrip = pe.MapNode(interface=preprocess.ThreedTstat(),
-                           name='func_mean_skullstrip',
-                           iterfield=['in_file'])
+    func_mean_skullstrip = pe.Node(interface=preprocess.ThreedTstat(),
+                           name='func_mean_skullstrip')
     func_mean_skullstrip.inputs.options = '-mean'
     func_mean_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
-    func_normalize = pe.MapNode(interface=fsl.ImageMaths(),
-                            name='func_normalize',
-                            iterfield=['in_file'])
+    func_normalize = pe.Node(interface=fsl.ImageMaths(),
+                            name='func_normalize')
     func_normalize.inputs.op_string = '-ing 10000'
     func_normalize.inputs.out_data_type = 'float'
 
-    func_mask_normalize = pe.MapNode(interface=fsl.ImageMaths(),
-                           name='func_mask_normalize',
-                           iterfield=['in_file'])
+    func_mask_normalize = pe.Node(interface=fsl.ImageMaths(),
+                           name='func_mask_normalize')
     func_mask_normalize.inputs.op_string = '-Tmin -bin'
     func_mask_normalize.inputs.out_data_type = 'char'
 

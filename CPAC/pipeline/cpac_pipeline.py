@@ -11,11 +11,12 @@ from multiprocessing import Process
 
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
-from CPAC.reg_preproc.reg_preproc import create_reg_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.registration import create_nonlinear_register
 from CPAC.nuisance import create_nuisance
+from CPAC.nuisance import bandpass_voxels
+from CPAC.median_angle import create_median_angle_correction
 
 from CPAC.utils.func_datasource import *
 from CPAC.utils.anat_datasource import *
@@ -188,7 +189,7 @@ def prep_workflow(sub_dict, seed_list, c):
     if 1 in c.runSegmentationPreprocessing:
         for strat in strat_list:
             
-            seg_preproc = create_seg_preproc('seg_preproc_%d' % num_strat)
+            seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
             
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
@@ -305,7 +306,7 @@ def prep_workflow(sub_dict, seed_list, c):
                 strat = tmp
                 new_strat_list.append(strat)
 
-            strat.set_leaf_properties(func_preproc, 'outputspec.example_func')
+            strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
             # add stuff to resource pool if we need it 
 
@@ -335,18 +336,21 @@ def prep_workflow(sub_dict, seed_list, c):
             
             func_gm = pe.Node(interface=fsl.ApplyXfm(),
                                name = 'func_gm_%d' % num_strat)
-            func_gm.inputs.reference = c.standardResolutionBrain
+            #func_gm.inputs.reference = c.standardResolutionBrain
             func_gm.inputs.apply_xfm = True
+            func_gm.inputs.interp = 'nearestneighbour'
 
             func_csf = pe.Node(interface=fsl.ApplyXfm(),
                                name = 'func_csf_%d' % num_strat)
-            func_csf.inputs.reference = c.standardResolutionBrain
+            #func_csf.inputs.reference = c.standardResolutionBrain
             func_csf.inputs.apply_xfm = True
+            func_csf.inputs.interp = 'nearestneighbour'
             
             func_wm = pe.Node(interface=fsl.ApplyXfm(),
                                name = 'func_wm_%d' % num_strat)
-            func_wm.inputs.reference = c.standardResolutionBrain
+            #func_wm.inputs.reference = c.standardResolutionBrain
             func_wm.inputs.apply_xfm = True
+            func_wm.inputs.interp = 'nearestneighbour'
             
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
@@ -356,6 +360,12 @@ def prep_workflow(sub_dict, seed_list, c):
                 node, out_file = strat.get_node_from_resource_pool('mean_functional')
                 workflow.connect(node, out_file,
                                  anat_to_func_reg, 'reference')
+                workflow.connect(node, out_file,
+                                 func_gm, 'reference')
+                workflow.connect(node, out_file,
+                                 func_csf, 'reference')
+                workflow.connect(node, out_file,
+                                 func_wm, 'reference')
                 
                 node, out_file = strat.get_node_from_resource_pool('anatomical_gm_mask')
                 workflow.connect(node, out_file,
@@ -405,9 +415,13 @@ def prep_workflow(sub_dict, seed_list, c):
     if 1 in c.runNuisance:
         for strat in strat_list:
             nuisance = create_nuisance('nuisance_%d' % num_strat)
-            nuisance.get_node('residuals').iterables = ('selector', c.Corrections,
-                                                        'compcor_ncomponents', c.nComponents)
+            nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
+                                                         ('compcor_ncomponents', c.nComponents)])
             try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.subject')
+                
                 node, out_file = strat.get_node_from_resource_pool('functional_gm_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.gm_mask')
@@ -441,9 +455,77 @@ def prep_workflow(sub_dict, seed_list, c):
             
     strat_list += new_strat_list
 
+    """
+    Inserting Median Angle Correction Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
 
+    if 1 in c.runMedianAngleCorrection:
+        for strat in strat_list:
+            median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
+            median_angle_corr.get_node('median_angle_correct').iterables = ('target_angle_deg', c.targetAngleDeg)
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 median_angle_corr, 'inputspec.subject')
+            except:
+                print 'Invalid Connection: Median Angle Correction:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runMedianAngleCorrection:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
 
+    """
+    Inserting Frequency Filtering Node
+    """
+    new_strat_list = []
+    num_strat = 0
+    
+    if 1 in c.runFrequencyFiltering:
+        for strat in strat_list:
+            frequency_filter = pe.Node(util.Function(input_names=['realigned_file',
+                                                                  'bandpass_freqs',
+                                                                  'sample_period'],
+                                                     output_names=['bandpassed_file'],
+                                                     function=bandpass_voxels),
+                                       name='frequency_filter_%d' % num_strat)
+            frequency_filter.iterables = ('bandpass_freqs', c.nuisanceBandpassFreq)
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 frequency_filter, 'realigned_file')
+            except:
+                print 'Invalid Connection: Frequency Filtering:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runFrequencyFiltering:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
+            
+            num_strat += 1
 
+    strat_list += new_strat_list
+    
+    
+    
     idx = 0
     for strat in strat_list:
 
@@ -467,7 +549,7 @@ def prep_workflow(sub_dict, seed_list, c):
 #                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
-
+    return workflow
 
 
 def run(config_file, subject_list_file):
