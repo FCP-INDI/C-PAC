@@ -11,7 +11,6 @@ from multiprocessing import Process
 
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
-from CPAC.reg_preproc.reg_preproc import create_reg_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.registration import create_nonlinear_register
@@ -188,7 +187,7 @@ def prep_workflow(sub_dict, seed_list, c):
     if 1 in c.runSegmentationPreprocessing:
         for strat in strat_list:
             
-            seg_preproc = create_seg_preproc('seg_preproc_%d' % num_strat)
+            seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
             
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
@@ -467,7 +466,7 @@ def prep_workflow(sub_dict, seed_list, c):
 #                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
-
+    return workflow
 
 
 def run(config_file, subject_list_file):

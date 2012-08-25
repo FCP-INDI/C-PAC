@@ -110,9 +110,9 @@ numCoresPerSubject = 8
 
 
 
-workingDirectory = '/home/ssikka/nki_nyu_pipeline/working_dir'
+workingDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_output'
 
-crashLogDirectory = '/home2/data/Projects/fcon_test/crash'
+crashLogDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_output'
 
 sinkDirectory = '/home/ssikka/nki_nyu_pipeline/testing/'
 
@@ -363,7 +363,7 @@ priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
 
 startIdx = 5
 
-stopIdx = None
+stopIdx = 120
 
 TR = None
 

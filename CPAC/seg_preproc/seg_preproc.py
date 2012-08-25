@@ -9,7 +9,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.seg_preproc.utils import *
 
-def create_seg_preproc(wf_name = 'seg_preproc'):
+def create_seg_preproc(wf_name ='seg_preproc'):
 
 
     """
