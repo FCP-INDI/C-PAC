@@ -13,9 +13,9 @@ from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
-from CPAC.registration import create_nonlinear_register
-from CPAC.nuisance import create_nuisance
-from CPAC.nuisance import bandpass_voxels
+from CPAC.registration import create_nonlinear_register, create_register_func_to_mni
+from CPAC.nuisance import create_nuisance, bandpass_voxels
+
 from CPAC.median_angle import create_median_angle_correction
 
 from CPAC.utils.func_datasource import *
@@ -322,7 +322,7 @@ def prep_workflow(sub_dict, seed_list, c):
     strat_list += new_strat_list
 
     """
-    Inserting Functional to Anatomical Registration
+    Inserting Anatomical to Functional Registration
     """
     new_strat_list = []
     num_strat = 0
@@ -527,17 +527,73 @@ def prep_workflow(sub_dict, seed_list, c):
             
             strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
 
+            num_strat += 1
+
+    strat_list += new_strat_list
+    
+    """
+    Inserting Register Functional to MNI Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+    
+    if 1 in c.runRegisterFuncToMNI:
+        for strat in strat_list:
+            func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
+            func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
+            func_to_mni.inputs.inputspec.interp = 'trilinear'
+            
+            func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                    name='func_mni_warp_%d' % num_strat)
+            func_mni_warp.inputs.ref_file = c.standardResolutionBrain
+            
+            try:
+                node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.func')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat_to_mni_xfm')
+                workflow.connect(node, out_file,
+                                 func_mni_warp, 'field_file')
+                
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 func_mni_warp, 'in_file')
+                
+                workflow.connect(func_to_mni, 'outputspec.func_to_anat_xfm',
+                                 func_mni_warp, 'premat')
+            except:
+                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runRegisterFuncToMNI:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.set_leaf_properties(func_mni_warp, 'out_file')
+            
+            strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
+                                        'functional_to_anat_xfm':(func_to_mni, 'outputspec.func_to_anat_xfm')})
+
             ds = pe.Node(nio.DataSink(), name='sinker')
             ds.inputs.base_directory = c.sinkDirectory
-            workflow.connect(frequency_filter, 'bandpassed_file',
+            workflow.connect(func_mni_warp, 'out_file',
                              ds, 'boots')
 
             num_strat += 1
 
     strat_list += new_strat_list
-    
-    
-    
+                
     idx = 0
     for strat in strat_list:
 
