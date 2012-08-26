@@ -16,14 +16,19 @@ class _NoseTester(nosetester.NoseTester):
 test = _NoseTester().test
 
 import anat_preproc, \
+       func_preproc, \
+       reho, \
+       seg_preproc, \
+       registration, \
        sca, \
        basc, \
        nuisance, \
        alff, \
        seg_preproc, \
        vmhc, \
-       median_angle
+       median_angle, \
+       pipeline
 
-__all__ = ['anat_preproc', 'seg_preproc', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle']
+__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle']
 
 __version__ = ['0.1-git']

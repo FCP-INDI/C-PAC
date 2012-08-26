@@ -65,15 +65,65 @@ Possible setting options will be given (in parentheses).
 
 """
 
-
-
 runOnGrid = False
 
-qsubArgs = '-q all.q'
+#only for multicore
+numSubjectsAtOnce = 5
 
-numSubjectsAtOnce = 1
+#for multicore and SGE/PBS
+#for SGE/PBS signifies number of slots on a single node of a cluster
+numCoresPerSubject = 2
 
-numCoresPerSubject = 8
+#options are 'SGE' , 'PBS'
+resourceManager = 'SGE'
+
+queue = 'all.q'
+
+#options for SGE only here,
+#SGE users must set this enviroment,
+#easy way to know your parallel environment is to execute the following on command on cluster
+# $ qconf -spl
+
+#A pipeline for each subject that needs preprocessing is spawned on single nodes of the cluster.
+# To avoid I/O overhead the pipeline should only use the resources(cores) from that node.
+# The users can enable this feature on Sun Grid Engine by modifying their parallel environment
+# or adding a new parallel ennviroment using the exisiting environment parameters(some parameters tweaked)
+
+#To create new environment using old environment follow ths  procedure
+
+# 1. find the parallel environments u have on cluster
+# $ qconf -spl
+
+# 2. look through your parallel environments. Mine looks like this
+
+#$ qconf -sp mpi
+# pe_name            mpi
+# slots              999
+# user_lists         NONE
+# xuser_lists        NONE
+# start_proc_args    NONE
+# stop_proc_args     NONE
+# ---># allocation_rule    $fill_up
+# control_slaves     TRUE
+# job_is_first_task  FALSE
+# urgency_slots      min
+# accounting_summary TRUE
+
+# 3. use old to create new environment
+# $ qconf -sp mpi > cpac_mpi 
+
+# 4. change the allocation_rule highlighted with the arrow to $pe_slots,
+#    use your favourite text editor to accomplish this
+
+# 5. Add your new envionment file to SGE 
+
+# qconf -Ap cpac_mpi
+
+# 6. Specify this new environment below
+parallelEnvironment = 'mpi'
+
+
+
 
 
 """
@@ -109,13 +159,13 @@ numCoresPerSubject = 8
 """
 
 
-workingDirectory = '/home/bcheung/p_integration_test'
+workingDirectory = '/home2/ssikka/nki_nyu_pipeline/testing/c_pac/working'
 
-crashLogDirectory = '/home/bcheung/p_integration_test'
+crashLogDirectory = '/home2/data/Projects/ABIDE_MP/crash'
 
-sinkDirectory = '/home/bcheung/p_integration_sink'
+sinkDirectory = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
-dataPath = '/home/bcheung/p_integration_test'
+dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
 
 
@@ -360,8 +410,8 @@ priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
 
 
 
-startIdx = 5
-stopIdx = 120
+startIdx = 0
+stopIdx = None
 
 
 TR = None
@@ -730,7 +780,7 @@ lowPassFreqALFF = [0.1]
 
 
 
-seedFile = '/home2/data/Projects/NEO2012/settings/seeds_list.txt' # yang
+seedFile = '/home2/data/Projects/ABIDE_MP/settings/seeds_list.txt' # yang
 
 correlationSpace = 'mni' # what are other options?
 

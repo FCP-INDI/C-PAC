@@ -8,7 +8,7 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 
 from multiprocessing import Process
-
+import CPAC
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -53,7 +53,7 @@ class strategy:
 
             self.resource_pool[key] = value
 
-def prep_workflow(sub_dict, seed_list, c):
+def prep_workflow(sub_dict, seed_list, c, strategies):
     print "running for subject ", sub_dict
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
@@ -91,7 +91,7 @@ def prep_workflow(sub_dict, seed_list, c):
         num_strat += 1
 
         strat_list.append(strat_initial)
-        
+
     print strat_list
 
     """
@@ -185,25 +185,25 @@ def prep_workflow(sub_dict, seed_list, c):
 
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runSegmentationPreprocessing:
         for strat in strat_list:
-            
+
             seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
-            
+
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
                                  seg_preproc, 'inputspec.brain')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('mni_to_anatomical_linear_xfm')
                 workflow.connect(node, out_file, 
                                  seg_preproc, 'inputspec.standard2highres_mat')
-                
+
                 seg_preproc.inputs.inputspec.PRIOR_CSF = c.PRIOR_CSF
                 seg_preproc.inputs.inputspec.PRIOR_GRAY = c.PRIOR_GRAY
                 seg_preproc.inputs.inputspec.PRIOR_WHITE = c.PRIOR_WHITE
-                
+
                 seg_preproc.inputs.csf_threshold.csf_threshold = \
                                         c.cerebralSpinalFluidThreshold
                 seg_preproc.inputs.wm_threshold.wm_threshold = \
@@ -216,12 +216,12 @@ def prep_workflow(sub_dict, seed_list, c):
                                         c.whiteMatterThreshold)
                 seg_preproc.get_node('gm_threshold').iterables = ('gm_threshold',
                                         c.grayMatterThreshold)
-                
-                
+
+
             except:
                 print 'Invalid Connection: Segmentation Preprocessing:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            
+
             if 0 in c.runSegmentationPreprocessing:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -229,7 +229,7 @@ def prep_workflow(sub_dict, seed_list, c):
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.update_resource_pool({'anatomical_gm_mask' : (seg_preproc,'outputspec.gm_mask'),
                                         'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
                                         'anatomical_wm_mask' : (seg_preproc, 'outputspec.wm_mask'),
@@ -237,9 +237,9 @@ def prep_workflow(sub_dict, seed_list, c):
                                         'seg_mixeltype': (seg_preproc, 'outputspec.mixeltype'),
                                         'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
                                         'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')})
-            
+
             num_strat += 1
-            
+
     strat_list += new_strat_list
 
     """
@@ -326,32 +326,32 @@ def prep_workflow(sub_dict, seed_list, c):
     """
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runAnatomicalToFunctionalRegistration:
         for strat in strat_list:
             anat_to_func_reg = pe.Node(interface=fsl.FLIRT(),
-                               name = 'anat_to_func_register_%d' % num_strat)
+                               name='anat_to_func_register_%d' % num_strat)
             anat_to_func_reg.inputs.cost = 'corratio'
             anat_to_func_reg.inputs.dof = 6
-            
+
             func_gm = pe.Node(interface=fsl.ApplyXfm(),
-                               name = 'func_gm_%d' % num_strat)
+                               name='func_gm_%d' % num_strat)
             #func_gm.inputs.reference = c.standardResolutionBrain
             func_gm.inputs.apply_xfm = True
             func_gm.inputs.interp = 'nearestneighbour'
 
             func_csf = pe.Node(interface=fsl.ApplyXfm(),
-                               name = 'func_csf_%d' % num_strat)
+                               name='func_csf_%d' % num_strat)
             #func_csf.inputs.reference = c.standardResolutionBrain
             func_csf.inputs.apply_xfm = True
             func_csf.inputs.interp = 'nearestneighbour'
-            
+
             func_wm = pe.Node(interface=fsl.ApplyXfm(),
-                               name = 'func_wm_%d' % num_strat)
+                               name='func_wm_%d' % num_strat)
             #func_wm.inputs.reference = c.standardResolutionBrain
             func_wm.inputs.apply_xfm = True
             func_wm.inputs.interp = 'nearestneighbour'
-            
+
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
@@ -366,29 +366,29 @@ def prep_workflow(sub_dict, seed_list, c):
                                  func_csf, 'reference')
                 workflow.connect(node, out_file,
                                  func_wm, 'reference')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('anatomical_gm_mask')
                 workflow.connect(node, out_file,
                                  func_gm, 'in_file')
                 workflow.connect(anat_to_func_reg, 'out_matrix_file',
                                  func_gm, 'in_matrix_file')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('anatomical_csf_mask')
                 workflow.connect(node, out_file,
                                  func_csf, 'in_file')
                 workflow.connect(anat_to_func_reg, 'out_matrix_file',
-                                 func_csf, 'in_matrix_file')                
-                
+                                 func_csf, 'in_matrix_file')
+
                 node, out_file = strat.get_node_from_resource_pool('anatomical_wm_mask')
                 workflow.connect(node, out_file,
                                  func_wm, 'in_file')
                 workflow.connect(anat_to_func_reg, 'out_matrix_file',
                                  func_wm, 'in_matrix_file')
-                
+
             except:
                 print 'Invalid Connection: Anatomical to Functional Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            
+
             if 0 in c.runAnatomicalToFunctionalRegistration:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -396,14 +396,14 @@ def prep_workflow(sub_dict, seed_list, c):
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.update_resource_pool({'anatomical_to_functional_xfm':(anat_to_func_reg, 'out_matrix_file'),
                                         'functional_gm_mask':(func_gm, 'out_file'),
                                         'functional_wm_mask':(func_wm, 'out_file'),
                                         'functional_csf_mask':(func_csf, 'out_file')})
 
             num_strat += 1
-    
+
     strat_list += new_strat_list
 
     """
@@ -411,7 +411,7 @@ def prep_workflow(sub_dict, seed_list, c):
     """
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runNuisance:
         for strat in strat_list:
             nuisance = create_nuisance('nuisance_%d' % num_strat)
@@ -421,19 +421,19 @@ def prep_workflow(sub_dict, seed_list, c):
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.subject')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_gm_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.gm_mask')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_wm_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.wm_mask')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_csf_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.csf_mask')
-                
+
                 node, out_file = strat.get_node_from_resource_pool('movement_parameters')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
@@ -448,13 +448,13 @@ def prep_workflow(sub_dict, seed_list, c):
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.set_leaf_properties(nuisance, 'outputspec.subject')
-            
+
             strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
-            
+
             num_strat += 1
-            
+
     strat_list += new_strat_list
 
     """
@@ -474,7 +474,7 @@ def prep_workflow(sub_dict, seed_list, c):
             except:
                 print 'Invalid Connection: Median Angle Correction:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            
+
             if 0 in c.runMedianAngleCorrection:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -482,13 +482,13 @@ def prep_workflow(sub_dict, seed_list, c):
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
-            
+
             strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
-            
+
             num_strat += 1
-            
+
     strat_list += new_strat_list
 
     """
@@ -496,7 +496,7 @@ def prep_workflow(sub_dict, seed_list, c):
     """
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runFrequencyFiltering:
         for strat in strat_list:
             frequency_filter = pe.Node(util.Function(input_names=['realigned_file',
@@ -510,11 +510,11 @@ def prep_workflow(sub_dict, seed_list, c):
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  frequency_filter, 'realigned_file')
-                
+
             except:
                 print 'Invalid Connection: Frequency Filtering:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            
+
             if 0 in c.runFrequencyFiltering:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -522,9 +522,9 @@ def prep_workflow(sub_dict, seed_list, c):
                 tmp.out_file = str(strat.leaf_out_file)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
-            
+
             strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
 
             ds = pe.Node(nio.DataSink(), name='sinker')
@@ -535,9 +535,9 @@ def prep_workflow(sub_dict, seed_list, c):
             num_strat += 1
 
     strat_list += new_strat_list
-    
-    
-    
+
+
+
     idx = 0
     for strat in strat_list:
 
@@ -557,98 +557,80 @@ def prep_workflow(sub_dict, seed_list, c):
 
 
     workflow.write_graph(graph2use="orig")
-#    workflow.run(plugin='MultiProc',
-#                         plugin_args={'n_procs': c.numCoresPerSubject})
+    workflow.run(plugin='MultiProc',
+                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
 
 
-def run(config_file, subject_list_file):
 
-    path, fname = os.path.split(os.path.realpath(config_file))
+if __name__ == "__main__":
+
+    import commands
+    commands.getoutput('source ~/.bashrc')
+    import os
+    import sys
+    import argparse
+    import pickle
+
+    parser = argparse.ArgumentParser(description="example: \
+                        run resting_preproc.py -c config.py  -subject_list_file /path/to/subject \
+                        -indx index_into_subject_list_file -seed seed_list -strategies strat_list ")
+
+    parser.add_argument('-c', '--config',
+                        dest='config',
+                        required=True,
+                        help='location of config file'
+                        )
+
+
+    parser.add_argument('-s', '--subject_list_file',
+                        dest='subject_list_file',
+                        required=True,
+                        help='file containing CPAC internal subject list'
+                        )
+
+    parser.add_argument('-indx', '--index',
+                        dest='indx',
+                        required=True,
+                        help='location of config file'
+                        )
+
+
+    parser.add_argument('-seed', '--seed_file',
+                        dest='seed_file',
+                        required=False,
+                        help='file containing seeds'
+                        )
+
+    parser.add_argument('-strategies', '--strategies',
+                        dest='strategies',
+                        required=True,
+                        help='list of strategies'
+                        )
+
+
+
+    args = parser.parse_args()
+    path, fname = os.path.split(os.path.realpath(args.config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
+
+    path, fname = os.path.split(os.path.realpath(args.subject_list_file))
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
     sublist = s.subject_list
 
-    flines = open(c.seedFile, 'r').readlines()
-    seed_list = [fline.rstrip('\r\n') for fline in flines]
+    sub_dict = sublist[int(args.indx) - 1]
 
-    if not c.runOnGrid:
+    seed_list = []
+    if not (args.seed_file is None):
 
-        procss = [Process(target=prep_workflow, args=(sub_dict, seed_list, c)) for sub_dict in sublist]
-
-        jobQueue = []
-
-        if len(sublist) <= c.numSubjectsAtOnce:
-            """
-            Stream all the subjects as sublist is
-            less than or equal to the number of 
-            subjects that need to run
-            """
-            for p in procss:
-                p.start()
+        flines = open(c.seedFile, 'r').readlines()
+        seed_list = [fline.rstrip('\r\n') for fline in flines]
 
 
-        else:
-
-            """
-            Stream the subject worlflows for preprocessing.
-            At Any time in the pipeline c.numSubjectsAtOnce
-            will run, unless the number remaining is less than
-            the value of the parameter stated above
-            """
-            idx = 0
-            while(idx < len(sublist)):
-
-                if len(jobQueue) == 0 and idx == 0:
-
-                    idc = idx
-                    for p in procss[idc: idc + c.numSubjectsAtOnce]:
-
-                        p.start()
-                        jobQueue.append(p)
-                        idx += 1
-
-                else:
-
-                    for job in jobQueue:
-
-                        if not job.is_alive():
-                            print 'found dead job ', job
-                            loc = jobQueue.index(job)
-                            del jobQueue[loc]
-                            procss[idx].start()
-
-                            jobQueue.append(procss[idx])
-                            idx += 1
-
-
-
-
-
-    else:
-        for sub_dict in sublist:
-            prep_workflow(sub_dict, seed_list, c)
-
-#    symlink_creator(c.sinkDirectory)
-
-#    if c.derivatives[6]:
-#        start_group_analysis(c)
-
-
-if __name__ == "__main__":
-    import os
-    import commands
-    cmd = '/bin/bash ~/.bashrc'
-    print cmd
-    sys.stderr.write(commands.getoutput(cmd))
-
-    sys.exit(main())
-
-
+    prep_workflow(sub_dict, seed_list, c, pickle.load(open(args.strategies, 'r')))
