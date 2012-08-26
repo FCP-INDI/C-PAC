@@ -159,11 +159,11 @@ parallelEnvironment = 'mpi'
 """
 
 
-workingDirectory = '/home2/ssikka/nki_nyu_pipeline/testing/c_pac/working'
+workingDirectory = '/home/bcheung/p_integration_test'
 
-crashLogDirectory = '/home2/data/Projects/ABIDE_MP/crash'
+crashLogDirectory = '/home/bcheung/p_integration_test'
 
-sinkDirectory = '/home2/ssikka/nki_nyu_pipeline/testing/process'
+sinkDirectory = '/home/bcheung/p_integration_sink'
 
 dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
@@ -466,9 +466,9 @@ runFunctionalDataGathering = [1]
 runFunctionalPreprocessing = [1]
 runAnatomicalToFunctionalRegistration = [1]
 
-runNuisance = [1]
-runMedianAngleCorrection = [0]
-runFrequencyFiltering = [0]
+runNuisance = [1,0]
+runMedianAngleCorrection = [1,0]
+runFrequencyFiltering = [1,0]
 runRegisterFuncToMNI = [1]
 
 standardResolution = '3mm'

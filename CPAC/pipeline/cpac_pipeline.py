@@ -27,7 +27,14 @@ class strategy:
         self.resource_pool = {}
         self.leaf_node = None
         self.leaf_out_file = None
-
+        self.name = []
+    
+    def append_name(self, name):
+        self.name.append(name)
+    
+    def get_name(self):
+        return self.name
+    
     def set_leaf_properties(self, node, out_file):
         self.leaf_node = node
         self.leaf_out_file = out_file
@@ -104,7 +111,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for strat in strat_list:
             # create a new node, Remember to change its name! 
             anat_preproc = create_anat_preproc().clone('anat_preproc_%d' % num_strat)
-
+            strat.append_name('anat_preproc')
+            
             try:
                 # connect the new node to the previous leaf
                 node, out_file = strat.get_leaf_properties()
@@ -145,6 +153,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runRegistrationPreprocessing:
         for strat in strat_list:
             reg_anat_mni = create_nonlinear_register('anat_mni_register_%d' % num_strat)
+            strat.append_name('anat_mni_register')
             
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -188,9 +197,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
     if 1 in c.runSegmentationPreprocessing:
         for strat in strat_list:
-
             seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
-
+            strat.append_name('seg_preproc')
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
@@ -286,7 +294,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             preproc.inputs.inputspec.start_idx = c.startIdx
             preproc.inputs.inputspec.stop_idx = c.stopIdx
             func_preproc = preproc.clone('func_preproc_%d' % num_strat)
-
+            strat.append_name('func_preproc')
+            
             node = None
             out_file = None
             try:
@@ -329,6 +338,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
     if 1 in c.runAnatomicalToFunctionalRegistration:
         for strat in strat_list:
+            strat.append_name('anat_to_func_register')
+            
             anat_to_func_reg = pe.Node(interface=fsl.FLIRT(),
                                name='anat_to_func_register_%d' % num_strat)
             anat_to_func_reg.inputs.cost = 'corratio'
@@ -415,8 +426,10 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runNuisance:
         for strat in strat_list:
             nuisance = create_nuisance('nuisance_%d' % num_strat)
+            strat.append_name('nuisance')
             nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
                                                          ('compcor_ncomponents', c.nComponents)])
+            
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -466,6 +479,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runMedianAngleCorrection:
         for strat in strat_list:
             median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
+            strat.append_name('median_angle_corr')
             median_angle_corr.get_node('median_angle_correct').iterables = ('target_angle_deg', c.targetAngleDeg)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -505,6 +519,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                                      output_names=['bandpassed_file'],
                                                      function=bandpass_voxels),
                                        name='frequency_filter_%d' % num_strat)
+            strat.append_name('frequency_filter')
             frequency_filter.iterables = ('bandpass_freqs', c.nuisanceBandpassFreq)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -540,6 +555,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runRegisterFuncToMNI:
         for strat in strat_list:
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
+            strat.append_name('func_to_mni')
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
             func_to_mni.inputs.inputspec.interp = 'trilinear'
             
@@ -585,14 +601,44 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                         'functional_to_anat_xfm':(func_to_mni, 'outputspec.func_to_anat_xfm')})
 
-            ds = pe.Node(nio.DataSink(), name='sinker')
-            ds.inputs.base_directory = c.sinkDirectory
-            workflow.connect(func_mni_warp, 'out_file',
-                             ds, 'boots')
-
             num_strat += 1
 
     strat_list += new_strat_list
+    
+    workflow.write_graph(graph2use='orig')
+    
+    """
+    Datasink
+    """
+    import networkx as nx
+    num_strat = 0
+    sink_idx = 0
+    for strat in strat_list:
+        rp = strat.get_resource_pool()
+        for key in rp.keys():
+            ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
+            ds.inputs.base_directory = c.sinkDirectory
+            ds.inputs.container = 'pipeline_%d' % num_strat
+            node, out_file = rp[key]
+            workflow.connect(node, out_file,
+                             ds, key)
+            sink_idx += 1
+        
+        d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
+        if not os.path.exists(d_name):
+            os.makedirs(d_name)
+        
+#        s_file = open(os.path.join(d_name, 'strategy.txt'), 'w')
+        
+        G = nx.DiGraph()
+        strat_name = strat.get_name()
+        G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
+#        nx.draw_graphviz(G)
+        nx.write_dot(G, os.path.join(d_name, 'strategy.dot'))
+        print d_name, '*'
+#        s_file.write(strat.get_name()[-1])
+#        print strat.get_name(), s_file
+        num_strat += 1
 
     idx = 0
     for strat in strat_list:
@@ -611,10 +657,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
         idx += 1
 
-
-    workflow.write_graph(graph2use="orig")
-    workflow.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+#    workflow.run(plugin='MultiProc',
+#                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
