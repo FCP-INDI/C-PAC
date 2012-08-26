@@ -113,7 +113,7 @@ workingDirectory = '/home/bcheung/p_integration_test'
 
 crashLogDirectory = '/home/bcheung/p_integration_test'
 
-sinkDirectory = '/home/bcheung/p_integration_test'
+sinkDirectory = '/home/bcheung/p_integration_sink'
 
 dataPath = '/home/bcheung/p_integration_test'
 
