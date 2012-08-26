@@ -5,9 +5,9 @@ import argparse
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
+import nipype.interfaces.io as nio
 
 from multiprocessing import Process
-
 
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
@@ -451,6 +451,8 @@ def prep_workflow(sub_dict, seed_list, c):
                 
             strat.set_leaf_properties(nuisance, 'outputspec.subject')
             
+            strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
+            
             num_strat += 1
             
     strat_list += new_strat_list
@@ -483,6 +485,8 @@ def prep_workflow(sub_dict, seed_list, c):
             
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
             
+            strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
+            
             num_strat += 1
             
     strat_list += new_strat_list
@@ -506,6 +510,7 @@ def prep_workflow(sub_dict, seed_list, c):
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  frequency_filter, 'realigned_file')
+                
             except:
                 print 'Invalid Connection: Frequency Filtering:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -520,6 +525,13 @@ def prep_workflow(sub_dict, seed_list, c):
             
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
             
+            strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
+
+            ds = pe.Node(nio.DataSink(), name='sinker')
+            ds.inputs.base_directory = c.sinkDirectory
+            workflow.connect(frequency_filter, 'bandpassed_file',
+                             ds, 'boots')
+
             num_strat += 1
 
     strat_list += new_strat_list
