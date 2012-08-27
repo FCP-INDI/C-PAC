@@ -111,7 +111,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for strat in strat_list:
             # create a new node, Remember to change its name! 
             anat_preproc = create_anat_preproc().clone('anat_preproc_%d' % num_strat)
-            strat.append_name('anat_preproc')
+            
             
             try:
                 # connect the new node to the previous leaf
@@ -129,9 +129,12 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-
+                
+            strat.append_name('anat_preproc')
+            
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             # add stuff to resource pool if we need it 
 
@@ -153,7 +156,6 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runRegistrationPreprocessing:
         for strat in strat_list:
             reg_anat_mni = create_nonlinear_register('anat_mni_register_%d' % num_strat)
-            strat.append_name('anat_mni_register')
             
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -174,9 +176,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+                
+            strat.append_name('anat_mni_register')
             strat.set_leaf_properties(reg_anat_mni, 'outputspec.output_brain')
             
             strat.update_resource_pool({'anatomical_to_mni_linear_xfm':(reg_anat_mni, 'outputspec.linear_xfm'),
@@ -198,7 +202,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runSegmentationPreprocessing:
         for strat in strat_list:
             seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
-            strat.append_name('seg_preproc')
+            
             try:
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
@@ -235,9 +239,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-
+                
+            strat.append_name('seg_preproc')
             strat.update_resource_pool({'anatomical_gm_mask' : (seg_preproc,'outputspec.gm_mask'),
                                         'anatomical_csf_mask': (seg_preproc, 'outputspec.csf_mask'),
                                         'anatomical_wm_mask' : (seg_preproc, 'outputspec.wm_mask'),
@@ -270,6 +276,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
 
@@ -294,7 +301,6 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             preproc.inputs.inputspec.start_idx = c.startIdx
             preproc.inputs.inputspec.stop_idx = c.stopIdx
             func_preproc = preproc.clone('func_preproc_%d' % num_strat)
-            strat.append_name('func_preproc')
             
             node = None
             out_file = None
@@ -312,8 +318,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
+                
+            strat.append_name('func_preproc')
 
             strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
@@ -338,8 +347,6 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
     if 1 in c.runAnatomicalToFunctionalRegistration:
         for strat in strat_list:
-            strat.append_name('anat_to_func_register')
-            
             anat_to_func_reg = pe.Node(interface=fsl.FLIRT(),
                                name='anat_to_func_register_%d' % num_strat)
             anat_to_func_reg.inputs.cost = 'corratio'
@@ -405,8 +412,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
+                
+            strat.append_name('anat_to_func_register')
 
             strat.update_resource_pool({'anatomical_to_functional_xfm':(anat_to_func_reg, 'out_matrix_file'),
                                         'functional_gm_mask':(func_gm, 'out_file'),
@@ -426,7 +436,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runNuisance:
         for strat in strat_list:
             nuisance = create_nuisance('nuisance_%d' % num_strat)
-            strat.append_name('nuisance')
+            
             nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
                                                          ('compcor_ncomponents', c.nComponents)])
             
@@ -459,9 +469,12 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-
+            
+            strat.append_name('nuisance')
+            
             strat.set_leaf_properties(nuisance, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
@@ -479,7 +492,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runMedianAngleCorrection:
         for strat in strat_list:
             median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
-            strat.append_name('median_angle_corr')
+            
             median_angle_corr.get_node('median_angle_correct').iterables = ('target_angle_deg', c.targetAngleDeg)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -494,9 +507,12 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-
+                
+            strat.append_name('median_angle_corr')
+            
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
@@ -519,7 +535,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                                      output_names=['bandpassed_file'],
                                                      function=bandpass_voxels),
                                        name='frequency_filter_%d' % num_strat)
-            strat.append_name('frequency_filter')
+            
             frequency_filter.iterables = ('bandpass_freqs', c.nuisanceBandpassFreq)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -535,9 +551,12 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-
+                
+            strat.append_name('frequency_filter')
+            
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
 
             strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
@@ -555,7 +574,6 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     if 1 in c.runRegisterFuncToMNI:
         for strat in strat_list:
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
-            strat.append_name('func_to_mni')
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
             func_to_mni.inputs.inputspec.interp = 'trilinear'
             
@@ -593,9 +611,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
                 tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+                
+            strat.append_name('func_to_mni')
             strat.set_leaf_properties(func_mni_warp, 'out_file')
             
             strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
