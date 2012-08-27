@@ -590,9 +590,13 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 workflow.connect(node, out_file,
                                  func_to_mni, 'inputspec.anat')
                 
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_linear_xfm')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat_to_mni_linear_xfm')
+                
                 node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file,
-                                 func_to_mni, 'inputspec.anat_to_mni_xfm')
+                                 func_to_mni, 'inputspec.anat_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file,
                                  func_mni_warp, 'field_file')
                 
@@ -600,7 +604,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 workflow.connect(node, out_file,
                                  func_mni_warp, 'in_file')
                 
-                workflow.connect(func_to_mni, 'outputspec.func_to_anat_xfm',
+                workflow.connect(func_to_mni, 'outputspec.func_to_anat_linear_xfm',
                                  func_mni_warp, 'premat')
             except:
                 print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
@@ -619,7 +623,9 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             strat.set_leaf_properties(func_mni_warp, 'out_file')
             
             strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
-                                        'functional_to_anat_xfm':(func_to_mni, 'outputspec.func_to_anat_xfm')})
+                                        'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
+                                        'functional_to_mni_linear_xfm':(func_to_mni, 'outputspec.func_to_mni_linear_xfm'),
+                                        'mni_to_functional_linear_xfm':(func_to_mni, 'outputspec.mni_to_func_linear_xfm')})
 
             num_strat += 1
 

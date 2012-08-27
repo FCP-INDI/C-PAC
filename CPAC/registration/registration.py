@@ -155,13 +155,19 @@ def create_register_func_to_mni(name='register_func_to_mni'):
             Corresponding anatomical scan of subject
         inputspec.interp : string
             Type of interpolation to use ('trilinear' or 'nearestneighbour' or 'sinc')
-        inputspec.anat_to_mni_xfm : string (warp file)
+        inputspec.anat_to_mni_nonlinear_xfm : string (warp file)
             Corresponding anatomical native space to MNI warp file
+        inputspec.anat_to_mni_linear_xfm : string (mat file)
+            Corresponding anatomical native space to MNI mat file
             
     Workflow Outputs::
     
-        outputspec.func_to_anat_xfm : string (mat file)
+        outputspec.func_to_anat_linear_xfm : string (mat file)
             Affine transformation from functional to anatomical native space
+        outputspec.func_to_mni_linear_xfm : string (mat file)
+            Affine transformation from functional to MNI space
+        outputspec.mni_to_func_linear_xfm : string (mat file)
+            Affine transformation from MNI to functional space
         outputspec.mni_func : string (nifti file)
             Functional scan registered to MNI standard space
             
@@ -181,9 +187,12 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                                                        'mni',
                                                        'anat',
                                                        'interp',
-                                                       'anat_to_mni_xfm']),
+                                                       'anat_to_mni_nonlinear_xfm',
+                                                       'anat_to_mni_linear_xfm']),
                         name='inputspec')
-    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_xfm',
+    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm',
+                                                        'func_to_mni_linear_xfm',
+                                                        'mni_to_func_linear_xfm',
                                                         'mni_func']),
                          name='outputspec')
     
@@ -195,6 +204,24 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                        name='mni_warp')
     
+    mni_affine = pe.Node(interface=fsl.ConvertXFM(),
+                         name='mni_affine')
+    mni_affine.inputs.concat_xfm = True
+    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
+                                 mni_affine, 'in_file')
+    register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
+                                 mni_affine, 'in_file2')
+    register_func_to_mni.connect(mni_affine, 'out_file',
+                                 outputspec, 'func_to_mni_linear_xfm')
+        
+    inv_mni_affine = pe.Node(interface=fsl.ConvertXFM(),
+                            name='inv_mni_affine')
+    inv_mni_affine.inputs.invert_xfm = True
+    register_func_to_mni.connect(mni_affine, 'out_file',
+                                 inv_mni_affine, 'in_file')
+    register_func_to_mni.connect(inv_mni_affine, 'out_file',
+                                 outputspec, 'mni_to_func_linear_xfm')
+
     register_func_to_mni.connect(inputspec, 'func',
                                  linear_reg, 'in_file')
     register_func_to_mni.connect(inputspec, 'anat',
@@ -206,14 +233,14 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                                  mni_warp, 'in_file')
     register_func_to_mni.connect(inputspec, 'mni',
                                  mni_warp, 'ref_file')
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_xfm',
+    register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
                                  mni_warp, 'field_file')
     
     register_func_to_mni.connect(linear_reg, 'out_matrix_file',
                                  mni_warp, 'premat')
 
     register_func_to_mni.connect(linear_reg, 'out_matrix_file',
-                                 outputspec, 'func_to_anat_xfm')
+                                 outputspec, 'func_to_anat_linear_xfm')
     register_func_to_mni.connect(mni_warp, 'out_file',
                                  outputspec, 'mni_func')
     
