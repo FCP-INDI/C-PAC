@@ -208,9 +208,9 @@ def create_register_func_to_mni(name='register_func_to_mni'):
                          name='mni_affine')
     mni_affine.inputs.concat_xfm = True
     register_func_to_mni.connect(linear_reg, 'out_matrix_file',
-                                 mni_affine, 'in_file')
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
                                  mni_affine, 'in_file2')
+    register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
+                                 mni_affine, 'in_file')
     register_func_to_mni.connect(mni_affine, 'out_file',
                                  outputspec, 'func_to_mni_linear_xfm')
         
