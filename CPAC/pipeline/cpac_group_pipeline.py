@@ -51,15 +51,16 @@ if __name__ == "__main__":
     from collections import defaultdict
     analysis_map = defaultdict(list)
     
-    spr_pattern = re.compile(base_path  + "/(\w+)/(\w+)/(\w+)")
+    spr_pattern = re.compile(base_path  + "/(\w+)/(\w+)/(\w+)/(\w+)")
     for subject_path in subject_paths:
         m = spr_pattern.search(subject_path)
         pipeline_id = m.group(1)
         subject_id = m.group(2)
         resource_id = m.group(3)
-
+        scan_id = m.group(4)
+        
         key = subject_path.replace(subject_id, '*')
-        analysis_map[(resource_id, key)].append((subject_id,subject_path))
+        analysis_map[(resource_id, key)].append((subject_id, scan_id, subject_path))
         
     import pprint
     pp = pprint.PrettyPrinter(indent=4)
