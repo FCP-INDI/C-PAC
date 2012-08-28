@@ -459,17 +459,17 @@ TR = None
 
 runAnatomicalDataGathering = [1]
 runAnatomicalPreprocessing = [1]
-runRegistrationPreprocessing = [1]
-runSegmentationPreprocessing = [1]
+runRegistrationPreprocessing = [0]
+runSegmentationPreprocessing = [0]
 
-runFunctionalDataGathering = [1]
-runFunctionalPreprocessing = [1]
-runAnatomicalToFunctionalRegistration = [1]
+runFunctionalDataGathering = [0]
+runFunctionalPreprocessing = [0]
+runAnatomicalToFunctionalRegistration = [0]
 
-runNuisance = [1,0]
-runMedianAngleCorrection = [1,0]
-runFrequencyFiltering = [1,0]
-runRegisterFuncToMNI = [1]
+runNuisance = [0]
+runMedianAngleCorrection = [0]
+runFrequencyFiltering = [0]
+runRegisterFuncToMNI = [0]
 
 standardResolution = '3mm'
 MNI = 'MNI152'
