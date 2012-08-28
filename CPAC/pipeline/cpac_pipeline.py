@@ -719,7 +719,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-indx', '--index',
                         dest='indx',
-                        required=True,
+                        required=False,
                         help='location of config file'
                         )
 
@@ -732,7 +732,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-strategies', '--strategies',
                         dest='strategies',
-                        required=True,
+                        required=False,
                         help='list of strategies'
                         )
 
@@ -759,4 +759,4 @@ if __name__ == "__main__":
         seed_list = [fline.rstrip('\r\n') for fline in flines]
 
 
-    prep_workflow(sub_dict, seed_list, c, pickle.load(open(args.strategies, 'r')))
+    prep_workflow(sub_dict, seed_list, c, "pickle.load(open(args.strategies, 'r')"))
