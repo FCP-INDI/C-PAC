@@ -3,11 +3,10 @@ import os
 import commands
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-#from utils import *
+from utils import *
 from CPAC.vmhc import *
 from CPAC.interfaces.afni import preprocess
 
@@ -191,6 +190,11 @@ def create_vmhc():
     .. image:: ../images/vmhc_graph.dot.png
         :width: 500 
     
+    Workflow Detailed:
+    
+    .. image:: ../images/vmhc_detailed_graph.dot.png
+        :width: 500 
+    
 
     References
     ----------
@@ -264,32 +268,28 @@ def create_vmhc():
     nonlinear_highres_to_symmetric_standard.inputs.warp_resolution = (10, 10, 10)
 
     ## Apply nonlinear registration (func to standard)
-    nonlinear_func_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
-                      name='nonlinear_func_to_standard',
-                      iterfield=['in_file', 'premat'])
+    nonlinear_func_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                      name='nonlinear_func_to_standard')
 
     ## copy and L/R swap file
-    copy_and_L_R_swap = pe.MapNode(interface=fsl.SwapDimensions(),
-                      name='copy_and_L_R_swap',
-                      iterfield=['in_file'])
+    copy_and_L_R_swap = pe.Node(interface=fsl.SwapDimensions(),
+                      name='copy_and_L_R_swap')
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
     ## caculate vmhc
-    pearson_correlation = pe.MapNode(interface=afni.TCorrelate(),
-                      name='pearson_correlation',
-                      iterfield=['xset', 'yset'])
+    pearson_correlation = pe.Node(interface=preprocess.ThreedTcorrelate(),
+                      name='pearson_correlation')
     pearson_correlation.inputs.pearson = True
     pearson_correlation.inputs.polort = -1
-    pearson_correlation.inputs.outputtype = 'NIFTI'
+    pearson_correlation.inputs.outputtype = 'NIFTI_GZ'
 
-    z_trans = pe.MapNode(interface=preprocess.Threedcalc(),
-                         name='z_trans',
-                         iterfield=['infile_a'])
+    z_trans = pe.Node(interface=preprocess.Threedcalc(),
+                         name='z_trans')
     z_trans.inputs.expr = '\'log((1+a)/(1-a))/2\''
-    z_stat = pe.MapNode(interface=preprocess.Threedcalc(),
-                        name='z_stat',
-                        iterfield=['infile_a',
-                                   'expr'])
+    z_trans.inputs.outputtype = 'NIFTI_GZ'
+    z_stat = pe.Node(interface=preprocess.Threedcalc(),
+                        name='z_stat')
+    z_stat.inputs.outputtype = 'NIFTI_GZ'
 
     NVOLS = pe.Node(util.Function(input_names=['in_files'],
                                   output_names=['nvols'],
@@ -302,10 +302,8 @@ def create_vmhc():
                           name='generateEXP')
 
 
-    smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                        name='smooth',
-                        iterfield=['in_file',
-                        'operand_files'])
+    smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='smooth')
 
     vmhc.connect(inputNode, 'brain',
                  linear_T1_to_symmetric_standard, 'in_file')

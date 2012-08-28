@@ -36,68 +36,58 @@ def set_gauss(fwhm):
     return op_string
 
 
-def getImgNVols(in_files, stopIdx, startIdx):
+def getImgNVols(in_files):
 
     """
-    Calculates the number of volumes in the given nifti images
+    Calculates the number of volumes in the given nifti image
 
     Parameters
     ----------
 
-    in_files : list (nifti files)
+    in_files : string (nifti file)
 
     Returns
     -------
 
-    out : list (int)
-        number of volumes of each input nifti file
+    out : int
+        number of volumes of input nifti file
 
     """
-    out = []
+
+    out = None
     from nibabel import load
-    if(isinstance(in_files, list)):
-        for in_file in in_files:
-            img = load(in_file)
-            hdr = img.get_header()
-
-            if len(hdr.get_data_shape()) > 3:
-                nvols = int(hdr.get_data_shape()[3])
-            else:
-                nvols = 1
-            out.append(nvols)
-        return out
-
+    img = load(in_files)
+    hdr = img.get_header()
+    nvols = None
+    if len(hdr.get_data_shape()) > 3:
+        nvols = int(hdr.get_data_shape()[3])
     else:
-        img = load(in_files)
-        hdr = img.get_header()
-        if len(hdr.get_data_shape()) > 3:
-            nvols = int(hdr.get_data_shape()[3])
-        else:
-            nvols = 1
-        return [nvols]
+        nvols = 1
+    out = nvols
+
+    return out
 
 
 def getEXP(nvols):
 
     """
-    Generates a list of operand strings/expressions
+    Generates operand string
 
     Parameters
     ----------
 
-    nvols : list (int)
+    nvols : int
 
     Returns
     -------
 
-    expr : list (string)
+    expr : string
 
     """
 
-    expr = []
-    for vol in nvols:
-        vol = int(vol)
-        expr.append("'a*sqrt('%d'-3)'" % vol)
+    expr = None
+    vol = int(nvols)
+    expr = ("'a*sqrt('%d'-3)'" % vol)
 
     return expr
 
