@@ -644,7 +644,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
-            ds.inputs.container = 'pipeline_%d' % num_strat
+            ds.inputs.container = os.path.join('pipeline_%d' % (num_strat),subject_id)
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
