@@ -31,4 +31,4 @@ import anat_preproc, \
 
 __all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle']
 
-__version__ = ['0.1-git']
+__version__ = '0.1-git'
