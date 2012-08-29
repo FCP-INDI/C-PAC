@@ -759,4 +759,4 @@ if __name__ == "__main__":
         seed_list = [fline.rstrip('\r\n') for fline in flines]
 
 
-    prep_workflow(sub_dict, seed_list, c, "pickle.load(open(args.strategies, 'r')"))
+    prep_workflow(sub_dict, seed_list, c, "pickle.load(open(args.strategies, 'r')")
