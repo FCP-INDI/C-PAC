@@ -1136,7 +1136,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     new_strat_list = []
     num_strat = 0
 
-    if c.derivatives[0] and len(c.fwhm) > 0:
+    if c.derivatives[3] and len(c.fwhm) > 0:
         for strat in strat_list:
 
 
