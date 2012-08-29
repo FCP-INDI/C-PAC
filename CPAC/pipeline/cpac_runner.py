@@ -178,8 +178,8 @@ def run(config_file, subject_list_file):
     flines = open(c.seedFile, 'r').readlines()
     seed_list = [fline.rstrip('\r\n') for fline in flines]
 
-
-    strategies = sorted(build_strategies(c))
+    strategies = None
+#    strategies = sorted(build_strategies(c))
 
 
     if not c.runOnGrid:
