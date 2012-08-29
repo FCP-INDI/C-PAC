@@ -471,7 +471,10 @@ runMedianAngleCorrection = [0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
-
+runALFF = [1]
+runReHo = [1]
+runVMHC = [1]
+runSCA = [1]
 runGenerateMotionStatistics = [1]
 runScrubbing = [1]
 runVoxelTimeseries = [1]
@@ -483,32 +486,22 @@ runVerticesTimeSeries = [0]
 runNetworkCentrality =[1]
 
 standardResolution = '3mm'
-MNI = 'MNI152'
 
 fwhm = [4]
 
-prior_path = os.path.join(priorDirectory, standardResolution)
+prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
-standardResolutionBrain = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
-standard = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
-standardBrainMaskDiluted = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
-configFile = os.path.join(FSLDIR,
-            'etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
-brainSymmetric = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
-symmStandard = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_symmetric.nii.gz')
-twommBrainMaskDiluted = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
-configFileTwomm = os.path.join(FSLDIR,
-            'etc/flirtsch/T1_2_MNI152_2mm.cnf')
-identityMatrix = os.path.join(FSLDIR,
-            'etc/flirtsch/ident.mat')
+standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
+standard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
+standardBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+configFile = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
+brainSymmetric = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
+symmStandard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
+twommBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
+configFileTwomm = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_2mm.cnf')
+identityMatrix = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/ident.mat')
 
 
 """
