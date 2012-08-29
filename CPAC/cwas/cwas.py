@@ -23,12 +23,19 @@ def joint_mask(subjects_file_list, mask_file):
     import numpy as np
     import os
     
+    from CPAC.utils import safe_shape
+    
     nii = nb.load(mask_file)
     
     mask = nii.get_data().astype('bool')
     for subject_file in subjects_file_list:
         sdata = nb.load(subject_file).get_data().astype(np.float64).sum(-1)
+        if not safe_shape(sdata, mask): raise ValueError('Subject %s with volume shape %s conflicts \
+                                                          with mask shape %s' % ( subject_file,
+                                                                                  str(sdata.shape),
+                                                                                  str(mask.shape) ) )
         mask *= sdata.astype('bool')
+
     print '... joint subject/roi mask loaded'
 
     img = nb.Nifti1Image(mask, header=nii.get_header(), affine=nii.get_affine())
@@ -48,7 +55,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range)
     mask_file : string
         Path to a mask file in nifti format
     regressor : ndarray
-        Matrix of shape (`S`, `R`), `S` subjects and `R` regressors
+        Vector of shape (`S`) or (`S`, `1`), `S` subjects
     f_samples : integer
         Number of pseudo f values to sample using a random permutation test
     voxel_range : tuple
@@ -71,6 +78,14 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range)
     import os
     from CPAC.cwas import calc_cwas
 
+    #Check regressor is a column vector
+    if(len(regressor.shape) == 1):
+        regressor = regressor[:, np.newaxis]
+    elif(len(regressor.shape) != 2):
+        raise ValueError('Bad regressor shape: %s' % str(regressor.shape))
+    
+    if(len(subjects_file_list) != regressor.shape[0]):
+        raise ValueError('Number of subjects does not match regressor size')
 
     #Load the data to produce the joint mask
     mask = nb.load(mask_file).get_data().astype('bool')
@@ -210,7 +225,7 @@ def create_cwas(name='cwas'):
         inputpsec.subjects : list (nifti files)
             4-D timeseries of a group of subjects normalized to MNI space
         inputspec.regressor : list (float)
-            Corresponding list of the regressor variable for subjects
+            Corresponding list of the regressor variable of shape (`N`) or (`N`,`1`), `N` subjects
         inputspec.f_samples : int
             Number of permutation samples to draw from the pseudo F distribution
         inputspec.parallel_nodes : integer
