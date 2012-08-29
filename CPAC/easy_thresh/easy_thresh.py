@@ -21,7 +21,7 @@ def easy_thresh(wf_name):
     Notes
     -----
     
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/easy_thresh/easy_thresh.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/easy_thresh/easy_thresh.py>`_
         
     Workflow Inputs::
     
@@ -138,19 +138,19 @@ def easy_thresh(wf_name):
     High Level Workflow Graph:
     
     .. image:: ../images/easy_thresh.dot.png
-       :width: 1000
+       :width: 800
     
     
     Detailed Workflow Graph:
     
     .. image:: ../images/easy_thresh_detailed.dot.png
-       :width: 1000
+       :width: 800
                
     Examples
     --------
     
     >>> import easy_thresh
-    >>> preproc = easy_thresh("new_workflow")
+    >>> preproc = easy_thresh.easy_thresh("new_workflow")
     >>> preproc.inputs.inputspec.z_stats= 'flameo/stats/zstat1.nii.gz'
     >>> preproc.inputs.inputspec.merge_mask = 'merge_mask/alff_Z_fn2standard_merged_mask.nii.gz'
     >>> preproc.inputs.inputspec.z_threshold = 2.3
@@ -210,17 +210,29 @@ def easy_thresh(wf_name):
     #are then used to mask the original Z statistic image for later production 
     #of colour blobs.This method of thresholding is an alternative to 
     #Voxel-based correction, and is normally more sensitive to activation. 
-    cluster = pe.MapNode(interface=fsl.Cluster(),
-                            name='cluster',
-                            iterfield=['in_file', 'volume', 'dlh'])
-    #output of cluster index (in size order)
-    cluster.inputs.out_index_file = True
-    #thresholded image
-    cluster.inputs.out_threshold_file = True
-    #local maxima text file
-    #defines the cluster cordinates
-    cluster.inputs.out_localmax_txt_file = True
+#    cluster = pe.MapNode(interface=fsl.Cluster(),
+#                            name='cluster',
+#                            iterfield=['in_file', 'volume', 'dlh'])
+#    #output of cluster index (in size order)
+#    cluster.inputs.out_index_file = True
+#    #thresholded image
+#    cluster.inputs.out_threshold_file = True
+#    #local maxima text file
+#    #defines the cluster cordinates
+#    cluster.inputs.out_localmax_txt_file = True
 
+    cluster = pe.MapNode(util.Function(input_names =  ['in_file',
+                                                       'volume', 
+                                                       'dlh',
+                                                       'threshold', 
+                                                       'pthreshold', 
+                                                       'parameters'],
+                                       output_names = ['index_file', 
+                                                       'threshold_file', 
+                                                       'localmax_txt_file'],
+                                       function = call_cluster),
+                                       name = 'cluster',
+                                       iterfield = ['in_file', 'volume', 'dlh'])
 
     #max and minimum intensity values
     image_stats = pe.MapNode(interface=fsl.ImageStats(),
@@ -288,6 +300,7 @@ def easy_thresh(wf_name):
     easy_thresh.connect(inputnode, 'p_threshold', cluster, 'pthreshold')
     easy_thresh.connect(smooth_estimate, 'volume', cluster, 'volume')
     easy_thresh.connect(smooth_estimate, 'dlh', cluster, 'dlh')
+    easy_thresh.connect(inputnode, 'parameters', cluster, 'parameters')
 
     easy_thresh.connect(cluster, 'threshold_file', image_stats, 'in_file')
 
@@ -313,6 +326,54 @@ def easy_thresh(wf_name):
     return easy_thresh
 
 
+def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
+    
+    import os
+    import re
+    import subprocess as sb
+  
+    out_name = re.match('z(\w)*stat(\d)+', os.path.basename(in_file))
+    
+    filename, ext = os.path.splitext(os.path.basename(in_file))
+    ext=  os.path.splitext(filename)[1] + ext
+    filename = os.path.splitext(filename)[0]
+
+    if out_name:
+        out_name= out_name.group(0)
+    else:
+        out_name = filename
+            
+    print ("out_name -->", out_name)
+    
+    FSLDIR = parameters[0]
+    
+    index_file = os.path.join(os.getcwd(), 'cluster_mask_' + out_name + ext)
+    threshold_file = os.path.join(os.getcwd(), 'thresh_' + out_name + ext)
+    localmax_txt_file = os.path.join(os.getcwd(), 'cluster_'+ out_name +'.txt')
+
+    cmd_path = os.path.join(FSLDIR, 'bin/cluster')    
+        
+    f = open(localmax_txt_file,'wb')
+    
+    cmd = sb.Popen([ cmd_path,
+                    '--dlh=' + str(dlh),
+                    '--in=' + in_file,
+                    '--oindex=' + index_file,
+                    '--othresh=' + threshold_file,
+                    '--pthresh=' + str(pthreshold),
+                    '--thresh=' +  str(threshold),
+                    '--volume=' + str(volume)],
+                    stdout= f)
+        
+    stdout_value, stderr_value = cmd.communicate()
+    f.close()
+    
+    print ("stdout_value", stdout_value)
+    print ("stderr_value", stderr_value)
+    
+    return index_file, threshold_file, localmax_txt_file
+    
+ 
 def copy_geom(infile_a, infile_b):
     """
     Method to call fsl fslcpgeom command to copy 
@@ -333,15 +394,24 @@ def copy_geom(infile_a, infile_b):
     out_file : nifti file
         Input volume infile_b with modified geometry information
         in the header.
+        
+    Raises
+    ------
+    Exception 
+        If fslcpgeom fails
     
     """
     import subprocess as sb
-    out_file = infile_b
-    cmd = sb.Popen(['fslcpgeom',
-                   infile_a, out_file], stdin=sb.PIPE, stdout=sb.PIPE,)
-    stdout_value, stderr_value = cmd.communicate()
-    return out_file
-
+    try:
+        out_file = infile_b
+        cmd = sb.Popen(['fslcpgeom',
+                        infile_a, out_file], stdin=sb.PIPE, stdout=sb.PIPE,)
+        stdout_value, stderr_value = cmd.communicate()
+        return out_file
+    except Exception:
+        print "Error while using fslcpgeom to copy geometry"
+        raise 
+    
 
 def get_standard_background_img(in_file, file_parameters):
     """
@@ -384,15 +454,15 @@ def get_standard_background_img(in_file, file_parameters):
         raise
 
 
-def get_tuple(z_threshold, intensity_stat):
+def get_tuple(infile_a, infile_b):
 
     """
     Simple method to return tuple of z_threhsold
     maximum intensity values of Zstatistic image
+    for input to the overlay.
     
     Parameters
     ----------
-    
     z_theshold : float
         z threshold value
     intensity_stat : tuple of float values
@@ -400,10 +470,12 @@ def get_tuple(z_threshold, intensity_stat):
     
     Returns
     -------
-    tuple of zthreshold and maximum intensity 
-    value of z statistic image
+    img_min_max : tuple (float)
+        tuple of zthreshold and maximum intensity 
+        value of z statistic image
     
     """
-    return (z_threshold, intensity_stat[1])
+    out_file = (infile_a, infile_b[1])
+    return out_file
 
 
