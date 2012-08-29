@@ -254,17 +254,10 @@ def create_func_preproc():
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
 
-<<<<<<< HEAD
     func_get_brain_mask = pe.Node(interface=preprocess.ThreedAutomask(),
                                name='func_get_brain_mask')
 #    func_get_brain_mask.inputs.dilate = 1
     func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-=======
-    func_get_dilate_mask = pe.Node(interface=preprocess.ThreedAutomask(),
-                               name='func_get_dilate_mask')
-#    func_get_dilate_mask.inputs.dilate = 1
-    func_get_dilate_mask.inputs.outputtype = 'NIFTI_GZ'
->>>>>>> 0962f4c0a8eda50896668e48e2bdfe93fb90050e
 
     func_edge_detect = pe.Node(interface=preprocess.Threedcalc(),
                             name='func_edge_detect')
