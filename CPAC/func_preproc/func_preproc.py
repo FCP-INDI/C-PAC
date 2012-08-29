@@ -65,7 +65,7 @@ def create_func_preproc():
             Path to skull stripped Motion Corrected Image 
         
         outputspec.mask : string (nifti file)
-            Path to Dilated brain-only mask
+            Path to brain-only mask
             
         outputspec.example_func : string (nifti file)
             Mean, Skull Stripped, Motion Corrected output T2 Image path
