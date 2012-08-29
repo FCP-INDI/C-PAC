@@ -1010,4 +1010,12 @@ bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_g
 bascClusters = 6
 bascDatasetBootstraps = 100
 bascTimeseriesBootstraps = 100
-bascAffinityThesholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
+bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
+
+"""
+CWAS
+"""
+cwasROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+cwasFSamples = 5000
+cwasParallelNodes = 10
+cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subject_regressors.txt'
