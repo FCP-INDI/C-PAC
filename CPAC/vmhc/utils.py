@@ -36,7 +36,7 @@ def set_gauss(fwhm):
     return op_string
 
 
-def getImgNVols(in_files):
+def get_img_nvols(in_files):
 
     """
     Calculates the number of volumes in the given nifti image
@@ -68,7 +68,7 @@ def getImgNVols(in_files):
     return out
 
 
-def getEXP(nvols):
+def get_operand_expression(nvols):
 
     """
     Generates operand string

@@ -1,21 +1,98 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+import nipype.interfaces.io as nio
 
 import re
 import os
 import sys
 
-from CPAC.cwas import create_cwas
-from CPAC.basc import create_basc
-
+def split_folders(path):
+    folders = []
+    
+    while 1:
+        path, folder = os.path.split(path)
+        if folder != "":
+            folders.append(folder)
+        else:
+            if path != "":
+                folders.append(path)
+            break
+        
+    folders.reverse()
+    
+    return folders
+    
 def prep_cwas_workflow(c, subject_paths):
     print 'Preparing CWAS workflow'
-    print 'subjects', subject_paths
+    s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_paths))
+    print 'Subjects', s_ids
+
+    wf = pe.Workflow(name='cwas_workflow')
+    wf.base_dir = c.workingDirectory
+
+    from CPAC.cwas import create_cwas
+    import numpy as np
+    regressor = np.loadtxt(c.cwasRegressorFile)
+
+    cw = create_cwas()
+    cw.inputs.inputspec.roi = c.cwasROIFile
+    cw.inputs.inputspec.subjects = s_paths
+    cw.inputs.inputspec.regressor = regressor[:, np.newaxis]
+    cw.inputs.inputspec.f_samples = c.cwasFSamples
+    cw.inputs.inputspec.parallel_nodes = c.cwasParallelNodes
+    
+    ds = pe.Node(nio.DataSink(), name='cwas_sink')
+    ds.inputs.base_directory = c.sinkDirectory
+    ds.inputs.container = 'cwas_results'
+
+    wf.connect(cw, 'outputspec.F_map',
+               ds, 'F_map')
+    wf.connect(cw, 'outputspec.p_map',
+               ds, 'p_map')
+    
+    return wf
 
 def prep_basc_workflow(c, subject_paths):
     print 'Preparing BASC workflow'
-    print 'subjects', subject_paths
+    s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_paths))
+    print 'Subjects', s_ids
     
+    wf = pe.Workflow(name='basc_workflow')
+    wf.base_dir = c.workingDirectory
+    
+    from CPAC.basc import create_basc
+    
+    b = create_basc()
+    b.inputs.inputspec.roi = c.bascROIFile
+    b.inputs.inputspec.subjects = s_paths
+    b.inputs.inputspec.k_clusters = c.bascClusters
+    b.inputs.inputspec.dataset_bootstraps = c.bascDatasetBootstraps
+    b.inputs.inputspec.timeseries_bootstraps = c.bascTimeseriesBootstraps
+    
+    aff_list = open(c.bascAffinityThresholdFile, 'r').readlines()
+    aff_list = [ float(aff.rstrip('\r\n')) for aff in aff_list]
+    
+    print 'a', len(aff_list), 's', len(s_paths)
+    
+    b.inputs.inputspec.affinity_threshold = aff_list
+    
+    ds = pe.Node(nio.DataSink(), name='basc_sink')
+    ds.inputs.base_directory = c.sinkDirectory
+    ds.inputs.container = 'basc_results'
+    
+#    wf.connect(b, 'outputspec.gsm',
+#               ds, 'gsm')
+#    wf.connect(b, 'outputspec.gsclusters',
+#               ds, 'gsclusters')
+#    wf.connect(b, 'outputspec.gsmap',
+#               ds, 'gsmap')
+    wf.connect(b, 'outputspec.gsclusters_img',
+               ds, 'gsclusters_img')
+    wf.connect(b, 'outputspec.ismap_imgs',
+               ds, 'ismap_imgs')
+    
+    return wf
+
 def prep_group_analysis_workflow(c, subject_paths):
     print 'Preparing Group Analysis workflow'
     print 'subjects', subject_paths
@@ -51,24 +128,26 @@ if __name__ == "__main__":
     from collections import defaultdict
     analysis_map = defaultdict(list)
     
-    spr_pattern = re.compile(base_path  + "/(\w+)/(\w+)/(\w+)/(\w+)")
     for subject_path in subject_paths:
-        m = spr_pattern.search(subject_path)
-        pipeline_id = m.group(1)
-        subject_id = m.group(2)
-        resource_id = m.group(3)
-        scan_id = m.group(4)
+        rs_path = subject_path.replace(base_path, "", 1)
+        folders = split_folders(rs_path)
+        
+        pipeline_id = folders[1]
+        subject_id = folders[2]
+        resource_id = folders[3]
+        scan_id = folders[4]
         
         key = subject_path.replace(subject_id, '*')
         analysis_map[(resource_id, key)].append((subject_id, scan_id, subject_path))
-        
-    import pprint
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(analysis_map)
     
+    w_list = []
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
-            prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
+#            w_list.append(prep_basc_workflow(c, analysis_map[(resource, glob_key)]))
+            w_list.append(prep_cwas_workflow(c, analysis_map[(resource, glob_key)]))
         elif resource == 'alff':
-            prep_group_analysis_workflow(c, analysis_map[(resource, glob_key)])
+            w_list.append(prep_group_analysis_workflow(c, analysis_map[(resource, glob_key)]))
+    
+    for w in w_list:
+        w.run()
 

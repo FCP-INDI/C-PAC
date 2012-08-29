@@ -1,9 +1,7 @@
 from sca import create_sca
 
-from utils import set_gauss, \
-                  pToFile
+from utils import compute_fisher_z_score
 
 
 __all__ = ['create_sca', \
-           'set_gauss', \
-           'pToFile']
+           'compute_fisher_z_score']

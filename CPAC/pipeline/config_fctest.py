@@ -459,17 +459,17 @@ TR = None
 
 runAnatomicalDataGathering = [1]
 runAnatomicalPreprocessing = [1]
-runRegistrationPreprocessing = [0]
-runSegmentationPreprocessing = [0]
+runRegistrationPreprocessing = [1]
+runSegmentationPreprocessing = [1]
 
-runFunctionalDataGathering = [0]
-runFunctionalPreprocessing = [0]
-runAnatomicalToFunctionalRegistration = [0]
+runFunctionalDataGathering = [1]
+runFunctionalPreprocessing = [1]
+runAnatomicalToFunctionalRegistration = [1]
 
-runNuisance = [0]
+runNuisance = [1]
 runMedianAngleCorrection = [0]
-runFrequencyFiltering = [0]
-runRegisterFuncToMNI = [0]
+runFrequencyFiltering = [1]
+runRegisterFuncToMNI = [1]
 
 
 runGenerateMotionStatistics = [1]
@@ -1032,3 +1032,20 @@ pThreshold = 0.05
 
 fTest = True
 
+
+"""
+BASC
+"""
+bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+bascClusters = 6
+bascDatasetBootstraps = 100
+bascTimeseriesBootstraps = 100
+bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
+
+"""
+CWAS
+"""
+cwasROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+cwasFSamples = 5000
+cwasParallelNodes = 10
+cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subject_regressors.txt'

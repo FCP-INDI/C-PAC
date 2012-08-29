@@ -220,12 +220,12 @@ def create_alff(tr):
 
     TR = pe.Node(util.Function(input_names=['in_files', 'TRa'],
                                output_names=['TR'],
-                 function=getImgTR), name='TR')
+                 function=get_img_tr), name='TR')
     TR.inputs.TRa = tr
 
     NVOLS = pe.Node(util.Function(input_names=['in_files'],
                                   output_names=['nvols'],
-                    function=getImgNVols),
+                    function=get_img_nvols),
                     name='NVOLS')
 
 
@@ -251,13 +251,13 @@ def create_alff(tr):
     calculate_low_frequency_point = pe.Node(util.Function(input_names=['nvols',
                                       'TR', 'HP'],
                                       output_names=['n1'],
-                        function=getN1),
+                        function=get_N1),
                         name='calculate_low_frequency_point')
 
     calculate_high_frequency_point = pe.Node(util.Function(input_names=['nvols',
                                       'TR', 'LP', 'HP'],
                                       output_names=['n2'],
-                        function=getN2),
+                        function=get_N2),
                         name='calculate_high_frequency_point')
     cut_low_frequency_data = pe.Node(interface=fsl.ExtractROI(),
                       name='cut_low_frequency_data')
@@ -295,7 +295,7 @@ def create_alff(tr):
     op_string = pe.Node(util.Function(input_names=['mean',
                                          'std_dev'],
                                          output_names=['op_string'],
-                           function=getOpString),
+                           function=get_operand_string),
                            name='alff_op_string')
 
     op_string1 = op_string.clone('op_string1')
