@@ -22,9 +22,9 @@ def split_folders(path):
     
     return folders
     
-def prep_cwas_workflow(c, subject_paths):
+def prep_cwas_workflow(c, subject_infos):
     print 'Preparing CWAS workflow'
-    s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_paths))
+    p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     print 'Subjects', s_ids
 
     wf = pe.Workflow(name='cwas_workflow')
@@ -37,13 +37,14 @@ def prep_cwas_workflow(c, subject_paths):
     cw = create_cwas()
     cw.inputs.inputspec.roi = c.cwasROIFile
     cw.inputs.inputspec.subjects = s_paths
-    cw.inputs.inputspec.regressor = regressor[:, np.newaxis]
+    cw.inputs.inputspec.regressor = regressor
     cw.inputs.inputspec.f_samples = c.cwasFSamples
     cw.inputs.inputspec.parallel_nodes = c.cwasParallelNodes
     
     ds = pe.Node(nio.DataSink(), name='cwas_sink')
-    ds.inputs.base_directory = c.sinkDirectory
-    ds.inputs.container = 'cwas_results'
+    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'basc_results')
+    ds.inputs.base_directory = out_dir
+    ds.inputs.container = ''
 
     wf.connect(cw, 'outputspec.F_map',
                ds, 'F_map')
@@ -52,9 +53,9 @@ def prep_cwas_workflow(c, subject_paths):
     
     return wf
 
-def prep_basc_workflow(c, subject_paths):
+def prep_basc_workflow(c, subject_infos):
     print 'Preparing BASC workflow'
-    s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_paths))
+    p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     print 'Subjects', s_ids
     
     wf = pe.Workflow(name='basc_workflow')
@@ -72,13 +73,12 @@ def prep_basc_workflow(c, subject_paths):
     aff_list = open(c.bascAffinityThresholdFile, 'r').readlines()
     aff_list = [ float(aff.rstrip('\r\n')) for aff in aff_list]
     
-    print 'a', len(aff_list), 's', len(s_paths)
-    
     b.inputs.inputspec.affinity_threshold = aff_list
     
     ds = pe.Node(nio.DataSink(), name='basc_sink')
-    ds.inputs.base_directory = c.sinkDirectory
-    ds.inputs.container = 'basc_results'
+    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'basc_results')
+    ds.inputs.base_directory = out_dir
+    ds.inputs.container = ''
     
 #    wf.connect(b, 'outputspec.gsm',
 #               ds, 'gsm')
@@ -93,9 +93,9 @@ def prep_basc_workflow(c, subject_paths):
     
     return wf
 
-def prep_group_analysis_workflow(c, subject_paths):
+def prep_group_analysis_workflow(c, subject_infos):
     print 'Preparing Group Analysis workflow'
-    print 'subjects', subject_paths
+    print 'subjects', subject_infos
     
 if __name__ == "__main__":
     import argparse
@@ -129,6 +129,7 @@ if __name__ == "__main__":
     analysis_map = defaultdict(list)
     
     for subject_path in subject_paths:
+        #Remove the base bath offset
         rs_path = subject_path.replace(base_path, "", 1)
         folders = split_folders(rs_path)
         
@@ -138,13 +139,13 @@ if __name__ == "__main__":
         scan_id = folders[4]
         
         key = subject_path.replace(subject_id, '*')
-        analysis_map[(resource_id, key)].append((subject_id, scan_id, subject_path))
+        analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
     
     w_list = []
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
-#            w_list.append(prep_basc_workflow(c, analysis_map[(resource, glob_key)]))
-            w_list.append(prep_cwas_workflow(c, analysis_map[(resource, glob_key)]))
+            w_list.append(prep_basc_workflow(c, analysis_map[(resource, glob_key)]))
+#            w_list.append(prep_cwas_workflow(c, analysis_map[(resource, glob_key)]))
         elif resource == 'alff':
             w_list.append(prep_group_analysis_workflow(c, analysis_map[(resource, glob_key)]))
     
