@@ -466,9 +466,9 @@ runFunctionalDataGathering = [1]
 runFunctionalPreprocessing = [1]
 runAnatomicalToFunctionalRegistration = [1]
 
-runNuisance = [1,0]
-runMedianAngleCorrection = [1,0]
-runFrequencyFiltering = [1,0]
+runNuisance = [1]
+runMedianAngleCorrection = [0]
+runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
 standardResolution = '3mm'
@@ -1002,3 +1002,20 @@ pThreshold = 0.05
 
 fTest = True
 
+
+"""
+BASC
+"""
+bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+bascClusters = 6
+bascDatasetBootstraps = 100
+bascTimeseriesBootstraps = 100
+bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
+
+"""
+CWAS
+"""
+cwasROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+cwasFSamples = 5000
+cwasParallelNodes = 10
+cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subject_regressors.txt'

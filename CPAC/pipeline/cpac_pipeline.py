@@ -1110,7 +1110,11 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
+<<<<<<< HEAD
             ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
+=======
+            ds.inputs.container = os.path.join('pipeline_%d' % (num_strat),subject_id)
+>>>>>>> 0962f4c0a8eda50896668e48e2bdfe93fb90050e
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
@@ -1185,7 +1189,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-indx', '--index',
                         dest='indx',
-                        required=True,
+                        required=False,
                         help='location of config file'
                         )
 
@@ -1198,7 +1202,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-strategies', '--strategies',
                         dest='strategies',
-                        required=True,
+                        required=False,
                         help='list of strategies'
                         )
 
@@ -1225,4 +1229,4 @@ if __name__ == "__main__":
         seed_list = [fline.rstrip('\r\n') for fline in flines]
 
 
-    prep_workflow(sub_dict, seed_list, c, pickle.load(open(args.strategies, 'r')))
+    prep_workflow(sub_dict, seed_list, c, "pickle.load(open(args.strategies, 'r')")
