@@ -3,11 +3,16 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def create_scrubbing_preproc():
+def create_scrubbing_preproc(wf_name = 'scrubbing'):
     """
     This workflow essentially takes the list of offending timepoints that are to be removed
     and removes it from the motion corrected input image. Also, it removes the information
     of discarded time points from the movement parameters file obtained during motion correction.
+    
+    Parameters
+    ----------
+    wf_name : string
+        Name of the workflow
     
     Returns
     -------
@@ -67,7 +72,7 @@ def create_scrubbing_preproc():
     
     """
 
-    scrub = pe.Workflow(name='sc_preproc')
+    scrub = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(util.IdentityInterface(fields=['frames_in_1D',
                                                        'movement_parameters',
@@ -76,20 +81,18 @@ def create_scrubbing_preproc():
                         name='inputspec')
 
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['',
+    outputNode = pe.Node(util.IdentityInterface(fields=['preprocessed',
                                                          'scrubbed_movement_parameters']),
                         name='outputspec')
 
 
-    scrubbed_movement_parameters = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'], 
+    scrubbed_movement_parameters = pe.Node(util.Function(input_names=['infile_a', 'infile_b'], 
                                                  output_names=['out_file'],
                                                  function=get_mov_parameters), 
-                                   name='scrubbed_movement_parameters',
-                                   iterfield=["infile_a", "infile_b"])
+                                   name='scrubbed_movement_parameters')
 
-    scrubbed_preprocessed = pe.MapNode(interface=e_afni.Threedcalc(), 
-                               name='scrubbed_preprocessed',
-                               iterfield=["infile_a", "list_idx"] )
+    scrubbed_preprocessed = pe.Node(interface=e_afni.Threedcalc(), 
+                               name='scrubbed_preprocessed')
     scrubbed_preprocessed.inputs.expr = '\'a\''
 
     scrub.connect(inputNode, 'preprocessed', scrubbed_preprocessed, 'infile_a')
@@ -162,23 +165,11 @@ def get_indx(in_file):
         list of frame indexes
     
     """
-
-    indx = []
-
-    if(isinstance(in_file, list)):
-        for file in in_file:
-            f = open(file, 'r')
-            line = f.readline()
-            line = line.strip(',')
-            indx.append(map(int, line.split(",")))
-            f.close()
-        print "indx ", indx
-        return indx
-    else:
-            f = open(file, 'r')
-            line = f.readline()
-            line = line.strip(',')
-            indx.append(map(int, line.split(",")))
-            f.close()
-            print "indx in else", indx
-            return indx
+    
+    f = open(in_file, 'r')
+    line = f.readline()
+    line = line.strip(',')
+    indx = map(int, line.split(","))
+    f.close()
+    
+    return indx

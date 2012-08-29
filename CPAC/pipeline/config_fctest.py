@@ -471,6 +471,17 @@ runMedianAngleCorrection = [0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
+
+runGenerateMotionStatistics = [1]
+runScrubbing = [1]
+runVoxelTimeseries = [1]
+runROITimeseries = [0]
+
+runSurfaceRegistraion = [0]
+runVerticesTimeSeries = [0]
+
+runNetworkCentrality =[1]
+
 standardResolution = '3mm'
 MNI = 'MNI152'
 
@@ -772,15 +783,15 @@ lowPassFreqALFF = [0.1]
 
 
 
-    	1) seedFile : Specify the full path to the file containing a list of seed regions.
+    	1) seedFile : Specify the full directory path to the folder containing all the seed files.
 
-    				  Each line of this file should contain the full path to one seed.
+    				
 
 """
 
 
 
-seedFile = '/home2/data/Projects/ABIDE_MP/settings/seeds_list.txt' # yang
+seedDirPath = '/Users/ranjeet.khanuja/Documents/workspace/multisite/NKI_NYU_Nipype/seeds' # yang
 
 correlationSpace = 'mni' # what are other options?
 
@@ -832,15 +843,15 @@ correlationSpace = 'mni' # what are other options?
 
 # Output type: .csv, numPy
 
-unitTSOutputs = [True, True]
+roiTSOutputs = [True, True]
 
-unitDefinitionsDirectory = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
+roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 
 # Output type: .csv, numPy
 
 voxelTSOutputs = [False, False]
 
-voxelMasksDirectory = '/home2/data/Projects/NEO2012/mask_for_TS_extraction'
+maskDirectoryPath = seedDirPath
 
 
 
@@ -874,11 +885,30 @@ voxelMasksDirectory = '/home2/data/Projects/NEO2012/mask_for_TS_extraction'
 
 verticesTSOutputs = [False, False]
 
-runSurfaceRegistraion = False
-
 reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
 
 
+
+"""
+Network Centrality
+
+"""
+#method options [Degree Centrality, Eigen_Vector Centrality]
+centralityMethodOptions = [True, True]
+
+#weight options [binarize(0,1), weighted(weight=correlation value)]
+centralityWeightOptions = [True, True]
+
+#correaltion threshold option 0--> p_value (probability), 1--> sparsity threshold
+# any other --->  correlation threshold
+correlationThresholdOption = 1
+
+#p_value, sparsity threshold or correlation threshold
+#example: p_value is 0.05, sparsity threshold is 0.0744
+correlationThreshold = 0.0744
+
+#path to mask/roi directory for netwrok centrality 
+templateDirectoryPath = seedDirPath 
 
 
 

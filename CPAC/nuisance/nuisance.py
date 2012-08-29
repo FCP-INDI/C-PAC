@@ -152,28 +152,44 @@ def calc_residuals(subject,
     import numpy as np
     import scipy
     from CPAC.nuisance import calc_compcor_components
+    from CPAC.utils import safe_shape
     
     nii = nb.load(subject)
     data = nii.get_data().astype(np.float64)
     global_mask = (data != 0).sum(-1) != 0
     
+    
+    #Check and define regressors which are provided from files
+    if wm_mask_file is not None:
+        wm_mask = nb.load(wm_mask_file).get_data().astype('bool')
+        if not safe_shape(data, wm_mask): raise ValueError('Bad input shapes data, wm_mask')
+        
+    if csf_mask_file is not None:
+        csf_mask = nb.load(csf_mask_file).get_data().astype('bool')
+        if not safe_shape(data, csf_mask): raise ValueError('Bad input shapes data, csf_mask')
+        
+    if gm_mask_file is not None:
+        gm_mask = nb.load(gm_mask_file).get_data().astype('bool')
+        if not safe_shape(data, gm_mask): raise ValueError('Bad input shapes data, gm_mask')
+
+    if motion_file is not None:
+        motion = np.genfromtxt(motion_file)
+        if motion.shape[0] != data.shape[3]:
+            raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[0]) )
+
+    #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
     if(selector['compcor']):
         print 'compcor_ncomponents', compcor_ncomponents
-        wm_mask = nb.load(wm_mask_file).get_data().astype('bool')
-        csf_mask = nb.load(csf_mask_file).get_data().astype('bool')
         regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_mask, csf_mask)
-        
+    
     if(selector['wm']):
-        wm_mask = nb.load(wm_mask_file).get_data().astype('bool')
         regressor_map['wm'] = data[wm_mask].mean(0)
         
     if(selector['csf']):
-        csf_mask = nb.load(csf_mask_file).get_data().astype('bool')
         regressor_map['csf'] = data[csf_mask].mean(0)
         
     if(selector['gm']):
-        gm_mask = nb.load(gm_mask_file).get_data().astype('bool')
         regressor_map['gm'] = data[gm_mask].mean(0)
         
     if(selector['global']):
@@ -186,7 +202,6 @@ def calc_residuals(subject,
         regressor_map['pc1'] = U[:,0]
         
     if(selector['motion']):
-        motion = np.genfromtxt(motion_file)
         regressor_map['motion'] = motion
         
     if(selector['linear']):

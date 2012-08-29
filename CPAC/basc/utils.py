@@ -251,6 +251,9 @@ def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = No
     S : array_like
         A matrix of shape (`V`, `V`), each element v_{ij} representing the stability of the adjacency of voxel i with voxel j
     """
+    if affinity_threshold < 0.0:
+        raise ValueError('affinity_threshold %d must be non-negative value' % affinity_threshold)
+    
     N = Y.shape[0]
     V = Y.shape[1]
     

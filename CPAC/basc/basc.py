@@ -133,12 +133,19 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     print 'Calculating individual stability matrix of:', subject_file
 
     from CPAC.basc import individual_stability_matrix
+    from CPAC.utils import safe_shape
     import nibabel as nb
     import numpy as np
     import os
 
     data = nb.load(subject_file).get_data().astype('float64')
     roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+    
+    if not safe_shape(roi_mask_file, data):
+        raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+                                                                                           str(data.shape[:3]),
+                                                                                           str(roi_mask_file.shape)) )
+    
     Y = data[roi_mask_file].T
     print '(%i timepoints, %i voxels) and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
     
