@@ -335,7 +335,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
             strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
             strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
-            strat.update_resource_pool({'functional_dilated_mask':(func_preproc, 'outputspec.mask')})
+            strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
 
             num_strat += 1
 
@@ -547,7 +547,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  alff, 'inputspec.rest_res')
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  alff, 'inputspec.rest_mask')
 
@@ -722,7 +722,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.example_func2highres_mat')
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.rest_mask')
 
@@ -770,7 +770,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 workflow.connect(node, out_file,
                                  reho, 'inputspec.rest_res_filt')
 
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  reho, 'inputspec.rest_mask')
             except:
@@ -894,7 +894,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                  alff_Z_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                 alff_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  alff_Z_smooth, 'operand_files')
 
@@ -903,7 +903,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                  falff_Z_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                 falff_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  falff_Z_smooth, 'operand_files')
 
@@ -923,29 +923,29 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
                 try:
 
-                    functional_dilated_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                                        name='functional_dilated_mask_to_standard_%d' % num_strat)
+                    functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='functional_brain_mask_to_standard_%d' % num_strat)
 
-                    functional_dilated_mask_to_standard.inputs.interp = 'nn'
-                    functional_dilated_mask_to_standard.inputs.ref_file = c.standard
-                    node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                    functional_brain_mask_to_standard.inputs.interp = 'nn'
+                    functional_brain_mask_to_standard.inputs.ref_file = c.standard
+                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                     workflow.connect(node, out_file,
-                                 functional_dilated_mask_to_standard, 'in_file')
+                                 functional_brain_mask_to_standard, 'in_file')
 
                     node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
                     workflow.connect(node, out_file,
-                                     functional_dilated_mask_to_standard, 'premat')
+                                     functional_brain_mask_to_standard, 'premat')
 
                     node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
                     workflow.connect(node, out_file,
-                                 functional_dilated_mask_to_standard, 'field_file')
+                                 functional_brain_mask_to_standard, 'field_file')
 
                     node, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard')
                     workflow.connect(node, out_file,
                                      alff_Z_to_standard_smooth, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                     alff_Z_to_standard_smooth, 'op_string')
-                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                    workflow.connect(functional_brain_mask_to_standard, 'out_file',
                                      alff_Z_to_standard_smooth, 'operand_files')
 
                     node, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
@@ -953,7 +953,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                      falff_Z_to_standard_smooth, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                     falff_Z_to_standard_smooth, 'op_string')
-                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                    workflow.connect(functional_brain_mask_to_standard, 'out_file',
                                      falff_Z_to_standard_smooth, 'operand_files')
 
 
@@ -1037,7 +1037,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                                  reho_Z_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                 reho_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  reho_Z_smooth, 'operand_files')
 
@@ -1056,29 +1056,29 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
                 try:
 
-                    functional_dilated_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                                        name='functional_dilated_mask_to_standard1_%d' % num_strat)
+                    functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='functional_brain_mask_to_standard1_%d' % num_strat)
 
-                    functional_dilated_mask_to_standard.inputs.interp = 'nn'
-                    functional_dilated_mask_to_standard.inputs.ref_file = c.standard
-                    node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                    functional_brain_mask_to_standard.inputs.interp = 'nn'
+                    functional_brain_mask_to_standard.inputs.ref_file = c.standard
+                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                     workflow.connect(node, out_file,
-                                 functional_dilated_mask_to_standard, 'in_file')
+                                 functional_brain_mask_to_standard, 'in_file')
 
                     node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
                     workflow.connect(node, out_file,
-                                     functional_dilated_mask_to_standard, 'premat')
+                                     functional_brain_mask_to_standard, 'premat')
 
                     node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
                     workflow.connect(node, out_file,
-                                 functional_dilated_mask_to_standard, 'field_file')
+                                 functional_brain_mask_to_standard, 'field_file')
 
                     node, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
                     workflow.connect(node, out_file,
                                      reho_Z_to_standard_smooth, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                     reho_Z_to_standard_smooth, 'op_string')
-                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                    workflow.connect(functional_brain_mask_to_standard, 'out_file',
                                      reho_Z_to_standard_smooth, 'operand_files')
 
 
@@ -1110,11 +1110,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
-<<<<<<< HEAD
             ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
-=======
-            ds.inputs.container = os.path.join('pipeline_%d' % (num_strat),subject_id)
->>>>>>> 0962f4c0a8eda50896668e48e2bdfe93fb90050e
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
