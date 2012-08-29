@@ -143,9 +143,9 @@ def create_func_preproc():
       For each volume in RPI-oriented T2 image, the command, aligns the image with the base mean image and calculates the motion, displacement 
       and movement parameters. It also outputs the aligned 4D volume and movement and displacement parameters for each volume.
     
-    - Create a dilated brain-only mask. For details see `3dautomask <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dAutomask.html>`_::
+    - Create a  brain-only mask. For details see `3dautomask <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dAutomask.html>`_::
     
-        3dAutomask -dilate 1 
+        3dAutomask  
                    -prefix rest_3dc_RPI_3dv_automask.nii.gz 
                    rest_3dc_RPI_3dv.nii.gz
 
@@ -254,10 +254,10 @@ def create_func_preproc():
 
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
 
-    func_get_dilate_mask = pe.Node(interface=preprocess.ThreedAutomask(),
-                               name='func_get_dilate_mask')
-    func_get_dilate_mask.inputs.dilate = 1
-    func_get_dilate_mask.inputs.outputtype = 'NIFTI_GZ'
+    func_get_brain_mask = pe.Node(interface=preprocess.ThreedAutomask(),
+                               name='func_get_brain_mask')
+#    func_get_brain_mask.inputs.dilate = 1
+    func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     func_edge_detect = pe.Node(interface=preprocess.Threedcalc(),
                             name='func_edge_detect')
@@ -309,10 +309,10 @@ def create_func_preproc():
     preproc.connect(func_get_mean_motion, 'out_file',
                     func_motion_correct_A, 'basefile')
     preproc.connect(func_motion_correct_A, 'out_file',
-                    func_get_dilate_mask, 'in_file')
+                    func_get_brain_mask, 'in_file')
     preproc.connect(func_motion_correct_A, 'out_file',
                     func_edge_detect, 'infile_a')
-    preproc.connect(func_get_dilate_mask, 'out_file',
+    preproc.connect(func_get_brain_mask, 'out_file',
                     func_edge_detect, 'infile_b')
     preproc.connect(func_edge_detect, 'out_file',
                     func_mean_skullstrip, 'in_file')
@@ -336,7 +336,7 @@ def create_func_preproc():
                     outputNode, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
                     outputNode, 'movement_parameters')
-    preproc.connect(func_get_dilate_mask, 'out_file',
+    preproc.connect(func_get_brain_mask, 'out_file',
                     outputNode, 'mask')
     preproc.connect(func_edge_detect, 'out_file',
                     outputNode, 'skullstrip')

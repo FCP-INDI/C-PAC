@@ -17,7 +17,9 @@ from CPAC.registration import create_nonlinear_register, create_register_func_to
 from CPAC.nuisance import create_nuisance, bandpass_voxels
 
 from CPAC.median_angle import create_median_angle_correction
-
+from CPAC.vmhc.vmhc import create_vmhc
+from CPAC.reho.reho import create_reho
+from CPAC.alff.alff import create_alff
 from CPAC.utils.func_datasource import *
 from CPAC.utils.anat_datasource import *
 
@@ -522,6 +524,52 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     strat_list += new_strat_list
 
     """
+    Inserting ALFF/fALFF
+    Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if c.derivatives[0]:
+        for strat in strat_list:
+            preproc = create_alff(c.TR)
+            preproc.inputs.hp_input.hp = c.highPassFreqALFF
+            preproc.inputs.lp_input.lp = c.lowPassFreqALFF
+            preproc.get_node('hp_input').iterables = ('hp',
+                                                        c.highPassFreqALFF)
+            preproc.get_node('lp_input').iterables = ('lp',
+                                                        c.lowPassFreqALFF)
+
+            alff = preproc.clone('alff_%d' % num_strat)
+
+
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 alff, 'inputspec.rest_res')
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 alff, 'inputspec.rest_mask')
+
+
+
+            except:
+                print 'Invalid Connection: ALFF:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            strat.append_name('alff_falff')
+            strat.update_resource_pool({'power_spectrum_distribution':(alff, 'outputspec.power_spectrum_distribution')})
+            strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
+            strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
+            strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
+            strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
+
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+
+
+    """
     Inserting Frequency Filtering Node
     """
     new_strat_list = []
@@ -564,6 +612,9 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list
+
+
+
     
     """
     Inserting Register Functional to MNI Workflow
@@ -618,10 +669,10 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('func_to_mni')
-            strat.set_leaf_properties(func_mni_warp, 'out_file')
-            
+            #strat.set_leaf_properties(func_mni_warp, 'out_file')
+
             strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                         'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
                                         'functional_to_mni_linear_xfm':(func_to_mni, 'outputspec.func_to_mni_linear_xfm'),
@@ -630,9 +681,424 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list
+
+
+
+    """
+    Inserting VMHC
+    Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if c.derivatives[2]:
+        for strat in strat_list:
+
+            preproc = create_vmhc()
+            preproc.inputs.inputspec.brain_symmetric = \
+                                            c.brainSymmetric
+            preproc.inputs.inputspec.symm_standard = \
+                                            c.symmStandard
+            preproc.inputs.inputspec.twomm_brain_mask_dil = \
+                                            c.twommBrainMaskDiluted
+            preproc.inputs.inputspec.config_file_twomm = \
+                                            c.configFileTwomm
+            preproc.inputs.inputspec.standard = \
+                                            c.standard
+            preproc.inputs.fwhm_input.fwhm = c.fwhm
+            preproc.get_node('fwhm_input').iterables = ('fwhm',
+                                                        c.fwhm)
+
+
+            vmhc = preproc.clone('vmhc_%d' % num_strat)
+
+
+
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.rest_res')
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.example_func2highres_mat')
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.rest_mask')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.brain')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.reorient')
+
+            except:
+                print 'Invalid Connection: VMHC:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+
+            strat.update_resource_pool({'vmhc_raw_score':(vmhc, 'outputspec.VMHC_FWHM_img')})
+            strat.update_resource_pool({'vmhc_z_score':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
+            strat.update_resource_pool({'stat_map_vmhc_z_score':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
+            strat.append_name('vmhc')
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+
+
+
+    """
+    Inserting REHO
+    Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if c.derivatives[3]:
+        for strat in strat_list:
+
+            preproc = create_reho()
+            preproc.inputs.inputspec.cluster_size = c.clusterSize
+            reho = preproc.clone('reho_%d' % num_strat)
+
+
+            try:
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 reho, 'inputspec.rest_res_filt')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 reho, 'inputspec.rest_mask')
+            except:
+                print 'Invalid Connection: REHO:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+
+            strat.update_resource_pool({'raw_reho_map':(reho, 'outputspec.raw_reho_map')})
+            strat.update_resource_pool({'reho_Z_img':(reho, 'outputspec.z_score')})
+            strat.append_name('reho')
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+
+    """
+    Transforming ALFF Z scores and fAlff Z scores to MNI
+    """
+    new_strat_list = []
+    num_strat = 0
+
+
+    if 1 in c.runRegisterFuncToMNI and c.derivatives[0]:
+        for strat in strat_list:
+
+            alff_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                           name='alff_Z_to_standard_%d' % num_strat)
+
+            alff_Z_to_standard.inputs.ref_file = c.standard
+
+            falff_Z_to_standard = alff_Z_to_standard.clone('falff_Z_to_standard_%d' % num_strat)
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
+                workflow.connect(node, out_file,
+                                 alff_Z_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 alff_Z_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 alff_Z_to_standard, 'field_file')
+
+
+                node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
+                workflow.connect(node, out_file,
+                                 falff_Z_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 falff_Z_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 falff_Z_to_standard, 'field_file')
+
+
+
+            except:
+                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            strat.update_resource_pool({'alff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
+            strat.update_resource_pool({'falff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
+            strat.append_name('alff_falff_to_standard')
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+    inputnode_fwhm = None
+    if len(c.fwhm) > 0:
+
+        inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
+                             name='fwhm_input')
+        inputnode_fwhm.iterables = ("fwhm", c.fwhm)
+
+
+
+    def set_gauss(fwhm):
+
+        op_string = ""
+
+        fwhm = float(fwhm)
+
+        sigma = float(fwhm / 2.3548)
+
+        op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
+        op_string = op
+
+        return op_string
+
+
+
+
+    """
     
+    Smoothing ALFF fALFF Z scores and or possibly Z scores in MNI 
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if c.derivatives[0] and len(c.fwhm) > 0:
+        for strat in strat_list:
+
+
+            alff_Z_to_standard_smooth = None
+            falff_Z_to_standard_smooth = None
+
+            alff_Z_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='alff_Z_smooth_%d' % num_strat)
+
+            falff_Z_smooth = alff_Z_smooth.clone('falff_Z_smooth_%d' % num_strat)
+
+
+            try:
+                node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
+                workflow.connect(node, out_file,
+                                 alff_Z_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                alff_Z_smooth, 'op_string')
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 alff_Z_smooth, 'operand_files')
+
+                node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
+                workflow.connect(node, out_file,
+                                 falff_Z_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                falff_Z_smooth, 'op_string')
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 falff_Z_smooth, 'operand_files')
+
+
+
+            except:
+                print 'Invalid Connection: ALFF smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            strat.append_name('alff_falff_Z_smooth')
+            strat.update_resource_pool({'alff_Z_smooth':(alff_Z_smooth, 'out_file')})
+            strat.update_resource_pool({'falff_Z_smooth':(falff_Z_smooth, 'out_file')})
+
+            if c.runRegisterFuncToMNI:
+
+                alff_Z_to_standard_smooth = alff_Z_smooth.clone('alff_Z_to_standard_smooth_%d' % num_strat)
+                falff_Z_to_standard_smooth = alff_Z_smooth.clone('falff_Z_to_standard_smooth_%d' % num_strat)
+
+                try:
+
+                    functional_dilated_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='functional_dilated_mask_to_standard_%d' % num_strat)
+
+                    functional_dilated_mask_to_standard.inputs.interp = 'nn'
+                    functional_dilated_mask_to_standard.inputs.ref_file = c.standard
+                    node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                    workflow.connect(node, out_file,
+                                 functional_dilated_mask_to_standard, 'in_file')
+
+                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                    workflow.connect(node, out_file,
+                                     functional_dilated_mask_to_standard, 'premat')
+
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node, out_file,
+                                 functional_dilated_mask_to_standard, 'field_file')
+
+                    node, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard')
+                    workflow.connect(node, out_file,
+                                     alff_Z_to_standard_smooth, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                    alff_Z_to_standard_smooth, 'op_string')
+                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                                     alff_Z_to_standard_smooth, 'operand_files')
+
+                    node, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
+                    workflow.connect(node, out_file,
+                                     falff_Z_to_standard_smooth, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                    falff_Z_to_standard_smooth, 'op_string')
+                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                                     falff_Z_to_standard_smooth, 'operand_files')
+
+
+
+
+                except:
+
+                    print 'Invalid Connection: ALFF smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                    raise
+
+                strat.append_name('alff_falff_Z_to_standard_smooth')
+                strat.update_resource_pool({'alff_Z_to_standard_smooth':(alff_Z_to_standard_smooth, 'out_file')})
+                strat.update_resource_pool({'falff_Z_to_standard_smooth':(falff_Z_to_standard_smooth, 'out_file')})
+
+
+
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+
+    """
+    Transforming ReHo Z scores to MNI
+    """
+    new_strat_list = []
+    num_strat = 0
+
+
+    if 1 in c.runRegisterFuncToMNI and c.derivatives[3]:
+        for strat in strat_list:
+
+            reho_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                           name='reho_Z_to_standard_%d' % num_strat)
+
+            reho_Z_to_standard.inputs.ref_file = c.standard
+
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
+                workflow.connect(node, out_file,
+                                 reho_Z_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 reho_Z_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 reho_Z_to_standard, 'field_file')
+
+            except:
+                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            strat.update_resource_pool({'reho_Z_to_standard':(reho_Z_to_standard, 'out_file')})
+            strat.append_name('reho')
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+    """
+    
+    Smoothing ReHo Z scores and or possibly Z scores in MNI 
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if c.derivatives[0] and len(c.fwhm) > 0:
+        for strat in strat_list:
+
+
+            reho_Z_to_standard_smooth = None
+
+            reho_Z_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='reho_Z_smooth_%d' % num_strat)
+
+            try:
+                node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
+                workflow.connect(node, out_file,
+                                 reho_Z_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                reho_Z_smooth, 'op_string')
+                node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                workflow.connect(node, out_file,
+                                 reho_Z_smooth, 'operand_files')
+
+
+
+
+            except:
+                print 'Invalid Connection: reho_Z smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            strat.append_name('reho_Z_smooth')
+            strat.update_resource_pool({'reho_Z_smooth':(reho_Z_smooth, 'out_file')})
+
+            if c.runRegisterFuncToMNI:
+
+                reho_Z_to_standard_smooth = reho_Z_smooth.clone('reho_Z_to_standard_smooth_%d' % num_strat)
+
+                try:
+
+                    functional_dilated_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                        name='functional_dilated_mask_to_standard1_%d' % num_strat)
+
+                    functional_dilated_mask_to_standard.inputs.interp = 'nn'
+                    functional_dilated_mask_to_standard.inputs.ref_file = c.standard
+                    node, out_file = strat.get_node_from_resource_pool('functional_dilated_mask')
+                    workflow.connect(node, out_file,
+                                 functional_dilated_mask_to_standard, 'in_file')
+
+                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                    workflow.connect(node, out_file,
+                                     functional_dilated_mask_to_standard, 'premat')
+
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node, out_file,
+                                 functional_dilated_mask_to_standard, 'field_file')
+
+                    node, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
+                    workflow.connect(node, out_file,
+                                     reho_Z_to_standard_smooth, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                    reho_Z_to_standard_smooth, 'op_string')
+                    workflow.connect(functional_dilated_mask_to_standard, 'out_file',
+                                     reho_Z_to_standard_smooth, 'operand_files')
+
+
+
+                except:
+
+                    print 'Invalid Connection: reho_Z_to_standard smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                    raise
+
+                strat.append_name('reho_Z_to_standard_smooth')
+                strat.update_resource_pool({'reho_Z_to_standard_smooth':(reho_Z_to_standard_smooth, 'out_file')})
+
+
+
+            num_strat += 1
+    strat_list += new_strat_list
+
+
     workflow.write_graph(graph2use='orig')
-    
+
     """
     Datasink
     """
@@ -644,7 +1110,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
-            ds.inputs.container = 'pipeline_%d' % num_strat
+            ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
@@ -683,8 +1149,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
         idx += 1
 
-#    workflow.run(plugin='MultiProc',
-#                         plugin_args={'n_procs': c.numCoresPerSubject})
+    workflow.run(plugin='MultiProc',
+                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow

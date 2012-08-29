@@ -5,7 +5,7 @@ import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-def getImgNVols(in_files):
+def get_img_nvols(in_files):
 
     """
     Calculates the number of volumes in the given nifti image
@@ -36,7 +36,7 @@ def getImgNVols(in_files):
 
     return out
 
-def getImgTR(in_files, TRa):
+def get_img_tr(in_files, TRa):
 
 
     """
@@ -85,7 +85,7 @@ def getImgTR(in_files, TRa):
     return out
 
 
-def getN1(TR, nvols, HP):
+def get_N1(TR, nvols, HP):
 
     """
     Get the low frequency point
@@ -117,7 +117,7 @@ def getN1(TR, nvols, HP):
     return n1
 
 
-def getN2(TR, nvols, LP, HP):
+def get_N2(TR, nvols, LP, HP):
 
     """
     Get the high frequency point
@@ -153,7 +153,7 @@ def getN2(TR, nvols, LP, HP):
     return n2
 
 
-def getOpString(mean, std_dev):
+def get_operand_string(mean, std_dev):
 
     """
     Generate the Operand String to be used in workflow nodes to supply 

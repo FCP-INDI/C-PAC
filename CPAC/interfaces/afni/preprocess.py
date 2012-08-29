@@ -347,6 +347,59 @@ For complete details, see the `3dresample Documentation.
         return outputs
 
 
+
+class ThreedTcorrOneDInputSpec(AFNITraitedSpec):
+    xset = File(desc = 'xset to 3dTcorr1D',
+                  argstr = ' %s',
+                  position = -2,
+                  mandatory = True,
+                  exists = True)
+    y_one_d = File(desc = 'y1D from 3dTcorr1D',
+                   argstr = ' %s',
+                   position = -1,
+                   mandatory = True,
+                   exists = True)
+    out_file = File(desc = 'output file from 3dTcorr1D',
+                   argstr = '-prefix %s',
+                   genfile = True)
+    options = traits.Str(desc = 'select options',
+                         argstr = ' %s')
+    suffix = traits.Str(desc="out_file suffix") # todo: give it a default-value
+
+class ThreedTcorrOneDOutputSpec(AFNITraitedSpec):
+    out_file = File(desc = 'output file containing correlations',
+                    exists = True)
+
+class ThreedTcorrOneD(AFNICommand):
+    """Computes the correlation coefficient between each voxel time series
+in the input 3D+time dataset.
+For complete details, see the `3dTcorr1D Documentation.
+<http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTcorr1D.html>`_
+"""
+
+    _cmd = '3dTcorr1D'
+    input_spec = ThreedTcorrOneDInputSpec
+    output_spec = ThreedTcorrOneDOutputSpec
+
+    def _gen_filename(self, name):
+        if name == 'out_file':
+            return self._list_outputs()[name]
+        return None
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_file
+        if not isdefined(outputs['out_file']):
+            suffix = []
+            if isdefined(self.inputs.suffix):
+                suffix = self.inputs.suffix
+            else:
+                suffix.append("_Tcorr_one_d")
+                suffix = "".join(suffix)
+            outputs['out_file'] = self._gen_fname(self.inputs.xset, suffix=suffix)
+        return outputs
+
+
 class ThreedTstatInputSpec(AFNITraitedSpec):
     in_file = File(desc = 'input file to 3dTstat',
                   argstr = '%s',

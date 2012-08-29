@@ -293,12 +293,12 @@ def create_vmhc():
 
     NVOLS = pe.Node(util.Function(input_names=['in_files'],
                                   output_names=['nvols'],
-                    function=getImgNVols),
+                    function=get_img_nvols),
                     name='NVOLS')
 
     generateEXP = pe.Node(util.Function(input_names=['nvols'],
                                         output_names=['expr'],
-                          function=getEXP),
+                          function=get_operand_expression),
                           name='generateEXP')
 
 
