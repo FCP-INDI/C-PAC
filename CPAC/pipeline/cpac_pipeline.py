@@ -1527,8 +1527,8 @@ def prep_workflow(sub_dict, c, strategies):
 
         idx += 1
 
-#    workflow.run(plugin='MultiProc',
-#                         plugin_args={'n_procs': c.numCoresPerSubject})
+    workflow.run(plugin='MultiProc',
+                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
