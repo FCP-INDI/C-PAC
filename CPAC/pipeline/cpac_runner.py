@@ -67,16 +67,16 @@ def build_strategies(configuration):
 
     import collections
 
-    path_iterables = ['gm_threshold', 'wm_threshold', 'csf_threshold', 'scrubbed', 'threshold', 'selector', 'nc', 'target_angle_deg']
-    non_strategy_iterables = ['fwhm', 'hp', 'lp', 'bandpass_freqs']
+    path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
+    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
-    proper_names = {'threshold':'Scrubbing Threshold = ', 'csf_threshold':'Cerebral Spinal Fluid Threshold = ',
-                    'gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', 'scrubbed':'Data Scrubbed = ', 'selector':'Nuisance Signal Corrections = ',
-                    'target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', 'wm_threshold':'White Matter Threshold = '}
+    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
+                    '_gm_threshold':'Gray Matter Threshold = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = collections.OrderedDict([('grayMatterThreshold', eval('configuration.grayMatterThreshold')), ('whiteMatterThreshold', eval('configuration.whiteMatterThreshold')), ('cerebralSpinalFluidThreshold', eval('configuration.cerebralSpinalFluidThreshold')), ('scrubData', eval('configuration.scrubData')), ('scrubbingThreshold', eval('configuration.scrubbingThreshold')), ('Corrections', eval('configuration.Corrections')), ('nComponents', eval('configuration.nComponents')), ('targetAngleDeg', eval('configuration.targetAngleDeg'))])
+    config_iterables = {'grayMatterThreshold': eval('configuration.grayMatterThreshold'), 'whiteMatterThreshold': eval('configuration.whiteMatterThreshold'), 'cerebralSpinalFluidThreshold': eval('configuration.cerebralSpinalFluidThreshold'), 'scrubbingThreshold': eval('configuration.scrubbingThreshold'), 'Corrections': eval('configuration.Corrections'), 'targetAngleDeg': eval('configuration.targetAngleDeg')}
 
 
     paths = get_vectors(config_iterables)
@@ -180,6 +180,7 @@ def run(config_file, subject_list_file):
     strategies = None
     #strategies = sorted(build_strategies(c))
 
+    print strategies
 
     if not c.runOnGrid:
 
