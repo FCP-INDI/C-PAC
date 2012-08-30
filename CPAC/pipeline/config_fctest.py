@@ -471,33 +471,40 @@ runMedianAngleCorrection = [0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
+runALFF = [1]
+runReHo = [1]
+runVMHC = [1]
+runSCA = [1]
+runGenerateMotionStatistics = [1]
+runScrubbing = [1]
+runVoxelTimeseries = [1]
+runROITimeseries = [0]
+
+runSurfaceRegistraion = [0]
+runVerticesTimeSeries = [0]
+
+runNetworkCentrality =[1]
+
 standardResolution = '3mm'
-MNI = 'MNI152'
 
 fwhm = [4]
 
-prior_path = os.path.join(priorDirectory, standardResolution)
+#reho cluster size values can be 27 , 19 and 7
+clusterSize = 27
+
+prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
-standardResolutionBrain = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
-standard = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
-standardBrainMaskDiluted = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
-configFile = os.path.join(FSLDIR,
-            'etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
-brainSymmetric = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
-symmStandard = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_symmetric.nii.gz')
-twommBrainMaskDiluted = os.path.join(FSLDIR,
-            'data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
-configFileTwomm = os.path.join(FSLDIR,
-            'etc/flirtsch/T1_2_MNI152_2mm.cnf')
-identityMatrix = os.path.join(FSLDIR,
-            'etc/flirtsch/ident.mat')
+standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
+standard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
+standardBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+configFile = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
+brainSymmetric = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
+symmStandard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
+twommBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
+configFileTwomm = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_2mm.cnf')
+identityMatrix = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/ident.mat')
 
 
 """
@@ -772,15 +779,15 @@ lowPassFreqALFF = [0.1]
 
 
 
-    	1) seedFile : Specify the full path to the file containing a list of seed regions.
+    	1) seedFile : Specify the full directory path to the folder containing all the seed files.
 
-    				  Each line of this file should contain the full path to one seed.
+    				
 
 """
 
 
 
-seedFile = '/home2/data/Projects/ABIDE_MP/settings/seeds_list.txt' # yang
+seedDirPath = '/Users/ranjeet.khanuja/Documents/workspace/multisite/NKI_NYU_Nipype/seeds' # yang
 
 correlationSpace = 'mni' # what are other options?
 
@@ -832,15 +839,15 @@ correlationSpace = 'mni' # what are other options?
 
 # Output type: .csv, numPy
 
-unitTSOutputs = [True, True]
+roiTSOutputs = [True, True]
 
-unitDefinitionsDirectory = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
+roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 
 # Output type: .csv, numPy
 
 voxelTSOutputs = [False, False]
 
-voxelMasksDirectory = '/home2/data/Projects/NEO2012/mask_for_TS_extraction'
+maskDirectoryPath = seedDirPath
 
 
 
@@ -874,11 +881,30 @@ voxelMasksDirectory = '/home2/data/Projects/NEO2012/mask_for_TS_extraction'
 
 verticesTSOutputs = [False, False]
 
-runSurfaceRegistraion = False
-
 reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
 
 
+
+"""
+Network Centrality
+
+"""
+#method options [Degree Centrality, Eigen_Vector Centrality]
+centralityMethodOptions = [True, True]
+
+#weight options [binarize(0,1), weighted(weight=correlation value)]
+centralityWeightOptions = [True, True]
+
+#correaltion threshold option 0--> p_value (probability), 1--> sparsity threshold
+# any other --->  correlation threshold
+correlationThresholdOption = 1
+
+#p_value, sparsity threshold or correlation threshold
+#example: p_value is 0.05, sparsity threshold is 0.0744
+correlationThreshold = 0.0744
+
+#path to mask/roi directory for netwrok centrality 
+templateDirectoryPath = seedDirPath 
 
 
 

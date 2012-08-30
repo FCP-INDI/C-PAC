@@ -2,12 +2,17 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def motion_power_parameters():
+def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
     """
     The main purpose of this workflow is to get various statistical measures from the 
     movement/motion parameters obtained in functional preprocessing. These parameters
     (FD calculations) are also required to carry out scrubbing.
+    
+    Parameters
+    ----------
+    wf_name : workflow object
+        Workflow name
     
     Returns 
     -------
@@ -17,7 +22,7 @@ def motion_power_parameters():
     Notes
     -----
     
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/generate_parmeters/generate_parmeters.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/generate_parmeters/generate_parmeters.py>`_
     
     Workflow Inputs::
     
@@ -26,15 +31,12 @@ def motion_power_parameters():
             
         inputspec.scan_id : string
             Functional Scan id or name
-            
-        inputspec.rest : string (func/rest file or a list of func/rest nifti file) 
-            Path to user input functional(T2) Image, in any of the 8 orientations
-        
+                    
         inputspec.motion_correct : string (func/rest file or a list of func/rest nifti file) 
             Path to motion corrected functional data
             
         inputspec.mask : string (nifti file)
-            Path to fiel contianing brain-only mask for the functional data
+            Path to field contianing brain-only mask for the functional data
                 
         inputspec.max_displacement : string (Mat file)
             maximum displacement (in mm) vector for brain voxels in each volume.
@@ -120,7 +122,8 @@ def motion_power_parameters():
         Max Relative Yaw, Max Relative dS-I, Max Relative dL-R,Max Relative dP-A,
         Mean Relative Roll, Mean Relative Pitch,Mean Relative Yaw, Mean Relative dS-I,
         Mean Relative dL-R, Mean Relative dP-A, Max Abs Roll, Max Abs Pitch, Max Abs Yaw,
-        Max Abs dS-I, Max Abs dL-R, Max Abs dP-A
+        Max Abs dS-I, Max Abs dL-R, Max Abs dP-A, Mean Abs Roll,Mean Abs Pitch,Mean Abs Yaw,
+        Mean Abs dS-I,Mean Abs dL-R,Mean Abs dP-A
 
     
     High Level Workflow Graph:
@@ -137,13 +140,12 @@ def motion_power_parameters():
     Examples
     --------
     
-    >>> import generate_motion_parameters
-    >>> wf = generate_motion_parameters.motion_power_parameters()
-    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sym_link/sub01/rest_1/func/rest_mc.1D'
-    >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sym_link/sub01/rest_1/func/max_disp.1D'
-    >>> wf.inputs.inputspec.rest = 'sub01/rest_1/rest.nii.gz'
-    >>> wf.inputs.inputspec.motion_correct =
-    >>> wf.inputs.inputspec.mask =
+    >>> import generate_motion_statistics
+    >>> wf = generate_motion_statistics.motion_power_statistics()
+    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sub01/func/movement_parameteres/rest_mc.1D'
+    >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sub01/func/max_dispalcement/max_disp.1D'
+    >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'
+    >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
     >>> wf.inputs.inputspec.subject_id = 'sub01'
     >>> wf.inputs.inputspec.scan_id = 'rest_1'
     >>> wf.inputs.threshold_input.threshold = 0.5
@@ -164,10 +166,9 @@ def motion_power_parameters():
     
      
     """
-    pm = pe.Workflow(name='param_wf')
+    pm = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['subject_id',
                                                        'scan_id',
-                                                       'rest',
                                                        'movement_parameters',
                                                        'max_displacement',
                                                        'motion_correct',
@@ -186,86 +187,88 @@ def motion_power_parameters():
                         name='outputspec')
 
 
-    calculate_FD = pe.MapNode(util.Function(input_names=['in_file'],
-                                           output_names=['out_file'],
-                                           function=set_FD),
-                             name='calculate_FD',
-                             iterfield=["in_file"])
-
-    cal_DVARS = pe.MapNode(util.Function(input_names=['rest', 
-                                                      'mask'],
+    cal_DVARS = pe.Node(util.Function(input_names=['rest', 
+                                                   'mask'],
                                            output_names=['out_file'],
                                            function=calculate_DVARS),
-                             name='cal_DVARS',
-                             iterfield=["rest", "mask"])
-
-    exclude_frames = pe.MapNode(util.Function(input_names=['in_file', 
-                                                           'threshold'],
-                                           output_names=['out_file'],
-                                           function=set_frames_ex),
-                             name='exclude_frames',
-                             iterfield=["in_file"])
-
-    include_frames = pe.MapNode(util.Function(input_names=['in_file', 
-                                                           'threshold', 
-                                                           'exclude_list'],
-                                           output_names=['out_file'],
-                                           function=set_frames_in),
-                             name='include_frames',
-                             iterfield=["in_file", "exclude_list"])
-
-
-    calc_motion_parameters = pe.MapNode(util.Function(input_names=["subject_id", 
-                                                                   "scan_id", 
-                                                                   "rest", 
-                                                                   "movement_parameters",
-                                                                   "max_displacement"],
-                                                   output_names=['out_file'],
-                                                   function=gen_motion_parameters),
-                                     name='calc_motion_parameters',
-                                     iterfield=["rest",
-                                                "movement_parameters",
-                                                "max_displacement"])
-
-    calc_power_parameters = pe.MapNode(util.Function(input_names=["subject_id", 
-                                                                  "scan_id", 
-                                                                  "FD_1D", 
-                                                                  "threshold",
-                                                                  "DVARS"],
-                                                   output_names=['out_file'],
-                                                   function=gen_power_parameters),
-                                     name='calc_power_parameters',
-                                     iterfield=[ "FD_1D", 
-                                                "DVARS"])
-
-
+                             name='cal_DVARS')
     ##calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
     
-    ###Calculating mean Framewise Displacement
-    pm.connect(inputNode, 'movement_parameters', calculate_FD, 'in_file' )
+    ###Calculating mean Framewise Displacement    
+    calculate_FD = pe.Node(util.Function(input_names=['in_file'],
+                                         output_names=['out_file'],
+                                           function=set_FD),
+                             name='calculate_FD')
+    
+    pm.connect(inputNode, 'movement_parameters', 
+               calculate_FD, 'in_file' )
+    
+    pm.connect(calculate_FD, 'out_file', 
+               outputNode, 'FD_1D')
 
     ##calculating frames to exclude and include after scrubbing
-    pm.connect(calculate_FD, 'out_file', exclude_frames, 'in_file')
-    pm.connect(inputnode_threshold, 'threshold', exclude_frames, 'threshold')
+    exclude_frames = pe.Node(util.Function(input_names=['in_file', 
+                                                        'threshold'],
+                                           output_names=['out_file'],
+                                           function=set_frames_ex),
+                             name='exclude_frames')
 
+    pm.connect(calculate_FD, 'out_file', 
+               exclude_frames, 'in_file')
+    pm.connect(inputnode_threshold, 'threshold', 
+               exclude_frames, 'threshold')
+    
+    pm.connect(exclude_frames, 'out_file', 
+               outputNode, 'frames_ex_1D')
+    
 
-    pm.connect(calculate_FD, 'out_file', include_frames, 'in_file')
-    pm.connect(inputnode_threshold, 'threshold', include_frames, 'threshold')
-    pm.connect(exclude_frames, 'out_file', include_frames, 'exclude_list')
+    include_frames = pe.Node(util.Function(input_names=['in_file', 
+                                                        'threshold', 
+                                                        'exclude_list'],
+                                           output_names=['out_file'],
+                                           function=set_frames_in),
+                             name='include_frames')
+    pm.connect(calculate_FD, 'out_file', 
+               include_frames, 'in_file')
+    pm.connect(inputnode_threshold, 'threshold', 
+               include_frames, 'threshold')
+    pm.connect(exclude_frames, 'out_file', 
+               include_frames, 'exclude_list')
 
+    pm.connect(include_frames, 'out_file', 
+               outputNode, 'frames_in_1D')
+
+    
+    calc_motion_parameters = pe.Node(util.Function(input_names=["subject_id", 
+                                                                "scan_id", 
+                                                                "movement_parameters",
+                                                                "max_displacement"],
+                                                   output_names=['out_file'],
+                                                   function=gen_motion_parameters),
+                                     name='calc_motion_parameters')
     pm.connect(inputNode, 'subject_id',
                calc_motion_parameters, 'subject_id')
     pm.connect(inputNode, 'scan_id',
                calc_motion_parameters, 'scan_id')
-    pm.connect(inputNode, 'rest',
-               calc_motion_parameters, 'rest')
     pm.connect(inputNode, 'movement_parameters',
                 calc_motion_parameters, 'movement_parameters')
     pm.connect(inputNode, 'max_displacement',
                calc_motion_parameters, 'max_displacement')
+    
+    pm.connect(calc_motion_parameters, 'out_file', 
+               outputNode, 'motion_params')
 
+
+    calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
+                                                                "scan_id", 
+                                                                "FD_1D", 
+                                                                "threshold",
+                                                                "DVARS"],
+                                                   output_names=['out_file'],
+                                                   function=gen_power_parameters),
+                                     name='calc_power_parameters')
     pm.connect(inputNode, 'subject_id',
                calc_power_parameters, 'subject_id')
     pm.connect(inputNode, 'scan_id',
@@ -277,11 +280,8 @@ def motion_power_parameters():
     pm.connect(inputnode_threshold, 'threshold',
                calc_power_parameters, 'threshold')
 
-    pm.connect(calculate_FD, 'out_file', outputNode, 'FD_1D')
-    pm.connect(exclude_frames, 'out_file', outputNode, 'frames_ex_1D')
-    pm.connect(include_frames, 'out_file', outputNode, 'frames_in_1D')
-    pm.connect(calc_motion_parameters, 'out_file', outputNode, 'motion_params')
-    pm.connect(calc_power_parameters, 'out_file', outputNode, 'power_params')
+    pm.connect(calc_power_parameters, 'out_file', 
+               outputNode, 'power_params')
 
 
     return pm
@@ -455,7 +455,7 @@ def set_frames_in(in_file, threshold, exclude_list):
     return out_file
 
 
-def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_displacement):
+def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displacement):
     """
     Method to calculate all the movement parameters
     
@@ -465,8 +465,6 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
         subject name or id
     scan_id : string
         scan name or id
-    rest : string 
-        functional file path
     max_displacement : string 
         path of file with maximum displacement (in mm) for brain voxels in each volume    
     movement_parameters : string 
@@ -573,7 +571,7 @@ def gen_motion_parameters(subject_id, scan_id, rest, movement_parameters, max_di
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FD_1D, threshold, DVARS):
+def gen_power_parameters(subject_id, scan_id, FD_1D, DVARS, threshold = 1.0):
     
     """
     Method to generate Power parameters for scrubbing
@@ -588,6 +586,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, threshold, DVARS):
         framewise displacement file path
     threshold : float
         scrubbing threshold set in the configuration
+        by default the value is set to 1.0
     DVARS : string 
         path to numpy file containing DVARS
     

@@ -20,13 +20,15 @@ Contents:
     alff
     vmhc
     reho
-    generate_motion_parameters
+    generate_motion_statistics
     scrubbing
     group_analysis
     easy_thresh     
     cwas
     median_angle
     registration
+    timeseries
+    network_centrality
 
 Indices and tables
 ==================
