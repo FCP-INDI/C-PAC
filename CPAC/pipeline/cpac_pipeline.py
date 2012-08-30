@@ -69,7 +69,7 @@ class strategy:
 
             self.resource_pool[key] = value
 
-def prep_workflow(sub_dict, seed_list, c, strategies):
+def prep_workflow(sub_dict, c, strategies):
     print "running for subject ", sub_dict
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
@@ -1546,7 +1546,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="example: \
                         run resting_preproc.py -c config.py  -subject_list_file /path/to/subject \
-                        -indx index_into_subject_list_file -seed seed_list -strategies strat_list ")
+                        -indx index_into_subject_list_file -strategies strat_list ")
 
     parser.add_argument('-c', '--config',
                         dest='config',
@@ -1568,11 +1568,6 @@ if __name__ == "__main__":
                         )
 
 
-    parser.add_argument('-seed', '--seed_file',
-                        dest='seed_file',
-                        required=False,
-                        help='file containing seeds'
-                        )
 
     parser.add_argument('-strategies', '--strategies',
                         dest='strategies',
@@ -1596,11 +1591,4 @@ if __name__ == "__main__":
 
     sub_dict = sublist[int(args.indx) - 1]
 
-    seed_list = []
-    if not (args.seed_file is None):
-
-        flines = open(c.seedFile, 'r').readlines()
-        seed_list = [fline.rstrip('\r\n') for fline in flines]
-
-
-    prep_workflow(sub_dict, seed_list, c, "pickle.load(open(args.strategies, 'r')")
+    prep_workflow(sub_dict, c, "pickle.load(open(args.strategies, 'r')")

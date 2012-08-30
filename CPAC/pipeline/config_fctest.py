@@ -489,6 +489,9 @@ standardResolution = '3mm'
 
 fwhm = [4]
 
+#reho cluster size values can be 27 , 19 and 7
+clusterSize = 27
+
 prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
