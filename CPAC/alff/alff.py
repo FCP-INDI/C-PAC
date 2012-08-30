@@ -7,9 +7,8 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-#from CPAC.alff.alff import *
-#from CPAC.alff.utils import *
-from utils import *
+from CPAC.alff.alff import *
+from CPAC.alff.utils import *
 
 def create_alff(tr):
 
