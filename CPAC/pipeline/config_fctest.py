@@ -729,7 +729,6 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 
 #derivatives = [f/ALFF, SCA, VMHC, ReHo, tsE, VerticesE, GA] 
 
-derivatives = [True, False, False, False, False, False, False]
 
 
 
@@ -787,9 +786,6 @@ lowPassFreqALFF = [0.1]
 
 
 
-seedDirPath = '/Users/ranjeet.khanuja/Documents/workspace/multisite/NKI_NYU_Nipype/seeds' # yang
-
-correlationSpace = 'mni' # what are other options?
 
 
 
