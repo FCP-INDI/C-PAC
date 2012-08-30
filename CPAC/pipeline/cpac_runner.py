@@ -179,7 +179,9 @@ def run(config_file, subject_list_file):
     seed_list = [fline.rstrip('\r\n') for fline in flines]
 
 
-    strategies = sorted(build_strategies(c))
+    #deactivating just for now
+    strategies = None
+    #strategies = sorted(build_strategies(c))
 
 
     if not c.runOnGrid:

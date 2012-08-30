@@ -601,7 +601,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     new_strat_list = []
     num_strat = 0
 
-    if c.derivatives[0]:
+    if 1 in c.runALFF:
         for strat in strat_list:
             preproc = create_alff(c.TR)
             preproc.inputs.hp_input.hp = c.highPassFreqALFF
@@ -812,7 +812,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     new_strat_list = []
     num_strat = 0
 
-    if c.derivatives[2]:
+    if 1 in c.runVMHC:
         for strat in strat_list:
 
             preproc = create_vmhc()
@@ -875,7 +875,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     new_strat_list = []
     num_strat = 0
 
-    if c.derivatives[3]:
+    if 1 in c.runReHo:
         for strat in strat_list:
 
             preproc = create_reho()
@@ -911,7 +911,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     num_strat = 0
 
 
-    if 1 in c.runRegisterFuncToMNI and c.derivatives[0]:
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
         for strat in strat_list:
 
             alff_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
@@ -989,7 +989,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     """
     new_strat_list = []
     num_strat = 0
-    if c.derivatives[0] and len(c.fwhm) > 0:
+    if (1 in c.runALFF) and len(c.fwhm) > 0:
         for strat in strat_list:
 
 
@@ -1096,7 +1096,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     num_strat = 0
 
 
-    if 1 in c.runRegisterFuncToMNI and c.derivatives[3]:
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runReHo):
         for strat in strat_list:
 
             reho_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
@@ -1136,7 +1136,7 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
     new_strat_list = []
     num_strat = 0
 
-    if c.derivatives[3] and len(c.fwhm) > 0:
+    if (1 in c.runReHo) and len(c.fwhm) > 0:
         for strat in strat_list:
 
 
