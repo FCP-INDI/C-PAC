@@ -7,7 +7,6 @@ from utils import get_img_nvols, \
                   get_operand_string, \
                   set_op_str, \
                   set_op1_str, \
-                  set_gauss, \
                   takemod
 
 
@@ -19,5 +18,4 @@ __all__ = ['create_alff', \
            'get_operand_string', \
            'set_op_str', \
            'set_op1_str', \
-           'set_gauss', \
            'takemod']
