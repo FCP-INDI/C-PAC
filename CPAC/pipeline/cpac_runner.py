@@ -117,7 +117,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID -seed ", c.seedFile, " -strategies ", strategies_file
+    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
 
     f.close()
 
@@ -154,7 +154,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -seed ", c.seedFile, " -strategies ", strategies_file
+    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
     f.close()
 
@@ -175,17 +175,16 @@ def run(config_file, subject_list_file):
 
     sublist = s.subject_list
 
-    flines = open(c.seedFile, 'r').readlines()
-    seed_list = [fline.rstrip('\r\n') for fline in flines]
 
-
-    strategies = sorted(build_strategies(c))
+    #deactivating just for now
+    strategies = None
+    #strategies = sorted(build_strategies(c))
 
 
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, seed_list, c, strategies)) for sub in sublist]
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies)) for sub in sublist]
 
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
