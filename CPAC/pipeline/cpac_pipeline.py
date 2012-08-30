@@ -6,6 +6,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
+from   nipype.pipeline.utils import format_dot
 
 from multiprocessing import Process
 import CPAC
@@ -1501,7 +1502,9 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
         strat_name = strat.get_name()
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
 #        nx.draw_graphviz(G)
-        nx.write_dot(G, os.path.join(d_name, 'strategy.dot'))
+        dotfilename = os.path.join(d_name, 'strategy.dot')
+        nx.write_dot(G, dotfilename)
+        format_dot(dotfilename,'png')
         print d_name, '*'
 #        s_file.write(strat.get_name()[-1])
 #        print strat.get_name(), s_file
@@ -1524,8 +1527,8 @@ def prep_workflow(sub_dict, seed_list, c, strategies):
 
         idx += 1
 
-    workflow.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+#    workflow.run(plugin='MultiProc',
+#                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
