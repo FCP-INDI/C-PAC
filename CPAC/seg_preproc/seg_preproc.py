@@ -33,7 +33,7 @@ def create_seg_preproc(wf_name ='seg_preproc'):
     Notes
     -----
 
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_ 
 
     Workflow Inputs: ::
  
@@ -398,8 +398,14 @@ def process_segment_map(wf_name):
         Workflow Object for process_segment_map Workflow
 
 
-    Workflow Inputs: ::
-   
+    Notes
+    -----
+
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_ 
+    
+
+    Workflow Inputs::
+    
         inputspec.brain : string (existing nifti file)
             Anatomical image(without skull)
     
@@ -415,7 +421,7 @@ def process_segment_map(wf_name):
         inputspec.probability_map : string (nifti file)
             Tissue Probability map obtained from fsl FAST
         
-    Workflow Outputs: ::
+    Workflow Outputs::
 
         outputspec.segment_mni2t1 : string (nifti file)
             outputs CSF prior template(in MNI space) registered to anatomical space
@@ -429,7 +435,7 @@ def process_segment_map(wf_name):
         outputspec.segment_mask : string (nifti file)
             outputs image after masking segment_combo with its tissue prior in t1 space
         
-
+        
     Order of commands:
  
     - Register tissue prior in MNI space to t1 space. 

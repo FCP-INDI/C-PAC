@@ -624,7 +624,7 @@ def gen_vertices_timeseries(rh_surface_file,
     rh_surface_file : string (mgz/mgh file)
         left hemisphere FreeSurfer surface file
     lh_surface_file : string (mgz/mgh file)
-        right hemispher FreeSurfer surface file
+        right hemisphere FreeSurfer surface file
         
     Returns
     -------
