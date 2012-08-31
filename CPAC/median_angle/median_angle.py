@@ -49,7 +49,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
             header=nii.get_header(), affine=nii.get_affine())
         img_whole_y.to_filename(fname)
 
-    nii = nb.load(os.path.join(realigned_file))
+    nii = nb.load(realigned_file)
     data = nii.get_data().astype(np.float64)
     print realigned_file, "subject data dimensions:", data.shape
 

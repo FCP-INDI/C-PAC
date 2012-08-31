@@ -10,7 +10,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
     realigned_file : string
         Path of a realigned nifti file.
     bandpass_freqs : tuple
-        Tuple containing the bandpass frequencies.
+        Tuple containing the bandpass frequencies. (LowCutoff, HighCutoff)
     sample_period : float, optional
         Length of sampling period in seconds.  If not specified,
         this value is read from the nifti file provided.
@@ -127,7 +127,8 @@ def calc_residuals(subject,
     residual_file : string
         Path of residual file in nifti format
     regressors_file : string
-        Path of matlab file of regressors used
+        Path of csv file of regressors used.  Filename corresponds to the name of each
+        regressor in each column.
         
     Notes
     -----
@@ -213,9 +214,16 @@ def calc_residuals(subject,
     print 'Regressors include', regressor_map.keys()
     
     X = np.zeros((data.shape[3], 1))
+    csv_filename = ''
     for rname, rval in regressor_map.items():
         X = np.hstack((X, rval.reshape(rval.shape[0],-1)))
+        csv_filename += '_' + rname
     X = X[:,1:]
+    
+    csv_filename = csv_filename[1:]
+    csv_filename += '.csv'
+    csv_filename = os.path.join(os.getcwd(), csv_filename)
+    np.savetxt(csv_filename, X, delimiter='\t')
     
     print 'Regressors dim', X.shape, 'starting regression'
     
@@ -230,11 +238,11 @@ def calc_residuals(subject,
     residual_file = os.path.join(os.getcwd(), 'residual.nii.gz')
     img.to_filename(residual_file)
     
+    #Easier to read for debugging purposes
     regressors_file = os.path.join(os.getcwd(), 'nuisance_regressors.mat')
-    
     scipy.io.savemat(regressors_file, regressor_map, oned_as='column')
     
-    return residual_file, regressors_file
+    return residual_file, csv_filename
 
 def create_nuisance(name='nuisance'):
     """
@@ -274,8 +282,11 @@ def create_nuisance(name='nuisance'):
     Workflow Outputs::
 
         outputspec.subject : string (nifti file)
+            Path of residual file in nifti format
         outputspec.regressors : string (mat file)
-    
+            Path of csv file of regressors used.  Filename corresponds to the name of each
+            regressor in each column.
+            
     Nuisance Procedure:
     
     1. Compute nuisance regressors based on input selections.
