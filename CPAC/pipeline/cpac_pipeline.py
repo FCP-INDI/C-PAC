@@ -22,7 +22,7 @@ from CPAC.generate_motion_statistics import motion_power_statistics
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import create_surface_registration, get_voxel_timeseries,\
                             get_roi_timeseries, get_vertices_timeseries
-from CPAC.network_centrality import create_resting_state_graphs
+from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
@@ -1678,9 +1678,11 @@ def prep_workflow(sub_dict, c, strategies):
             network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
             network_centrality.inputs.centrality_options.method_options = c.centralityMethodOptions
             
+            
+            
             try:
                 
-                node, out_file = strat.get_leaf_properties()
+                node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
                 #resample the template(roi/mask) to input functional file
                 workflow.connect(node, out_file,
@@ -1692,7 +1694,39 @@ def prep_workflow(sub_dict, c, strategies):
                                  resample_template_to_functional, 'in_file')
                 workflow.connect(resample_template_to_functional, 'out_file',
                                  network_centrality, 'inputspec.template')
-                          
+        
+                #if smoothing is required
+                if len(c.fwhm) > 0 :
+                    
+                    z_score = get_zscore('centrality_zscore_%d'%num_strat)
+                    
+                    smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='smooth_centrality_%d'% num_strat, 
+                                       iterfield=['in_file'])
+
+                    
+                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
+                    
+                    #calculate zscores
+                    workflow.connect(node, out_file, 
+                                     z_score, 'inputspec.mask_file')
+                    workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+                                     z_score, 'inputspec.input_file')
+                    
+                    #connecting zscores to smoothing
+                    workflow.connect(node, out_file,
+                                     smoothing, 'operand_files')
+                    workflow.connect(zscore, 'outputspec.z_score_img',
+                                    smoothing, 'in_file')
+                    workflow.connect(inputnode_fwhm,('fwhm', set_gauss),
+                                     smoothing, 'op_string')
+
+                    
+                    strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
+                                                'centrality_outputs_zscore' :   (zscore, 'outputspec.z_score_img')})
+                    
+                    
+                
             except:
                 print 'Invalid Connection: Network Centrality Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -1714,6 +1748,7 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list  
+    
     
 
     ######################end of workflow ###########
