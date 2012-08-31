@@ -6,6 +6,8 @@ import re
 import os
 import sys
 
+from CPAC.utils.datasource import create_gpa_dataflow
+
 def split_folders(path):
     folders = []
     
@@ -93,40 +95,68 @@ def prep_basc_workflow(c, subject_infos):
     
     return wf
 
-def prep_group_analysis_workflow(c, subject_infos):
+def prep_group_analysis_workflow(c, resource, subject_infos):
     print 'Preparing Group Analysis workflow'
     print 'subjects', subject_infos
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    print 'p_ids', p_id
-    print 's_ids', s_ids 
-    print 'scan_ids', scan_ids
-    print 's_paths', s_paths
     
-    def read_model_file(file):
-            
-        dict1 ={}
-        f = open(file, 'r')
-        for line in open(file, 'r'):
-            if line.strip() !='':
-                if 'NumWaves' in line: 
-                    dict1['/NumWaves']= line.split()[1]
-                elif 'NumPoints' in line:
-                    dict1['/NumPoints'] = line.split()[1]
-                elif 'PPheights' in line:
-                    dict1['/PPHeights'] = line.split()[1:]
-                elif 'Matrix' in line:
-                    dict1['/Matrix'] = []
-                else:
-                    dict1.get('/Matrix').append(line)
-        return dict1
-
+    print scan_ids
+    if mixed_scan_effect == True:
+        wf = pe.Workflow(name = 'group_analysis_%s'%resource)
+    else:
+        wf = pe.Workflow(name = 'group_analysis_%s_%s'%resource%scan_ids[0]) 
     
-
+    wf.base_dir = c.workingDirectory
+    
+    
+    model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r')]
+    
+    if not model_list:
+        raise Exception("mode_list is empty. Please provide" \
+                         "a model file with full paths of the" \
+                         "folder containing models for group analysis")
+    
+    from collections import defaultdict
+    model_map = defaultdict(list)
+    
+    for model in model_list:
+        if os.path.exists(model):
+            files = glob.glob(os.path.join(model, '*'))
+            model_map[os.path.basename(model)] = files
+        else:
+            print "Invalid path %s"%model
+            raise Exception ("Path doesn't exist")
+    
+    gp_flow = create_gpa_dataflow(model_map, c.ftest)
+    
+    from CPAC.group_analysis import create_group_analysis
+    
+    gpa_wf = create_group_analysis(c.ftest)
+    gpa_wf.inputs.inputspec.zmap_files = s_paths
+    
+    wf.connect(gp_flow, 'outputspec.mat',
+               gpa_wf, 'inputspec.mat_file')
+    wf.connect(gp_flow, 'outputspec.con',
+               gpa_wf, 'inputspec.con_file')
+    wf.connect(gp_flow, 'outputspec.grp',
+                gpa_wf, 'inputspec.grp_file')
+        
+    if c.fTest:
+        workflow.connect(gp_flow, 'outputspec.fts',
+                         gpa_wf, 'inputspec.fts_file') 
+    
+    ds = pe.Node(nio.DataSink(), name='gpa_sink')
+    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analyis_results')
+    ds.inputs.base_directory = out_dir
+    ds.inputs.container = resource
+    
+    return wf
 
     
 if __name__ == "__main__":
     import argparse
+    import re
     
     parser = argparse.ArgumentParser()
     
@@ -155,6 +185,7 @@ if __name__ == "__main__":
     
     from collections import defaultdict
     analysis_map = defaultdict(list)
+    analysis_map_gp = defaultdict(list)
     
     for subject_path in subject_paths:
         #Remove the base bath offset
@@ -168,14 +199,22 @@ if __name__ == "__main__":
         
         key = subject_path.replace(subject_id, '*')
         analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
-    
+        
+        # separate map for group analysis
+        if mixed_scan_effect == True:
+            key = key.replace(scan_id, '*')
+            
+        analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+            
     w_list = []
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
             w_list.append(prep_basc_workflow(c, analysis_map[(resource, glob_key)]))
 #            w_list.append(prep_cwas_workflow(c, analysis_map[(resource, glob_key)]))
-        elif resource == 'alff':
-            w_list.append(prep_group_analysis_workflow(c, analysis_map[(resource, glob_key)]))
+    
+    for resource, glob_key in analysis_map_gp.keys():
+        if re.match(r"^alff",resource):
+            w_list.append(prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)]))
     
     for w in w_list:
         w.run()
