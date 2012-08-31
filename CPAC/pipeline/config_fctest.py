@@ -962,54 +962,12 @@ modelsDirectory = '/home/data/Projects/abidehbm/group_models/'
 
 """
 
-matTemplateList = ['model_name']
-
-conTemplateList = ['model_name']
-
-ftsTemplateList = ['model_name']
-
-grpTemplateList = ['model_name']
-
-
-
-mat = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.mat'
-
-con = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.con'
-
-fts = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.fts'
-
-grp = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.grp'
-
-
-
-"""
-
-    	Derivative Template
-
-    	
-
-    	The first argument is label which is actually the strategy name. The pipeline
-
-    	automatically creates the lable-linkage file in the sym_links folder.
-
-    	The second argument is derivative name. This will be fetched from 
-
-    	the derivative list defined above
-
-"""
-
-
-
-dervTemplate = sinkDirectory+ '/sym_links/%s/%s/*/%s.nii.gz'
-
-labelFile = sinkDirectory + '/sym_links/label_linkage.txt'
 
 subList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
+derivativeList = ['alff_Z_standard', 'falff_Z_standard']
 
-
-dervTemplateList = ['label', 'derivative']
-
+modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
 
 """

@@ -140,7 +140,7 @@ def get_centrality_matrix(threshold_matrix, correlation_matrix,
                 eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
                 return eigen_matrix
         except:
-            raise Exception("Exception in calculating eigen vector centrality")
+            raise Exception("Exception in calculating eigenvector centrality")
         
         if weight_options[0]:
             

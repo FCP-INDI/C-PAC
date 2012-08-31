@@ -122,7 +122,7 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
                                 mandatory_inputs=True),
                         name='inputspec')
         
-        inputnode.iterables = [('model', model_dict.key())]
+        inputnode.iterables = [('model', model_dict.keys())]
         
         outputnode = pe.Node(util.Function(input_names=['model',
                                                         'model_dict', 
@@ -161,6 +161,6 @@ def get_model(model, model_dict, ftest):
         print "All the model files are not present. Please check the model folder"
         raise
     
-    return fts_file, con_file, grp_file, con_file
+    return fts_file, con_file, grp_file, mat_file
 
     

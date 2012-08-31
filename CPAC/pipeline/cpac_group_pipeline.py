@@ -5,6 +5,7 @@ import nipype.interfaces.io as nio
 import re
 import os
 import sys
+import glob
 
 from CPAC.utils.datasource import create_gpa_dataflow
 
@@ -101,15 +102,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     
-    print scan_ids
-    if mixed_scan_effect == True:
+    if c.mixed_scan_analysis == True:
         wf = pe.Workflow(name = 'group_analysis_%s'%resource)
     else:
         wf = pe.Workflow(name = 'group_analysis_%s_%s'%resource%scan_ids[0]) 
     
     wf.base_dir = c.workingDirectory
     
-    
+    #extract model files
     model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r')]
     
     if not model_list:
@@ -120,14 +120,15 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     from collections import defaultdict
     model_map = defaultdict(list)
     
+    #create a map of model as key and its sub files as values
     for model in model_list:
         if os.path.exists(model):
             files = glob.glob(os.path.join(model, '*'))
             model_map[os.path.basename(model)] = files
         else:
-            print "Invalid path %s"%model
-            raise Exception ("Path doesn't exist")
+            raise Exception ("Path to the model %s doesn't exist"%model)
     
+    print model_map
     gp_flow = create_gpa_dataflow(model_map, c.ftest)
     
     from CPAC.group_analysis import create_group_analysis
@@ -201,7 +202,7 @@ if __name__ == "__main__":
         analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
         
         # separate map for group analysis
-        if mixed_scan_effect == True:
+        if c.mixed_scan_analysis == True:
             key = key.replace(scan_id, '*')
             
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
@@ -213,8 +214,10 @@ if __name__ == "__main__":
 #            w_list.append(prep_cwas_workflow(c, analysis_map[(resource, glob_key)]))
     
     for resource, glob_key in analysis_map_gp.keys():
-        if re.match(r"^alff",resource):
+        if resource in c.derivative_list:
             w_list.append(prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)]))
+        #if re.match(r"^falff", resource):
+            
     
     for w in w_list:
         w.run()

@@ -5,7 +5,7 @@ from CPAC.network_centrality import *
 
 def create_resting_state_graphs(wf_name = 'resting_state_graph'):
     """
-    Workflow to calculate degree and eigen vector centrality
+    Workflow to calculate degree and eigenvector centrality
     measures for the resting state data.
     
     Parameters
@@ -41,7 +41,7 @@ def create_resting_state_graphs(wf_name = 'resting_state_graph'):
             list of two booleans for binarize and weighted options respectively
         
         centrality_options.method_options : string (list of boolean)
-            list of two booleans for Degree and Eigen vector centrality method options respectively
+            list of two booleans for Degree and Eigenvector centrality method options respectively
         
     Workflow Outputs::
     
