@@ -191,7 +191,7 @@ def create_func_preproc():
     >>> import func_preproc
     >>> preproc = create_func_preproc()
     >>> preproc.inputs.inputspec.func='sub1/func/rest.nii.gz'
-    >>> preporc.run() #doctest: +SKIP
+    >>> preproc.run() #doctest: +SKIP
 
     """
 

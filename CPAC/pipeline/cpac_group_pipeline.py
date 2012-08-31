@@ -97,6 +97,34 @@ def prep_group_analysis_workflow(c, subject_infos):
     print 'Preparing Group Analysis workflow'
     print 'subjects', subject_infos
     
+    p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
+    print 'p_ids', p_id
+    print 's_ids', s_ids 
+    print 'scan_ids', scan_ids
+    print 's_paths', s_paths
+    
+    def read_model_file(file):
+            
+        dict1 ={}
+        f = open(file, 'r')
+        for line in open(file, 'r'):
+            if line.strip() !='':
+                if 'NumWaves' in line: 
+                    dict1['/NumWaves']= line.split()[1]
+                elif 'NumPoints' in line:
+                    dict1['/NumPoints'] = line.split()[1]
+                elif 'PPheights' in line:
+                    dict1['/PPHeights'] = line.split()[1:]
+                elif 'Matrix' in line:
+                    dict1['/Matrix'] = []
+                else:
+                    dict1.get('/Matrix').append(line)
+        return dict1
+
+    
+
+
+    
 if __name__ == "__main__":
     import argparse
     
