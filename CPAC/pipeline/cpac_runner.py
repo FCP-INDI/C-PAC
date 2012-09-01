@@ -134,7 +134,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
     shell = commands.getoutput('echo $SHELL')
 
@@ -152,7 +152,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
+    print >>f, "python cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
 
     f.close()
 
@@ -173,7 +173,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
     temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
     shell = commands.getoutput('echo $SHELL')
@@ -189,7 +189,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
+    print >>f, "python cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
     f.close()
 
@@ -208,7 +208,7 @@ def run(config_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
 
     strategies = sorted(build_strategies(c))

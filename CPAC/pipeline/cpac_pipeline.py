@@ -1863,7 +1863,7 @@ if __name__ == "__main__":
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
     sub_dict = sublist[int(args.indx) - 1]
 
