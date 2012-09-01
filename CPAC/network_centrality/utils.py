@@ -136,7 +136,7 @@ def get_centrality_matrix(threshold_matrix, correlation_matrix,
                 eigenvector= v[index]
                 """
                 eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM')
-                print "eigenValue : ", eigenValue
+                print "eigenValue : ", eigenValue, ' eigenVector: ', eigenVector
                 eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
                 return eigen_matrix
         except:

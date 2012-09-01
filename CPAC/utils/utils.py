@@ -372,7 +372,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         'seg_partial_volume_map',
         'seg_partial_volume_files']
 
-        if fname.split('.', 1)[0] in dont_change_fname:
+        if file_name in dont_change_fname:
 
             cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
             print cmd
