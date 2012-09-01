@@ -73,7 +73,7 @@ files_folders_wf = {
     'centrality_outputs_smoothed':'centrality',
     'centrality_outputs_zscore':'centrality',
     'centrality_outputs':'centrality',
-    'centrality_graphs':'centrality'
+    'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
     'seg_partial_volume_map': 'anat',
@@ -365,6 +365,8 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         'centrality_outputs_zscore',
         'centrality_outputs',
         'centrality_graphs'
+        'voxel_timeseries',
+        'roi_timeseries',
         'seg_probability_maps',
         'seg_mixeltype',
         'seg_partial_volume_map',

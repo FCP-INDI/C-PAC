@@ -165,7 +165,6 @@ crashLogDirectory = '/home/bcheung/p_integration_test'
 
 sinkDirectory = '/home/bcheung/p_integration_sink'
 
-dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
 
 
@@ -223,10 +222,6 @@ dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
 
 
-## subjectDirectory = '/home2/data/Incoming/fcon_test/
-## subjectList = None   
-## the above two is not usable now...
-exclusionSubjectList = None
 
 
 
@@ -334,9 +329,6 @@ exclusionSubjectList = None
 
 
 
-anatLogFile = 'log.txt' #Don't need this, for IPN use only. -Yang
-
-anatLogFilePath = '%s/*/*/%s'
 
 
 
@@ -492,7 +484,7 @@ fwhm = [4]
 #reho cluster size values can be 27 , 19 and 7
 clusterSize = 27
 
-prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
+prior_path = '/home/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
@@ -535,7 +527,6 @@ grayMatterThreshold = [0.2]
 
 """
 
-scrubData = [False]
 
 scrubbingThreshold = [0.2]
 

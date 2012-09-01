@@ -1716,14 +1716,14 @@ def prep_workflow(sub_dict, c, strategies):
                     #connecting zscores to smoothing
                     workflow.connect(node, out_file,
                                      smoothing, 'operand_files')
-                    workflow.connect(zscore, 'outputspec.z_score_img',
+                    workflow.connect(z_score, 'outputspec.z_score_img',
                                     smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm,('fwhm', set_gauss),
                                      smoothing, 'op_string')
 
                     
                     strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
-                                                'centrality_outputs_zscore' :   (zscore, 'outputspec.z_score_img')})
+                                                'centrality_outputs_zscore' :   (z_score, 'outputspec.z_score_img')})
                     
                     
                 
