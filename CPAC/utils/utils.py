@@ -8,10 +8,6 @@ files_folders_wf = {
     'anatomical_gm_mask': 'anat',
     'anatomical_csf_mask': 'anat',
     'anatomical_wm_mask': 'anat',
-    'seg_probability_maps': 'anat',
-    'seg_mixeltype': 'anat',
-    'seg_partial_volume_map': 'anat',
-    'seg_partial_volume_files': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
     'movement_parameters': 'parameters',
@@ -71,8 +67,17 @@ files_folders_wf = {
     'sca_roi_Z_smooth':'sca_roi',
     'sca_roi_Z_to_standard_smooth':'sca_roi',
     'bbregister_registration': 'surface_registration',
+    'left_hemisphere_surface': 'surface_registration',
+    'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
-    'centrality_outputs':'centrality'
+    'centrality_outputs_smoothed':'centrality',
+    'centrality_outputs_zscore':'centrality',
+    'centrality_outputs':'centrality',
+    'centrality_graphs':'centrality'
+    'seg_probability_maps': 'anat',
+    'seg_mixeltype': 'anat',
+    'seg_partial_volume_map': 'anat',
+    'seg_partial_volume_files': 'anat'
 }
 
 def safe_shape(*vol_data):
@@ -355,7 +360,17 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         ext = fname.split('.', 1)[1]
         ext = '.' + (ext)
 
-        if fname.startswith('segment_') and not 'warp' in fname and not 'maths' in fname:
+        dont_change_fname = ['vertices_timeseries',
+        'centrality_outputs_smoothed',
+        'centrality_outputs_zscore',
+        'centrality_outputs',
+        'centrality_graphs'
+        'seg_probability_maps',
+        'seg_mixeltype',
+        'seg_partial_volume_map',
+        'seg_partial_volume_files']
+
+        if fname.split('.', 1)[0] in dont_change_fname:
 
             cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
             print cmd
