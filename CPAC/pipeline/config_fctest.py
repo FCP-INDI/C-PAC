@@ -675,8 +675,6 @@ targetAngleDeg = [90]
 
 """
 
-nuisanceBandpass = True
-
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """

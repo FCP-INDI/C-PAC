@@ -26,6 +26,7 @@ from CPAC.network_centrality import create_resting_state_graphs
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
+from CPAC.utils.utils import prepare_symbolic_links
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -72,7 +73,6 @@ class strategy:
             self.resource_pool[key] = value
 
 def prep_workflow(sub_dict, c, strategies):
-    print "running for subject ", sub_dict
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
@@ -882,7 +882,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             strat.update_resource_pool({'vmhc_raw_score':(vmhc, 'outputspec.VMHC_FWHM_img')})
             strat.update_resource_pool({'vmhc_z_score':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
-            strat.update_resource_pool({'stat_map_vmhc_z_score':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
+            strat.update_resource_pool({'vmhc_z_score_stat_map':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
             strat.append_name('vmhc')
             num_strat += 1
     strat_list += new_strat_list
@@ -1731,17 +1731,31 @@ def prep_workflow(sub_dict, c, strategies):
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
             ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
+            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
+
+
+            link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
+                                    'subject_id', 'pipeline_id'],
+                                    output_names=[],
+                                    function=prepare_symbolic_links),
+                                    name='link_%d' % sink_idx, iterfield=['in_file'])
+
+            link_node.inputs.strategies = strategies
+            link_node.inputs.subject_id = subject_id
+            link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+
+            workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
-        
+
         d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
-        
+
 #        s_file = open(os.path.join(d_name, 'strategy.txt'), 'w')
-        
+
         G = nx.DiGraph()
         strat_name = strat.get_name()
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
@@ -1753,23 +1767,6 @@ def prep_workflow(sub_dict, c, strategies):
 #        s_file.write(strat.get_name()[-1])
 #        print strat.get_name(), s_file
         num_strat += 1
-
-    idx = 0
-    for strat in strat_list:
-
-        r_pool = strat.get_resource_pool()
-
-        print '-----------------------------------------'
-
-        for key in r_pool.keys():
-
-
-            node, out_file = r_pool[key]
-
-            print idx, ' ', key, ' ', node.name, ' ', out_file
-
-
-        idx += 1
 
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
@@ -1835,4 +1832,4 @@ if __name__ == "__main__":
 
     sub_dict = sublist[int(args.indx) - 1]
 
-    prep_workflow(sub_dict, c, "pickle.load(open(args.strategies, 'r')")
+    prep_workflow(sub_dict, c, pickle.load(open(args.strategies, 'r')))
