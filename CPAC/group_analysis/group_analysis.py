@@ -2,7 +2,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-from   CPAC.easy_thresh import easy_thresh
+from   easy_thresh import easy_thresh
 
 
 def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
@@ -160,13 +160,13 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     High Level Workflow Graph:
     
     .. image:: ../images/group_analysis.dot.png
-       :width: 1000
+       :width: 800
     
     
     Detailed Workflow Graph:
     
     .. image:: ../images/group_analysis_detailed.dot.png
-       :width: 1000
+       :width: 800
 
     Examples
     --------

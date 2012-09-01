@@ -390,3 +390,25 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
         relevant_strategies = get_strategies_for_path(path, strategies)
 
         create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id)
+
+
+def modify_model_files(model_files, sublist):
+
+    def read_model_file(file):
+
+        dict1 ={}
+        f = open(file, 'r')
+        for line in open(file, 'r'):
+            if line.strip() !='':
+                if 'NumWaves' in line: 
+                    dict1['/NumWaves']= line.split()[1]
+                elif 'NumPoints' in line:
+                    dict1['/NumPoints'] = line.split()[1]
+                elif 'PPheights' in line:
+                    dict1['/PPHeights'] = line.split()[1:]
+                elif 'Matrix' in line:
+                    dict1['/Matrix'] = []
+                else:
+                    dict1.get('/Matrix').append(line)
+        return dict1
+

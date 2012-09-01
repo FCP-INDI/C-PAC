@@ -159,13 +159,13 @@ parallelEnvironment = 'mpi'
 """
 
 
-workingDirectory = '/home/bcheung/p_integration_test'
+workingDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_working_dir2'
 
-crashLogDirectory = '/home/bcheung/p_integration_test'
+crashLogDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_working_dir2'
 
-sinkDirectory = '/home/bcheung/p_integration_sink'
+sinkDirectory = '/Users/ranjeet.khanuja/Desktop/pipeline_datasink2'
 
-dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
+dataPath = '/home/ssikka/nki_nyu_pipeline/testing/data/'
 
 
 
@@ -467,18 +467,18 @@ runFunctionalPreprocessing = [1]
 runAnatomicalToFunctionalRegistration = [1]
 
 runNuisance = [1]
-runMedianAngleCorrection = [0]
+runMedianAngleCorrection = [1,0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
 runALFF = [1]
-runReHo = [1]
+runReHo = [0]
 runVMHC = [1]
 runSCA = [1]
 runGenerateMotionStatistics = [1]
 runScrubbing = [1]
 runVoxelTimeseries = [1]
-runROITimeseries = [0]
+runROITimeseries = [1]
 
 runSurfaceRegistraion = [0]
 runVerticesTimeSeries = [0]
@@ -492,19 +492,19 @@ fwhm = [4]
 #reho cluster size values can be 27 , 19 and 7
 clusterSize = 27
 
-prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
+prior_path = '/Users/ranjeet.khanuja/Documents/workspace/c-pac_d/tissuepriors/2mm/'
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
-standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
-standard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
-standardBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
-configFile = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
-brainSymmetric = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
-symmStandard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
-twommBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
-configFileTwomm = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_2mm.cnf')
-identityMatrix = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/ident.mat')
+standardResolutionBrain = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
+standard = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
+standardBrainMaskDiluted = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+configFile = os.path.join('/usr/local/fsl/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
+brainSymmetric = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
+symmStandard = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
+twommBrainMaskDiluted = os.path.join('/usr/local/fsl/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
+configFileTwomm = os.path.join('/usr/local/fsl/etc/flirtsch/T1_2_MNI152_2mm.cnf')
+identityMatrix = os.path.join('/usr/local/fsl/etc/flirtsch/ident.mat')
 
 
 """
@@ -675,6 +675,8 @@ targetAngleDeg = [90]
 
 """
 
+nuisanceBandpass = True
+
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
@@ -727,6 +729,7 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 
 #derivatives = [f/ALFF, SCA, VMHC, ReHo, tsE, VerticesE, GA] 
 
+derivatives = [True, False, False, False, False, False, False]
 
 
 
@@ -784,6 +787,9 @@ lowPassFreqALFF = [0.1]
 
 
 
+seedDirPath = '/Users/ranjeet.khanuja/Documents/workspace/multisite/NKI_NYU_Nipype/seeds' # yang
+
+correlationSpace = 'mni' # what are other options?
 
 
 
@@ -835,7 +841,7 @@ lowPassFreqALFF = [0.1]
 
 roiTSOutputs = [True, True]
 
-roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
+roiDirectoryPath = '/Users/ranjeet.khanuja/Desktop/DesktopAug30/data/masks'
 
 # Output type: .csv, numPy
 
@@ -960,12 +966,54 @@ modelsDirectory = '/home/data/Projects/abidehbm/group_models/'
 
 """
 
+matTemplateList = ['model_name']
+
+conTemplateList = ['model_name']
+
+ftsTemplateList = ['model_name']
+
+grpTemplateList = ['model_name']
+
+
+
+mat = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.mat'
+
+con = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.con'
+
+fts = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.fts'
+
+grp = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.grp'
+
+
+
+"""
+
+    	Derivative Template
+
+    	
+
+    	The first argument is label which is actually the strategy name. The pipeline
+
+    	automatically creates the lable-linkage file in the sym_links folder.
+
+    	The second argument is derivative name. This will be fetched from 
+
+    	the derivative list defined above
+
+"""
+
+
+
+dervTemplate = sinkDirectory+ '/sym_links/%s/%s/*/%s.nii.gz'
+
+labelFile = sinkDirectory + '/sym_links/label_linkage.txt'
 
 subList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
-derivativeList = ['alff_Z_standard', 'falff_Z_standard']
 
-modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
+
+dervTemplateList = ['label', 'derivative']
+
 
 
 """

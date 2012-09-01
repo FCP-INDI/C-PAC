@@ -106,3 +106,61 @@ def create_roi_dataflow(dirPath, wf_name = 'datasource_roi'):
     datasource.iterables = ('roi', unitlist)
 
     return datasource
+
+def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
+        """
+        Dataflow to iterate over each model and 
+        pick the model files for group analysis
+        """
+        import nipype.pipeline.engine as pe
+        import nipype.interfaces.utility as util
+
+        wf = pe.Workflow(name=wf_name) 
+        
+        inputnode = pe.Node(util.IdentityInterface(
+                                fields=['model'],
+                                mandatory_inputs=True),
+                        name='inputspec')
+        
+        inputnode.iterables = [('model', model_dict.keys())]
+        
+        outputnode = pe.Node(util.Function(input_names=['model',
+                                                        'model_dict', 
+                                                        'ftest'],
+                                           output_names=['fts', 
+                                                         'con', 
+                                                         'grp', 
+                                                         'mat'],
+                                           function = get_model),
+                             name  = 'outputspec')
+        outputnode.inputs.model_dict = model_dict
+        outputnode.inputs.ftest = ftest
+        
+        wf.connect(inputnode, 'model', 
+                   outputnode, 'model')
+        
+        return wf
+    
+    
+    
+def get_model(model, model_dict, ftest):
+    
+    try:
+        files = model_dict[model]
+        
+        if ftest:
+            fts_file = [file for file in files if file.endswith('.fts')][0]
+        else:
+            fts_file =''
+    
+        mat_file = [file for file in files if file.endswith('.mat')][0]
+        grp_file = [file for file in files if file.endswith('.grp')][0]
+        con_file = [file for file in files if file.endswith('.con')][0]
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder"
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file
+
+    

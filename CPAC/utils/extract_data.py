@@ -51,8 +51,8 @@ def extract_data(c):
     def checkTemplate(template):
     
         if '%s' not in template:
-            raise Exception("Please provide '%s' in the template \
-                            where subjects are present")
+            raise Exception("Please provide '%s' in the template" \
+                            "where subjects are present")
     
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
@@ -90,9 +90,9 @@ def extract_data(c):
     if len(anat_base) != len(func_base) :
         print "Some sites are missing, Please check your template" \
               ,anat_base,"!=", func_base 
-        raise Exception (" Base length Unequal. Some sites are missing.\
-                           CPAC_extract_data doesn't support this.Please \
-                           Provide your own subjects_list file")
+        raise Exception (" Base length Unequal. Some sites are missing."\
+                           "extract_data doesn't script support this.Please" \
+                           "Provide your own subjects_list file")
     
     #calculate the length of relative paths(path after subject directory)
     func_relative_len = len(func_relative.split('/'))
@@ -114,16 +114,16 @@ def extract_data(c):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            raise Exception("CPAC_extraxt_data currently doesn't support this directory structure.\
-                             Please provide the subjects_list file to run CPAC.\
-                             For more information refer to manual")    
+            raise Exception("extract_data script currently doesn't support this directory structure."\
+                             "Please provide the subjects_list file to run CPAC."\
+                             "For more information refer to manual")    
             
         return session_present, session_path, relative_path
     
     if func_relative_len!= anat_relative_len:
-        raise Exception(" CPAC_extract_data currently doesn't\
-                          support different relative paths for\
-                          Anatomical and functional files")
+        raise Exception(" extract_data script currently doesn't"\
+                          "support different relative paths for"\
+                          "Anatomical and functional files")
     
     func_session_present, func_session_path, func_relative = \
         check_for_sessions(func_relative, func_relative_len)
@@ -242,7 +242,7 @@ def extract_data(c):
                 
         else:
             print "Sessions not present"
-            session_id = func_session_path
+            session_id = ''
             print_to_file(sub,session_id)
             fetch_path(index, sub, sub)
             print >> f, "},"
@@ -274,7 +274,7 @@ def extract_data(c):
 def main():
 
     parser = argparse.ArgumentParser(description="example: \
-                        run CPAC_extract_data.py -c data_config.py")
+                        run extract_data.py -c data_config.py")
     parser.add_argument('-c', '--data_config',
                         dest='data_config',
                         required=True,

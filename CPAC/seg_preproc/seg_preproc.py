@@ -410,30 +410,30 @@ def process_segment_map(wf_name):
             Anatomical image(without skull)
     
         inputspec.standard2highres_mat : string (existing affine transformation .mat file)
-            File for transformation from mni space to anatomical space
+            path to transformation matrix from mni space to anatomical space
     
         inputspec.tissue_prior : string (existing nifti file)
-            FSL Standard Tissue prior image 
+            path to FSL Standard Tissue prior image 
             
         inputspec.threshold : string (float)
-            Threshold of Segmentation Probaility Maps
+            threshold of Segmentation Probaility Maps
             
         inputspec.probability_map : string (nifti file)
-            Tissue Probability map obtained from fsl FAST
+            tissue Probability map obtained from fsl FAST
         
     Workflow Outputs::
 
         outputspec.segment_mni2t1 : string (nifti file)
-            outputs CSF prior template(in MNI space) registered to anatomical space
+            path to output CSF prior template(in MNI space) registered to anatomical space
     
         outputspec.segment_combo : string (nifti file)
-            outputs Image containing overlap between csf probability map and segment_mni2t1
+            path to output image containing overlap between csf probability map and segment_mni2t1
     
         outputspec.segment_bin : string (nifti file)
-            outputs image after Thresholding and binarizing segment_combo
+            path to output image after Thresholding and binarizing segment_combo
     
         outputspec.segment_mask : string (nifti file)
-            outputs image after masking segment_combo with its tissue prior in t1 space
+            path to output image after masking segment_combo with its tissue prior in t1 space
         
         
     Order of commands:
