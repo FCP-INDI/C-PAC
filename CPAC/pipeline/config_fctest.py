@@ -463,19 +463,24 @@ runMedianAngleCorrection = [0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
-runALFF = [1]
-runReHo = [1]
-runVMHC = [1]
-runSCA = [1]
 runGenerateMotionStatistics = [1]
 runScrubbing = [1]
 runVoxelTimeseries = [1]
 runROITimeseries = [0]
 
+#options are [1] or [0] only
+runALFF = [1]
+runReHo = [1]
+runVMHC = [1]
+runSCA = [1]
+
 runSurfaceRegistraion = [0]
 runVerticesTimeSeries = [0]
 
 runNetworkCentrality =[1]
+runGroupAnalysis = [1]
+runBASC = [1]
+runCWAS = [1]
 
 standardResolution = '3mm'
 

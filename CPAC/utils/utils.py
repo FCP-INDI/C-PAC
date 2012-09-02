@@ -304,6 +304,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('motion0.', '')
         strategy_identifier = strategy_identifier.replace('quadratic0.', '')
         strategy_identifier = strategy_identifier.replace('gm0.', '')
+        strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
 
 
