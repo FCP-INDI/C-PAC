@@ -200,21 +200,52 @@ if __name__ == "__main__":
 
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
-            if 1 in c.runBASC and not c.runOnGrid:
-                from CPAC.cpac_basc_pipeline import prep_basc_workflow
-                prep_basc_workflow(c, analysis_map[(resource, glob_key)])
+            if 1 in c.runBASC:
 
-            if 1 in c.runCWAS and not c.runOnGrid:
-                from CPAC.cpac_cwas_pipeline import prep_cwas_workflow
-                prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
+                if not c.runOnGrid:
+                    from CPAC.cpac_basc_pipeline import prep_basc_workflow
+                    prep_basc_workflow(c, analysis_map[(resource, glob_key)])
+                else:
+                     if 'sge' in c.resourceManager.lower():
+
+                        run_sge_jobs(c, analysis_map[(resource, glob_key)])
+
+                    elif 'pbs' in c.resourceManager.lower(): 
+                        run_pbs_jobs(c, analysis_map[(resource, glob_key)])
+
+
+            if 1 in c.runCWAS:
+
+                if not c.runOnGrid:
+
+                    from CPAC.cpac_cwas_pipeline import prep_cwas_workflow
+                    prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
+
+                else:
+                     if 'sge' in c.resourceManager.lower():
+
+                        run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
+
+                    elif 'pbs' in c.resourceManager.lower():
+                        run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
+
 
 
     for resource, glob_key in analysis_map_gp.keys():
         if resource in c.derivative_list:
 
-            if 1 in c.runGroupAnalysis and not c.runOnGrid:
-                from CPAC.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
-        #if re.match(r"^falff", resource):
+            if 1 in c.runGroupAnalysis:
 
+                if not c.runOnGrid:
+
+                    from CPAC.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+                    prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
+
+                else:
+                     if 'sge' in c.resourceManager.lower():
+
+                        run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
+
+                    elif 'pbs' in c.resourceManager.lower():
+                        run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
 
