@@ -79,7 +79,7 @@ def create_mask_dataflow(dirPath, wf_name = 'datasource_mask'):
                          name = wf_name)
     datasource.inputs.base_directory = dirPath
     datasource.inputs.template = '*'
-    datasource.inputs.field_template = dict(out_file='%s.nii.gz')
+    datasource.inputs.field_template = dict(out_file='%s.nii*')
     datasource.inputs.template_args = dict(out_file=[['mask']])
     datasource.iterables = ('mask', masklist)
 
@@ -101,7 +101,7 @@ def create_roi_dataflow(dirPath, wf_name = 'datasource_roi'):
                          name = wf_name)
     datasource.inputs.base_directory = dirPath
     datasource.inputs.template = '*'
-    datasource.inputs.field_template = dict(out_file='%s.nii.gz')
+    datasource.inputs.field_template = dict(out_file='%s.nii*')
     datasource.inputs.template_args = dict(out_file=[['roi']])
     datasource.iterables = ('roi', unitlist)
 

@@ -2,7 +2,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-from   easy_thresh import easy_thresh
+from CPAC.easy_thresh import easy_thresh
 
 
 def create_group_analysis(ftest=False, wf_name='groupAnalysis'):

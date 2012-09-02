@@ -33,13 +33,13 @@ def get_zscore(wf_name = 'z_score'):
     High Level Workflow Graph:
     
     .. image:: ../images/zscore.dot.png
-       :width: 800
+       :width: 500
     
     
     Detailed Workflow Graph:
     
     .. image:: ../images/zscore_detailed.dot.png
-       :width: 800
+       :width: 500
     
     Example
     -------

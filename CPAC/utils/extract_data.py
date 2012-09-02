@@ -264,11 +264,81 @@ def extract_data(c):
     
         print >> f, "]"
         
-        print "Extraction Complete...Subjects_list is in CPAC_subject_list.py"
+        name = os.path.join(os.getcwd(), 'CPAC_subject_list.py')
+        print "Extraction Complete...Input Subjects_list for CPAC - %s"%name
     except Exception:
         raise
     finally:
         f.close()
+
+def generate_suplimentary_files():
+    
+    from sets import Set
+    import csv
+    import os
+    
+    c = __import__('CPAC_subject_list')
+    
+    subject_scan_set =Set()
+    subject_set = Set()
+    scan_set = Set()
+    
+    data_list =[]
+
+    
+    for sub in c.subjects_list :
+        subject_id = sub['Subject_id']+ "_" + sub['Unique_id']
+        for scan in sub['rest'].keys():
+            subject_scan_set.add((subject_id, scan))
+            subject_set.add(subject_id)
+            scan_set.add(scan)
+    
+    for item in subject_scan_set:
+        list1 =[]
+        list1.append(item[0]+"/"+item[1])
+        for val in subject_set:
+            if val in item:
+                list1.append(1)
+            else:
+                list1.append(0)
+        
+        for val in scan_set:
+          if val in item:
+              list1.append(1)
+          else:
+              list1.append(0)
+              
+        data_list.append(list1)
+            
+    list1=['Subject_id/Scan']
+    
+    if len(scan_set) >1:
+        list1.extend(list(subject_set))
+        list1.extend(list(scan_set))
+    
+    file_name = os.path.join(os.getcwd(),'phenotypic_template.csv')
+    f= open(file_name, 'wb')
+    writer =csv.writer(f)
+    writer.writerow(list1)
+    
+    if len (scan_set)>1:
+        writer.writerows(data_list)
+    else:
+        for sub in subject_set:
+            print sub
+            writer.writerow([sub])
+    f.close()
+    
+    print "Template Phenotypic file for group Analysis - %s"%file_name
+    
+    file_name = os.path.join(os.getcwd(), "subject_list_group_analysis.txt")
+    f = open(file_name, 'w')
+   
+    for sub in subject_set:
+        print >> f, sub
+    
+    print "Subject list required for group analysis...%s"%file_name
+    f.close()
     
     
 def main():
@@ -285,7 +355,7 @@ def main():
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
     extract_data(c)
-    
+    generate_suplimentary_files()
 
 
 if __name__ == "__main__":

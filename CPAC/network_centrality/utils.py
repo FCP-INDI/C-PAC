@@ -135,6 +135,8 @@ def get_centrality_matrix(threshold_matrix, correlation_matrix,
                 eigenValue = w.max()
                 eigenvector= v[index]
                 """
+                #using scipy method, which is a wrapper to the ARPACK functions
+                #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
                 eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM')
                 print "eigenValue : ", eigenValue
                 eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
