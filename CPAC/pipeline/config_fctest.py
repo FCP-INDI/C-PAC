@@ -957,7 +957,7 @@ modelsDirectory = '/home/data/Projects/abidehbm/group_models/'
 """
 
 
-subList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
+groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
 derivativeList = ['alff_Z_standard', 'falff_Z_standard']
 

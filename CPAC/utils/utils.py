@@ -410,7 +410,7 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
         create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id)
 
 
-def modify_model_files(model_files, sublist):
+def modify_model_files(model_file, group_analysis_sublist, output_sublist):
 
     def read_model_file(file):
 
@@ -430,3 +430,13 @@ def modify_model_files(model_files, sublist):
                     dict1.get('/Matrix').append(line)
         return dict1
 
+    model_map = read_model_file(model_file)
+    
+    file_name, ext = os.path.splitext(os.path.basename(model_file))
+    file_name = os.path.join(filename + '_new', ext)
+    file_name = os.path.join(os.getcwd(), file_name)
+
+    for subject in group_analysis_sublist:
+        if subject not in ouput_sublist:
+            
+        

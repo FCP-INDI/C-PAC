@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
                         run_sge_jobs(c, analysis_map[(resource, glob_key)])
 
-                    elif 'pbs' in c.resourceManager.lower(): 
+                     elif 'pbs' in c.resourceManager.lower(): 
                         run_pbs_jobs(c, analysis_map[(resource, glob_key)])
 
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
 
                         run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
 
-                    elif 'pbs' in c.resourceManager.lower():
+                     elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
 
 
@@ -246,6 +246,6 @@ if __name__ == "__main__":
 
                         run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
 
-                    elif 'pbs' in c.resourceManager.lower():
+                     elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
 
