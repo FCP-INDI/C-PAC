@@ -411,11 +411,11 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
 
 
 def modify_model_files(model_file, group_analysis_sublist, output_sublist):
-
+    import os
+    
     def read_model_file(file):
 
-        dict1 ={}
-        f = open(file, 'r')
+        dict1={}
         for line in open(file, 'r'):
             if line.strip() !='':
                 if 'NumWaves' in line: 
@@ -433,10 +433,38 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
     model_map = read_model_file(model_file)
     
     file_name, ext = os.path.splitext(os.path.basename(model_file))
-    file_name = os.path.join(filename + '_new', ext)
+    file_name = file_name + '_new' + ext
     file_name = os.path.join(os.getcwd(), file_name)
-
+    
+    remove_index = []
     for subject in group_analysis_sublist:
-        if subject not in ouput_sublist:
+        if subject not in output_sublist:
+            remove_index.append(group_analysis_sublist.index(subject))
+    
+    print remove_index
+    f = open(file_name, 'wb')
+
+    print >> f, '/NumWaves    ' + model_map['/NumWaves']
+    num_points = int(model_map['/NumPoints']) - len(remove_index)
+    print >> f, '/NumPoints    ' + str(num_points)
+    if ext == ".mat":
+        f.write('/PPHeights        ')
+        for val in model_map['/PPHeights']:
+            f.write(val+',')
+        f.write('\n')
+    print >> f, ''
+    print >> f, '/Matrix'
+    count =0
+    for values in model_map['/Matrix']:
+        if count not in remove_index:
+            f.write(values)
+        count+=1
+
+    f.close()
+    
+    return file_name
+        
+    
+        
             
         
