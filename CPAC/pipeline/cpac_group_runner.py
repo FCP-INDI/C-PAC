@@ -213,7 +213,7 @@ if __name__ == "__main__":
         if resource in c.derivative_list:
 
             if 1 in c.runGroupAnalysis and not c.runOnGrid:
-                from CPAC.cpac_cwas_pipeline import prep_cwas_workflow
+                from CPAC.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                 prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
         #if re.match(r"^falff", resource):
 

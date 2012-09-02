@@ -221,32 +221,35 @@ def extract_data(c):
             print >> f, "{"
             print >> f, "    'Subject_id': '" + sub + "',"
             print >> f, "    'Unique_id': '" + session_id + "',"
-        
-        if func_session_present and anat_session_present:
-            #if there are sessions
-            if "*" in func_session_path:
-                session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
-                for session in session_list:
-                    session_id= os.path.basename(session)
-                    print_to_file(sub, session_id)
-                    if func_session_path == anat_session_path:  
-                        fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id))
-                    else:
-                        fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id))
+        try:
+            if func_session_present and anat_session_present:
+                #if there are sessions
+                if "*" in func_session_path:
+                    session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
+                    for session in session_list:
+                        session_id= os.path.basename(session)
+                        print_to_file(sub, session_id)
+                        if func_session_path == anat_session_path:  
+                            fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id))
+                        else:
+                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id))
+                        print >> f, "},"
+                else:
+                    session_id = func_session_path
+                    print_to_file(sub,session_id)
+                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path))
                     print >> f, "},"
+                    
             else:
-                session_id = func_session_path
+                print "No sessions"
+                session_id = ''
                 print_to_file(sub,session_id)
-                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path))
+                fetch_path(index, sub, sub)
                 print >> f, "},"
-                
-        else:
-            print "Sessions not present"
-            session_id = ''
-            print_to_file(sub,session_id)
-            fetch_path(index, sub, sub)
-            print >> f, "},"
-    
+        except Exception:
+            print "Please make sessions are consistent across all subjects"
+            raise
+            
     
     try:
         print >>f, "subjects_list = ["
@@ -282,12 +285,10 @@ def generate_suplimentary_files():
     subject_scan_set =Set()
     subject_set = Set()
     scan_set = Set()
-    
     data_list =[]
 
-    
     for sub in c.subjects_list :
-        subject_id = sub['Subject_id']+ "_" + sub['Unique_id']
+        subject_id = sub['Subject_id'] + "_" + sub['Unique_id']
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)
@@ -310,26 +311,27 @@ def generate_suplimentary_files():
               
         data_list.append(list1)
             
-    list1=['Subject_id/Scan']
-    
+    #prepare data for phenotypic file    
     if len(scan_set) >1:
+        list1=['Subject_id/Scan']
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
     
     file_name = os.path.join(os.getcwd(),'phenotypic_template.csv')
     f= open(file_name, 'wb')
     writer =csv.writer(f)
-    writer.writerow(list1)
-    
-    if len (scan_set)>1:
+
+    if len (scan_set) > 1:
+        writer.writerow(list1)
         writer.writerows(data_list)
     else:
+        writer.writerow(['Subject_id'])
         for sub in subject_set:
-            print sub
             writer.writerow([sub])
+            
     f.close()
     
-    print "Template Phenotypic file for group Analysis - %s"%file_name
+    print "Template Phenotypic file for group analysis - %s"%file_name
     
     file_name = os.path.join(os.getcwd(), "subject_list_group_analysis.txt")
     f = open(file_name, 'w')
@@ -337,7 +339,7 @@ def generate_suplimentary_files():
     for sub in subject_set:
         print >> f, sub
     
-    print "Subject list required for group analysis...%s"%file_name
+    print "Subject list required later for group analysis - %s"%file_name
     f.close()
     
     
@@ -360,9 +362,4 @@ def main():
 
 if __name__ == "__main__":
    
-    import commands
-    cmd = '/bin/bash ~/.bashrc'
-    print cmd
-    sys.stderr.write(commands.getoutput(cmd))
-
     sys.exit(main())
