@@ -84,7 +84,8 @@ def run_sge_jobs(c, config_file, resource, subject_infos):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('qsub  %s ' % (subject_bash_file))
+#    print commands.getoutput('qsub  %s ' % (subject_bash_file))
+    print 'qsub  %s ' % (subject_bash_file)
 
 
 def run_pbs_jobs(c, config_file, resource, subject_infos):
@@ -208,10 +209,10 @@ if __name__ == "__main__":
                 else:
                      if 'sge' in c.resourceManager.lower():
 
-                        run_sge_jobs(c, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
-                     elif 'pbs' in c.resourceManager.lower(): 
-                        run_pbs_jobs(c, analysis_map[(resource, glob_key)])
+                     elif 'pbs' in c.resourceManager.lower():
+                        run_pbs_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
 
             if 1 in c.runCWAS:
@@ -224,10 +225,10 @@ if __name__ == "__main__":
                 else:
                      if 'sge' in c.resourceManager.lower():
 
-                        run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
                      elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
 
 
@@ -244,8 +245,8 @@ if __name__ == "__main__":
                 else:
                      if 'sge' in c.resourceManager.lower():
 
-                        run_sge_jobs(c, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
                      elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
 
