@@ -248,4 +248,3 @@ if __name__ == "__main__":
 
                      elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, resource, analysis_map[(resource, glob_key)])
-
