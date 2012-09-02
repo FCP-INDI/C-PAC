@@ -3,7 +3,8 @@ from resting_state_centrality import create_resting_state_graphs,\
                                   calculate_correlation,\
                                   threshold_rmatrix,\
                                   get_centrality
-
+                                  
+from z_score import  get_zscore
 
 from utils import convert_pvalue_to_r,\
                   convert_sparsity_to_r,\
@@ -20,4 +21,5 @@ __all__ = ['create_resting_state_graphs', \
            'convert_sparsity_to_r', \
            'load_mat',\
            'get_centrality_matrix',\
-           'map_centrality_matrix']
+           'map_centrality_matrix',\
+           'get_zscore']

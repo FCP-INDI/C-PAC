@@ -10,9 +10,9 @@ import CPAC.interfaces.afni.preprocess as preprocess
 def create_func_preproc():
     """
     
-    The main purpose of this workflow is to process T2 scans. Raw rest file is deobliqued and reoriented 
+    The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented 
     into RPI. Then take the mean intensity values over all time points for each voxel and use this image 
-    to calaculate motion parameters. The image is then skullstripped, normalized and a processed mask is 
+    to calculate motion parameters. The image is then skullstripped, normalized and a processed mask is 
     obtained to use it further in Image analysis.
     
     Returns 
@@ -23,7 +23,7 @@ def create_func_preproc():
     Notes
     -----
     
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/func_preproc/func_preproc.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/func_preproc/func_preproc.py>`_
     
     Workflow Inputs::
     
@@ -191,7 +191,7 @@ def create_func_preproc():
     >>> import func_preproc
     >>> preproc = create_func_preproc()
     >>> preproc.inputs.inputspec.func='sub1/func/rest.nii.gz'
-    >>> preporc.run() #doctest: +SKIP
+    >>> preproc.run() #doctest: +SKIP
 
     """
 

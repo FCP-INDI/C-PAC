@@ -23,18 +23,18 @@ def get_img_nvols(in_files):
 
     """
 
-    out = None
     from nibabel import load
+
+    nvols = None
     img = load(in_files)
     hdr = img.get_header()
-    nvols = None
     if len(hdr.get_data_shape()) > 3:
         nvols = int(hdr.get_data_shape()[3])
     else:
         nvols = 1
-    out = nvols
+    return nvols
 
-    return out
+
 
 def get_img_tr(in_files, TRa):
 
@@ -61,8 +61,6 @@ def get_img_tr(in_files, TRa):
 
     """
 
-
-    out = None
     from nibabel import load
     img = load(in_files)
     hdr = img.get_header()
@@ -78,14 +76,13 @@ def get_img_tr(in_files, TRa):
 
         if (diff > 0.001):
             print "Warning: specified TR  %f and TR in image header  %f do not match:" % (TRa, tr)
-        out = TRa
+        return TRa
     else:
-        out = tr
-
-    return out
+        return tr
 
 
-def get_N1(TR, nvols, HP):
+
+def get_N1(nvols, TR, HP):
 
     """
     Get the low frequency point
@@ -117,7 +114,8 @@ def get_N1(TR, nvols, HP):
     return n1
 
 
-def get_N2(TR, nvols, LP, HP):
+
+def get_N2(nvols, TR, LP, HP):
 
     """
     Get the high frequency point
@@ -153,6 +151,7 @@ def get_N2(TR, nvols, LP, HP):
     return n2
 
 
+
 def get_operand_string(mean, std_dev):
 
     """
@@ -184,6 +183,8 @@ def get_operand_string(mean, std_dev):
     return op_string
 
 
+
+
 def set_op_str(n2):
 
     """
@@ -203,7 +204,6 @@ def set_op_str(n2):
 
     """
 
-    strs = None
     strs = "-Tmean -mul %f" % (n2)
     return strs
 
@@ -226,39 +226,13 @@ def set_op1_str(nvols):
         operand string
 
     """
+
     strs = '-Tmean -mul %d -div 2' % (int(nvols))
 
     return strs
 
 
-def set_gauss(fwhm):
 
-    """
-    Compute the sigma value, given Full Width Half Max. 
-    Further it builds an operand string and returns it
-
-    Parameters
-    ----------
-
-    fwhm : float
-
-    Returns
-    -------
-
-    op_string : string
-
-    """
-
-    op_string = ""
-
-    fwhm = float(fwhm)
-
-    sigma = float(fwhm / 2.3548)
-
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
-
-    return op_string
 
 
 
@@ -279,12 +253,10 @@ def takemod(nvols):
     decisions : int
     """
 
-    decisions = None
     mod = int(int(nvols) % 2)
 
     if mod == 1:
-        decisions = 0
+        return 0
     else:
-        decisions = 1
+        return 1
 
-    return decisions

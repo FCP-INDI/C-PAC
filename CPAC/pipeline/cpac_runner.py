@@ -24,8 +24,9 @@ def get_vectors(strat):
 
 
     val_list = []
-    for k, v in (strat.items()):
-        val_list.append(v)
+
+    for key in sorted(strat.keys()):
+        val_list.append(strat[key])
 
     dfs(val_list, '')
 
@@ -67,21 +68,55 @@ def build_strategies(configuration):
 
     import collections
 
-    path_iterables = ['gm_threshold', 'wm_threshold', 'csf_threshold', 'scrubbed', 'threshold', 'selector', 'nc', 'target_angle_deg']
-    non_strategy_iterables = ['fwhm', 'hp', 'lp', 'bandpass_freqs']
+    path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
+    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
-    proper_names = {'threshold':'Scrubbing Threshold = ', 'csf_threshold':'Cerebral Spinal Fluid Threshold = ',
-                    'gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', 'scrubbed':'Data Scrubbed = ', 'selector':'Nuisance Signal Corrections = ',
-                    'target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', 'wm_threshold':'White Matter Threshold = '}
+    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
+                    '_gm_threshold':'Gray Matter Threshold = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = collections.OrderedDict([('grayMatterThreshold', eval('configuration.grayMatterThreshold')), ('whiteMatterThreshold', eval('configuration.whiteMatterThreshold')), ('cerebralSpinalFluidThreshold', eval('configuration.cerebralSpinalFluidThreshold')), ('scrubData', eval('configuration.scrubData')), ('scrubbingThreshold', eval('configuration.scrubbingThreshold')), ('Corrections', eval('configuration.Corrections')), ('nComponents', eval('configuration.nComponents')), ('targetAngleDeg', eval('configuration.targetAngleDeg'))])
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
+
+    ### This is really dirty code and ordering of corrections in 
+    ### in output directory is dependant on the nuisance workflow
+    ### when the workflow is changed , change this section as well
+    corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
+
+
+    corrections_dict = config_iterables['_compcor'][0]
+
+    string = ""
+
+    print corrections_dict
+    for correction in corrections_order:
+
+        string += correction + str(corrections_dict[correction]) + '.'
+
+    string = string[0:len(string) -1]
+
+
+
+    cmpcor_components = eval('configuration.nComponents')
+
+
+    all_options = []
+    for comp in cmpcor_components:
+
+        all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+
+
+
+    config_iterables['_compcor'] = all_options
+
+
+    ############
 
     paths = get_vectors(config_iterables)
 
-    strategy_enteries = make_enteries(paths, path_iterables)
+    strategy_enteries = make_enteries(paths, sorted(path_iterables))
 
     return strategy_enteries
 
@@ -99,7 +134,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
     shell = commands.getoutput('echo $SHELL')
 
@@ -117,7 +152,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
+    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
 
     f.close()
 
@@ -138,7 +173,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
     temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
     shell = commands.getoutput('echo $SHELL')
@@ -154,7 +189,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python /home2/ssikka/C-PAC/CPAC/pipeline/cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
+    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
     f.close()
 
@@ -173,13 +208,12 @@ def run(config_file, subject_list_file):
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
-    sublist = s.subject_list
+    sublist = s.subjects_list
 
 
-    #deactivating just for now
-    strategies = None
-    #strategies = sorted(build_strategies(c))
+    strategies = sorted(build_strategies(c))
 
+    print strategies
 
     if not c.runOnGrid:
 

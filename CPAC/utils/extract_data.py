@@ -51,8 +51,8 @@ def extract_data(c):
     def checkTemplate(template):
     
         if '%s' not in template:
-            raise Exception("Please provide '%s' in the template \
-                            where subjects are present")
+            raise Exception("Please provide '%s' in the template" \
+                            "where subjects are present")
     
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
@@ -90,9 +90,9 @@ def extract_data(c):
     if len(anat_base) != len(func_base) :
         print "Some sites are missing, Please check your template" \
               ,anat_base,"!=", func_base 
-        raise Exception (" Base length Unequal. Some sites are missing.\
-                           CPAC_extract_data doesn't support this.Please \
-                           Provide your own subjects_list file")
+        raise Exception (" Base length Unequal. Some sites are missing."\
+                           "extract_data doesn't script support this.Please" \
+                           "Provide your own subjects_list file")
     
     #calculate the length of relative paths(path after subject directory)
     func_relative_len = len(func_relative.split('/'))
@@ -114,16 +114,16 @@ def extract_data(c):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            raise Exception("CPAC_extraxt_data currently doesn't support this directory structure.\
-                             Please provide the subjects_list file to run CPAC.\
-                             For more information refer to manual")    
+            raise Exception("extract_data script currently doesn't support this directory structure."\
+                             "Please provide the subjects_list file to run CPAC."\
+                             "For more information refer to manual")    
             
         return session_present, session_path, relative_path
     
     if func_relative_len!= anat_relative_len:
-        raise Exception(" CPAC_extract_data currently doesn't\
-                          support different relative paths for\
-                          Anatomical and functional files")
+        raise Exception(" extract_data script currently doesn't"\
+                          "support different relative paths for"\
+                          "Anatomical and functional files")
     
     func_session_present, func_session_path, func_relative = \
         check_for_sessions(func_relative, func_relative_len)
@@ -221,32 +221,35 @@ def extract_data(c):
             print >> f, "{"
             print >> f, "    'Subject_id': '" + sub + "',"
             print >> f, "    'Unique_id': '" + session_id + "',"
-        
-        if func_session_present and anat_session_present:
-            #if there are sessions
-            if "*" in func_session_path:
-                session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
-                for session in session_list:
-                    session_id= os.path.basename(session)
-                    print_to_file(sub, session_id)
-                    if func_session_path == anat_session_path:  
-                        fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id))
-                    else:
-                        fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id))
+        try:
+            if func_session_present and anat_session_present:
+                #if there are sessions
+                if "*" in func_session_path:
+                    session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
+                    for session in session_list:
+                        session_id= os.path.basename(session)
+                        print_to_file(sub, session_id)
+                        if func_session_path == anat_session_path:  
+                            fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id))
+                        else:
+                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id))
+                        print >> f, "},"
+                else:
+                    session_id = func_session_path
+                    print_to_file(sub,session_id)
+                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path))
                     print >> f, "},"
+                    
             else:
-                session_id = func_session_path
+                print "No sessions"
+                session_id = ''
                 print_to_file(sub,session_id)
-                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path))
+                fetch_path(index, sub, sub)
                 print >> f, "},"
-                
-        else:
-            print "Sessions not present"
-            session_id = func_session_path
-            print_to_file(sub,session_id)
-            fetch_path(index, sub, sub)
-            print >> f, "},"
-    
+        except Exception:
+            print "Please make sessions are consistent across all subjects"
+            raise
+            
     
     try:
         print >>f, "subjects_list = ["
@@ -264,17 +267,86 @@ def extract_data(c):
     
         print >> f, "]"
         
-        print "Extraction Complete...Subjects_list is in CPAC_subject_list.py"
+        name = os.path.join(os.getcwd(), 'CPAC_subject_list.py')
+        print "Extraction Complete...Input Subjects_list for CPAC - %s"%name
     except Exception:
         raise
     finally:
         f.close()
+
+def generate_suplimentary_files():
+    
+    from sets import Set
+    import csv
+    import os
+    
+    c = __import__('CPAC_subject_list')
+    
+    subject_scan_set =Set()
+    subject_set = Set()
+    scan_set = Set()
+    data_list =[]
+
+    for sub in c.subjects_list :
+        subject_id = sub['Subject_id'] + "_" + sub['Unique_id']
+        for scan in sub['rest'].keys():
+            subject_scan_set.add((subject_id, scan))
+            subject_set.add(subject_id)
+            scan_set.add(scan)
+    
+    for item in subject_scan_set:
+        list1 =[]
+        list1.append(item[0]+"/"+item[1])
+        for val in subject_set:
+            if val in item:
+                list1.append(1)
+            else:
+                list1.append(0)
+        
+        for val in scan_set:
+          if val in item:
+              list1.append(1)
+          else:
+              list1.append(0)
+              
+        data_list.append(list1)
+            
+    #prepare data for phenotypic file    
+    if len(scan_set) >1:
+        list1=['Subject_id/Scan']
+        list1.extend(list(subject_set))
+        list1.extend(list(scan_set))
+    
+    file_name = os.path.join(os.getcwd(),'phenotypic_template.csv')
+    f= open(file_name, 'wb')
+    writer =csv.writer(f)
+
+    if len (scan_set) > 1:
+        writer.writerow(list1)
+        writer.writerows(data_list)
+    else:
+        writer.writerow(['Subject_id'])
+        for sub in subject_set:
+            writer.writerow([sub])
+            
+    f.close()
+    
+    print "Template Phenotypic file for group analysis - %s"%file_name
+    
+    file_name = os.path.join(os.getcwd(), "subject_list_group_analysis.txt")
+    f = open(file_name, 'w')
+   
+    for sub in subject_set:
+        print >> f, sub
+    
+    print "Subject list required later for group analysis - %s"%file_name
+    f.close()
     
     
 def main():
 
     parser = argparse.ArgumentParser(description="example: \
-                        run CPAC_extract_data.py -c data_config.py")
+                        run extract_data.py -c data_config.py")
     parser.add_argument('-c', '--data_config',
                         dest='data_config',
                         required=True,
@@ -285,14 +357,9 @@ def main():
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
     extract_data(c)
-    
+    generate_suplimentary_files()
 
 
 if __name__ == "__main__":
    
-    import commands
-    cmd = '/bin/bash ~/.bashrc'
-    print cmd
-    sys.stderr.write(commands.getoutput(cmd))
-
     sys.exit(main())
