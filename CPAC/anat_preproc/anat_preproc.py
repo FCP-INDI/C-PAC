@@ -26,7 +26,7 @@ def create_anat_preproc():
     Notes
     -----
     
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/anat_preproc/anat_preproc.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/anat_preproc/anat_preproc.py>`_
     
     Workflow Inputs::
     

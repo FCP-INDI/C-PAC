@@ -34,7 +34,7 @@ def create_vmhc():
     Notes
     -----
 
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/vmhc/vmhc.py>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/vmhc/vmhc.py>`_ 
 
     Workflow Inputs::
 
