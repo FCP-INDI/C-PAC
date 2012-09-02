@@ -165,7 +165,6 @@ crashLogDirectory = '/home/bcheung/p_integration_test'
 
 sinkDirectory = '/home/bcheung/p_integration_sink'
 
-dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
 
 
@@ -223,10 +222,6 @@ dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
 
 
 
-## subjectDirectory = '/home2/data/Incoming/fcon_test/
-## subjectList = None   
-## the above two is not usable now...
-exclusionSubjectList = None
 
 
 
@@ -334,9 +329,6 @@ exclusionSubjectList = None
 
 
 
-anatLogFile = 'log.txt' #Don't need this, for IPN use only. -Yang
-
-anatLogFilePath = '%s/*/*/%s'
 
 
 
@@ -471,19 +463,24 @@ runMedianAngleCorrection = [0]
 runFrequencyFiltering = [1]
 runRegisterFuncToMNI = [1]
 
-runALFF = [1]
-runReHo = [1]
-runVMHC = [1]
-runSCA = [1]
 runGenerateMotionStatistics = [1]
 runScrubbing = [1]
 runVoxelTimeseries = [1]
 runROITimeseries = [0]
 
+#options are [1] or [0] only
+runALFF = [1]
+runReHo = [1]
+runVMHC = [1]
+runSCA = [1]
+
 runSurfaceRegistraion = [0]
 runVerticesTimeSeries = [0]
 
 runNetworkCentrality =[1]
+runGroupAnalysis = [1]
+runBASC = [1]
+runCWAS = [1]
 
 standardResolution = '3mm'
 
@@ -492,7 +489,7 @@ fwhm = [4]
 #reho cluster size values can be 27 , 19 and 7
 clusterSize = 27
 
-prior_path = '/home/data/Projects/C-PAC/tissuepriors/3mm/'
+prior_path = '/home/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
@@ -535,7 +532,6 @@ grayMatterThreshold = [0.2]
 
 """
 
-scrubData = [False]
 
 scrubbingThreshold = [0.2]
 
@@ -674,8 +670,6 @@ targetAngleDeg = [90]
 
 
 """
-
-nuisanceBandpass = True
 
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
@@ -962,54 +956,12 @@ modelsDirectory = '/home/data/Projects/abidehbm/group_models/'
 
 """
 
-matTemplateList = ['model_name']
 
-conTemplateList = ['model_name']
+groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
-ftsTemplateList = ['model_name']
+derivativeList = ['alff_Z_standard', 'falff_Z_standard']
 
-grpTemplateList = ['model_name']
-
-
-
-mat = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.mat'
-
-con = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.con'
-
-fts = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.fts'
-
-grp = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.grp'
-
-
-
-"""
-
-    	Derivative Template
-
-    	
-
-    	The first argument is label which is actually the strategy name. The pipeline
-
-    	automatically creates the lable-linkage file in the sym_links folder.
-
-    	The second argument is derivative name. This will be fetched from 
-
-    	the derivative list defined above
-
-"""
-
-
-
-dervTemplate = sinkDirectory+ '/sym_links/%s/%s/*/%s.nii.gz'
-
-labelFile = sinkDirectory + '/sym_links/label_linkage.txt'
-
-subList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
-
-
-
-dervTemplateList = ['label', 'derivative']
-
+modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
 
 """

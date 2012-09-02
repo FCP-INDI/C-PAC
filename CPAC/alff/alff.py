@@ -34,7 +34,7 @@ def create_alff(tr):
     Notes
     -----
 
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/alff/alff.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/alff/alff.py>`_
 
     Workflow Inputs: ::
 
@@ -217,7 +217,6 @@ def create_alff(tr):
     inputnode_lp = pe.Node(util.IdentityInterface(fields=['lp']),
                              name='lp_input')
 
-
     TR = pe.Node(util.Function(input_names=['in_files', 'TRa'],
                                output_names=['TR'],
                  function=get_img_tr), name='TR')
@@ -228,6 +227,8 @@ def create_alff(tr):
                     function=get_img_nvols),
                     name='NVOLS')
 
+    cp = pe.Node(interface=fsl.ImageMaths(),
+                    name='cp')
 
 
     delete_first_volume = pe.Node(interface=fsl.ExtractROI(),
@@ -243,7 +244,7 @@ def create_alff(tr):
     pspec = pe.Node(interface=fsl.PowerSpectrum(),
                        name='pspec')
 
-    ##compute sqrt of power spectrum
+    ##compute sqrt_pspec of power spectrum
     sqrt_pspec = pe.Node(interface=fsl.ImageMaths(),
                       name='sqrt_pspec')
     sqrt_pspec.inputs.op_string = '-sqrt'
@@ -315,9 +316,11 @@ def create_alff(tr):
                  delete_first_volume, 'in_file')
     alff.connect(NVOLS, 'nvols',
                  delete_first_volume, 't_size')
+    alff.connect(inputNode, 'rest_res',
+                 cp, 'in_file')
     alff.connect(delete_first_volume, 'roi_file',
                  concatnode, 'in1')
-    alff.connect(inputNode, 'rest_res',
+    alff.connect(cp, 'out_file',
                  concatnode, 'in2')
     alff.connect(concatnode, 'out',
                  selectnode, 'inlist')
@@ -402,6 +405,7 @@ def create_alff(tr):
                  falff_Z, 'in_file')
     alff.connect(inputNode, 'rest_mask',
                  falff_Z, 'operand_files')
+
 
     alff.connect(pspec, 'out_file',
                  outputNode, 'power_spectrum_distribution')
