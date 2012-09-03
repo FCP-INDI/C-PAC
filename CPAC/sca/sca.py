@@ -35,7 +35,7 @@ def create_sca(name_sca='sca'):
     Notes
     -----
 
-    `Source <https://github.com/ssikka/NKI_NYU_Nipype/blob/development/base.py#L1540>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_ 
 
     Workflow Inputs::
  

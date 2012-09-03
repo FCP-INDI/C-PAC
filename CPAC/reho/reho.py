@@ -29,7 +29,7 @@ def create_reho():
     Notes
     -----
 
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/reho/reho.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/reho/reho.py>`_
 
     Workflow Inputs: ::
 
