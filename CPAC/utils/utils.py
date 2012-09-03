@@ -276,6 +276,8 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 if '_compcor_'in key:
 
                     if 'compcor0' in value:
+                        strategy_identifier += (value + '_')
+
                         continue
                     else:
                         key = '_compcor_'
@@ -441,10 +443,6 @@ def clean_strategy(strategies, helper):
                     raise
 
             else:
-
-                if 'compcor0' in el.rsplit('_', 1)[1]:
-
-                    continue
 
                 if not helper['nuisance'] == 0:
 
