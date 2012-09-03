@@ -43,11 +43,16 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception ("Path to the model %s doesn't exist"%model)
     
     print model_map
-    gp_flow = create_gpa_dataflow(model_map, c.ftest)
+    
+    input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
+    
+    gp_flow = create_gpa_dataflow(model_map, c.fTest)
+    gp_flow.inputs.inputspec.input_sublist = input_subject_list 
+    gp_flow.inputs.inputspec.output_sublist = s_ids
     
     from CPAC.group_analysis import create_group_analysis
     
-    gpa_wf = create_group_analysis(c.ftest)
+    gpa_wf = create_group_analysis(c.fTest)
     gpa_wf.inputs.inputspec.zmap_files = s_paths
     
     wf.connect(gp_flow, 'outputspec.mat',

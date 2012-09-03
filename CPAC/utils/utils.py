@@ -56,10 +56,10 @@ files_folders_wf = {
     'reho_Z_to_standard_smooth':'reho',
     'voxel_timeseries':'timeseries',
     'roi_timeseries':'timeseries',
-    'sca_correlations_roi_based':'sca_roi',
-    'sca_z_trans_correlations_roi_based':'sca_roi',
-    'sca_correlations_seed_based':'sca_mask',
-    'sca_z_trans_correlations_seed_based':'sca_mask',
+    'sca_roi_correlations':'sca_roi',
+    'sca_roi_Z':'sca_roi',
+    'sca_seed_correlations':'sca_mask',
+    'sca_seed_Z':'sca_mask',
     'sca_seed_Z_to_standard':'sca_mask',
     'sca_roi_Z_to_standard':'sca_roi',
     'sca_seed_Z_smooth':'sca_mask',
@@ -96,11 +96,11 @@ def safe_shape(*vol_data):
         True only if all volumes have the same shape.
     """
     same_volume = True
-    
+
     first_vol_shape = vol_data[0].shape[:3]
     for vol in vol_data[1:]:
-        same_volume &= (first_vol_shape == vol.shape[:3]) 
-        
+        same_volume &= (first_vol_shape == vol.shape[:3])
+
     return same_volume
 
 
@@ -196,10 +196,8 @@ def get_workflow(remainder_path):
 
 def get_session(remainder_path):
 
-    session = 'scan_func_'
+    session = 'scan_'
 
-    if 'anat_1' in remainder_path:
-        print '----------R----------------->', remainder_path
 
     lst = remainder_path.split('/')
 
@@ -208,9 +206,9 @@ def get_session(remainder_path):
 
     for element in lst:
 
-        if 'scan_func' in element:
+        if 'scan_' in element:
 
-            session += element.split('scan_func_')[1] + '_'
+            session += element.split('scan_')[1] + '_'
 
 
     if session.endswith('_'):
@@ -314,11 +312,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         sym_path = os.path.join(sym_path, strategy_identifier)
         new_sub_path = os.path.join(sym_path, subject_id)
         file_name, wf, remainder_path = get_workflow(remainder_path)
-        new_wf_path = os.path.join(new_sub_path, wf)
         session = get_session(remainder_path)
-        new_session_path = os.path.join(new_wf_path, session)
-
-        new_path = new_session_path
+        new_session_path = os.path.join(new_sub_path, session)
+        new_wf_path = os.path.join(new_session_path, wf)
+        new_path = new_wf_path
 
 
         #bring into use the tier 2 iterables for recursive directory structure
@@ -330,6 +327,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         if '/_roi_' in remainder_path:
 
             new_path = os.path.join(new_path, get_hplpfwhmseed_('/_roi_', remainder_path))
+
+#        if '/_sca_roi_' in remainder_path:
+
+#            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_sca_roi_', remainder_path))
 
 
         if ('_hp_'  in remainder_path):
@@ -351,6 +352,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             new_path = os.path.join(new_path, get_hplpfwhmseed_('/_fwhm_', remainder_path))
 
 
+
         try:
             os.makedirs(new_path)
         except:
@@ -360,6 +362,14 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         ext = fname.split('.', 1)[1]
         ext = '.' + (ext)
+
+        # special case for ROI , need the ROI number
+
+        if '_ROI_' in fname and 'sca_' in path:
+            import re
+            roi_number = re.findall(r'\d+', fname)[0]
+            file_name += '_' + roi_number
+
 
         dont_change_fname = ['vertices_timeseries',
         'centrality_outputs_smoothed',
@@ -385,8 +395,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
                 f1 = open(os.path.join(new_path, file_name+ ext))
 
-                print >>f, 'Error-----------> ',file_name+ ext, ' already exists'
-                print >>f, '~~~~~~~~~~', fname
             except:
                 print cmd
                 commands.getoutput(cmd)
@@ -409,12 +417,32 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
 
         create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id)
 
-
 def modify_model_files(model_file, group_analysis_sublist, output_sublist):
-    import os
+    """
+    Method to modify fsl model matrix file and group file
     
-    def read_model_file(file):
+    Parameters
+    ----------
+    model_file : string
+        path to fsl group analysis model(grp/mat) file
+    group_analysis_sublist : string (list)
+        list of all subjects CPAC is run on
+    output_sublist : string(list)
+        list of output subjects of a derivative for which CPAC run succesfully
+    
+    Returns
+    -------
+    out_file : string
+        Path to output modified model file
 
+    """
+    
+    import os
+    def read_model_file(file):
+        """
+        Method to read model file and
+        create a map out of it
+        """
         dict1={}
         for line in open(file, 'r'):
             if line.strip() !='':
@@ -432,19 +460,22 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
 
     model_map = read_model_file(model_file)
     
-    file_name, ext = os.path.splitext(os.path.basename(model_file))
-    file_name = file_name + '_new' + ext
-    file_name = os.path.join(os.getcwd(), file_name)
+    out_file, ext = os.path.splitext(os.path.basename(model_file))
+    out_file = out_file + '_new' + ext
+    out_file = os.path.join(os.getcwd(), out_file)
     
+    #create an index of all subjects for a derivative for which 
+    #CPAC did not run successfully
     remove_index = []
     for subject in group_analysis_sublist:
         if subject not in output_sublist:
             remove_index.append(group_analysis_sublist.index(subject))
     
     print remove_index
-    f = open(file_name, 'wb')
+    f = open(out_file, 'wb')
 
     print >> f, '/NumWaves    ' + model_map['/NumWaves']
+    
     num_points = int(model_map['/NumPoints']) - len(remove_index)
     print >> f, '/NumPoints    ' + str(num_points)
     if ext == ".mat":
@@ -456,15 +487,12 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
     print >> f, '/Matrix'
     count =0
     for values in model_map['/Matrix']:
+        #remove the row form matrix for all unsuccessful subjects 
         if count not in remove_index:
             f.write(values)
         count+=1
 
     f.close()
-    
-    return file_name
-        
-    
-        
-            
-        
+
+    return out_file
+
