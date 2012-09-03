@@ -411,10 +411,31 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
 
 
 def modify_model_files(model_file, group_analysis_sublist, output_sublist):
-    import os
+    """
+    Method to modify fsl model matrix file and group file
     
-    def read_model_file(file):
+    Parameters
+    ----------
+    model_file : string
+        path to fsl group analysis model(grp/mat) file
+    group_analysis_sublist : string (list)
+        list of all subjects CPAC is run on
+    output_sublist : string(list)
+        list of output subjects of a derivative for which CPAC run succesfully
+    
+    Returns
+    -------
+    out_file : string
+        Path to output modified model file
 
+    """
+    
+    import os
+    def read_model_file(file):
+        """
+        Method to read model file and
+        create a map out of it
+        """
         dict1={}
         for line in open(file, 'r'):
             if line.strip() !='':
@@ -432,19 +453,22 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
 
     model_map = read_model_file(model_file)
     
-    file_name, ext = os.path.splitext(os.path.basename(model_file))
-    file_name = file_name + '_new' + ext
-    file_name = os.path.join(os.getcwd(), file_name)
+    out_file, ext = os.path.splitext(os.path.basename(model_file))
+    out_file = out_file + '_new' + ext
+    out_file = os.path.join(os.getcwd(), out_file)
     
+    #create an index of all subjects for a derivative for which 
+    #CPAC did not run successfully
     remove_index = []
     for subject in group_analysis_sublist:
         if subject not in output_sublist:
             remove_index.append(group_analysis_sublist.index(subject))
     
     print remove_index
-    f = open(file_name, 'wb')
+    f = open(out_file, 'wb')
 
     print >> f, '/NumWaves    ' + model_map['/NumWaves']
+    
     num_points = int(model_map['/NumPoints']) - len(remove_index)
     print >> f, '/NumPoints    ' + str(num_points)
     if ext == ".mat":
@@ -456,15 +480,15 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
     print >> f, '/Matrix'
     count =0
     for values in model_map['/Matrix']:
+        #remove the row form matrix for all unsuccessful subjects 
         if count not in remove_index:
             f.write(values)
         count+=1
 
     f.close()
     
-    return file_name
+    return out_file
         
-    
-        
+
             
         

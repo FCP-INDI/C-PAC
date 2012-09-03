@@ -1748,10 +1748,8 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list  
-    
-    
 
-    ######################end of workflow ###########
+    ###################### end of workflow ###########
     workflow.write_graph(graph2use='orig')
 
     """
@@ -1788,19 +1786,14 @@ def prep_workflow(sub_dict, c, strategies):
         d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
-
-#        s_file = open(os.path.join(d_name, 'strategy.txt'), 'w')
         
-        G = nx.Graph()
+        G = nx.DiGraph()
         strat_name = strat.get_name()
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
-#        nx.draw_graphviz(G)
         dotfilename = os.path.join(d_name, 'strategy.dot')
         nx.write_dot(G, dotfilename)
         format_dot(dotfilename,'png')
         print d_name, '*'
-#        s_file.write(strat.get_name()[-1])
-#        print strat.get_name(), s_file
         num_strat += 1
 
     workflow.run(plugin='MultiProc',
