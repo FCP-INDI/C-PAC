@@ -194,7 +194,7 @@ if __name__ == "__main__":
         analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
         # separate map for group analysis
-        if c.mixed_scan_analysis == True:
+        if c.mixedScanAnalysis == True:
             key = key.replace(scan_id, '*')
 
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
@@ -233,21 +233,18 @@ if __name__ == "__main__":
 
 
     for resource, glob_key in analysis_map_gp.keys():
-        if resource in c.derivative_list:
+        if resource in c.derivativeList:
 
             if 1 in c.runGroupAnalysis:
 
                 if not c.runOnGrid:
-
                     from CPAC.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                     prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
 
                 else:
                      if 'sge' in c.resourceManager.lower():
-
-                        run_sge_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, args.config, resource, analysis_map_gp[(resource, glob_key)])
 
                      elif 'pbs' in c.resourceManager.lower():
-
-                        run_pbs_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, args.config, resource, analysis_map_gp[(resource, glob_key)])
 
