@@ -185,7 +185,7 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     Parameters
     ----------
     centrality_matrix : string (numpy mat file)
-        path to file containing degree or eigen centrality matrix
+        path to file containing degree or eigenvector centrality matrix
     affine : string (numpy mat file)
         path to file containing image affine matrix
     template_data : string (numpy mat file)
