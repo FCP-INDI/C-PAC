@@ -78,7 +78,7 @@ def prep_workflow(sub_dict, c, strategies):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp'}
+    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
 
     mflow = None
     pflow = None
@@ -1760,6 +1760,51 @@ def prep_workflow(sub_dict, c, strategies):
     sink_idx = 0
     for strat in strat_list:
         rp = strat.get_resource_pool()
+
+        # build helper dictionary to assist with a clean strategy label for symlinks
+
+        strategy_tag_helper_symlinks = {}
+
+        if 'scrubbing' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_threshold'] = 1
+
+        else:
+
+            strategy_tag_helper_symlinks['_threshold'] = 0
+
+
+
+        if 'seg_preproc' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_csf_threshold'] = 1
+            strategy_tag_helper_symlinks['_wm_threshold'] = 1
+            strategy_tag_helper_symlinks['_gm_threshold'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_csf_threshold'] = 0
+            strategy_tag_helper_symlinks['_wm_threshold'] = 0
+            strategy_tag_helper_symlinks['_gm_threshold'] = 0
+
+
+        if 'median_angle_corr' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 0
+
+
+        if 'nuisance' in strat.get_name():
+
+            strategy_tag_helper_symlinks['nuisance'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['nuisance'] = 0
+
+
+
+
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
@@ -1771,7 +1816,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
             link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                    'subject_id', 'pipeline_id'],
+                                    'subject_id', 'pipeline_id', 'helper'],
                                     output_names=[],
                                     function=prepare_symbolic_links),
                                     name='link_%d' % sink_idx, iterfield=['in_file'])
@@ -1779,6 +1824,7 @@ def prep_workflow(sub_dict, c, strategies):
             link_node.inputs.strategies = strategies
             link_node.inputs.subject_id = subject_id
             link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+            link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
             workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1

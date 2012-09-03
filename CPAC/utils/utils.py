@@ -263,7 +263,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             short_names = {'_threshold':'SCRUB_', '_csf_threshold':'CSF_',
                     '_gm_threshold':'GM_',
-                    '_compcor_':'',
+                    '_compcor_':'compcor',
                     '_target_angle_deg':'MEDIANangle_', '_wm_threshold':'WM_'}
 
             strategy_identifier = ''
@@ -274,7 +274,11 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 print key, ' ----------> ', value
 
                 if '_compcor_'in key:
-                    key = '_compcor_'
+
+                    if 'compcor0' in value:
+                        continue
+                    else:
+                        key = '_compcor_'
 
                 if not 'pipeline' in key:
                     strategy_identifier += short_names[key] + value + '_'
@@ -400,11 +404,61 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 commands.getoutput(cmd)
 
 
+def clean_strategy(strategies, helper):
+
+###
+### If segmentation or scrubbing or nuisance or median is turned off
+### in the pipeline then remove them from the strategy tag list
+
+    new_strat = []
 
 
-def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
+    for strat in strategies:
 
-    from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links
+        tmpstrat = []
+        for el in strat:
+
+            key = el.rsplit('_', 1)[0]
+
+            print '~~~~~~ ', key, ' ~~~ ', el
+            if not ('compcor' in key):
+
+                if 'pipeline' in key:
+
+                    tmpstrat.append(el)
+                    continue
+
+                try:
+                    todos = helper[key]
+
+                    if not (todos == 0):
+
+                        tmpstrat.append(el)
+
+                except:
+
+                    print 'key ', key, 'from ', el, ' not in ', helper
+                    raise
+
+            else:
+
+                if 'compcor0' in el.rsplit('_', 1)[1]:
+
+                    continue
+
+                if not helper['nuisance'] == 0:
+
+                    tmpstrat.append(el)
+
+        new_strat.append(tmpstrat)
+
+
+    return new_strat
+
+
+def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
+
+    from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
 
 
     for path in in_file:
@@ -415,7 +469,9 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
 
         relevant_strategies = get_strategies_for_path(path, strategies)
 
-        create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id)
+        cleaned_strategies = clean_strategy(relevant_strategies, helper)
+
+        create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
 
 def modify_model_files(model_file, group_analysis_sublist, output_sublist):
     """
