@@ -157,7 +157,7 @@ runRegisterFuncToMNI = [1]
 
 
 runVMHC = [1]
-runSCA = [1]
+
 runGenerateMotionStatistics = [1]
 
 
@@ -193,9 +193,12 @@ Probabilistic Tissue Segmentation Options
 # Run automatic tissue segmentation
 runSegmentationPreprocessing = [1]
 
-# C-PAC uses FSL to automatically distinguish tissue types based on priors
+# C-PAC uses FSL to automatically distinguish tissue types based on priors.
+
 # Each prior represents the probability that a given voxel will be 
-# of a particular tissue type (white matter, gray matter, or CSF)
+# of a particular tissue type (white matter, gray matter, or CSF).
+
+# Please specify the location and name of your prior files.
 
 prior_path = '/home/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
@@ -218,7 +221,7 @@ grayMatterThreshold = [0.2]
 Nusiance Signal Correction Options
 ==================================
 """
-# 1 to run Nuisance Signal Correction, 0 to skip
+# Run nuisance signal corrections
 runNuisance = [1]
 
 # Select which nuisance signals to remove. 1 to run, 0 to skip
@@ -245,7 +248,7 @@ Corrections = [{'compcor' : 1,
 # Only for use when 'compcor' : 1
 nComponents = [5]
 
-# 1 to run Median Angle, 0 to skip
+# Run median angle correction
 runMedianAngleCorrection = [0]
 
 # Target angle for median angle correction
@@ -264,6 +267,7 @@ scrubbingThreshold = [0.2]
 Temporal Filtering Options
 ==========================
 """
+# Apply Temporal Filtering
 runFrequencyFiltering = [1]
 
 nuisanceBandpass = True
@@ -274,18 +278,18 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 """
 SCA
 """
-
-??????
+runSCA = [1]
 
 """
 ==============================
 Time Series Extraction Options
 ==============================
 """
+
+
 runROITimeseries = [0]
 
 # Output type: .csv, numPy
-
 roiTSOutputs = [True, True]
 
 roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
@@ -294,7 +298,6 @@ roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 runVoxelTimeseries = [1]
 
 # Output type: .csv, numPy
-
 voxelTSOutputs = [False, False]
 
 maskDirectoryPath = seedDirPath
@@ -315,6 +318,7 @@ reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
 Regional Homogeneity (ReHo) Options) *
 ====================================
 """
+# Run ReHo
 runReHo = [1]
 
 # Cluster size (number of voxels) to use.
@@ -326,20 +330,32 @@ clusterSize = 27
 Network Centrality Options
 ==========================
 """
+# Calculate network centrality measures
 runNetworkCentrality =[1]
 
-#method options [Degree Centrality, Eigen_Vector Centrality]
+# Select which centrality measures to calculate
+# First value = Degree Centrality 
+# Second value = Eigenvector Centrality
+# Options are True/False
 centralityMethodOptions = [True, True]
 
-#weight options [binarize(0,1), weighted(weight=correlation value)]
+# Define how connections are defined during graph construction
+# First value = Binarize (connection strenth is either 0 or 1)
+# Second value = Weighted (connection strength is a correlation value)
+# Options are True/False
 centralityWeightOptions = [True, True]
 
-#correaltion threshold option 0--> p_value (probability), 1--> sparsity threshold
-# any other --->  correlation threshold
+# Select what type of threshold is applied to create an adjacency matrix
+# 0 = Significance threshold (P-value)
+# 1 = Sparsity threshold (Sparsity value)
+# 2 = Correlation threshold (Pearson's r)
 correlationThresholdOption = 1
 
-#p_value, sparsity threshold or correlation threshold
-#example: p_value is 0.05, sparsity threshold is 0.0744
+# Based on the type of threshold selected above, enter the appropriate value
+# Significance threshold = P-value
+# Sparsity threshold = sparsity value
+# Correlation threshold = Pearsons' r value
+# examples: 0.05, 0.0744, 0.6
 correlationThreshold = 0.0744
 
 #path to mask/roi directory for netwrok centrality 
@@ -355,10 +371,10 @@ bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_g
 
 bascClusters = 6
 
-# Number of bootstraps to apply to group data sets.
+# Number of bootstraps to apply individual stability matrices.
 bascDatasetBootstraps = 100
 
-# Number of bootstraps to apply to individual timeseries data.
+# Number of bootstraps to apply original timeseries data.
 bascTimeseriesBootstraps = 100
 
 bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
@@ -379,21 +395,21 @@ cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PA
 
 """
 ==========================================================================
-Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options *
+Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options * *
 ==========================================================================
 """
-# Set this value to 1 to calculate ALFF and fALFF. Set this value to 0 to skip
+# Calculate ALFF and fALFF
 runALFF = [1]
 
 # NOTE: Frequency filtering is not applied when calculating fALFF
 
-# Cutoff for a high-pass filter
-# All frequencies lower than this value (in Hz) will be excluded from analysis
+# Frequency cutoff (in Hz) for a high-pass filter
+# All frequencies lower than this value will be excluded from analysis
 # To skip high-pass filtering, leave this array empty []
 highPassFreqALFF = [0.01]
 
-# Cutoff for a low-pass filter
-# All frequencies higher than this value (in Hz) will be excluded from analysis
+# Frequency cutoff (in Hz) for a low-pass filter
+# All frequencies higher than this value will be excluded from analysis
 # To skip low-pass filtering, leave this array empty []
 lowPassFreqALFF = [0.1]
 
