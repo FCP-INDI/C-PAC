@@ -928,13 +928,17 @@ templateDirectoryPath = seedDirPath
 					   derivative.
 					   
 	    3) Group Analysis Statistical Options : 
-	        ftest
-
+	        fTest
+	        pThreshold
+	        zThreshold
+    
+        4) mixedScanAnalysis : For multiple scan, considering all scans at once for a derivative for analysis
 """
 
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 derivativeList = ['alff_Z_standard', 'falff_Z_standard']
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
+mixedScanAnalysis = False
 
 zThreshold = 2.3
 pThreshold = 0.05

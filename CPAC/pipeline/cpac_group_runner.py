@@ -194,7 +194,7 @@ if __name__ == "__main__":
         analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
         # separate map for group analysis
-        if c.mixed_scan_analysis == True:
+        if c.mixedScanAnalysis == True:
             key = key.replace(scan_id, '*')
 
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
