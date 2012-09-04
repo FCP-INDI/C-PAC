@@ -749,7 +749,7 @@ def prep_workflow(sub_dict, c, strategies):
         for strat in strat_list:
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
-            func_to_mni.inputs.inputspec.interp = 'trilinear'
+            func_to_mni.inputs.inputspec.interp = 'nearestneighbour'
             
             func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                     name='func_mni_warp_%d' % num_strat)
@@ -942,6 +942,7 @@ def prep_workflow(sub_dict, c, strategies):
             alff_Z_to_standard.inputs.ref_file = c.standard
 
             falff_Z_to_standard = alff_Z_to_standard.clone('falff_Z_to_standard_%d' % num_strat)
+            falff_Z_to_standard.inputs.ref_file = c.standard
 
             try:
 
@@ -977,7 +978,7 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
             strat.update_resource_pool({'alff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
-            strat.update_resource_pool({'falff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
+            strat.update_resource_pool({'falff_Z_to_standard':(falff_Z_to_standard, 'out_file')})
             strat.append_name('alff_falff_to_standard')
             num_strat += 1
     strat_list += new_strat_list

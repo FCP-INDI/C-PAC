@@ -76,51 +76,20 @@ parallelEnvironment = 'mpi'
 
 """
 ===============
-Directory Setup
+Directory Setup * *
 ===============
 """
-# The folder containing 
-dataPath = '/home2/ssikka/nki_nyu_pipeline/testing/process'
+# NOTE: Users must manually create these directories before running C-PAC
+# Please specify the full path to each directory
 
+# Directory where C-PAC should store temporary and intermediate files
 workingDirectory = '/home/bcheung/p_integration_test'
 
+# Directory where C-PAC should place crash logs
 crashLogDirectory = '/home/bcheung/p_integration_test'
 
+# Directory where C-PAC should put processed data
 sinkDirectory = '/home/bcheung/p_integration_sink'
-
-"""
-subjects
-  """
-
-
-
-## subjectDirectory = '/home2/data/Incoming/fcon_test/
-## subjectList = None   
-## the above two is not usable now...
-exclusionSubjectList = None
-
-"""
-anat log
-"""
-
-???
-
-anatLogFile = 'log.txt' #Don't need this, for IPN use only. -Yang
-
-anatLogFilePath = '%s/*/*/%s'
-
-
-"""
-preproc setup
-"""
-
-
-#FSLDIR = '/usr/local/cmi/fsl/4.1' # for gelert
-
-FSLDIR = commands.getoutput('echo $FSLDIR')
-
-priorDirectory = '/home2/data/Projects/C-PAC/tissuepriors'
-
 
 
 """
@@ -130,50 +99,63 @@ Optional Timeseries and Image Header Overrides
 """
 startIdx = 0
 
+#if you specify none, CPAC calculates it on its own
 stopIdx = None
 
+#same here: based on headers
 TR = None
 
 
 """
 preproc
 """
-###Options are [1], [0], [1, 0]
-
-runAnatomicalDataGathering = [1]
-runAnatomicalPreprocessing = [1]
-runRegistrationPreprocessing = [1]
-
-
-runFunctionalDataGathering = [1]
-runFunctionalPreprocessing = [1]
-runAnatomicalToFunctionalRegistration = [1]
-
-
-
-
-runRegisterFuncToMNI = [1]
-
-
-
-runVMHC = [1]
-
-runGenerateMotionStatistics = [1]
-
-
-
-
-runSymbolicLinks = [1]
-
-
 
 standardResolution = '3mm'
 
 fwhm = [4]
 
 
+###Options are [1], [0], [1, 0]
 
 
+runAnatomicalDataGathering = [1]
+# anatomicalpreproc, segementation, nuisance won't run
+# Anything that relies on those
+runFunctionalDataGathering = [1]
+# functional preproc wont run
+# Anything that relies on that
+runSymbolicLinks = [1]
+#doesn't effect anything, but you wont get a pretty directory structure
+
+
+runAnatomicalPreprocessing = [1]
+# segmentation
+# nuisance
+
+runFunctionalPreprocessing = [1]
+# nothing will run except segmentation and anatomical preproc
+
+runRegistrationPreprocessing = [1]
+# no derivatives will run
+
+
+runAnatomicalToFunctionalRegistration = [1]
+# nuisance and median angle won't run
+
+runRegisterFuncToMNI = [1]
+# no derivatives will run
+
+runVMHC = [1]
+
+
+# Generate motion statistics as 
+# required for scrubbing
+# can also be used as regressor in GA
+runGenerateMotionStatistics = [1]
+
+
+
+FSLDIR = commands.getoutput('echo $FSLDIR')
 standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
 standard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
 standardBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
@@ -192,6 +174,7 @@ Probabilistic Tissue Segmentation Options
 """
 # Run automatic tissue segmentation
 runSegmentationPreprocessing = [1]
+# required for nuisance and median angle
 
 # C-PAC uses FSL to automatically distinguish tissue types based on priors.
 
@@ -221,19 +204,22 @@ grayMatterThreshold = [0.2]
 Nusiance Signal Correction Options
 ==================================
 """
-# Run nuisance signal corrections
+# Run nuisance signal correction
 runNuisance = [1]
 
-# Select which nuisance signals to remove. 1 to run, 0 to skip
-# compcor = CompCor
-# wm = White Matter 
-# csf = Cerebro Spinal Fluid
-# gm = Gray Matter
-# global = Global Mean Signal
-# pc1 = First Principle Component
-# motion = Motion
-# linear = Linear Trend
-# quadratic = Quadratic trend
+# Select which nuisance signal corrections to apply:
+
+## compcor = CompCor
+## wm = White Matter 
+## csf = Cerebro Spinal Fluid
+## gm = Gray Matter
+## global = Global Mean Signal
+## pc1 = First Principle Component
+## motion = Motion
+## linear = Linear Trend
+## quadratic = Quadratic trend
+
+# Options are 1 (correct) or 0 (ignore)
 Corrections = [{'compcor' : 1,
                 'wm' : 1,
                 'csf' : 1,
@@ -258,76 +244,101 @@ targetAngleDeg = [90]
 # 1 to run, 0 to skip
 runScrubbing = [1]
 
+
+
 # Volumes with displacement greater than this value (in mm) will be removed.
 # Only for use when runScrubbing = [1] or [0,1]
 scrubbingThreshold = [0.2]
 
+
+
 """
 ==========================
-Temporal Filtering Options
+Temporal Filtering Options * *
 ==========================
 """
 # Apply Temporal Filtering
 runFrequencyFiltering = [1]
 
-nuisanceBandpass = True
-
+# First value = Lower bound for a band-pass filter
+# Second value = Upper bound for a band-pass filter
+# To use a high-pass filter, set the second value to NONE
+# To use a low-pass filter, set the first value to NONE
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
-
 """
-SCA
+=======================================
+Seed-based Correlation Analysis Options * *
+=======================================
 """
+# Run Seed-based Correlation Analysis
 runSCA = [1]
 
+# SCA will run on all ROI and voxel timeseries extracted below.
+
 """
 ==============================
-Time Series Extraction Options
+Time Series Extraction Options *
 ==============================
 """
-
-
+# Extract an average timeseries for each ROI
+# Required if you wish to run ROI-based SCA
 runROITimeseries = [0]
 
-# Output type: .csv, numPy
+# Export ROI timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
 roiTSOutputs = [True, True]
 
+# Directory containing ROI definitions
 roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 
-
+# Extract timeseries data for all individual voxels within a mask
+# Required if you wish to run voxel-based SCA
 runVoxelTimeseries = [1]
 
-# Output type: .csv, numPy
+# Export voxel timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
 voxelTSOutputs = [False, False]
 
-maskDirectoryPath = seedDirPath
+# Directory contaning masks
+maskDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 
-
+# Register timeseries data to a surface model built by FreeSurfer
+# Required to run vertex timeseries extraction
 runSurfaceRegistraion = [0]
+
+# Extract timeseries data for surface vertices
 runVerticesTimeSeries = [0]
 
-# Output type: .csv, numPy
-
+# Export vertex timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
 verticesTSOutputs = [False, False]
 
+# SOMETHING SOMETHING ABOUT FREESURFER. TALK TO SHARAD
 reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
 
 
 """
-====================================
-Regional Homogeneity (ReHo) Options) *
-====================================
+===================================
+Regional Homogeneity (ReHo) Options * *
+===================================
 """
-# Run ReHo
+# Calculate Regional Homogeneity
 runReHo = [1]
 
-# Cluster size (number of voxels) to use.
+# Cluster size (number of neighboring voxels)
 # Options are 7, 19, and 27
 clusterSize = 27
 
 """
 ==========================
-Network Centrality Options
+Network Centrality Options * 
 ==========================
 """
 # Calculate network centrality measures
@@ -339,7 +350,7 @@ runNetworkCentrality =[1]
 # Options are True/False
 centralityMethodOptions = [True, True]
 
-# Define how connections are defined during graph construction
+# Specify how connections are defined during graph construction
 # First value = Binarize (connection strenth is either 0 or 1)
 # Second value = Weighted (connection strength is a correlation value)
 # Options are True/False
@@ -358,8 +369,10 @@ correlationThresholdOption = 1
 # examples: 0.05, 0.0744, 0.6
 correlationThreshold = 0.0744
 
-#path to mask/roi directory for netwrok centrality 
-templateDirectoryPath = seedDirPath 
+# Directory containing ROI definitions or masks
+# Using ROIs will result in node-based centrality measures
+# Using a mask will result in voxel-based centrality measures
+templateDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS' 
 
 """
 ====================================================
@@ -371,11 +384,11 @@ bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_g
 
 bascClusters = 6
 
-# Number of bootstraps to apply individual stability matrices.
-bascDatasetBootstraps = 100
-
-# Number of bootstraps to apply original timeseries data.
+# Number of bootstraps to apply to original timeseries data.
 bascTimeseriesBootstraps = 100
+
+# Number of bootstraps to apply to individual stability matrices.
+bascDatasetBootstraps = 100
 
 bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
 
@@ -418,54 +431,20 @@ lowPassFreqALFF = [0.1]
 Group Analysis Options
 ======================
 """
+# Auto generated by extract_data
+# Order of subjects in this list should match the order of the data in your model
+groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
+# Options come from list of resources
+# Get list from Ranjeet, put here and in UG
+derivativeList = ['alff_Z_standard', 'falff_Z_standard']
+# SPecify path to FLS model(s)
+# One path per model
+# Generated from FSL, or through SHarads script (TALK TO HIM)
+modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
+# if you want to consider multiple scans at once
+mixedScanAnalysis = False
 
-derivativeList = ['ALFF_Z_FWHM_2standard', 'fALFF_Z_FWHM_2standard', 'sca_Z_FWHM']
-
-modelsDirectory = '/home/data/Projects/abidehbm/group_models/'
-
-"""
-============================
-Group Analysis File Template
-============================
-"""
-
-matTemplateList = ['model_name']
-
-conTemplateList = ['model_name']
-
-ftsTemplateList = ['model_name']
-
-grpTemplateList = ['model_name']
-
-mat = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.mat'
-
-con = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.con'
-
-fts = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.fts'
-
-grp = '/Users/ranjeet.khanuja/Desktop/data2/models/%s.grp'
-
-"""
-=========================
-Derivatives File Template
-=========================
-"""
-dervTemplate = sinkDirectory + '/sym_links/%s/%s/*/%s.nii.gz'
-
-labelFile = sinkDirectory + '/sym_links/label_linkage.txt'
-
-subList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
-
-dervTemplateList = ['label', 'derivative']
-
-"""
-===================
-Statistical Options
-===================
-"""
 zThreshold = 2.3
-
 pThreshold = 0.05
-
 fTest = True
 
