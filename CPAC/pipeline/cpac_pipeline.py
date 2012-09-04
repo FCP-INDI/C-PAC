@@ -1695,6 +1695,12 @@ def prep_workflow(sub_dict, c, strategies):
                                  network_centrality, 'inputspec.subject')
                 workflow.connect(template_dataflow, 'out_file',
                                  network_centrality, 'inputspec.template')
+                
+                
+                strat.append_name('network_centrality')
+    
+                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
+                                            'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
         
                 #if smoothing is required
                 if len(c.fwhm) > 0 :
@@ -1738,11 +1744,10 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
-            strat.append_name('network_centrality')
-            
-            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
+
+#            strat.append_name('network_centrality')
+#            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
+#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
             
             num_strat += 1
 

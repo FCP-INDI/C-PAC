@@ -230,15 +230,18 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
         
         elif int(template_type) == 1:
             nodes = np.unique(mask).tolist()
+            nodes.sort()
+            index = 0
             for n in nodes:
                 if n> 0:
                     cords = np.argwhere(mask==n)
                     for val in cords:
                         x,y,z = val
-                        if isinstance(matrix[n-1], list):
-                            sparse_m[x,y,z] = matrix[n-1][0]
+                        if isinstance(matrix[index], list):
+                            sparse_m[x,y,z] = matrix[index][0]
                         else:
-                            sparse_m[x,y,z]=matrix[n-1]
+                            sparse_m[x,y,z]=matrix[index]
+                    index+=1
                         
     
         nifti_img = nib.Nifti1Image(sparse_m, aff)
@@ -246,7 +249,7 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
         
         return out_file
     except:
-        print "Error in mapping centrality matrix to nifti image"
+        print "Error in mapping centrality matrix to nifti image", out_file, matrix.shape
         raise
         
 

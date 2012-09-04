@@ -35,6 +35,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     model_map = defaultdict(list)
     
     #create a map of model as key and its sub files as values
+    import os 
+    import glob
     for model in model_list:
         if os.path.exists(model):
             files = glob.glob(os.path.join(model, '*'))
