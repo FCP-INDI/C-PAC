@@ -256,7 +256,7 @@ def create_func_preproc():
 
     func_get_brain_mask = pe.Node(interface=preprocess.ThreedAutomask(),
                                name='func_get_brain_mask')
-#    func_get_brain_mask.inputs.dilate = 1
+    func_get_brain_mask.inputs.dilate = 1
     func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
 
     func_edge_detect = pe.Node(interface=preprocess.Threedcalc(),

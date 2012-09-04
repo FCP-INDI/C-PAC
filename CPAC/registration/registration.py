@@ -77,7 +77,10 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     linear_reg = pe.Node(interface =fsl.FLIRT(),
                          name='linear_reg_0')
+    linear_reg.inputs.cost_func = 'corratio'
     linear_reg.inputs.cost = 'corratio'
+    linear_reg.inputs.dof = 12
+    linear_reg.inputs.interp = 'nearestneighbour'
     
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
@@ -102,8 +105,8 @@ def create_nonlinear_register(name='nonlinear_register'):
                                nonlinear_reg, 'in_file')
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
-    nonlinear_register.connect(inputspec, 'fnirt_config',
-                               nonlinear_reg, 'config_file')
+#    nonlinear_register.connect(inputspec, 'fnirt_config',
+#                               nonlinear_reg, 'config_file')
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')
     nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
