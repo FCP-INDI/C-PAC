@@ -1746,6 +1746,8 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list  
+    
+    
 
     ###################### end of workflow ###########
     workflow.write_graph(graph2use='orig')

@@ -24,7 +24,8 @@ def convert_pvalue_to_r(scans, threshold):
     print "p_value ->", threshold
     x = 1-threshold/2
     dof = scans-2
-    tvalue = s.t.isf(x/2, dof)
+    #Inverse Survival Function (Inverse of SF)
+    tvalue = s.t.isf(x, dof)
     rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
     
     return rvalue
@@ -137,7 +138,7 @@ def get_centrality_matrix(threshold_matrix, correlation_matrix,
                 """
                 #using scipy method, which is a wrapper to the ARPACK functions
                 #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
-                eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM')
+                eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM', maxiter=1000)
                 print "eigenValue : ", eigenValue
                 eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
                 return eigen_matrix

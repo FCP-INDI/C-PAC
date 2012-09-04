@@ -5,6 +5,7 @@ exclusionSubjectList = None
 
 #list of subjects that are included 
 #subjectList = None
+#if None extract data runs on all the subjects
 subjectList = '/home/data/Projects/c-pac-subject-list-fix/rockland_subject_new.txt'
 
 
