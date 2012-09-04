@@ -51,10 +51,10 @@ def create_sca(name_sca='sca'):
         
     Workflow Outputs::
 
-        outputspec.correlations : string (nifti file)
+        outputspec.correlation_file : string (nifti file)
             Correlations of the functional file and the input time series 
 
-        outputspec.z_trans_correlations : string (nifti file)
+        outputspec.Z_score : string (nifti file)
             Fisher Z transformed correlations of the seed 
 
 
@@ -99,7 +99,7 @@ def create_sca(name_sca='sca'):
 
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'correlations',
+                                                    'correlation_file',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
@@ -124,6 +124,8 @@ def create_sca(name_sca='sca'):
                 corr, 'xset')
     sca.connect(corr, 'out_file',
                 z_score, 'correlation_file')
+    sca.connect(corr, 'out_file',
+                outputNode, 'correlation_file')
     sca.connect(z_score, 'out_file',
                 outputNode, 'Z_score')
 

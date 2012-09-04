@@ -78,7 +78,7 @@ def prep_workflow(sub_dict, c, strategies):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp'}
+    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
 
     mflow = None
     pflow = None
@@ -1323,8 +1323,8 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
 
-            strat.update_resource_pool({'sca_correlations_roi_based':(sca_roi, 'outputspec.correlations')})
-            strat.update_resource_pool({'sca_z_trans_correlations_roi_based':(sca_roi, 'outputspec.Z_score')})
+            strat.update_resource_pool({'sca_roi_correlations':(sca_roi, 'outputspec.correlation_file')})
+            strat.update_resource_pool({'sca_roi_Z':(sca_roi, 'outputspec.Z_score')})
             strat.append_name('sca_rois')
             num_strat += 1
     strat_list += new_strat_list
@@ -1357,8 +1357,8 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
 
-            strat.update_resource_pool({'sca_correlations_seed_based':(sca_seed, 'outputspec.correlations')})
-            strat.update_resource_pool({'sca_z_trans_correlations_seed_based':(sca_seed, 'outputspec.Z_score')})
+            strat.update_resource_pool({'sca_seed_correlations':(sca_seed, 'outputspec.correlation_file')})
+            strat.update_resource_pool({'sca_seed_Z':(sca_seed, 'outputspec.Z_score')})
             strat.append_name('sca_seeds')
             num_strat += 1
     strat_list += new_strat_list
@@ -1382,7 +1382,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             try:
 
-                node, out_file = strat.get_node_from_resource_pool('sca_z_trans_correlations_seed_based')
+                node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
                 workflow.connect(node, out_file,
                                  sca_seed_Z_to_standard, 'in_file')
 
@@ -1423,7 +1423,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             try:
 
-                node, out_file = strat.get_node_from_resource_pool('sca_z_trans_correlations_roi_based')
+                node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
                 workflow.connect(node, out_file,
                                  sca_roi_Z_to_standard, 'in_file')
 
@@ -1463,7 +1463,7 @@ def prep_workflow(sub_dict, c, strategies):
                         name='sca_seed_Z_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
-                node, out_file = strat.get_node_from_resource_pool('sca_z_trans_correlations_seed_based')
+                node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
                 workflow.connect(node, out_file,
                                  sca_seed_Z_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -1517,10 +1517,10 @@ def prep_workflow(sub_dict, c, strategies):
             sca_roi_Z_to_standard_smooth = None
 
             sca_roi_Z_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                        name='sca_Z_smooth_%d' % num_strat, iterfield=['in_file'])
+                        name='sca_roi_Z_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
-                node, out_file = strat.get_node_from_resource_pool('sca_z_trans_correlations_roi_based')
+                node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
                 workflow.connect(node, out_file,
                                  sca_roi_Z_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -1537,7 +1537,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             if 1 in c.runRegisterFuncToMNI:
 
-                sca_roi_Z_to_standard_smooth = sca_roi_Z_smooth.clone('sca_Z_to_standard_smooth_%d' % num_strat)
+                sca_roi_Z_to_standard_smooth = sca_roi_Z_smooth.clone('sca_roi_Z_to_standard_smooth_%d' % num_strat)
 
                 try:
 
@@ -1555,7 +1555,7 @@ def prep_workflow(sub_dict, c, strategies):
 
                 except:
 
-                    print 'Invalid Connection: sca_Z_to_standard smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                    print 'Invalid Connection: sca_roi_Z_to_standard smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                     raise
 
                 strat.append_name('sca_roi_Z_to_standard_smooth')
@@ -1758,18 +1758,63 @@ def prep_workflow(sub_dict, c, strategies):
     sink_idx = 0
     for strat in strat_list:
         rp = strat.get_resource_pool()
+
+        # build helper dictionary to assist with a clean strategy label for symlinks
+
+        strategy_tag_helper_symlinks = {}
+
+        if 'scrubbing' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_threshold'] = 1
+
+        else:
+
+            strategy_tag_helper_symlinks['_threshold'] = 0
+
+
+
+        if 'seg_preproc' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_csf_threshold'] = 1
+            strategy_tag_helper_symlinks['_wm_threshold'] = 1
+            strategy_tag_helper_symlinks['_gm_threshold'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_csf_threshold'] = 0
+            strategy_tag_helper_symlinks['_wm_threshold'] = 0
+            strategy_tag_helper_symlinks['_gm_threshold'] = 0
+
+
+        if 'median_angle_corr' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 0
+
+
+        if 'nuisance' in strat.get_name():
+
+            strategy_tag_helper_symlinks['nuisance'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['nuisance'] = 0
+
+
+
+
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
             ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
-            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
+#            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
 
 
             link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                    'subject_id', 'pipeline_id'],
+                                    'subject_id', 'pipeline_id', 'helper'],
                                     output_names=[],
                                     function=prepare_symbolic_links),
                                     name='link_%d' % sink_idx, iterfield=['in_file'])
@@ -1777,6 +1822,7 @@ def prep_workflow(sub_dict, c, strategies):
             link_node.inputs.strategies = strategies
             link_node.inputs.subject_id = subject_id
             link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+            link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
             workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
