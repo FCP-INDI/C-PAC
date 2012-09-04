@@ -9,14 +9,14 @@ def convert_pvalue_to_r(scans, threshold):
     
     Parameters
     ----------
-    scans : string (int)
+    scans : int
         Total number of scans in the data
-    threshold : string (float)
+    threshold : float
         input p_value
     
     Returns
     -------
-    rvalue : string (float)
+    rvalue : float
         correlation threshold value 
     """
     
@@ -37,14 +37,14 @@ def convert_sparsity_to_r(rmatrix, threshold):
     
     Parameters
     ----------
-    rmatrix : string (matrix)
+    rmatrix : array_like
         correaltion matrix
-    threshold : string (float)
+    threshold : float
         input sparsity threshold
     
     Returns
     -------
-    rvalue : string (float)
+    rvalue : float
         correlation threshold value 
      
     """
@@ -184,14 +184,14 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     
     Parameters
     ----------
-    centrality_matrix : string (numpy mat file)
-        path to file containing degree or eigenvector centrality matrix
+    centrality_matrix : tuple (string, array_like)
+        tuple containing matrix name and degree/eigenvector centrality matrix
     affine : string (numpy mat file)
         path to file containing image affine matrix
     template_data : string (numpy mat file)
-        path to file containing mask or parcellation data matrix
-    template_type : string
-        type of template: 0 for mask, 1 for parcellation unit
+        path to file containing mask or roi data matrix
+    template_type : int
+        type of template: 0 for mask, 1 for roi
     
     Returns
     -------

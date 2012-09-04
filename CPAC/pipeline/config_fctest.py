@@ -825,6 +825,7 @@ lowPassFreqALFF = [0.1]
 
 """
 
+seedDirPath = '/Users/ranjeet.khanuja/Documents/workspace/multisite/NKI_NYU_Nipype/seeds' 
 
 
 # Output type: .csv, numPy

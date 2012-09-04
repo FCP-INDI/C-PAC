@@ -424,7 +424,7 @@ def threshold_rmatrix(corr_matrix, option,
         np.save(threshold_file, threshold_matrix.astype(np.float))
     
     except Exception:
-        print "Exception while thresholding corelation matrix"
+        print "Exception while thresholding correlation matrix"
         raise
     
     return threshold_file
