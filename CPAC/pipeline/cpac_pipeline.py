@@ -1192,11 +1192,11 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runVoxelTimeseries:
         for strat in strat_list:
         
-            resample_mask_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_mask_to_functional_%d'%num_strat)
-            resample_mask_to_functional.inputs.interp = 'nearestneighbour'
-            resample_mask_to_functional.inputs.apply_xfm = True
-            resample_mask_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_mask_%d'%num_strat)
+            resample_functional_to_mask.inputs.interp = 'nearestneighbour'
+            resample_functional_to_mask.inputs.apply_xfm = True
+            resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
             
             mask_dataflow = create_mask_dataflow(c.maskDirectoryPath, 'mask_dataflow_%d'%num_strat)
             
@@ -1207,16 +1207,16 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the mask to input functional file
+                #resample the input functional file to mask 
                 workflow.connect(node, out_file,
-                                 resample_mask_to_functional,'reference' )
+                                 resample_functional_to_mask,'in_file' )
                 workflow.connect(mask_dataflow, 'out_file',
-                                 resample_mask_to_functional, 'in_file')
+                                 resample_functional_to_mask, 'reference')
                 
                 #connect it to the voxel_timeseries
-                workflow.connect(resample_mask_to_functional,'out_file',
+                workflow.connect(mask_dataflow, 'out_file',
                                  voxel_timeseries, 'input_mask.mask')
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_mask,'out_file',
                                  voxel_timeseries, 'inputspec.rest')
                 
             except:
@@ -1249,11 +1249,11 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runROITimeseries:
         for strat in strat_list:
             
-            resample_roi_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_roi_to_functional_%d'%num_strat)
-            resample_roi_to_functional.inputs.interp = 'nearestneighbour'
-            resample_roi_to_functional.inputs.apply_xfm = True
-            resample_roi_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_roi_%d'%num_strat)
+            resample_functional_to_roi.inputs.interp = 'nearestneighbour'
+            resample_functional_to_roi.inputs.apply_xfm = True
+            resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
             
             roi_dataflow = create_roi_dataflow(c.roiDirectoryPath, 'roi_dataflow_%d'%num_strat)
             
@@ -1264,16 +1264,16 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the roi to input functional file
+                #resample the input functional file to roi
                 workflow.connect(node, out_file,
-                                 resample_roi_to_functional,'reference' )
+                                 resample_functional_to_roi,'in_file' )
                 workflow.connect(roi_dataflow, 'out_file',
-                                 resample_roi_to_functional, 'in_file')
+                                 resample_functional_to_roi, 'reference')
                 
                 #connect it to the roi_timeseries
-                workflow.connect(resample_roi_to_functional,'out_file',
+                workflow.connect(roi_dataflow,'out_file',
                                  roi_timeseries, 'input_roi.roi')
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_roi, 'out_file',
                                  roi_timeseries, 'inputspec.rest')
                 
             except:
@@ -1665,11 +1665,11 @@ def prep_workflow(sub_dict, c, strategies):
             
             
             
-            resample_template_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_template_to_functional_%d'%num_strat)
-            resample_template_to_functional.inputs.interp = 'nearestneighbour'
-            resample_template_to_functional.inputs.apply_xfm = True
-            resample_template_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_template = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_template_%d'%num_strat)
+            resample_functional_to_template.inputs.interp = 'nearestneighbour'
+            resample_functional_to_template.inputs.apply_xfm = True
+            resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
             
             template_dataflow = create_mask_dataflow(c.templateDirectoryPath, 'template_dataflow_%d'%num_strat)
             
@@ -1685,15 +1685,15 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the template(roi/mask) to input functional file
+                #resample the input functional file to template(roi/mask) 
                 workflow.connect(node, out_file,
-                                 resample_template_to_functional,'reference' )
-                workflow.connect(node, out_file,
-                                 network_centrality, 'inputspec.subject')
-                
+                                 resample_functional_to_template,'in_file' )
                 workflow.connect(template_dataflow, 'out_file',
-                                 resample_template_to_functional, 'in_file')
-                workflow.connect(resample_template_to_functional, 'out_file',
+                                 resample_functional_to_template, 'reference')
+                
+                workflow.connect(resample_functional_to_template, 'out_file',
+                                 network_centrality, 'inputspec.subject')
+                workflow.connect(template_dataflow, 'out_file',
                                  network_centrality, 'inputspec.template')
         
                 #if smoothing is required
@@ -1706,16 +1706,14 @@ def prep_workflow(sub_dict, c, strategies):
                                        iterfield=['in_file'])
 
                     
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    
                     #calculate zscores
-                    workflow.connect(node, out_file, 
+                    workflow.connect(template_dataflow, 'out_file',
                                      z_score, 'inputspec.mask_file')
                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
                                      z_score, 'inputspec.input_file')
                     
                     #connecting zscores to smoothing
-                    workflow.connect(node, out_file,
+                    workflow.connect(template_dataflow, 'out_file',
                                      smoothing, 'operand_files')
                     workflow.connect(z_score, 'outputspec.z_score_img',
                                     smoothing, 'in_file')

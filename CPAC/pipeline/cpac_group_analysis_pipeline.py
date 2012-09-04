@@ -16,7 +16,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     
-    if c.mixed_scan_analysis == True:
+    if c.mixedScanAnalysis == True:
         wf = pe.Workflow(name = 'group_analysis_%s'%resource)
     else:
         wf = pe.Workflow(name = 'group_analysis_%s_%s'%resource%scan_ids[0]) 
