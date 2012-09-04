@@ -749,12 +749,12 @@ def prep_workflow(sub_dict, c, strategies):
         for strat in strat_list:
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
-            func_to_mni.inputs.inputspec.interp = 'nearestneighbour'
-            
+            func_to_mni.inputs.inputspec.interp = 'trilinear'
+
             func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                     name='func_mni_warp_%d' % num_strat)
             func_mni_warp.inputs.ref_file = c.standardResolutionBrain
-            
+
             try:
                 node, out_file = strat.get_node_from_resource_pool('mean_functional')
                 workflow.connect(node, out_file,
