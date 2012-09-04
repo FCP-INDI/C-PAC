@@ -91,16 +91,6 @@ crashLogDirectory = '/home/bcheung/p_integration_test'
 # Directory where C-PAC should put processed data
 sinkDirectory = '/home/bcheung/p_integration_sink'
 
-"""
-preproc setup
-"""
-
-
-
-
-
-
-
 
 """
 ==============================================
@@ -109,14 +99,22 @@ Optional Timeseries and Image Header Overrides
 """
 startIdx = 0
 
+#if you specify none, CPAC calculates it on its own
 stopIdx = None
 
+#same here: based on headers
 TR = None
 
 
 """
 preproc
 """
+
+standardResolution = '3mm'
+
+fwhm = [4]
+
+
 ###Options are [1], [0], [1, 0]
 
 
@@ -142,12 +140,13 @@ runRegistrationPreprocessing = [1]
 
 
 runAnatomicalToFunctionalRegistration = [1]
-# no derivatives will run **********************************CHECK***********
+# nuisance and median angle won't run
 
 runRegisterFuncToMNI = [1]
 # no derivatives will run
 
 runVMHC = [1]
+
 
 # Generate motion statistics as 
 # required for scrubbing
@@ -155,9 +154,6 @@ runVMHC = [1]
 runGenerateMotionStatistics = [1]
 
 
-standardResolution = '3mm'
-
-fwhm = [4]
 
 FSLDIR = commands.getoutput('echo $FSLDIR')
 standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
@@ -178,6 +174,7 @@ Probabilistic Tissue Segmentation Options
 """
 # Run automatic tissue segmentation
 runSegmentationPreprocessing = [1]
+# required for nuisance and median angle
 
 # C-PAC uses FSL to automatically distinguish tissue types based on priors.
 
@@ -281,7 +278,7 @@ runSCA = [1]
 
 """
 ==============================
-Time Series Extraction Options
+Time Series Extraction Options *
 ==============================
 """
 # Extract an average timeseries for each ROI
@@ -323,6 +320,7 @@ runVerticesTimeSeries = [0]
 # Options are True/False
 verticesTSOutputs = [False, False]
 
+# SOMETHING SOMETHING ABOUT FREESURFER. TALK TO SHARAD
 reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
 
 
@@ -340,7 +338,7 @@ clusterSize = 27
 
 """
 ==========================
-Network Centrality Options
+Network Centrality Options * 
 ==========================
 """
 # Calculate network centrality measures
@@ -371,9 +369,9 @@ correlationThresholdOption = 1
 # examples: 0.05, 0.0744, 0.6
 correlationThreshold = 0.0744
 
-#path to mask/roi directory for netwrok centrality 
-# for ROI will be node based network centrality
-# for mask will be voxel based
+# Directory containing ROI definitions or masks
+# Using ROIs will result in node-based centrality measures
+# Using a mask will result in voxel-based centrality measures
 templateDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS' 
 
 """
