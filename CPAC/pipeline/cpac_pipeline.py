@@ -26,13 +26,13 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
+from CPAC.utils.utils import global_lock
 from CPAC.utils.utils import prepare_symbolic_links
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
 
-global_lock = None
 
 class strategy:
 
@@ -1886,4 +1886,4 @@ def run(config, subject_list_file, indx, strategies, lock):
 
     sub_dict = sublist[int(indx) - 1]
 
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), pickle.load(open(lock, 'r'))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), pickle.load(open(lock, 'r')))
