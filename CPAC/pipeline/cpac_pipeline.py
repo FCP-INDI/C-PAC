@@ -1857,8 +1857,8 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-if __name__ == "__main__":
 
+def run(config, subject_list_file, indx, strategies)
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -1866,51 +1866,17 @@ if __name__ == "__main__":
     import argparse
     import pickle
 
-    parser = argparse.ArgumentParser(description="example: \
-                        run resting_preproc.py -c config.py  -subject_list_file /path/to/subject \
-                        -indx index_into_subject_list_file -strategies strat_list ")
-
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        required=True,
-                        help='location of config file'
-                        )
-
-
-    parser.add_argument('-s', '--subject_list_file',
-                        dest='subject_list_file',
-                        required=True,
-                        help='file containing CPAC internal subject list'
-                        )
-
-    parser.add_argument('-indx', '--index',
-                        dest='indx',
-                        required=False,
-                        help='location of config file'
-                        )
-
-
-
-    parser.add_argument('-strategies', '--strategies',
-                        dest='strategies',
-                        required=False,
-                        help='list of strategies'
-                        )
-
-
-
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.config))
+    path, fname = os.path.split(os.path.realpath(config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
 
-    path, fname = os.path.split(os.path.realpath(args.subject_list_file))
+    path, fname = os.path.split(os.path.realpath(subject_list_file))
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
     sublist = s.subjects_list
 
-    sub_dict = sublist[int(args.indx) - 1]
+    sub_dict = sublist[int(indx) - 1]
 
-    prep_workflow(sub_dict, c, pickle.load(open(args.strategies, 'r')))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))
