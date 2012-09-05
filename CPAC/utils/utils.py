@@ -1,6 +1,4 @@
-import threading
-
-global_lock = threading.Lock()
+from CPAC.pipeline.cpac_pipeline import global_lock
 
 files_folders_wf = {
     'anatomical_brain': 'anat',

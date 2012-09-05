@@ -32,6 +32,7 @@ from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
 
+global_lock = None
 
 class strategy:
 
@@ -72,7 +73,12 @@ class strategy:
 
             self.resource_pool[key] = value
 
-def prep_workflow(sub_dict, c, strategies):
+def prep_workflow(sub_dict, c, strategies, lock):
+
+    global global_lock
+
+    global_lock = lock
+
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
@@ -84,6 +90,7 @@ def prep_workflow(sub_dict, c, strategies):
     pflow = None
 
     strat_list = []
+
 
 
     """
@@ -1858,7 +1865,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-def run(config, subject_list_file, indx, strategies):
+def run(config, subject_list_file, indx, strategies, lock):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -1879,4 +1886,4 @@ def run(config, subject_list_file, indx, strategies):
 
     sub_dict = sublist[int(indx) - 1]
 
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), pickle.load(open(lock, 'r'))
