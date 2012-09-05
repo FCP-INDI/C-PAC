@@ -19,7 +19,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     if c.mixedScanAnalysis == True:
         wf = pe.Workflow(name = 'group_analysis_%s'%resource)
     else:
-        wf = pe.Workflow(name = 'group_analysis_%s_%s'%resource%scan_ids[0]) 
+        wf = pe.Workflow(name = 'group_analysis_%s_%s'%(resource,scan_ids[0])) 
     
     wf.base_dir = c.workingDirectory
     
@@ -65,7 +65,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 gpa_wf, 'inputspec.grp_file')
         
     if c.fTest:
-        workflow.connect(gp_flow, 'outputspec.fts',
+        wf.connect(gp_flow, 'outputspec.fts',
                          gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')

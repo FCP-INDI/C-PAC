@@ -435,8 +435,8 @@ Group Analysis Options
 # Order of subjects in this list should match the order of the data in your model
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 # Options come from list of resources
-# Get list from Ranjeet, put here and in UG
-derivativeList = ['alff_Z_standard', 'falff_Z_standard']
+derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
+                  'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
 # SPecify path to FLS model(s)
 # One path per model
 # Generated from FSL, or through SHarads script (TALK TO HIM)

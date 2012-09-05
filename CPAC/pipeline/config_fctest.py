@@ -166,8 +166,6 @@ crashLogDirectory = '/home/bcheung/p_integration_test'
 sinkDirectory = '/home/bcheung/p_integration_sink'
 
 
-
-
 """
 
 	d) Subject Directory Settings
@@ -479,8 +477,8 @@ runVerticesTimeSeries = [0]
 
 runNetworkCentrality =[1]
 runGroupAnalysis = [1]
-runBASC = [1]
-runCWAS = [1]
+runBASC = [0]
+runCWAS = [0]
 
 standardResolution = '3mm'
 
@@ -937,9 +935,11 @@ templateDirectoryPath = seedDirPath
 """
 
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
-derivativeList = ['alff_Z_standard', 'falff_Z_standard']
+derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', 'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 mixedScanAnalysis = False
+
+
 
 zThreshold = 2.3
 pThreshold = 0.05

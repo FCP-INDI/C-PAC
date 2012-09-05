@@ -249,7 +249,7 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
         
         return out_file
     except:
-        print "Error in mapping centrality matrix to nifti image", out_file, matrix.shape
+        print "Error in mapping centrality matrix to nifti image"
         raise
         
 
