@@ -31,14 +31,14 @@ def create_surface_registration(wf_name = 'surface_registration'):
         inputspec.brain : string (nifti file)
             path to skull stripped anatomical image
         inputspec.recon_subjects : string
-            Path to subjects directory
+            path to subjects directory
         inputspec.subject_id : string
             subject id 
             
     Workflow Outputs::
     
         outputspec.reconall_subjects_dir : string
-            Freesurfer subjects directory
+            freesurfer subjects directory
         outputspec.reconall_subjects_id : string
             subject id for which anatomical data is taken
         outputspec.out_reg_file : string
@@ -207,10 +207,10 @@ def get_voxel_timeseries(wf_name = 'voxel_timeseries'):
         
     Workflow Outputs::
     
-        outputspec.mask_outputs: string (1d, csv and/or npz files)
-            list of timeseries matrices stored in csv and/or
+        outputspec.mask_outputs: string (1D, csv and/or npz files)
+            list of time series matrices stored in csv and/or
             npz files.By default it outputs mean of voxels 
-            time series across each timepoint in a 1D file.
+            across each time point in a afni compatible 1D file.
         
     Example
     -------
@@ -288,9 +288,10 @@ def get_roi_timeseries(wf_name = 'roi_timeseries'):
     Workflow Outputs::
     
         outputspec.roi_outputs : string (list of files)
-            Voxel time series stored in 1D, csv and/or npz files. 
-            By default it outputs timeseries in a 1D file.
-        
+            Voxel time series stored in 1D (column wise timeseries for each node), 
+            csv and/or npz files. By default it outputs timeseries in a 1D file.
+            The 1D file is compatible with afni interfaces.
+            
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
@@ -416,9 +417,9 @@ def gen_roi_timeseries(data_file,
     Parameters
     ----------
     datafile : string 
-        Path to input functional data 
+        path to input functional data 
     template : string 
-        Path to input roi mask in functional native space
+        path to input roi mask in functional native space
     output_type : list
         list of two boolean values suggesting
         the output types - numpy npz file and csv 
@@ -520,23 +521,24 @@ def gen_voxel_timeseries(data_file,
     
     Parameters
     ----------
-    datafile : string 
-        Path to input functional data
-    template : string 
-        Path to input mask in functional native space
-    output_type : list
+    datafile : string (nifti file)
+        path to input functional data
+    template : string (nifti file) 
+        path to input mask in functional native space
+    output_type :list
         list of two boolean values suggesting
         the output types - numpy npz file and csv 
         format
         
     Returns
     -------
-    out_list : string (list of files)
-        path to csv file having timeseries of each voxel in the data
-        that is present in the mask.The row header corresponds to 
-        voxel's xyz cordinates and column headers corresponds 
-        to the volume index. By default it outputs 1D file with
-        timeseries of voxel across each timepoint
+    out_list : list of files
+        Based on ouput_type options method returns a list containing 
+        path to npz and csv file having timeseries of each voxel in 
+        the data that is present in the input mask.The row header 
+        corresponds to voxel's xyz cordinates and column headers corresponds 
+        to the volume index in the csv. By default it outputs afni compatible 
+        1D file with mean of timeseries of voxels across timepoints.
         
     Raises
     ------

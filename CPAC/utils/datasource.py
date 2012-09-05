@@ -1,6 +1,5 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-from .utils import *
 
 
 def create_func_datasource(rest_dict, wf_name = 'func_datasource'):
@@ -117,7 +116,8 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
         """
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
-
+        from CPAC.utils import modify_model, select_model
+        
         wf = pe.Workflow(name=wf_name) 
         
         inputnode = pe.Node(util.IdentityInterface(
@@ -151,7 +151,7 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
                                                             'grp_file'],
                                              output_names = ['grp_file',
                                                              'mat_file'],
-                                             funciton = modify_model),
+                                             function = modify_model),
                               name = 'modifymodel')
         
         wf.connect(selectmodel, 'mat_file',
@@ -182,61 +182,3 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
         
         
         return wf
-    
-    
-    
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
-    
-    try:
-        files = model_map[model]
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
-    
-    except Exception:
-        print "All the model files are not present. Please check the model folder"
-        raise
-    
-    return fts_file, con_file, grp_file, mat_file
-
-
-def modify_model(input_sublist, output_sublist, mat_file, grp_file):
-    """
-     Method to modify .grp and .mat fsl group analysis model files
-     
-     Parameters
-     ----------
-     input_sublist : string (list)
-         Path to group analysis input subject list containing all the subjects 
-         for which CPAC is run
-    output_sublist : string (list)
-        Path to subject list for that were successfully run for a particular 
-        derivative
-    mat_file : string (fsl mat file)
-        path to mat file containing  matrix for design
-    grp_file : string (fsl grp file)
-         path to file containing matrix specifying 
-         the groups the covariance is split into 
-         
-    Returns
-    -------
-    new_grp_file : string
-        modified covariance group matrix model file
-    new_mat_file : string
-        modified design matrix file
-    """
-    from  CPAC.utils.utils import modify_model_files
-    new_grp_file = modify_model_files(grp_file, input_sublist, output_sublist)
-    new_mat_file = modify_model_files(mat_file, input_sublist, output_sublist)
-    
-    return new_grp_file, new_mat_file
