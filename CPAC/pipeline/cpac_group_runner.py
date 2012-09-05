@@ -7,7 +7,6 @@ import os
 import sys
 import glob
 
-from CPAC.utils.datasource import create_gpa_dataflow
 
 def split_folders(path):
     folders = []
@@ -22,6 +21,7 @@ def split_folders(path):
             break
         
     folders.reverse()
+    return folders
 
 def run_sge_jobs(c, config_file, resource, subject_infos):
 
@@ -147,30 +147,14 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 
 
-if __name__ == "__main__":
-    import argparse
+def run(config_file, subjects):
     import re
 
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        required=True,
-                        help='location of config file'
-                        )
-
-    parser.add_argument('-s', '--subjects',
-                        dest='subjects',
-                        required=True,
-                        help='location of subjects file'
-                        )
-
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.config))
+    path, fname = os.path.split(os.path.realpath(config_file))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
-    subject_paths = open(args.subjects, 'r').readlines()
+    subject_paths = open(subjects, 'r').readlines()
     subject_paths = [s.rstrip('\r\n') for s in subject_paths]
 
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
@@ -184,7 +168,6 @@ if __name__ == "__main__":
         #Remove the base bath offset
         rs_path = subject_path.replace(base_path, "", 1)
         folders = split_folders(rs_path)
-
         pipeline_id = folders[1]
         subject_id = folders[2]
         resource_id = folders[3]
@@ -199,12 +182,13 @@ if __name__ == "__main__":
 
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
+
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
             if 1 in c.runBASC:
 
                 if not c.runOnGrid:
-                    from CPAC.cpac_basc_pipeline import prep_basc_workflow
+                    from CPAC.pipeline.cpac_basc_pipeline import prep_basc_workflow
                     prep_basc_workflow(c, analysis_map[(resource, glob_key)])
                 else:
                      if 'sge' in c.resourceManager.lower():
@@ -219,7 +203,7 @@ if __name__ == "__main__":
 
                 if not c.runOnGrid:
 
-                    from CPAC.cpac_cwas_pipeline import prep_cwas_workflow
+                    from CPAC.pipeline.cpac_cwas_pipeline import prep_cwas_workflow
                     prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
 
                 else:
@@ -233,12 +217,13 @@ if __name__ == "__main__":
 
 
     for resource, glob_key in analysis_map_gp.keys():
+
         if resource in c.derivativeList:
 
             if 1 in c.runGroupAnalysis:
 
                 if not c.runOnGrid:
-                    from CPAC.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+                    from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                     prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
 
                 else:

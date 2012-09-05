@@ -9,14 +9,14 @@ def convert_pvalue_to_r(scans, threshold):
     
     Parameters
     ----------
-    scans : string (int)
+    scans : int
         Total number of scans in the data
-    threshold : string (float)
+    threshold : float
         input p_value
     
     Returns
     -------
-    rvalue : string (float)
+    rvalue : float
         correlation threshold value 
     """
     
@@ -24,7 +24,8 @@ def convert_pvalue_to_r(scans, threshold):
     print "p_value ->", threshold
     x = 1-threshold/2
     dof = scans-2
-    tvalue = s.t.isf(x/2, dof)
+    #Inverse Survival Function (Inverse of SF)
+    tvalue = s.t.isf(x, dof)
     rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
     
     return rvalue
@@ -37,14 +38,14 @@ def convert_sparsity_to_r(rmatrix, threshold):
     
     Parameters
     ----------
-    rmatrix : string (matrix)
+    rmatrix : array_like
         correaltion matrix
-    threshold : string (float)
+    threshold : float
         input sparsity threshold
     
     Returns
     -------
-    rvalue : string (float)
+    rvalue : float
         correlation threshold value 
      
     """
@@ -137,7 +138,7 @@ def get_centrality_matrix(threshold_matrix, correlation_matrix,
                 """
                 #using scipy method, which is a wrapper to the ARPACK functions
                 #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
-                eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM')
+                eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM', maxiter=1000)
                 print "eigenValue : ", eigenValue
                 eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
                 return eigen_matrix
@@ -184,14 +185,14 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     
     Parameters
     ----------
-    centrality_matrix : string (numpy mat file)
-        path to file containing degree or eigenvector centrality matrix
+    centrality_matrix : tuple (string, array_like)
+        tuple containing matrix name and degree/eigenvector centrality matrix
     affine : string (numpy mat file)
         path to file containing image affine matrix
     template_data : string (numpy mat file)
-        path to file containing mask or parcellation data matrix
-    template_type : string
-        type of template: 0 for mask, 1 for parcellation unit
+        path to file containing mask or roi data matrix
+    template_type : int
+        type of template: 0 for mask, 1 for roi
     
     Returns
     -------
@@ -229,15 +230,18 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
         
         elif int(template_type) == 1:
             nodes = np.unique(mask).tolist()
+            nodes.sort()
+            index = 0
             for n in nodes:
                 if n> 0:
                     cords = np.argwhere(mask==n)
                     for val in cords:
                         x,y,z = val
-                        if isinstance(matrix[n-1], list):
-                            sparse_m[x,y,z] = matrix[n-1][0]
+                        if isinstance(matrix[index], list):
+                            sparse_m[x,y,z] = matrix[index][0]
                         else:
-                            sparse_m[x,y,z]=matrix[n-1]
+                            sparse_m[x,y,z]=matrix[index]
+                    index+=1
                         
     
         nifti_img = nib.Nifti1Image(sparse_m, aff)

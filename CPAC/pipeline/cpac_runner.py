@@ -3,6 +3,8 @@ from multiprocessing import Process
 import sys
 import os
 import argparse
+from CPAC.pipeline import cpac_pipeline
+import threading
 
 
 
@@ -30,6 +32,7 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
+    print paths
     return paths
 
 
@@ -86,30 +89,34 @@ def build_strategies(configuration):
     corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
 
 
-    corrections_dict = config_iterables['_compcor'][0]
-
-    string = ""
-
-    print corrections_dict
-    for correction in corrections_order:
-
-        string += correction + str(corrections_dict[correction]) + '.'
-
-    string = string[0:len(string) -1]
+    corrections_dict_list = config_iterables['_compcor']
 
 
+    print corrections_dict_list
 
-    cmpcor_components = eval('configuration.nComponents')
+    main_all_options = []
+    for corrections_dict in corrections_dict_list:
+        string = ""
+        for correction in corrections_order:
 
+            string += correction + str(corrections_dict[correction]) + '.'
 
-    all_options = []
-    for comp in cmpcor_components:
-
-        all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+        string = string[0:len(string) -1]
 
 
 
-    config_iterables['_compcor'] = all_options
+        cmpcor_components = eval('configuration.nComponents')
+
+
+        all_options = []
+        for comp in cmpcor_components:
+
+            all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+
+        main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
+
+
+    config_iterables['_compcor'] = main_all_options
 
 
     ############
@@ -123,7 +130,7 @@ def build_strategies(configuration):
 
 
 
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
+def run_sge_jobs(c, config_file, strategies_file, subject_list_file, lock_file):
 
 
     import commands
@@ -152,7 +159,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
+#    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file, lock_file)
 
     f.close()
 
@@ -189,7 +197,9 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file, lock_file)
+#    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
+    #print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
     f.close()
 
@@ -215,10 +225,12 @@ def run(config_file, subject_list_file):
 
     print strategies
 
+    global_lock = threading.Lock()
+
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies)) for sub in sublist]
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies, global_lock)) for sub in sublist]
 
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
@@ -282,13 +294,18 @@ def run(config_file, subject_list_file):
         f.close()
 
 
+        lock_file = os.path.join(temp_files_dir, 'lock.obj')
+        f = open(lock_file, 'w')
+        pickle.dump("", f)
+        f.close()
+
 
         if 'sge' in c.resourceManager.lower():
 
-            run_sge_jobs(c, config_file, strategies_file, subject_list_file)
+            run_sge_jobs(c, config_file, strategies_file, subject_list_file, lock_file)
 
 
 
         elif 'pbs' in c.resourceManager.lower():
 
-            run_pbs_jobs(c, config_file, strategies_file, subject_list_file)
+            run_pbs_jobs(c, config_file, strategies_file, subject_list_file, lock_file)

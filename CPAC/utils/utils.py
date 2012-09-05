@@ -1,3 +1,4 @@
+global_lock = None
 
 files_folders_wf = {
     'anatomical_brain': 'anat',
@@ -263,7 +264,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             short_names = {'_threshold':'SCRUB_', '_csf_threshold':'CSF_',
                     '_gm_threshold':'GM_',
-                    '_compcor_':'',
+                    '_compcor_':'compcor',
                     '_target_angle_deg':'MEDIANangle_', '_wm_threshold':'WM_'}
 
             strategy_identifier = ''
@@ -274,19 +275,28 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 print key, ' ----------> ', value
 
                 if '_compcor_'in key:
-                    key = '_compcor_'
+
+                    if 'compcor0' in value:
+                        strategy_identifier += (value + '_')
+
+                        continue
+                    else:
+                        val1 = key.split('_selector')[0]
+                        strategy_identifier += val1 + '_' + value + '_'
+                        continue
 
                 if not 'pipeline' in key:
                     strategy_identifier += short_names[key] + value + '_'
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
 
-#            global_lock.acquire()
+            #global global_lock
+            #global_lock.acquire()
 
             f = open(os.path.join(os.path.dirname(base_path), 'paths_file.txt'), 'a')
 
             print >>f, path
-#            global_lock.release()
+            #global_lock.release()
 
 
         except:
@@ -400,11 +410,57 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 commands.getoutput(cmd)
 
 
+def clean_strategy(strategies, helper):
+
+###
+### If segmentation or scrubbing or nuisance or median is turned off
+### in the pipeline then remove them from the strategy tag list
+
+    new_strat = []
 
 
-def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
+    for strat in strategies:
 
-    from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links
+        tmpstrat = []
+        for el in strat:
+
+            key = el.rsplit('_', 1)[0]
+
+            print '~~~~~~ ', key, ' ~~~ ', el
+            if not ('compcor' in key):
+
+                if 'pipeline' in key:
+
+                    tmpstrat.append(el)
+                    continue
+
+                try:
+                    todos = helper[key]
+
+                    if not (todos == 0):
+
+                        tmpstrat.append(el)
+
+                except:
+
+                    print 'key ', key, 'from ', el, ' not in ', helper
+                    raise
+
+            else:
+
+                if not helper['nuisance'] == 0:
+
+                    tmpstrat.append(el)
+
+        new_strat.append(tmpstrat)
+
+
+    return new_strat
+
+
+def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
+
+    from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
 
 
     for path in in_file:
@@ -415,26 +471,35 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id):
 
         relevant_strategies = get_strategies_for_path(path, strategies)
 
-        create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id)
+        cleaned_strategies = clean_strategy(relevant_strategies, helper)
 
-def modify_model_files(model_file, group_analysis_sublist, output_sublist):
+        create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
+
+
+def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     """
-    Method to modify fsl model matrix file and group file
-    
+    Method to modify .grp and .mat fsl group analysis model files
+     
     Parameters
     ----------
-    model_file : string
-        path to fsl group analysis model(grp/mat) file
-    group_analysis_sublist : string (list)
-        list of all subjects CPAC is run on
-    output_sublist : string(list)
-        list of output subjects of a derivative for which CPAC run succesfully
-    
+    input_sublist : string (list)
+         Path to group analysis input subject list containing all the subjects 
+         for which CPAC is run
+    output_sublist : string (list)
+        Path to subject list for that were successfully run for a particular 
+        derivative
+    mat_file : string (fsl mat file)
+        path to mat file containing  matrix for design
+    grp_file : string (fsl grp file)
+         path to file containing matrix specifying 
+         the groups the covariance is split into 
+         
     Returns
     -------
-    out_file : string
-        Path to output modified model file
-
+    new_grp_file : string
+        modified covariance group matrix model file
+    new_mat_file : string
+        modified design matrix file
     """
     
     import os
@@ -457,42 +522,75 @@ def modify_model_files(model_file, group_analysis_sublist, output_sublist):
                 else:
                     dict1.get('/Matrix').append(line)
         return dict1
-
-    model_map = read_model_file(model_file)
     
-    out_file, ext = os.path.splitext(os.path.basename(model_file))
-    out_file = out_file + '_new' + ext
-    out_file = os.path.join(os.getcwd(), out_file)
+    def write_model_file(model_map, model_file):
+        
+        out_file, ext = os.path.splitext(os.path.basename(model_file))
+        out_file = out_file + '_new' + ext
+        out_file = os.path.join(os.getcwd(), out_file)
+        
+        #create an index of all subjects for a derivative for which 
+        #CPAC did not run successfully
+        remove_index = []
+        for subject in input_sublist:
+            if subject not in output_sublist:
+                remove_index.append(input_sublist.index(subject))
+        
+        print remove_index
+        f = open(out_file, 'wb')
     
-    #create an index of all subjects for a derivative for which 
-    #CPAC did not run successfully
-    remove_index = []
-    for subject in group_analysis_sublist:
-        if subject not in output_sublist:
-            remove_index.append(group_analysis_sublist.index(subject))
+        print >> f, '/NumWaves\t' + model_map['/NumWaves']
+        
+        num_points = int(model_map['/NumPoints']) - len(remove_index)
+        print >> f, '/NumPoints\t' + str(num_points)
+        if ext == ".mat":
+            f.write('/PPHeights\t\t')
+            for val in model_map['/PPHeights']:
+                f.write(val+'\t')
+            f.write('\n')
+        print >> f, ''
+        print >> f, '/Matrix'
+        count =0
+        for values in model_map['/Matrix']:
+            #remove the row form matrix for all unsuccessful subjects 
+            if count not in remove_index:
+                f.write(values)
+            count+=1
     
-    print remove_index
-    f = open(out_file, 'wb')
+        f.close()
 
-    print >> f, '/NumWaves    ' + model_map['/NumWaves']
+        return out_file
     
-    num_points = int(model_map['/NumPoints']) - len(remove_index)
-    print >> f, '/NumPoints    ' + str(num_points)
-    if ext == ".mat":
-        f.write('/PPHeights        ')
-        for val in model_map['/PPHeights']:
-            f.write(val+',')
-        f.write('\n')
-    print >> f, ''
-    print >> f, '/Matrix'
-    count =0
-    for values in model_map['/Matrix']:
-        #remove the row form matrix for all unsuccessful subjects 
-        if count not in remove_index:
-            f.write(values)
-        count+=1
+    model_map = read_model_file(mat_file)
+    new_mat_file = write_model_file(model_map, mat_file)
+    
+    model_map = read_model_file(grp_file)
+    new_grp_file = write_model_file(model_map, grp_file)
+    
+    return new_grp_file, new_mat_file
 
-    f.close()
 
-    return out_file
-
+    
+def select_model(model, model_map, ftest):
+    """
+    Method to select model files
+    """
+    
+    try:
+        files = model_map[model]
+        fts_file = ''
+        for file in files:
+            if file.endswith('.mat'):
+                mat_file = file
+            elif file.endswith('.grp'):
+                grp_file = file
+            elif file.endswith('.fts') and ftest:
+                 fts_file = file
+            elif file.endswith('.con'):
+                 con_file = file
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder"
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file

@@ -26,6 +26,7 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
+from CPAC.utils.utils import global_lock
 from CPAC.utils.utils import prepare_symbolic_links
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
@@ -72,18 +73,24 @@ class strategy:
 
             self.resource_pool[key] = value
 
-def prep_workflow(sub_dict, c, strategies):
+def prep_workflow(sub_dict, c, strategies, lock):
+
+    global global_lock
+
+    global_lock = lock
+
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp'}
+    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
 
     mflow = None
     pflow = None
 
     strat_list = []
+
 
 
     """
@@ -750,11 +757,11 @@ def prep_workflow(sub_dict, c, strategies):
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
             func_to_mni.inputs.inputspec.interp = 'trilinear'
-            
+
             func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                     name='func_mni_warp_%d' % num_strat)
             func_mni_warp.inputs.ref_file = c.standardResolutionBrain
-            
+
             try:
                 node, out_file = strat.get_node_from_resource_pool('mean_functional')
                 workflow.connect(node, out_file,
@@ -942,6 +949,7 @@ def prep_workflow(sub_dict, c, strategies):
             alff_Z_to_standard.inputs.ref_file = c.standard
 
             falff_Z_to_standard = alff_Z_to_standard.clone('falff_Z_to_standard_%d' % num_strat)
+            falff_Z_to_standard.inputs.ref_file = c.standard
 
             try:
 
@@ -977,7 +985,7 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
             strat.update_resource_pool({'alff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
-            strat.update_resource_pool({'falff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
+            strat.update_resource_pool({'falff_Z_to_standard':(falff_Z_to_standard, 'out_file')})
             strat.append_name('alff_falff_to_standard')
             num_strat += 1
     strat_list += new_strat_list
@@ -1191,11 +1199,11 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runVoxelTimeseries:
         for strat in strat_list:
         
-            resample_mask_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_mask_to_functional_%d'%num_strat)
-            resample_mask_to_functional.inputs.interp = 'nearestneighbour'
-            resample_mask_to_functional.inputs.apply_xfm = True
-            resample_mask_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_mask_%d'%num_strat)
+            resample_functional_to_mask.inputs.interp = 'nearestneighbour'
+            resample_functional_to_mask.inputs.apply_xfm = True
+            resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
             
             mask_dataflow = create_mask_dataflow(c.maskDirectoryPath, 'mask_dataflow_%d'%num_strat)
             
@@ -1206,16 +1214,16 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the mask to input functional file
+                #resample the input functional file to mask 
                 workflow.connect(node, out_file,
-                                 resample_mask_to_functional,'reference' )
+                                 resample_functional_to_mask,'in_file' )
                 workflow.connect(mask_dataflow, 'out_file',
-                                 resample_mask_to_functional, 'in_file')
+                                 resample_functional_to_mask, 'reference')
                 
                 #connect it to the voxel_timeseries
-                workflow.connect(resample_mask_to_functional,'out_file',
+                workflow.connect(mask_dataflow, 'out_file',
                                  voxel_timeseries, 'input_mask.mask')
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_mask,'out_file',
                                  voxel_timeseries, 'inputspec.rest')
                 
             except:
@@ -1248,11 +1256,11 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runROITimeseries:
         for strat in strat_list:
             
-            resample_roi_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_roi_to_functional_%d'%num_strat)
-            resample_roi_to_functional.inputs.interp = 'nearestneighbour'
-            resample_roi_to_functional.inputs.apply_xfm = True
-            resample_roi_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_roi_%d'%num_strat)
+            resample_functional_to_roi.inputs.interp = 'nearestneighbour'
+            resample_functional_to_roi.inputs.apply_xfm = True
+            resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
             
             roi_dataflow = create_roi_dataflow(c.roiDirectoryPath, 'roi_dataflow_%d'%num_strat)
             
@@ -1263,16 +1271,16 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the roi to input functional file
+                #resample the input functional file to roi
                 workflow.connect(node, out_file,
-                                 resample_roi_to_functional,'reference' )
+                                 resample_functional_to_roi,'in_file' )
                 workflow.connect(roi_dataflow, 'out_file',
-                                 resample_roi_to_functional, 'in_file')
+                                 resample_functional_to_roi, 'reference')
                 
                 #connect it to the roi_timeseries
-                workflow.connect(resample_roi_to_functional,'out_file',
+                workflow.connect(roi_dataflow,'out_file',
                                  roi_timeseries, 'input_roi.roi')
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_roi, 'out_file',
                                  roi_timeseries, 'inputspec.rest')
                 
             except:
@@ -1664,11 +1672,11 @@ def prep_workflow(sub_dict, c, strategies):
             
             
             
-            resample_template_to_functional = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_template_to_functional_%d'%num_strat)
-            resample_template_to_functional.inputs.interp = 'nearestneighbour'
-            resample_template_to_functional.inputs.apply_xfm = True
-            resample_template_to_functional.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_template = pe.Node(interface=fsl.FLIRT(), 
+                                                  name='resample_functional_to_template_%d'%num_strat)
+            resample_functional_to_template.inputs.interp = 'nearestneighbour'
+            resample_functional_to_template.inputs.apply_xfm = True
+            resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
             
             template_dataflow = create_mask_dataflow(c.templateDirectoryPath, 'template_dataflow_%d'%num_strat)
             
@@ -1684,16 +1692,22 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
-                #resample the template(roi/mask) to input functional file
+                #resample the input functional file to template(roi/mask) 
                 workflow.connect(node, out_file,
-                                 resample_template_to_functional,'reference' )
-                workflow.connect(node, out_file,
-                                 network_centrality, 'inputspec.subject')
-                
+                                 resample_functional_to_template,'in_file' )
                 workflow.connect(template_dataflow, 'out_file',
-                                 resample_template_to_functional, 'in_file')
-                workflow.connect(resample_template_to_functional, 'out_file',
+                                 resample_functional_to_template, 'reference')
+                
+                workflow.connect(resample_functional_to_template, 'out_file',
+                                 network_centrality, 'inputspec.subject')
+                workflow.connect(template_dataflow, 'out_file',
                                  network_centrality, 'inputspec.template')
+                
+                
+                strat.append_name('network_centrality')
+    
+                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
+                                            'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
         
                 #if smoothing is required
                 if len(c.fwhm) > 0 :
@@ -1705,16 +1719,14 @@ def prep_workflow(sub_dict, c, strategies):
                                        iterfield=['in_file'])
 
                     
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    
                     #calculate zscores
-                    workflow.connect(node, out_file, 
+                    workflow.connect(template_dataflow, 'out_file',
                                      z_score, 'inputspec.mask_file')
                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
                                      z_score, 'inputspec.input_file')
                     
                     #connecting zscores to smoothing
-                    workflow.connect(node, out_file,
+                    workflow.connect(template_dataflow, 'out_file',
                                      smoothing, 'operand_files')
                     workflow.connect(z_score, 'outputspec.z_score_img',
                                     smoothing, 'in_file')
@@ -1739,15 +1751,16 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
-            strat.append_name('network_centrality')
-            
-            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
+
+#            strat.append_name('network_centrality')
+#            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
+#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
             
             num_strat += 1
 
     strat_list += new_strat_list  
+    
+    
 
     ###################### end of workflow ###########
     workflow.write_graph(graph2use='orig')
@@ -1760,6 +1773,51 @@ def prep_workflow(sub_dict, c, strategies):
     sink_idx = 0
     for strat in strat_list:
         rp = strat.get_resource_pool()
+
+        # build helper dictionary to assist with a clean strategy label for symlinks
+
+        strategy_tag_helper_symlinks = {}
+
+        if 'scrubbing' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_threshold'] = 1
+
+        else:
+
+            strategy_tag_helper_symlinks['_threshold'] = 0
+
+
+
+        if 'seg_preproc' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_csf_threshold'] = 1
+            strategy_tag_helper_symlinks['_wm_threshold'] = 1
+            strategy_tag_helper_symlinks['_gm_threshold'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_csf_threshold'] = 0
+            strategy_tag_helper_symlinks['_wm_threshold'] = 0
+            strategy_tag_helper_symlinks['_gm_threshold'] = 0
+
+
+        if 'median_angle_corr' in strat.get_name():
+
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['_target_angle_deg'] = 0
+
+
+        if 'nuisance' in strat.get_name():
+
+            strategy_tag_helper_symlinks['nuisance'] = 1
+
+        else:
+            strategy_tag_helper_symlinks['nuisance'] = 0
+
+
+
+
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
@@ -1769,24 +1827,26 @@ def prep_workflow(sub_dict, c, strategies):
             workflow.connect(node, out_file,
                              ds, key)
 
+            if 1 in c.runSymbolicLinks:
 
-            link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                    'subject_id', 'pipeline_id'],
-                                    output_names=[],
-                                    function=prepare_symbolic_links),
-                                    name='link_%d' % sink_idx, iterfield=['in_file'])
+                link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
+                                        'subject_id', 'pipeline_id', 'helper'],
+                                        output_names=[],
+                                        function=prepare_symbolic_links),
+                                        name='link_%d' % sink_idx, iterfield=['in_file'])
 
-            link_node.inputs.strategies = strategies
-            link_node.inputs.subject_id = subject_id
-            link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+                link_node.inputs.strategies = strategies
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
-            workflow.connect(ds, 'out_file', link_node, 'in_file')
+                workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
 
         d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
-        
+
         G = nx.DiGraph()
         strat_name = strat.get_name()
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
@@ -1804,8 +1864,8 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-if __name__ == "__main__":
 
+def run(config, subject_list_file, indx, strategies, lock):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -1813,51 +1873,17 @@ if __name__ == "__main__":
     import argparse
     import pickle
 
-    parser = argparse.ArgumentParser(description="example: \
-                        run resting_preproc.py -c config.py  -subject_list_file /path/to/subject \
-                        -indx index_into_subject_list_file -strategies strat_list ")
-
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        required=True,
-                        help='location of config file'
-                        )
-
-
-    parser.add_argument('-s', '--subject_list_file',
-                        dest='subject_list_file',
-                        required=True,
-                        help='file containing CPAC internal subject list'
-                        )
-
-    parser.add_argument('-indx', '--index',
-                        dest='indx',
-                        required=False,
-                        help='location of config file'
-                        )
-
-
-
-    parser.add_argument('-strategies', '--strategies',
-                        dest='strategies',
-                        required=False,
-                        help='list of strategies'
-                        )
-
-
-
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.config))
+    path, fname = os.path.split(os.path.realpath(config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
 
-    path, fname = os.path.split(os.path.realpath(args.subject_list_file))
+    path, fname = os.path.split(os.path.realpath(subject_list_file))
     sys.path.append(path)
     s = __import__(fname.split('.')[0])
 
     sublist = s.subjects_list
 
-    sub_dict = sublist[int(args.indx) - 1]
+    sub_dict = sublist[int(indx) - 1]
 
-    prep_workflow(sub_dict, c, pickle.load(open(args.strategies, 'r')))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), pickle.load(open(lock, 'r')))
