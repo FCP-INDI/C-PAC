@@ -1,4 +1,7 @@
-global_lock = None
+import threading
+global_lock = threading.Lock()
+
+
 
 files_folders_wf = {
     'anatomical_brain': 'anat',
@@ -247,6 +250,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         base_path, remainder_path = path.split(subject_id)
 
+
         sym_path = path.split(pipeline_id)[0]
 
         sym_path = os.path.join(sym_path, 'sym_links')
@@ -290,13 +294,13 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
 
-            #global global_lock
-            #global_lock.acquire()
+            global global_lock
+            global_lock.acquire()
 
-            f = open(os.path.join(os.path.dirname(base_path), 'paths_file.txt'), 'a')
+            f = open(os.path.join(os.path.join(base_path, subject_id), 'paths_file.txt'), 'a')
 
             print >>f, path
-            #global_lock.release()
+            global_lock.release()
 
 
         except:
