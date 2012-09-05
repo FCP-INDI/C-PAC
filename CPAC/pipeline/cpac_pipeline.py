@@ -1820,25 +1820,26 @@ def prep_workflow(sub_dict, c, strategies):
             workflow.connect(node, out_file,
                              ds, key)
 
+            if 1 in c.runSymbolicLinks:
 
-            link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                    'subject_id', 'pipeline_id', 'helper'],
-                                    output_names=[],
-                                    function=prepare_symbolic_links),
-                                    name='link_%d' % sink_idx, iterfield=['in_file'])
+                link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
+                                        'subject_id', 'pipeline_id', 'helper'],
+                                        output_names=[],
+                                        function=prepare_symbolic_links),
+                                        name='link_%d' % sink_idx, iterfield=['in_file'])
 
-            link_node.inputs.strategies = strategies
-            link_node.inputs.subject_id = subject_id
-            link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
-            link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                link_node.inputs.strategies = strategies
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
-            workflow.connect(ds, 'out_file', link_node, 'in_file')
+                workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
 
         d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
-        
+
         G = nx.DiGraph()
         strat_name = strat.get_name()
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
