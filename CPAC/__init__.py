@@ -32,9 +32,10 @@ import anat_preproc, \
        network_centrality, \
        scrubbing, \
        group_analysis, \
+       easy_thresh,\
        utils, \
        pipeline
 
-__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis']
+__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh']
 
 __version__ = '0.1-git'
