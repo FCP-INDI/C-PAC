@@ -89,7 +89,7 @@ sinkDirectory = '/home/bcheung/p_integration_sink'
 
 """
 ========================
-Resource Directory Setup
+Resource Directory Setup ***
 ========================
 """
 # Directory where FSL is located
@@ -358,7 +358,7 @@ Network Centrality Options ***
 ==========================
 """
 # Calculate network centrality measures
-runNetworkCentrality =[1]
+runNetworkCentrality = [1]
 
 # Select which centrality measures to calculate
 # First value = Degree Centrality 
@@ -452,18 +452,14 @@ runALFF = [1]
 # NOTE: Frequency filtering is not applied when calculating fALFF
 
 # Frequency cutoff (in Hz) for a high-pass filter
-# All frequencies lower than this value will be excluded from analysis
-# To skip high-pass filtering, leave this array empty []
 highPassFreqALFF = [0.01]
 
 # Frequency cutoff (in Hz) for a low-pass filter
-# All frequencies higher than this value will be excluded from analysis
-# To skip low-pass filtering, leave this array empty []
 lowPassFreqALFF = [0.1]
 
 """
 ======================
-Group Analysis Options
+Group Analysis Options ***
 ======================
 """
 # Path to list of subjects on which to run group statistics
@@ -471,16 +467,22 @@ Group Analysis Options
 # The order of subjects in this list must match the order in your model
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
-# Options come from list of resources
-derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
-                  'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
-                  
-# SPecify path to FLS model(s)
-# One path per model
-# Generated from FSL, or through SHarads script (TALK TO HIM)
+# Select which measures should be included in group analysis:
+## sca_seed_Z_to_standard_smooth = voxel-based SCA
+## sca_roi_Z_to_standard_smooth = ROI based SCA
+## alff_Z_to_standard_smooth = ALFF
+## falff_Z_to_standard_smooth  = fALFF
+## vmhc_z_score_stat_map = VMHC
+## reho_Z_to_standard_smooth = ReHo
+derivativeList = ['sca_seed_Z_to_standard_smooth', \
+                  'sca_roi_Z_to_standard_smooth', \
+                  'alff_Z_to_standard_smooth', \
+                  'falff_Z_to_standard_smooth', \
+                  'vmhc_z_score_stat_map', \
+                  'reho_Z_to_standard_smooth']
 
 # Location of a text file contaning a list of FSL models
-# Each line in this file should be the path to a model
+# Each line in this file should be the path to a model directories
 # These models can be generated through FSL, or using create_fsl_model.py
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
