@@ -472,21 +472,16 @@ Group Analysis Options
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
 
 # Options come from list of resources
-<<<<<<< HEAD
 derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
                   'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
+                  
 # SPecify path to FLS model(s)
 # One path per model
 # Generated from FSL, or through SHarads script (TALK TO HIM)
-=======
-# Get list from Ranjeet, put here and in UG
-derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
-                  'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
 
 # Location of a text file contaning a list of FSL models
 # Each line in this file should be the path to a model
 # These models can be generated through FSL, or using create_fsl_model.py
->>>>>>> More changes from DAN!
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
 # If a subjecs has multiple scans:
