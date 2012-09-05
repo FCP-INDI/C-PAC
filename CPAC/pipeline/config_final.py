@@ -205,7 +205,7 @@ PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
 # Set thresholds for use during automatic tissue segmentation.
 # Values correspond to probability thresholds for a given tissue type.
 # For example, setting a value of 0.8 will result in areas with a 80 percent 
-# probability of being a particular tissue type to be classified as such.
+# probability of being a particular tissue type to be classified as such
 
 cerebralSpinalFluidThreshold = [0.4]
 
@@ -452,9 +452,13 @@ runALFF = [1]
 # NOTE: Frequency filtering is not applied when calculating fALFF
 
 # Frequency cutoff (in Hz) for a high-pass filter
+# All frequencies lower than this value will be excluded from analysis
+# To skip high-pass filtering, leave this array empty []
 highPassFreqALFF = [0.01]
 
 # Frequency cutoff (in Hz) for a low-pass filter
+# All frequencies higher than this value will be excluded from analysis
+# To skip low-pass filtering, leave this array empty []
 lowPassFreqALFF = [0.1]
 
 """
@@ -476,7 +480,8 @@ derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth'
 # Generated from FSL, or through SHarads script (TALK TO HIM)
 =======
 # Get list from Ranjeet, put here and in UG
-derivativeList = ['alff_Z_standard', 'falff_Z_standard']
+derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
+                  'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
 
 # Location of a text file contaning a list of FSL models
 # Each line in this file should be the path to a model
