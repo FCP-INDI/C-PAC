@@ -27,6 +27,7 @@ resourceManager = 'SGE'
 
 queue = 'all.q'
 
+
 #options for SGE only here,
 #SGE users must set this enviroment,
 #easy way to know your parallel environment is to execute the following on command on cluster
@@ -70,17 +71,12 @@ queue = 'all.q'
 # 6. Specify this new environment below
 parallelEnvironment = 'mpi'
 
-
-
-
-
 """
-===============
-Directory Setup * *
-===============
+====================
+Data Directory Setup ***
+====================
 """
 # NOTE: Users must manually create these directories before running C-PAC
-# Please specify the full path to each directory
 
 # Directory where C-PAC should store temporary and intermediate files
 workingDirectory = '/home/bcheung/p_integration_test'
@@ -91,107 +87,125 @@ crashLogDirectory = '/home/bcheung/p_integration_test'
 # Directory where C-PAC should put processed data
 sinkDirectory = '/home/bcheung/p_integration_sink'
 
+"""
+========================
+Resource Directory Setup
+========================
+"""
+# Directory where FSL is located
+# If you have added FSL to your .bashrc file, this will be set automatically
+FSLDIR = commands.getoutput('echo $FSLDIR')
+
+# The following options specify the path of various resources provided by FSL
+# By default, C-PAC will automatically locate these files based on FSLDIR
+# Most users will not need to modify these values
+
+# For users wishing to use non-standard versions of these resources:
+## 1) Delete the string in parentheses beginning with FSLDIR
+## 2) Replace this value with the full path to the appropriate file
+
+standardResolutionBrain = os.path.join(FSLDIR,'/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
+
+standard = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
+
+standardBrainMaskDiluted = os.path.join(FSLDIR,'/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+
+configFile = os.path.join(FSLDIR,'/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
+
+brainSymmetric = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
+
+symmStandard = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
+
+twommBrainMaskDiluted = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
+
+configFileTwomm = os.path.join(FSLDIR,'/etc/flirtsch/T1_2_MNI152_2mm.cnf')
+
+identityMatrix = os.path.join(FSLDIR,'/etc/flirtsch/ident.mat')
 
 """
-==============================================
-Optional Timeseries and Image Header Overrides
-==============================================
+=============================
+Optional Timeseries Overrides ***
+=============================
 """
+# Ignore volumes before this timepoint
+# Options are an integer or None (defaults to beginning of timeseries)
 startIdx = 0
 
-#if you specify none, CPAC calculates it on its own
+# Ignore volumes after this timepoint
+# Options are an integer or None (defaults to end of timeseries)
 stopIdx = None
 
-#same here: based on headers
+# Specify a TR other than what is listen in image headers
+# Options are an integer or None (defaults to header information)
 TR = None
 
-
 """
-preproc
+========================
+Resolution and Smoothing ***
+========================
 """
-
+# Set the resolution (in mm) to which images are transformed
+# Transformation occurs during registration and is requried for many measures
 standardResolution = '3mm'
 
+# Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
+# To skip smoothing, set to 0
 fwhm = [4]
 
+"""
+================================
+Preprocessing Workflow Selection ***
+================================
+"""
+# Set which preprocessing workflows to run.
 
-###Options are [1], [0], [1, 0]
-
+# WARNING:
+# Many measures and outputs require that these workflows be run.
+# Please refer to the developer documentation before changing these settings.
+# Options (here and for most other settings) are: 1 = run, 0 = skip
 
 runAnatomicalDataGathering = [1]
-# anatomicalpreproc, segementation, nuisance won't run
-# Anything that relies on those
-runFunctionalDataGathering = [1]
-# functional preproc wont run
-# Anything that relies on that
-runSymbolicLinks = [1]
-#doesn't effect anything, but you wont get a pretty directory structure
 
+runFunctionalDataGathering = [1]
 
 runAnatomicalPreprocessing = [1]
-# segmentation
-# nuisance
 
 runFunctionalPreprocessing = [1]
-# nothing will run except segmentation and anatomical preproc
 
 runRegistrationPreprocessing = [1]
-# no derivatives will run
-
-
-runAnatomicalToFunctionalRegistration = [1]
-# nuisance and median angle won't run
 
 runRegisterFuncToMNI = [1]
-# no derivatives will run
 
-runVMHC = [1]
+runAnatomicalToFunctionalRegistration = [1]
 
-
-# Generate motion statistics as 
-# required for scrubbing
-# can also be used as regressor in GA
-runGenerateMotionStatistics = [1]
-
-
-
-FSLDIR = commands.getoutput('echo $FSLDIR')
-standardResolutionBrain = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
-standard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
-standardBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
-configFile = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
-brainSymmetric = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
-symmStandard = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
-twommBrainMaskDiluted = os.path.join('/usr/share/fsl/4.1/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
-configFileTwomm = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/T1_2_MNI152_2mm.cnf')
-identityMatrix = os.path.join('/usr/share/fsl/4.1/etc/flirtsch/ident.mat')
-
+runSymbolicLinks = [1]
 
 """
 =========================================
-Probabilistic Tissue Segmentation Options
+Probabilistic Tissue Segmentation Options ***
 =========================================
 """
 # Run automatic tissue segmentation
 runSegmentationPreprocessing = [1]
-# required for nuisance and median angle
 
 # C-PAC uses FSL to automatically distinguish tissue types based on priors.
-
 # Each prior represents the probability that a given voxel will be 
 # of a particular tissue type (white matter, gray matter, or CSF).
 
 # Please specify the location and name of your prior files.
-
+# Priors distributed with FSL must be binarized to be used by C-PAC
+# For information about how to do this, please see the User Guide
 prior_path = '/home/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
+
+# These values will be set automatically based on prior_path
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
 PRIOR_GRAY = os.path.join(prior_path, 'avg152T1_gray_bin.nii.gz')
 PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
 
-# Set thresholds for use during automatic tissue segmentation
-
-# C-PAC uses FSL to automatically distinguish tissue types based on priors
-# Make sure you have set the prior_path
+# Set thresholds for use during automatic tissue segmentation.
+# Values correspond to probability thresholds for a given tissue type.
+# For example, setting a value of 0.8 will result in areas with a 80 percent 
+# probability of being a particular tissue type to be classified as such.
 
 cerebralSpinalFluidThreshold = [0.4]
 
@@ -201,25 +215,24 @@ grayMatterThreshold = [0.2]
 
 """
 ==================================
-Nusiance Signal Correction Options
+Nusiance Signal Correction Options *** 
 ==================================
 """
 # Run nuisance signal correction
 runNuisance = [1]
 
 # Select which nuisance signal corrections to apply:
-
 ## compcor = CompCor
 ## wm = White Matter 
-## csf = Cerebro Spinal Fluid
+## csf = CSF
 ## gm = Gray Matter
 ## global = Global Mean Signal
 ## pc1 = First Principle Component
 ## motion = Motion
 ## linear = Linear Trend
-## quadratic = Quadratic trend
+## quadratic = Quadratic Trend
 
-# Options are 1 (correct) or 0 (ignore)
+# Options are 1 (apply) or 0 (ignore)
 Corrections = [{'compcor' : 1,
                 'wm' : 1,
                 'csf' : 1,
@@ -230,31 +243,32 @@ Corrections = [{'compcor' : 1,
                 'linear' : 1,
                 'quadratic' : 0}]
 
-# Number of Principle Components
-# Only for use when 'compcor' : 1
+# Number of Principle Components to calculate for CompCor (usually 5 or 6)
+# Only for use when 'compcor' is set to 1
 nComponents = [5]
 
 # Run median angle correction
 runMedianAngleCorrection = [0]
 
 # Target angle for median angle correction
-# Only for use when runMedianAngleCorrection = [1] or [0, 1]
 targetAngleDeg = [90]
 
-# 1 to run, 0 to skip
+# Run Scrubbing
 runScrubbing = [1]
 
+# Generate FD and DVARS motion statistics
+# Required to run scrubbing, but can also be used as regressors in a GLM
+runGenerateMotionStatistics = [1]
 
-
-# Volumes with displacement greater than this value (in mm) will be removed.
-# Only for use when runScrubbing = [1] or [0,1]
+# Specify maximum acceptable Framewise Displacement (in mm)
+# Any volume with displacement greater than this value will be removed.
+# One volume before and two volumes after each over-threshold volume
+# will also be removed
 scrubbingThreshold = [0.2]
-
-
 
 """
 ==========================
-Temporal Filtering Options * *
+Temporal Filtering Options ***
 ==========================
 """
 # Apply Temporal Filtering
@@ -268,17 +282,19 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
 =======================================
-Seed-based Correlation Analysis Options * *
+Seed-based Correlation Analysis Options ***
 =======================================
 """
 # Run Seed-based Correlation Analysis
 runSCA = [1]
 
-# SCA will run on all ROI and voxel timeseries extracted below.
+# SCA will be run on all ROI and voxel timeseries extracted below.
+# This means that in order to run SCA, you must also run Timeseries Extraction.
+# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
 
 """
 ==============================
-Time Series Extraction Options *
+Timeseries Extraction Options ***
 ==============================
 """
 # Extract an average timeseries for each ROI
@@ -311,6 +327,10 @@ maskDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
 # Required to run vertex timeseries extraction
 runSurfaceRegistraion = [0]
 
+# Directory where FreeSurfer outputs surface data
+# This should be the same as SUBJECTS_DIR in .bashrc
+reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
+
 # Extract timeseries data for surface vertices
 runVerticesTimeSeries = [0]
 
@@ -320,13 +340,9 @@ runVerticesTimeSeries = [0]
 # Options are True/False
 verticesTSOutputs = [False, False]
 
-# SOMETHING SOMETHING ABOUT FREESURFER. TALK TO SHARAD
-reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
-
-
 """
 ===================================
-Regional Homogeneity (ReHo) Options * *
+Regional Homogeneity (ReHo) Options ***
 ===================================
 """
 # Calculate Regional Homogeneity
@@ -338,7 +354,7 @@ clusterSize = 27
 
 """
 ==========================
-Network Centrality Options * 
+Network Centrality Options ***
 ==========================
 """
 # Calculate network centrality measures
@@ -351,7 +367,7 @@ runNetworkCentrality =[1]
 centralityMethodOptions = [True, True]
 
 # Specify how connections are defined during graph construction
-# First value = Binarize (connection strenth is either 0 or 1)
+# First value = Binarized (connection strenth is either 0 or 1)
 # Second value = Weighted (connection strength is a correlation value)
 # Options are True/False
 centralityWeightOptions = [True, True]
@@ -375,13 +391,24 @@ correlationThreshold = 0.0744
 templateDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS' 
 
 """
+============================================
+Voxel-mirrored Homotopic Connectivity (VMHC) ***
+============================================
+"""
+# Calculate VMHC for all gray matter voxels
+runVMHC = [1]
+
+# There are no options for VMHC
+
+"""
 ====================================================
-Bootstrap Analysis of Stable Clusters (BASC) Options
+Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
-
+# Path to a mask file. Voxels outside this mask will be excluded from BASC.
 bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
 
+# Number of clusters at both the individual and group level.
 bascClusters = 6
 
 # Number of bootstraps to apply to original timeseries data.
@@ -390,25 +417,33 @@ bascTimeseriesBootstraps = 100
 # Number of bootstraps to apply to individual stability matrices.
 bascDatasetBootstraps = 100
 
+# Path to a text file containing Affinity Thresholds for each subject.
+# These are correlation thresholds applied prior to spectral clustering.
+# Can be subject specific when subjects have differing numbers of timepoints.
+# Subjects should be in the same order as in the main subject list.
 bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
 
 """
 ================================================
-Connectome-wide Association Study (CWAS) Options
+Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
-
+# Path to a mask file. Voxels outside this mask will be excluded from CWAS.
 cwasROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
 
+# Number of permutation tests to run on the Psuedo-F statistic
 cwasFSamples = 5000
 
+# Number of NiPype nodes to be created while computing CWAS.
+# This number depends on computing resources
 cwasParallelNodes = 10
 
+# Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subject_regressors.txt'
 
 """
 ==========================================================================
-Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options * *
+Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
 ==========================================================================
 """
 # Calculate ALFF and fALFF
@@ -417,13 +452,9 @@ runALFF = [1]
 # NOTE: Frequency filtering is not applied when calculating fALFF
 
 # Frequency cutoff (in Hz) for a high-pass filter
-# All frequencies lower than this value will be excluded from analysis
-# To skip high-pass filtering, leave this array empty []
 highPassFreqALFF = [0.01]
 
 # Frequency cutoff (in Hz) for a low-pass filter
-# All frequencies higher than this value will be excluded from analysis
-# To skip low-pass filtering, leave this array empty []
 lowPassFreqALFF = [0.1]
 
 """
@@ -431,20 +462,38 @@ lowPassFreqALFF = [0.1]
 Group Analysis Options
 ======================
 """
-# Auto generated by extract_data
-# Order of subjects in this list should match the order of the data in your model
+# Path to list of subjects on which to run group statistics
+# This file should be created automatically when you run extract_data.py
+# The order of subjects in this list must match the order in your model
 groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
+
 # Options come from list of resources
+<<<<<<< HEAD
 derivativeList = ['sca_seed_Z_to_standard_smooth','sca_roi_Z_to_standard_smooth', 'alff_Z_to_standard_smooth', \
                   'falff_Z_to_standard_smooth', 'vmhc_z_score_stat_map', 'reho_Z_to_standard_smooth']
 # SPecify path to FLS model(s)
 # One path per model
 # Generated from FSL, or through SHarads script (TALK TO HIM)
+=======
+# Get list from Ranjeet, put here and in UG
+derivativeList = ['alff_Z_standard', 'falff_Z_standard']
+
+# Location of a text file contaning a list of FSL models
+# Each line in this file should be the path to a model
+# These models can be generated through FSL, or using create_fsl_model.py
+>>>>>>> More changes from DAN!
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
-# if you want to consider multiple scans at once
+
+# If a subjecs has multiple scans:
+# False = Consdier only the first scan session during group analysis
+# True = Consider all scan sessions
 mixedScanAnalysis = False
 
 zThreshold = 2.3
+
 pThreshold = 0.05
+
+# Run an F-test
+# Options are True/False
 fTest = True
 
