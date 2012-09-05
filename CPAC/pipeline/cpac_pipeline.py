@@ -1858,7 +1858,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-def run(config, subject_list_file, indx, strategies)
+def run(config, subject_list_file, indx, strategies):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
