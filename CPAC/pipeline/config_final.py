@@ -456,7 +456,7 @@ highPassFreqALFF = [0.01]
 
 # Frequency cutoff (in Hz) for a low-pass filter
 lowPassFreqALFF = [0.1]
-
+ 
 """
 ======================
 Group Analysis Options ***
