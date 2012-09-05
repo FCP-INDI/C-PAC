@@ -295,7 +295,7 @@ def run(config_file, subject_list_file):
 
 
         lock_file = os.path.join(temp_files_dir, 'lock.obj')
-        f = open(lock, 'w')
+        f = open(lock_file, 'w')
         pickle.dump(global_lock, f)
         f.close()
 
