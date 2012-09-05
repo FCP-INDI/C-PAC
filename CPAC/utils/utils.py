@@ -280,7 +280,9 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
                         continue
                     else:
-                        key = '_compcor_'
+                        val1 = key.split('_selector')[0]
+                        strategy_identifier += val1 + '_' + value + '_'
+                        continue
 
                 if not 'pipeline' in key:
                     strategy_identifier += short_names[key] + value + '_'

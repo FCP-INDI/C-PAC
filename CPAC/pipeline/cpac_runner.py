@@ -30,6 +30,7 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
+    print paths
     return paths
 
 
@@ -86,30 +87,34 @@ def build_strategies(configuration):
     corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
 
 
-    corrections_dict = config_iterables['_compcor'][0]
-
-    string = ""
-
-    print corrections_dict
-    for correction in corrections_order:
-
-        string += correction + str(corrections_dict[correction]) + '.'
-
-    string = string[0:len(string) -1]
+    corrections_dict_list = config_iterables['_compcor']
 
 
+    print corrections_dict_list
 
-    cmpcor_components = eval('configuration.nComponents')
+    main_all_options = []
+    for corrections_dict in corrections_dict_list:
+        string = ""
+        for correction in corrections_order:
 
+            string += correction + str(corrections_dict[correction]) + '.'
 
-    all_options = []
-    for comp in cmpcor_components:
-
-        all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+        string = string[0:len(string) -1]
 
 
 
-    config_iterables['_compcor'] = all_options
+        cmpcor_components = eval('configuration.nComponents')
+
+
+        all_options = []
+        for comp in cmpcor_components:
+
+            all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+
+        main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
+
+
+    config_iterables['_compcor'] = main_all_options
 
 
     ############
@@ -214,6 +219,7 @@ def run(config_file, subject_list_file):
     strategies = sorted(build_strategies(c))
 
     print strategies
+
 
     if not c.runOnGrid:
 
