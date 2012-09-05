@@ -158,7 +158,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, 'source ~/.bashrc'
 
 #    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx $SGE_TASK_ID -strategies %s \" " % (str(config_file), subject_list_file, strategies_file)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(%s,%s,$SGE_TASK_ID,%s) \" " % (str(config_file), subject_list_file, strategies_file)
 
     f.close()
 
@@ -195,7 +195,8 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(%s,%s,${PBS_ARRAYID},%s) \" " % (str(config_file), subject_list_file, strategies_file)
+#    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
     #print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
     f.close()
