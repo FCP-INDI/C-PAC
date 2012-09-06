@@ -486,6 +486,7 @@ derivativeList = ['sca_seed_Z_to_standard_smooth', \
 # Each model directory should contain a .mat, .con, and .grp file
 # If fTest = True (see below), model directories must also contain a .fts file
 # These models can be generated through FSL, or using create_fsl_model.py
+# For instructions on using create_fsl_model.py, see the user guide
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
 # If a subjecs has multiple scans:
