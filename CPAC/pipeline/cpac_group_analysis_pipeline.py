@@ -44,7 +44,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         else:
             raise Exception ("Path to the model %s doesn't exist"%model)
     
-    print model_map
+    #print model_map
     
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
@@ -69,7 +69,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                          gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
-    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analyis_results')
+    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
     ds.inputs.base_directory = out_dir
     ds.inputs.container = resource
     
