@@ -371,7 +371,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global_lock.release()
 
         except:
-            print 'trouble acquiring lock skipping :' path
+            print 'trouble acquiring lock skipping :', path
             raise
 
         try:
