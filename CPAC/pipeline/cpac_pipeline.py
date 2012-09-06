@@ -26,7 +26,6 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
-from CPAC.utils.utils import global_lock
 from CPAC.utils.utils import prepare_symbolic_links
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
@@ -73,11 +72,8 @@ class strategy:
 
             self.resource_pool[key] = value
 
-def prep_workflow(sub_dict, c, strategies, lock):
+def prep_workflow(sub_dict, c, strategies):
 
-    global global_lock
-
-    global_lock = lock
 
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
@@ -1680,7 +1676,7 @@ def prep_workflow(sub_dict, c, strategies, lock):
             
             template_dataflow = create_mask_dataflow(c.templateDirectoryPath, 'template_dataflow_%d'%num_strat)
             
-            network_centrality = create_resting_state_graphs('network_centrality_%d'%num_strat)
+            network_centrality = create_resting_state_graphs(c.generateAdjacencyGraph, 'network_centrality_%d'%num_strat)
             network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
             network_centrality.inputs.inputspec.threshold = c.correlationThreshold
             network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
@@ -1706,8 +1702,10 @@ def prep_workflow(sub_dict, c, strategies, lock):
                 
                 strat.append_name('network_centrality')
     
-                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-                                            'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
+                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
+                
+                if c.generateAdjacencyGraph:
+                    strat.update_resource_pool({'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
         
                 #if smoothing is required
                 if len(c.fwhm) > 0 :
@@ -1865,7 +1863,7 @@ def prep_workflow(sub_dict, c, strategies, lock):
 
 
 
-def run(config, subject_list_file, indx, strategies, lock):
+def run(config, subject_list_file, indx, strategies):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -1886,4 +1884,4 @@ def run(config, subject_list_file, indx, strategies, lock):
 
     sub_dict = sublist[int(indx) - 1]
 
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), pickle.load(open(lock, 'r')))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))

@@ -4,7 +4,6 @@ import sys
 import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
-import threading
 
 
 
@@ -130,7 +129,7 @@ def build_strategies(configuration):
 
 
 
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file, lock_file):
+def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
 
 
     import commands
@@ -160,7 +159,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, lock_file):
     print >>f, 'source ~/.bashrc'
 
 #    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file, lock_file)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file)
 
     f.close()
 
@@ -197,7 +196,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file, lock_file)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file)
 #    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
     #print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
 
@@ -225,12 +224,11 @@ def run(config_file, subject_list_file):
 
     print strategies
 
-    global_lock = threading.Lock()
 
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies, global_lock)) for sub in sublist]
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies)) for sub in sublist]
 
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
@@ -294,18 +292,14 @@ def run(config_file, subject_list_file):
         f.close()
 
 
-        lock_file = os.path.join(temp_files_dir, 'lock.obj')
-        f = open(lock_file, 'w')
-        pickle.dump("", f)
-        f.close()
 
 
         if 'sge' in c.resourceManager.lower():
 
-            run_sge_jobs(c, config_file, strategies_file, subject_list_file, lock_file)
+            run_sge_jobs(c, config_file, strategies_file, subject_list_file)
 
 
 
         elif 'pbs' in c.resourceManager.lower():
 
-            run_pbs_jobs(c, config_file, strategies_file, subject_list_file, lock_file)
+            run_pbs_jobs(c, config_file, strategies_file, subject_list_file)
