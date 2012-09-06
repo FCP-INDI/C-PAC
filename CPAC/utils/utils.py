@@ -253,6 +253,8 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         sym_path = path.split(pipeline_id)[0]
 
+        file_path = os.path.join(sym_path, pipeline_id)
+        file_path = os.path.join(file_path, subject_id)
         sym_path = os.path.join(sym_path, 'sym_links')
 
         sym_path = os.path.join(sym_path, pipeline_id)
@@ -297,7 +299,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global global_lock
             global_lock.acquire()
 
-            f = open(os.path.join(os.path.join(base_path, subject_id), 'paths_file.txt'), 'a')
+            f = open(os.path.join(file_path, 'paths_file.txt'), 'a')
 
             print >>f, path
             global_lock.release()

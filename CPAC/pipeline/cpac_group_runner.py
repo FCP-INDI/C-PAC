@@ -19,8 +19,9 @@ def split_folders(path):
             if path != "":
                 folders.append(path)
             break
-        
+
     folders.reverse()
+    print folders
     return folders
 
 def run_sge_jobs(c, config_file, resource, subject_infos):
@@ -70,15 +71,15 @@ def run_sge_jobs(c, config_file, resource, subject_infos):
 
     if c.runBASC:
 
-        print >>f, "python CPAC.pipeline.cpac_basc_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runCWAS:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runGroupAnalysis:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file, " -r ", resource_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
 
 
     f.close()
@@ -129,15 +130,15 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
     if c.runBASC:
 
-        print >>f, "python CPAC.pipeline.cpac_basc_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runCWAS:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runGroupAnalysis:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file, " -r ", resource_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
 
 
     f.close()
@@ -166,12 +167,16 @@ def run(config_file, subjects):
 
     for subject_path in subject_paths:
         #Remove the base bath offset
+
         rs_path = subject_path.replace(base_path, "", 1)
+
+        rs_path = rs_path.lstrip('/')
+
         folders = split_folders(rs_path)
-        pipeline_id = folders[1]
-        subject_id = folders[2]
-        resource_id = folders[3]
-        scan_id = folders[4]
+        pipeline_id = folders[0]
+        subject_id = folders[1]
+        resource_id = folders[2]
+        scan_id = folders[3]
 
         key = subject_path.replace(subject_id, '*')
         analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
