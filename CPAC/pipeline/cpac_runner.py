@@ -224,7 +224,6 @@ def run(config_file, subject_list_file):
 
     print strategies
 
-    global_lock = threading.Lock()
 
     if not c.runOnGrid:
 
