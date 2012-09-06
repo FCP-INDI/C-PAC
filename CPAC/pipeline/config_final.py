@@ -89,7 +89,7 @@ sinkDirectory = '/home/bcheung/p_integration_sink'
 
 """
 ========================
-Resource Directory Setup ***
+Resource Directory Setup NOT FINISHED- NEED MORE INFO FOR FSL FILES
 ========================
 """
 # Directory where FSL is located
@@ -458,9 +458,9 @@ highPassFreqALFF = [0.01]
 lowPassFreqALFF = [0.1]
  
 """
-======================
-Group Analysis Options ***
-======================
+============================
+Group Statistics Options ***
+============================
 """
 # Path to list of subjects on which to run group statistics
 # This file should be created automatically when you run extract_data.py
@@ -482,7 +482,9 @@ derivativeList = ['sca_seed_Z_to_standard_smooth', \
                   'reho_Z_to_standard_smooth']
 
 # Location of a text file contaning a list of FSL models
-# Each line in this file should be the path to a model directories
+# Each line in this file should be the path to a model directory
+# Each model directory should contain a .mat, .con, and .grp file
+# If fTest = True (see below), model directories must also contain a .fts file
 # These models can be generated through FSL, or using create_fsl_model.py
 modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
 
