@@ -70,15 +70,15 @@ def run_sge_jobs(c, config_file, resource, subject_infos):
 
     if c.runBASC:
 
-        print >>f, "python CPAC.pipeline.cpac_basc_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runCWAS:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runGroupAnalysis:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file, " -r ", resource_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
 
 
     f.close()
@@ -129,15 +129,15 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
     if c.runBASC:
 
-        print >>f, "python CPAC.pipeline.cpac_basc_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runCWAS:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
 
     elif c.runGroupAnalysis:
 
-        print >>f, "python CPAC.pipeline.cpac_cwas_pipeline.py -c ", str(config_file), " -i ", subject_infos_file, " -r ", resource_file
+        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
 
 
     f.close()

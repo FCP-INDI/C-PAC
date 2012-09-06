@@ -42,8 +42,7 @@ def prep_cwas_workflow(c, subject_infos):
 
 
 
-if __name__ == "__main__":
-    import argparse
+def run(config, subject_infos):
     import re
     import commands
     commands.getoutput('source ~/.bashrc')
@@ -51,29 +50,11 @@ if __name__ == "__main__":
     import sys
     import pickle
 
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        required=True,
-                        help='location of config file'
-                        )
-
-    parser.add_argument('-i', '--subject_infos',
-                        dest='subject_infos',
-                        required=True,
-                        help='subject_info'
-                        )
-
-
-
-
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.config))
+    path, fname = os.path.split(os.path.realpath(config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
 
-    prep_cwas_workflow(c, pickle.load(open(args.subject_infos, 'r') ))
+    prep_cwas_workflow(c, pickle.load(open(subject_infos, 'r') ))
 
 
