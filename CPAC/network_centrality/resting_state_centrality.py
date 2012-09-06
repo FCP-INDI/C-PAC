@@ -11,7 +11,9 @@ def create_resting_state_graphs(generate_graph, wf_name = 'resting_state_graph')
     Parameters
     ----------
     generate_graph : boolean
-        when true the workflow plots graph and .mat files for the adjacency matrix
+        when true the workflow plots the adjacency matrix graph 
+        and converts the adjacency matrix into compress sparse 
+        matrix and stores it in a .mat file
     wf_name : string
         name of the workflow
         
