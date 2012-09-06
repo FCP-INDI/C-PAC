@@ -275,7 +275,10 @@ def extract_data(c):
         f.close()
 
 def generate_suplimentary_files():
-    
+    """
+    Method to generate phenotypic template file
+    and subject list for group analysis
+    """
     from sets import Set
     import csv
     import os
@@ -343,23 +346,16 @@ def generate_suplimentary_files():
     f.close()
     
     
-def main():
-
-    parser = argparse.ArgumentParser(description="example: \
-                        run extract_data.py -c data_config.py")
-    parser.add_argument('-c', '--data_config',
-                        dest='data_config',
-                        required=True,
-                        help='location of config file'
-                        )
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.data_config))
+def run(data_config):
+    """
+    Run method takes data_config file as the input argument
+    """
+    
+    import os
+    import sys
+    
+    path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
     extract_data(c)
     generate_suplimentary_files()
-
-
-if __name__ == "__main__":
-   
-    sys.exit(main())

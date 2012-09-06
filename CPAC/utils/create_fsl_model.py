@@ -8,19 +8,19 @@ from collections import OrderedDict as od
 def filter_phenotypic(c):
 
     """
-        The Main purpose of this function is to extract phenotypic data from the phenotypic file for the subjects in the subject list.
-        The phenotypic data corresponding to column names specified in columnsInModel variable in the config_fsl.py is extracted.
+    The Main purpose of this function is to extract phenotypic data from the phenotypic file for the subjects in the subject list.
+    The phenotypic data corresponding to column names specified in columnsInModel variable in the config_fsl.py is extracted.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        c : The configuration file object containing all the variables specified in the configuration file. 
+    c : The configuration file object containing all the variables specified in the configuration file. 
 
-        Returns
-        -------
+    Returns
+    -------
 
-        f_r: List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-        in columnsInModel variable in the config_fsl.py    
+    f_r: List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
+    in columnsInModel variable in the config_fsl.py    
 
     """
 
@@ -66,24 +66,24 @@ def organize_data(filter_data, c):
 
     """
 
-        The main purpose of this function is to identify the categorical and directional columns in the model,
-        demean the categorical columns and organize the directional columns.
+    The main purpose of this function is to identify the categorical and directional columns in the model,
+    demean the categorical columns and organize the directional columns.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-        in columnsInModel variable in the config_fsl.py
+    filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
+    in columnsInModel variable in the config_fsl.py
 
-        c : The configuration file object containing all the variables specified in the configuration file.
+    c : The configuration file object containing all the variables specified in the configuration file.
 
-        Returns
-        -------
+    Returns
+    -------
 
-        filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-        in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
+    filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
+    in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
 
-        field_names : The field names are the column names in the final model file
+    field_names : The field names are the column names in the final model file
     """
 
 
@@ -211,21 +211,21 @@ def organize_data(filter_data, c):
 def write_data(model_data, field_names, c):
 
     """
-        The main purpose of this function is to populate the Model CSV File.
-        This file becomes the basis for the FSL group Analysis inputs (.mat, .grp, .con, .fts etc)
+    The main purpose of this function is to populate the Model CSV File.
+    This file becomes the basis for the FSL group Analysis inputs (.mat, .grp, .con, .fts etc)
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        model_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-        in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
+    model_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
+    in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
 
-        field_names : The field names are the column names in the final model file
+    field_names : The field names are the column names in the final model file
 
-        Returns
-        -------
+    Returns
+    -------
 
-        The populated Model File
+    The populated Model File
 
     """
 
@@ -250,6 +250,9 @@ def write_data(model_data, field_names, c):
 
 def create_mat_file(data, model_name):
 
+    """
+    create the .mat file
+    """
 
     dimx, dimy = data.shape
 
@@ -276,6 +279,9 @@ def create_mat_file(data, model_name):
 
 def create_grp_file(data, model_name):
 
+    """
+    create the grp file
+    """
 
     dimx, dimy = data.shape
     data = np.ones(dimx)
@@ -291,6 +297,9 @@ def create_grp_file(data, model_name):
 
 def create_con_ftst_file(con_file, model_name):
 
+    """
+    Create the contrasts and fts file
+    """
     data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
 
     lst = data.tolist()
@@ -348,32 +357,25 @@ def create_con_ftst_file(con_file, model_name):
 
 
 
-def main():
+def run(config, mode):
 
-    parser = argparse.ArgumentParser(description="example: \
-                        run create_fsl_model.py -c config_fsl.py -m <generate_model_csv | generate_model_fsl_files>")
-    parser.add_argument('-c', '--config',
-                        dest='config',
-                        required=True,
-                        help='location of config file'
-                        )
-    parser.add_argument('-m', '--mode',
-                        dest='mode',
-                        required=True,
-                        help='generate model csv file or model fsl files'
-                        )
-    args = parser.parse_args()
-    path, fname = os.path.split(os.path.realpath(args.config))
+    path, fname = os.path.split(os.path.realpath(config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
 
-    if args.mode == 'generate_model_csv':
+    if mode == 'generate_model_csv':
+        ###This generates the model file
+
+        ###parse the phenotypic file and pickup subjects and phenotypic
+        ###columns that user requires to be in the model file with demeaning
+        ###and splitting columns for categorical variables
         filter_data = filter_phenotypic(c)
         model_ready_data, field_names = organize_data(filter_data, c)
         write_data(model_ready_data, field_names, c)
 
     else:
+        ###generate the final FSL .grp, .mat, .con, .fts files 
         model = c.outputModelFile
 
         con = c.contrastFile
@@ -393,9 +395,3 @@ def main():
         create_grp_file(data, model_name)
         create_con_ftst_file(con, model_name)
 
-
-if __name__ == "__main__":
-
-
-
-    sys.exit(main())

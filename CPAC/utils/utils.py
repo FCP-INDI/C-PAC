@@ -1,4 +1,7 @@
-global_lock = None
+import threading
+global_lock = threading.Lock()
+
+
 
 files_folders_wf = {
     'anatomical_brain': 'anat',
@@ -247,8 +250,11 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         base_path, remainder_path = path.split(subject_id)
 
+
         sym_path = path.split(pipeline_id)[0]
 
+        file_path = os.path.join(sym_path, pipeline_id)
+        file_path = os.path.join(file_path, subject_id)
         sym_path = os.path.join(sym_path, 'sym_links')
 
         sym_path = os.path.join(sym_path, pipeline_id)
@@ -290,13 +296,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
 
-            #global global_lock
-            #global_lock.acquire()
-
-            f = open(os.path.join(os.path.dirname(base_path), 'paths_file.txt'), 'a')
-
-            print >>f, path
-            #global_lock.release()
 
 
         except:
@@ -315,7 +314,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
 
-
 #        strategy_identifier = 'regressors.' + strategy_identifier
 
         #start making basic sym link directories
@@ -330,6 +328,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         #bring into use the tier 2 iterables for recursive directory structure
 
+
         if '/_mask_' in remainder_path:
 
             new_path = os.path.join(new_path, get_hplpfwhmseed_('/_mask_', remainder_path))
@@ -342,24 +341,36 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
 #            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_sca_roi_', remainder_path))
 
+        hp_str = ''
 
         if ('_hp_'  in remainder_path):
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_hp_', remainder_path))
+            hp_str = get_hplpfwhmseed_('/_hp_', remainder_path)
+            new_path = os.path.join(new_path, hp_str)
 
+        lp_str = ''
 
         if ('_lp_' in remainder_path):
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_lp_', remainder_path))
+            lp_str = get_hplpfwhmseed_('/_lp_', remainder_path)
+
+            new_path = os.path.join(new_path, lp_str)
+
+        bp_freq = ''
 
         if ('_bandpass_freqs_' in remainder_path):
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path))
+            bp_freq = get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path)
+            new_path = os.path.join(new_path, bp_freq)
 
+
+        fwhm_str = ''
 
         if ('_fwhm_' in remainder_path):
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_fwhm_', remainder_path))
+
+            fwhm_str = get_hplpfwhmseed_('/_fwhm_', remainder_path)
+            new_path = os.path.join(new_path, fwhm_str)
 
 
 
@@ -367,6 +378,29 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             os.makedirs(new_path)
         except:
             print '.'
+
+
+        try:
+            new_f_path = os.path.join(file_path, 'path_files_here')
+            os.makedirs(new_f_path)
+        except:
+            print '.'
+
+
+        try:
+
+
+            global global_lock
+            global_lock.acquire()
+
+            f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
+
+            print >>f, path
+            global_lock.release()
+
+        except:
+            print 'trouble acquiring locks or opening file skipping :', os.path.join(new_f_path, 'paths_file_%s.txt') % new_path.replace('/', '_')
+            raise
 
         fname = os.path.basename(path)
 
