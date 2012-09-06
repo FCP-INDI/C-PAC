@@ -3,13 +3,15 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.network_centrality import *
 
-def create_resting_state_graphs(wf_name = 'resting_state_graph'):
+def create_resting_state_graphs(generate_graph, wf_name = 'resting_state_graph'):
     """
     Workflow to calculate degree and eigenvector centrality
     measures for the resting state data.
     
     Parameters
     ----------
+    generate_graph : boolean
+        when true the workflow plots graph and .mat files for the adjacency matrix
     wf_name : string
         name of the workflow
         
@@ -196,29 +198,31 @@ def create_resting_state_graphs(wf_name = 'resting_state_graph'):
     wf.connect(calculate_centrality, 'out_list',
                outputspec, 'centrality_outputs')
     
-    generate_graph = pe.Node(util.Function(input_names = ['threshold_matrix',
-                                                          'correlation_matrix',
-                                                          'weight_options',
-                                                          'template_data',
-                                                          'template_type'],
-                                              output_names= ['out_list'],
-                                              function= generate_adjacency_graph),
-                                name = 'generate_graph')
+    if generate_graph:
     
-    
-    wf.connect(centrality_options, 'weight_options',
-               generate_graph, 'weight_options')
-    wf.connect(find_correlation, 'correlation_matrix',
-               generate_graph, 'correlation_matrix')
-    wf.connect(threshold_correlation, 'threshold_matrix',
-               generate_graph, 'threshold_matrix')
-    wf.connect(read_data, 'mask_data',
-               generate_graph, 'template_data')
-    wf.connect(read_data, 'mask_type',
-               generate_graph, 'template_type')
-    
-    wf.connect(generate_graph, 'out_list',
-               outputspec, 'graph_outputs')
+        generate_graph = pe.Node(util.Function(input_names = ['threshold_matrix',
+                                                              'correlation_matrix',
+                                                              'weight_options',
+                                                              'template_data',
+                                                              'template_type'],
+                                                  output_names= ['out_list'],
+                                                  function= generate_adjacency_graph),
+                                    name = 'generate_graph')
+        
+        
+        wf.connect(centrality_options, 'weight_options',
+                   generate_graph, 'weight_options')
+        wf.connect(find_correlation, 'correlation_matrix',
+                   generate_graph, 'correlation_matrix')
+        wf.connect(threshold_correlation, 'threshold_matrix',
+                   generate_graph, 'threshold_matrix')
+        wf.connect(read_data, 'mask_data',
+                   generate_graph, 'template_data')
+        wf.connect(read_data, 'mask_type',
+                   generate_graph, 'template_type')
+        
+        wf.connect(generate_graph, 'out_list',
+                   outputspec, 'graph_outputs')
     
     return wf
 
