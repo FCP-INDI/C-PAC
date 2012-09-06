@@ -148,14 +148,25 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 
 
-def run(config_file, subjects):
+def run(config_file, out_pipeline_path):
+    
     import re
+    import os
+    from glob import iglob 
+    from shutil import copyfileobj
+    
+    all_paths_file = os.path.join(out_pipeline_path,'output_paths.txt')
+    destination = open(all_paths_file, 'wb')
+    #merge all path_file from each subject
+    for file in glob.iglob(os.path.join(out_pipeline_path, '*', 'paths_file.txt')):
+        copyfileobj(open(file, 'rb'), destination)
+    destination.close()
 
     path, fname = os.path.split(os.path.realpath(config_file))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
-    subject_paths = open(subjects, 'r').readlines()
+    subject_paths = open(all_paths_file, 'r').readlines()
     subject_paths = [s.rstrip('\r\n') for s in subject_paths]
 
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
