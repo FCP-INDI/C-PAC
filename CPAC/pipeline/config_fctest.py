@@ -895,7 +895,9 @@ correlationThreshold = 0.0744
 #path to mask/roi directory for netwrok centrality 
 templateDirectoryPath = seedDirPath 
 
-
+#generates a png file and.mat for the adjacency matrix
+#takes in lot of memory, turn it on only with roi or seeds
+generateAdjacencyGraph = False
 
 """
 
