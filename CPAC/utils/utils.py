@@ -296,13 +296,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
 
-            global global_lock
-            global_lock.acquire()
-
-            f = open(os.path.join(file_path, 'paths_file.txt'), 'a')
-
-            print >>f, path
-            global_lock.release()
 
 
         except:
@@ -320,7 +313,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('gm0.', '')
         strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
-
 
 #        strategy_identifier = 'regressors.' + strategy_identifier
 
@@ -368,6 +360,19 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             new_path = os.path.join(new_path, get_hplpfwhmseed_('/_fwhm_', remainder_path))
 
 
+        try:
+
+            global global_lock
+            global_lock.acquire()
+
+            f = open(os.path.join(file_path, 'paths_file_%s.txt') % new_path, 'a')
+
+            print >>f, path
+            global_lock.release()
+
+        except:
+            print 'trouble acquiring lock skipping :' path
+            raise
 
         try:
             os.makedirs(new_path)
