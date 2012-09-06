@@ -1123,7 +1123,7 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
             strat.update_resource_pool({'reho_Z_to_standard':(reho_Z_to_standard, 'out_file')})
-            strat.append_name('reho')
+            strat.append_name('reho_Z_transform')
             num_strat += 1
     strat_list += new_strat_list
 
