@@ -79,13 +79,13 @@ Data Directory Setup ***
 # NOTE: Users must manually create these directories before running C-PAC
 
 # Directory where C-PAC should store temporary and intermediate files
-workingDirectory = '/home/bcheung/p_integration_test'
+workingDirectory = '/path/to/working_directory'
 
 # Directory where C-PAC should place crash logs
-crashLogDirectory = '/home/bcheung/p_integration_test'
+crashLogDirectory = '/path/to/crash_directory'
 
 # Directory where C-PAC should put processed data
-sinkDirectory = '/home/bcheung/p_integration_sink'
+sinkDirectory = '/path/to/output_directory'
 
 """
 ========================
@@ -182,7 +182,7 @@ runSymbolicLinks = [1]
 
 """
 =========================================
-Probabilistic Tissue Segmentation Options ***
+Probabilistic Tissue Segmentation Options *** NEED TO FIX PRIOR PATH
 =========================================
 """
 # Run automatic tissue segmentation
@@ -195,7 +195,7 @@ runSegmentationPreprocessing = [1]
 # Please specify the location and name of your prior files.
 # Priors distributed with FSL must be binarized to be used by C-PAC
 # For information about how to do this, please see the User Guide
-prior_path = '/home/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
+prior_path = '/path/to/tissuepriors/%s' % standardResolution
 
 # These values will be set automatically based on prior_path
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
@@ -308,7 +308,7 @@ runROITimeseries = [0]
 roiTSOutputs = [True, True]
 
 # Directory containing ROI definitions
-roiDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
+roiDirectoryPath = '/path/to/roi_definitions_directory'
 
 # Extract timeseries data for all individual voxels within a mask
 # Required if you wish to run voxel-based SCA
@@ -321,7 +321,7 @@ runVoxelTimeseries = [1]
 voxelTSOutputs = [False, False]
 
 # Directory contaning masks
-maskDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS_extraction'
+maskDirectoryPath = '/path/to/mask_definitions_directory'
 
 # Register timeseries data to a surface model built by FreeSurfer
 # Required to run vertex timeseries extraction
@@ -329,7 +329,7 @@ runSurfaceRegistraion = [0]
 
 # Directory where FreeSurfer outputs surface data
 # This should be the same as SUBJECTS_DIR in .bashrc
-reconSubjectsDirectory = '/home/data/Projects/NEO2012/FS_outputs'
+reconSubjectsDirectory = '/path/to/fs_output_directory'
 
 # Extract timeseries data for surface vertices
 runVerticesTimeSeries = [0]
@@ -388,7 +388,7 @@ correlationThreshold = 0.0744
 # Directory containing ROI definitions or masks
 # Using ROIs will result in node-based centrality measures
 # Using a mask will result in voxel-based centrality measures
-templateDirectoryPath = '/home2/data/Projects/NEO2012/mask_for_unitTS' 
+templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
 
 """
 ============================================
@@ -406,7 +406,7 @@ Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
 # Path to a mask file. Voxels outside this mask will be excluded from BASC.
-bascROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+bascROIFile = '/path/to/basc_mask_file'
 
 # Number of clusters at both the individual and group level.
 bascClusters = 6
@@ -421,7 +421,7 @@ bascDatasetBootstraps = 100
 # These are correlation thresholds applied prior to spectral clustering.
 # Can be subject specific when subjects have differing numbers of timepoints.
 # Subjects should be in the same order as in the main subject list.
-bascAffinityThresholdFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subjects_affine.txt'
+bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 
 """
 ================================================
@@ -429,7 +429,7 @@ Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
 # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
-cwasROIFile = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
+cwasROIFile = '/path/to/cwas_mask_file'
 
 # Number of permutation tests to run on the Psuedo-F statistic
 cwasFSamples = 5000
@@ -439,7 +439,7 @@ cwasFSamples = 5000
 cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
-cwasRegressorFile = '/home/bcheung/Dropbox/server_shares/CPAC_git/CPAC_main/C-PAC/CPAC/pipeline/subject_regressors.txt'
+cwasRegressorFile = '/path/to/cwas_regressor_file'
 
 """
 ==========================================================================
@@ -465,7 +465,7 @@ Group Statistics Options ***
 # Path to list of subjects on which to run group statistics
 # This file should be created automatically when you run extract_data.py
 # The order of subjects in this list must match the order in your model
-groupAnalysisSubjectList = '/home/data/Projects/abidehbm/settings/subject_list_group_analysis.txt'
+groupAnalysisSubjectList = '/path/to/subject_list_group_analysis.txt'
 
 # Select which measures should be included in group analysis:
 ## sca_seed_Z_to_standard_smooth = voxel-based SCA
@@ -487,7 +487,7 @@ derivativeList = ['sca_seed_Z_to_standard_smooth', \
 # If fTest = True (see below), model directories must also contain a .fts file
 # These models can be generated through FSL, or using create_fsl_model.py
 # For instructions on using create_fsl_model.py, see the user guide
-modelFile = '/home/data/Projects/abidehbm/setting/subject_list_model_list.txt'
+modelFile = '/path/to/subject_list_model_list.txt'
 
 # If a subjecs has multiple scans:
 # False = Consdier only the first scan session during group analysis
