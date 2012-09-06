@@ -73,6 +73,47 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = resource
     
+    ########datasink connections#########
+    
+    wf.connect(gp_flow, 'outputspec.mat',
+               ds, 'model')
+    wf.connect(gp_flow, 'outputspec.con',
+               ds, 'model.@01')
+    wf.connect(gp_flow, 'outputspec.grp',
+               ds, 'model.@02')
+    wf.connect(gp_flow, 'outputspec.sublist',
+               ds, 'model.@03')
+    wf.connect(gpa_wf, 'outputspec.merged',
+               ds, 'Merged')
+    wf.connect(gpa_wf, 'outputspec.zstats',
+               ds, 'stats.unthreshold')
+    wf.connect(gpa_wf, 'outputspec.zfstats',
+               ds,'stats.unthreshold.@01')
+    wf.connect(gpa_wf, 'outputspec.fstats',
+               ds,'stats.unthreshold.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold_zf',
+               ds, 'stats.threshold')
+    wf.connect(gpa_wf, 'outputspec.cluster_index_zf',
+               ds,'stats.clusterMap')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt_zf',
+               ds, 'stats.clusterMap.@01')
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold_zf',
+               ds, 'rendered')
+    wf.connect(gpa_wf, 'outputspec.rendered_image_zf',
+               ds, 'rendered.@01')   
+    wf.connect(gpa_wf, 'outputspec.cluster_threshold',
+               ds,  'stats.threshold.@01')
+    wf.connect(gpa_wf, 'outputspec.cluster_index',
+               ds, 'stats.clusgpa_wfterMap.@02')
+    wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
+               ds, 'stats.clusterMap.@03')
+    wf.connect(gpa_wf, 'outputspec.overlay_threshold',
+               ds, 'rendered.@02')
+    wf.connect(gpa_wf, 'outputspec.rendered_image',
+               ds, 'rendered.@03')
+    
+    ######################################
+    
     wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
