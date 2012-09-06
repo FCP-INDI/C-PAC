@@ -11,15 +11,15 @@ from CPAC.utils.datasource import create_gpa_dataflow
 
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
-    print 'Preparing Group Analysis workflow'
+    print 'Preparing Group Analysis workflow for resource', resource
     print 'subjects', subject_infos
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
     
     if c.mixedScanAnalysis == True:
-        wf = pe.Workflow(name = 'group_analysis_%s'%resource)
+        wf = pe.Workflow(name = 'group_analysis/%s'%resource)
     else:
-        wf = pe.Workflow(name = 'group_analysis_%s_%s'%(resource,scan_ids[0])) 
+        wf = pe.Workflow(name = 'group_analysis/%s/%s'%(resource,scan_ids[0])) 
     
     wf.base_dir = c.workingDirectory
     
@@ -66,7 +66,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
     if c.fTest:
         wf.connect(gp_flow, 'outputspec.fts',
-                         gpa_wf, 'inputspec.fts_file') 
+                   gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
@@ -84,7 +84,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     wf.connect(gp_flow, 'outputspec.sublist',
                ds, 'model.@03')
     wf.connect(gpa_wf, 'outputspec.merged',
-               ds, 'Merged')
+               ds, 'merged')
     wf.connect(gpa_wf, 'outputspec.zstats',
                ds, 'stats.unthreshold')
     wf.connect(gpa_wf, 'outputspec.zfstats',
