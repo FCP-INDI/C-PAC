@@ -48,13 +48,18 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
-    gp_flow = create_gpa_dataflow(model_map, c.fTest)
+    strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
+    for ch in ['/','.']:
+        if ch in strgy_path:
+            strgy_path = strgy_path.replace(ch, '_')
+    
+    gp_flow = create_gpa_dataflow(model_map, c.fTest, "gp_dataflow%s"%strgy_path)
     gp_flow.inputs.inputspec.input_sublist = input_subject_list 
     gp_flow.inputs.inputspec.output_sublist = s_ids
     
     from CPAC.group_analysis import create_group_analysis
     
-    gpa_wf = create_group_analysis(c.fTest)
+    gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
     gpa_wf.inputs.inputspec.zmap_files = s_paths
     
     wf.connect(gp_flow, 'outputspec.mat',
