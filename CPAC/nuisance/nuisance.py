@@ -1,5 +1,6 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+import nipype.interfaces.fsl as fsl
 
 def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
     """
@@ -98,9 +99,9 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
 
 def calc_residuals(subject,
                    selector,
-                   wm_mask_file = None,
-                   csf_mask_file = None,
-                   gm_mask_file = None,
+                   wm_sig_file = None,
+                   csf_sig_file = None,
+                   gm_sig_file = None,
                    motion_file = None,
                    compcor_ncomponents = 0):
     """
@@ -150,10 +151,9 @@ def calc_residuals(subject,
     import numpy as np
     import nibabel as nb
     import os
-    import numpy as np
     import scipy
     from CPAC.nuisance import calc_compcor_components
-    from CPAC.utils import safe_shape
+    
     
     nii = nb.load(subject)
     data = nii.get_data().astype(np.float64)
@@ -161,37 +161,38 @@ def calc_residuals(subject,
     
     
     #Check and define regressors which are provided from files
-    if wm_mask_file is not None:
-        wm_mask = nb.load(wm_mask_file).get_data().astype('bool')
-        if not safe_shape(data, wm_mask): raise ValueError('Bad input shapes data, wm_mask')
+    if wm_sig_file is not None:
+        wm_sigs = np.load(wm_sig_file)
+        if wm_sigs.shape[1] != data.shape[3]:
+            raise ValueError('White matter signals length %d do not match data timepoints %d' % (wm_sigs.shape[1], data.shape[3]))
+    if csf_sig_file is not None:
+        csf_sigs = np.load(csf_sig_file)
+        if csf_sigs.shape[1] != data.shape[3]:
+            raise ValueError('CSF signals length %d do not match data timepoints %d' % (csf_sigs.shape[1], data.shape[3]))
+    if gm_sig_file is not None:
+        gm_sigs = np.load(gm_sig_file)
+        if gm_sigs.shape[1] != data.shape[3]:
+            raise ValueError('Grey matter signals length %d do not match data timepoints %d' % (gm_sigs.shape[1], data.shape[3]))
         
-    if csf_mask_file is not None:
-        csf_mask = nb.load(csf_mask_file).get_data().astype('bool')
-        if not safe_shape(data, csf_mask): raise ValueError('Bad input shapes data, csf_mask')
-        
-    if gm_mask_file is not None:
-        gm_mask = nb.load(gm_mask_file).get_data().astype('bool')
-        if not safe_shape(data, gm_mask): raise ValueError('Bad input shapes data, gm_mask')
-
     if motion_file is not None:
         motion = np.genfromtxt(motion_file)
         if motion.shape[0] != data.shape[3]:
-            raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[0]) )
+            raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[3]) )
 
     #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
     if(selector['compcor']):
         print 'compcor_ncomponents', compcor_ncomponents
-        regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_mask, csf_mask)
+        regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_sigs, csf_sigs)
     
     if(selector['wm']):
-        regressor_map['wm'] = data[wm_mask].mean(0)
+        regressor_map['wm'] = wm_sigs.mean(0)
         
     if(selector['csf']):
-        regressor_map['csf'] = data[csf_mask].mean(0)
+        regressor_map['csf'] = csf_sigs.mean(0)
         
     if(selector['gm']):
-        regressor_map['gm'] = data[gm_mask].mean(0)
+        regressor_map['gm'] = gm_sigs.mean(0)
         
     if(selector['global']):
         regressor_map['global'] = data[global_mask].mean(0)
@@ -243,6 +244,55 @@ def calc_residuals(subject,
     scipy.io.savemat(regressors_file, regressor_map, oned_as='column')
     
     return residual_file, csv_filename
+
+def extract_tissue_data(data_file,
+                        ho_mask_file,
+                        wm_seg_file, csf_seg_file, gm_seg_file,
+                        wm_threshold, csf_threshold, gm_threshold):
+    import numpy as np
+    import nibabel as nb
+    import os    
+    from CPAC.nuisance import erode_mask
+    from CPAC.utils import safe_shape
+    
+    data = nb.load(data_file).get_data().astype('float64')
+    ho_mask = nb.load(ho_mask_file).get_data().astype('float64')
+    
+    wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
+    csf_seg = nb.load(csf_seg_file).get_data().astype('float64')
+    gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
+    
+    if not safe_shape(data, ho_mask, wm_seg, csf_seg, gm_seg):
+        raise ValueError('Spatial dimensions for data, masks and tissues do not match')
+    
+    wm_mask = erode_mask(wm_seg >= wm_threshold)
+    
+    # Only take the CSF at the lateral ventricals as labled in the Harvard
+    # Oxford parcellation regions 4 and 43
+    csf_mask = (csf_seg >= csf_threshold)*((ho_mask==43) + (ho_mask == 4))
+
+    gm_mask = erode_mask(gm_seg >= gm_threshold)
+    
+    wm_sigs = data[wm_mask]
+    csf_sigs = data[csf_mask]
+    gm_sigs = data[gm_mask]
+    
+    file_wm = os.path.join(os.getcwd(), 'wm_signals.npy')
+    file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
+    file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
+    np.save(file_wm, wm_sigs)
+    np.save(file_csf, csf_sigs)
+    np.save(file_gm, gm_sigs)
+    
+    nii = nb.load(wm_seg_file)
+    wm_mask_file = os.path.join(os.getcwd(), 'wm_mask.nii.gz')
+    csf_mask_file = os.path.join(os.getcwd(), 'csf_mask.nii.gz')
+    gm_mask_file = os.path.join(os.getcwd(), 'gm_mask.nii.gz')
+    nb.Nifti1Image(wm_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(wm_mask_file)
+    nb.Nifti1Image(csf_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(csf_mask_file)
+    nb.Nifti1Image(gm_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(gm_mask_file)
+    
+    return file_wm, file_csf, file_gm
 
 def create_nuisance(name='nuisance'):
     """
@@ -310,6 +360,9 @@ def create_nuisance(name='nuisance'):
                                                        'wm_mask',
                                                        'csf_mask',
                                                        'gm_mask',
+                                                       'mni_to_anat_linear_xfm',
+                                                       'func_to_anat_linear_xfm',
+                                                       'harvard_oxford_mask',
                                                        'motion_components',
                                                        'selector',
                                                        'compcor_ncomponents']),
@@ -318,26 +371,86 @@ def create_nuisance(name='nuisance'):
                                                         'regressors']),
                          name='outputspec')
     
+    ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm')
+    ho_mni_to_2mm.inputs.args = '-applyisoxfm 2'
+    ho_mni_to_2mm.inputs.interp = 'nearestneighbour'
+    nuisance.connect(inputspec, 'mni_to_anat_linear_xfm',
+                     ho_mni_to_2mm, 'in_matrix_file')
+    nuisance.connect(inputspec, 'harvard_oxford_mask',
+                     ho_mni_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'csf_mask',
+                     ho_mni_to_2mm, 'reference')
+
+    wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm')
+    wm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    nuisance.connect(inputspec, 'wm_mask',
+                     wm_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'wm_mask',
+                     wm_anat_to_2mm, 'reference')    
+   
+    csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm')
+    csf_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    nuisance.connect(inputspec, 'csf_mask',
+                     csf_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'csf_mask',
+                     csf_anat_to_2mm, 'reference')
+    
+    gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm')
+    gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    nuisance.connect(inputspec, 'gm_mask',
+                     gm_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'gm_mask',
+                     gm_anat_to_2mm, 'reference')
+
+    func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm')
+    func_to_2mm.inputs.args = '-applyisoxfm 2'
+    nuisance.connect(inputspec, 'subject',
+                     func_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'csf_mask',
+                     func_to_2mm, 'reference')
+    nuisance.connect(inputspec, 'func_to_anat_linear_xfm',
+                     func_to_2mm, 'in_matrix_file')
+
+    tissue_masks = pe.Node(util.Function(input_names=['data_file',
+                                                      'ho_mask_file',
+                                                      'wm_seg_file', 'csf_seg_file', 'gm_seg_file',
+                                                      'wm_threshold', 'csf_threshold', 'gm_threshold'],
+                                         output_names=['file_wm', 'file_csf', 'file_gm'],
+                                         function=extract_tissue_data),
+                           name='tissue_masks')
+    tissue_masks.inputs.wm_threshold = 0.98
+    tissue_masks.inputs.csf_threshold = 0.98
+    tissue_masks.inputs.gm_threshold = 0.2
+    nuisance.connect(func_to_2mm, 'out_file',
+                     tissue_masks, 'data_file')
+    nuisance.connect(ho_mni_to_2mm, 'out_file',
+                     tissue_masks, 'ho_mask_file')
+    nuisance.connect(wm_anat_to_2mm, 'out_file',
+                     tissue_masks, 'wm_seg_file')
+    nuisance.connect(csf_anat_to_2mm, 'out_file',
+                     tissue_masks, 'csf_seg_file')
+    nuisance.connect(gm_anat_to_2mm, 'out_file',
+                     tissue_masks, 'gm_seg_file')
+
     calc_r = pe.Node(util.Function(input_names=['subject',
                                                 'selector',
-                                                'wm_mask_file',
-                                                'csf_mask_file',
-                                                'gm_mask_file',
+                                                'wm_sig_file',
+                                                'csf_sig_file',
+                                                'gm_sig_file',
                                                 'motion_file',
                                                 'compcor_ncomponents'],
                                    output_names=['residual_file',
                                                 'regressors_file'],
                                    function=calc_residuals),
                      name='residuals')
-    
     nuisance.connect(inputspec, 'subject',
                      calc_r, 'subject')
-    nuisance.connect(inputspec, 'wm_mask',
-                     calc_r, 'wm_mask_file')
-    nuisance.connect(inputspec, 'csf_mask',
-                     calc_r, 'csf_mask_file')
-    nuisance.connect(inputspec, 'gm_mask',
-                     calc_r, 'gm_mask_file')
+    nuisance.connect(tissue_masks, 'file_wm',
+                     calc_r, 'wm_sig_file')
+    nuisance.connect(tissue_masks, 'file_csf',
+                     calc_r, 'csf_sig_file')
+    nuisance.connect(tissue_masks, 'file_gm',
+                     calc_r, 'gm_sig_file')
     nuisance.connect(inputspec, 'motion_components',
                      calc_r, 'motion_file')
     nuisance.connect(inputspec, 'selector',

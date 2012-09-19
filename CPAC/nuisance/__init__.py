@@ -1,4 +1,5 @@
-from utils import calc_compcor_components
+from utils import calc_compcor_components, \
+                  erode_mask
 
 from nuisance import create_nuisance, \
                      calc_residuals, \
@@ -7,4 +8,5 @@ from nuisance import create_nuisance, \
 __all__ = ['create_nuisance', \
            'calc_residuals', \
            'bandpass_voxels', \
-           'calc_compcor_components']
+           'calc_compcor_components', \
+           'erode_mask']
