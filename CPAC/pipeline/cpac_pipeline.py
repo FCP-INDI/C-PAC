@@ -76,6 +76,9 @@ def prep_workflow(sub_dict, c, strategies):
 
 
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
+    tr = float(sub_dict['TR'])
+    ref_slice = int(sub_dict['Reference'])
+    acquisition = str(sub_dict['Acquisition'])
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
@@ -310,17 +313,20 @@ def prep_workflow(sub_dict, c, strategies):
 
     if 1 in c.runFunctionalPreprocessing:
         for strat in strat_list:
-            # create a new node, Remember to change its name! 
-            preproc = create_func_preproc()
-            preproc.inputs.inputspec.start_idx = c.startIdx
-            preproc.inputs.inputspec.stop_idx = c.stopIdx
-            func_preproc = preproc.clone('func_preproc_%d' % num_strat)
+            
+            func_preproc = create_func_preproc('func_preproc_%d' % num_strat)
+            func_preproc.inputs.inputspec.start_idx = c.startIdx
+            func_preproc.inputs.inputspec.stop_idx = c.stopIdx
+            func_preproc.inputs.scan_params.tr = tr
+            func_preproc.inputs.scan_params.ref_slice = ref_slice
+            func_preproc.inputs.scan_params.acquisition = acquisition
             
             node = None
             out_file = None
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc, 'inputspec.rest')
+
             except:
                 print 'Invalid Connection: Functional Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 num_strat += 1

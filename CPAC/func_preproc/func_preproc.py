@@ -7,7 +7,7 @@ import CPAC.interfaces.afni.preprocess as preprocess
 
 #functional preprocessing
 
-def create_func_preproc():
+def create_func_preproc(wf_name = 'func_preproc'):
     """
     
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented 
@@ -35,14 +35,26 @@ def create_func_preproc():
             
         inputspec.stop_idx : string
             Last volume/slice of the functional image (optional)
+            
+        scan_params.tr : float
+            Subject TR
+        
+        scan_params.acquistion : string
+            Acquisition pattern (interleaved/sequential, ascending/descending)
     
+        scan_params.ref_slice : integer
+            Reference slice for slice timing correction
+            
     Workflow Outputs::
     
         outputspec.drop_tr : string (nifti file)
-          Path to Output image with the inital few slices dropped
+            Path to Output image with the initial few slices dropped
+          
+        outputspec.slice_time_corrected : string (nifti file)
+            Path to Slice time corrected image
           
         outputspec.refit : string (nifti file)
-           Path to Deobliqued anatomical data 
+            Path to Deobliqued anatomical data 
         
         outputspec.reorient : string (nifti file)
             Path to RPI oriented anatomical data 
@@ -75,8 +87,9 @@ def create_func_preproc():
             output skull stripped, motion corrected T2 image 
             with normalized intensity values 
 
-        outspec.preprocessed_mask : string (nifti file)
+        outputspec.preprocessed_mask : string (nifti file)
            Mask obtained from normalized preprocessed image
+           
     
     Order of commands:
     
@@ -89,6 +102,13 @@ def create_func_preproc():
         3dcalc -a rest.nii.gz[4..299] 
                -expr 'a' 
                -prefix rest_3dc.nii.gz
+               
+    - Slice timing correction. For details see `3dshift <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTshift.html>`_::
+    
+        3dTshift -TR 2.1s 
+                 -slice 18 
+                 -tpattern alt+z 
+                 -prefix rest_3dc_shift.nii.gz rest_3dc.nii.gz
 
     - Deobliqing the scans.  For details see `3drefit <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html>`_::
     
@@ -195,11 +215,16 @@ def create_func_preproc():
 
     """
 
-    preproc = pe.Workflow(name='funcpreproc')
+    preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['rest',
                                                'start_idx',
                                                'stop_idx']),
                         name='inputspec')
+    
+    scan_params = pe.Node(util.IdentityInterface(fields=['tr',
+                                                         'acquisition',
+                                                         'ref_slice']),
+                          name = 'scan_params')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['drop_tr',
                                                 'refit',
@@ -213,7 +238,8 @@ def create_func_preproc():
                                                 'skullstrip',
                                                 'example_func',
                                                 'preprocessed',
-                                                'preprocessed_mask']),
+                                                'preprocessed_mask',
+                                                'slice_time_corrected']),
 
                           name='outputspec')
 
@@ -225,7 +251,10 @@ def create_func_preproc():
                            name='func_drop_trs')
     func_drop_trs.inputs.expr = '\'a\''
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
-
+    
+    func_slice_timing_correction = pe.Node(interface=preprocess.ThreedTshift(),
+                                           name = 'slice_timing_correction')
+    
     func_deoblique = pe.Node(interface=preprocess.Threedrefit(),
                             name='func_deoblique')
     func_deoblique.inputs.deoblique = True
@@ -293,6 +322,14 @@ def create_func_preproc():
     preproc.connect(func_get_idx, 'stopidx',
                     func_drop_trs, 'stop_idx')
     preproc.connect(func_drop_trs, 'out_file',
+                    func_slice_timing_correction,'in_file')
+    preproc.connect(scan_params, 'tr',
+                    func_slice_timing_correction, 'tr')
+    preproc.connect(scan_params, 'tpattern',
+                    func_slice_timing_correction, 'tpattern')
+    preproc.connect(scan_params, 'ref_slice',
+                    func_slice_timing_correction, 'tslice')
+    preproc.connect(func_slice_timing_correction, 'out_file',
                     func_deoblique, 'in_file')
     preproc.connect(func_deoblique, 'out_file',
                     func_reorient, 'in_file')
@@ -324,6 +361,8 @@ def create_func_preproc():
     #connections to outputnode
     preproc.connect(func_drop_trs, 'out_file',
                     outputNode, 'drop_tr')
+    preproc.connect(func_slice_timing_correction, 'out_file',
+                    outputNode, 'slice_time_corrected')
     preproc.connect(func_deoblique, 'out_file',
                     outputNode, 'refit')
     preproc.connect(func_reorient, 'out_file',

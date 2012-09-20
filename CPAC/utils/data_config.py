@@ -4,17 +4,22 @@
 exclusionSubjectList = None
 
 #list of subjects that are included 
-#subjectList = None
+subjectList = None
 #if None extract data runs on all the subjects
-subjectList = '/home/data/Projects/c-pac-subject-list-fix/rockland_subject_new.txt'
+#subjectList = '/home/data/Projects/c-pac-subject-list-fix/rockland_subject_new.txt'
 
 
 #Anatomical file Path 
-#Put %s where subjects are in the path
-#anatomicalTemplate = '/home/data/Incoming/cambridge_fcon/*/%s/*/mprage_anonymized.nii.gz'
+#Put %s where site and subjects are in the path
+#anatomicalTemplate = '/home/data/Incoming/cambridge_fcon/%s/%s/*/mprage_anonymized.nii.gz'
 anatomicalTemplate = '/home/data/Originals/DiscSci/NIFTI/T1/%s/anat.nii.gz'
 
 #Functional Path
-#Put  %s where subjects are in the path
-#functionalTemplate = '/home/data/Incoming/cambridge_fcon/*/%s/*/rest.nii.gz'
+#Put  %s where site and subjects are in the path
+#functionalTemplate = '/home/data/Incoming/cambridge_fcon/%s/%s/*/rest.nii.gz'
 functionalTemplate = '/home/data/Originals/DiscSci/NIFTI/BOLD/%s/REST*.nii.gz'
+
+
+#list of sites
+#if None extract data runs on all sites
+siteList = None
