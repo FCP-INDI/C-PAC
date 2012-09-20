@@ -73,7 +73,7 @@ class strategy:
             self.resource_pool[key] = value
 
 def prep_workflow(sub_dict, c, strategies):
-
+    print '********************',c.standardResolutionBrain
 
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
@@ -367,6 +367,10 @@ def prep_workflow(sub_dict, c, strategies):
             anat_to_func_reg.inputs.cost = 'corratio'
             anat_to_func_reg.inputs.dof = 6
 
+            inv_anat_to_func = pe.Node(interface=fsl.ConvertXFM(),
+                                       name='inv_anat_to_func_register_%d' % num_strat)
+            inv_anat_to_func.inputs.invert_xfm = True
+            
             func_gm = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_gm_%d' % num_strat)
             #func_gm.inputs.reference = c.standardResolutionBrain
@@ -389,6 +393,8 @@ def prep_workflow(sub_dict, c, strategies):
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
                                  anat_to_func_reg, 'in_file')
+                workflow.connect(anat_to_func_reg, 'out_matrix_file',
+                                 inv_anat_to_func, 'in_file')
 
                 node, out_file = strat.get_node_from_resource_pool('mean_functional')
                 workflow.connect(node, out_file,
@@ -434,6 +440,7 @@ def prep_workflow(sub_dict, c, strategies):
             strat.append_name('anat_to_func_register')
 
             strat.update_resource_pool({'anatomical_to_functional_xfm':(anat_to_func_reg, 'out_matrix_file'),
+                                        'inverse_anatomical_to_functional_xfm':(inv_anat_to_func, 'out_file'),
                                         'functional_gm_mask':(func_gm, 'out_file'),
                                         'functional_wm_mask':(func_wm, 'out_file'),
                                         'functional_csf_mask':(func_csf, 'out_file')})
@@ -518,27 +525,39 @@ def prep_workflow(sub_dict, c, strategies):
             
             nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
                                                          ('compcor_ncomponents', c.nComponents)])
+
+            nuisance.inputs.inputspec.harvard_oxford_mask = c.harvardOxfordMask
             
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.subject')
 
-                node, out_file = strat.get_node_from_resource_pool('functional_gm_mask')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_gm_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.gm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool('functional_wm_mask')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_wm_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.wm_mask')
 
-                node, out_file = strat.get_node_from_resource_pool('functional_csf_mask')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_csf_mask')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.csf_mask')
 
                 node, out_file = strat.get_node_from_resource_pool('movement_parameters')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
+                
+                node, out_file = strat.get_node_from_resource_pool('inverse_anatomical_to_functional_xfm')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.func_to_anat_linear_xfm')
+                
+                node, out_file = strat.get_node_from_resource_pool('mni_to_anatomical_linear_xfm')
+                workflow.connect(node, out_file,
+                                 nuisance, 'inputspec.mni_to_anat_linear_xfm')
+                
+                
             except:
                 print 'Invalid Connection: Nuisance:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise

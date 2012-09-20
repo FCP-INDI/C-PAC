@@ -122,6 +122,8 @@ configFileTwomm = os.path.join(FSLDIR,'/etc/flirtsch/T1_2_MNI152_2mm.cnf')
 
 identityMatrix = os.path.join(FSLDIR,'/etc/flirtsch/ident.mat')
 
+harvardOxfordMask = os.path.join(FSLDIR,'/data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
+
 """
 =============================
 Optional Timeseries Overrides ***

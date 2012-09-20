@@ -248,7 +248,7 @@ def calc_residuals(subject,
 def extract_tissue_data(data_file,
                         ho_mask_file,
                         wm_seg_file, csf_seg_file, gm_seg_file,
-                        wm_threshold, csf_threshold, gm_threshold):
+                        wm_threshold=0.0, csf_threshold=0.0, gm_threshold=0.0):
     import numpy as np
     import nibabel as nb
     import os    
@@ -262,16 +262,20 @@ def extract_tissue_data(data_file,
     csf_seg = nb.load(csf_seg_file).get_data().astype('float64')
     gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
     
+    print 'Tissues extraction thresholds wm %d, csf %d, gm %d' % (wm_threshold,
+                                                                  csf_threshold,
+                                                                  gm_threshold)
+    
     if not safe_shape(data, ho_mask, wm_seg, csf_seg, gm_seg):
         raise ValueError('Spatial dimensions for data, masks and tissues do not match')
     
-    wm_mask = erode_mask(wm_seg >= wm_threshold)
+    wm_mask = erode_mask(wm_seg > wm_threshold)
     
     # Only take the CSF at the lateral ventricals as labled in the Harvard
     # Oxford parcellation regions 4 and 43
-    csf_mask = (csf_seg >= csf_threshold)*((ho_mask==43) + (ho_mask == 4))
+    csf_mask = (csf_seg > csf_threshold)*((ho_mask==43) + (ho_mask == 4))
 
-    gm_mask = erode_mask(gm_seg >= gm_threshold)
+    gm_mask = erode_mask(gm_seg > gm_threshold)
     
     wm_sigs = data[wm_mask]
     csf_sigs = data[csf_mask]
@@ -383,6 +387,7 @@ def create_nuisance(name='nuisance'):
 
     wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm')
     wm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    wm_anat_to_2mm.inputs.interp = 'nearestneighbour'
     nuisance.connect(inputspec, 'wm_mask',
                      wm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'wm_mask',
@@ -390,6 +395,7 @@ def create_nuisance(name='nuisance'):
    
     csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm')
     csf_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    csf_anat_to_2mm.inputs.interp = 'nearestneighbour'
     nuisance.connect(inputspec, 'csf_mask',
                      csf_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask',
@@ -397,6 +403,7 @@ def create_nuisance(name='nuisance'):
     
     gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm')
     gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
+    gm_anat_to_2mm.inputs.interp = 'nearestneighbour'
     nuisance.connect(inputspec, 'gm_mask',
                      gm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'gm_mask',
@@ -418,9 +425,7 @@ def create_nuisance(name='nuisance'):
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
                                          function=extract_tissue_data),
                            name='tissue_masks')
-    tissue_masks.inputs.wm_threshold = 0.98
-    tissue_masks.inputs.csf_threshold = 0.98
-    tissue_masks.inputs.gm_threshold = 0.2
+    
     nuisance.connect(func_to_2mm, 'out_file',
                      tissue_masks, 'data_file')
     nuisance.connect(ho_mni_to_2mm, 'out_file',
