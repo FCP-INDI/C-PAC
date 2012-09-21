@@ -530,10 +530,12 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
          
     Returns
     -------
-    new_grp_file : string
+    new_grp_file : string (grp file)
         modified covariance group matrix model file
-    new_mat_file : string
+    new_mat_file : string (mat file)
         modified design matrix file
+    new_sub_file : string (txt file)
+        new model subject list 
     """
     
     import os
@@ -600,8 +602,14 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     
     model_map = read_model_file(grp_file)
     new_grp_file = write_model_file(model_map, grp_file)
+        
+    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
     
-    return new_grp_file, new_mat_file
+    f = open(new_sub_file, 'wb')
+    for sub in output_sublist:
+        print >>f, sub
+
+    return new_grp_file, new_mat_file, new_sub_file
 
 
     

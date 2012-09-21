@@ -310,17 +310,21 @@ def prep_workflow(sub_dict, c, strategies):
 
     if 1 in c.runFunctionalPreprocessing:
         for strat in strat_list:
-            # create a new node, Remember to change its name! 
-            preproc = create_func_preproc()
-            preproc.inputs.inputspec.start_idx = c.startIdx
-            preproc.inputs.inputspec.stop_idx = c.stopIdx
-            func_preproc = preproc.clone('func_preproc_%d' % num_strat)
+            
+            func_preproc = create_func_preproc(c.sliceTimingCorrection,'func_preproc_%d' % num_strat)
+            func_preproc.inputs.inputspec.start_idx = c.startIdx
+            func_preproc.inputs.inputspec.stop_idx = c.stopIdx
+            if c.sliceTimingCorrection == True:
+                func_preproc.inputs.scan_params.tr = str(sub_dict['TR'])
+                func_preproc.inputs.scan_params.ref_slice = int(sub_dict['Reference'])
+                func_preproc.inputs.scan_params.acquisition = str(sub_dict['Acquisition'])
             
             node = None
             out_file = None
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file, func_preproc, 'inputspec.rest')
+
             except:
                 print 'Invalid Connection: Functional Preprocessing No valid Previous for strat : ', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 num_strat += 1
@@ -1142,7 +1146,7 @@ def prep_workflow(sub_dict, c, strategies):
                 raise
 
             strat.update_resource_pool({'reho_Z_to_standard':(reho_Z_to_standard, 'out_file')})
-            strat.append_name('reho')
+            strat.append_name('reho_Z_transform')
             num_strat += 1
     strat_list += new_strat_list
 

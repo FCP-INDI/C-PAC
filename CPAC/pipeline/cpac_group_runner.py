@@ -21,7 +21,7 @@ def split_folders(path):
             break
 
     folders.reverse()
-    print folders
+    #print folders
     return folders
 
 def run_sge_jobs(c, config_file, resource, subject_infos):
@@ -224,7 +224,6 @@ def run(config_file, output_path_file):
 
                      elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, args.config, resource, analysis_map[(resource, glob_key)])
-
 
 
     for resource, glob_key in analysis_map_gp.keys():
