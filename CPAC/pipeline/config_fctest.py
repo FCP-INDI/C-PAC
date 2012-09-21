@@ -345,24 +345,17 @@ runVerticesTimeSeries = [0]
 # Options are True/False
 verticesTSOutputs = [False, False]
 
-"""
-<<<<<<< HEAD
-
-
-
 startIdx = 0
 stopIdx = None
 
 
 TR = None
-sliceTimingCorrection = True
+sliceTimingCorrection = False
 
-
-=======
+"""
 ===================================
 Regional Homogeneity (ReHo) Options ***
 ===================================
->>>>>>> origin/master
 """
 # Calculate Regional Homogeneity
 runReHo = [0]
