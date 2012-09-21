@@ -89,6 +89,19 @@ sinkDirectory = '/path/to/output_directory'
 
 """
 ========================
+Resolution and Smoothing ***
+========================
+"""
+# Set the resolution (in mm) to which images are transformed
+# Transformation occurs during registration and is requried for many measures
+standardResolution = '3mm'
+
+# Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
+# To skip smoothing, set to 0
+fwhm = [4]
+
+"""
+========================
 Resource Directory Setup NOT FINISHED- NEED MORE INFO FOR FSL FILES
 ========================
 """
@@ -104,25 +117,25 @@ FSLDIR = commands.getoutput('echo $FSLDIR')
 ## 1) Delete the string in parentheses beginning with FSLDIR
 ## 2) Replace this value with the full path to the appropriate file
 
-standardResolutionBrain = os.path.join(FSLDIR,'/data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
+standardResolutionBrain = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
 
 standard = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
 
-standardBrainMaskDiluted = os.path.join(FSLDIR,'/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+standardBrainMaskDiluted = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
 
-configFile = os.path.join(FSLDIR,'/etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
+configFile = os.path.join(FSLDIR,'etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
 
-brainSymmetric = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
+brainSymmetric = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
 
-symmStandard = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_symmetric.nii.gz')
+symmStandard = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_symmetric.nii.gz')
 
-twommBrainMaskDiluted = os.path.join(FSLDIR,'/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
+twommBrainMaskDiluted = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
 
-configFileTwomm = os.path.join(FSLDIR,'/etc/flirtsch/T1_2_MNI152_2mm.cnf')
+configFileTwomm = os.path.join(FSLDIR,'etc/flirtsch/T1_2_MNI152_2mm.cnf')
 
-identityMatrix = os.path.join(FSLDIR,'/etc/flirtsch/ident.mat')
+identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
-harvardOxfordMask = os.path.join(FSLDIR,'/data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
+harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
 """
 =============================
@@ -140,19 +153,6 @@ stopIdx = None
 # Specify a TR other than what is listen in image headers
 # Options are an integer or None (defaults to header information)
 TR = None
-
-"""
-========================
-Resolution and Smoothing ***
-========================
-"""
-# Set the resolution (in mm) to which images are transformed
-# Transformation occurs during registration and is requried for many measures
-standardResolution = '3mm'
-
-# Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
-# To skip smoothing, set to 0
-fwhm = [4]
 
 """
 ================================
@@ -503,4 +503,3 @@ pThreshold = 0.05
 # Run an F-test
 # Options are True/False
 fTest = True
-
