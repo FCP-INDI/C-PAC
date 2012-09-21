@@ -450,6 +450,73 @@ def prep_workflow(sub_dict, c, strategies):
     strat_list += new_strat_list
     
     """
+    Inserting Boundary Based Registration for Functional to Anatomical Registration
+    """
+    new_strat_list = []
+    num_strat = 0    
+    
+    if 1 in c.runBoundaryBasedRegistration:
+        for strat in strat_list:
+            
+            wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
+                                   name='wm_bb_mask_%d' % num_strat)
+            wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
+            
+            bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
+                                         name='bbreg_func_to_anat_%d' % num_strat)
+            bbreg_func_to_anat.inputs.schedule = c.boundaryBasedRegistrationSchedule
+            bbreg_func_to_anat.inputs.dof = 6
+            
+            try:
+                
+                def pick_wm(seg_prob_list):
+                    seg_prob_list.sort()
+                    return seg_prob_list[-1]
+                
+                def bbreg_args(bbreg_target):
+                    return '-cost bbr -wmseg ' + bbreg_target
+                
+                node, out_file = strat.get_node_from_resource_pool('seg_probability_maps')
+                workflow.connect(node, (out_file, pick_wm),
+                                 wm_bb_mask, 'in_file')
+                
+                node, out_file = strat.get_node_from_resource_pool('inverse_anatomical_to_functional_xfm')
+                workflow.connect(node, out_file,
+                                 bbreg_func_to_anat, 'in_matrix_file')
+                
+                workflow.connect(wm_bb_mask, ('out_file', bbreg_args),
+                                 bbreg_func_to_anat, 'args')
+                
+                node, out_file = strat.get_node_from_resource_pool('mean_functional')                
+                workflow.connect(node, out_file,
+                                 bbreg_func_to_anat, 'in_file')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node, out_file,
+                                 bbreg_func_to_anat, 'reference')
+            except:
+                print 'Invalid Connection: Boundary Based Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            if 0 in c.runAnatomicalToFunctionalRegistration:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+            
+            strat.append_name('boundary_based_register')
+            
+            strat.update_resource_pool({'functional_to_anatomical_bbreg_xfm':(bbreg_func_to_anat, 'out_matrix_file'),
+                                        'functional_to_anatomical_mean_image':(bbreg_func_to_anat, 'out_file')})
+            
+            num_strat += 1
+
+    strat_list += new_strat_list
+    
+    """
     Inserting Generate Motion Statistics Workflow
     """
     new_strat_list = []
@@ -549,7 +616,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
                 
-                node, out_file = strat.get_node_from_resource_pool('inverse_anatomical_to_functional_xfm')
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anatomical_bbreg_xfm')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.func_to_anat_linear_xfm')
                 
