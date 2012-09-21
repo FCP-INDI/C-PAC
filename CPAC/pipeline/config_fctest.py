@@ -155,6 +155,7 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
+sliceTimingCorrection = True
 """
 ================================
 Preprocessing Workflow Selection ***
@@ -346,23 +347,10 @@ runVerticesTimeSeries = [0]
 verticesTSOutputs = [False, False]
 
 """
-<<<<<<< HEAD
-
-
-
-startIdx = 0
-stopIdx = None
-
-
-TR = None
-sliceTimingCorrection = True
-
-
-=======
 ===================================
 Regional Homogeneity (ReHo) Options ***
 ===================================
->>>>>>> origin/master
+
 """
 # Calculate Regional Homogeneity
 runReHo = [0]
