@@ -9,7 +9,7 @@ subjectList = None
 #subjectList = '/home/data/Projects/c-pac-subject-list-fix/rockland_subject_new.txt'
 
 
-#Anatomical file Path 
+
 #Put %s where site and subjects are in the path
 #anatomicalTemplate = '/home/data/Incoming/cambridge_fcon/%s/%s/*/mprage_anonymized.nii.gz'
 anatomicalTemplate = '/home/data/Originals/DiscSci/NIFTI/T1/%s/anat.nii.gz'
@@ -23,3 +23,4 @@ functionalTemplate = '/home/data/Originals/DiscSci/NIFTI/BOLD/%s/REST*.nii.gz'
 #list of sites
 #if None extract data runs on all sites
 siteList = None
+
