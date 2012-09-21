@@ -76,9 +76,6 @@ def prep_workflow(sub_dict, c, strategies):
 
 
     subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
-    tr = float(sub_dict['TR'])
-    ref_slice = int(sub_dict['Reference'])
-    acquisition = str(sub_dict['Acquisition'])
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
@@ -314,12 +311,13 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runFunctionalPreprocessing:
         for strat in strat_list:
             
-            func_preproc = create_func_preproc('func_preproc_%d' % num_strat)
+            func_preproc = create_func_preproc(c.sliceTimingCorrection,'func_preproc_%d' % num_strat)
             func_preproc.inputs.inputspec.start_idx = c.startIdx
             func_preproc.inputs.inputspec.stop_idx = c.stopIdx
-            func_preproc.inputs.scan_params.tr = tr
-            func_preproc.inputs.scan_params.ref_slice = ref_slice
-            func_preproc.inputs.scan_params.acquisition = acquisition
+            if c.sliceTimingCorrection == True:
+                func_preproc.inputs.scan_params.tr = str(sub_dict['TR'])
+                func_preproc.inputs.scan_params.ref_slice = int(sub_dict['Reference'])
+                func_preproc.inputs.scan_params.acquisition = str(sub_dict['Acquisition'])
             
             node = None
             out_file = None

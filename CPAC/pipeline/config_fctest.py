@@ -405,7 +405,7 @@ stopIdx = None
 
 
 TR = None
-
+sliceTimingCorrection = True
 
 
 """
