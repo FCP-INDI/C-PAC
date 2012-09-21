@@ -4,12 +4,11 @@ import os
 import glob
 import string
            
-def extract_data(c):
+def extract_data(c, param_map):
     """
-    Method to create a python file
-    containing subject list.
-    The method extracts anatomical 
-    and functional data for each site( if nultiple site)
+    Method to generate a CPAC input subject list 
+    python file. The method extracts anatomical 
+    and functional data for each site( if multiple site)
     and put it into a data structure read by python
     
     Example:
@@ -22,7 +21,24 @@ def extract_data(c):
             'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
             'rest_2_rest' : '/Users/home/data/NYU/0050386/session_1/rest_2/rest.nii.gz',
             }
+        'TR': '2',
+        'Acquisition': 'alt+z2',
+        'Reference': '17'
         },
+    ]
+    
+    or
+    
+    subjects_list =[
+       {    
+        'Subject_id' : '0050386',
+        'Unique_id' : 'session_1',
+        'anat': '/Users/home/data/NYU/0050386/session_1/anat_1/anat.nii.gz',
+        'rest':{
+            'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
+            'rest_2_rest' : '/Users/home/data/NYU/0050386/session_1/rest_2/rest.nii.gz',
+            }
+          },
     ]
     
     """
@@ -32,34 +48,59 @@ def extract_data(c):
     def get_list(fname):
         flines = open(fname, 'r').readlines()
         return [fline.rstrip('\r\n') for fline in flines]
- 
-    exclusion_list=[]
-    
-     
+        
+    exclusion_list = []
     if c.exclusionSubjectList is not None:
         exclusion_list= get_list(c.exclusionSubjectList)
-    else:
-        exclusion_list=[]
-
-
+        
+    subject_list = []
     if c.subjectList is not None:
         subject_list = get_list(c.subjectList)
-    else:
-        subject_list=[]
-
+        
+            
     #check if Template is correct
     def checkTemplate(template):
     
-        if '%s' not in template:
+        if template.count('%s') !=2:
             raise Exception("Please provide '%s' in the template" \
-                            "where subjects are present")
+                            "where your site and subjects are present"\
+                            "Please see examples")
     
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
         
         if ext not in [".nii", ".nii.gz"]:
             raise Exception("Invalid file name",os.path.basename(template) )
+    
+    def get_site_list(path):
+        base, relative = path.split('%s')
+        sites = os.listdir(base)
+        return sites
+    
+    def create_site_subject_mapping(base, relative):
         
+        #mapping between site and subject
+        site_subject_map ={}
+        base_path_list = []
+        
+        if c.siteList is not None :
+            site_list = get_list(c.siteList)
+        else:
+            site_list = get_site_list(base)
+        
+        for site in site_list:
+            paths = glob.glob(string.replace(base, '%s', site))
+            base_path_list.extend(paths)
+            for path in paths:   
+                for sub in os.listdir(path): 
+                    #check if subject is present in subject_list
+                    if subject_list: 
+                        if sub in subject_list:
+                            site_subject_map[sub] = site
+                    elif sub not in exclusion_list:
+                        site_subject_map[sub] = site
+        
+        return base_path_list, site_subject_map
         
     #method to split the input template path
     #into base, path before subject directory
@@ -67,21 +108,21 @@ def extract_data(c):
     def getPath(template):
         
         checkTemplate(template)
-        base, relative = template.split("%s")
-        base = glob.glob(base)
+        base, relative = template.rsplit("%s",1)
+        base, subject_map = create_site_subject_mapping(base, relative)
         base.sort()
         relative = relative.lstrip("/")
-        return base, relative
+        return base, relative, subject_map
     
     #get anatomical base path and anatomical relative path
-    anat_base, anat_relative = getPath(c.anatomicalTemplate)  
+    anat_base, anat_relative = getPath(c.anatomicalTemplate)[:2]
     
-    #get functional base path and functional relative path
-    func_base, func_relative = getPath(c.functionalTemplate)
+    #get functional base path, functional relative path and site-subject map
+    func_base, func_relative, subject_map = getPath(c.functionalTemplate)
     
     if not anat_base:
         print "No such file or directory ", anat_base 
-        raise Exception("Anotomical Data template incorrect")
+        raise Exception("Anatomical Data template incorrect")
     
     if not func_base:
         print "No such file or directory", func_base
@@ -134,7 +175,7 @@ def extract_data(c):
     f = open("CPAC_subject_list.py", 'wb')
    
     
-    def fetch_path(i, anat_sub, func_sub):
+    def fetch_path(i, anat_sub, func_sub, session_id):
         """
         Method to extract anatomical and functional
         path for a session and print to file
@@ -149,53 +190,63 @@ def extract_data(c):
         func_sub: string
             string containing subject/ concatenated 
             subject-session path for functional file
-            
+        session_id: string
+            session 
+        
         Raises
         ------
         Exception
         """
         
         try:
+    
+            def print_begin_of_file(sub, session_id):
+                print >> f, "{"
+                print >> f, "    'Subject_id': '" + sub + "',"
+                print >> f, "    'Unique_id': '" + session_id + "',"
+                
+            def print_end_of_file(sub):
+                if param_map is not None :    
+                    print "site for sub", sub, "->", subject_map.get(sub)
+                    print "scan parameters for the above site", param_map.get(subject_map.get(sub))
+                    print >> f, "    'TR': '" + param_map.get(subject_map.get(sub))[2] + "',"
+                    print >> f, "    'Acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
+                    print >> f, "    'Reference': '" + param_map.get(subject_map.get(sub))[1] + "'"
+                
+                print >> f, "},"
             
             #get anatomical file
-            anat_base_path = os.path.join(anat_base[i],anat_sub )
-
+            anat_base_path = os.path.join(anat_base[i], anat_sub)
+            func_base_path = os.path.join(func_base[i], func_sub)
+            
+            anat = None
+            func = None
+            
             if not os.path.exists(anat_base_path):
                 print "path doesn't exist", anat_base_path
                 raise Exception ("invalid Path. Please check anatomicalTemplate in the config file")
-            
-            anat = glob.glob(os.path.join(anat_base_path, anat_relative))[0]
-            print >> f, "    'anat': '" + anat + "',"
-             
-            if not anat:
-                print "Unable to find anatomical image at ",os.path.join(anat_base_path, anat_relative) 
-                raise Exception("Anatomical Data Missing")
-           
-            #get functional file
-            
-            func_base_path = os.path.join(func_base[i], func_sub)
             
             if not os.path.exists(func_base_path):
                 print "path doesn't exist", func_base_path
                 raise Exception ("invalid Path. Please check functionalTemplate in the config file")
             
+            anat = glob.glob(os.path.join(anat_base_path, anat_relative))    
             func = glob.glob(os.path.join(func_base_path, func_relative))
-           
-            if not func:
-                print "Unable to find teh functional image at", os.path.join(func_base_path, func_relative)
-                raise Exception("Functional Data Missing")
-           
-            print >>f, "    'rest':{" 
             
-            #iterate for each rest session 
-            for iter in func :
-                #get scan_id
-                iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
-                iterable = iterable.replace("/", "_")
-                print>>f,  "      '"+iterable+"': '"+iter+"'," 
-            print >> f, "      }"
-            
-    
+            if anat and func:
+                print_begin_of_file(anat_sub.split("/")[0],session_id)
+                print >> f, "    'anat': '" + anat[0] + "',"
+                print >>f, "    'rest':{" 
+                
+                #iterate for each rest session 
+                for iter in func :
+                    #get scan_id
+                    iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
+                    iterable = iterable.replace("/", "_")
+                    print>>f,  "      '"+iterable+"': '"+iter+"'," 
+                print >> f, "      },"
+                print_end_of_file(anat_sub.split("/")[0])
+        
         except Exception:
             raise
         
@@ -216,36 +267,26 @@ def extract_data(c):
         ------
         Exception
         """
-        
-        def print_to_file(sub, session_id):
-            print >> f, "{"
-            print >> f, "    'Subject_id': '" + sub + "',"
-            print >> f, "    'Unique_id': '" + session_id + "',"
         try:
+        
             if func_session_present and anat_session_present:
                 #if there are sessions
                 if "*" in func_session_path:
                     session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
                     for session in session_list:
                         session_id= os.path.basename(session)
-                        print_to_file(sub, session_id)
                         if func_session_path == anat_session_path:  
-                            fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id))
+                            fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id), session_id)
                         else:
-                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id))
-                        print >> f, "},"
+                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
                 else:
                     session_id = func_session_path
-                    print_to_file(sub,session_id)
-                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path))
-                    print >> f, "},"
-                    
+                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id) 
             else:
                 print "No sessions"
                 session_id = ''
-                print_to_file(sub,session_id)
-                fetch_path(index, sub, sub)
-                print >> f, "},"
+                fetch_path(index, sub, sub, session_id)
+                
         except Exception:
             print "Please make sessions are consistent across all subjects"
             raise
@@ -345,10 +386,42 @@ def generate_suplimentary_files():
     print "Subject list required later for group analysis - %s"%file_name
     f.close()
     
-    
-def run(data_config):
+
+def read_csv(csv_input):
     """
-    Run method takes data_config file as the input argument
+    Method to read csv file
+     'Acquisition'
+     'Reference'
+     'Site'
+     'TR (seconds)'
+
+    """
+    
+    import csv
+    from collections import defaultdict
+    try:
+        reader = csv.DictReader(open(csv_input, "U"))
+        print "considering the first row of the csv as header"
+        reader.next()
+        dict_labels=defaultdict(list) 
+        for line in reader:
+            csv_dict = dict((k.lower(), v) for k,v in line.iteritems())
+            dict_labels[csv_dict.get('site')] = [csv_dict[key] for key in sorted(csv_dict.keys()) if key!= 'site' ]
+                
+        if len(dict_labels.keys()) < 1 :
+            raise Exception("Scan Parameters File is either empty"\
+                            "or missing header")
+    except:
+        print "Error reading scan parameters csv"
+        raise
+    
+    return dict_labels
+    
+    
+def run(data_config, scan_params=None):
+    """
+    Run method takes data_config and scan parameters csv 
+    files as the input argument
     """
     
     import os
@@ -357,5 +430,12 @@ def run(data_config):
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-    extract_data(c)
+    if scan_params is not None:
+        s_param_map = read_csv(scan_params)
+    else:
+        print "no slice timing correction parameters csv included"\
+              "make sure you turn off slice timing correction option"\
+              "in CPAC configuration"
+        s_param_map = None
+    extract_data(c, s_param_map)
     generate_suplimentary_files()

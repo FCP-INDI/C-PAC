@@ -137,6 +137,7 @@ identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
 harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
+
 """
 =============================
 Optional Timeseries Overrides ***

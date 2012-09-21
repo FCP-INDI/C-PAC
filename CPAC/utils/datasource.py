@@ -150,7 +150,8 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
                                                             'mat_file',
                                                             'grp_file'],
                                              output_names = ['grp_file',
-                                                             'mat_file'],
+                                                             'mat_file',
+                                                             'sub_file'],
                                              function = modify_model),
                               name = 'modifymodel')
         
@@ -163,11 +164,11 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
         wf.connect(inputnode, 'output_sublist',
                    modifymodel, 'output_sublist')
         
-        
         outputnode = pe.Node(util.IdentityInterface(fields=['fts', 
                                                             'grp', 
                                                             'mat',
-                                                            'con'],
+                                                            'con',
+                                                            'sublist'],
                                 mandatory_inputs=True),
                     name='outputspec')
         
@@ -175,6 +176,8 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
                    outputnode, 'mat')
         wf.connect(modifymodel, 'grp_file',
                    outputnode, 'grp')
+        wf.connect(modifymodel, 'sub_file',
+                   outputnode, 'sublist')
         wf.connect(selectmodel, 'fts_file',
                    outputnode, 'fts')
         wf.connect(selectmodel, 'con_file',
