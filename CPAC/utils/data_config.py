@@ -24,3 +24,5 @@ functionalTemplate = '/home/data/Originals/DiscSci/NIFTI/BOLD/%s/REST*.nii.gz'
 #if None extract data runs on all sites
 siteList = None
 
+#slice timing parameters csv file path
+sliceTimingParametersCSV = None
