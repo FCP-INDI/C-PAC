@@ -155,6 +155,10 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
+# Specify slice timing correction in functional preprocessing
+# Make sure the input CPAC subject list have the scan parameters
+# information, if slice timing correction option is set true
+sliceTimingCorrection = True
 """
 ================================
 Preprocessing Workflow Selection ***
