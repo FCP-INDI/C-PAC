@@ -401,8 +401,6 @@ def read_csv(csv_input):
     from collections import defaultdict
     try:
         reader = csv.DictReader(open(csv_input, "U"))
-        print "considering the first row of the csv as header"
-        reader.next()
         dict_labels=defaultdict(list) 
         for line in reader:
             csv_dict = dict((k.lower(), v) for k,v in line.iteritems())
@@ -418,10 +416,10 @@ def read_csv(csv_input):
     return dict_labels
     
     
-def run(data_config, scan_params=None):
+def run(data_config):
     """
-    Run method takes data_config and scan parameters csv 
-    files as the input argument
+    Run method takes data_config 
+    file as the input argument
     """
     
     import os
@@ -430,8 +428,8 @@ def run(data_config, scan_params=None):
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-    if scan_params is not None:
-        s_param_map = read_csv(scan_params)
+    if c.sliceTimingParametersCSV is not None:
+        s_param_map = read_csv(c.sliceTimingParametersCSV)
     else:
         print "no slice timing correction parameters csv included"\
               "make sure you turn off slice timing correction option"\

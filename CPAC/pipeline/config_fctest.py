@@ -155,6 +155,7 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
+sliceTimingCorrection = True
 """
 ================================
 Preprocessing Workflow Selection ***
@@ -344,13 +345,6 @@ runVerticesTimeSeries = [0]
 # Second value = Output numPy array
 # Options are True/False
 verticesTSOutputs = [False, False]
-
-startIdx = 0
-stopIdx = None
-
-
-TR = None
-sliceTimingCorrection = False
 
 """
 ===================================
