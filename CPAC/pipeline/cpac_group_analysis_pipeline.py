@@ -75,8 +75,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
+    if c.mixedScanAnalysis == True:
+        out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
     ds.inputs.base_directory = out_dir
-    ds.inputs.container = resource
+    ds.inputs.container = ''
     
     ########datasink connections#########
     

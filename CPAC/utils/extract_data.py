@@ -429,7 +429,7 @@ def run(data_config):
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
     if c.sliceTimingParametersCSV is not None:
-        s_param_map = read_csv(scan_params)
+        s_param_map = read_csv(c.sliceTimingParametersCSV)
     else:
         print "no slice timing correction parameters csv included"\
               "make sure you turn off slice timing correction option"\
