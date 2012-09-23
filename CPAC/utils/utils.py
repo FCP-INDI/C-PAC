@@ -20,6 +20,7 @@ files_folders_wf = {
     'functional_brain_mask':'func',
     'motion_correct':'func',
     'anatomical_to_functional_xfm':'registration',
+    'inverse_anatomical_to_functional_xfm':'registration',
     'functional_gm_mask':'segmentation',
     'functional_wm_mask':'segmentation',
     'functional_csf_mask':'segmentation',
