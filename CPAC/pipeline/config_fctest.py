@@ -79,10 +79,10 @@ Data Directory Setup ***
 # NOTE: Users must manually create these directories before running C-PAC
 
 # Directory where C-PAC should store temporary and intermediate files
-workingDirectory = '/home/bcheung/yard_sale/p_work'
+workingDirectory = '/home/bcheung/yard_sale/p_work2'
 
 # Directory where C-PAC should place crash logs
-crashLogDirectory = '/home/bcheung/yard_sale/p_crash'
+crashLogDirectory = '/home/bcheung/yard_sale/p_crash2'
 
 # Directory where C-PAC should put processed data
 sinkDirectory = '/home/bcheung/yard_sale/p_sink'
