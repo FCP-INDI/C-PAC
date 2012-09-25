@@ -24,8 +24,6 @@ files_folders_wf = {
     'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',
-    'functional_to_anatomical_bbreg_xfm':'registration',
-    'functional_to_anatomical_mean_image':'registration',
     'functional_gm_mask':'segmentation',
     'functional_wm_mask':'segmentation',
     'functional_csf_mask':'segmentation',
