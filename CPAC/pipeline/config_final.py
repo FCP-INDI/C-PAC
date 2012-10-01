@@ -155,6 +155,10 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
+# Specify slice timing correction in functional preprocessing
+# Make sure the input CPAC subject list have the scan parameters
+# information, if slice timing correction option is set true
+sliceTimingCorrection = True
 """
 ================================
 Preprocessing Workflow Selection ***
@@ -284,18 +288,6 @@ runFrequencyFiltering = [1]
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
-=======================================
-Seed-based Correlation Analysis Options ***
-=======================================
-"""
-# Run Seed-based Correlation Analysis
-runSCA = [1]
-
-# SCA will be run on all ROI and voxel timeseries extracted below.
-# This means that in order to run SCA, you must also run Timeseries Extraction.
-# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
-
-"""
 ==============================
 Timeseries Extraction Options ***
 ==============================
@@ -344,6 +336,18 @@ runVerticesTimeSeries = [0]
 verticesTSOutputs = [False, False]
 
 """
+=======================================
+Seed-based Correlation Analysis Options ***
+=======================================
+"""
+# Run Seed-based Correlation Analysis
+runSCA = [1]
+
+# IN ORDER TO RUN SCA, YOU MUST ALSO RUN TIMESERIES EXTRACTION.
+# SCA will be run on all ROI and voxel timeseries extracted above.
+# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
+
+"""
 ===================================
 Regional Homogeneity (ReHo) Options ***
 ===================================
@@ -354,6 +358,32 @@ runReHo = [1]
 # Cluster size (number of neighboring voxels)
 # Options are 7, 19, and 27
 clusterSize = 27
+
+"""
+============================================
+Voxel-mirrored Homotopic Connectivity (VMHC) ***
+============================================
+"""
+# Calculate VMHC for all gray matter voxels
+runVMHC = [1]
+
+# There are no options for VMHC
+
+"""
+==========================================================================
+Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
+==========================================================================
+"""
+# Calculate ALFF and fALFF
+runALFF = [1]
+
+# NOTE: Frequency filtering is not applied when calculating fALFF
+
+# Frequency cutoff (in Hz) for a high-pass filter
+highPassFreqALFF = [0.01]
+
+# Frequency cutoff (in Hz) for a low-pass filter
+lowPassFreqALFF = [0.1]
 
 """
 ==========================
@@ -394,20 +424,12 @@ correlationThreshold = 0.0744
 templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
 
 """
-============================================
-Voxel-mirrored Homotopic Connectivity (VMHC) ***
-============================================
-"""
-# Calculate VMHC for all gray matter voxels
-runVMHC = [1]
-
-# There are no options for VMHC
-
-"""
 ====================================================
 Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
+runBASC = [0]
+
 # Path to a mask file. Voxels outside this mask will be excluded from BASC.
 bascROIFile = '/path/to/basc_mask_file'
 
@@ -431,6 +453,8 @@ bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
+runCWAS = [0]
+
 # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
 cwasROIFile = '/path/to/cwas_mask_file'
 
@@ -443,28 +467,14 @@ cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/path/to/cwas_regressor_file'
-
-"""
-==========================================================================
-Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
-==========================================================================
-"""
-# Calculate ALFF and fALFF
-runALFF = [1]
-
-# NOTE: Frequency filtering is not applied when calculating fALFF
-
-# Frequency cutoff (in Hz) for a high-pass filter
-highPassFreqALFF = [0.01]
-
-# Frequency cutoff (in Hz) for a low-pass filter
-lowPassFreqALFF = [0.1]
  
 """
 ============================
 Group Statistics Options ***
 ============================
 """
+runGroupAnalysis = [1]
+
 # Path to list of subjects on which to run group statistics
 # This file should be created automatically when you run extract_data.py
 # The order of subjects in this list must match the order in your model
