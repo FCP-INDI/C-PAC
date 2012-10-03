@@ -80,7 +80,7 @@ def prep_workflow(sub_dict, c, strategies):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
+    workflow.config['execution'] = {'hash_method': 'timestamp'}
 
     mflow = None
     pflow = None
@@ -1911,7 +1911,7 @@ def prep_workflow(sub_dict, c, strategies):
 
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
-
+#    workflow.run(updatehash=True)
 
     return workflow
 
