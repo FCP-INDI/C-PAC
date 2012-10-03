@@ -139,9 +139,9 @@ harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxfor
 
 
 """
-=============================
-Optional Timeseries Overrides ***
-=============================
+==================
+Timeseries Options ***
+==================
 """
 # Ignore volumes before this timepoint
 # Options are an integer or None (defaults to beginning of timeseries)
@@ -154,6 +154,10 @@ stopIdx = None
 # Specify a TR other than what is listen in image headers
 # Options are an integer or None (defaults to header information)
 TR = None
+
+# Run Slice Timing Correction
+# !!! UNFINISHED !!! HOW DO PEOPLE SPECIFY PARAMETERS FILE !!!
+sliceTimingCorrection = True
 
 """
 ================================
@@ -424,6 +428,7 @@ templateDirectoryPath = '/path/to/centrality_mask_roi_directory'
 Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
+# Run BASC
 runBASC = [0]
 
 # Path to a mask file. Voxels outside this mask will be excluded from BASC.
@@ -449,6 +454,7 @@ bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
+# Run CWAS
 runCWAS = [0]
 
 # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
@@ -469,6 +475,7 @@ cwasRegressorFile = '/path/to/cwas_regressor_file'
 Group Statistics Options ***
 ============================
 """
+# Calculate group statistics
 runGroupAnalysis = [1]
 
 # Path to list of subjects on which to run group statistics
