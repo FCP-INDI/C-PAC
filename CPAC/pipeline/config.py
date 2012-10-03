@@ -283,8 +283,8 @@ runFrequencyFiltering = [1]
 
 # First value = Lower bound for a band-pass filter
 # Second value = Upper bound for a band-pass filter
-# To use a high-pass filter, set the second value to NONE
-# To use a low-pass filter, set the first value to NONE
+# To use a high-pass filter, set the second value to None
+# To use a low-pass filter, set the first value to None
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
