@@ -621,7 +621,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
                 
-                node, out_file = strat.get_node_from_resource_pool('functional_to_mni_linear_xfm')
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.func_to_anat_linear_xfm')
                 
