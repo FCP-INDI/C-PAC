@@ -637,3 +637,48 @@ def select_model(model, model_map, ftest):
         raise
     
     return fts_file, con_file, grp_file, mat_file
+
+
+def get_scan_params(TR, pattern, ref_slice):
+    """
+    Method to check and slice pattern information
+    
+    Parameters
+    ----------
+    TR : string
+    pattern : string
+    ref_slice : string
+    
+    Return
+    ------
+    TR : string
+    pattern : string
+    ref_slice : int
+    """
+    
+    import os
+    import warnings
+    
+    if pattern not in ['alt+z', 'altplus', 'alt+z2','alt-z', 'altminus', 
+                   'alt-z2', 'seq+z', 'seqplus',  'seq-z','seqminus']:
+        if not os.path.exists(pattern):
+            raise Exception ("Invalid Pattern file path %s , Please provide the correct path"%pattern)
+        else:
+            
+            lines = open(pattern, 'r').readlines()
+            if len(lines) < 2:
+                raise Exception('Invalid slice timing file format. The file should contain '\
+                                'only one value per row. Use new line as delimiter')
+            slice_timings = [float(l.rstrip('\r\n')) for l in lines]
+            slice_timings.sort()
+            max_slice_offset = slice_timings[-1]
+            #checking if the unit of TR and slice timing match or not
+            #if slice timing in ms convert TR to ms as well
+            if  max_slice_offset > float(TR):
+                warnings.warn("TR is in seconds and slice timings are in milliseconds."\
+                              "Converting TR into milliseconds")
+                TR = float(TR)*1000
+                print "New TR value %.2f ms" %TR
+            pattern = '@' +  pattern
+            
+    return str(TR), str(pattern), int(ref_slice)

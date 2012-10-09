@@ -272,6 +272,12 @@ runGenerateMotionStatistics = [1]
 # will also be removed
 scrubbingThreshold = [0.2]
 
+# Specify the number of frames to be removed Preceding Frame
+# to the offending Frame
+numRemovePrecedingFrames = 1
+
+numRemoveSubsequentFrames = 2
+
 """
 ==========================
 Temporal Filtering Options ***
