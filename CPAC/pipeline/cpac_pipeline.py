@@ -27,6 +27,7 @@ from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d
 from CPAC.utils.utils import set_gauss
 from CPAC.utils.utils import prepare_symbolic_links
+from CPAC.utils.utils import get_scan_params
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -80,7 +81,7 @@ def prep_workflow(sub_dict, c, strategies):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
+    workflow.config['execution'] = {'hash_method': 'timestamp'}
 
     mflow = None
     pflow = None
@@ -310,14 +311,28 @@ def prep_workflow(sub_dict, c, strategies):
 
     if 1 in c.runFunctionalPreprocessing:
         for strat in strat_list:
+                    
+            exist = lambda val: True if sub_dict.get(val) is not None else False           
+            check = lambda val: None if sub_dict.get(val) == 'None' else int(sub_dict.get(val))
             
-            func_preproc = create_func_preproc(c.sliceTimingCorrection,'func_preproc_%d' % num_strat)
-            func_preproc.inputs.inputspec.start_idx = c.startIdx
-            func_preproc.inputs.inputspec.stop_idx = c.stopIdx
-            if c.sliceTimingCorrection == True:
-                func_preproc.inputs.scan_params.tr = str(sub_dict['TR'])
-                func_preproc.inputs.scan_params.ref_slice = int(sub_dict['Reference'])
-                func_preproc.inputs.scan_params.acquisition = str(sub_dict['Acquisition'])
+            if exist('TR') and exist('Reference') and exist('Acquisition'):
+                func_preproc = create_func_preproc(slice_timing_correction=True, wf_name = 'func_preproc_%d' % num_strat)
+                tr, tpattern, reference = get_scan_params(sub_dict['TR'], sub_dict['Acquisition'], sub_dict['Reference'])
+                func_preproc.inputs.scan_params.tr = tr
+                func_preproc.inputs.scan_params.ref_slice = reference
+                func_preproc.inputs.scan_params.acquisition = tpattern
+            else: 
+                func_preproc = create_func_preproc(slice_timing_correction=False, wf_name ='func_preproc_%d' % num_strat)
+            
+            if exist('FirstTR'): 
+                func_preproc.inputs.inputspec.start_idx = check('FirstTR')
+            else:
+                func_preproc.inputs.inputspec.start_idx = c.startIdx
+            
+            if exist('LastTR'):
+                func_preproc.inputs.inputspec.stop_idx = check('LastTR')
+            else:
+                func_preproc.inputs.inputspec.stop_idx = c.stopIdx
             
             node = None
             out_file = None
@@ -463,8 +478,10 @@ def prep_workflow(sub_dict, c, strategies):
         for strat in strat_list:
             
             gen_motion_stats = motion_power_statistics('gen_motion_stats_%d'% num_strat)
-            gen_motion_stats.inputs.threshold_input.threshold = c.scrubbingThreshold
-            gen_motion_stats.get_node('threshold_input').iterables = ('threshold', c.scrubbingThreshold)
+            gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
+            gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
+            gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
+            gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold', c.scrubbingThreshold)
             
             try:
                 ##**special case where the workflow is not getting outputs from resource pool

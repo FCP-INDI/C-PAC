@@ -46,8 +46,17 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
             1D file containing six movement/motion parameters(3 Translation, 3 Rotations) 
             in different columns (roll pitch yaw dS  dL  dP), obtained in functional preprocessing step
         
-        threshold_input.threshold : string (float)
+        scrubbing_input.threshold : a float
             scrubbing threshold
+        
+        scrubbing_input.remove_frames_before : an integer
+            count of preceding frames to the offending time 
+            frames to be removed (i.e.,those exceeding FD threshold)
+            
+        scrubbing_input.remove_frames_after : an integer
+            count of subsequent frames to the offending time
+            frames to be removed (i.e., those exceeding FD threshold)
+            
         
     Workflow Outputs::
         
@@ -176,8 +185,10 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                                     ]),
                         name='inputspec')
 
-    inputnode_threshold = pe.Node(util.IdentityInterface(fields=['threshold']),
-                             name='threshold_input')
+    scrubbing_input = pe.Node(util.IdentityInterface(fields=['threshold',
+                                                              'remove_frames_before',
+                                                              'remove_frames_after']),
+                             name='scrubbing_input')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
                                                         'frames_ex_1D',
@@ -210,15 +221,21 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
     ##calculating frames to exclude and include after scrubbing
     exclude_frames = pe.Node(util.Function(input_names=['in_file', 
-                                                        'threshold'],
+                                                        'threshold',
+                                                        'frames_before',
+                                                        'frames_after'],
                                            output_names=['out_file'],
                                            function=set_frames_ex),
                              name='exclude_frames')
 
     pm.connect(calculate_FD, 'out_file', 
                exclude_frames, 'in_file')
-    pm.connect(inputnode_threshold, 'threshold', 
+    pm.connect(scrubbing_input, 'threshold', 
                exclude_frames, 'threshold')
+    pm.connect(scrubbing_input, 'remove_frames_before',
+               exclude_frames, 'frames_before')
+    pm.connect(scrubbing_input, 'remove_frames_after',
+               exclude_frames, 'frames_after')
     
     pm.connect(exclude_frames, 'out_file', 
                outputNode, 'frames_ex_1D')
@@ -232,7 +249,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                              name='include_frames')
     pm.connect(calculate_FD, 'out_file', 
                include_frames, 'in_file')
-    pm.connect(inputnode_threshold, 'threshold', 
+    pm.connect(scrubbing_input, 'threshold', 
                include_frames, 'threshold')
     pm.connect(exclude_frames, 'out_file', 
                include_frames, 'exclude_list')
@@ -277,8 +294,9 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                calc_power_parameters, 'DVARS')
     pm.connect(calculate_FD, 'out_file',
                calc_power_parameters, 'FD_1D')
-    pm.connect(inputnode_threshold, 'threshold',
+    pm.connect(scrubbing_input, 'threshold',
                calc_power_parameters, 'threshold')
+
 
     pm.connect(calc_power_parameters, 'out_file', 
                outputNode, 'power_params')
@@ -343,20 +361,27 @@ def set_FD(in_file):
     return out_file
 
 
-def set_frames_ex(in_file, threshold):
+def set_frames_ex(in_file, threshold, 
+                  frames_before=1, frames_after=2):
     """
     Method to calculate Number of frames that would be censored 
     ("scrubbed") by removing the offending time frames 
-    (i.e., those exceeding FD threshold), the preceeding frame, 
+    (i.e., those exceeding FD threshold), the preceding frame, 
     and the two subsequent frames
     
     Parameters
     ----------
-    in_file : string 
+    in_file : a string 
         framewise displacement(FD) file path
-    threshold : float
-         scrubbing thereshold value set in configuration file
-    
+    threshold : a float
+         scrubbing threshold value set in configuration file
+    frames_before : an integer
+        number of frames preceding the offending time frame
+        by default value is 1
+    frames_after : an integer
+        number of frames following the offending time frame
+        by default value is 2
+         
     Returns
     -------
     out_file : string
@@ -376,22 +401,31 @@ def set_frames_ex(in_file, threshold):
     extra_indices = []
 
     indices = [i[0] for i in (np.argwhere(data >= threshold)).tolist()]
-
-    #adding addtional 2 after and one before timepoints
+    #print "initial indices-->", indices
+    
     for i in indices:
-        if i > 0:
-            extra_indices.append(i-1)
-            if i+1 < data.size:
-                extra_indices.append(i+1)
-            if i+2 < data.size:
-                extra_indices.append(i+2)
-
+        
+        #remove preceding frames
+        if i > 0 :
+            count = 1
+            while count <= frames_before:
+                extra_indices.append(i-count)
+                count+=1
+                
+        #remove following frames
+        count = 1
+        while count <= frames_after:
+            extra_indices.append(i+count)
+            count+=1
+                    
     indices = list(set(indices) | set(extra_indices))
-
+    indices.sort()
 
     f = open(out_file, 'a')
 
-    print "indices->", indices
+    #print "indices preceding and following -->", \
+    #      set(extra_indices)
+    #print "final indices -->", indices
     for idx in indices:
         f.write('%s,' % int(idx))
 
@@ -683,6 +717,5 @@ def calculate_DVARS(rest, mask):
     np.save(out_file, DVARS)
     
     return out_file
-    
-    
+
     
