@@ -3,7 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.network_centrality import *
 
-def create_resting_state_graphs(generate_graph, wf_name = 'resting_state_graph'):
+def create_resting_state_graphs(generate_graph = False, wf_name = 'resting_state_graph'):
     """
     Workflow to calculate degree and eigenvector centrality
     measures for the resting state data.
@@ -13,7 +13,7 @@ def create_resting_state_graphs(generate_graph, wf_name = 'resting_state_graph')
     generate_graph : boolean
         when true the workflow plots the adjacency matrix graph 
         and converts the adjacency matrix into compress sparse 
-        matrix and stores it in a .mat file
+        matrix and stores it in a .mat file. By default its False
     wf_name : string
         name of the workflow
         
@@ -293,10 +293,10 @@ def load(datafile, template):
     #check for parcellation
     nodes = np.unique(mask).tolist()
     nodes.sort()
+    print "sorted nodes", nodes
     
     #extract timeseries
     if len(nodes)>2:
-        print "This parcellation unit has %d unique nodes" %(len(nodes))
         flag=1
         for n in nodes:
             if n > 0:
@@ -326,7 +326,6 @@ def load(datafile, template):
     np.save(mask_data, mask)
     np.save(timeseries_data, timeseries)
     np.save(affine, aff)
-    #print mask.shape, timeseries.shape, aff.shape, template_type, scans
     
     return timeseries_data, affine, mask_data, template_type, scans
 

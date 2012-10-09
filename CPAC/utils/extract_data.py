@@ -98,7 +98,8 @@ def extract_data(c, param_map):
                         if sub in subject_list:
                             site_subject_map[sub] = site
                     elif sub not in exclusion_list:
-                        site_subject_map[sub] = site
+                        if sub not in '.DS_Store':
+                            site_subject_map[sub] = site
         
         return base_path_list, site_subject_map
         
@@ -161,10 +162,10 @@ def extract_data(c, param_map):
             
         return session_present, session_path, relative_path
     
-    if func_relative_len!= anat_relative_len:
-        raise Exception(" extract_data script currently doesn't"\
-                          "support different relative paths for"\
-                          "Anatomical and functional files")
+#    if func_relative_len!= anat_relative_len:
+#        raise Exception(" extract_data script currently doesn't"\
+#                          "support different relative paths for"\
+#                          "Anatomical and functional files")
     
     func_session_present, func_session_path, func_relative = \
         check_for_sessions(func_relative, func_relative_len)
@@ -206,13 +207,19 @@ def extract_data(c, param_map):
                 print >> f, "    'Unique_id': '" + session_id + "',"
                 
             def print_end_of_file(sub):
-                if param_map is not None :    
-                    print "site for sub", sub, "->", subject_map.get(sub)
-                    print "scan parameters for the above site", param_map.get(subject_map.get(sub))
-                    print >> f, "    'TR': '" + param_map.get(subject_map.get(sub))[2] + "',"
-                    print >> f, "    'Acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
-                    print >> f, "    'Reference': '" + param_map.get(subject_map.get(sub))[1] + "'"
-                
+                if param_map is not None :
+                    try:    
+                        print "site for sub", sub, "->", subject_map.get(sub)
+                        print "scan parameters for the above site", param_map.get(subject_map.get(sub))
+                        print >> f, "    'TR': '" + param_map.get(subject_map.get(sub))[4] + "',"
+                        print >> f, "    'Acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
+                        print >> f, "    'Reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
+                        print >> f, "    'FirstTR': '" + param_map.get(subject_map.get(sub))[1] +  "'" + ","
+                        print >> f, "    'LastTR': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
+                    except:
+                        raise Excpetion(" No Parameter values for the %s site is defined in the scan"\
+                                        " parameters csv file"%subject_map.get(sub))
+                        
                 print >> f, "},"
             
             #get anatomical file
@@ -222,13 +229,13 @@ def extract_data(c, param_map):
             anat = None
             func = None
             
-            if not os.path.exists(anat_base_path):
-                print "path doesn't exist", anat_base_path
-                raise Exception ("invalid Path. Please check anatomicalTemplate in the config file")
-            
-            if not os.path.exists(func_base_path):
-                print "path doesn't exist", func_base_path
-                raise Exception ("invalid Path. Please check functionalTemplate in the config file")
+#            if not os.path.exists(anat_base_path):
+#                print "path doesn't exist", anat_base_path
+#                raise Exception ("invalid Path. Please check anatomicalTemplate in the config file")
+#            
+#            if not os.path.exists(func_base_path):
+#                print "path doesn't exist", func_base_path
+#                raise Exception ("invalid Path. Please check functionalTemplate in the config file")
             
             anat = glob.glob(os.path.join(anat_base_path, anat_relative))    
             func = glob.glob(os.path.join(func_base_path, func_relative))
@@ -269,16 +276,19 @@ def extract_data(c, param_map):
         """
         try:
         
-            if func_session_present and anat_session_present:
+            if func_session_present:
                 #if there are sessions
                 if "*" in func_session_path:
                     session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
                     for session in session_list:
                         session_id= os.path.basename(session)
-                        if func_session_path == anat_session_path:  
-                            fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id), session_id)
+                        if anat_session_present:
+                            if func_session_path == anat_session_path:  
+                                fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id), session_id)
+                            else:
+                                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
                         else:
-                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                            fetch_path(index, sub, os.path.join(sub, session_id), session_id)
                 else:
                     session_id = func_session_path
                     fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id) 
@@ -302,7 +312,7 @@ def extract_data(c, param_map):
                         print "extracting data for subject: ", sub
                         walk(i, sub)
                 #check that subject is not in exclusion list
-                elif sub not in exclusion_list:
+                elif sub not in exclusion_list and sub not in '.DS_Store':
                     print "extracting data for subject: ",sub
                     walk(i, sub)
     
