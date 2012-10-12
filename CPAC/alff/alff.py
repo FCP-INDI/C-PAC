@@ -10,7 +10,7 @@ import nipype.interfaces.utility as util
 from CPAC.alff.alff import *
 from CPAC.alff.utils import *
 
-def create_alff(tr):
+def create_alff(wf_name = 'alff_workflow'):
 
     """
     Calculate Amplitude of low frequency oscillations(ALFF) and fractional ALFF maps
@@ -18,7 +18,8 @@ def create_alff(tr):
     Parameters
     ----------
 
-    tr : (float) Temporal Resolution of the functional alff
+    wf_name : string
+        Workflow name
 
     Returns
     -------
@@ -44,14 +45,14 @@ def create_alff(tr):
         lp_input.lp : list (float) 
             low pass frequencies
 
-
         inputspec.rest_res : string (existing nifti file)
             Nuisance signal regressed functional image
 
         inputspec.rest_mask : string (existing nifti file)
             A mask volume(derived by dilating the motion corrected functional volume) in native space
 
-
+        inputspec.tr : float
+            scan TR, if input as None, TR is extracted from the nifti file header
 
     Workflow Outputs: ::
 
@@ -188,16 +189,17 @@ def create_alff(tr):
                                                 [0.1])
     >>> alff_w.inputs.inputspec.rest_res = '/home/data/subject/func/rest_bandpassed.nii.gz'
     >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz' 
+    >>> alff_w.inputs.inputspec.tr = None
     >>> alff_w.run() # doctest: +SKIP
 
 
     """
 
 
-    alff = pe.Workflow(name='alff_workflow')
+    alff = pe.Workflow(name= wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['rest_res',
-                                                'rest_mask',
-                                                    ]),
+                                                       'rest_mask',
+                                                       'tr']),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
@@ -220,7 +222,7 @@ def create_alff(tr):
     TR = pe.Node(util.Function(input_names=['in_files', 'TRa'],
                                output_names=['TR'],
                  function=get_img_tr), name='TR')
-    TR.inputs.TRa = tr
+    #TR.inputs.TRa = tr
 
     NVOLS = pe.Node(util.Function(input_names=['in_files'],
                                   output_names=['nvols'],
@@ -307,7 +309,8 @@ def create_alff(tr):
     falff_Z = pe.Node(interface=fsl.MultiImageMaths(),
                          name='falff_Z')
 
-
+    alff.connect(inputNode, 'tr',
+                 TR, 'TRa')
     alff.connect(inputNode, 'rest_res',
                  TR, 'in_files')
     alff.connect(inputNode, 'rest_res',
