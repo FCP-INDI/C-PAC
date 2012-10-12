@@ -691,7 +691,6 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
         if ret_val == '' and throw_exception:
             raise Exception("Missing Value for %s for subject %s"%(val,subject))
         
-        print "ret_val ->", ret_val
         return ret_val
             
     check2 = lambda val : val if val == None else int(val)
@@ -701,19 +700,13 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     ref_slice = int(check('reference', True))
     first_tr = check2(check('first_tr', False))
     last_tr = check2(check('last_tr', False))
-    
-    print "subject,scan --> ", subject, scan
-    print "Initial values --> ", TR, pattern, ref_slice, first_tr, last_tr
-    
+       
     #if empty override with config information
     if first_tr == '':
         first_tr = start_indx  
     
     if last_tr == '':
         last_tr = stop_indx
-    
-    print "first_tr", first_tr
-    print "last_tr", last_tr
     
     if pattern not in ['alt+z', 'altplus', 'alt+z2','alt-z', 'altminus', 
                    'alt-z2', 'seq+z', 'seqplus',  'seq-z','seqminus']:
@@ -744,7 +737,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             TR = TR/1000.0 
             print "New TR value %.2f s" %TR
             
-    print "final values --> ", str(TR), pattern, ref_slice, first_tr, last_tr
+    print "scan_parameters -> ",subject, scan, str(TR), pattern, ref_slice, first_tr, last_tr
     
     return str(TR), pattern, ref_slice, first_tr, last_tr
 
