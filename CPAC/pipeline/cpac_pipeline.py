@@ -1830,8 +1830,10 @@ def prep_workflow(sub_dict, c, strategies):
     
 
     ###################### end of workflow ###########
-    workflow.write_graph(graph2use='orig')
-
+    try:
+        workflow.write_graph(graph2use='orig')
+    except:
+        pass
     """
     Datasink
     """
@@ -1923,8 +1925,9 @@ def prep_workflow(sub_dict, c, strategies):
         try:
             format_dot(dotfilename,'png')
         except:
-            print "Dot is not Installed, Cannot Create the strategy graph"
+            print "Dot is not Installed, Cannot Create the strategy and Pipeline graph"
             pass
+        
         
         print d_name, '*'
         num_strat += 1
