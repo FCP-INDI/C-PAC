@@ -693,7 +693,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
         
         return ret_val
             
-    check2 = lambda val : val if val == None else int(val)
+    check2 = lambda val : val if val == None or val == '' else int(val)
     
     TR = float(check('tr', True))
     pattern = str(check('acquisition', True))
