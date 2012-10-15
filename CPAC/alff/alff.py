@@ -180,7 +180,7 @@ def create_alff(wf_name = 'alff_workflow'):
     Examples
     --------
 
-    >>> alff_w = create_alff(tr=2.0)
+    >>> alff_w = create_alff()
     >>> alff_w.inputs.hp_input.hp = [0.01]
     >>> alff_w.inputs.lp_input.lp = [0.1]
     >>> alff_w.get_node('hp_input').iterables = ('hp',
