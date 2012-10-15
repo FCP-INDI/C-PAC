@@ -396,7 +396,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             # add stuff to resource pool if we need it 
             if slice_timing:
-                strat.update_resource_pool({'slice_timing_corrected': (fun_preproc, 'outputspec.slice_time_corrected')})
+                strat.update_resource_pool({'slice_timing_corrected': (func_preproc, 'outputspec.slice_time_corrected')})
             strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
             strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
