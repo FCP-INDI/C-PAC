@@ -310,7 +310,9 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
 
     if 1 in c.runFunctionalPreprocessing:
-        for strat in strat_list:     
+        for strat in strat_list:    
+            
+            slice_timing = sub_dict.get('scan_parameters') 
             #a node which checks if scan _parameters are present for each scan
             scan_params = pe.Node(util.Function(input_names=['subject',
                                                              'scan',
@@ -330,7 +332,9 @@ def prep_workflow(sub_dict, c, strategies):
                                                function = get_tr),
                                  name = 'convert_tr_%d' % num_strat)
             
-            if sub_dict.get('scan_parameters'):
+            #if scan parameters are available slice timing correction is 
+            #turned on 
+            if slice_timing:
                 
                 func_preproc = create_func_preproc(slice_timing_correction=True, wf_name = 'func_preproc_%d' % num_strat)
                 
@@ -391,7 +395,8 @@ def prep_workflow(sub_dict, c, strategies):
             strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
             # add stuff to resource pool if we need it 
-
+            if slice_timing:
+                strat.update_resource_pool({'slice_timing_corrected': (fun_preproc, 'outputspec.slice_time_corrected')})
             strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
             strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})

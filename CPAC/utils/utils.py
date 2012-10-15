@@ -14,6 +14,7 @@ files_folders_wf = {
     'anatomical_wm_mask': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
+    'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
     'preprocessed':'func',
