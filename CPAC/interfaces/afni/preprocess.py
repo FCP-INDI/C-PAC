@@ -159,8 +159,7 @@ class ThreedTshiftInputSpec(AFNITraitedSpec):
     interp = traits.Enum(('Fourier', 'linear', 'cubic', 'quintic', 'heptic'),
                         desc='different interpolation methods (see 3dTShift for details)' +
                         ' default=Fourier', argstr='-%s')
-    tpattern = traits.Enum(('alt+z', 'alt+z2', 'alt-z', 'alt-z2', 'seq+z', 'seq-z'),
-                            desc='use specified slice time pattern rather than one in header',
+    tpattern = traits.Str(desc='use specified slice time pattern rather than one in header',
                             argstr='-tpattern %s')
     rlt = traits.Bool(desc='Before shifting, remove the mean and linear trend',
                       argstr="-rlt")

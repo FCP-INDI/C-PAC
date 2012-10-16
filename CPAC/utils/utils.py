@@ -14,6 +14,7 @@ files_folders_wf = {
     'anatomical_wm_mask': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
+    'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
     'preprocessed':'func',
@@ -637,3 +638,118 @@ def select_model(model, model_map, ftest):
         raise
     
     return fts_file, con_file, grp_file, mat_file
+
+
+def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
+    
+    """
+    Method to extract slice timing correction parameters
+    and scan parameters.
+    
+    Parameters
+    ----------
+    subject: a string
+        subject id
+    scan : a string
+        scan id
+    subject_map : a dictionary
+        subject map containing all subject information
+    start_indx : an integer
+        starting volume index
+    stop_indx : an integer
+        ending volume index
+    
+    Returns
+    -------
+    TR : a string
+        TR value
+    pattern : a string
+        slice aquisition pattern string or file path
+    ref_slice : an integer
+        reference slice which is used to allign all other slices
+    first_tr : an integer
+        starting TR or starting volume index
+    last_tr : an integer
+        ending TR or ending volume index
+    """
+    
+    import os
+    import warnings
+                            
+    def check(val, throw_exception):
+        
+        if isinstance(subject_map['scan_parameters'][val], dict):
+            ret_val = subject_map['scan_parameters'][val][scan]
+        else:
+            ret_val = subject_map['scan_parameters'][val]
+        
+        if ret_val == 'None':
+            if throw_exception:
+                raise Exception("None Parameter Value for %s for subject %s"%(val,subject))
+            else:
+                ret_val = None
+                
+        if ret_val == '' and throw_exception:
+            raise Exception("Missing Value for %s for subject %s"%(val,subject))
+        
+        return ret_val
+            
+    check2 = lambda val : val if val == None or val == '' else int(val)
+    
+    TR = float(check('tr', True))
+    pattern = str(check('acquisition', True))
+    ref_slice = int(check('reference', True))
+    first_tr = check2(check('first_tr', False))
+    last_tr = check2(check('last_tr', False))
+       
+    #if empty override with config information
+    if first_tr == '':
+        first_tr = start_indx  
+    
+    if last_tr == '':
+        last_tr = stop_indx
+    
+    if pattern not in ['alt+z', 'altplus', 'alt+z2','alt-z', 'altminus', 
+                   'alt-z2', 'seq+z', 'seqplus',  'seq-z','seqminus']:
+        if not os.path.exists(pattern):
+            raise Exception ("Invalid Pattern file path %s , Please provide the correct path"%pattern)
+        else:
+            lines = open(pattern, 'r').readlines()
+            if len(lines) < 2:
+                raise Exception('Invalid slice timing file format. The file should contain '\
+                                'only one value per row. Use new line char as delimiter')
+            pattern = '@' +  pattern
+            
+            slice_timings = [float(l.rstrip('\r\n')) for l in lines]
+            slice_timings.sort()
+            max_slice_offset = slice_timings[-1]
+            #checking if the unit of TR and slice timing match or not
+            #if slice timing in ms convert TR to ms as well
+            if  max_slice_offset > TR:
+                warnings.warn("TR is in seconds and slice timings are in milliseconds."\
+                              "Converting TR into milliseconds")
+                TR = TR*1000
+                print "New TR value %.2f ms" %TR
+            
+    else:
+        #check to see, if TR is in milliseconds, convert it into seconds
+        if TR > 10:
+            warnings.warn('TR is in milliseconds, Converting it into seconds')
+            TR = TR/1000.0 
+            print "New TR value %.2f s" %TR
+            
+    print "scan_parameters -> ",subject, scan, str(TR), pattern, ref_slice, first_tr, last_tr
+    
+    return str(TR), pattern, ref_slice, first_tr, last_tr
+
+
+def get_tr (tr):
+    """
+    Method to return TR in seconds
+    """
+    if tr != None:
+       tr = float(tr)
+       if tr >10: 
+           tr = tr/1000.0 
+    return tr
+        

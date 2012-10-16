@@ -24,9 +24,10 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries,\
                             get_roi_timeseries, get_vertices_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
-from CPAC.utils.utils import extract_one_d
-from CPAC.utils.utils import set_gauss
-from CPAC.utils.utils import prepare_symbolic_links
+from CPAC.utils.utils import extract_one_d, set_gauss, \
+                             prepare_symbolic_links, \
+                             get_scan_params, get_tr
+                             
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -75,12 +76,12 @@ class strategy:
 def prep_workflow(sub_dict, c, strategies):
     print '********************',c.standardResolutionBrain
 
-    subject_id = sub_dict['Subject_id'] +"_"+ sub_dict['Unique_id']
+    subject_id = sub_dict['subject_id'] +"_"+ sub_dict['unique_id']
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp', 'stop_on_first_crash':'True'}
+    workflow.config['execution'] = {'hash_method': 'timestamp'}
 
     mflow = None
     pflow = None
@@ -309,16 +310,65 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
 
     if 1 in c.runFunctionalPreprocessing:
-        for strat in strat_list:
+        for strat in strat_list:    
             
-            func_preproc = create_func_preproc(c.sliceTimingCorrection,'func_preproc_%d' % num_strat)
-            func_preproc.inputs.inputspec.start_idx = c.startIdx
-            func_preproc.inputs.inputspec.stop_idx = c.stopIdx
-            if c.sliceTimingCorrection == True:
-                func_preproc.inputs.scan_params.tr = str(sub_dict['TR'])
-                func_preproc.inputs.scan_params.ref_slice = int(sub_dict['Reference'])
-                func_preproc.inputs.scan_params.acquisition = str(sub_dict['Acquisition'])
+            slice_timing = sub_dict.get('scan_parameters') 
+            #a node which checks if scan _parameters are present for each scan
+            scan_params = pe.Node(util.Function(input_names=['subject',
+                                                             'scan',
+                                                             'subject_map',
+                                                             'start_indx',
+                                                             'stop_indx'],
+                                               output_names=['tr',
+                                                             'tpattern',
+                                                             'ref_slice',
+                                                             'start_indx',
+                                                             'stop_indx'],
+                                               function = get_scan_params ),
+                                 name  = 'scan_params_%d' % num_strat)
             
+            convert_tr = pe.Node(util.Function(input_names = ['tr'],
+                                               output_names= ['tr'],
+                                               function = get_tr),
+                                 name = 'convert_tr_%d' % num_strat)
+            
+            #if scan parameters are available slice timing correction is 
+            #turned on 
+            if slice_timing:
+                
+                func_preproc = create_func_preproc(slice_timing_correction=True, wf_name = 'func_preproc_%d' % num_strat)
+                
+                #getting the scan parameters
+                workflow.connect(funcFlow, 'outputspec.subject',
+                                 scan_params, 'subject')
+                workflow.connect(funcFlow, 'outputspec.scan',
+                                 scan_params, 'scan')
+                scan_params.inputs.subject_map = sub_dict
+                scan_params.inputs.start_indx = c.startIdx
+                scan_params.inputs.stop_indx = c.stopIdx
+                
+                #passing the slice timing correction parameters
+                workflow.connect(scan_params, 'tr',
+                                 func_preproc, 'scan_params.tr')
+                workflow.connect(scan_params, 'ref_slice',
+                                 func_preproc, 'scan_params.ref_slice')
+                workflow.connect(scan_params, 'tpattern',
+                                 func_preproc, 'scan_params.acquisition')
+                
+                workflow.connect(scan_params, 'start_indx',
+                                 func_preproc, 'inputspec.start_idx')
+                workflow.connect(scan_params, 'stop_indx',
+                                 func_preproc, 'inputspec.stop_idx')
+                
+                workflow.connect(scan_params, 'tr',
+                                 convert_tr, 'tr')
+            else: 
+                func_preproc = create_func_preproc(slice_timing_correction=False, wf_name ='func_preproc_%d' % num_strat)
+                func_preproc.inputs.inputspec.start_idx = c.startIdx
+                func_preproc.inputs.inputspec.stop_idx = c.stopIdx
+                
+                convert_tr.inputs.inputspec.val = c.TR
+                
             node = None
             out_file = None
             try:
@@ -345,7 +395,8 @@ def prep_workflow(sub_dict, c, strategies):
             strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
             # add stuff to resource pool if we need it 
-
+            if slice_timing:
+                strat.update_resource_pool({'slice_timing_corrected': (func_preproc, 'outputspec.slice_time_corrected')})
             strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
             strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
@@ -463,8 +514,10 @@ def prep_workflow(sub_dict, c, strategies):
         for strat in strat_list:
             
             gen_motion_stats = motion_power_statistics('gen_motion_stats_%d'% num_strat)
-            gen_motion_stats.inputs.threshold_input.threshold = c.scrubbingThreshold
-            gen_motion_stats.get_node('threshold_input').iterables = ('threshold', c.scrubbingThreshold)
+            gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
+            gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
+            gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
+            gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold', c.scrubbingThreshold)
             
             try:
                 ##**special case where the workflow is not getting outputs from resource pool
@@ -632,16 +685,16 @@ def prep_workflow(sub_dict, c, strategies):
 
     if 1 in c.runALFF:
         for strat in strat_list:
-            preproc = create_alff(c.TR)
-            preproc.inputs.hp_input.hp = c.highPassFreqALFF
-            preproc.inputs.lp_input.lp = c.lowPassFreqALFF
-            preproc.get_node('hp_input').iterables = ('hp',
+            alff = create_alff('alff_%d' % num_strat)
+            alff.inputs.hp_input.hp = c.highPassFreqALFF
+            alff.inputs.lp_input.lp = c.lowPassFreqALFF
+            alff.get_node('hp_input').iterables = ('hp',
                                                         c.highPassFreqALFF)
-            preproc.get_node('lp_input').iterables = ('lp',
+            alff.get_node('lp_input').iterables = ('lp',
                                                         c.lowPassFreqALFF)
-
-            alff = preproc.clone('alff_%d' % num_strat)
-
+            
+            workflow.connect(convert_tr, 'tr',
+                             alff, 'inputspec.tr')
 
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -650,8 +703,6 @@ def prep_workflow(sub_dict, c, strategies):
                 node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                 workflow.connect(node, out_file,
                                  alff, 'inputspec.rest_mask')
-
-
 
             except:
                 print 'Invalid Connection: ALFF:', num_strat, ' resource_pool: ', strat.get_resource_pool()
@@ -1784,8 +1835,10 @@ def prep_workflow(sub_dict, c, strategies):
     
 
     ###################### end of workflow ###########
-    workflow.write_graph(graph2use='orig')
-
+    try:
+        workflow.write_graph(graph2use='orig')
+    except:
+        pass
     """
     Datasink
     """
@@ -1873,7 +1926,14 @@ def prep_workflow(sub_dict, c, strategies):
         G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
         dotfilename = os.path.join(d_name, 'strategy.dot')
         nx.write_dot(G, dotfilename)
-        format_dot(dotfilename,'png')
+        
+        try:
+            format_dot(dotfilename,'png')
+        except:
+            print "Dot is not Installed, Cannot Create the strategy and Pipeline graph"
+            pass
+        
+        
         print d_name, '*'
         num_strat += 1
 

@@ -79,13 +79,13 @@ Data Directory Setup ***
 # NOTE: Users must manually create these directories before running C-PAC
 
 # Directory where C-PAC should store temporary and intermediate files
-workingDirectory = '/path/to/working_directory'
+workingDirectory = '/home/bcheung/yard_sale/p_work'
 
 # Directory where C-PAC should place crash logs
-crashLogDirectory = '/path/to/crash_directory'
+crashLogDirectory = '/home/bcheung/yard_sale/p_crash'
 
 # Directory where C-PAC should put processed data
-sinkDirectory = '/path/to/output_directory'
+sinkDirectory = '/home/bcheung/yard_sale/p_sink'
 
 """
 ========================
@@ -121,7 +121,7 @@ standardResolutionBrain = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.
 
 standard = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s.nii.gz' % (standardResolution))
 
-standardBrainMaskDiluted = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
+standardBrainMaskDiluted = os.path.join(FSLDIR,'/data/standard/MNI152_T1_%s_brain_mask_dil.nii.gz' % (standardResolution))
 
 configFile = os.path.join(FSLDIR,'etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
 
@@ -137,11 +137,11 @@ identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
 harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
-
+boundaryBasedRegistrationSchedule = os.path.join(FSLDIR, 'etc/flirtsch/bbr.sch')
 """
-==================
-Timeseries Options ***
-==================
+=============================
+Optional Timeseries Overrides ***
+=============================
 """
 # Ignore volumes before this timepoint
 # Options are an integer or None (defaults to beginning of timeseries)
@@ -177,11 +177,13 @@ runFunctionalPreprocessing = [1]
 
 runRegistrationPreprocessing = [1]
 
+runBoundaryBasedRegistration = [1]
+
 runRegisterFuncToMNI = [1]
 
 runAnatomicalToFunctionalRegistration = [1]
 
-runSymbolicLinks = [1]
+runSymbolicLinks = [0]
 
 """
 =========================================
@@ -198,7 +200,7 @@ runSegmentationPreprocessing = [1]
 # Please specify the location and name of your prior files.
 # Priors distributed with FSL must be binarized to be used by C-PAC
 # For information about how to do this, please see the User Guide
-prior_path = '/path/to/tissuepriors/%s' % standardResolution
+prior_path = '/home2/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
 
 # These values will be set automatically based on prior_path
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
@@ -210,11 +212,11 @@ PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
 # For example, setting a value of 0.8 will result in areas with a 80 percent 
 # probability of being a particular tissue type to be classified as such
 
-cerebralSpinalFluidThreshold = [0.4]
+cerebralSpinalFluidThreshold = [0.98]
 
-whiteMatterThreshold = [0.66]
+whiteMatterThreshold = [0.98]
 
-grayMatterThreshold = [0.2]
+grayMatterThreshold = [0.7]
 
 """
 ==================================
@@ -287,9 +289,21 @@ runFrequencyFiltering = [1]
 
 # First value = Lower bound for a band-pass filter
 # Second value = Upper bound for a band-pass filter
-# To use a high-pass filter, set the second value to None
-# To use a low-pass filter, set the first value to None
+# To use a high-pass filter, set the second value to NONE
+# To use a low-pass filter, set the first value to NONE
 nuisanceBandpassFreq =[(0.01, 0.1)]
+
+"""
+=======================================
+Seed-based Correlation Analysis Options ***
+=======================================
+"""
+# Run Seed-based Correlation Analysis
+runSCA = [0]
+
+# SCA will be run on all ROI and voxel timeseries extracted below.
+# This means that in order to run SCA, you must also run Timeseries Extraction.
+# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
 
 """
 ==============================
@@ -311,7 +325,7 @@ roiDirectoryPath = '/path/to/roi_definitions_directory'
 
 # Extract timeseries data for all individual voxels within a mask
 # Required if you wish to run voxel-based SCA
-runVoxelTimeseries = [1]
+runVoxelTimeseries = [0]
 
 # Export voxel timeseries data
 # First value = Output .csv
@@ -340,54 +354,17 @@ runVerticesTimeSeries = [0]
 verticesTSOutputs = [False, False]
 
 """
-=======================================
-Seed-based Correlation Analysis Options ***
-=======================================
-"""
-# Run Seed-based Correlation Analysis
-runSCA = [1]
-
-# IN ORDER TO RUN SCA, YOU MUST ALSO RUN TIMESERIES EXTRACTION.
-# SCA will be run on all ROI and voxel timeseries extracted above.
-# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
-
-"""
 ===================================
 Regional Homogeneity (ReHo) Options ***
 ===================================
+
 """
 # Calculate Regional Homogeneity
-runReHo = [1]
+runReHo = [0]
 
 # Cluster size (number of neighboring voxels)
 # Options are 7, 19, and 27
 clusterSize = 27
-
-"""
-============================================
-Voxel-mirrored Homotopic Connectivity (VMHC) ***
-============================================
-"""
-# Calculate VMHC for all gray matter voxels
-runVMHC = [1]
-
-# There are no options for VMHC
-
-"""
-==========================================================================
-Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
-==========================================================================
-"""
-# Calculate ALFF and fALFF
-runALFF = [1]
-
-# NOTE: Frequency filtering is not applied when calculating fALFF
-
-# Frequency cutoff (in Hz) for a high-pass filter
-highPassFreqALFF = [0.01]
-
-# Frequency cutoff (in Hz) for a low-pass filter
-lowPassFreqALFF = [0.1]
 
 """
 ==========================
@@ -395,7 +372,7 @@ Network Centrality Options ***
 ==========================
 """
 # Calculate network centrality measures
-runNetworkCentrality = [1]
+runNetworkCentrality = [0]
 
 # Select which centrality measures to calculate
 # First value = Degree Centrality 
@@ -431,14 +408,22 @@ templateDirectoryPath = '/path/to/centrality_mask_roi_directory'
 # and adjacency matrix mat file
 #Takes lot of memory. Do not turn it on for voxel based graph.
 generateAdjacencyGraph = False
+
+"""
+============================================
+Voxel-mirrored Homotopic Connectivity (VMHC) ***
+============================================
+"""
+# Calculate VMHC for all gray matter voxels
+runVMHC = [0]
+
+# There are no options for VMHC
+
 """
 ====================================================
 Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
-# Run BASC
-runBASC = [0]
-
 # Path to a mask file. Voxels outside this mask will be excluded from BASC.
 bascROIFile = '/path/to/basc_mask_file'
 
@@ -462,9 +447,6 @@ bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
-# Run CWAS
-runCWAS = [0]
-
 # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
 cwasROIFile = '/path/to/cwas_mask_file'
 
@@ -477,15 +459,28 @@ cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/path/to/cwas_regressor_file'
+
+"""
+==========================================================================
+Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
+==========================================================================
+"""
+# Calculate ALFF and fALFF
+runALFF = [0]
+
+# NOTE: Frequency filtering is not applied when calculating fALFF
+
+# Frequency cutoff (in Hz) for a high-pass filter
+highPassFreqALFF = [0.01]
+
+# Frequency cutoff (in Hz) for a low-pass filter
+lowPassFreqALFF = [0.1]
  
 """
 ============================
 Group Statistics Options ***
 ============================
 """
-# Calculate group statistics
-runGroupAnalysis = [1]
-
 # Path to list of subjects on which to run group statistics
 # This file should be created automatically when you run extract_data.py
 # The order of subjects in this list must match the order in your model
