@@ -9,21 +9,26 @@ def extract_data(c, param_map):
     Method to generate a CPAC input subject list 
     python file. The method extracts anatomical 
     and functional data for each site( if multiple site)
-    and put it into a data structure read by python
+    and/or scan parameters for each site and put it into 
+    a data structure read by python
     
     Example:
     subjects_list =[
        {    
-        'Subject_id' : '0050386',
-        'Unique_id' : 'session_1',
+        'subject_id' : '0050386',
+        'unique_id' : 'session_1',
         'anat': '/Users/home/data/NYU/0050386/session_1/anat_1/anat.nii.gz',
         'rest':{
             'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
             'rest_2_rest' : '/Users/home/data/NYU/0050386/session_1/rest_2/rest.nii.gz',
             }
-        'TR': '2',
-        'Acquisition': 'alt+z2',
-        'Reference': '17'
+        'scan_parameters':{
+            'tr': '2',
+            'acquisition': 'alt+z2',
+            'reference': '17',
+            'first_tr': '',
+            'last_tr': '',
+            }
         },
     ]
     
@@ -31,8 +36,8 @@ def extract_data(c, param_map):
     
     subjects_list =[
        {    
-        'Subject_id' : '0050386',
-        'Unique_id' : 'session_1',
+        'subject_id' : '0050386',
+        'unique_id' : 'session_1',
         'anat': '/Users/home/data/NYU/0050386/session_1/anat_1/anat.nii.gz',
         'rest':{
             'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
@@ -203,19 +208,21 @@ def extract_data(c, param_map):
     
             def print_begin_of_file(sub, session_id):
                 print >> f, "{"
-                print >> f, "    'Subject_id': '" + sub + "',"
-                print >> f, "    'Unique_id': '" + session_id + "',"
+                print >> f, "    'subject_id': '" + sub + "',"
+                print >> f, "    'unique_id': '" + session_id + "',"
                 
             def print_end_of_file(sub):
                 if param_map is not None :
                     try:    
                         print "site for sub", sub, "->", subject_map.get(sub)
                         print "scan parameters for the above site", param_map.get(subject_map.get(sub))
-                        print >> f, "    'TR': '" + param_map.get(subject_map.get(sub))[4] + "',"
-                        print >> f, "    'Acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
-                        print >> f, "    'Reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
-                        print >> f, "    'FirstTR': '" + param_map.get(subject_map.get(sub))[1] +  "'" + ","
-                        print >> f, "    'LastTR': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
+                        print >> f, "    'scan_parameters':{"
+                        print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
+                        print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
+                        print >> f, "        'reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
+                        print >> f, "        'first_tr': '" + param_map.get(subject_map.get(sub))[1] +  "'" + ","
+                        print >> f, "        'last_tr': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
+                        print >> f, "        }"
                     except:
                         raise Exception(" No Parameter values for the %s site is defined in the scan"\
                                         " parameters csv file"%subject_map.get(sub))
@@ -298,6 +305,8 @@ def extract_data(c, param_map):
                 fetch_path(index, sub, sub, session_id)
                 
         except Exception:
+            raise
+        except:
             print "Please make sessions are consistent across all subjects"
             raise
             
@@ -313,7 +322,7 @@ def extract_data(c, param_map):
                         walk(i, sub)
                 #check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in '.DS_Store':
-                    print "extracting data for subject: ",sub
+                    print "extracting data for subject: ", sub
                     walk(i, sub)
     
         print >> f, "]"
@@ -342,7 +351,7 @@ def generate_suplimentary_files():
     data_list =[]
 
     for sub in c.subjects_list :
-        subject_id = sub['Subject_id'] + "_" + sub['Unique_id']
+        subject_id = sub['subject_id'] + "_" + sub['unique_id']
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)
@@ -367,7 +376,7 @@ def generate_suplimentary_files():
             
     #prepare data for phenotypic file    
     if len(scan_set) >1:
-        list1=['Subject_id/Scan']
+        list1=['subject_id/scan']
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
     
@@ -379,7 +388,7 @@ def generate_suplimentary_files():
         writer.writerow(list1)
         writer.writerows(data_list)
     else:
-        writer.writerow(['Subject_id'])
+        writer.writerow(['subject_id'])
         for sub in subject_set:
             writer.writerow([sub])
             
@@ -414,13 +423,14 @@ def read_csv(csv_input):
         dict_labels=defaultdict(list) 
         for line in reader:
             csv_dict = dict((k.lower(), v) for k,v in line.iteritems())
-            dict_labels[csv_dict.get('site')] = [csv_dict[key] for key in sorted(csv_dict.keys()) if key!= 'site' ]
+            dict_labels[csv_dict.get('site')] = [csv_dict[key] for key in sorted(csv_dict.keys()) \
+                                                 if key!= 'site' and key!= 'scan' ]
                 
         if len(dict_labels.keys()) < 1 :
             raise Exception("Scan Parameters File is either empty"\
                             "or missing header")
     except:
-        print "Error reading scan parameters csv"
+        print "Error reading scan parameters csv. Make sure you are using the correct template"
         raise
     
     return dict_labels
@@ -438,10 +448,10 @@ def run(data_config):
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-    if c.sliceTimingParametersCSV is not None:
-        s_param_map = read_csv(c.sliceTimingParametersCSV)
+    if c.scanParametersCSV is not None:
+        s_param_map = read_csv(c.scanParametersCSV)
     else:
-        print "no slice timing correction parameters csv included"\
+        print "no scan parameters csv included"\
               "make sure you turn off slice timing correction option"\
               "in CPAC configuration"
         s_param_map = None
