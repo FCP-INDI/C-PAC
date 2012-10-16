@@ -444,8 +444,8 @@ def get_standard_background_img(in_file, file_parameters):
         hdr = img.get_header()
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
-        print "gorup_mm -> ", group_mm
-        standard_path = FSLDIR + '/data/standard/' + MNI +'_T1_%smm_brain.nii.gz' % (group_mm)
+        print "group_mm -> ", group_mm
+        standard_path = os.path.join(FSLDIR, 'data/standard/', '%s_T1_%smm_brain.nii.gz'% (MNI, group_mm))
         print "path ->", standard_path
         return os.path.abspath(standard_path)
 

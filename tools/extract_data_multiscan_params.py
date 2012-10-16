@@ -7,12 +7,57 @@ def extract_data(c, param_map):
     """
     Method to generate a CPAC input subject list
     python file. The method extracts anatomical
-    and functional data for each site( if multiple site)
+    functional data and scan parameters for each 
+    site( if multiple site) and for each scan 
     and put it into a data structure read by python
 
+    Note:
+    -----
+    Use this tool only if the scan parameters are different 
+    for each scan as shown in the example below.
+    
     Example:
+    --------
+    subjects_list = [
+        {
+            'subject_id': '0021001',
+            'unique_id': 'session2',
+            'anat': '/home/data/multiband_data/NKITRT/0021001/anat/mprage.nii.gz',
+            'rest':{
+              'RfMRI_mx_1400_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_mx_1400/rest.nii.gz',
+              'RfMRI_mx_645_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_mx_645/rest.nii.gz',
+              'RfMRI_std_2500_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_std_2500/rest.nii.gz',
+              },
+            'scan_parameters':{
+                'TR':{
+                    'RfMRI_mx_1400_rest': '1.4',
+                    'RfMRI_mx_645_rest': '1.4',
+                    'RfMRI_std_2500_rest': '2.5',
+                    },
+                'Acquisition':{
+                    'RfMRI_mx_1400_rest': '/home/data/1400.txt',
+                    'RfMRI_mx_645_rest': '/home/data/645.txt',
+                    'RfMRI_std_2500_rest': '/home/data/2500.txt',
+                    },
+                'Reference':{
+                    'RfMRI_mx_1400_rest': '32',
+                    'RfMRI_mx_645_rest': '20',
+                    'RfMRI_std_2500_rest': '19',
+                    },
+                'FirstTR':{
+                    'RfMRI_mx_1400_rest': '7',
+                    'RfMRI_mx_645_rest': '15',
+                    'RfMRI_std_2500_rest': '4',
+                    },
+                'LastTR':{
+                    'RfMRI_mx_1400_rest': '440',
+                    'RfMRI_mx_645_rest': '898',
+                    'RfMRI_std_2500_rest': 'None',
+                    },
+                }
+        },
 
-
+    ]
     """
 
     #method to read each line of the file into list
@@ -174,22 +219,34 @@ def extract_data(c, param_map):
 
             def print_begin_of_file(sub, session_id):
                 print >> f, "{"
-                print >> f, "    'Subject_id': '" + sub + "',"
-                print >> f, "    'Unique_id': '" + session_id + "',"
+                print >> f, "    'subject_id': '" + sub + "',"
+                print >> f, "    'unique_id': '" + session_id + "',"
 
-            def print_end_of_file(sub, scan):
+            def print_end_of_file(sub, scan_list):
                 if param_map is not None:
-                    try:
-                        print "site for sub", sub, "->", subject_map.get(sub)
-                        print "scan parameters for the above site", param_map.get((subject_map.get(sub), scan))
-                        print >> f, "    'TR': '" + param_map.get((subject_map.get(sub), scan))[4] + "',"
-                        print >> f, "    'Acquisition': '" + param_map.get((subject_map.get(sub), scan))[0] + "',"
-                        print >> f, "    'Reference': '" + param_map.get((subject_map.get(sub), scan))[3] + "'" + ","
-                        print >> f, "    'FirstTR': '" + param_map.get((subject_map.get(sub), scan))[1] +  "'" + ","
-                        print >> f, "    'LastTR': '" + param_map.get((subject_map.get(sub), scan))[2] + "'" + ","
-                    except:
-                        raise Exception(" No Parameter values for the %s site and %s scan is defined in the scan"\
-                                        " parameters csv file" % (subject_map.get(sub), scan))
+                    def print_scan_param(index):
+                        try:
+                            for scan in scan_list:
+                                print>>f,  "            '" + scan[1] + "': '" + \
+                                param_map.get((subject_map.get(sub), scan[0]))[index] + "',"
+                            print>>f, "            },"
+                        except:
+                            raise Exception(" No Parameter values for the %s site and %s scan is defined in the scan"\
+                                            " parameters csv file" % (subject_map.get(sub), scan[0]))
+
+                    print "site for sub", sub, "->", subject_map.get(sub)
+                    print >>f, "    'scan_parameters':{"
+                    print >> f, "        'tr':{"
+                    print_scan_param(4)
+                    print >> f, "        'acquisition':{"
+                    print_scan_param(0)
+                    print >> f, "        'reference':{"
+                    print_scan_param(3)
+                    print >> f, "        'first_tr':{"
+                    print_scan_param(1)
+                    print >> f, "        'last_tr':{"
+                    print_scan_param(2)
+                    print >>f, "        }"
 
                 print >> f, "},"
 
@@ -210,21 +267,21 @@ def extract_data(c, param_map):
 
             anat = glob.glob(os.path.join(anat_base_path, anat_relative))
             func = glob.glob(os.path.join(func_base_path, func_relative))
-
+            scan_list = []
             if anat and func:
+                print_begin_of_file(anat_sub.split("/")[0], session_id)
+                print >> f, "    'anat': '" + anat[0] + "',"
+                print >>f, "    'rest':{"
 
                 #iterate for each rest session
                 for iter in func:
-                    print_begin_of_file(anat_sub.split("/")[0], session_id)
-                    print >> f, "    'anat': '" + anat[0] + "',"
-                    print >>f, "    'rest':{"
                     #get scan_id
                     iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
-                    scan = os.path.dirname(iterable)
-                    iterable = iterable.replace("/", "_")
-                    print>>f,  "      '" + iterable + "': '" + iter + "',"
-                    print >> f, "      },"
-                    print_end_of_file(anat_sub.split("/")[0], scan)
+                    scan_name = iterable.replace("/", "_")
+                    scan_list.append((os.path.dirname(iterable), scan_name))
+                    print>>f,  "      '" + scan_name + "': '" + iter + "',"
+                print >> f, "      },"
+                print_end_of_file(anat_sub.split("/")[0], scan_list)
 
         except Exception:
             raise
@@ -270,6 +327,8 @@ def extract_data(c, param_map):
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
+            raise
+        except:
             print "Please make sessions are consistent across all subjects"
             raise
 
@@ -313,7 +372,7 @@ def generate_suplimentary_files():
     data_list = []
 
     for sub in c.subjects_list:
-        subject_id = sub['Subject_id'] + "_" + sub['Unique_id']
+        subject_id = sub['subject_id'] + "_" + sub['unique_id']
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)
@@ -338,7 +397,7 @@ def generate_suplimentary_files():
 
     #prepare data for phenotypic file
     if len(scan_set) > 1:
-        list1 = ['Subject_id/Scan']
+        list1 = ['subject_id/Scan']
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
 
@@ -350,7 +409,7 @@ def generate_suplimentary_files():
         writer.writerow(list1)
         writer.writerows(data_list)
     else:
-        writer.writerow(['Subject_id'])
+        writer.writerow(['subject_id'])
         for sub in subject_set:
             writer.writerow([sub])
 
@@ -410,10 +469,10 @@ def run(data_config):
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-    if c.sliceTimingParametersCSV is not None:
-        s_param_map = read_csv(c.sliceTimingParametersCSV)
+    if c.scanParametersCSV is not None:
+        s_param_map = read_csv(c.scanParametersCSV)
     else:
-        print "no slice timing correction parameters csv included"\
+        print "no scan parameters csv included"\
               "make sure you turn off slice timing correction option"\
               "in CPAC configuration"
         s_param_map = None

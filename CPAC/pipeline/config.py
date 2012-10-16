@@ -155,10 +155,6 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
-# Run Slice Timing Correction
-# !!! UNFINISHED !!! HOW DO PEOPLE SPECIFY PARAMETERS FILE !!!
-sliceTimingCorrection = True
-
 """
 ================================
 Preprocessing Workflow Selection ***
@@ -273,8 +269,12 @@ runGenerateMotionStatistics = [1]
 # will also be removed
 scrubbingThreshold = [0.2]
 
+#number of preceding frames to the offending time 
+#frames to be removed (i.e.,those exceeding FD threshold)
 numRemovePrecedingFrames = 1
 
+#number of following frames to the offending time 
+#frames to be removed (i.e.,those exceeding FD threshold)
 numRemoveSubsequentFrames = 2
 
 """
@@ -427,6 +427,10 @@ correlationThreshold = 0.0744
 # Using a mask will result in voxel-based centrality measures
 templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
 
+#Option to generate adjacency matrix png image
+# and adjacency matrix mat file
+#Takes lot of memory. Do not turn it on for voxel based graph.
+generateAdjacencyGraph = False
 """
 ====================================================
 Bootstrap Analysis of Stable Clusters (BASC) Options **
@@ -521,3 +525,4 @@ pThreshold = 0.05
 # Run an F-test
 # Options are True/False
 fTest = True
+

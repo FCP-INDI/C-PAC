@@ -157,7 +157,21 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
     >>> wf.inputs.inputspec.subject_id = 'sub01'
     >>> wf.inputs.inputspec.scan_id = 'rest_1'
-    >>> wf.inputs.threshold_input.threshold = 0.5
+    >>> wf.inputs.scrubbing_input.threshold = 0.5
+    >>> wf.base_dir = './working_dir'
+    >>> wf.run()
+    
+    >>> import generate_motion_statistics
+    >>> wf = generate_motion_statistics.motion_power_statistics("generate_statistics")
+    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sub01/func/movement_parameteres/rest_mc.1D'
+    >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sub01/func/max_dispalcement/max_disp.1D'
+    >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'
+    >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
+    >>> wf.inputs.inputspec.subject_id = 'sub01'
+    >>> wf.inputs.inputspec.scan_id = 'rest_1'
+    >>> wf.inputs.scrubbing_input.threshold = 0.2
+    >>> wf.inputs.scrubbing_input.remove_frames_before = 1
+    >>> wf.inputs.scrubbing_input.remove_frames_after = 1
     >>> wf.base_dir = './working_dir'
     >>> wf.run()
     

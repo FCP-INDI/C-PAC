@@ -211,7 +211,9 @@ def get_voxel_timeseries(wf_name = 'voxel_timeseries'):
             list of time series matrices stored in csv and/or
             npz files.By default it outputs mean of voxels 
             across each time point in a afni compatible 1D file.
-        
+    
+        High Level Workflow Graph:
+    
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t

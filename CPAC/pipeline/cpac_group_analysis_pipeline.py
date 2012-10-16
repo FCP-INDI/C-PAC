@@ -49,7 +49,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
     strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
-    for ch in ['/','.']:
+    for ch in ['.']:
         if ch in strgy_path:
             strgy_path = strgy_path.replace(ch, '_')
     
@@ -61,6 +61,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
     gpa_wf.inputs.inputspec.zmap_files = s_paths
+    gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
+    gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
+    gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
+                                               'MNI152')
     
     wf.connect(gp_flow, 'outputspec.mat',
                gpa_wf, 'inputspec.mat_file')
@@ -74,22 +78,29 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                    gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
+    out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
+        
+        
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(?<!model)(.)*[/]','/'),
+                                      (r'(?<=model_files)(?<!model)(.)*[/]','/'),
+                                      (r'(?<=merged)(?<!model)(.)*[/]','/'),
+                                      (r'(?<=stats)(?<!model)(.)*[/]','/')]
     ########datasink connections#########
     
     wf.connect(gp_flow, 'outputspec.mat',
-               ds, 'model')
+               ds, 'model_files')
     wf.connect(gp_flow, 'outputspec.con',
-               ds, 'model.@01')
+               ds, 'model_files.@01')
     wf.connect(gp_flow, 'outputspec.grp',
-               ds, 'model.@02')
+               ds, 'model_files.@02')
     wf.connect(gp_flow, 'outputspec.sublist',
-               ds, 'model.@03')
+               ds, 'model_files.@03')
     wf.connect(gpa_wf, 'outputspec.merged',
                ds, 'merged')
     wf.connect(gpa_wf, 'outputspec.zstats',
