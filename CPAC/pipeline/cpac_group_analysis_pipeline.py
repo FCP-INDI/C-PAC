@@ -49,7 +49,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
     strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
-    for ch in ['/','.']:
+    for ch in ['.']:
         if ch in strgy_path:
             strgy_path = strgy_path.replace(ch, '_')
     
@@ -61,6 +61,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
     gpa_wf.inputs.inputspec.zmap_files = s_paths
+    gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
+    gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
+    gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
+                                               'MNI152')
     
     wf.connect(gp_flow, 'outputspec.mat',
                gpa_wf, 'inputspec.mat_file')
