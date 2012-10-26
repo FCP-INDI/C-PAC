@@ -277,7 +277,11 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
             Corresponding anatomical native space to MNI warp file
         inputspec.anat_to_mni_linear_xfm : string (mat file)
             Corresponding anatomical native space to MNI mat file
-            
+        inputspec.anat_wm_segmentation : string (nifti file)
+            White matter segmentation probability mask in anatomical space
+        inputspec.bbr_schedule : string (.sch file)
+            Boundary based registration schedule file for flirt command
+        
     Workflow Outputs::
     
         outputspec.func_to_anat_linear_xfm : string (mat file)
@@ -286,6 +290,10 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
             Affine transformation from functional to MNI space
         outputspec.mni_to_func_linear_xfm : string (mat file)
             Affine transformation from MNI to functional space
+        outputspec.anat_wm_edge : string (nifti file)
+            White matter edge mask in anatomical space
+        outputspec.anat_func : string (nifti file)
+            Functional data in anatomical space
         outputspec.mni_func : string (nifti file)
             Functional scan registered to MNI standard space
             

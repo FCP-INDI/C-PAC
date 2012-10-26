@@ -38,4 +38,18 @@ import anat_preproc, \
 
 __all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh']
 
-__version__ = '0.1-git'
+
+from subprocess import Popen, PIPE
+
+try:
+    gitproc = Popen(['git', 'show-ref'], stdout = PIPE)
+    (stdout, stderr) = gitproc.communicate()
+
+    for row in stdout.split('\n'):
+        if row.find('HEAD') != -1:
+            hash = row.split()[0][:10]
+            break
+except OSError:
+    hash = 'unknown_version'
+
+__version__ = '0.1-git-' + hash
