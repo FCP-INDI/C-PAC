@@ -580,7 +580,7 @@ def generate_adjacency_graph(correlation_matrix, threshold_matrix,
             filename = mask_name + "_adjacency_matrix"
             save(filename, 'unit_graph', spcscmat)
         
-        if weight_options[1]:
+        elif weight_options[1]:
             matrix = thresh_matrix * corr_matrix
             spedgemat = lil_matrix (matrix)
             spcscmat = csc_matrix (spedgemat)

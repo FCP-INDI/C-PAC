@@ -453,7 +453,7 @@ def clean_strategy(strategies, helper):
 ### in the pipeline then remove them from the strategy tag list
 
     new_strat = []
-
+    
 
     for strat in strategies:
 

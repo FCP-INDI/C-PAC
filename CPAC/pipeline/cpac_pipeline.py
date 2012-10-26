@@ -32,7 +32,7 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
-
+import zlib
 
 class strategy:
 
@@ -367,7 +367,7 @@ def prep_workflow(sub_dict, c, strategies):
                 func_preproc.inputs.inputspec.start_idx = c.startIdx
                 func_preproc.inputs.inputspec.stop_idx = c.stopIdx
                 
-                convert_tr.inputs.inputspec.val = c.TR
+                convert_tr.inputs.val = c.TR
                 
             node = None
             out_file = None
@@ -1889,13 +1889,15 @@ def prep_workflow(sub_dict, c, strategies):
         else:
             strategy_tag_helper_symlinks['nuisance'] = 0
 
-
-
-
+        strat_tag = ""
+        for name in strat.get_name():
+            strat_tag += name
+        
+        pipeline_id = zlib.crc32(strat_tag)
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
-            ds.inputs.container = os.path.join('pipeline_%d' % (num_strat), subject_id)
+            ds.inputs.container = os.path.join('pipeline_%d' % pipeline_id, subject_id)
 #            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
@@ -1911,7 +1913,7 @@ def prep_workflow(sub_dict, c, strategies):
 
                 link_node.inputs.strategies = strategies
                 link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%d' % (num_strat)
+                link_node.inputs.pipeline_id = 'pipeline_%d' % (pipeline_id)
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
