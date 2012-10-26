@@ -327,6 +327,12 @@ def create_nuisance(name='nuisance'):
             Corresponding cerebral spinal fluid mask.
         inputspec.gm_mask : string (nifti file)
             Corresponding grey matter mask.
+        inputspec.mni_to_anat_linear_xfm : string (nifti file)
+            Corresponding MNI to anatomical linear transformation 
+        inputspec.func_to_anat_linear_xfm : string (nifti file)
+            Corresponding EPI to anatomical linear transformation
+        inputspec.harvard_oxford_mask : string (nifti file)
+            Harvard Oxford parcellation for ventrical locations
         inputspec.motion_components : string (text file)
             Corresponding rigid-body motion parameters.  Matrix in the file should be of shape 
             (`T`, `R`), `T` timepoints and `R` motion parameters.
