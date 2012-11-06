@@ -139,9 +139,9 @@ harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxfor
 
 
 """
-=============================
-Optional Timeseries Overrides ***
-=============================
+==================
+Timeseries Options ***
+==================
 """
 # Ignore volumes before this timepoint
 # Options are an integer or None (defaults to beginning of timeseries)
@@ -273,6 +273,14 @@ runGenerateMotionStatistics = [1]
 # will also be removed
 scrubbingThreshold = [0.2]
 
+#number of preceding frames to the offending time 
+#frames to be removed (i.e.,those exceeding FD threshold)
+numRemovePrecedingFrames = 1
+
+#number of following frames to the offending time 
+#frames to be removed (i.e.,those exceeding FD threshold)
+numRemoveSubsequentFrames = 2
+
 """
 ==========================
 Temporal Filtering Options ***
@@ -283,8 +291,8 @@ runFrequencyFiltering = [1]
 
 # First value = Lower bound for a band-pass filter
 # Second value = Upper bound for a band-pass filter
-# To use a high-pass filter, set the second value to NONE
-# To use a low-pass filter, set the first value to NONE
+# To use a high-pass filter, set the second value to None
+# To use a low-pass filter, set the first value to None
 nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
@@ -423,11 +431,16 @@ correlationThreshold = 0.0744
 # Using a mask will result in voxel-based centrality measures
 templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
 
+#Option to generate adjacency matrix png image
+# and adjacency matrix mat file
+#Takes lot of memory. Do not turn it on for voxel based graph.
+generateAdjacencyGraph = False
 """
 ====================================================
 Bootstrap Analysis of Stable Clusters (BASC) Options **
 ====================================================
 """
+# Run BASC
 runBASC = [0]
 
 # Path to a mask file. Voxels outside this mask will be excluded from BASC.
@@ -453,6 +466,7 @@ bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 Connectome-wide Association Study (CWAS) Options **
 ================================================
 """
+# Run CWAS
 runCWAS = [0]
 
 # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
@@ -473,6 +487,7 @@ cwasRegressorFile = '/path/to/cwas_regressor_file'
 Group Statistics Options ***
 ============================
 """
+# Calculate group statistics
 runGroupAnalysis = [1]
 
 # Path to list of subjects on which to run group statistics
@@ -514,3 +529,4 @@ pThreshold = 0.05
 # Run an F-test
 # Options are True/False
 fTest = True
+

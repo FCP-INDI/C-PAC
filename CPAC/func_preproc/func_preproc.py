@@ -7,13 +7,21 @@ import CPAC.interfaces.afni.preprocess as preprocess
 
 #functional preprocessing
 
-def create_func_preproc(slice_timing_correction, wf_name = 'func_preproc'):
+def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc'):
     """
     
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented 
     into RPI. Then take the mean intensity values over all time points for each voxel and use this image 
     to calculate motion parameters. The image is then skullstripped, normalized and a processed mask is 
     obtained to use it further in Image analysis.
+    
+    Parameters
+    ----------
+    
+    slice_timing_correction : boolean
+        Slice timing Correction option
+    wf_name : string
+        Workflow name
     
     Returns 
     -------
@@ -473,6 +481,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     img = load(in_files)
     hdr = img.get_header()
     nvols = int(hdr.get_data_shape()[3])
+    
 
     if (start_idx == None) or (start_idx < 0) or (start_idx > (nvols - 1)):
         startidx = 0

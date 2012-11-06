@@ -129,7 +129,8 @@ def get_mov_parameters(infile_a, infile_b):
         
     """
     import os
-
+    import warnings
+    
     out_file = os.path.join(os.getcwd(), 'rest_mc_scrubbed.1D')
 
     f1= open(infile_a)
@@ -138,8 +139,12 @@ def get_mov_parameters(infile_a, infile_b):
     l2=f2.readlines()
     f1.close()
     f2.close()
-
-    l1=l1.rstrip(',').split(',')
+    
+    if l1:
+        l1=l1.rstrip(',').split(',')
+        warnings.warn("number of timepoints remaining after scrubbing -> %d"%len(l1))
+    else:
+        raise Exception("No time points remaining after scrubbing.")
 
     f = open(out_file, 'a')
     for l in l1:
@@ -169,7 +174,10 @@ def get_indx(in_file):
     f = open(in_file, 'r')
     line = f.readline()
     line = line.strip(',')
-    indx = map(int, line.split(","))
+    if line:
+        indx = map(int, line.split(","))
+    else:
+        raise Exception("No time points remaining after scrubbing.")
     f.close()
     
     return indx
