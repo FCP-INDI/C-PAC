@@ -137,6 +137,7 @@ identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
 harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
+boundaryBasedRegistrationSchedule = os.path.join(FSLDIR, 'etc/flirtsch/bbr.sch')
 
 """
 ==================
@@ -155,10 +156,6 @@ stopIdx = None
 # Options are an integer or None (defaults to header information)
 TR = None
 
-# Specify slice timing correction in functional preprocessing
-# Make sure the input CPAC subject list have the scan parameters
-# information, if slice timing correction option is set true
-sliceTimingCorrection = True
 """
 ================================
 Preprocessing Workflow Selection ***
