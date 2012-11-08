@@ -81,8 +81,7 @@ def prep_workflow(sub_dict, c, strategies):
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
-    workflow.crash_dir = c.crashLogDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp'}
+    workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
 
     mflow = None
     pflow = None
