@@ -253,7 +253,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
     for strategy in relevant_strategies:
 
-        base_path, remainder_path = path.split(subject_id)
+        base_path, remainder_path = path.split(subject_id, 1)
 
 
         sym_path = path.split(pipeline_id)[0]
