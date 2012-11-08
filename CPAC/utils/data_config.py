@@ -10,12 +10,12 @@ subjectList = None
 
 #Put %s where site and subjects are in the path
 #anatomicalTemplate = '/home/data/Incoming/cambridge_fcon/%s/%s/*/mprage_anonymized.nii.gz'
-anatomicalTemplate = '/home/data/Originals/%s/NIFTI/T1/%s/anat.nii.gz'
+anatomicalTemplate = '/Users/sikkas01/sites/%s/%s/session_1/*/mprage.nii.gz'
 
 #Functional Path
 #Put  %s where site and subjects are in the path
 #functionalTemplate = '/home/data/Incoming/cambridge_fcon/%s/%s/*/rest.nii.gz'
-functionalTemplate = '/home/data/Originals/%s/NIFTI/BOLD/%s/REST*.nii.gz'
+functionalTemplate = '/Users/sikkas01/sites/%s/%s/session_1/*/rest.nii.gz'
 
 #list of sites
 #if None extract data runs on all sites

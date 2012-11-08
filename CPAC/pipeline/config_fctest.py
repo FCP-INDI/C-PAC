@@ -13,7 +13,7 @@ runOnGrid = False
 # Number of subjects to run simultaneously
 # This number depends on computing resources
 # Only applies when running on a local machine with multiple cores
-numSubjectsAtOnce = 5
+numSubjectsAtOnce = 1
 
 # Number of cores (local) or slots on a node (cluster) per subject
 # Slots are cores on a cluster node
@@ -79,13 +79,13 @@ Data Directory Setup ***
 # NOTE: Users must manually create these directories before running C-PAC
 
 # Directory where C-PAC should store temporary and intermediate files
-workingDirectory = '/home/bcheung/yard_sale/p_work'
+workingDirectory = '/Users/sikkas01/working'
 
 # Directory where C-PAC should place crash logs
-crashLogDirectory = '/home/bcheung/yard_sale/p_crash'
+crashLogDirectory = '/Users/sikkas01/p_crash'
 
 # Directory where C-PAC should put processed data
-sinkDirectory = '/home/bcheung/yard_sale/p_sink'
+sinkDirectory = '/Users/sikkas01/p_sink'
 
 """
 ========================
@@ -94,7 +94,7 @@ Resolution and Smoothing ***
 """
 # Set the resolution (in mm) to which images are transformed
 # Transformation occurs during registration and is requried for many measures
-standardResolution = '3mm'
+standardResolution = '2mm'
 
 # Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
 # To skip smoothing, set to 0
@@ -183,7 +183,7 @@ runRegisterFuncToMNI = [1]
 
 runAnatomicalToFunctionalRegistration = [1]
 
-runSymbolicLinks = [0]
+runSymbolicLinks = [1]
 
 """
 =========================================
@@ -200,7 +200,7 @@ runSegmentationPreprocessing = [1]
 # Please specify the location and name of your prior files.
 # Priors distributed with FSL must be binarized to be used by C-PAC
 # For information about how to do this, please see the User Guide
-prior_path = '/home2/data/Projects/C-PAC/tissuepriors/%s' % standardResolution
+prior_path = '/Users/sikkas01/tissuepriors/%s' % standardResolution
 
 # These values will be set automatically based on prior_path
 PRIOR_CSF = os.path.join(prior_path, 'avg152T1_csf_bin.nii.gz')
@@ -238,15 +238,15 @@ runNuisance = [1]
 ## quadratic = Quadratic Trend
 
 # Options are 1 (apply) or 0 (ignore)
-Corrections = [{'compcor' : 1,
-                'wm' : 1,
-                'csf' : 1,
-                'gm' : 0,
-                'global' : 0,
-                'pc1' : 0,
-                'motion' : 1,
-                'linear' : 1,
-                'quadratic' : 0}]
+Corrections = [{'compcor': 0,
+                'wm': 1,
+                'csf': 1,
+                'gm': 0,
+                'global': 1,
+                'pc1': 0,
+                'motion': 1,
+                'linear': 1,
+                'quadratic': 0}]
 
 # Number of Principle Components to calculate for CompCor (usually 5 or 6)
 # Only for use when 'compcor' is set to 1
@@ -259,7 +259,7 @@ runMedianAngleCorrection = [0]
 targetAngleDeg = [90]
 
 # Run Scrubbing
-runScrubbing = [1]
+runScrubbing = [0, 1]
 
 # Generate FD and DVARS motion statistics
 # Required to run scrubbing, but can also be used as regressors in a GLM
@@ -475,7 +475,7 @@ highPassFreqALFF = [0.01]
 
 # Frequency cutoff (in Hz) for a low-pass filter
 lowPassFreqALFF = [0.1]
- 
+
 """
 ============================
 Group Statistics Options ***

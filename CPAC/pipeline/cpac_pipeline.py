@@ -27,12 +27,13 @@ from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
                              get_scan_params, get_tr
-                             
+
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
 import zlib
+import linecache
 
 class strategy:
 
@@ -41,13 +42,13 @@ class strategy:
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []
-    
+
     def append_name(self, name):
         self.name.append(name)
-    
+
     def get_name(self):
         return self.name
-    
+
     def set_leaf_properties(self, node, out_file):
         self.leaf_node = node
         self.leaf_out_file = out_file
@@ -88,7 +89,8 @@ def prep_workflow(sub_dict, c, strategies):
 
     strat_list = []
 
-
+    workflow_bit_id = {}
+    workflow_counter = 0
 
     """
     Initialize Anatomical Input Data Flow
@@ -123,11 +125,14 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
 
     if 1 in c.runAnatomicalPreprocessing:
+
+        workflow_bit_id['anat_preproc'] = workflow_counter
+
         for strat in strat_list:
             # create a new node, Remember to change its name! 
             anat_preproc = create_anat_preproc().clone('anat_preproc_%d' % num_strat)
-            
-            
+
+
             try:
                 # connect the new node to the previous leaf
                 node, out_file = strat.get_leaf_properties()
@@ -147,9 +152,11 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('anat_preproc')
-            
+
+
+
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
             # add stuff to resource pool if we need it 
 
@@ -167,11 +174,13 @@ def prep_workflow(sub_dict, c, strategies):
     """
     new_strat_list = []
     num_strat = 0
-    
+
+    workflow_counter += 1
     if 1 in c.runRegistrationPreprocessing:
+        workflow_bit_id['anat_mni_register'] = workflow_counter
         for strat in strat_list:
             reg_anat_mni = create_nonlinear_register('anat_mni_register_%d' % num_strat)
-            
+
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -179,13 +188,13 @@ def prep_workflow(sub_dict, c, strategies):
                 node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node, out_file,
                                  reg_anat_mni, 'inputspec.input_skull')
-                
+
                 reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrain
                 reg_anat_mni.inputs.inputspec.reference_skull = c.standard
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            
+
             if 0 in c.runRegistrationPreprocessing:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -194,7 +203,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('anat_mni_register')
             strat.set_leaf_properties(reg_anat_mni, 'outputspec.output_brain')
             
@@ -214,7 +223,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runSegmentationPreprocessing:
+        workflow_bit_id['seg_preproc'] = workflow_counter
         for strat in strat_list:
             seg_preproc = create_seg_preproc('seg_preproc_%d'%num_strat)
             
@@ -309,7 +320,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runFunctionalPreprocessing:
+        workflow_bit_id['func_preproc'] = workflow_counter
         for strat in strat_list:    
             
             slice_timing = sub_dict.get('scan_parameters') 
@@ -415,7 +428,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runAnatomicalToFunctionalRegistration:
+        workflow_bit_id['anat_to_func_register'] = workflow_counter
         for strat in strat_list:
             anat_to_func_reg = pe.Node(interface=fsl.FLIRT(),
                                name='anat_to_func_register_%d' % num_strat)
@@ -510,7 +525,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runGenerateMotionStatistics:
+        workflow_bit_id['gen_motion_stats'] = workflow_counter
         for strat in strat_list:
             
             gen_motion_stats = motion_power_statistics('gen_motion_stats_%d'% num_strat)
@@ -576,7 +593,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runNuisance:
+        workflow_bit_id['nuisance'] = workflow_counter
         for strat in strat_list:
             nuisance = create_nuisance('nuisance_%d' % num_strat)
             
@@ -644,7 +663,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runMedianAngleCorrection:
+        workflow_bit_id['median_angle_corr'] = workflow_counter
         for strat in strat_list:
             median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
             
@@ -726,7 +747,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runFrequencyFiltering:
+        workflow_bit_id['frequency_filter'] = workflow_counter
         for strat in strat_list:
             frequency_filter = pe.Node(util.Function(input_names=['realigned_file',
                                                                   'bandpass_freqs',
@@ -734,7 +757,7 @@ def prep_workflow(sub_dict, c, strategies):
                                                      output_names=['bandpassed_file'],
                                                      function=bandpass_voxels),
                                        name='frequency_filter_%d' % num_strat)
-            
+
             frequency_filter.iterables = ('bandpass_freqs', c.nuisanceBandpassFreq)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -753,9 +776,9 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('frequency_filter')
-            
+
             strat.set_leaf_properties(frequency_filter, 'bandpassed_file')
 
             strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
@@ -766,14 +789,16 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-    
+
     """
     Inserting Scrubbing Workflow
     """
     new_strat_list = []
     num_strat = 0
 
+    workflow_counter += 1
     if 1 in c.runScrubbing:
+        workflow_bit_id['scrubbing'] = workflow_counter
         for strat in strat_list:
             
             scrubbing = create_scrubbing_preproc('scrubbing_%d'%num_strat)
@@ -822,7 +847,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
     
+    workflow_counter += 1
     if 1 in c.runRegisterFuncToMNI:
+        workflow_bit_id['func_to_mni'] = workflow_counter
         for strat in strat_list:
             func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
@@ -1649,7 +1676,9 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
     
+    workflow_counter += 1
     if 1 in c.runSurfaceRegistraion:
+        workflow_bit_id['surface_registration'] = workflow_counter
         for strat in strat_list:
             
             surface_reg = create_surface_registration('surface_reg_%d'%num_strat)
@@ -1772,8 +1801,8 @@ def prep_workflow(sub_dict, c, strategies):
                                  network_centrality, 'inputspec.subject')
                 workflow.connect(template_dataflow, 'out_file',
                                  network_centrality, 'inputspec.template')
-                
-                
+
+
                 strat.append_name('network_centrality')
     
                 strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
@@ -1827,12 +1856,16 @@ def prep_workflow(sub_dict, c, strategies):
 #            strat.append_name('network_centrality')
 #            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
 #                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-            
+
+            num_strat += 1
+
+#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
+
             num_strat += 1
 
     strat_list += new_strat_list  
-    
-    
+
+
 
     ###################### end of workflow ###########
     try:
@@ -1890,14 +1923,34 @@ def prep_workflow(sub_dict, c, strategies):
             strategy_tag_helper_symlinks['nuisance'] = 0
 
         strat_tag = ""
+
+        hash_val = 0
+
         for name in strat.get_name():
-            strat_tag += name
-        
-        pipeline_id = zlib.crc32(strat_tag)
+            if not ('alff' in name.lower()) and not ('vmhc' in name.lower()) \
+            and not ('reho' in name.lower()) and not ('sca' in name.lower()) \
+            and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()):
+
+                strat_tag += name + '_'
+
+                print name, ' ~~~ ', 2 ** workflow_bit_id[name]
+                hash_val += 2 ** workflow_bit_id[name]
+
+
+        pipeline_id = ''
+        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.txt')), hash_val)
+        pipeline_id = pipeline_id.rstrip('\r\n')
+        if pipeline_id == '':
+            print 'hash value ', hash_val, ' is greater than the number of words'
+            print 'resorting to crc32 value as pipeline_id'
+            pipeline_id = zlib.crc32(strat_tag)
+
+        print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
+
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
-            ds.inputs.container = os.path.join('pipeline_%d' % pipeline_id, subject_id)
+            ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
 #            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
@@ -1913,7 +1966,7 @@ def prep_workflow(sub_dict, c, strategies):
 
                 link_node.inputs.strategies = strategies
                 link_node.inputs.subject_id = subject_id
-                link_node.inputs.pipeline_id = 'pipeline_%d' % (pipeline_id)
+                link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
@@ -1925,22 +1978,22 @@ def prep_workflow(sub_dict, c, strategies):
 
         G = nx.DiGraph()
         strat_name = strat.get_name()
-        G.add_edges_from([  (strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
+        G.add_edges_from([(strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
         dotfilename = os.path.join(d_name, 'strategy.dot')
         nx.write_dot(G, dotfilename)
-        
+
         try:
-            format_dot(dotfilename,'png')
+            format_dot(dotfilename, 'png')
         except:
             print "Dot is not Installed, Cannot Create the strategy and Pipeline graph"
             pass
-        
-        
+
+
         print d_name, '*'
         num_strat += 1
 
-    workflow.run(plugin='MultiProc',
-                         plugin_args={'n_procs': c.numCoresPerSubject})
+#    workflow.run(plugin='MultiProc',
+#                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
