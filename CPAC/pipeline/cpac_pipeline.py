@@ -1992,8 +1992,8 @@ def prep_workflow(sub_dict, c, strategies):
         print d_name, '*'
         num_strat += 1
 
-#    workflow.run(plugin='MultiProc',
-#                         plugin_args={'n_procs': c.numCoresPerSubject})
+    workflow.run(plugin='MultiProc',
+                         plugin_args={'n_procs': c.numCoresPerSubject})
 
 
     return workflow
