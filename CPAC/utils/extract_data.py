@@ -107,7 +107,7 @@ def extract_data(c, param_map):
                 for sub in os.listdir(path):
                     #check if subject is present in subject_list
                     if subject_list:
-                        if sub in subject_list:
+                        if sub in subject_list and sub not in exclusion_list:
                             site_subject_map[sub] = site
                     elif sub not in exclusion_list:
                         if sub not in '.DS_Store':
@@ -220,7 +220,7 @@ def extract_data(c, param_map):
                         print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
                         print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
                         print >> f, "        'reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
-                        print >> f, "        'first_tr': '" + param_map.get(subject_map.get(sub))[1] +  "'" + ","
+                        print >> f, "        'first_tr': '" + param_map.get(subject_map.get(sub))[1] + "'" + ","
                         print >> f, "        'last_tr': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
                         print >> f, "        }"
                     except:
@@ -241,15 +241,15 @@ def extract_data(c, param_map):
 
             if anat and func:
                 print_begin_of_file(anat_sub.split("/")[0], session_id)
-                print >> f, "    'anat': '" + anat[0] + "',"
+                print >> f, "    'anat': '" + os.path.realpath(anat[0]) + "',"
                 print >>f, "    'rest':{"
 
                 #iterate for each rest session
                 for iter in func:
                     #get scan_id
-                    iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
+                    iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path, '').lstrip("/"))[0])[0]
                     iterable = iterable.replace("/", "_")
-                    print>>f,  "      '" + iterable + "': '" + iter + "',"
+                    print>>f, "      '" + iterable + "': '" + os.path.realpath(iter) + "',"
                 print >> f, "      },"
                 print_end_of_file(anat_sub.split("/")[0])
             else:
@@ -279,13 +279,13 @@ def extract_data(c, param_map):
             if func_session_present:
                 #if there are sessions
                 if "*" in func_session_path:
-                    session_list = glob.glob(os.path.join(func_base[index],os.path.join(sub, func_session_path)))
+                    session_list = glob.glob(os.path.join(func_base[index], os.path.join(sub, func_session_path)))
                     if session_list:
                         for session in session_list:
                             session_id = os.path.basename(session)
                             if anat_session_present:
                                 if func_session_path == anat_session_path:
-                                    fetch_path(index, os.path.join(sub,session_id), os.path.join(sub,session_id), session_id)
+                                    fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
                                 else:
                                     fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
                             else:
@@ -294,7 +294,7 @@ def extract_data(c, param_map):
                         logging.debug("Skipping subject %s", sub)
                 else:
                     session_id = func_session_path
-                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id) 
+                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id)
             else:
                 logging.debug("No sessions")
                 session_id = ''
@@ -311,7 +311,7 @@ def extract_data(c, param_map):
             for sub in os.listdir(anat_base[i]):
                 #check if subject is present in subject_list
                 if subject_list:
-                    if sub in subject_list:
+                    if sub in subject_list and sub not in exclusion_list:
                         logging.debug("extracting data for subject: %s", sub)
                         walk(i, sub)
                 #check that subject is not in exclusion list
@@ -322,7 +322,7 @@ def extract_data(c, param_map):
         print >> f, "]"
 
         name = os.path.join(os.getcwd(), 'CPAC_subject_list.py')
-        print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" %name
+        print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" % name
     except Exception:
         logging.exception(Exception.message)
     finally:
@@ -374,7 +374,7 @@ def generate_suplimentary_files():
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
 
-    file_name = os.path.join(os.getcwd(),'phenotypic_template.csv')
+    file_name = os.path.join(os.getcwd(), 'phenotypic_template.csv')
     f = open(file_name, 'wb')
     writer = csv.writer(f)
 
@@ -388,7 +388,7 @@ def generate_suplimentary_files():
 
     f.close()
 
-    print "Template Phenotypic file for group analysis - %s" %file_name
+    print "Template Phenotypic file for group analysis - %s" % file_name
 
     file_name = os.path.join(os.getcwd(), "subject_list_group_analysis.txt")
     f = open(file_name, 'w')
@@ -396,7 +396,7 @@ def generate_suplimentary_files():
     for sub in subject_set:
         print >> f, sub
 
-    print "Subject list required later for group analysis - %s" %file_name
+    print "Subject list required later for group analysis - %s" % file_name
     f.close()
 
 
