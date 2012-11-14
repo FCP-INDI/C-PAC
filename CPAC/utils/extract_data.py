@@ -238,8 +238,7 @@ def extract_data(c, param_map):
                     except:
                         msg = " No Parameter values for the %s site is defined in the scan"\
                               " parameters csv file", subject_map.get(sub)
-                        logging.exception(msg)
-                        raise Exception(msg)
+                        raise ValueError(msg)
 
                 print >> f, "},"
 
@@ -268,8 +267,11 @@ def extract_data(c, param_map):
                 print_end_of_file(anat_sub.split("/")[0])
             else:
                 logging.debug("skipping subject %s", anat_sub.split("/")[0])
-
-        except Exception:
+        
+        except ValueError:
+            logging.exception(ValueError.message)
+            raise
+        except:
             msg = "Exception while fetching anatomical and functional paths"
             logging.exception(msg)
             raise Exception(msg)
