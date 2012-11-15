@@ -379,7 +379,7 @@ def prep_workflow(sub_dict, c, strategies):
                 func_preproc.inputs.inputspec.start_idx = c.startIdx
                 func_preproc.inputs.inputspec.stop_idx = c.stopIdx
                 
-                convert_tr.inputs.val = c.TR
+                convert_tr.inputs.tr = c.TR
                 
             node = None
             out_file = None

@@ -412,7 +412,7 @@ def threshold_rmatrix(corr_matrix, option,
         try:
             if option == 0:
                 r_value = convert_pvalue_to_r(scans, threshold)
-            if option == 1:
+            elif option == 1:
                 r_value = convert_sparsity_to_r(r_matrix, threshold)
             else:
                 r_value = threshold
