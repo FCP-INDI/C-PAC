@@ -184,7 +184,7 @@ def get_strategies_for_path(path, strategies):
 
                 score_dict[str(max_score)] = [strategy]
 
-
+<<<<<<< HEAD
     return score_dict[str(max_score)]
 
 
@@ -238,7 +238,6 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
 
 def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
-
 
     import os
     import commands
@@ -379,7 +378,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             fwhm_str = get_hplpfwhmseed_('/_fwhm_', remainder_path)
             new_path = os.path.join(new_path, fwhm_str)
-
 
 
         try:
