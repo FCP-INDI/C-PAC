@@ -147,7 +147,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -198,7 +198,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -263,7 +263,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -300,7 +300,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -397,7 +397,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -547,7 +547,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -614,7 +614,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -687,7 +687,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -727,7 +727,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -817,7 +817,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -870,7 +870,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -954,7 +954,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -1376,7 +1376,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -1433,7 +1433,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -1748,7 +1748,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -1792,7 +1792,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
@@ -1893,7 +1893,7 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
-                tmp.out_file = str(strat.leaf_out_file)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
