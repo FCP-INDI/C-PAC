@@ -7,7 +7,9 @@ from utils import timeseries_bootstrap, \
 
 from basc import create_basc, \
                  nifti_individual_stability, \
-                 group_stability_matrix
+                 group_stability_matrix, \
+                 ndarray_to_vol, \
+                 individual_group_clustered_maps
                  
 __all__ = ['create_basc', \
            'nifti_individual_stability', \

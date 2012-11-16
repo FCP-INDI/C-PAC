@@ -6,71 +6,71 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def set_gauss(fwhm):
+def compute_fisher_z_score(correlation_file):
 
     """
-    Compute the sigma value, given Full Width Half Max. 
-    Further it builds an operand string and returns it
+    Computes the fisher z transform of the input correlation map
+    If the correlation map contains data for multiple ROIs then 
+    the function returns z score for each ROI as a seperate nifti 
+    file
+
 
     Parameters
     ----------
 
-    fwhm : float
+    correlation_file: string
+        Input correlations file
+    
 
     Returns
     -------
 
-    op_string : string
-
+    out_file : list (nifti files)
+        list of z_scores for mask or ROI
     """
 
-
-    op_string = ""
-
-    fwhm = float(fwhm)
-
-    sigma = float(fwhm / 2.3548)
-
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
-
-    return op_string
-
-
-def pToFile(time_series):
-
-    """
-    Write Timeseries values in an emty time series file
-
-    Parameters
-    ----------
-
-    time_series : list (float)
-
-    Returns
-    -------
-
-    ts_oneD : string (.txt file)
-        file contains timeseries values, one value per line
-
-    """
-
+    import nibabel as nb
+    import numpy as np
     import os
-    import re
-    import commands
-    import sys
 
-    dir = os.path.dirname(time_series)
+    corr_img = nb.load(correlation_file)
+    corr_data = corr_img.get_data()
+
+    hdr = corr_img.get_header()
+
+    corr_data = np.log((1 + corr_data)/(1 - corr_data)) / 2.0
+
+    dims = corr_data.shape
+
+    out_file = []
+
+    if len(dims) == 5:
+
+        x, y, z, one, roi_number = dims
+
+        corr_data = np.reshape(corr_data, (x*y*z, roi_number), order='F')
+
+        for i in range(0, roi_number):
+
+            sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+
+            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+
+            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_%d.nii.gz' % (i+1))
+
+            sub_img.to_filename(sub_z_score_file)
+
+            out_file.append(sub_z_score_file)
+
+    else:
+
+        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
+
+        z_score_file = os.path.join(os.getcwd(), 'z_score.nii.gz')
+
+        z_score_img.to_filename(z_score_file)
+
+        out_file.append(z_score_file)
 
 
-    dir1 = re.sub(r'(.)+_seeds_', '', dir)
-
-    dir1 = dir1.split('.nii.gz')
-    dir1 = dir1[0]
-
-    ts_oneD = os.path.join(dir, dir1 + '.1D')
-    cmd = "cp %s %s" % (time_series, ts_oneD)
-    print cmd
-
-    sys.stderr.write('\n' + commands.getoutput(cmd))
-    return os.path.abspath(ts_oneD)
+    return out_file

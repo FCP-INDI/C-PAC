@@ -5,61 +5,50 @@ import commands
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-def getImgNVols(in_files):
+def get_img_nvols(in_files):
 
     """
-    Calculates the number of volumes in the given nifti images
+    Calculates the number of volumes in the given nifti image
 
     Parameters
     ----------
 
-    in_files : list (nifti files)
+    in_files : string (nifti file)
 
     Returns
     -------
 
-    out : list (int)
-        number of volumes of each input nifti file
+    out : int
+        number of volumes of input nifti file
 
     """
 
-    out = []
     from nibabel import load
-    if(isinstance(in_files, list)):
-        for in_file in in_files:
-            img = load(in_file)
-            hdr = img.get_header()
 
-            if len(hdr.get_data_shape()) > 3:
-                nvols = int(hdr.get_data_shape()[3])
-            else:
-                nvols = 1
-            out.append(nvols)
-        return out
-
+    nvols = None
+    img = load(in_files)
+    hdr = img.get_header()
+    if len(hdr.get_data_shape()) > 3:
+        nvols = int(hdr.get_data_shape()[3])
     else:
-        img = load(in_files)
-        hdr = img.get_header()
-        if len(hdr.get_data_shape()) > 3:
-            nvols = int(hdr.get_data_shape()[3])
-        else:
-            nvols = 1
-        return [nvols]
+        nvols = 1
+    return nvols
 
 
-def getImgTR(in_files, TRa):
+
+def get_img_tr(in_files, TRa):
 
 
     """
     Computes the Temporal Resolution parameter from the image header.
     If TRa is not None then it compares the computed TR and the supplied
     if the difference is greater than 0.001 then it returns supplied TRa as the
-    TR of the image and flashes a warning message
+    TR of the image and flashes a warning message else returns TRa
 
     Parameters
     ----------
 
-    in_files : list (nifti files)
+    in_files : string (nifti file)
 
     TRa : float
         user supplied Temporal Resolution
@@ -67,55 +56,33 @@ def getImgTR(in_files, TRa):
     Returns
     -------
 
-    out : list (float)
-        TRs for each input file
+    out : float
+        TR for input file
 
     """
 
-
-    out = []
     from nibabel import load
-    if(isinstance(in_files, list)):
-        for in_file in in_files:
-            img = load(in_file)
-            hdr = img.get_header()
-            tr = float(hdr.get_zooms()[3])
-            if tr > 10:
-                tr = float(float(tr) / 1000.0)
-            if not (TRa == None):
-                diff = None
-                if TRa > tr:
-                    diff = TRa - tr
-                else:
-                    diff = tr - TRa
-
-                if (diff > 0.001):
-                    print "Warning: specified TR  %f and TR in image header  %f do not match:" % (TRa, tr)
-                out.append(TRa)
-            else:
-                out.append(tr)
-        return out
-    else:
-        img = load(in_files)
-        hdr = img.get_header()
-        tr = float(hdr.get_zooms()[3])
-        if tr > 10:
-            tr = float(float(tr) / 1000.0)
-        if not (TRa == None):
-            diff = None
-            if TRa > tr:
-                diff = TRa - tr
-            else:
-                diff = tr - TRa
-
-            if (diff > 0.001):
-                print "Warning: specified TR  %f and TR in image header  %f do not match:" % (TRa, tr)
-            return [TRa]
+    img = load(in_files)
+    hdr = img.get_header()
+    tr = float(hdr.get_zooms()[3])
+    if tr > 10:
+        tr = float(float(tr) / 1000.0)
+    if not (TRa == None):
+        diff = None
+        if TRa > tr:
+            diff = TRa - tr
         else:
-            return [tr]
+            diff = tr - TRa
+
+        if (diff > 0.001):
+            print "Warning: specified TR  %f and TR in image header  %f do not match:" % (TRa, tr)
+        return TRa
+    else:
+        return tr
 
 
-def getN1(TR, nvols, HP):
+
+def get_N1(nvols, TR, HP):
 
     """
     Get the low frequency point
@@ -147,7 +114,8 @@ def getN1(TR, nvols, HP):
     return n1
 
 
-def getN2(TR, nvols, LP, HP):
+
+def get_N2(nvols, TR, LP, HP):
 
     """
     Get the high frequency point
@@ -183,7 +151,8 @@ def getN2(TR, nvols, LP, HP):
     return n2
 
 
-def getOpString(mean, std_dev):
+
+def get_operand_string(mean, std_dev):
 
     """
     Generate the Operand String to be used in workflow nodes to supply 
@@ -214,6 +183,8 @@ def getOpString(mean, std_dev):
     return op_string
 
 
+
+
 def set_op_str(n2):
 
     """
@@ -222,21 +193,18 @@ def set_op_str(n2):
     Parameters
     ----------
 
-    n2 : list (float)
+    n2 : float
 
     Returns
     -------
 
-     strs : list (string)
+     strs : string
 
-        list of operand strings
+        operand string
 
     """
 
-    strs = []
-    for n in n2:
-        str = "-Tmean -mul %f" % (n)
-        strs.append(str)
+    strs = "-Tmean -mul %f" % (n2)
     return strs
 
 
@@ -248,79 +216,47 @@ def set_op1_str(nvols):
     Parameters
     ----------
 
-    nvols : list (int)
+    nvols : int
 
     Returns
     -------
 
-     strs : list (string)
+     strs : string
 
-        list of operand strings
+        operand string
 
     """
-    strs = []
-    for vol in nvols:
-        str = '-Tmean -mul %d -div 2' % (int(vol))
-        strs.append(str)
+
+    strs = '-Tmean -mul %d -div 2' % (int(nvols))
 
     return strs
 
 
-def set_gauss(fwhm):
 
-    """
-    Compute the sigma value, given Full Width Half Max. 
-    Further it builds an operand string and returns it
-
-    Parameters
-    ----------
-
-    fwhm : float
-
-    Returns
-    -------
-
-    op_string : string
-
-    """
-
-    op_string = ""
-
-    fwhm = float(fwhm)
-
-    sigma = float(fwhm / 2.3548)
-
-    op = "-kernel gauss %f -fmean -mas " % (sigma) + "%s"
-    op_string = op
-
-    return op_string
 
 
 
 def takemod(nvols):
 
     """
-    Determine if each of the inputs are odd or even values and 
-    build a list of 0 and 1 depending on the truth value
+    Determine if the input is odd or even values and 
+    return a of 0 and 1 depending on the truth value
 
     Parameters
     ----------
 
-    nvols : list (int)
+    nvols : int
 
     Returns
     -------
 
-    decisions : list (int)
+    decisions : int
     """
 
-    decisions = []
-    for vol in nvols:
-        mod = int(int(vol) % 2)
+    mod = int(int(nvols) % 2)
 
-        if mod == 1:
-            decisions.append([0])
-        else:
-            decisions.append([1])
+    if mod == 1:
+        return 0
+    else:
+        return 1
 
-    return decisions

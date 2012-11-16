@@ -12,13 +12,23 @@ Contents:
     :maxdepth: 2
 
     anat_preproc
+    func_preproc
     seg_preproc
     sca
     basc
     nuisance
     alff
     vmhc
-
+    reho
+    generate_motion_statistics
+    scrubbing
+    group_analysis
+    easy_thresh     
+    cwas
+    median_angle
+    registration
+    timeseries
+    network_centrality
 
 Indices and tables
 ==================
