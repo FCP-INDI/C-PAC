@@ -175,6 +175,8 @@ runAnatomicalPreprocessing = [1]
 
 runFunctionalPreprocessing = [1]
 
+usefristonModel = [1]
+
 runRegistrationPreprocessing = [1]
 
 runRegisterFuncToMNI = [1]
