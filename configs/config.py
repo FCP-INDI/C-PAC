@@ -175,7 +175,7 @@ runAnatomicalPreprocessing = [1]
 
 runFunctionalPreprocessing = [1]
 
-usefristonModel = [1]
+runFristonModel = [1]
 
 runRegistrationPreprocessing = [1]
 

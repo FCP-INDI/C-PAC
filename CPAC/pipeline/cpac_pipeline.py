@@ -434,7 +434,7 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
 
     workflow_counter += 1
-    if 1 in c.usefristonModel:
+    if 1 in c.runFristonModel:
         workflow_bit_id['fristons_parameter_model'] = workflow_counter
         for strat in strat_list:
 
@@ -450,7 +450,7 @@ def prep_workflow(sub_dict, c, strategies):
                 print 'Invalid Connection: fristons_parameter_model ', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
 
-            if 0 in c.usefristonModel:
+            if 0 in c.runFristonModel:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
