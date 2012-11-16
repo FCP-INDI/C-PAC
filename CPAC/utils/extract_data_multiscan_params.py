@@ -62,9 +62,13 @@ def extract_data(c, param_map):
 
     #method to read each line of the file into list
     #returns list
-    def get_list(fname):
-        flines = open(fname, 'r').readlines()
-        return [fline.rstrip('\r\n') for fline in flines]
+    def get_list(arg):
+        if isinstance(arg, list):
+            ret_list = arg
+        else:
+            ret_list = [fline.rstrip('\r\n') for fline in open(arg, 'r').readlines()]
+
+        return ret_list
 
     exclusion_list = []
     if c.exclusionSubjectList is not None:
@@ -111,7 +115,7 @@ def extract_data(c, param_map):
                 for sub in os.listdir(path):
                     #check if subject is present in subject_list
                     if subject_list:
-                        if sub in subject_list:
+                        if sub in subject_list and sub not in exclusion_list:
                             site_subject_map[sub] = site
                     elif sub not in exclusion_list:
                         if sub not in '.DS_Store':
@@ -257,14 +261,6 @@ def extract_data(c, param_map):
             anat = None
             func = None
 
-#            if not os.path.exists(anat_base_path):
-#                print "path doesn't exist", anat_base_path
-#                raise Exception ("invalid Path. Please check anatomicalTemplate in the config file")
-#
-#            if not os.path.exists(func_base_path):
-#                print "path doesn't exist", func_base_path
-#                raise Exception ("invalid Path. Please check functionalTemplate in the config file")
-
             anat = glob.glob(os.path.join(anat_base_path, anat_relative))
             func = glob.glob(os.path.join(func_base_path, func_relative))
             scan_list = []
@@ -338,7 +334,7 @@ def extract_data(c, param_map):
             for sub in os.listdir(anat_base[i]):
                 #check if subject is present in subject_list
                 if subject_list:
-                    if sub in subject_list:
+                    if sub in subject_list and sub not in exclusion_list:
                         print "extracting data for subject: ", sub
                         walk(i, sub)
                 #check that subject is not in exclusion list
