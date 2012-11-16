@@ -184,7 +184,7 @@ def get_strategies_for_path(path, strategies):
 
                 score_dict[str(max_score)] = [strategy]
 
-
+<<<<<<< HEAD
     return score_dict[str(max_score)]
 
 
@@ -238,7 +238,6 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
 
 def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
-
 
     import os
     import commands
@@ -330,6 +329,12 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         #bring into use the tier 2 iterables for recursive directory structure
 
+        scan_info = '~~~'
+        if '/_scan_' in path:
+
+            scan_info = get_hplpfwhmseed_('/_scan_', path)
+
+        print scan_info, ' ~~~', remainder_path
 
         if '/_mask_' in remainder_path:
 
@@ -375,7 +380,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             new_path = os.path.join(new_path, fwhm_str)
 
 
-
         try:
             os.makedirs(new_path)
         except:
@@ -395,9 +399,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global global_lock
             global_lock.acquire()
 
-            f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
+            if not '~~~' in scan_info:
+                f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' +strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
 
-            print >>f, path
+                print >>f, path
             global_lock.release()
 
         except:
