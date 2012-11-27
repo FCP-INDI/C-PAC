@@ -38,4 +38,21 @@ import anat_preproc, \
 
 __all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh']
 
-__version__ = '0.1-git'
+#__version__ = '0.1-git'
+
+from subprocess import Popen, PIPE
+import re
+
+try:
+    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
+    (stdout, stderr) = gitproc.communicate()
+    rows = stdout.split("\n")
+    v_num = re.search( r'(?<=(version_|release_))(.)*', rows[0])
+    if v_num:
+        version = v_num.group(0).strip("'")
+    else:
+        version = 'unknown_version'
+except OSError:
+    version = 'unknown_version'
+
+__version__ =  str(version)

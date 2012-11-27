@@ -1,6 +1,66 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+def calc_friston_twenty_four(in_file):
+
+    import numpy as np
+    import os
+
+    new_data = None
+
+    data = np.genfromtxt(in_file)
+
+    data_squared = data ** 2
+
+    new_data = np.concatenate((data, data_squared), axis=1)
+
+    data_roll = np.roll(data, 1, axis=0)
+
+    data_roll[0] = 0
+
+    new_data = np.concatenate((new_data, data_roll), axis=1)
+
+    data_roll_squared = data_roll ** 2
+
+    new_data = np.concatenate((new_data, data_roll_squared), axis=1)
+
+    new_file = os.path.join(os.getcwd(), 'fristons_twenty_four.1D')
+    np.savetxt(new_file, new_data, fmt='%0.8f', delimiter=' ')
+
+    return new_file
+
+
+
+def fristons_twenty_four(wf_name='fristons_twenty_four'):
+
+    wf = pe.Workflow(name=wf_name)
+    inputNode = pe.Node(util.IdentityInterface(fields=[
+                                                       'movement_file'
+                                                    ]),
+                        name='inputspec')
+
+
+    calc_friston = pe.Node(util.Function(input_names=['in_file'
+                                                     ],
+                                           output_names=['out_file'],
+                                           function=calc_friston_twenty_four),
+                             name='calc_friston')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=[
+                                                        'movement_file']),
+                        name='outputspec')
+
+
+
+    wf.connect(inputNode, 'movement_file',
+               calc_friston, 'in_file')
+
+    wf.connect(calc_friston, 'out_file',
+                outputNode, 'movement_file')
+
+    return wf
+
+
 
 def motion_power_statistics(wf_name = 'gen_motion_stats'):
 

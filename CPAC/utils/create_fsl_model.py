@@ -53,7 +53,7 @@ def filter_phenotypic(c):
         if record['sub'] in sub_dict:
 
             for rec in record.keys():
-                if not rec in c.columnsInModel and not 'sub' in rec:
+                if (not (rec in c.columnsInModel)) and not ('sub' == rec):
                     del record[rec]
             f_r.append(record)
 
@@ -199,9 +199,15 @@ def organize_data(filter_data, c):
             field_names.append(column_name)
 
 
+
     for col in sorted(mean.keys()):
 
         field_names.append(col)
+
+    for f_n in filter_data[0].keys():
+
+        if not (f_n in field_names):
+            field_names.append(f_n)
 
 
     return filter_data, field_names
@@ -229,6 +235,8 @@ def write_data(model_data, field_names, c):
 
     """
 
+    print model_data
+    print field_names
     f = open(c.outputModelFile, 'wt')
 
 
@@ -376,18 +384,24 @@ def run(config, mode):
 
     else:
         ###generate the final FSL .grp, .mat, .con, .fts files 
+        import csv
         model = c.outputModelFile
 
         con = c.contrastFile
         model_name = c.modelName
 
-        data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1)
+        rdr = csv.DictReader(open(model, "rb"))
+        no_of_columns = len(rdr.fieldnames)
+
+        tuple_columns = tuple([n for n in range(1, no_of_columns)])
+        data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
+
         data_lst = data.tolist()
 
         data = []
 
         for tp in data_lst:
-            data.append(tp[1:])
+            data.append(tp[:])
 
         print len(data[:])
         data = np.array(data, dtype=np.float16)
