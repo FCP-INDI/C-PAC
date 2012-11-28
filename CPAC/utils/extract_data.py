@@ -226,8 +226,8 @@ def extract_data(c, param_map):
             def print_end_of_file(sub):
                 if param_map is not None:
                     try:
-                        logging.debug("site for sub %s -> %s", sub, subject_map.get(sub))
-                        logging.debug("scan parameters for the above site %s", param_map.get(subject_map.get(sub)))
+                        logging.debug("site for sub %s -> %s" %(sub, subject_map.get(sub))
+                        logging.debug("scan parameters for the above site ", param_map.get(subject_map.get(sub)))
                         print >> f, "    'scan_parameters':{"
                         print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
                         print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
@@ -237,7 +237,7 @@ def extract_data(c, param_map):
                         print >> f, "        }"
                     except:
                         msg = " No Parameter values for the %s site is defined in the scan"\
-                              " parameters csv file", subject_map.get(sub)
+                              " parameters csv file" %subject_map.get(sub)
                         raise ValueError(msg)
 
                 print >> f, "},"
@@ -266,7 +266,7 @@ def extract_data(c, param_map):
                 print >> f, "      },"
                 print_end_of_file(anat_sub.split("/")[0])
             else:
-                logging.debug("skipping subject %s", anat_sub.split("/")[0])
+                logging.debug("skipping subject ", anat_sub.split("/")[0])
         
         except ValueError:
             logging.exception(ValueError.message)
@@ -298,21 +298,22 @@ def extract_data(c, param_map):
                 #if there are sessions
                 if "*" in func_session_path:
                     session_list = glob.glob(os.path.join(func_base[index], os.path.join(sub, func_session_path)))
-                    if session_list:
-                        for session in session_list:
-                            session_id = os.path.basename(session)
-                            if anat_session_present:
-                                if func_session_path == anat_session_path:
-                                    fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
-                                else:
-                                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
-                            else:
-                                fetch_path(index, sub, os.path.join(sub, session_id), session_id)
-                    else:
-                        logging.debug("Skipping subject %s", sub)
                 else:
-                    session_id = func_session_path
-                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id)
+                    session_list = [func_session_path]
+
+                if session_list:
+                    for session in session_list:
+                        session_id = os.path.basename(session)
+                        if anat_session_present:
+                            if func_session_path == anat_session_path:
+                                fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
+                            else:
+                                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                        else:
+                            fetch_path(index, sub, os.path.join(sub, session_id), session_id)
+                else:
+                    logging.debug("Skipping subject %s", sub)
+
             else:
                 logging.debug("No sessions")
                 session_id = ''
