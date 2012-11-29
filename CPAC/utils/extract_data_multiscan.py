@@ -1,55 +1,63 @@
-import sys
 import os
 import glob
 import string
-import logging
-
-#logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
-#                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
 
 
 def extract_data(c, param_map):
     """
     Method to generate a CPAC input subject list
     python file. The method extracts anatomical
-    and functional data for each site( if multiple site)
-    and/or scan parameters for each site and put it into
-    a data structure read by python
+    functional data and scan parameters for each 
+    site( if multiple site) and for each scan 
+    and put it into a data structure read by python
 
+    Note:
+    -----
+    Use this tool only if the scan parameters are different 
+    for each scan as shown in the example below.
+    
     Example:
-    subjects_list =[
-       {
-        'subject_id' : '0050386',
-        'unique_id' : 'session_1',
-        'anat': '/Users/home/data/NYU/0050386/session_1/anat_1/anat.nii.gz',
-        'rest':{
-            'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
-            'rest_2_rest' : '/Users/home/data/NYU/0050386/session_1/rest_2/rest.nii.gz',
-            }
-        'scan_parameters':{
-            'tr': '2',
-            'acquisition': 'alt+z2',
-            'reference': '17',
-            'first_tr': '',
-            'last_tr': '',
-            }
+    --------
+    subjects_list = [
+        {
+            'subject_id': '0021001',
+            'unique_id': 'session2',
+            'anat': '/home/data/multiband_data/NKITRT/0021001/anat/mprage.nii.gz',
+            'rest':{
+              'RfMRI_mx_1400_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_mx_1400/rest.nii.gz',
+              'RfMRI_mx_645_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_mx_645/rest.nii.gz',
+              'RfMRI_std_2500_rest': '/home/data/multiband_data/NKITRT/0021001/session2/RfMRI_std_2500/rest.nii.gz',
+              },
+            'scan_parameters':{
+                'TR':{
+                    'RfMRI_mx_1400_rest': '1.4',
+                    'RfMRI_mx_645_rest': '1.4',
+                    'RfMRI_std_2500_rest': '2.5',
+                    },
+                'Acquisition':{
+                    'RfMRI_mx_1400_rest': '/home/data/1400.txt',
+                    'RfMRI_mx_645_rest': '/home/data/645.txt',
+                    'RfMRI_std_2500_rest': '/home/data/2500.txt',
+                    },
+                'Reference':{
+                    'RfMRI_mx_1400_rest': '32',
+                    'RfMRI_mx_645_rest': '20',
+                    'RfMRI_std_2500_rest': '19',
+                    },
+                'FirstTR':{
+                    'RfMRI_mx_1400_rest': '7',
+                    'RfMRI_mx_645_rest': '15',
+                    'RfMRI_std_2500_rest': '4',
+                    },
+                'LastTR':{
+                    'RfMRI_mx_1400_rest': '440',
+                    'RfMRI_mx_645_rest': '898',
+                    'RfMRI_std_2500_rest': 'None',
+                    },
+                }
         },
+
     ]
-
-    or
-
-    subjects_list =[
-       {
-        'subject_id' : '0050386',
-        'unique_id' : 'session_1',
-        'anat': '/Users/home/data/NYU/0050386/session_1/anat_1/anat.nii.gz',
-        'rest':{
-            'rest_1_rest' : '/Users/home/data/NYU/0050386/session_1/rest_1/rest.nii.gz',
-            'rest_2_rest' : '/Users/home/data/NYU/0050386/session_1/rest_2/rest.nii.gz',
-            }
-          },
-    ]
-
     """
 
     #method to read each line of the file into list
@@ -74,22 +82,18 @@ def extract_data(c, param_map):
     def checkTemplate(template):
 
         if template.count('%s') != 2:
-            msg = "Please provide '%s' in the template" \
-                  "where your site and subjects are present"\
-                  "Please see examples"
-            logging.exception(msg)
-            raise Exception(msg)
+            raise Exception("Please provide '%s' in the template" \
+                            "where your site and subjects are present"\
+                            "Please see examples")
 
         filename, ext = os.path.splitext(os.path.basename(template))
         ext = os.path.splitext(filename)[1] + ext
 
         if ext not in [".nii", ".nii.gz"]:
-            msg = "Invalid file name", os.path.basename(template)
-            logging.exception(msg)
-            raise Exception(msg)
+            raise Exception("Invalid file name", os.path.basename(template))
 
     def get_site_list(path):
-        base, relative = path.split('%s')
+        base = path.split('%s')[0]
         sites = os.listdir(base)
         return sites
 
@@ -138,25 +142,19 @@ def extract_data(c, param_map):
     func_base, func_relative, subject_map = getPath(c.functionalTemplate)
 
     if not anat_base:
-        msg = "Anatomical Data template incorrect. No such file or directory %s", anat_base
-        logging.exception(msg)
-        raise Exception(msg)
+        print "No such file or directory ", anat_base
+        raise Exception("Anatomical Data template incorrect")
 
     if not func_base:
-        msg = "Functional Data template incorrect. No such file or directory %s, func_base"
-        logging.exception(msg)
-        raise Exception(msg)
-        
+        print "No such file or directory", func_base
+        raise Exception("Functional Data template incorrect")
+
     if len(anat_base) != len(func_base):
-        msg1 = "Some sites are missing, Please check your template"\
-              , anat_base, "!=", func_base
-        logging.exception(msg1)
-        
-        msg2 = " Base length Unequal. Some sites are missing."\
-               "extract_data doesn't script support this.Please" \
-               "Provide your own subjects_list file"
-        logging.exception(msg2)
-        raise Exception(msg2)
+        print "Some sites are missing, Please check your"\
+              "template", anat_base, "!=", func_base
+        raise Exception(" Base length Unequal. Some sites are missing."\
+                           "extract_data doesn't script support this.Please" \
+                           "Provide your own subjects_list file")
 
     #calculate the length of relative paths(path after subject directory)
     func_relative_len = len(func_relative.split('/'))
@@ -178,12 +176,17 @@ def extract_data(c, param_map):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            msg = "extract_data script currently doesn't support this directory structure."\
-                  "Please provide the subjects_list file to run CPAC."\
-                  "For more information refer to manual"
-            logging.exception(msg)
-            raise Exception(msg)
+            raise Exception("extract_data script currently doesn't support"\
+                             "this directory structure.Please provide the"\
+                             "subjects_list file to run CPAC." \
+                             "For more information refer to manual")
+
         return session_present, session_path, relative_path
+
+#    if func_relative_len!= anat_relative_len:
+#        raise Exception(" extract_data script currently doesn't"\
+#                          "support different relative paths for"\
+#                          "Anatomical and functional files")
 
     func_session_present, func_session_path, func_relative = \
         check_for_sessions(func_relative, func_relative_len)
@@ -223,22 +226,31 @@ def extract_data(c, param_map):
                 print >> f, "    'subject_id': '" + sub + "',"
                 print >> f, "    'unique_id': '" + session_id + "',"
 
-            def print_end_of_file(sub):
+            def print_end_of_file(sub, scan_list):
                 if param_map is not None:
-                    try:
-                        logging.debug("site for sub %s -> %s" %(sub, subject_map.get(sub)))
-                        logging.debug("scan parameters for the above site %s"%param_map.get(subject_map.get(sub)))
-                        print >> f, "    'scan_parameters':{"
-                        print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
-                        print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
-                        print >> f, "        'reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
-                        print >> f, "        'first_tr': '" + param_map.get(subject_map.get(sub))[1] + "'" + ","
-                        print >> f, "        'last_tr': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
-                        print >> f, "        }"
-                    except:
-                        msg = " No Parameter values for the %s site is defined in the scan"\
-                              " parameters csv file" %subject_map.get(sub)
-                        raise ValueError(msg)
+                    def print_scan_param(index):
+                        try:
+                            for scan in scan_list:
+                                print>>f,  "            '" + scan[1] + "': '" + \
+                                param_map.get((subject_map.get(sub), scan[0]))[index] + "',"
+                            print>>f, "            },"
+                        except:
+                            raise Exception(" No Parameter values for the %s site and %s scan is defined in the scan"\
+                                            " parameters csv file" % (subject_map.get(sub), scan[0]))
+
+                    print "site for sub", sub, "->", subject_map.get(sub)
+                    print >>f, "    'scan_parameters':{"
+                    print >> f, "        'tr':{"
+                    print_scan_param(4)
+                    print >> f, "        'acquisition':{"
+                    print_scan_param(0)
+                    print >> f, "        'reference':{"
+                    print_scan_param(3)
+                    print >> f, "        'first_tr':{"
+                    print_scan_param(1)
+                    print >> f, "        'last_tr':{"
+                    print_scan_param(2)
+                    print >>f, "        }"
 
                 print >> f, "},"
 
@@ -251,30 +263,24 @@ def extract_data(c, param_map):
 
             anat = glob.glob(os.path.join(anat_base_path, anat_relative))
             func = glob.glob(os.path.join(func_base_path, func_relative))
-
+            scan_list = []
             if anat and func:
                 print_begin_of_file(anat_sub.split("/")[0], session_id)
-                print >> f, "    'anat': '" + os.path.realpath(anat[0]) + "',"
+                print >> f, "    'anat': '" + anat[0] + "',"
                 print >>f, "    'rest':{"
 
                 #iterate for each rest session
                 for iter in func:
                     #get scan_id
-                    iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path, '').lstrip("/"))[0])[0]
-                    iterable = iterable.replace("/", "_")
-                    print>>f, "      '" + iterable + "': '" + os.path.realpath(iter) + "',"
+                    iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
+                    scan_name = iterable.replace("/", "_")
+                    scan_list.append((os.path.dirname(iterable), scan_name))
+                    print>>f,  "      '" + scan_name + "': '" + iter + "',"
                 print >> f, "      },"
-                print_end_of_file(anat_sub.split("/")[0])
-            else:
-                logging.debug("skipping subject %s"%anat_sub.split("/")[0])
-        
-        except ValueError:
-            logging.exception(ValueError.message)
+                print_end_of_file(anat_sub.split("/")[0], scan_list)
+
+        except Exception:
             raise
-        except:
-            msg = "Exception while fetching anatomical and functional paths"
-            logging.exception(msg)
-            raise Exception(msg)
 
     def walk(index, sub):
         """
@@ -301,31 +307,26 @@ def extract_data(c, param_map):
                 else:
                     session_list = [func_session_path]
 
-                if session_list:
-                    for session in session_list:
-                        session_id = os.path.basename(session)
-                        if anat_session_present:
-                            if func_session_path == anat_session_path:
-                                fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
-                            else:
-                                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                for session in session_list:
+                    session_id = os.path.basename(session)
+                    if anat_session_present:
+                        if func_session_path == anat_session_path:
+                            fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
                         else:
-                            fetch_path(index, sub, os.path.join(sub, session_id), session_id)
-                else:
-                    logging.debug("Skipping subject %s", sub)
-
+                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                    else:
+                        fetch_path(index, sub, os.path.join(sub, session_id), session_id)
             else:
-                logging.debug("No sessions")
+                print "No sessions"
                 session_id = ''
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
-            logging.exception(Exception.message)
             raise
         except:
-            msg = "Please make sessions are consistent across all subjects"
-            logging.exception(msg)
-            raise Exception(msg)
+            print "Please make sessions are consistent across all subjects"
+            raise
+
     try:
         print >>f, "subjects_list = ["
         for i in range(len(anat_base)):
@@ -333,19 +334,18 @@ def extract_data(c, param_map):
                 #check if subject is present in subject_list
                 if subject_list:
                     if sub in subject_list and sub not in exclusion_list:
-                        logging.debug("extracting data for subject: %s", sub)
+                        print "extracting data for subject: ", sub
                         walk(i, sub)
                 #check that subject is not in exclusion list
                 elif sub not in exclusion_list and sub not in '.DS_Store':
-                    logging.debug("extracting data for subject: %s", sub)
+                    print "extracting data for subject: ", sub
                     walk(i, sub)
 
         print >> f, "]"
 
         name = os.path.join(os.getcwd(), 'CPAC_subject_list.py')
-        print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" % name
+        print "Extraction Complete...Input Subjects_list for CPAC - %s" % name
     except Exception:
-        logging.exception(Exception.message)
         raise
     finally:
         f.close()
@@ -392,7 +392,7 @@ def generate_suplimentary_files():
 
     #prepare data for phenotypic file
     if len(scan_set) > 1:
-        list1 = ['subject_id/scan']
+        list1 = ['subject_id/Scan']
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
 
@@ -431,68 +431,45 @@ def read_csv(csv_input):
      'TR (seconds)'
 
     """
+
     import csv
     from collections import defaultdict
     try:
         reader = csv.DictReader(open(csv_input, "U"))
-
         dict_labels = defaultdict(list)
         for line in reader:
             csv_dict = dict((k.lower(), v) for k, v in line.iteritems())
-            dict_labels[csv_dict.get('site')] = [csv_dict[key] for key in sorted(csv_dict.keys()) \
-                                                 if key != 'site' and key != 'scan']
+            dict_labels[csv_dict.get('site'), csv_dict.get('scan')] = \
+            [csv_dict[key] for key in sorted(csv_dict.keys()) \
+             if key != 'site' and key != 'scan']
 
         if len(dict_labels.keys()) < 1:
-            msg ="Scan Parameters File is either empty"\
-                 "or missing header"
-            logging.exception(msg)
-            raise Exception(msg)
-
-        return dict_labels
-
-    except IOError:
-        msg = "Error reading the csv file %s", csv_input
-        logging.exception(msg)
-        raise Exception(msg)
+            raise Exception("Scan Parameters File is either empty"\
+                            "or missing header")
     except:
-        msg = "Error reading scan parameters csv. Make sure you are using the correct template"
-        logging.exception(msg)
-        raise Exception(msg)
+        print "Error reading scan parameters csv"
+        raise
+
+    return dict_labels
+
 
 def run(data_config):
     """
     Run method takes data_config
     file as the input argument
     """
-    root = logging.getLogger()
-    if root.handlers:
-        for handler in root.handlers:
-            root.removeHandler(handler)
-    logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
-                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
 
-    print "For any errors or messages check the log file - %s"\
-           % os.path.join(os.getcwd(), 'extract_data_logs.log')
-    
+    import sys
+
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        logging.debug("no scan parameters csv included"\
+        print "no scan parameters csv included"\
               "make sure you turn off slice timing correction option"\
-              "in CPAC configuration")
+              "in CPAC configuration"
         s_param_map = None
-
     extract_data(c, s_param_map)
     generate_suplimentary_files()
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage: python extract_data.py data_config.py"
-        sys.exit()
-    else:
-        run(sys.argv[1])
