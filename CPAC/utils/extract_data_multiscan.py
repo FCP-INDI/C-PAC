@@ -304,19 +304,18 @@ def extract_data(c, param_map):
                 #if there are sessions
                 if "*" in func_session_path:
                     session_list = glob.glob(os.path.join(func_base[index], os.path.join(sub, func_session_path)))
-                    for session in session_list:
-                        session_id = os.path.basename(session)
-                        if anat_session_present:
-                            if func_session_path == anat_session_path:
-                                fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
-                            else:
-                                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
-                        else:
-                            fetch_path(index, sub, os.path.join(sub, session_id), session_id)
                 else:
-                    session_id = func_session_path
-                    fetch_path(index, os.path.join(sub, anat_session_path), \
-                               os.path.join(sub, func_session_path), session_id)
+                    session_list = [func_session_path]
+
+                for session in session_list:
+                    session_id = os.path.basename(session)
+                    if anat_session_present:
+                        if func_session_path == anat_session_path:
+                            fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
+                        else:
+                            fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                    else:
+                        fetch_path(index, sub, os.path.join(sub, session_id), session_id)
             else:
                 print "No sessions"
                 session_id = ''
