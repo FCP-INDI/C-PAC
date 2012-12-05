@@ -4,8 +4,8 @@ import glob
 import string
 import logging
 
-logging.basicConfig(filename='extract_data_logs.log', filemode='w', level=logging.DEBUG,\
-                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
+#logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
+#                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
 
 
 def extract_data(c, param_map):
@@ -226,8 +226,8 @@ def extract_data(c, param_map):
             def print_end_of_file(sub):
                 if param_map is not None:
                     try:
-                        logging.debug("site for sub %s -> %s", sub, subject_map.get(sub))
-                        logging.debug("scan parameters for the above site %s", param_map.get(subject_map.get(sub)))
+                        logging.debug("site for sub %s -> %s" %(sub, subject_map.get(sub)))
+                        logging.debug("scan parameters for the above site %s"%param_map.get(subject_map.get(sub)))
                         print >> f, "    'scan_parameters':{"
                         print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
                         print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
@@ -237,7 +237,7 @@ def extract_data(c, param_map):
                         print >> f, "        }"
                     except:
                         msg = " No Parameter values for the %s site is defined in the scan"\
-                              " parameters csv file", subject_map.get(sub)
+                              " parameters csv file" %subject_map.get(sub)
                         raise ValueError(msg)
 
                 print >> f, "},"
@@ -266,7 +266,7 @@ def extract_data(c, param_map):
                 print >> f, "      },"
                 print_end_of_file(anat_sub.split("/")[0])
             else:
-                logging.debug("skipping subject %s", anat_sub.split("/")[0])
+                logging.debug("skipping subject %s"%anat_sub.split("/")[0])
         
         except ValueError:
             logging.exception(ValueError.message)
@@ -298,21 +298,22 @@ def extract_data(c, param_map):
                 #if there are sessions
                 if "*" in func_session_path:
                     session_list = glob.glob(os.path.join(func_base[index], os.path.join(sub, func_session_path)))
-                    if session_list:
-                        for session in session_list:
-                            session_id = os.path.basename(session)
-                            if anat_session_present:
-                                if func_session_path == anat_session_path:
-                                    fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
-                                else:
-                                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
-                            else:
-                                fetch_path(index, sub, os.path.join(sub, session_id), session_id)
-                    else:
-                        logging.debug("Skipping subject %s", sub)
                 else:
-                    session_id = func_session_path
-                    fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, func_session_path), session_id)
+                    session_list = [func_session_path]
+
+                if session_list:
+                    for session in session_list:
+                        session_id = os.path.basename(session)
+                        if anat_session_present:
+                            if func_session_path == anat_session_path:
+                                fetch_path(index, os.path.join(sub, session_id), os.path.join(sub, session_id), session_id)
+                            else:
+                                fetch_path(index, os.path.join(sub, anat_session_path), os.path.join(sub, session_id), session_id)
+                        else:
+                            fetch_path(index, sub, os.path.join(sub, session_id), session_id)
+                else:
+                    logging.debug("Skipping subject %s", sub)
+
             else:
                 logging.debug("No sessions")
                 session_id = ''
@@ -463,12 +464,19 @@ def run(data_config):
     Run method takes data_config
     file as the input argument
     """
+    root = logging.getLogger()
+    if root.handlers:
+        for handler in root.handlers:
+            root.removeHandler(handler)
+    logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
+                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
 
+    print "For any errors or messages check the log file - %s"\
+           % os.path.join(os.getcwd(), 'extract_data_logs.log')
+    
     path, fname = os.path.split(os.path.realpath(data_config))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
-    print "For any errors or messages check the log file - %s"\
-           % os.path.join(os.getcwd(), 'extract_data_logs.log')
 
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
@@ -480,6 +488,7 @@ def run(data_config):
 
     extract_data(c, s_param_map)
     generate_suplimentary_files()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
