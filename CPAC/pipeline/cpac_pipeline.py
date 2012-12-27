@@ -19,6 +19,7 @@ from CPAC.nuisance import create_nuisance, bandpass_voxels
 
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
+from CPAC.generate_motion_statistics import fristons_twenty_four
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import create_surface_registration, get_voxel_timeseries,\
                             get_roi_timeseries, get_vertices_timeseries
@@ -420,6 +421,52 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
 
     strat_list += new_strat_list
+
+
+
+    """
+    Inserting Friston's 24 parameter  Workflow
+    Incase this workflow runs , it overwrites the movement_parameters file
+    So the file contains 24 parameters for motion and that gets wired to all the workflows
+    that depend on. The effect should be seen when regressing out nuisance signals and motion
+    is used as one of the regressors
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    workflow_counter += 1
+    if 1 in c.runFristonModel:
+        workflow_bit_id['fristons_parameter_model'] = workflow_counter
+        for strat in strat_list:
+
+            fristons_model = fristons_twenty_four(wf_name='fristons_parameter_model_%d' % num_strat)
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('movement_parameters')
+                workflow.connect(node, out_file,
+                                 fristons_model, 'inputspec.movement_file')
+
+            except:
+                print 'Invalid Connection: fristons_parameter_model ', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            if 0 in c.runFristonModel:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+            strat.append_name('fristons_parameter_model')
+
+            strat.update_resource_pool({'movement_parameters':(fristons_model, 'outputspec.movement_file')})
+
+            num_strat += 1
+    strat_list += new_strat_list
+
+
 
     """
     Inserting Anatomical to Functional Registration

@@ -184,7 +184,6 @@ def get_strategies_for_path(path, strategies):
 
                 score_dict[str(max_score)] = [strategy]
 
-<<<<<<< HEAD
     return score_dict[str(max_score)]
 
 
