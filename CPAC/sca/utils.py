@@ -6,7 +6,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def compute_fisher_z_score(correlation_file):
+def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
     """
     Computes the fisher z transform of the input correlation map
@@ -33,6 +33,8 @@ def compute_fisher_z_score(correlation_file):
     import numpy as np
     import os
 
+    roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
 
@@ -50,13 +52,13 @@ def compute_fisher_z_score(correlation_file):
 
         corr_data = np.reshape(corr_data, (x*y*z, roi_number), order='F')
 
-        for i in range(0, roi_number):
+        for i in range(0, len(roi_numbers)):
 
             sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
             sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
-            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_%d.nii.gz' % (i+1))
+            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
 
             sub_img.to_filename(sub_z_score_file)
 
