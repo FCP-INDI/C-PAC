@@ -152,18 +152,23 @@ def run(config_file, output_path_file):
     
     import re
     import os
-    import glob 
-    
+    import glob
+
 
     path, fname = os.path.split(os.path.realpath(config_file))
     sys.path.append(path)
     c = __import__(fname.split('.')[0])
 
     subject_paths = []
-    for file in glob.glob(os.path.abspath(output_path_file)): 
+
+    input_subject_ids = [subject_id.rstrip('\r\n') for subject_id in open(c.groupAnalysisSubjectList, 'r').readlines()]
+
+    for file in glob.glob(os.path.abspath(output_path_file)):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
 
+    set_subject_paths = set(subject_paths)
+    subject_paths = list(set_subject_paths)
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
     base_path = c.sinkDirectory
 
@@ -191,7 +196,8 @@ def run(config_file, output_path_file):
         if c.mixedScanAnalysis == True:
             key = key.replace(scan_id, '*')
 
-        analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+        if subject_id in input_subject_ids:
+            analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
 
     for resource, glob_key in analysis_map.keys():
