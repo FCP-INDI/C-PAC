@@ -382,7 +382,7 @@ def run(config, mode):
         model_ready_data, field_names = organize_data(filter_data, c)
         write_data(model_ready_data, field_names, c)
 
-    #else:
+    else:
         ###generate the final FSL .grp, .mat, .con, .fts files 
         import csv
         model = c.outputModelFile
