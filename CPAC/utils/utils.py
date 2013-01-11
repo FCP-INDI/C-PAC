@@ -235,6 +235,35 @@ def get_hplpfwhmseed_(parameter, remainder_path):
     return parameter.lstrip('/_')+value
 
 
+def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
+
+    import commands
+    import os
+
+    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if not line.startswith('#')]
+
+    seed_files = []
+    for specification in seed_specifications:
+
+        specification = specification.rstrip(' ')
+        print specification
+        seed_name, x, y, z, radius, resolution = specification.split('\t')
+
+        if not os.path.exists(mask_directory_path):
+            os.makedirs(mask_directory_path)
+
+        cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
+        -srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, seed_name), FSLDIR, resolution, radius)
+
+        try:
+            commands.getoutput(cmd)
+            seed_files.append(os.path.join(mask_directory_path, '%s.nii.gz' % seed_name))
+        except:
+            raise
+
+    return seed_files
+
+
 
 def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 

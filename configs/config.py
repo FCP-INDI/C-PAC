@@ -298,6 +298,21 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 Timeseries Extraction Options ***
 ==============================
 """
+# If runVoxelTimeseries = [1]
+# Creates Seed files given user specifications
+# The seed nifti files are saved in maskDirectoryPath
+# If maskDirectoryPath does not exist, we create it for
+# as long as you specify it in the maskDirectoryPath setting
+# Each line in the file contains
+# seed_name x y z radius resolution
+# example :
+# aMPFC -6   52  -2  4 2mm
+# PCC   -8  -56  26  4 2mm
+# dMPFC  0   52  6   4 2mm
+# TPJ   -54 -54  28  4 2mm
+# LTC   -60 -24 -18  4 2mm
+seedSpecificationFile = '/path/to/seedSpecificationFile'
+
 # Extract an average timeseries for each ROI
 # Required if you wish to run ROI-based SCA
 runROITimeseries = [0]

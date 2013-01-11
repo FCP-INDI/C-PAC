@@ -27,8 +27,8 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr
-
+                             get_scan_params, get_tr, \
+                             create_seeds_
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -1340,6 +1340,11 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
     if 1 in c.runVoxelTimeseries:
+        if os.path.exists(c.seedSpecificationFile):
+            seeds = create_seeds_(c.seedSpecificationFile, c.maskDirectoryPath, c.FSLDIR)
+            print 'seeds created in %s -> ' %c.maskDirectoryPath, seeds
+
+
         for strat in strat_list:
         
             resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(), 
