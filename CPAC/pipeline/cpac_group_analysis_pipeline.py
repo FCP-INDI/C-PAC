@@ -87,16 +87,19 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=model_files)(?<!model)(.)*[/]','/'),
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_model_','/'),
+                                      (r'(?<=model_files)(.)*_model_','/'),
                                       (r'(?<=merged)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=stats)(?<!model)(.)*[/]','/')]
+                                      (r'(?<=stats)(.)*_model_','/'),
+                                      (r'_cluster(.)*[/]',''),
+                                      (r'_slicer(.)*[/]',''),
+                                      (r'_overlay(.)*[/]','')]
     ########datasink connections#########
     
     wf.connect(gp_flow, 'outputspec.mat',
                ds, 'model_files')
-    wf.connect(gp_flow, 'outputspec.con',
-               ds, 'model_files.@01')
+    #wf.connect(gp_flow, 'outputspec.con',
+    #           ds, 'model_files.@01')
     wf.connect(gp_flow, 'outputspec.grp',
                ds, 'model_files.@02')
     wf.connect(gp_flow, 'outputspec.sublist',
