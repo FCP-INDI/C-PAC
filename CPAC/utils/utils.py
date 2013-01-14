@@ -594,22 +594,16 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
                     dict1.get('/Matrix').append(line)
         return dict1
     
-    def write_model_file(model_map, model_file):
+    def write_model_file(model_map, model_file, remove_index):
         
         out_file, ext = os.path.splitext(os.path.basename(model_file))
         out_file = out_file + '_new' + ext
         out_file = os.path.join(os.getcwd(), out_file)
-        
+
         #create an index of all subjects for a derivative for which 
         #CPAC did not run successfully
-        remove_index = []
-        for subject in input_sublist:
-            if subject not in output_sublist:
-                remove_index.append(input_sublist.index(subject))
-        
-        print remove_index
+
         f = open(out_file, 'wb')
-    
         print >> f, '/NumWaves\t' + model_map['/NumWaves']
         
         num_points = int(model_map['/NumPoints']) - len(remove_index)
@@ -629,22 +623,57 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
             count+=1
     
         f.close()
-
+  
         return out_file
-    
+     
+    #get new subject list     
+    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
+    f = open(new_sub_file, 'wb')
+    remove_index = []
+    for subject in input_sublist:
+         if subject not in output_sublist:
+              remove_index.append(input_sublist.index(subject))
+         else:
+              print >>f, subject
+        
+    f.close()
+
+    print "removing subject at the indices", remove_index
+     
     model_map = read_model_file(mat_file)
-    new_mat_file = write_model_file(model_map, mat_file)
+    new_mat_file = write_model_file(model_map, mat_file, remove_index)
     
     model_map = read_model_file(grp_file)
-    new_grp_file = write_model_file(model_map, grp_file)
+    new_grp_file = write_model_file(model_map, grp_file, remove_index)
         
-    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
-    
-    f = open(new_sub_file, 'wb')
-    for sub in output_sublist:
-        print >>f, sub
-
     return new_grp_file, new_mat_file, new_sub_file
+
+
+    
+def select_model(model, model_map, ftest):
+    """
+    Method to select model files
+    """
+    
+    try:
+        files = model_map[model]
+        fts_file = ''
+        for file in files:
+            if file.endswith('.mat'):
+                mat_file = file
+            elif file.endswith('.grp'):
+                grp_file = file
+            elif file.endswith('.fts') and ftest:
+                 fts_file = file
+            elif file.endswith('.con'):
+                 con_file = file
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder"
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file
+
 
 
     

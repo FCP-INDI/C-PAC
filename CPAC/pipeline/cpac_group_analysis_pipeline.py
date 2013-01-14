@@ -48,6 +48,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
+    ordered_paths=[]
+    for sub in input_subject_list :
+       for path in s_paths:
+           if sub in path:
+               ordered_paths.append(path)
+    print "input_subject_list", input_subject_list
+    print "ordered_paths", ordered_paths
+    
     strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
     for ch in ['.']:
         if ch in strgy_path:
@@ -60,7 +68,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     from CPAC.group_analysis import create_group_analysis
     
     gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
-    gpa_wf.inputs.inputspec.zmap_files = s_paths
+    gpa_wf.inputs.inputspec.zmap_files = ordered_paths
     gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
     gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
     gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
