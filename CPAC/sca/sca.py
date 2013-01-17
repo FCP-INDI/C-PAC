@@ -113,7 +113,7 @@ def create_sca(name_sca='sca'):
     corr.inputs.outputtype = 'NIFTI_GZ'
 
     ## 3. Z-transform correlations
-    z_score = pe.Node(util.Function(input_names=['correlation_file'],
+    z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d'],
                                output_names=['out_file'],
                  function=compute_fisher_z_score), name='z_score')
 
@@ -124,6 +124,8 @@ def create_sca(name_sca='sca'):
                 corr, 'xset')
     sca.connect(corr, 'out_file',
                 z_score, 'correlation_file')
+    sca.connect(inputNode, 'timeseries_one_d',
+                z_score, 'timeseries_one_d')
     sca.connect(corr, 'out_file',
                 outputNode, 'correlation_file')
     sca.connect(z_score, 'out_file',

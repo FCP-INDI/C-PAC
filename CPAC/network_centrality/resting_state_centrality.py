@@ -355,6 +355,7 @@ def calculate_correlation(timeseries_data):
     
     timeseries = load_mat(timeseries_data)
     r_matrix = np.corrcoef(timeseries)
+    r_matrix = np.nan_to_num(r_matrix)
     cwd = os.getcwd()
     
     print "shape of correlation matrix", r_matrix.shape
@@ -412,7 +413,7 @@ def threshold_rmatrix(corr_matrix, option,
         try:
             if option == 0:
                 r_value = convert_pvalue_to_r(scans, threshold)
-            if option == 1:
+            elif option == 1:
                 r_value = convert_sparsity_to_r(r_matrix, threshold)
             else:
                 r_value = threshold
@@ -580,7 +581,7 @@ def generate_adjacency_graph(correlation_matrix, threshold_matrix,
             filename = mask_name + "_adjacency_matrix"
             save(filename, 'unit_graph', spcscmat)
         
-        if weight_options[1]:
+        elif weight_options[1]:
             matrix = thresh_matrix * corr_matrix
             spedgemat = lil_matrix (matrix)
             spcscmat = csc_matrix (spedgemat)

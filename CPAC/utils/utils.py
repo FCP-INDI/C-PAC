@@ -187,7 +187,6 @@ def get_strategies_for_path(path, strategies):
 
                 score_dict[str(max_score)] = [strategy]
 
-
     return score_dict[str(max_score)]
 
 
@@ -239,9 +238,37 @@ def get_hplpfwhmseed_(parameter, remainder_path):
     return parameter.lstrip('/_')+value
 
 
+def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
+
+    import commands
+    import os
+
+    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if not line.startswith('#')]
+
+    seed_files = []
+    for specification in seed_specifications:
+
+        specification = specification.rstrip(' ')
+        print specification
+        seed_name, x, y, z, radius, resolution = specification.split('\t')
+
+        if not os.path.exists(mask_directory_path):
+            os.makedirs(mask_directory_path)
+
+        cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
+        -srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, seed_name), FSLDIR, resolution, radius)
+
+        try:
+            commands.getoutput(cmd)
+            seed_files.append(os.path.join(mask_directory_path, '%s.nii.gz' % seed_name))
+        except:
+            raise
+
+    return seed_files
+
+
 
 def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
-
 
     import os
     import commands
@@ -333,6 +360,12 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         #bring into use the tier 2 iterables for recursive directory structure
 
+        scan_info = '~~~'
+        if '/_scan_' in path:
+
+            scan_info = get_hplpfwhmseed_('/_scan_', path)
+
+        print scan_info, ' ~~~', remainder_path
 
         if '/_mask_' in remainder_path:
 
@@ -378,7 +411,6 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             new_path = os.path.join(new_path, fwhm_str)
 
 
-
         try:
             os.makedirs(new_path)
         except:
@@ -398,9 +430,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global global_lock
             global_lock.acquire()
 
-            f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
+            if not '~~~' in scan_info:
+                f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' +strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
 
-            print >>f, path
+                print >>f, path
             global_lock.release()
 
         except:
@@ -456,7 +489,7 @@ def clean_strategy(strategies, helper):
 ### in the pipeline then remove them from the strategy tag list
 
     new_strat = []
-
+    
 
     for strat in strategies:
 
@@ -564,22 +597,16 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
                     dict1.get('/Matrix').append(line)
         return dict1
     
-    def write_model_file(model_map, model_file):
+    def write_model_file(model_map, model_file, remove_index):
         
         out_file, ext = os.path.splitext(os.path.basename(model_file))
         out_file = out_file + '_new' + ext
         out_file = os.path.join(os.getcwd(), out_file)
-        
+
         #create an index of all subjects for a derivative for which 
         #CPAC did not run successfully
-        remove_index = []
-        for subject in input_sublist:
-            if subject not in output_sublist:
-                remove_index.append(input_sublist.index(subject))
-        
-        print remove_index
+
         f = open(out_file, 'wb')
-    
         print >> f, '/NumWaves\t' + model_map['/NumWaves']
         
         num_points = int(model_map['/NumPoints']) - len(remove_index)
@@ -599,22 +626,57 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
             count+=1
     
         f.close()
-
+  
         return out_file
-    
+     
+    #get new subject list     
+    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
+    f = open(new_sub_file, 'wb')
+    remove_index = []
+    for subject in input_sublist:
+         if subject not in output_sublist:
+              remove_index.append(input_sublist.index(subject))
+         else:
+              print >>f, subject
+        
+    f.close()
+
+    print "removing subject at the indices", remove_index
+     
     model_map = read_model_file(mat_file)
-    new_mat_file = write_model_file(model_map, mat_file)
+    new_mat_file = write_model_file(model_map, mat_file, remove_index)
     
     model_map = read_model_file(grp_file)
-    new_grp_file = write_model_file(model_map, grp_file)
+    new_grp_file = write_model_file(model_map, grp_file, remove_index)
         
-    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
-    
-    f = open(new_sub_file, 'wb')
-    for sub in output_sublist:
-        print >>f, sub
-
     return new_grp_file, new_mat_file, new_sub_file
+
+
+    
+def select_model(model, model_map, ftest):
+    """
+    Method to select model files
+    """
+    
+    try:
+        files = model_map[model]
+        fts_file = ''
+        for file in files:
+            if file.endswith('.mat'):
+                mat_file = file
+            elif file.endswith('.grp'):
+                grp_file = file
+            elif file.endswith('.fts') and ftest:
+                 fts_file = file
+            elif file.endswith('.con'):
+                 con_file = file
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder"
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file
+
 
 
     

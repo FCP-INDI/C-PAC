@@ -255,39 +255,76 @@ def extract_tissue_data(data_file,
     from CPAC.nuisance import erode_mask
     from CPAC.utils import safe_shape
     
-    data = nb.load(data_file).get_data().astype('float64')
-    ho_mask = nb.load(ho_mask_file).get_data().astype('float64')
-    
-    wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
-    csf_seg = nb.load(csf_seg_file).get_data().astype('float64')
-    gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
-    
     print 'Tissues extraction thresholds wm %d, csf %d, gm %d' % (wm_threshold,
                                                                   csf_threshold,
                                                                   gm_threshold)
-    
-    if not safe_shape(data, ho_mask, wm_seg, csf_seg, gm_seg):
-        raise ValueError('Spatial dimensions for data, masks and tissues do not match')
-    
+
+    try:
+        data = nb.load(data_file).get_data().astype('float64')
+    except:
+        raise MemoryError('Unable to load %s' % data_file)
+
+
+    try:
+        ho_mask = nb.load(ho_mask_file).get_data().astype('float64')
+    except:
+        raise MemoryError('Unable to load %s' % ho_mask)
+
+
+    if not safe_shape(data, ho_mask):
+        raise ValueError('Spatial dimensions for data and ho_mask do not match')
+
+    try:
+        wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
+    except:
+        raise MemoryError('Unable to load %s' % wm_seg)
+
+
+    if not safe_shape(data, wm_seg):
+        raise ValueError('Spatial dimensions for data, white matter segment do not match')
+
     wm_mask = erode_mask(wm_seg > wm_threshold)
-    
+    wm_sigs = data[wm_mask]
+    file_wm = os.path.join(os.getcwd(), 'wm_signals.npy')
+    np.save(file_wm, wm_sigs)
+    del wm_sigs
+
+    try:
+        csf_seg = nb.load(csf_seg_file).get_data().astype('float64')
+    except:
+        raise MemoryError('Unable to load %s' % csf_seg)
+
+
+    if not safe_shape(data, csf_seg):
+        raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
+
     # Only take the CSF at the lateral ventricals as labled in the Harvard
     # Oxford parcellation regions 4 and 43
     csf_mask = (csf_seg > csf_threshold)*((ho_mask==43) + (ho_mask == 4))
+    csf_sigs = data[csf_mask]
+    file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
+    np.save(file_csf, csf_sigs)
+    del csf_sigs
+
+
+    try:
+        gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
+    except:
+        raise MemoryError('Unable to load %s' % gm_seg)
+
+
+    if not safe_shape(data, gm_seg):
+        raise ValueError('Spatial dimensions for data, gray matter segment do not match')
+
 
     gm_mask = erode_mask(gm_seg > gm_threshold)
-    
-    wm_sigs = data[wm_mask]
-    csf_sigs = data[csf_mask]
     gm_sigs = data[gm_mask]
-    
-    file_wm = os.path.join(os.getcwd(), 'wm_signals.npy')
-    file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
-    np.save(file_wm, wm_sigs)
-    np.save(file_csf, csf_sigs)
     np.save(file_gm, gm_sigs)
-    
+    del gm_sigs
+
+
+
     nii = nb.load(wm_seg_file)
     wm_mask_file = os.path.join(os.getcwd(), 'wm_mask.nii.gz')
     csf_mask_file = os.path.join(os.getcwd(), 'csf_mask.nii.gz')
@@ -295,7 +332,7 @@ def extract_tissue_data(data_file,
     nb.Nifti1Image(wm_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(wm_mask_file)
     nb.Nifti1Image(csf_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(csf_mask_file)
     nb.Nifti1Image(gm_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(gm_mask_file)
-    
+
     return file_wm, file_csf, file_gm
 
 def create_nuisance(name='nuisance'):
