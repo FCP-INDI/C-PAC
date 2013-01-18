@@ -572,7 +572,7 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     workflow_counter += 1
     if 1 in c.runRegisterFuncToMNI:
-        workflow_bit_id['nuisance'] = workflow_counter
+        workflow_bit_id['func_to_mni'] = workflow_counter
         for strat in strat_list:
             func_to_mni = create_bbregister_func_to_mni('func_to_mni_%d' % num_strat)
             func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
