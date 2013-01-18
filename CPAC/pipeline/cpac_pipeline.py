@@ -1373,9 +1373,6 @@ def prep_workflow(sub_dict, c, strategies):
     new_strat_list = []
     num_strat = 0
     if 1 in c.runVoxelTimeseries:
-        if os.path.exists(c.seedSpecificationFile):
-            seeds = create_seeds_(c.seedSpecificationFile, c.maskDirectoryPath, c.FSLDIR)
-            print 'seeds created in %s -> ' %c.maskDirectoryPath, seeds
 
 
         for strat in strat_list:
@@ -1435,6 +1432,9 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     
     if 1 in c.runROITimeseries:
+        if os.path.exists(c.seedSpecificationFile):
+            seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
+            print 'seeds created %s -> ' % seeds
         for strat in strat_list:
             
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
