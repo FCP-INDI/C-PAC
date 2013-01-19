@@ -304,16 +304,21 @@ Timeseries Extraction Options ***
 # The ROI nifti file is saved in roiDirectoryPath
 # If roiDirectoryPath does not exist, we create it for
 # as long as you specify it in the roiDirectoryPath setting
-# The resolution of ROI file is same as your standardResolution
-# setting
+# If different Resolutions are specified then
+# the software will group the ROI's having the same
+# resolution and put each group in seperate nifti files
+# NOTE: We DO NOT detect for overlapping ROIS
+# The overlapping regions of the ROIS will have 
+# intensity which the sum of intensity of individual
+# regions. Please check and avoid this prior to running CPAC
 # Each line in the file contains
-# seed_label x y z radius
+# seed_label x y z radius resolution
 # example :
-# 10    -6   52  -2  4
-# 70    -8  -56  26  4
-# 60     0   52  6   4
-# 1     -54 -54  28  4
-# 7     -60 -24 -18  4
+# 10    -6   52  -2  4 2mm
+# 70    -8  -56  26  4 2mm
+# 60     0   52  6   4 1mm
+# 1     -54 -54  28  4 4mm
+# 7     -60 -24 -18  4 4mm
 seedSpecificationFile = '/path/to/seedSpecificationFile'
 
 # Extract an average timeseries for each ROI
