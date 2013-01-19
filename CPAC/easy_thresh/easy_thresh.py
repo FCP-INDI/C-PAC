@@ -272,15 +272,15 @@ def easy_thresh(wf_name):
                                                                   'file_parameters'],
                                                      output_names=['out_file'],
                             function=get_standard_background_img),
-                            name='get_backgroundimage', iterfield=['in_file'])
+                            name='get_bckgrndimg1', iterfield=['in_file'])
 
     #function node to get the standard fsl brain image
     #outputs single file
     get_backgroundimage2 = pe.Node(util.Function(input_names=['in_file',
-                                                                'file_parameters'],
+                                                              'file_parameters'],
                                                      output_names=['out_file'],
                             function=get_standard_background_img),
-                            name='get_backgroundimage2')
+                            name='get_backgrndimg2')
 
     #connections
     easy_thresh.connect(inputnode, 'z_stats', smooth_estimate, 'zstat_file' )
