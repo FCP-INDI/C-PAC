@@ -232,7 +232,21 @@ def set_op1_str(nvols):
     return strs
 
 
-
+def get_opt_string(mask):
+    """
+    Method to return option string for 3dTstat
+    
+    Parameters
+    ----------
+    mask : string (file)
+    
+    Returns
+    -------
+    opt_str : string
+    
+    """
+    opt_str = " -stdev -mask %s" %mask
+    return opt_str
 
 
 

@@ -829,8 +829,6 @@ def prep_workflow(sub_dict, c, strategies):
             alff.get_node('lp_input').iterables = ('lp',
                                                         c.lowPassFreqALFF)
             
-            workflow.connect(convert_tr, 'tr',
-                             alff, 'inputspec.tr')
 
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -844,7 +842,6 @@ def prep_workflow(sub_dict, c, strategies):
                 print 'Invalid Connection: ALFF:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
             strat.append_name('alff_falff')
-            strat.update_resource_pool({'power_spectrum_distribution':(alff, 'outputspec.power_spectrum_distribution')})
             strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
             strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
             strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})

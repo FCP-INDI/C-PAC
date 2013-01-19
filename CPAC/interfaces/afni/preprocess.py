@@ -443,6 +443,59 @@ For complete details, see the `3dTstat Documentation.
             outputs['out_file'] = os.path.abspath(self.inputs.out_file)
         return outputs
 
+class ThreedBandpassInputSpec(AFNITraitedSpec):
+    fbot = traits.Float(desc = 'lowest frequency in the passband, in Hz',
+                      argstr = '%f',
+                      position = -3,
+                      mandatory = True,
+                      exists= True)
+    ftop = traits.Float(desc = 'highest frequency in the passband',
+                      argstr = '%f',
+                      position = -2,
+                      mandatory = True,
+                      exists= True)
+    in_file = File(desc = 'input file to 3dBandpass',
+                   argstr = '%s',
+                   position = -1,
+                   mandatory = True,
+                   exists = True)
+    out_file = File(desc = 'output file from 3dBandpass',
+                   argstr = '-prefix %s' ,
+                   position = -4,
+                   genfile = True)
+    options = traits.Str(desc = 'selected statistical output',
+                         argstr = '%s')
+
+class ThreedBandpassOutputSpec(AFNITraitedSpec):
+    out_file = File(desc = 'filtered file',
+                    exists = True)
+
+class ThreedBandpass(AFNICommand):
+    """Compute voxel-wise statistics using AFNI 3dBandPass command.
+
+For complete details, see the `3dBandpass Documentation.
+<http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dBandpass.html>`_
+"""
+
+    _cmd = '3dBandpass'
+    input_spec = ThreedBandpassInputSpec
+    output_spec = ThreedBandpassOutputSpec
+
+    def _gen_filename(self, name):
+        """Generate output file name
+"""
+        if name == 'out_file':
+            _, fname, ext = split_filename(self.inputs.in_file)
+            return os.path.join(os.getcwd(), ''.join((fname, '_3dB',ext)))
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+#        outputs['out_file'] = os.path.abspath(self.inputs.out_file)
+        if not isdefined(self.inputs.out_file):
+            outputs['out_file'] = self._gen_filename('out_file')
+        else:
+            outputs['out_file'] = os.path.abspath(self.inputs.out_file)
+        return outputs
 
 class ThreedDetrendInputSpec(AFNITraitedSpec):
     in_file = File(desc = 'input file to 3dDetrend',
@@ -1271,7 +1324,9 @@ class ThreedcalcInputSpec(AFNITraitedSpec):
     infile_a = File(desc='input file to 3dcalc',
                           argstr='-a %s', position=0, mandatory=True)
     infile_b = File(desc='operand file to 3dcalc',
-                          argstr=' -b %s', position=1)
+                         argstr=' -b %s', position=1)
+    infile_c = File(desc='operand file to 3dcalc',
+                         argstr=' -c %s', position=1)
     infile_b_prime = traits.Str(desc='operand file to 3dcalc',
                           argstr=' -b %s', position=1)
     expr = traits.Str(desc='expr', argstr='-expr %s', position=2,
@@ -1345,7 +1400,7 @@ For complete details, see the `3dcalc Documentation.
             if isdefined(self.inputs.single_idx):
                 arg += '[%d]' % (self.inputs.single_idx)
             return arg
-
+        
         return super(Threedcalc, self)._format_arg(name, trait_spec, value)
 
     def _parse_inputs(self, skip=None):
