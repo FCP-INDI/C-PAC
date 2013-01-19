@@ -33,7 +33,9 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
     import numpy as np
     import os
 
-    roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+    roi_numbers = []
+    if '#' in open(timeseries_one_d, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
@@ -46,15 +48,19 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
     out_file = []
 
-    if len(dims) == 5:
+    if len(dims) == 5 or len(roi_numbers) > 0:
 
-        x, y, z, one, roi_number = dims
+        if len(dims) == 5:
+            x, y, z, one, roi_number = dims
 
-        corr_data = np.reshape(corr_data, (x*y*z, roi_number), order='F')
+            corr_data = np.reshape(corr_data, (x*y*z, roi_number), order='F')
+
 
         for i in range(0, len(roi_numbers)):
 
-            sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+            sub_data = corr_data
+            if len(dims) == 5:
+                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
             sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
