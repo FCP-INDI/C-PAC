@@ -9,6 +9,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.alff.alff import *
 from CPAC.alff.utils import *
+from CPAC.interfaces.afni import preprocess
 
 def create_alff(wf_name = 'alff_workflow'):
 
@@ -51,13 +52,8 @@ def create_alff(wf_name = 'alff_workflow'):
         inputspec.rest_mask : string (existing nifti file)
             A mask volume(derived by dilating the motion corrected functional volume) in native space
 
-        inputspec.tr : float
-            scan TR, if input as None, TR is extracted from the nifti file header
 
     Workflow Outputs: ::
-
-        outputspec.power_spectrum_distribution : string (nifti file)
-            outputs image containing the spectral power density of residual functional image
 
         outputspec.alff_img : string (nifti file)
             outputs image containing the sum of the amplitudes in the low frequency band
@@ -73,57 +69,27 @@ def create_alff(wf_name = 'alff_workflow'):
 
 
     Order of Commands:
-
-    - Compute the Power Spectrum ::
-
-        fslpspec
-        rest_res.nii.gz
-        power_spectrum_distribution.nii.gz
-
-    - Compute square root of power spectrum ::
-
-        fslmaths
-        power_spectrum_distribution.nii.gz
-        -sqrt prealff_func_data_ps_sqrt.nii.gz
-
-    - Extract the TR and Number of volumes(NVOLS) from the Nuisance signal regressed functional image
-
-    - Calculate the High Frequency Point(n2) and Low Frequency Point(n1) ::
-
-        n1 = (HP * NVOLS * TR) -1
-        n2 = (LP * NVOLS * TR) - (HP * NVOLS * TR) + 1
-
-    - Cut the low frequency data from the the whole frequency band ::
-
-        fslroi
-        prealff_func_data_ps_sqrt.nii.gz
-        prealff_func_ps_slow.nii.gz
-        n1
-        n2
-
-    - Calculate ALFF as the sum of the amplitudes in the low frequency band ::
-
-        fslmaths 
-        prealff_func_ps_slow.nii.gz
-        -Tmean
-        -mul n2
-        ALFF.nii.gz
-
-    - Compute amplitude of total frequency ::
-
-        fslmaths
-        prealff_func_data_ps_sqrt.nii.gz
-        -Tmean
-        -mul NVOLS
-        -div 2
-        prealff_func_pssum_amplitudes_low_frequency.nii.gz
-
-    - Compute fALFF as ALFF/amplitude of total frequency ::
-
-        fslmaths
-        ALFF.nii.gz
-        -div prealff_func_pssum_amplitudes_low_frequency.nii.gz
-        fALFF.nii.gz
+    - Filter the input file rest file( slice-time, motion corrected and nuisance regressed) ::
+        3dBandpass -prefix residual_filtered.nii.gz 
+                    0.009 0.08 residual.nii.gz
+                    
+    - Calculate ALFF by taking the standard deviation of the filtered file ::
+        3dTstat -stdev 
+                -mask rest_mask.nii.gz 
+                -prefix residual_filtered_3dT.nii.gz
+                residual_filtered.nii.gz
+                  
+    - Calculate the standard deviation of the unfiltered file ::
+        3dTstat -stdev 
+                -mask rest_mask.nii.gz 
+                -prefix residual_3dT.nii.gz
+                residual.nii.gz
+  
+    - Calculate fALFF ::
+        3dcalc -a rest_mask.nii.gz 
+               -b residual_filtered_3dT.nii.gz
+               -c residual_3dT.nii.gz  
+               -expr '(1.0*bool(a))*((1.0*b)/(1.0*c))' -float
 
     - Normalize ALFF/fALFF to Z-score across full brain ::
 
@@ -189,236 +155,213 @@ def create_alff(wf_name = 'alff_workflow'):
                                                 [0.1])
     >>> alff_w.inputs.inputspec.rest_res = '/home/data/subject/func/rest_bandpassed.nii.gz'
     >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz' 
-    >>> alff_w.inputs.inputspec.tr = None
     >>> alff_w.run() # doctest: +SKIP
 
 
     """
 
-
-    alff = pe.Workflow(name= wf_name)
+    wf = pe.Workflow(name= wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['rest_res',
-                                                       'rest_mask',
-                                                       'tr']),
+                                                       'rest_mask']),
                         name='inputspec')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=[
-                                            'power_spectrum_distribution',
-                                            'alff_img',
-                                            'falff_img',
-                                            'alff_Z_img',
-                                            'falff_Z_img'
-                                            ]),
-                          name='outputspec')
-
-
-
+    
     inputnode_hp = pe.Node(util.IdentityInterface(fields=['hp']),
                              name='hp_input')
 
     inputnode_lp = pe.Node(util.IdentityInterface(fields=['lp']),
                              name='lp_input')
-
-    TR = pe.Node(util.Function(input_names=['in_files', 'TRa'],
-                               output_names=['TR'],
-                 function=get_img_tr), name='TR')
-    #TR.inputs.TRa = tr
-
-    NVOLS = pe.Node(util.Function(input_names=['in_files'],
-                                  output_names=['nvols'],
-                    function=get_img_nvols),
-                    name='NVOLS')
-
-    cp = pe.Node(interface=fsl.ImageMaths(),
-                    name='cp')
-
-
-    delete_first_volume = pe.Node(interface=fsl.ExtractROI(),
-                     name='delete_first_volume')
-    delete_first_volume.inputs.t_min = 1
-
-    concatnode = pe.Node(interface=util.Merge(2),
-                            name='concatnode')
-
-    selectnode = pe.Node(interface=util.Select(),
-                            name='selectnode')
-
-    pspec = pe.Node(interface=fsl.PowerSpectrum(),
-                       name='pspec')
-
-    ##compute sqrt_pspec of power spectrum
-    sqrt_pspec = pe.Node(interface=fsl.ImageMaths(),
-                      name='sqrt_pspec')
-    sqrt_pspec.inputs.op_string = '-sqrt'
-
-    calculate_low_frequency_point = pe.Node(util.Function(input_names=['nvols',
-                                      'TR', 'HP'],
-                                      output_names=['n1'],
-                        function=get_N1),
-                        name='calculate_low_frequency_point')
-
-    calculate_high_frequency_point = pe.Node(util.Function(input_names=['nvols',
-                                      'TR', 'LP', 'HP'],
-                                      output_names=['n2'],
-                        function=get_N2),
-                        name='calculate_high_frequency_point')
-    cut_low_frequency_data = pe.Node(interface=fsl.ExtractROI(),
-                      name='cut_low_frequency_data')
-
-    ## calculate ALFF as the sum_amplitudes_low_frequency of the amplitudes
-    ## in the low frequency band
-    sum_amplitudes_low_frequency = pe.Node(interface=fsl.ImageMaths(),
-                      name='sum_amplitudes_low_frequency')
-
-    ## 4. Calculate fALFF
-    amplitude_of_total_frequency = pe.Node(interface=fsl.ImageMaths(),
-                       name='amplitude_of_total_frequency')
-
-    fALFF = pe.Node(interface=fsl.MultiImageMaths(),
-                        name='fALFF')
-    fALFF.inputs.op_string = '-div %s'
-
-    ## 5. Z-normalisation across whole brain
-    ALFF_mean = pe.Node(interface=fsl.ImageStats(),
-                       name='ALFF_mean')
-    ALFF_mean.inputs.op_string = '-k %s -m'
-
-    ALFF_std = pe.Node(interface=fsl.ImageStats(),
-                       name='ALFF_std')
-    ALFF_std.inputs.op_string = '-k %s -s'
-
-    fALFF_mean = pe.Node(interface=fsl.ImageStats(),
-                        name='fALFF_mean')
-    fALFF_mean.inputs.op_string = '-k %s -m'
-
-    fALFF_std = pe.Node(interface=fsl.ImageStats(),
-                        name='fALFF_std')
-    fALFF_std.inputs.op_string = '-k %s -s'
-
-    op_string = pe.Node(util.Function(input_names=['mean',
-                                         'std_dev'],
-                                         output_names=['op_string'],
-                           function=get_operand_string),
-                           name='alff_op_string')
-
-    op_string1 = op_string.clone('op_string1')
-
-    alff_Z = pe.Node(interface=fsl.MultiImageMaths(),
-                        name='alff_Z')
-
-    falff_Z = pe.Node(interface=fsl.MultiImageMaths(),
-                         name='falff_Z')
-
-    alff.connect(inputNode, 'tr',
-                 TR, 'TRa')
-    alff.connect(inputNode, 'rest_res',
-                 TR, 'in_files')
-    alff.connect(inputNode, 'rest_res',
-                 NVOLS, 'in_files')
-    alff.connect(inputNode, 'rest_res',
-                 delete_first_volume, 'in_file')
-    alff.connect(NVOLS, 'nvols',
-                 delete_first_volume, 't_size')
-    alff.connect(inputNode, 'rest_res',
-                 cp, 'in_file')
-    alff.connect(delete_first_volume, 'roi_file',
-                 concatnode, 'in1')
-    alff.connect(cp, 'out_file',
-                 concatnode, 'in2')
-    alff.connect(concatnode, 'out',
-                 selectnode, 'inlist')
-    alff.connect(NVOLS, ('nvols', takemod),
-                 selectnode, 'index')
-    alff.connect(selectnode, 'out',
-                 pspec, 'in_file')
-    alff.connect(pspec, 'out_file',
-                 sqrt_pspec, 'in_file')
-
-    alff.connect(NVOLS, 'nvols',
-                 calculate_low_frequency_point, 'nvols')
-    alff.connect(TR, 'TR',
-                 calculate_low_frequency_point, 'TR')
-    alff.connect(inputnode_hp, 'hp',
-                 calculate_low_frequency_point, 'HP')
-
-    alff.connect(NVOLS, 'nvols',
-                 calculate_high_frequency_point, 'nvols')
-    alff.connect(TR, 'TR',
-                 calculate_high_frequency_point, 'TR')
-    alff.connect(inputnode_lp, 'lp',
-                 calculate_high_frequency_point, 'LP')
-    alff.connect(inputnode_hp, 'hp',
-                 calculate_high_frequency_point, 'HP')
-
-    alff.connect(sqrt_pspec, 'out_file',
-                 cut_low_frequency_data, 'in_file')
-    alff.connect(calculate_low_frequency_point, 'n1',
-                 cut_low_frequency_data, 't_min')
-    alff.connect(calculate_high_frequency_point, 'n2',
-                 cut_low_frequency_data, 't_size')
-    alff.connect(cut_low_frequency_data, 'roi_file',
-                 sum_amplitudes_low_frequency, 'in_file')
-    alff.connect(calculate_high_frequency_point, ('n2', set_op_str),
-                 sum_amplitudes_low_frequency, 'op_string')
-
-    alff.connect(sqrt_pspec, 'out_file',
-                 amplitude_of_total_frequency, 'in_file')
-    alff.connect(NVOLS, ('nvols', set_op1_str),
-                 amplitude_of_total_frequency, 'op_string')
-    alff.connect(sum_amplitudes_low_frequency, 'out_file',
-                 fALFF, 'in_file')
-    alff.connect(amplitude_of_total_frequency, 'out_file',
-                 fALFF, 'operand_files')
-
-    alff.connect(sum_amplitudes_low_frequency, 'out_file',
-                 ALFF_mean, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 ALFF_mean, 'mask_file')
-    alff.connect(sum_amplitudes_low_frequency, 'out_file',
-                 ALFF_std, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 ALFF_std, 'mask_file')
-    alff.connect(fALFF, 'out_file',
-                 fALFF_mean, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 fALFF_mean, 'mask_file')
-    alff.connect(fALFF, 'out_file',
-                 fALFF_std, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 fALFF_std, 'mask_file')
-
-    alff.connect(ALFF_mean, 'out_stat',
-                 op_string, 'mean')
-    alff.connect(ALFF_std, 'out_stat',
-                 op_string, 'std_dev')
-    alff.connect(op_string, 'op_string',
-                 alff_Z, 'op_string')
-    alff.connect(sum_amplitudes_low_frequency, 'out_file',
-                 alff_Z, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 alff_Z, 'operand_files')
-
-    alff.connect(fALFF_mean, 'out_stat',
-                 op_string1, 'mean')
-    alff.connect(fALFF_std, 'out_stat',
-                 op_string1, 'std_dev')
-    alff.connect(op_string1, 'op_string',
-                 falff_Z, 'op_string')
-    alff.connect(fALFF, 'out_file',
-                 falff_Z, 'in_file')
-    alff.connect(inputNode, 'rest_mask',
-                 falff_Z, 'operand_files')
-
-
-    alff.connect(pspec, 'out_file',
-                 outputNode, 'power_spectrum_distribution')
-    alff.connect(sum_amplitudes_low_frequency, 'out_file',
+    
+    outputNode = pe.Node(util.IdentityInterface(fields=[ 'alff_img',
+                                                         'falff_img',
+                                                         'alff_Z_img',
+                                                         'falff_Z_img']),
+                          name='outputspec')
+    
+    #filtering
+    bandpass = pe.Node(interface= preprocess.ThreedBandpass(),
+                       name = 'bandpass_filtering')
+    bandpass.inputs.outputtype = 'NIFTI_GZ'
+    bandpass.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered.nii.gz')
+    wf.connect(inputnode_hp, 'hp',
+                 bandpass, 'fbot')
+    wf.connect(inputnode_lp, 'lp',
+                 bandpass, 'ftop')
+    wf.connect(inputNode, 'rest_res',
+                 bandpass, 'in_file') 
+    
+    get_option_string = pe.Node(util.Function(input_names = ['mask'],
+                                              output_names = ['option_string'],
+                                              function = get_opt_string), 
+                                name = 'get_option_string')
+    wf.connect(inputNode, 'rest_mask',
+                 get_option_string, 'mask')
+    
+    #standard deviation over frequency
+    stddev_fltrd = pe.Node(interface = preprocess.ThreedTstat(),
+                            name = 'stddev_fltrd')
+    stddev_fltrd.inputs.outputtype = 'NIFTI_GZ'
+    stddev_fltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered_3dT.nii.gz')
+    wf.connect(bandpass, 'out_file',
+               stddev_fltrd, 'in_file')
+    wf.connect(get_option_string, 'option_string',
+               stddev_fltrd, 'options') 
+    
+    wf.connect(stddev_fltrd, 'out_file',
                  outputNode, 'alff_img')
-    alff.connect(fALFF, 'out_file',
-                 outputNode, 'falff_img')
-    alff.connect(alff_Z, 'out_file',
-                 outputNode, 'alff_Z_img')
-    alff.connect(falff_Z, 'out_file',
-                 outputNode, 'falff_Z_img')
-    return alff
+    
+    #standard deviation of the unfiltered nuisance corrected image
+    stddev_unfltrd = pe.Node(interface = preprocess.ThreedTstat(),
+                            name = 'stddev_unfltrd')
+    stddev_unfltrd.inputs.outputtype = 'NIFTI_GZ'
+    stddev_unfltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_3dT.nii.gz')
+    wf.connect(inputNode, 'rest_res',
+                 stddev_unfltrd, 'in_file')
+    wf.connect(get_option_string, 'option_string',
+                 stddev_unfltrd, 'options') 
+    
+    #falff calculations
+    falff = pe.Node(interface = preprocess.Threedcalc(),
+                    name = 'falff')
+    falff.inputs.expr = '\'(1.0*bool(a))*((1.0*b)/(1.0*c))\' -float'
+    falff.inputs.outputtype = 'NIFTI_GZ'
+    wf.connect(inputNode, 'rest_mask',
+               falff, 'infile_a')
+    wf.connect(stddev_fltrd, 'out_file',
+               falff, 'infile_b')
+    wf.connect(stddev_unfltrd, 'out_file',
+               falff, 'infile_c')
+    
+    wf.connect(falff, 'out_file',
+               outputNode, 'falff_img') 
+    
+    #alff zscore
+    alff_zscore = get_zscore("alff_zscore")
+    wf.connect(stddev_fltrd, 'out_file', 
+               alff_zscore, 'inputspec.input_file')
+    wf.connect(inputNode, 'rest_mask',
+               alff_zscore, 'inputspec.mask_file')
+    
+    wf.connect(alff_zscore, 'outputspec.z_score_img',
+               outputNode, 'alff_Z_img')
+    
+    #falff score          
+    falf_zscore = get_zscore("falf_zscore")
+    wf.connect(falff, 'out_file', 
+               falf_zscore, 'inputspec.input_file')
+    wf.connect(inputNode, 'rest_mask',
+               falf_zscore, 'inputspec.mask_file')
+    
+    wf.connect(falf_zscore, 'outputspec.z_score_img',
+               outputNode, 'falff_Z_img')
+    
+    return wf
+
+
+def get_zscore(wf_name = 'z_score'):
+    
+    """
+    Workflow to calculate z-scores
+    
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+        
+    Returns
+    -------
+    wf : workflow object
+    
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
+    
+    
+    Workflow Inputs::
+        
+        inputspec.input_file : string
+            path to input functional derivative file for which z score has to be calculated
+        inputspec.mask_file : string
+            path to whole brain functional mask file required to calculate zscore
+    
+    Workflow Outputs::
+        
+        outputspec.z_score_img : string
+             path to image containing Normalized Input Image Z scores across full brain.
+    
+    High Level Workflow Graph:
+    
+    .. image:: ../images/zscore.dot.png
+       :width: 500
+    
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/zscore_detailed.dot.png
+       :width: 500
+    
+    Example
+    -------
+    >>> import get_zscore as z
+    >>> wf = z.get_zscore()
+    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
+    >>> wf.run()
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['input_file',
+                                                       'mask_file']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
+                          name='outputspec')
+
+    mean = pe.Node(interface=fsl.ImageStats(),
+                   name='mean')
+    mean.inputs.op_string = '-k %s -m'    
+    wflow.connect(inputNode, 'input_file',
+                  mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  mean, 'mask_file')
+
+
+    standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                 name='standard_deviation')
+    standard_deviation.inputs.op_string = '-k %s -s'
+    wflow.connect(inputNode, 'input_file',
+                  standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  standard_deviation, 'mask_file')
+    
+    
+    op_string = pe.Node(util.Function(input_names=['mean','std_dev'],
+                                      output_names=['op_string'],
+                                      function=get_operand_string),
+                        name='op_string')
+    wflow.connect(mean, 'out_stat',
+                  op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat',
+                  op_string, 'std_dev')
+    
+    
+    z_score = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='z_score')
+    wflow.connect(op_string, 'op_string',
+                  z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file',
+                  z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  z_score, 'operand_files')
+    
+    wflow.connect(z_score, 'out_file',
+                  outputNode, 'z_score_img')
+    
+    return wflow
+    
 
