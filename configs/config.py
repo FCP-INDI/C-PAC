@@ -299,19 +299,21 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 Timeseries Extraction Options ***
 ==============================
 """
-# If runVoxelTimeseries = [1]
-# Creates Seed files given user specifications
-# The seed nifti files are saved in maskDirectoryPath
-# If maskDirectoryPath does not exist, we create it for
-# as long as you specify it in the maskDirectoryPath setting
+# If runROITimeseries = [1]
+# Creates ROI file given user specifications
+# The ROI nifti file is saved in roiDirectoryPath
+# If roiDirectoryPath does not exist, we create it for
+# as long as you specify it in the roiDirectoryPath setting
+# The resolution of ROI file is same as your standardResolution
+# setting
 # Each line in the file contains
-# seed_name x y z radius resolution
+# seed_label x y z radius
 # example :
-# aMPFC -6   52  -2  4 2mm
-# PCC   -8  -56  26  4 2mm
-# dMPFC  0   52  6   4 2mm
-# TPJ   -54 -54  28  4 2mm
-# LTC   -60 -24 -18  4 2mm
+# 10    -6   52  -2  4
+# 70    -8  -56  26  4
+# 60     0   52  6   4
+# 1     -54 -54  28  4
+# 7     -60 -24 -18  4
 seedSpecificationFile = '/path/to/seedSpecificationFile'
 
 # Extract an average timeseries for each ROI
@@ -495,7 +497,7 @@ cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/path/to/cwas_regressor_file'
- 
+
 """
 ============================
 Group Statistics Options ***

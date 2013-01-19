@@ -245,26 +245,92 @@ def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
 
     seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if not line.startswith('#')]
 
-    seed_files = []
+
+
+    seed_resolutions = {}
+
     for specification in seed_specifications:
 
         specification = specification.rstrip(' ')
-        print specification
-        seed_name, x, y, z, radius, resolution = specification.split('\t')
+        seed_label, x, y, z, radius, resolution = specification.split('\t')
 
-        if not os.path.exists(mask_directory_path):
-            os.makedirs(mask_directory_path)
+        if resolution not in seed_resolutions.keys():
+            seed_resolutions[resolution] = []
+        seed_resolutions[resolution].append((seed_label, x, y, z, radius, resolution))
 
-        cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
-        -srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, seed_name), FSLDIR, resolution, radius)
 
+
+    return_roi_files = []
+    for resolution_key in seed_resolutions:
+
+
+        index = 0
+        seed_files = []
+        for roi_set in seed_resolutions[resolution_key]:
+
+
+            seed_label, x, y, z, radius, resolution = roi_set
+            if not os.path.exists(mask_directory_path):
+                os.makedirs(mask_directory_path)
+
+            print 'checking if file exists ', '%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)
+            assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)) )
+            cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
+-srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
+
+            print cmd
+            try:
+                commands.getoutput(cmd)
+                seed_files.append((os.path.join(mask_directory_path, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
+                print seed_files
+            except:
+                raise
+
+            index += 1
+
+        print index, ' ', seed_files
+        seed_str = ' '
+        intensities = ''
+        for idx in range(0, index):
+
+            seed, intensity = seed_files[idx]
+
+            intensities += intensity+'_'
+
+            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(mask_directory_path, 'ic_'+ os.path.basename(seed)))
+            print cmd
+            try:
+                commands.getoutput(cmd)
+
+                seed_str += "%s " % os.path.join(mask_directory_path, 'ic_'+ os.path.basename(seed))
+            except:
+                raise
+
+
+        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(mask_directory_path, 'rois_'+resolution), seed_str)
+        print cmd
         try:
             commands.getoutput(cmd)
-            seed_files.append(os.path.join(mask_directory_path, '%s.nii.gz' % seed_name))
         except:
             raise
 
-    return seed_files
+        try:
+            cmd = 'rm -f %s' % seed_str
+            print cmd
+            commands.getoutput(cmd)
+            for seed, intensity in seed_files:
+                try:
+                    cmd  = 'rm -f  '+ seed
+                    print cmd
+                    commands.getoutput(cmd)
+                except:
+                    raise
+        except:
+            raise
+        return_roi_files.append(os.path.join(mask_directory_path, 'rois_'+resolution+'.nii.gz'))
+
+
+    return return_roi_files
 
 
 
