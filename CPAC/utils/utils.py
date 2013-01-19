@@ -832,7 +832,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     ref_slice = int(check('reference', True))
     first_tr = check2(check('first_tr', False))
     last_tr = check2(check('last_tr', False))
-       
+    unit = 's'
     #if empty override with config information
     if first_tr == '':
         first_tr = start_indx  
@@ -861,6 +861,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
                               "Converting TR into milliseconds")
                 TR = TR*1000
                 print "New TR value %.2f ms" %TR
+            unit = 'ms'
             
     else:
         #check to see, if TR is in milliseconds, convert it into seconds
@@ -868,17 +869,20 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR/1000.0 
             print "New TR value %.2f s" %TR
+            unit = 's'
             
-    print "scan_parameters -> ",subject, scan, str(TR), pattern, ref_slice, first_tr, last_tr
+    print "scan_parameters -> ",subject, scan, str(TR)+unit, pattern, ref_slice, first_tr, last_tr
     
-    return str(TR), pattern, ref_slice, first_tr, last_tr
+    return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
 def get_tr (tr):
     """
     Method to return TR in seconds
     """
+    import re
     if tr != None:
+       tr = re.search("\d+.\d+", str(tr)).group(0)
        tr = float(tr)
        if tr >10: 
            tr = tr/1000.0 
