@@ -121,13 +121,13 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
         wf = pe.Workflow(name=wf_name) 
         
         inputnode = pe.Node(util.IdentityInterface(
-                                fields=['model', 
+                                fields=['grp_model', 
                                         'input_sublist', 
                                         'output_sublist'],
                                 mandatory_inputs=True),
                         name='inputspec')
         
-        inputnode.iterables = [('model', model_dict.keys())]
+        inputnode.iterables = [('grp_model', model_dict.keys())]
         
         selectmodel = pe.Node(util.Function(input_names=['model',
                                                          'model_map', 
@@ -141,7 +141,7 @@ def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
         selectmodel.inputs.model_map = model_dict
         selectmodel.inputs.ftest = ftest
         
-        wf.connect(inputnode, 'model', 
+        wf.connect(inputnode, 'grp_model', 
                    selectmodel, 'model')
         
         
