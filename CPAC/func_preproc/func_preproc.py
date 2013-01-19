@@ -236,8 +236,8 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
 
     preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['rest',
-                                               'start_idx',
-                                               'stop_idx']),
+                                                       'start_idx',
+                                                       'stop_idx']),
                         name='inputspec')
     
     scan_params = pe.Node(util.IdentityInterface(fields=['tr',
@@ -246,19 +246,19 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                           name = 'scan_params')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['drop_tr',
-                                                'refit',
-                                                'reorient',
-                                                'reorient_mean',
-                                                'motion_correct',
-                                                'motion_correct_ref',
-                                                'movement_parameters',
-                                                'max_displacement',
-                                                'mask',
-                                                'skullstrip',
-                                                'example_func',
-                                                'preprocessed',
-                                                'preprocessed_mask',
-                                                'slice_time_corrected']),
+                                                        'refit',
+                                                        'reorient',
+                                                        'reorient_mean',
+                                                        'motion_correct',
+                                                        'motion_correct_ref',
+                                                        'movement_parameters',
+                                                        'max_displacement',
+                                                        'mask',
+                                                        'skullstrip',
+                                                        'example_func',
+                                                        'preprocessed',
+                                                        'preprocessed_mask',
+                                                        'slice_time_corrected']),
 
                           name='outputspec')
 

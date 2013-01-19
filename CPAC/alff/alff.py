@@ -129,12 +129,12 @@ def create_alff(wf_name = 'alff_workflow'):
 
     Workflow ALFF and fractional ALFF:
     
-    .. image:: ../images/alff_graph.dot.png
+    .. image:: ../images/alff.dot.png
         :width: 500
 
     Workflow Detailed:
 
-    .. image:: ../images/alff_detailed_graph.dot.png
+    .. image:: ../images/alff_detailed.dot.png
         :width: 500
 
     
