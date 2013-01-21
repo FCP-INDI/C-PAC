@@ -2028,7 +2028,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
         pipeline_id = ''
-        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.txt')), hash_val)
+        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
         pipeline_id = pipeline_id.rstrip('\r\n')
         if pipeline_id == '':
             print 'hash value ', hash_val, ' is greater than the number of words'
