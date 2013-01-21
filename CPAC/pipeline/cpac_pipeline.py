@@ -1430,9 +1430,17 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     
     if 1 in c.runROITimeseries:
-        if os.path.exists(c.seedSpecificationFile):
-            seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
-            print 'seeds created %s -> ' % seeds
+
+        if not (c.seedSpecificationFile is None):
+
+            try:
+                if os.path.exists(c.seedSpecificationFile):
+                    seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
+                    print 'seeds created %s -> ' % seeds
+            except:
+                raise IOError
+
+
         for strat in strat_list:
             
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 

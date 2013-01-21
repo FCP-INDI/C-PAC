@@ -44,18 +44,26 @@ def filter_phenotypic(c):
         subject = subject.rstrip('\r\n')
         if not subject in sub_dict:
             sub_dict[subject] = 1
+        else:
+            sub_dict[subject] += 1
 
     final_reader = []
     f_r = []
 
+    record_dict = {}
     for record in p_reader:
 
-        if record['sub'] in sub_dict:
+        if record['subject_id'] in sub_dict:
+
 
             for rec in record.keys():
-                if (not (rec in c.columnsInModel)) and not ('sub' == rec):
+                if (not (rec in c.columnsInModel)) and not ('subject_id' == rec):
                     del record[rec]
-            f_r.append(record)
+            record_dict[record['subject_id']] = record
+
+
+    for subject in subjects:
+        f_r.append(record_dict[subject])
 
 
     return f_r
@@ -119,7 +127,7 @@ def organize_data(filter_data, c):
 
             val = data[col]
 
-            new_col = col + '#' + val
+            new_col = col + '__' + val
 
             if not col in directional_map:
 
@@ -147,7 +155,7 @@ def organize_data(filter_data, c):
             del data[col]
             for value in vals:
 
-                column_name, v = value.split('#')
+                column_name, v = value.split('__')
 
                 if v == val:
 
@@ -180,7 +188,7 @@ def organize_data(filter_data, c):
 
     zeroth = filter_data[0]
 
-    field_names = ['sub']
+    field_names = ['subject_id']
 
     keys = zeroth.keys()
 
@@ -353,7 +361,6 @@ def create_con_ftst_file(con_file, model_name):
 
     f.close()
 
-
     f = open(model_name + '.fts', 'a')
     print >>f, '/NumWaves    ', (contrasts.shape)[0]
     print >>f, '/NumContrasts    1\n'
@@ -382,7 +389,7 @@ def run(config, mode):
         model_ready_data, field_names = organize_data(filter_data, c)
         write_data(model_ready_data, field_names, c)
 
-    else:
+#    else:
         ###generate the final FSL .grp, .mat, .con, .fts files 
         import csv
         model = c.outputModelFile
