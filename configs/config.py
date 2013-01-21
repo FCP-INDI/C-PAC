@@ -300,6 +300,8 @@ Timeseries Extraction Options ***
 ==============================
 """
 # If runROITimeseries = [1]
+# If seedSpecificationFile is not None and
+# points to a valid File
 # Creates ROI file given user specifications
 # The ROI nifti file is saved in roiDirectoryPath
 # If roiDirectoryPath does not exist, we create it for

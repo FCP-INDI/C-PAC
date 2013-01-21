@@ -1430,9 +1430,17 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     
     if 1 in c.runROITimeseries:
-        if os.path.exists(c.seedSpecificationFile):
-            seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
-            print 'seeds created %s -> ' % seeds
+
+        if not (c.seedSpecificationFile is None):
+
+            try:
+                if os.path.exists(c.seedSpecificationFile):
+                    seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
+                    print 'seeds created %s -> ' % seeds
+            except:
+                raise IOError
+
+
         for strat in strat_list:
             
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
@@ -2020,7 +2028,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
         pipeline_id = ''
-        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.txt')), hash_val)
+        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
         pipeline_id = pipeline_id.rstrip('\r\n')
         if pipeline_id == '':
             print 'hash value ', hash_val, ' is greater than the number of words'
