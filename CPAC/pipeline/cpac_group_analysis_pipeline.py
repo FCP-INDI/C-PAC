@@ -48,6 +48,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
     
+    ordered_paths=[]
+    for sub in input_subject_list :
+       for path in s_paths:
+           if sub in path:
+               ordered_paths.append(path)
+    print "input_subject_list", input_subject_list
+    print "ordered_paths", ordered_paths
+    
     strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
     for ch in ['.']:
         if ch in strgy_path:
@@ -60,7 +68,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     from CPAC.group_analysis import create_group_analysis
     
     gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
-    gpa_wf.inputs.inputspec.zmap_files = s_paths
+    gpa_wf.inputs.inputspec.zmap_files = ordered_paths
     gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
     gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
     gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
@@ -78,7 +86,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                    gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
-    out_dir = os.path.join('group_analysis_results', resource)
+    #out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
@@ -87,16 +95,19 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=model_files)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=merged)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=stats)(?<!model)(.)*[/]','/')]
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/'),
+                                      (r'(?<=model_files)(.)*_grp_model_','/'),
+                                      (r'(?<=merged)(.)*[/]','/'),
+                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/threshold)(.)*_grp_model_','/'),
+                                      (r'_cluster(.)*[/]',''),
+                                      (r'_slicer(.)*[/]',''),
+                                      (r'_overlay(.)*[/]','')]
     ########datasink connections#########
     
     wf.connect(gp_flow, 'outputspec.mat',
                ds, 'model_files')
-    wf.connect(gp_flow, 'outputspec.con',
-               ds, 'model_files.@01')
     wf.connect(gp_flow, 'outputspec.grp',
                ds, 'model_files.@02')
     wf.connect(gp_flow, 'outputspec.sublist',
@@ -122,7 +133,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     wf.connect(gpa_wf, 'outputspec.cluster_threshold',
                ds,  'stats.threshold.@01')
     wf.connect(gpa_wf, 'outputspec.cluster_index',
-               ds, 'stats.clusgpa_wfterMap.@02')
+               ds, 'stats.clusterMap.@02')
     wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
                ds, 'stats.clusterMap.@03')
     wf.connect(gpa_wf, 'outputspec.overlay_threshold',

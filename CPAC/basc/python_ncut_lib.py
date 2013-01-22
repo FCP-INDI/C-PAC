@@ -158,7 +158,7 @@ def discretisation( eigen_vec ):
 		# initialize algorithm with a random ordering of eigenvectors
 		c=zeros((n,1))
 		R=matrix(zeros((k,k)))
-		R[:,0]=eigen_vec[int(rand(1)*(n-1)),:].transpose()
+		R[:,0]=eigen_vec[int(rand(1)*(n)),:].transpose()
 
 		for j in range(1,k):
   			c=c+abs(eigen_vec*R[:,j-1])
@@ -191,6 +191,7 @@ def discretisation( eigen_vec ):
 			# catch a SVD convergence error and restart
 			try:
         			U, S, Vh = svd(tSVD)
+        			svd_restarts += 1
 			except LinAlgError:
 				# catch exception and go back to the beginning of the loop
 				print >> sys.stderr, "SVD did not converge, randomizing and trying again"

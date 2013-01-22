@@ -80,6 +80,8 @@ crashLogDirectory = '/path/to/crash_directory'
 # Directory where C-PAC should put processed data
 sinkDirectory = '/path/to/output_directory'
 
+#Truncate Working Directory after run
+removeWorkingDir = False
 """
 ========================
 Resolution and Smoothing
@@ -134,6 +136,7 @@ identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
 harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
+boundaryBasedRegistrationSchedule = os.path.join(FSLDIR, 'etc/flirtsch/bbr.sch')
 
 """
 ==================
@@ -297,6 +300,30 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 Timeseries Extraction Options 
 ==============================
 """
+# If runROITimeseries = [1]
+# If seedSpecificationFile is not None and
+# points to a valid File
+# Creates ROI file given user specifications
+# The ROI nifti file is saved in roiDirectoryPath
+# If roiDirectoryPath does not exist, we create it for
+# as long as you specify it in the roiDirectoryPath setting
+# If different Resolutions are specified then
+# the software will group the ROI's having the same
+# resolution and put each group in seperate nifti files
+# NOTE: We DO NOT detect for overlapping ROIS
+# The overlapping regions of the ROIS will have 
+# intensity which the sum of intensity of individual
+# regions. Please check and avoid this prior to running CPAC
+# Each line in the file contains
+# seed_label x y z radius resolution
+# example :
+# 10    -6   52  -2  4 2mm
+# 70    -8  -56  26  4 2mm
+# 60     0   52  6   4 1mm
+# 1     -54 -54  28  4 4mm
+# 7     -60 -24 -18  4 4mm
+seedSpecificationFile = '/path/to/seedSpecificationFile'
+
 # Extract an average timeseries for each ROI
 # Required if you wish to run ROI-based SCA
 runROITimeseries = [0]
@@ -481,7 +508,7 @@ cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/path/to/cwas_regressor_file'
- 
+
 """
 ========================
 Group Statistics Options

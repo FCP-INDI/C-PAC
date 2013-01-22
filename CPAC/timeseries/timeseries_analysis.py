@@ -480,18 +480,41 @@ def gen_roi_timeseries(data_file,
             list1 = [n] + avg.tolist()
             sorted_list.append(list1)
             node_dict[node_str] = avg.tolist()
-    
+
 
     #writing to 1Dfile    
     print "writing 1D file.."
     f = open(oneD_file, 'w')
-    writer = csv.writer(f,delimiter='\t')
-    column_list = zip(*node_dict.values())
+    writer = csv.writer(f, delimiter='\t')
+
+
+    value_list = []
+
+    new_keys = sorted([int(key.split('node_')[1]) for key in node_dict.keys()])
+
+    roi_number_list = [str(n) for n in new_keys]
+
+    roi_number_str = []
+    for number in roi_number_list:
+
+        roi_number_str.append("#" + number)
+
+
+    print new_keys
+    print roi_number_str
+    for key in new_keys:
+        value_list.append(node_dict['node_%s' % key])
+
+    column_list = zip(*value_list)
+
+
+    writer.writerow(roi_number_str)
+
     for column in column_list:
         writer.writerow(list(column))
     f.close()
     out_list.append(oneD_file)
-    
+
     #if csv is required
     if output_type[0]:
         print "writing csv file.."
@@ -503,7 +526,7 @@ def gen_roi_timeseries(data_file,
         writer.writerows(sorted_list)
         f.close()
         out_list.append(csv_file)
-    
+
     #if npz file is required
     if output_type[1]:
         print "writing npz file.."
