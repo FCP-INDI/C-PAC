@@ -2087,9 +2087,14 @@ def prep_workflow(sub_dict, c, strategies):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
-    if os.path.exists(sub_w_path) and c.removeWorkingDir:
-        import shutil
-        shutil.rmtree(sub_w_path)
+    try:
+        if os.path.exists(sub_w_path) and c.removeWorkingDir:
+            import shutil
+            print "removing dir -> ", sub_w_path
+            shutil.rmtree(sub_w_path)
+    except:
+        print "Couldn't remove subjects %s working directory"%(wf_name)
+        pass
     return workflow
 
 

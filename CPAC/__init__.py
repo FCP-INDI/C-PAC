@@ -44,15 +44,16 @@ from subprocess import Popen, PIPE
 import re
 
 try:
-    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
-    (stdout, stderr) = gitproc.communicate()
-    rows = stdout.split("\n")
-    v_num = re.search( r'(?<=(version_|release_))(.)*', rows[0])
-    if v_num:
-        version = v_num.group(0).strip("'")
-    else:
-        version = 'unknown_version'
+    version = '0.1.6'
+#    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
+#    (stdout, stderr) = gitproc.communicate()
+#    rows = stdout.split("\n")
+#    v_num = re.search( r'(?<=(version_|release_))(.)*', rows[0])
+#    if v_num:
+#        version = v_num.group(0).strip("'")
+#    else:
+#        version = 'unknown_version'
 except OSError:
     version = 'unknown_version'
 
-__version__ =  str(version)
+__current_version__ =  str(version)
