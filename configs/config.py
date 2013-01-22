@@ -87,6 +87,8 @@ crashLogDirectory = '/path/to/crash_directory'
 # Directory where C-PAC should put processed data
 sinkDirectory = '/path/to/output_directory'
 
+#Truncate Working Directory after run
+removeWorkingDir = False
 """
 ========================
 Resolution and Smoothing ***

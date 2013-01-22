@@ -861,7 +861,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
                               "Converting TR into milliseconds")
                 TR = TR*1000
                 print "New TR value %.2f ms" %TR
-            unit = 'ms'
+                unit = 'ms'
             
     else:
         #check to see, if TR is in milliseconds, convert it into seconds

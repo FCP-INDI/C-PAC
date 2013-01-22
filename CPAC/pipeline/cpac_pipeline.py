@@ -2066,16 +2066,17 @@ def prep_workflow(sub_dict, c, strategies):
         if not os.path.exists(d_name):
             os.makedirs(d_name)
 
-        G = nx.DiGraph()
-        strat_name = strat.get_name()
-        G.add_edges_from([(strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
-        dotfilename = os.path.join(d_name, 'strategy.dot')
-        nx.write_dot(G, dotfilename)
+
 
         try:
+            G = nx.DiGraph()
+            strat_name = strat.get_name()
+            G.add_edges_from([(strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
+            dotfilename = os.path.join(d_name, 'strategy.dot')
+            nx.write_dot(G, dotfilename)
             format_dot(dotfilename, 'png')
         except:
-            print "Dot is not Installed, Cannot Create the strategy and Pipeline graph"
+            print "Cannot Create the strategy and pipeline graph, dot or/and pygraphviz is not installed"
             pass
 
 
@@ -2085,7 +2086,10 @@ def prep_workflow(sub_dict, c, strategies):
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
-
+    sub_w_path = os.path.join(c.workingDirectory, wfname)
+    if os.path.exists(sub_w_path) and c.removeWorkingDir:
+        import shutil
+        shutil.rmtree(sub_w_path)
     return workflow
 
 
