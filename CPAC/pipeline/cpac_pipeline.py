@@ -2086,7 +2086,10 @@ def prep_workflow(sub_dict, c, strategies):
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
-
+    sub_w_path = os.path.join(c.workingDirectory, wfname)
+    if os.path.exists(sub_w_path) and c.removeWorkingDir:
+        import shutil
+        shutil.rmtree(sub_w_path)
     return workflow
 
 
