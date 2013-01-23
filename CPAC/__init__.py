@@ -56,4 +56,4 @@ try:
 except OSError:
     version = 'unknown_version'
 
-__current_version__ =  str(version)
+__version__ =  str(version)
