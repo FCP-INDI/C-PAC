@@ -242,6 +242,7 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     import commands
     import os
+    import re
 
     seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if (not line.startswith('#') and not (line == '\n')) ]
 
@@ -251,8 +252,7 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     for specification in seed_specifications:
 
-        specification = specification.rstrip(' ')
-        seed_label, x, y, z, radius, resolution = specification.split('\t')
+        seed_label, x, y, z, radius, resolution = re.split(r'[\t| |,]+', specification)
 
         if resolution not in seed_resolutions.keys():
             seed_resolutions[resolution] = []
