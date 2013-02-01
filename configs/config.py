@@ -87,9 +87,11 @@ removeWorkingDir = False
 Resolution and Smoothing
 ========================
 """
-# The resolution (in mm) to which images are transformed during registration
+# The resolution (in mm) to which functional images are transformed during registration
 standardResolution = '3mm'
 
+# The resolution (in mm) to which anatomical images are transformed during registration
+standardResolutionAnat = '2mm'
 # Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
 # To skip smoothing, set to []
 fwhm = [4]
@@ -113,6 +115,10 @@ FSLDIR = commands.getoutput('echo $FSLDIR')
 ## 3) Repalce the resolution (e.g. 2mm) with %s in the file names.
 ##    This allows resources to be automatically selected based on the
 ##    standardResolution set above.
+
+standardResolutionBrainAnat = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolutionAnat))
+
+standardAnat = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s.nii.gz' % (standardResolutionAnat))
 
 standardResolutionBrain = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
 
