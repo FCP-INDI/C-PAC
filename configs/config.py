@@ -7,73 +7,66 @@ Computer Settings
 =================
 """
 # True = Run on compute cluster
-# False = Run on local machine
+# False = Run on non-cluster machine
 runOnGrid = False
 
 # Number of subjects to run simultaneously
 # This number depends on computing resources
-# Only applies when running on a local machine with multiple cores
-numSubjectsAtOnce = 5
+# Only applies when running on a non-cluster machine with multiple cores
+numSubjectsAtOnce = 2
 
-# Number of cores (local) or slots on a node (cluster) per subject
+# Number of cores (non-cluster) or slots on a node (cluster) per subject
 # Slots are cores on a cluster node
 # This number depends on computing resources
-# Only applies when local machine has multiple cores or runOnGrid = True
+# Only applies when non-cluster machine has multiple cores or runOnGrid = True
 numCoresPerSubject = 2
 
 # Options are 'SGE' (Sun Grid Engine) or 'PBS' (Portable Batch System)
 # Only applies when runOnGrid = True
 resourceManager = 'SGE'
 
+# Notes on setting up SGE for C-PAC
+#
+# SGE users must set up their parallel environment before running C-PAC.
+# A pipeline for each subject that needs preprocessing should be spawned
+# on single node of the cluster. To avoid I/O overhead, the pipeline should
+# only use the resources (cores) from that node. Users can enable this feature
+# on Sun Grid Engine by modifying their parallel environment.
+#
+# To create a new environment based on an existing one, follow these steps:
+# 1. List existing parallel environments
+#    $ qconf -spl
+# 2. View the settings for an existing environment
+#    $ qconf -sp environment_name
+#    
+#    Example output:
+#    pe_name            mpi
+#    slots              999
+#    user_lists         NONE
+#    xuser_lists        NONE
+#    start_proc_args    NONE
+#    stop_proc_args     NONE
+#    allocation_rule    $fill_up
+#    control_slaves     TRUE
+#    job_is_first_task  FALSE
+#    urgency_slots      min
+#    accounting_summary TRUE
+#
+# 3. Create a new environment based on an existing one
+#    $ qconf -sp environment_name > environment_name_cpac
+# 4. Edit the new environment and set allocation_rule to $pe_slots
+# 5. Add the new environment file to SGE
+#    $ qconf -Ap environment_name_cpac
+
+# Specify your SGE parallel environment
+parallelEnvironment = 'cpac'
+
+# Queue to use when running on an SGE cluster
 queue = 'all.q'
-
-
-#options for SGE only here,
-#SGE users must set this enviroment,
-#easy way to know your parallel environment is to execute the following on command on cluster
-# $ qconf -spl
-
-#A pipeline for each subject that needs preprocessing is spawned on single nodes of the cluster.
-# To avoid I/O overhead the pipeline should only use the resources(cores) from that node.
-# The users can enable this feature on Sun Grid Engine by modifying their parallel environment
-# or adding a new parallel ennviroment using the exisiting environment parameters(some parameters tweaked)
-
-#To create new environment using old environment follow ths  procedure
-
-# 1. find the parallel environments u have on cluster
-# $ qconf -spl
-
-# 2. look through your parallel environments. Mine looks like this
-
-#$ qconf -sp mpi
-# pe_name            mpi
-# slots              999
-# user_lists         NONE
-# xuser_lists        NONE
-# start_proc_args    NONE
-# stop_proc_args     NONE
-# ---># allocation_rule    $fill_up
-# control_slaves     TRUE
-# job_is_first_task  FALSE
-# urgency_slots      min
-# accounting_summary TRUE
-
-# 3. use old to create new environment
-# $ qconf -sp mpi > cpac_mpi 
-
-# 4. change the allocation_rule highlighted with the arrow to $pe_slots,
-#    use your favourite text editor to accomplish this
-
-# 5. Add your new envionment file to SGE 
-
-# qconf -Ap cpac_mpi
-
-# 6. Specify this new environment below
-parallelEnvironment = 'mpi'
 
 """
 ====================
-Data Directory Setup ***
+Data Directory Setup
 ====================
 """
 # NOTE: Users must manually create these directories before running C-PAC
@@ -87,35 +80,39 @@ crashLogDirectory = '/path/to/crash_directory'
 # Directory where C-PAC should put processed data
 sinkDirectory = '/path/to/output_directory'
 
+#Truncate Working Directory after run
+removeWorkingDir = False
 """
 ========================
-Resolution and Smoothing ***
+Resolution and Smoothing
 ========================
 """
-# Set the resolution (in mm) to which images are transformed
-# Transformation occurs during registration and is requried for many measures
+# The resolution (in mm) to which images are transformed during registration
 standardResolution = '3mm'
 
 # Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
-# To skip smoothing, set to 0
+# To skip smoothing, set to []
 fwhm = [4]
 
 """
 ========================
-Resource Directory Setup NOT FINISHED- NEED MORE INFO FOR FSL FILES
+Resource Directory Setup
 ========================
 """
 # Directory where FSL is located
 # If you have added FSL to your .bashrc file, this will be set automatically
 FSLDIR = commands.getoutput('echo $FSLDIR')
 
-# The following options specify the path of various resources provided by FSL
-# By default, C-PAC will automatically locate these files based on FSLDIR
+# The following options specify the path of various resources used by C-PAC
+# By default, C-PAC will automatically locate most files based on FSLDIR
 # Most users will not need to modify these values
 
 # For users wishing to use non-standard versions of these resources:
 ## 1) Delete the string in parentheses beginning with FSLDIR
 ## 2) Replace this value with the full path to the appropriate file
+## 3) Repalce the resolution (e.g. 2mm) with %s in the file names.
+##    This allows resources to be automatically selected based on the
+##    standardResolution set above.
 
 standardResolutionBrain = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
 
@@ -125,8 +122,10 @@ standardBrainMaskDiluted = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain
 
 configFile = os.path.join(FSLDIR,'etc/flirtsch/T1_2_MNI152_%s.cnf' % (standardResolution))
 
+# MUST BE DOWNLOADED AS PART OF CPAC_Templates.tgz (see User Guide)
 brainSymmetric = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz')
 
+# MUST BE DOWNLOADED AS PART OF CPAC_Templates.tgz (see User Guide)
 symmStandard = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_symmetric.nii.gz')
 
 twommBrainMaskDiluted = os.path.join(FSLDIR,'data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz')
@@ -137,10 +136,11 @@ identityMatrix = os.path.join(FSLDIR,'etc/flirtsch/ident.mat')
 
 harvardOxfordMask = os.path.join(FSLDIR,'data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz')
 
+boundaryBasedRegistrationSchedule = os.path.join(FSLDIR, 'etc/flirtsch/bbr.sch')
 
 """
 ==================
-Timeseries Options ***
+Timeseries Options
 ==================
 """
 # Ignore volumes before this timepoint
@@ -156,9 +156,9 @@ stopIdx = None
 TR = None
 
 """
-================================
-Preprocessing Workflow Selection ***
-================================
+==================
+Workflow Selection
+==================
 """
 # Set which preprocessing workflows to run.
 
@@ -174,8 +174,6 @@ runFunctionalDataGathering = [1]
 runAnatomicalPreprocessing = [1]
 
 runFunctionalPreprocessing = [1]
-
-runFristonModel = [1]
 
 runRegistrationPreprocessing = [1]
 
@@ -197,7 +195,10 @@ runSegmentationPreprocessing = [1]
 # Each prior represents the probability that a given voxel will be 
 # of a particular tissue type (white matter, gray matter, or CSF).
 
-# Please specify the location and name of your prior files.
+# Please specify the location of your prior files.
+# Make sure to include %s at the end of the path. This allows priors
+# to be selected based on the standardResolution set above.
+#
 # Priors distributed with FSL must be binarized to be used by C-PAC
 # For information about how to do this, please see the User Guide
 prior_path = '/path/to/tissuepriors/%s' % standardResolution
@@ -212,11 +213,11 @@ PRIOR_WHITE = os.path.join(prior_path, 'avg152T1_white_bin.nii.gz')
 # For example, setting a value of 0.8 will result in areas with a 80 percent 
 # probability of being a particular tissue type to be classified as such
 
-cerebralSpinalFluidThreshold = [0.4]
+cerebralSpinalFluidThreshold = [0.98]
 
-whiteMatterThreshold = [0.66]
+whiteMatterThreshold = [0.98]
 
-grayMatterThreshold = [0.2]
+grayMatterThreshold = [0.7]
 
 """
 ==================================
@@ -238,9 +239,11 @@ runNuisance = [1]
 ## quadratic = Quadratic Trend
 
 # Options are 1 (apply) or 0 (ignore)
+# To use multiple sets of nuisance corrections, simply copy the array
+# Example: [{set 1}, {set 2}]
 Corrections = [{'compcor' : 1,
-                'wm' : 1,
-                'csf' : 1,
+                'wm' : 0,
+                'csf' : 0,
                 'gm' : 0,
                 'global' : 0,
                 'pc1' : 0,
@@ -258,30 +261,29 @@ runMedianAngleCorrection = [0]
 # Target angle for median angle correction
 targetAngleDeg = [90]
 
-# Run Scrubbing
-runScrubbing = [1]
-
 # Generate FD and DVARS motion statistics
 # Required to run scrubbing, but can also be used as regressors in a GLM
 runGenerateMotionStatistics = [1]
 
+# Run Scrubbing
+runScrubbing = [0]
+
 # Specify maximum acceptable Framewise Displacement (in mm)
 # Any volume with displacement greater than this value will be removed.
-# One volume before and two volumes after each over-threshold volume
-# will also be removed
 scrubbingThreshold = [0.2]
 
-#number of preceding frames to the offending time 
-#frames to be removed (i.e.,those exceeding FD threshold)
+# Number of volumes to remove prior to a volume with excessive FD
 numRemovePrecedingFrames = 1
 
-#number of following frames to the offending time 
-#frames to be removed (i.e.,those exceeding FD threshold)
+# Number of volumes to remove following a volume with excessive FD
 numRemoveSubsequentFrames = 2
+
+# Generate motion statistics based on the 24 parameter Friston model.
+runFristonModel = [1]
 
 """
 ==========================
-Temporal Filtering Options ***
+Temporal Filtering Options
 ==========================
 """
 # Apply Temporal Filtering
@@ -295,23 +297,40 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 
 """
 ==============================
-Timeseries Extraction Options ***
+Timeseries Extraction Options 
 ==============================
 """
-# If runVoxelTimeseries = [1]
-# Creates Seed files given user specifications
-# The seed nifti files are saved in maskDirectoryPath
-# If maskDirectoryPath does not exist, we create it for
-# as long as you specify it in the maskDirectoryPath setting
+# If runROITimeseries = [1]
+# If seedSpecificationFile is not None and
+# points to a valid File
+# Creates ROI file given user specifications
+# The ROI nifti file is saved in roiDirectoryPath
+# If roiDirectoryPath does not exist, we create it for
+# as long as you specify it in the roiDirectoryPath setting
+# If different Resolutions are specified then
+# the software will group the ROI's having the same
+# resolution and put each group in seperate nifti files
+# NOTE: We DO NOT detect for overlapping ROIS
+# The overlapping regions of the ROIS will have 
+# intensity which the sum of intensity of individual
+# regions. Please check and avoid this prior to running CPAC
 # Each line in the file contains
-# seed_name x y z radius resolution
+# seed_label x y z radius resolution
 # example :
-# aMPFC -6   52  -2  4 2mm
-# PCC   -8  -56  26  4 2mm
-# dMPFC  0   52  6   4 2mm
-# TPJ   -54 -54  28  4 2mm
-# LTC   -60 -24 -18  4 2mm
-seedSpecificationFile = '/path/to/seedSpecificationFile'
+# 10    -6   52  -2  4 2mm
+# 70    -8  -56  26  4 2mm
+# 60     0   52  6   4 1mm
+# 1     -54 -54  28  4 4mm
+# 7     -60 -24 -18  4 4mm
+seedSpecificationFile = '/path/to/seedSpecificationFile.txt'
+
+seedOutputLocation = '/full/path/to/seed_store'
+
+# 1 = use in roi timeseries extraction
+# 2 = use in voxel timeseries extraction
+# 3 = use in network centrality
+# users can specify a combination of these options
+useSeedInAnalysis = [1]
 
 # Extract an average timeseries for each ROI
 # Required if you wish to run ROI-based SCA
@@ -323,12 +342,13 @@ runROITimeseries = [0]
 # Options are True/False
 roiTSOutputs = [True, True]
 
-# Directory containing ROI definitions
-roiDirectoryPath = '/path/to/roi_definitions_directory'
+# Path to file containing ROI definitions
+# For best performance, all ROIs should be in a single file (see User Guide)
+roiSpecificationFile = '/path/to/path_to_file_with_roi_definitions.txt'
 
 # Extract timeseries data for all individual voxels within a mask
 # Required if you wish to run voxel-based SCA
-runVoxelTimeseries = [1]
+runVoxelTimeseries = [0]
 
 # Export voxel timeseries data
 # First value = Output .csv
@@ -337,7 +357,8 @@ runVoxelTimeseries = [1]
 voxelTSOutputs = [False, False]
 
 # Directory contaning masks
-maskDirectoryPath = '/path/to/mask_definitions_directory'
+# For best performance, all masks should be in a single file (see User Guide)
+maskSpecificationFile = '/path/to/mask_definitions_directory'
 
 # Register timeseries data to a surface model built by FreeSurfer
 # Required to run vertex timeseries extraction
@@ -358,11 +379,11 @@ verticesTSOutputs = [False, False]
 
 """
 =======================================
-Seed-based Correlation Analysis Options ***
+Seed-based Correlation Analysis Options
 =======================================
 """
 # Run Seed-based Correlation Analysis
-runSCA = [1]
+runSCA = [0]
 
 # IN ORDER TO RUN SCA, YOU MUST ALSO RUN TIMESERIES EXTRACTION.
 # SCA will be run on all ROI and voxel timeseries extracted above.
@@ -370,11 +391,11 @@ runSCA = [1]
 
 """
 ===================================
-Regional Homogeneity (ReHo) Options ***
+Regional Homogeneity (ReHo) Options
 ===================================
 """
 # Calculate Regional Homogeneity
-runReHo = [1]
+runReHo = [0]
 
 # Cluster size (number of neighboring voxels)
 # Options are 7, 19, and 27
@@ -382,21 +403,21 @@ clusterSize = 27
 
 """
 ============================================
-Voxel-mirrored Homotopic Connectivity (VMHC) ***
+Voxel-mirrored Homotopic Connectivity (VMHC)
 ============================================
 """
 # Calculate VMHC for all gray matter voxels
-runVMHC = [1]
+runVMHC = [0]
 
 # There are no options for VMHC
 
 """
 ==========================================================================
-Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options ***
+Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options
 ==========================================================================
 """
 # Calculate ALFF and fALFF
-runALFF = [1]
+runALFF = [0]
 
 # NOTE: Frequency filtering is not applied when calculating fALFF
 
@@ -408,11 +429,11 @@ lowPassFreqALFF = [0.1]
 
 """
 ==========================
-Network Centrality Options ***
+Network Centrality Options
 ==========================
 """
 # Calculate network centrality measures
-runNetworkCentrality = [1]
+runNetworkCentrality = [0]
 
 # Select which centrality measures to calculate
 # First value = Degree Centrality 
@@ -439,18 +460,24 @@ correlationThresholdOption = 1
 # examples: 0.05, 0.0744, 0.6
 correlationThreshold = 0.0744
 
-# Directory containing ROI definitions or masks
+# File containing ROI definitions or masks
 # Using ROIs will result in node-based centrality measures
 # Using a mask will result in voxel-based centrality measures
-templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
+# Each line of file contains full path to ROI or mask files
+# Example:
+# /path/to/template_1.nii.gz
+# /path/to/template_2.nii.gz
+# /path/to/template_3.nii.gz
+templateSpecificationFile = '/path/to/file_containing_templates.txt'
 
-#Option to generate adjacency matrix png image
-# and adjacency matrix mat file
-#Takes lot of memory. Do not turn it on for voxel based graph.
+# Generate an adjacency matrix png image and matrix mat file
+# WARNING: Requires a very large amount of memory
+# Should not be enabled when calculating voxel-based graphs
 generateAdjacencyGraph = False
+
 """
 ====================================================
-Bootstrap Analysis of Stable Clusters (BASC) Options **
+Bootstrap Analysis of Stable Clusters (BASC) Options
 ====================================================
 """
 # Run BASC
@@ -476,7 +503,7 @@ bascAffinityThresholdFile = '/path/to/basc_affinity_threshold_file'
 
 """
 ================================================
-Connectome-wide Association Study (CWAS) Options **
+Connectome-wide Association Study (CWAS) Options
 ================================================
 """
 # Run CWAS
@@ -494,14 +521,14 @@ cwasParallelNodes = 10
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile = '/path/to/cwas_regressor_file'
- 
+
 """
-============================
-Group Statistics Options ***
-============================
+========================
+Group Statistics Options
+========================
 """
 # Calculate group statistics
-runGroupAnalysis = [1]
+runGroupAnalysis = [0]
 
 # Path to list of subjects on which to run group statistics
 # This file should be created automatically when you run extract_data.py

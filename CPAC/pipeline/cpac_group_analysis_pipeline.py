@@ -86,7 +86,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                    gpa_wf, 'inputspec.fts_file') 
     
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
-    out_dir = os.path.join('group_analysis_results', resource)
+    #out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
@@ -95,10 +95,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_model_','/'),
-                                      (r'(?<=model_files)(.)*_model_','/'),
-                                      (r'(?<=merged)(?<!model)(.)*[/]','/'),
-                                      (r'(?<=stats)(.)*_model_','/'),
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/'),
+                                      (r'(?<=model_files)(.)*_grp_model_','/'),
+                                      (r'(?<=merged)(.)*[/]','/'),
+                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/threshold)(.)*_grp_model_','/'),
                                       (r'_cluster(.)*[/]',''),
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
@@ -106,8 +108,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     wf.connect(gp_flow, 'outputspec.mat',
                ds, 'model_files')
-    #wf.connect(gp_flow, 'outputspec.con',
-    #           ds, 'model_files.@01')
     wf.connect(gp_flow, 'outputspec.grp',
                ds, 'model_files.@02')
     wf.connect(gp_flow, 'outputspec.sublist',
@@ -133,7 +133,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     wf.connect(gpa_wf, 'outputspec.cluster_threshold',
                ds,  'stats.threshold.@01')
     wf.connect(gpa_wf, 'outputspec.cluster_index',
-               ds, 'stats.clusgpa_wfterMap.@02')
+               ds, 'stats.clusterMap.@02')
     wf.connect(gpa_wf, 'outputspec.cluster_localmax_txt',
                ds, 'stats.clusterMap.@03')
     wf.connect(gpa_wf, 'outputspec.overlay_threshold',

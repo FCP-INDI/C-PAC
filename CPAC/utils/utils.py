@@ -20,6 +20,9 @@ files_folders_wf = {
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
+    'mean_functional_in_mni' : 'func',
+    'mean_functional_in_anat' : 'func',
+    'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',
     'functional_gm_mask':'segmentation',
@@ -228,40 +231,106 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
     partial_parameter_value = remainder_path.split(parameter)[1]
 
-    print partial_parameter_value, ' ~~~~~~~~ ', parameter
+    #print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_')+value
 
 
-def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
+def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     import commands
     import os
 
-    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if not line.startswith('#')]
+    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if (not line.startswith('#') and not (line == '\n')) ]
 
-    seed_files = []
+
+
+    seed_resolutions = {}
+
     for specification in seed_specifications:
 
         specification = specification.rstrip(' ')
-        print specification
-        seed_name, x, y, z, radius, resolution = specification.split('\t')
+        seed_label, x, y, z, radius, resolution = specification.split('\t')
 
-        if not os.path.exists(mask_directory_path):
-            os.makedirs(mask_directory_path)
+        if resolution not in seed_resolutions.keys():
+            seed_resolutions[resolution] = []
+        seed_resolutions[resolution].append((seed_label, x, y, z, radius, resolution))
 
-        cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
-        -srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, seed_name), FSLDIR, resolution, radius)
 
+
+    return_roi_files = []
+    for resolution_key in seed_resolutions:
+
+
+        index = 0
+        seed_files = []
+        for roi_set in seed_resolutions[resolution_key]:
+
+
+            seed_label, x, y, z, radius, resolution = roi_set
+            if not os.path.exists(seedOutputLocation):
+                os.makedirs(seedOutputLocation)
+
+            print 'checking if file exists ', '%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)
+            assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)) )
+            cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
+-srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(seedOutputLocation, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
+
+            print cmd
+            try:
+                commands.getoutput(cmd)
+                seed_files.append((os.path.join(seedOutputLocation, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
+                print seed_files
+            except:
+                raise
+
+            index += 1
+
+        print index, ' ', seed_files
+        seed_str = ' '
+        intensities = ''
+        for idx in range(0, index):
+
+            seed, intensity = seed_files[idx]
+
+            intensities += intensity+'_'
+
+            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed)))
+            print cmd
+            try:
+                commands.getoutput(cmd)
+
+                seed_str += "%s " % os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed))
+            except:
+                raise
+
+
+        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(seedOutputLocation, 'rois_'+resolution), seed_str)
+        print cmd
         try:
             commands.getoutput(cmd)
-            seed_files.append(os.path.join(mask_directory_path, '%s.nii.gz' % seed_name))
         except:
             raise
 
-    return seed_files
+        try:
+            cmd = 'rm -f %s' % seed_str
+            print cmd
+            commands.getoutput(cmd)
+            for seed, intensity in seed_files:
+                try:
+                    cmd  = 'rm -f  '+ seed
+                    print cmd
+                    commands.getoutput(cmd)
+                except:
+                    raise
+        except:
+            raise
+        return_roi_files.append(os.path.join(seedOutputLocation, 'rois_'+resolution+'.nii.gz'))
+
+    print return_roi_files
+    return return_roi_files
 
 
 
@@ -763,7 +832,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     ref_slice = int(check('reference', True))
     first_tr = check2(check('first_tr', False))
     last_tr = check2(check('last_tr', False))
-       
+    unit = 's'
     #if empty override with config information
     if first_tr == '':
         first_tr = start_indx  
@@ -792,6 +861,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
                               "Converting TR into milliseconds")
                 TR = TR*1000
                 print "New TR value %.2f ms" %TR
+                unit = 'ms'
             
     else:
         #check to see, if TR is in milliseconds, convert it into seconds
@@ -799,17 +869,20 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR/1000.0 
             print "New TR value %.2f s" %TR
+            unit = 's'
             
-    print "scan_parameters -> ",subject, scan, str(TR), pattern, ref_slice, first_tr, last_tr
+    print "scan_parameters -> ",subject, scan, str(TR)+unit, pattern, ref_slice, first_tr, last_tr
     
-    return str(TR), pattern, ref_slice, first_tr, last_tr
+    return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
 def get_tr (tr):
     """
     Method to return TR in seconds
     """
+    import re
     if tr != None:
+       tr = re.search("\d+.\d+", str(tr)).group(0)
        tr = float(tr)
        if tr >10: 
            tr = tr/1000.0 

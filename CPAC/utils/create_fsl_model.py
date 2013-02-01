@@ -119,7 +119,7 @@ def organize_data(filter_data, c):
 
             val = data[col]
 
-            new_col = col + '#' + val
+            new_col = col + '__' + val
 
             if not col in directional_map:
 
@@ -147,7 +147,7 @@ def organize_data(filter_data, c):
             del data[col]
             for value in vals:
 
-                column_name, v = value.split('#')
+                column_name, v = value.split('__')
 
                 if v == val:
 
@@ -272,7 +272,7 @@ def create_mat_file(data, model_name):
 
     ppstring += '\n'
 
-    f = open(model_name + '.mat', 'a')
+    f = open(model_name + '.mat', 'w')
 
     print >>f, '/NumWaves    %d' %dimy
     print >>f, '/NumPoints    %d' %dimx
@@ -294,7 +294,7 @@ def create_grp_file(data, model_name):
     dimx, dimy = data.shape
     data = np.ones(dimx)
 
-    f = open(model_name + '.grp', 'a')
+    f = open(model_name + '.grp', 'w')
 
     print >>f, '/NumWaves    1'
     print >>f, '/NumPoints    %d\n' %dimx
@@ -329,7 +329,7 @@ def create_con_ftst_file(con_file, model_name):
     contrasts = np.array(contrasts, dtype=np.float16)
 
     fts_n = np.array(ftst, dtype=np.int)
-    f = open(model_name + '.con', 'a')
+    f = open(model_name + '.con', 'w')
 
     idx = 1
     pp_str = '/PPheights'
@@ -354,7 +354,7 @@ def create_con_ftst_file(con_file, model_name):
     f.close()
 
 
-    f = open(model_name + '.fts', 'a')
+    f = open(model_name + '.fts', 'w')
     print >>f, '/NumWaves    ', (contrasts.shape)[0]
     print >>f, '/NumContrasts    1\n'
 
