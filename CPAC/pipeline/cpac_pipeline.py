@@ -189,8 +189,8 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node, out_file,
                                  reg_anat_mni, 'inputspec.input_skull')
 
-                reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrain
-                reg_anat_mni.inputs.inputspec.reference_skull = c.standard
+                reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrainAnat
+                reg_anat_mni.inputs.inputspec.reference_skull = c.standardAnat
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -206,15 +206,15 @@ def prep_workflow(sub_dict, c, strategies):
 
             strat.append_name('anat_mni_register')
             strat.set_leaf_properties(reg_anat_mni, 'outputspec.output_brain')
-            
+
             strat.update_resource_pool({'anatomical_to_mni_linear_xfm':(reg_anat_mni, 'outputspec.linear_xfm'),
                                         'anatomical_to_mni_nonlinear_xfm':(reg_anat_mni, 'outputspec.nonlinear_xfm'),
                                         'mni_to_anatomical_linear_xfm':(reg_anat_mni, 'outputspec.invlinear_xfm'),
                                         'mni_normalized_anatomical':(reg_anat_mni, 'outputspec.output_brain')})
-            
+
             num_strat += 1
     strat_list += new_strat_list
-    
+
     """
     Inserting Segmentation Preprocessing
     Workflow
@@ -489,19 +489,16 @@ def prep_workflow(sub_dict, c, strategies):
             
             func_gm = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_gm_%d' % num_strat)
-            #func_gm.inputs.reference = c.standardResolutionBrain
             func_gm.inputs.apply_xfm = True
             func_gm.inputs.interp = 'nearestneighbour'
 
             func_csf = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_csf_%d' % num_strat)
-            #func_csf.inputs.reference = c.standardResolutionBrain
             func_csf.inputs.apply_xfm = True
             func_csf.inputs.interp = 'nearestneighbour'
 
             func_wm = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_wm_%d' % num_strat)
-            #func_wm.inputs.reference = c.standardResolutionBrain
             func_wm.inputs.apply_xfm = True
             func_wm.inputs.interp = 'nearestneighbour'
 
