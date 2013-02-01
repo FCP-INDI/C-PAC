@@ -52,13 +52,13 @@ def filter_phenotypic(c):
     record_dict = {}
     for record in p_reader:
 
-        if record['subject_id'] in sub_dict:
+        if record[c.subjectColumn] in sub_dict:
 
 
             for rec in record.keys():
-                if (not (rec in c.columnsInModel)) and not ('subject_id' == rec):
+                if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
                     del record[rec]
-            record_dict[record['subject_id']] = record
+            record_dict[record[c.subjectColumn]] = record
 
     for subject in subjects:
         subject = subject.rstrip('\r\n')
@@ -229,7 +229,7 @@ def organize_data(filter_data, c):
 
     zeroth = filter_data[0]
 
-    field_names = ['subject_id']
+    field_names = [c.subjectColumn]
 
     keys = zeroth.keys()
 
@@ -326,7 +326,7 @@ def write_data(model_data, field_names, c):
     evs = list(new_evs)
     del new_evs
 
-    new_field_names = ['subject_id'] + evs
+    new_field_names = [c.subjectColumn] + evs
 
 
     #print model_data[0]
@@ -357,7 +357,7 @@ def write_data(model_data, field_names, c):
                 if not name in new_field_names:
                     del data[name]
                 else:
-                    if not ('subject_id' in name):
+                    if not (c.subjectColumn in name):
                         data_row.append(float(data[name]))
             new_data.append(list(data_row))
 

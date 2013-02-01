@@ -4,7 +4,7 @@ First Run
 # Specify which phenotypic variables and regressors to include in model
 # These names should match column names in template_phenotypic.csv
 columnsInModel = ['AgeAtScan', 'MeanFD', 'site', 'DxGroup']
-
+subjectColumn = 'subject_id'
 # Set a type for each of the variables/regressors entered above.
 # 1 = categorical, 0 = directional
 categoricalVsDirectional = [0, 0, 1, 1]
