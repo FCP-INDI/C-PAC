@@ -26,6 +26,7 @@ modelGroupVariancesSeparately = 0
 
 outputModelFile = '/home/ssikka/nki_nyu_pipeline/model_fsl.csv'
 
+outputModelFilesDirectory = '/home2/data/Projects/CPAC_Regression_Test/configs/group_models'
 # Specify a name for the model.
 modelName = 'my_model'
 

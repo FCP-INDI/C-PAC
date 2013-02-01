@@ -14,7 +14,7 @@ from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
-from CPAC.registration import create_nonlinear_register, create_register_func_to_mni
+from CPAC.registration import create_nonlinear_register, create_bbregister_func_to_mni
 from CPAC.nuisance import create_nuisance, bandpass_voxels
 
 from CPAC.median_angle import create_median_angle_correction
@@ -27,8 +27,8 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr
-
+                             get_scan_params, get_tr, \
+                             create_seeds_
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -566,6 +566,75 @@ def prep_workflow(sub_dict, c, strategies):
     strat_list += new_strat_list
     
     """
+    Inserting Register Functional to MNI Workflow
+    """
+    new_strat_list = []
+    num_strat = 0
+    workflow_counter += 1
+    if 1 in c.runRegisterFuncToMNI:
+        workflow_bit_id['func_to_mni'] = workflow_counter
+        for strat in strat_list:
+            func_to_mni = create_bbregister_func_to_mni('func_to_mni_%d' % num_strat)
+            func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
+            func_to_mni.inputs.inputspec.interp = 'trilinear'
+            func_to_mni.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
+
+            try:
+                def pick_wm(seg_prob_list):
+                    seg_prob_list.sort()
+                    return seg_prob_list[-1]
+                
+                node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.func')
+
+                node, out_file = strat.get_node_from_resource_pool('seg_probability_maps')
+                workflow.connect(node, (out_file, pick_wm),
+                                 func_to_mni, 'inputspec.anat_wm_segmentation')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat_skull')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_linear_xfm')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat_to_mni_linear_xfm')
+                
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 func_to_mni, 'inputspec.anat_to_mni_nonlinear_xfm')
+            except:
+                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            
+            if 0 in c.runRegisterFuncToMNI:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            strat.append_name('func_to_mni')
+            #strat.set_leaf_properties(func_mni_warp, 'out_file')
+
+            strat.update_resource_pool({'mean_functional_in_mni':(func_to_mni, 'outputspec.mni_func'),
+                                        'mean_functional_in_anat':(func_to_mni, 'outputspec.anat_func'),
+                                        'anatomical_wm_edge':(func_to_mni, 'outputspec.anat_wm_edge'),
+                                        'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
+                                        'functional_to_mni_linear_xfm':(func_to_mni, 'outputspec.func_to_mni_linear_xfm'),
+                                        'mni_to_functional_linear_xfm':(func_to_mni, 'outputspec.mni_to_func_linear_xfm')})
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+    """
     Inserting Generate Motion Statistics Workflow
     """
     new_strat_list = []
@@ -671,7 +740,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.motion_components')
                 
-                node, out_file = strat.get_node_from_resource_pool('inverse_anatomical_to_functional_xfm')
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
                 workflow.connect(node, out_file,
                                  nuisance, 'inputspec.func_to_anat_linear_xfm')
                 
@@ -760,8 +829,6 @@ def prep_workflow(sub_dict, c, strategies):
             alff.get_node('lp_input').iterables = ('lp',
                                                         c.lowPassFreqALFF)
             
-            workflow.connect(convert_tr, 'tr',
-                             alff, 'inputspec.tr')
 
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -775,7 +842,6 @@ def prep_workflow(sub_dict, c, strategies):
                 print 'Invalid Connection: ALFF:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
             strat.append_name('alff_falff')
-            strat.update_resource_pool({'power_spectrum_distribution':(alff, 'outputspec.power_spectrum_distribution')})
             strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
             strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
             strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
@@ -888,92 +954,57 @@ def prep_workflow(sub_dict, c, strategies):
     strat_list += new_strat_list
 
     """
-    Inserting Register Functional to MNI Workflow
+    Register Functional timeseries to MNI space
     """
     new_strat_list = []
     num_strat = 0
-    
-    workflow_counter += 1
-    if 1 in c.runRegisterFuncToMNI:
-        workflow_bit_id['func_to_mni'] = workflow_counter
-        for strat in strat_list:
-            func_to_mni = create_register_func_to_mni('func_to_mni_%d' % num_strat)
-            func_to_mni.inputs.inputspec.mni = c.standardResolutionBrain
-            func_to_mni.inputs.inputspec.interp = 'trilinear'
 
-            func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                    name='func_mni_warp_%d' % num_strat)
-            func_mni_warp.inputs.ref_file = c.standardResolutionBrain
+    for strat in strat_list:
+        func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                name='func_mni_warp_%d' % num_strat)
+        func_mni_warp.inputs.ref_file = c.standardResolutionBrain
 
-            try:
-                node, out_file = strat.get_node_from_resource_pool('mean_functional')
-                workflow.connect(node, out_file,
-                                 func_to_mni, 'inputspec.func')
-                
-                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                workflow.connect(node, out_file,
-                                 func_to_mni, 'inputspec.anat')
-                
-                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_linear_xfm')
-                workflow.connect(node, out_file,
-                                 func_to_mni, 'inputspec.anat_to_mni_linear_xfm')
-                
-                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                workflow.connect(node, out_file,
-                                 func_to_mni, 'inputspec.anat_to_mni_nonlinear_xfm')
-                workflow.connect(node, out_file,
-                                 func_mni_warp, 'field_file')
-                
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                 func_mni_warp, 'in_file')
-                
-                workflow.connect(func_to_mni, 'outputspec.func_to_anat_linear_xfm',
-                                 func_mni_warp, 'premat')
-                
-                functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                                   name='functional_brain_mask_to_standard1_%d' % num_strat)
+        functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                                    name='functional_brain_mask_to_standard1_%d' % num_strat)
+        functional_brain_mask_to_standard.inputs.interp = 'nn'
+        functional_brain_mask_to_standard.inputs.ref_file = c.standard
 
-                functional_brain_mask_to_standard.inputs.interp = 'nn'
-                functional_brain_mask_to_standard.inputs.ref_file = c.standard
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 functional_brain_mask_to_standard, 'in_file')
+        try:    
+            node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+            workflow.connect(node, out_file,
+                             func_mni_warp, 'field_file')
 
-                workflow.connect(func_to_mni, 'outputspec.func_to_anat_linear_xfm',
-                                 functional_brain_mask_to_standard, 'premat')
-
-                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                workflow.connect(node, out_file,
-                                 functional_brain_mask_to_standard, 'field_file')
-
-            except:
-                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
-                raise
+            node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+            workflow.connect(node, out_file,
+                             func_mni_warp, 'premat')  
             
-            if 0 in c.runRegisterFuncToMNI:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
 
-            strat.append_name('func_to_mni')
-            #strat.set_leaf_properties(func_mni_warp, 'out_file')
+            node, out_file = strat.get_leaf_properties()
+            workflow.connect(node, out_file,
+                             func_mni_warp, 'in_file')
+        
+            node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+            workflow.connect(node, out_file,
+                             functional_brain_mask_to_standard, 'in_file')
 
-            strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
-                                        'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file'),
-                                        'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
-                                        'functional_to_mni_linear_xfm':(func_to_mni, 'outputspec.func_to_mni_linear_xfm'),
-                                        'mni_to_functional_linear_xfm':(func_to_mni, 'outputspec.mni_to_func_linear_xfm')})
 
-            num_strat += 1
+            node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+            workflow.connect(node, out_file,
+                             functional_brain_mask_to_standard, 'premat')
 
+            node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+            workflow.connect(node, out_file,
+                             functional_brain_mask_to_standard, 'field_file')
+        except:
+            print 'Invalid Connection: Register Functional timeseries to MNI space:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+            raise
+        
+        strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
+                                    'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
+        
+        num_strat += 1
+        
     strat_list += new_strat_list
-
-
 
     """
     Inserting VMHC
@@ -1334,41 +1365,100 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
+
+    seeds_created = []
+    if not (c.seedSpecificationFile is None):
+
+        try:
+            if os.path.exists(c.seedSpecificationFile):
+                seeds_created = create_seeds_(c.seedOutputLocation, c.seedSpecificationFile, c.FSLDIR)
+                print 'seeds created %s -> ' % seeds_created
+        except:
+            raise IOError('Problem in seedSpecificationFile')
+
+
+    def append_seeds_to_file(seed_list, seed_file):
+
+        existing_seeds = []
+        filtered_list = []
+        try:
+
+            if os.path.isfile(seed_file):
+                existing_seeds += [line.rstrip('\r\n') for line in open(seed_file, 'r').readlines() if not (line.startswith('#') and line == '\n')]
+
+                for seed in seed_list:
+                    if not seed in existing_seeds:
+                        filtered_list.append(seed)
+
+                if not len(filtered_list) == 0:
+                    f = open(seed_file, 'a')
+                    for seed in filtered_list:
+                        f.write("%s\n" % seed)
+                    f.close()
+
+                return seed_file
+
+            else:
+                raise
+
+
+        except:
+            #make tempfile and add seeds to it
+            import tempfile
+
+            some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=c.workingDirectory, text=True)
+
+            f_handle = open(f_name, 'w')
+
+            for seed in seed_list:
+                f_handle.write('%s\n' % seed)
+
+            f_handle.close()
+            return f_name
+
+
     """
      Voxel Based Time Series 
     """
     new_strat_list = []
     num_strat = 0
     if 1 in c.runVoxelTimeseries:
+
+        if 2 in c.useSeedInAnalysis:
+
+            c.maskSpecificationFile = append_seeds_to_file(seeds_created, c.maskSpecificationFile)
+
+
+
         for strat in strat_list:
-        
-            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_functional_to_mask_%d'%num_strat)
+
+            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_functional_to_mask_%d' % num_strat)
             resample_functional_to_mask.inputs.interp = 'nearestneighbour'
             resample_functional_to_mask.inputs.apply_xfm = True
             resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
-            
-            mask_dataflow = create_mask_dataflow(c.maskDirectoryPath, 'mask_dataflow_%d'%num_strat)
-            
-            voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d'%num_strat) 
+
+            mask_dataflow = create_mask_dataflow(c.maskSpecificationFile, 'mask_dataflow_%d' % num_strat)
+
+            voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
             voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
-        
+
             try:
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                
+
                 #resample the input functional file to mask 
                 workflow.connect(node, out_file,
-                                 resample_functional_to_mask,'in_file' )
-                workflow.connect(mask_dataflow, 'out_file',
+                                 resample_functional_to_mask, 'in_file' )
+                workflow.connect(mask_dataflow, 'select_mask.out_file',
                                  resample_functional_to_mask, 'reference')
-                
+
                 #connect it to the voxel_timeseries
-                workflow.connect(mask_dataflow, 'out_file',
+                workflow.connect(mask_dataflow, 'select_mask.out_file',
                                  voxel_timeseries, 'input_mask.mask')
-                workflow.connect(resample_functional_to_mask,'out_file',
+                workflow.connect(resample_functional_to_mask, 'out_file',
                                  voxel_timeseries, 'inputspec.rest')
-                
+
             except:
                 print 'Invalid Connection: Voxel TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -1381,51 +1471,58 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('voxel_timeseries')
-            
-            strat.update_resource_pool({'voxel_timeseries' : (voxel_timeseries, 'outputspec.mask_outputs')})
+
+            strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
 
             num_strat += 1
 
     strat_list += new_strat_list
-    
+
+
+
+
     """
     ROI Based Time Series
     """
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runROITimeseries:
+
+        if 1 in c.useSeedInAnalysis:
+
+            c.roiSpecificationFile = append_seeds_to_file(seeds_created, c.roiSpecificationFile)
         for strat in strat_list:
-            
+
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
                                                   name='resample_functional_to_roi_%d'%num_strat)
             resample_functional_to_roi.inputs.interp = 'nearestneighbour'
             resample_functional_to_roi.inputs.apply_xfm = True
             resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
-            
-            roi_dataflow = create_roi_dataflow(c.roiDirectoryPath, 'roi_dataflow_%d'%num_strat)
-            
+
+            roi_dataflow = create_roi_dataflow(c.roiSpecificationFile, 'roi_dataflow_%d'%num_strat)
+
             roi_timeseries = get_roi_timeseries('roi_timeseries_%d'%num_strat) 
             roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
-        
+
             try:
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                
+
                 #resample the input functional file to roi
                 workflow.connect(node, out_file,
                                  resample_functional_to_roi,'in_file' )
-                workflow.connect(roi_dataflow, 'out_file',
+                workflow.connect(roi_dataflow, 'select_roi.out_file',
                                  resample_functional_to_roi, 'reference')
-                
+
                 #connect it to the roi_timeseries
-                workflow.connect(roi_dataflow,'out_file',
+                workflow.connect(roi_dataflow, 'select_roi.out_file',
                                  roi_timeseries, 'input_roi.roi')
                 workflow.connect(resample_functional_to_roi, 'out_file',
                                  roi_timeseries, 'inputspec.rest')
-                
+
             except:
                 print 'Invalid Connection: ROI TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -1438,15 +1535,15 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('roi_timeseries')
-            
+
             strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
 
             num_strat += 1
 
     strat_list += new_strat_list
-    
+
 
     """
     Inserting SCA
@@ -1813,6 +1910,13 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     
     if 1 in c.runNetworkCentrality:
+
+
+        print '3 in c.useSeedInAnalysis ', 3 in c.useSeedInAnalysis
+        if 3 in c.useSeedInAnalysis:
+
+            c.templateSpecificationFile = append_seeds_to_file(seeds_created, c.templateSpecificationFile)
+            print '^~^~^ ', c.templateSpecificationFile
         for strat in strat_list:
             
             
@@ -1823,7 +1927,7 @@ def prep_workflow(sub_dict, c, strategies):
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
             
-            template_dataflow = create_mask_dataflow(c.templateDirectoryPath, 'template_dataflow_%d'%num_strat)
+            template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d'%num_strat)
             
             network_centrality = create_resting_state_graphs(c.generateAdjacencyGraph, 'network_centrality_%d'%num_strat)
             network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
@@ -1839,13 +1943,13 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 #resample the input functional file to template(roi/mask) 
                 workflow.connect(node, out_file,
-                                 resample_functional_to_template,'in_file' )
-                workflow.connect(template_dataflow, 'out_file',
+                                 resample_functional_to_template, 'in_file' )
+                workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
                 
                 workflow.connect(resample_functional_to_template, 'out_file',
                                  network_centrality, 'inputspec.subject')
-                workflow.connect(template_dataflow, 'out_file',
+                workflow.connect(template_dataflow, 'outputspec.out_file',
                                  network_centrality, 'inputspec.template')
 
 
@@ -1867,13 +1971,13 @@ def prep_workflow(sub_dict, c, strategies):
 
                     
                     #calculate zscores
-                    workflow.connect(template_dataflow, 'out_file',
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
                                      z_score, 'inputspec.input_file')
                     
                     #connecting zscores to smoothing
-                    workflow.connect(template_dataflow, 'out_file',
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
                                      smoothing, 'operand_files')
                     workflow.connect(z_score, 'outputspec.z_score_img',
                                     smoothing, 'in_file')
@@ -1984,7 +2088,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
         pipeline_id = ''
-        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.txt')), hash_val)
+        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
         pipeline_id = pipeline_id.rstrip('\r\n')
         if pipeline_id == '':
             print 'hash value ', hash_val, ' is greater than the number of words'
@@ -2022,16 +2126,17 @@ def prep_workflow(sub_dict, c, strategies):
         if not os.path.exists(d_name):
             os.makedirs(d_name)
 
-        G = nx.DiGraph()
-        strat_name = strat.get_name()
-        G.add_edges_from([(strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
-        dotfilename = os.path.join(d_name, 'strategy.dot')
-        nx.write_dot(G, dotfilename)
+
 
         try:
+            G = nx.DiGraph()
+            strat_name = strat.get_name()
+            G.add_edges_from([(strat_name[s], strat_name[s+1]) for s in range(len(strat_name)-1)])
+            dotfilename = os.path.join(d_name, 'strategy.dot')
+            nx.write_dot(G, dotfilename)
             format_dot(dotfilename, 'png')
         except:
-            print "Dot is not Installed, Cannot Create the strategy and Pipeline graph"
+            print "Cannot Create the strategy and pipeline graph, dot or/and pygraphviz is not installed"
             pass
 
 
@@ -2040,8 +2145,16 @@ def prep_workflow(sub_dict, c, strategies):
 
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
-
-
+#    workflow.run(updatehash=True)
+    sub_w_path = os.path.join(c.workingDirectory, wfname)
+    try:
+        if os.path.exists(sub_w_path) and c.removeWorkingDir:
+            import shutil
+            print "removing dir -> ", sub_w_path
+            shutil.rmtree(sub_w_path)
+    except:
+        print "Couldn't remove subjects %s working directory"%(wfname)
+        pass
     return workflow
 
 

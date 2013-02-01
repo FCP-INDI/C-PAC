@@ -20,6 +20,9 @@ files_folders_wf = {
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
+    'mean_functional_in_mni' : 'func',
+    'mean_functional_in_anat' : 'func',
+    'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',
     'functional_gm_mask':'segmentation',
@@ -228,11 +231,106 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
     partial_parameter_value = remainder_path.split(parameter)[1]
 
-    print partial_parameter_value, ' ~~~~~~~~ ', parameter
+    #print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_')+value
+
+
+def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
+
+    import commands
+    import os
+
+    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if (not line.startswith('#') and not (line == '\n')) ]
+
+
+
+    seed_resolutions = {}
+
+    for specification in seed_specifications:
+
+        specification = specification.rstrip(' ')
+        seed_label, x, y, z, radius, resolution = specification.split('\t')
+
+        if resolution not in seed_resolutions.keys():
+            seed_resolutions[resolution] = []
+        seed_resolutions[resolution].append((seed_label, x, y, z, radius, resolution))
+
+
+
+    return_roi_files = []
+    for resolution_key in seed_resolutions:
+
+
+        index = 0
+        seed_files = []
+        for roi_set in seed_resolutions[resolution_key]:
+
+
+            seed_label, x, y, z, radius, resolution = roi_set
+            if not os.path.exists(seedOutputLocation):
+                os.makedirs(seedOutputLocation)
+
+            print 'checking if file exists ', '%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)
+            assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)) )
+            cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
+-srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(seedOutputLocation, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
+
+            print cmd
+            try:
+                commands.getoutput(cmd)
+                seed_files.append((os.path.join(seedOutputLocation, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
+                print seed_files
+            except:
+                raise
+
+            index += 1
+
+        print index, ' ', seed_files
+        seed_str = ' '
+        intensities = ''
+        for idx in range(0, index):
+
+            seed, intensity = seed_files[idx]
+
+            intensities += intensity+'_'
+
+            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed)))
+            print cmd
+            try:
+                commands.getoutput(cmd)
+
+                seed_str += "%s " % os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed))
+            except:
+                raise
+
+
+        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(seedOutputLocation, 'rois_'+resolution), seed_str)
+        print cmd
+        try:
+            commands.getoutput(cmd)
+        except:
+            raise
+
+        try:
+            cmd = 'rm -f %s' % seed_str
+            print cmd
+            commands.getoutput(cmd)
+            for seed, intensity in seed_files:
+                try:
+                    cmd  = 'rm -f  '+ seed
+                    print cmd
+                    commands.getoutput(cmd)
+                except:
+                    raise
+        except:
+            raise
+        return_roi_files.append(os.path.join(seedOutputLocation, 'rois_'+resolution+'.nii.gz'))
+
+    print return_roi_files
+    return return_roi_files
 
 
 
@@ -565,22 +663,16 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
                     dict1.get('/Matrix').append(line)
         return dict1
     
-    def write_model_file(model_map, model_file):
+    def write_model_file(model_map, model_file, remove_index):
         
         out_file, ext = os.path.splitext(os.path.basename(model_file))
         out_file = out_file + '_new' + ext
         out_file = os.path.join(os.getcwd(), out_file)
-        
+
         #create an index of all subjects for a derivative for which 
         #CPAC did not run successfully
-        remove_index = []
-        for subject in input_sublist:
-            if subject not in output_sublist:
-                remove_index.append(input_sublist.index(subject))
-        
-        print remove_index
+
         f = open(out_file, 'wb')
-    
         print >> f, '/NumWaves\t' + model_map['/NumWaves']
         
         num_points = int(model_map['/NumPoints']) - len(remove_index)
@@ -600,22 +692,57 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
             count+=1
     
         f.close()
-
+  
         return out_file
-    
+     
+    #get new subject list     
+    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
+    f = open(new_sub_file, 'wb')
+    remove_index = []
+    for subject in input_sublist:
+         if subject not in output_sublist:
+              remove_index.append(input_sublist.index(subject))
+         else:
+              print >>f, subject
+        
+    f.close()
+
+    print "removing subject at the indices", remove_index
+     
     model_map = read_model_file(mat_file)
-    new_mat_file = write_model_file(model_map, mat_file)
+    new_mat_file = write_model_file(model_map, mat_file, remove_index)
     
     model_map = read_model_file(grp_file)
-    new_grp_file = write_model_file(model_map, grp_file)
+    new_grp_file = write_model_file(model_map, grp_file, remove_index)
         
-    new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
-    
-    f = open(new_sub_file, 'wb')
-    for sub in output_sublist:
-        print >>f, sub
-
     return new_grp_file, new_mat_file, new_sub_file
+
+
+    
+def select_model(model, model_map, ftest):
+    """
+    Method to select model files
+    """
+    
+    try:
+        files = model_map[model]
+        fts_file = ''
+        for file in files:
+            if file.endswith('.mat'):
+                mat_file = file
+            elif file.endswith('.grp'):
+                grp_file = file
+            elif file.endswith('.fts') and ftest:
+                 fts_file = file
+            elif file.endswith('.con'):
+                 con_file = file
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder"
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file
+
 
 
     
@@ -705,7 +832,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     ref_slice = int(check('reference', True))
     first_tr = check2(check('first_tr', False))
     last_tr = check2(check('last_tr', False))
-       
+    unit = 's'
     #if empty override with config information
     if first_tr == '':
         first_tr = start_indx  
@@ -734,6 +861,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
                               "Converting TR into milliseconds")
                 TR = TR*1000
                 print "New TR value %.2f ms" %TR
+                unit = 'ms'
             
     else:
         #check to see, if TR is in milliseconds, convert it into seconds
@@ -741,17 +869,20 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR/1000.0 
             print "New TR value %.2f s" %TR
+            unit = 's'
             
-    print "scan_parameters -> ",subject, scan, str(TR), pattern, ref_slice, first_tr, last_tr
+    print "scan_parameters -> ",subject, scan, str(TR)+unit, pattern, ref_slice, first_tr, last_tr
     
-    return str(TR), pattern, ref_slice, first_tr, last_tr
+    return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
 def get_tr (tr):
     """
     Method to return TR in seconds
     """
+    import re
     if tr != None:
+       tr = re.search("\d+.\d+", str(tr)).group(0)
        tr = float(tr)
        if tr >10: 
            tr = tr/1000.0 

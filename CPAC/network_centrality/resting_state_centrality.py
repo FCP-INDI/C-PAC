@@ -355,6 +355,7 @@ def calculate_correlation(timeseries_data):
     
     timeseries = load_mat(timeseries_data)
     r_matrix = np.corrcoef(timeseries)
+    r_matrix = np.nan_to_num(r_matrix)
     cwd = os.getcwd()
     
     print "shape of correlation matrix", r_matrix.shape
