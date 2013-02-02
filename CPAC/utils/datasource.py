@@ -87,8 +87,8 @@ def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
 
         if not (base_name in mask_dict):
             mask_dict[base_name] = mask_file
-        else:
-            raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name] ))
+        #else:
+        #    raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name] ))
 
     inputnode = pe.Node(util.IdentityInterface(
                             fields=['mask'],
