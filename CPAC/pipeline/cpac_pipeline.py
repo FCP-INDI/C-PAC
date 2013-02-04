@@ -1893,8 +1893,6 @@ def prep_workflow(sub_dict, c, strategies):
     
                 strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
                 
-                if c.generateAdjacencyGraph:
-                    strat.update_resource_pool({'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
         
                 #if smoothing is required
                 if len(c.fwhm) > 0 :
