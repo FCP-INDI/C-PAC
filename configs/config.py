@@ -91,6 +91,7 @@ Resolution and Smoothing
 standardResolution = '3mm'
 
 # The resolution (in mm) to which anatomical images are transformed during registration
+# The higher the resolution the more time it takes to register the files to target space
 standardResolutionAnat = '2mm'
 # Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
 # To skip smoothing, set to []
@@ -115,6 +116,7 @@ FSLDIR = commands.getoutput('echo $FSLDIR')
 ## 3) Repalce the resolution (e.g. 2mm) with %s in the file names.
 ##    This allows resources to be automatically selected based on the
 ##    standardResolution set above.
+
 
 standardResolutionBrainAnat = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolutionAnat))
 
@@ -306,13 +308,12 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 Timeseries Extraction Options 
 ==============================
 """
-# If runROITimeseries = [1]
 # If seedSpecificationFile is not None and
 # points to a valid File
 # Creates ROI file given user specifications
-# The ROI nifti file is saved in roiDirectoryPath
-# If roiDirectoryPath does not exist, we create it for
-# as long as you specify it in the roiDirectoryPath setting
+# The ROI nifti file is saved in seedOutputLocation 
+# If seedOutputLocation does not exist, we create it for
+# as long as you specify it in the setting
 # If different Resolutions are specified then
 # the software will group the ROI's having the same
 # resolution and put each group in seperate nifti files
@@ -332,6 +333,7 @@ seedSpecificationFile = '/path/to/seedSpecificationFile.txt'
 
 seedOutputLocation = '/full/path/to/seed_store'
 
+# use the seeds specified in seedSpecificationFile in the following analysis
 # 1 = use in roi timeseries extraction
 # 2 = use in voxel timeseries extraction
 # 3 = use in network centrality

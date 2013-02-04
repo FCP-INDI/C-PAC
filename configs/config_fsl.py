@@ -19,7 +19,7 @@ phenotypicFile = '/path/to/template_phenotypic.csv'
 subjectListFile = '/path/to/subject_list_group_analysis.txt'
 
 # IGNORE - not yet implemented
-groupingVariable = ['DxGroup']
+groupingVariable = 'DxGroup'
 
 # IGNORE - not yet implemented
 modelGroupVariancesSeparately = 0
