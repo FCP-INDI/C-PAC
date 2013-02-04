@@ -476,10 +476,9 @@ correlationThreshold = 0.0744
 # /path/to/template_3.nii.gz
 templateSpecificationFile = '/path/to/file_containing_templates.txt'
 
-# Generate an adjacency matrix png image and matrix mat file
-# WARNING: Requires a very large amount of memory
-# Should not be enabled when calculating voxel-based graphs
-generateAdjacencyGraph = False
+
+# Memory allocated for degree centrality in GB
+memoryAllocatedForDegreeCentrality = 2
 
 """
 ====================================================

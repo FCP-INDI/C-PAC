@@ -367,7 +367,12 @@ def generate_suplimentary_files():
     data_list = []
 
     for sub in c.subjects_list:
-        subject_id = sub['subject_id'] + "_" + sub['unique_id']
+        
+        if sub['unique_id']:
+            subject_id = sub['subject_id'] + "_" + sub['unique_id']
+        else:
+            subject_id = sub['subject_id']
+            
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
             subject_set.add(subject_id)

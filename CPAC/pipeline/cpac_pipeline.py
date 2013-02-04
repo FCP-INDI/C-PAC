@@ -76,9 +76,15 @@ class strategy:
             self.resource_pool[key] = value
 
 def prep_workflow(sub_dict, c, strategies):
+    
     print '********************',c.standardResolutionBrain
-
-    subject_id = sub_dict['subject_id'] +"_"+ sub_dict['unique_id']
+    
+    if sub_dict['unique_id']:
+        subject_id = sub_dict['subject_id'] +"_"+ sub_dict['unique_id']
+    else:
+        subject_id = sub_dict['subject_id']
+        
+        
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
@@ -1926,7 +1932,7 @@ def prep_workflow(sub_dict, c, strategies):
             
             template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d'%num_strat)
             
-            network_centrality = create_resting_state_graphs(c.generateAdjacencyGraph, 'network_centrality_%d'%num_strat)
+            network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d'%num_strat)
             network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
             network_centrality.inputs.inputspec.threshold = c.correlationThreshold
             network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
@@ -2144,14 +2150,19 @@ def prep_workflow(sub_dict, c, strategies):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
-    try:
-        if os.path.exists(sub_w_path) and c.removeWorkingDir:
-            import shutil
-            print "removing dir -> ", sub_w_path
-            shutil.rmtree(sub_w_path)
-    except:
-        print "Couldn't remove subjects %s working directory"%(wfname)
-        pass
+    
+    if c.removeWorkingDir:
+        try:
+            if os.path.exists(sub_w_path):
+                import shutil
+                print "removing dir -> ", sub_w_path
+                shutil.rmtree(sub_w_path)
+        except:
+            print "Couldn't remove subjects %s working directory"%(wfname)
+            pass
+    
+    print "End of subject workflow ", wfname
+    
     return workflow
 
 
