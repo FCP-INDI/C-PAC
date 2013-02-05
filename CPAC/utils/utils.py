@@ -231,19 +231,20 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
     partial_parameter_value = remainder_path.split(parameter)[1]
 
-    print partial_parameter_value, ' ~~~~~~~~ ', parameter
+    #print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_')+value
 
 
-def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
+def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     import commands
     import os
+    import re
 
-    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if not line.startswith('#')]
+    seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if (not line.startswith('#') and not (line == '\n')) ]
 
 
 
@@ -251,8 +252,7 @@ def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
 
     for specification in seed_specifications:
 
-        specification = specification.rstrip(' ')
-        seed_label, x, y, z, radius, resolution = specification.split('\t')
+        seed_label, x, y, z, radius, resolution = re.split(r'[\t| |,]+', specification)
 
         if resolution not in seed_resolutions.keys():
             seed_resolutions[resolution] = []
@@ -270,18 +270,18 @@ def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
 
 
             seed_label, x, y, z, radius, resolution = roi_set
-            if not os.path.exists(mask_directory_path):
-                os.makedirs(mask_directory_path)
+            if not os.path.exists(seedOutputLocation):
+                os.makedirs(seedOutputLocation)
 
             print 'checking if file exists ', '%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)
             assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)) )
             cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
--srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(mask_directory_path, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
+-srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(seedOutputLocation, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
 
             print cmd
             try:
                 commands.getoutput(cmd)
-                seed_files.append((os.path.join(mask_directory_path, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
+                seed_files.append((os.path.join(seedOutputLocation, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
                 print seed_files
             except:
                 raise
@@ -297,17 +297,17 @@ def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
 
             intensities += intensity+'_'
 
-            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(mask_directory_path, 'ic_'+ os.path.basename(seed)))
+            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed)))
             print cmd
             try:
                 commands.getoutput(cmd)
 
-                seed_str += "%s " % os.path.join(mask_directory_path, 'ic_'+ os.path.basename(seed))
+                seed_str += "%s " % os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed))
             except:
                 raise
 
 
-        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(mask_directory_path, 'rois_'+resolution), seed_str)
+        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(seedOutputLocation, 'rois_'+resolution), seed_str)
         print cmd
         try:
             commands.getoutput(cmd)
@@ -327,10 +327,11 @@ def create_seeds_(seed_specification_file, mask_directory_path, FSLDIR):
                     raise
         except:
             raise
-        return_roi_files.append(os.path.join(mask_directory_path, 'rois_'+resolution+'.nii.gz'))
+        return_roi_files.append(os.path.join(seedOutputLocation, 'rois_'+resolution+'.nii.gz'))
 
-
+    print return_roi_files
     return return_roi_files
+
 
 
 

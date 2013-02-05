@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
-
+from CPAC.utils.utils import create_seeds_
 
 
 def get_vectors(strat):
@@ -206,6 +206,47 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print commands.getoutput('qsub  %s ' % (subject_bash_file))
 
 
+def append_seeds_to_file(seed_list, seed_file):
+
+    existing_seeds = []
+    filtered_list = []
+    try:
+
+        if os.path.isfile(seed_file):
+            existing_seeds += [line.rstrip('\r\n') for line in open(seed_file, 'r').readlines() if not (line.startswith('#') and line == '\n')]
+
+            for seed in seed_list:
+                if not seed in existing_seeds:
+                    filtered_list.append(seed)
+
+            if not len(filtered_list) == 0:
+                f = open(seed_file, 'a')
+                for seed in filtered_list:
+                    f.write("%s\n" % seed)
+                f.close()
+
+            return seed_file
+
+        else:
+            raise
+
+
+    except:
+        #make tempfile and add seeds to it
+        import tempfile
+
+        some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=c.workingDirectory, text=True)
+
+        f_handle = open(f_name, 'w')
+
+        for seed in seed_list:
+            f_handle.write('%s\n' % seed)
+
+        f_handle.close()
+        return f_name
+
+
+
 def run(config_file, subject_list_file):
 
 
@@ -222,7 +263,33 @@ def run(config_file, subject_list_file):
 
     strategies = sorted(build_strategies(c))
 
-    print strategies
+    seeds_created = []
+    if not (c.seedSpecificationFile is None):
+
+        try:
+            if os.path.exists(c.seedSpecificationFile):
+                seeds_created = create_seeds_(c.seedOutputLocation, c.seedSpecificationFile, c.FSLDIR)
+                print 'seeds created %s -> ' % seeds_created
+        except:
+            raise IOError('Problem in seedSpecificationFile')
+
+    if 1 in c.runVoxelTimeseries:
+
+        if 2 in c.useSeedInAnalysis:
+
+            c.maskSpecificationFile = append_seeds_to_file(seeds_created, c.maskSpecificationFile)
+
+    if 1 in c.runROITimeseries:
+
+        if 1 in c.useSeedInAnalysis:
+
+            c.roiSpecificationFile = append_seeds_to_file(seeds_created, c.roiSpecificationFile)
+
+    if 1 in c.runNetworkCentrality:
+
+        if 3 in c.useSeedInAnalysis:
+
+            c.templateSpecificationFile = append_seeds_to_file(seeds_created, c.templateSpecificationFile)
 
 
     if not c.runOnGrid:

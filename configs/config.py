@@ -87,9 +87,13 @@ removeWorkingDir = False
 Resolution and Smoothing
 ========================
 """
-# The resolution (in mm) to which images are transformed during registration
+
+# The resolution (in mm) to which functional images are transformed during registration
 standardResolution = '3mm'
 
+# The resolution (in mm) to which anatomical images are transformed during registration
+# The higher the resolution the more time it takes to register the files to target space
+standardResolutionAnat = '2mm'
 # Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
 # To skip smoothing, set to []
 fwhm = [4]
@@ -113,6 +117,12 @@ FSLDIR = commands.getoutput('echo $FSLDIR')
 ## 3) Repalce the resolution (e.g. 2mm) with %s in the file names.
 ##    This allows resources to be automatically selected based on the
 ##    standardResolution set above.
+
+
+
+standardResolutionBrainAnat = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolutionAnat))
+
+standardAnat = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s.nii.gz' % (standardResolutionAnat))
 
 standardResolutionBrain = os.path.join(FSLDIR,'data/standard/MNI152_T1_%s_brain.nii.gz' % (standardResolution))
 
@@ -300,13 +310,13 @@ nuisanceBandpassFreq =[(0.01, 0.1)]
 Timeseries Extraction Options 
 ==============================
 """
-# If runROITimeseries = [1]
+
 # If seedSpecificationFile is not None and
 # points to a valid File
 # Creates ROI file given user specifications
-# The ROI nifti file is saved in roiDirectoryPath
-# If roiDirectoryPath does not exist, we create it for
-# as long as you specify it in the roiDirectoryPath setting
+# The ROI nifti file is saved in seedOutputLocation 
+# If seedOutputLocation does not exist, we create it for
+# as long as you specify it in the setting
 # If different Resolutions are specified then
 # the software will group the ROI's having the same
 # resolution and put each group in seperate nifti files
@@ -322,7 +332,18 @@ Timeseries Extraction Options
 # 60     0   52  6   4 1mm
 # 1     -54 -54  28  4 4mm
 # 7     -60 -24 -18  4 4mm
-seedSpecificationFile = '/path/to/seedSpecificationFile'
+
+seedSpecificationFile = '/path/to/seedSpecificationFile.txt'
+
+seedOutputLocation = '/full/path/to/seed_store'
+
+# use the seeds specified in seedSpecificationFile in the following analysis
+# 1 = use in roi timeseries extraction
+# 2 = use in voxel timeseries extraction
+# 3 = use in network centrality
+# users can specify a combination of these options
+useSeedInAnalysis = [1]
+
 
 # Extract an average timeseries for each ROI
 # Required if you wish to run ROI-based SCA
@@ -334,9 +355,11 @@ runROITimeseries = [0]
 # Options are True/False
 roiTSOutputs = [True, True]
 
-# Directory containing ROI definitions
+
+# Path to file containing ROI definitions
 # For best performance, all ROIs should be in a single file (see User Guide)
-roiDirectoryPath = '/path/to/roi_definitions_directory'
+roiSpecificationFile = '/path/to/path_to_file_with_roi_definitions.txt'
+
 
 # Extract timeseries data for all individual voxels within a mask
 # Required if you wish to run voxel-based SCA
@@ -350,7 +373,9 @@ voxelTSOutputs = [False, False]
 
 # Directory contaning masks
 # For best performance, all masks should be in a single file (see User Guide)
-maskDirectoryPath = '/path/to/mask_definitions_directory'
+
+maskSpecificationFile = '/path/to/mask_definitions_directory'
+
 
 # Register timeseries data to a surface model built by FreeSurfer
 # Required to run vertex timeseries extraction
@@ -452,15 +477,22 @@ correlationThresholdOption = 1
 # examples: 0.05, 0.0744, 0.6
 correlationThreshold = 0.0744
 
-# Directory containing ROI definitions or masks
+# File containing ROI definitions or masks
 # Using ROIs will result in node-based centrality measures
 # Using a mask will result in voxel-based centrality measures
-templateDirectoryPath = '/path/to/centrality_mask_roi_directory' 
+# Each line of file contains full path to ROI or mask files
+# Example:
+# /path/to/template_1.nii.gz
+# /path/to/template_2.nii.gz
+# /path/to/template_3.nii.gz
+templateSpecificationFile = '/path/to/file_containing_templates.txt'
 
-# Generate an adjacency matrix png image and matrix mat file
-# WARNING: Requires a very large amount of memory
-# Should not be enabled when calculating voxel-based graphs
-generateAdjacencyGraph = False
+
+# Memory allocated for degree centrality in GB
+# Note:- If eigen vector is turned on, CPAC will take extra memory to calculate 
+# eigen vector centrality. This memory is based on size of mask/template used. 
+memoryAllocatedForDegreeCentrality = 2
+
 
 """
 ====================================================

@@ -16,7 +16,7 @@ def create_func_datasource(rest_dict, wf_name = 'func_datasource'):
                         name='inputnode')
     inputnode.iterables = [('scan',  rest_dict.keys())]
     
-    selectrest = pe.Node(util.Function(input_names=['scan','rest_dict'],
+    selectrest = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
                                        output_names=['rest'],
                         function = get_rest ),
                          name  = 'selectrest')
@@ -64,48 +64,99 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
 
 
-def create_mask_dataflow(dirPath, wf_name = 'datasource_mask'):
+def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
 
     import nipype.interfaces.io as nio
     import os
 
-    masklist = [os.path.splitext(
-                    os.path.splitext(f)[0])[0]
-                    for f in os.listdir(dirPath)]
+    wf = pe.Workflow(name=wf_name)
+    masks = open(dirPath, 'r').readlines()
 
-    datasource = pe.Node(interface=nio.DataGrabber(
-                                        infields=['mask'],
-                                        outfields=['out_file']),
-                         name = wf_name)
-    datasource.inputs.base_directory = dirPath
-    datasource.inputs.template = '*'
-    datasource.inputs.field_template = dict(out_file='%s.nii*')
-    datasource.inputs.template_args = dict(out_file=[['mask']])
-    datasource.iterables = ('mask', masklist)
+    mask_dict = {}
+    for mask_file in masks:
 
-    return datasource
+        mask_file = mask_file.rstrip('\r\n')
+        base_file = os.path.basename(mask_file)
+        base_name = ''
+        if base_file.endswith('.nii'):
+            base_name = os.path.splitext(base_file)[0]
+        elif(base_file.endswith('.nii.gz')):
+            base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
+        else:
+            raise("File extension not in  .nii and .nii.gz File: %s" % mask_file)
+
+        if not (base_name in mask_dict):
+            mask_dict[base_name] = mask_file
+        else:
+            raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name] ))
+
+    inputnode = pe.Node(util.IdentityInterface(
+                            fields=['mask'],
+                            mandatory_inputs=True),
+                    name='inputspec')
+
+    inputnode.iterables = [('mask', mask_dict.keys())]
+
+    selectmask = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
+                                       output_names=['out_file'],
+                                       function=get_rest),
+                         name='select_mask')
+    selectmask.inputs.rest_dict = mask_dict
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                         name='outputspec')
+
+    wf.connect(inputnode, 'mask',
+               selectmask, 'scan')
+
+    wf.connect(selectmask, 'out_file',
+               outputnode, 'out_file')
+    return wf
 
 
-def create_roi_dataflow(dirPath, wf_name = 'datasource_roi'):
+def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
 
     import nipype.interfaces.io as nio
     import os
 
-    unitlist = [os.path.splitext(
-                    os.path.splitext(f)[0])[0]
-                    for f in os.listdir(dirPath)]
 
-    datasource = pe.Node(interface = nio.DataGrabber(
-                                        infields=['roi'],
-                                        outfields=['out_file']),
-                         name = wf_name)
-    datasource.inputs.base_directory = dirPath
-    datasource.inputs.template = '*'
-    datasource.inputs.field_template = dict(out_file='%s.nii*')
-    datasource.inputs.template_args = dict(out_file=[['roi']])
-    datasource.iterables = ('roi', unitlist)
+    wf = pe.Workflow(name=wf_name)
+    rois = open(dirPath, 'r').readlines()
 
-    return datasource
+    roi_dict = {}
+    for roi_file in rois:
+
+        roi_file = roi_file.rstrip('\r\n')
+        base_file = os.path.basename(roi_file)
+        base_name = ''
+        if base_file.endswith('.nii'):
+            base_name = os.path.splitext(base_file)[0]
+        elif(base_file.endswith('.nii.gz')):
+            base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
+        else:
+            raise("File extension not in  .nii and .nii.gz File: %s" % roi_file)
+
+        if not (base_name in roi_dict):
+            roi_dict[base_name] = roi_file
+        else:
+            raise ValueError('Files with same name not allowed %s %s' % (roi_file, roi_dict[base_name] ))
+
+    inputnode = pe.Node(util.IdentityInterface(
+                            fields=['roi'],
+                            mandatory_inputs=True),
+                    name='inputspec')
+
+    inputnode.iterables = [('roi', roi_dict.keys())]
+
+    selectroi = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
+                                       output_names=['out_file'],
+                                       function = get_rest),
+                         name  = 'select_roi')
+    selectroi.inputs.rest_dict = roi_dict
+
+    wf.connect(inputnode, 'roi',
+               selectroi, 'scan')
+    return wf
 
 
 def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):

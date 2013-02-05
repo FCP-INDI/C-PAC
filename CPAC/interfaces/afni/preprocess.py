@@ -1326,10 +1326,10 @@ class ThreedcalcInputSpec(AFNITraitedSpec):
     infile_b = File(desc='operand file to 3dcalc',
                          argstr=' -b %s', position=1)
     infile_c = File(desc='operand file to 3dcalc',
-                         argstr=' -c %s', position=1)
+                         argstr=' -c %s', position=2)
     infile_b_prime = traits.Str(desc='operand file to 3dcalc',
                           argstr=' -b %s', position=1)
-    expr = traits.Str(desc='expr', argstr='-expr %s', position=2,
+    expr = traits.Str(desc='expr', argstr='-expr %s', position=3,
                       mandatory=True)
     out_file = File(desc='output file from 3dFourier', argstr='-prefix %s',
                     position=-1, genfile=True)

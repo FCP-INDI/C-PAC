@@ -4,7 +4,7 @@ First Run
 # Specify which phenotypic variables and regressors to include in model
 # These names should match column names in template_phenotypic.csv
 columnsInModel = ['AgeAtScan', 'MeanFD', 'site', 'DxGroup']
-
+subjectColumn = 'subject_id'
 # Set a type for each of the variables/regressors entered above.
 # 1 = categorical, 0 = directional
 categoricalVsDirectional = [0, 0, 1, 1]
@@ -19,13 +19,14 @@ phenotypicFile = '/path/to/template_phenotypic.csv'
 subjectListFile = '/path/to/subject_list_group_analysis.txt'
 
 # IGNORE - not yet implemented
-groupingVariable = ['DxGroup']
+groupingVariable = 'DxGroup'
 
 # IGNORE - not yet implemented
 modelGroupVariancesSeparately = 0
 
 outputModelFile = '/home/ssikka/nki_nyu_pipeline/model_fsl.csv'
 
+outputModelFilesDirectory = '/home2/data/Projects/CPAC_Regression_Test/configs/group_models'
 # Specify a name for the model.
 modelName = 'my_model'
 

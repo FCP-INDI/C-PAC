@@ -31,7 +31,7 @@ def convert_pvalue_to_r(scans, threshold):
     return rvalue
     
 
-def convert_sparsity_to_r(rmatrix, threshold):
+def convert_sparsity_to_r(rmatrix, threshold, full_matrix):
     import numpy as np
     """
     Method to calculate correlation threshold from sparsity threshold
@@ -39,9 +39,12 @@ def convert_sparsity_to_r(rmatrix, threshold):
     Parameters
     ----------
     rmatrix : array_like
-        correaltion matrix
+        correlation matrix
     threshold : float
         input sparsity threshold
+    full_matrix : boolean
+        True, if sparsity threshold is calculated on the entire matrix
+        False, if sparsity threshold is calculated only for the block 
     
     Returns
     -------
@@ -52,14 +55,31 @@ def convert_sparsity_to_r(rmatrix, threshold):
 
     #SparsityThreshold=0.0744
     print "Sparsity threshold ->", threshold
-    s = rmatrix.shape[0]
-    upperT = np.triu(np.ones([s,s]) - np.eye(s)).astype('bool')
-    #getting only the upper triangle, since it is an symmetric matrix
-    val = rmatrix[upperT]
-    del upperT
-    val.sort()
-    size = np.round(val.size*threshold)
-    rvalue= val[-size:][0]
+    
+    def get_upper_triangle(matrix):
+        s = matrix.shape[0]
+        upperT = np.triu(np.ones([s,s]) - np.eye(s)).astype('bool')
+        #getting only the upper triangle, since it is an symmetric matrix
+        val = matrix[upperT]
+        return val
+    
+    
+    if full_matrix:
+        val = get_upper_triangle(rmatrix)
+        val.sort()
+        size = np.round(val.size*threshold)
+        rvalue= val[-size]
+    else:
+        #split the rmatrix into a square matrix and a rectangle block
+        val1= get_upper_triangle(rmatrix[:,:rmatrix.shape[0]])
+        val2 = rmatrix[:, rmatrix.shape[0]:].flatten()
+        #concatenate two arrays
+        val3 = np.concatenate([val1,val2])
+        #sort the array
+        val3.sort()
+        #calculating sparsity threshold for a block
+        size = np.round(val3.size*threshold)
+        rvalue = val3[-size]
     
     return rvalue
 
@@ -87,97 +107,52 @@ def load_mat(mat_file):
         matrix = np.load(mat_file)
     return matrix 
     
+
+
+def calc_threshold(option, 
+                   threshold,
+                   scans,
+                   corr_matrix= None,
+                   full_matrix = True):  
     
-def get_centrality_matrix(threshold_matrix, correlation_matrix, 
-                          weight_options, method_options):
     """
-    Method to calculate degree and eigen vector centrality
+    Method to calculate threshold based
+    on the threshold method chosen
     
     Parameters
     ----------
-    weight_options : string (list of boolean)
-        list of two booleans for binarize and weighted options respectively
-    method_options : string (list of boolean)
-        list of two booleans for binarize and weighted options respectively
-    threshold_matrix : string (numpy npy file)
-        path to file containing thresholded correlation matrix 
-    correlation_matrix : string (numpy npy file)
-        path to file containing correlation matrix
-    template_data : string (numpy npy file)
-        path to file containing mask or parcellation unit data    
+    option : an integer
+    threshold : a float
+        
+    scans : an integer
+    corr_matrix : numpy array
+    full_matrix : boolean
     
-    Returns
-    -------
-    out_list : string (list of tuples)
-        list of tuple containing output name to be used to store nifti image
-        for centrality and centrality matrix 
-    
-    Raises
+    Return 
     ------
-    Exception
+    r_value : a float
+        threshold value
+    
+    
     """
-    
-    import os
-    import scipy.sparse.linalg as LA
-    import numpy as np
-    
-    corr_matrix = load_mat(correlation_matrix)
-    adjacency_matrix = load_mat(threshold_matrix)
-    out_list=[]
-    
+        
+    print "threshold_option -->", option
+     
     try:
-        
-        try:
-            def getEigenVectorCentrality(matrix):
-                """
-                from numpy import linalg as LA
-                w, v = LA.eig(a)
-                index = np.argmax(w)
-                eigenValue = w.max()
-                eigenvector= v[index]
-                """
-                #using scipy method, which is a wrapper to the ARPACK functions
-                #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
-                eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM', maxiter=1000)
-                print "eigenValue : ", eigenValue
-                eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
-                return eigen_matrix
-        except:
-            raise Exception("Exception in calculating eigenvector centrality")
-        
-        if weight_options[0]:
-            
-            if method_options[0]:
-                print "calculating binarize degree centrality matrix..."
-                degree_matrix = adjacency_matrix.sum(axis=1) -1
-                out_list.append(('degree_centrality_binarize', degree_matrix))
-            
-            if method_options[1]:
-                print "calculating eigen vector centrality matrix..."
-                eigen_matrix_binarize = getEigenVectorCentrality(adjacency_matrix.astype(np.float))
-                out_list.append(('eigenvector_centrality_binarize', eigen_matrix_binarize))
-        
-        if weight_options[1]:
-            
-            weighted_adjacency_matrix = adjacency_matrix*corr_matrix
-            
-            if method_options[0]:
-                print "calculating weighted degree centrality matrix..."
-                degree_matrix = (weighted_adjacency_matrix).sum(axis=1) -1
-                out_list.append(('degree_centrality_weighted', degree_matrix))
-            
-            if method_options[1]:
-                print "calculating weighted eigen vector centrality matrix..."
-                eigen_matrix_weighted = getEigenVectorCentrality(weighted_adjacency_matrix)
-                out_list.append(('eigenvector_centrality_weighted', eigen_matrix_weighted))
-    
-    
-    except Exception:
-        print "Error while calculating centrality"
-        raise
-    
-    return out_list
-
+         if option == 0:
+             r_value = convert_pvalue_to_r(scans, threshold)
+         elif option == 1:
+             r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
+         else:
+             r_value = threshold
+    except:
+         print "Exception in calculating threshold value"
+         raise
+     
+    print "r_value --> ", r_value
+     
+    return r_value
+ 
 
 def map_centrality_matrix(centrality_matrix, affine, template_data, template_type):
     """
@@ -251,11 +226,109 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     except:
         print "Error in mapping centrality matrix to nifti image"
         raise
+   
+   
+def calc_corrcoef(X, Y=None):
+    """
+    Method to calculate correlation 
+    Each of the columns in X will be correlated 
+    with each of the columns in Y. Each column 
+    represents a variable, with the rows containing the observations.
+    
+    Parameters
+    ----------
+    X : numpy array
+       array of shape x1, x2
+    Y : numpy array
+      array of shape y1, y2
+    
+    Returns
+    -------
+    r : numpy array
+      array containing correlation values of shape x2, y2
+    
+    """
+    import numpy as np
+    
+    if Y is None:
+        Y = X
+    
+    if X.shape[0] != Y.shape[0]:
+        raise Exception("X and Y must have the same number of rows.")
+    
+    X = X.astype(float)
+    Y = Y.astype(float)
+    
+    X -= X.mean(axis=0)[np.newaxis,...]
+    Y -= Y.mean(axis=0)
+    
+    xx = np.sum(X**2, axis=0)
+    yy = np.sum(Y**2, axis=0)
+    
+    r = np.dot(X.T, Y)/np.sqrt(np.multiply.outer(xx,yy))
+    
+    return r
+
+
+def calc_blocksize (shape, memory_allocated = None):
+    """
+    Method to calculate blocksize to calculate correlation matrix
+    as per the memory allocated by the user. By default, the block
+    size is 1000. 
+    """
+    
+    import warnings
+    
+    block_size = 1000
+    
+    def get_size(num, unit):
         
-
-
-
+        for x in range(3):
+            if unit == 'GB':
+                num /= 1024.0
+            elif unit == 'bytes':
+                num *= 1024.0
+        return float(num)
+    
+    if memory_allocated:
+        block_size =  int(0.8*(get_size(memory_allocated, 'bytes') - shape[0]*shape[1]*8 - shape[0]*8*2)/(shape[0]*8*4 + shape[1]*8))
         
+    if block_size > shape[0]:
+        block_size = shape[0]
+    elif block_size < 1:
+        raise MemoryError(" Not enough memory available to perform degree centrality")
+            
+    print "block_size -> ", block_size
+    
+    
+    return block_size
+    
+    
+def check_timeseries(data):
+    """
+    Method to check if the array contains
+    any zeros values. If it contains zeros
+    then return the indices of those points. 
+    
+    Parameters
+    ---------
+    data : numpy array
+    
+    Returns
+    -------
+    index : list
+        indices of all where a
+    
+    data : 
+    """
+    index= np.where(np.all(data==0, axis=1))[0].tolist()
+    print "index where timeseries is zero ", index
+    
+    if index:
+        data = data[~np.all(data == 0, axis=1)]
+        print "new shape", data.shape
+        
+    return index, data 
 
     
     

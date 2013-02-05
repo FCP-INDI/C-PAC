@@ -27,8 +27,7 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr, \
-                             create_seeds_
+                             get_scan_params, get_tr
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -76,9 +75,15 @@ class strategy:
             self.resource_pool[key] = value
 
 def prep_workflow(sub_dict, c, strategies):
+    
     print '********************',c.standardResolutionBrain
-
-    subject_id = sub_dict['subject_id'] +"_"+ sub_dict['unique_id']
+    
+    if sub_dict['unique_id']:
+        subject_id = sub_dict['subject_id'] +"_"+ sub_dict['unique_id']
+    else:
+        subject_id = sub_dict['subject_id']
+        
+        
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
@@ -189,8 +194,8 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node, out_file,
                                  reg_anat_mni, 'inputspec.input_skull')
 
-                reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrain
-                reg_anat_mni.inputs.inputspec.reference_skull = c.standard
+                reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrainAnat
+                reg_anat_mni.inputs.inputspec.reference_skull = c.standardAnat
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -206,15 +211,15 @@ def prep_workflow(sub_dict, c, strategies):
 
             strat.append_name('anat_mni_register')
             strat.set_leaf_properties(reg_anat_mni, 'outputspec.output_brain')
-            
+
             strat.update_resource_pool({'anatomical_to_mni_linear_xfm':(reg_anat_mni, 'outputspec.linear_xfm'),
                                         'anatomical_to_mni_nonlinear_xfm':(reg_anat_mni, 'outputspec.nonlinear_xfm'),
                                         'mni_to_anatomical_linear_xfm':(reg_anat_mni, 'outputspec.invlinear_xfm'),
                                         'mni_normalized_anatomical':(reg_anat_mni, 'outputspec.output_brain')})
-            
+
             num_strat += 1
     strat_list += new_strat_list
-    
+
     """
     Inserting Segmentation Preprocessing
     Workflow
@@ -489,19 +494,16 @@ def prep_workflow(sub_dict, c, strategies):
             
             func_gm = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_gm_%d' % num_strat)
-            #func_gm.inputs.reference = c.standardResolutionBrain
             func_gm.inputs.apply_xfm = True
             func_gm.inputs.interp = 'nearestneighbour'
 
             func_csf = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_csf_%d' % num_strat)
-            #func_csf.inputs.reference = c.standardResolutionBrain
             func_csf.inputs.apply_xfm = True
             func_csf.inputs.interp = 'nearestneighbour'
 
             func_wm = pe.Node(interface=fsl.ApplyXfm(),
                                name='func_wm_%d' % num_strat)
-            #func_wm.inputs.reference = c.standardResolutionBrain
             func_wm.inputs.apply_xfm = True
             func_wm.inputs.interp = 'nearestneighbour'
 
@@ -1365,6 +1367,7 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
+
     """
      Voxel Based Time Series 
     """
@@ -1374,34 +1377,34 @@ def prep_workflow(sub_dict, c, strategies):
 
 
         for strat in strat_list:
-        
-            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(), 
-                                                  name='resample_functional_to_mask_%d'%num_strat)
+
+            resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_functional_to_mask_%d' % num_strat)
             resample_functional_to_mask.inputs.interp = 'nearestneighbour'
             resample_functional_to_mask.inputs.apply_xfm = True
             resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
-            
-            mask_dataflow = create_mask_dataflow(c.maskDirectoryPath, 'mask_dataflow_%d'%num_strat)
-            
-            voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d'%num_strat) 
+
+            mask_dataflow = create_mask_dataflow(c.maskSpecificationFile, 'mask_dataflow_%d' % num_strat)
+
+            voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
             voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
-        
+
             try:
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                
+
                 #resample the input functional file to mask 
                 workflow.connect(node, out_file,
-                                 resample_functional_to_mask,'in_file' )
-                workflow.connect(mask_dataflow, 'out_file',
+                                 resample_functional_to_mask, 'in_file' )
+                workflow.connect(mask_dataflow, 'select_mask.out_file',
                                  resample_functional_to_mask, 'reference')
-                
+
                 #connect it to the voxel_timeseries
-                workflow.connect(mask_dataflow, 'out_file',
+                workflow.connect(mask_dataflow, 'select_mask.out_file',
                                  voxel_timeseries, 'input_mask.mask')
-                workflow.connect(resample_functional_to_mask,'out_file',
+                workflow.connect(resample_functional_to_mask, 'out_file',
                                  voxel_timeseries, 'inputspec.rest')
-                
+
             except:
                 print 'Invalid Connection: Voxel TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -1414,62 +1417,55 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('voxel_timeseries')
-            
-            strat.update_resource_pool({'voxel_timeseries' : (voxel_timeseries, 'outputspec.mask_outputs')})
+
+            strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
 
             num_strat += 1
 
     strat_list += new_strat_list
-    
+
+
+
+
     """
     ROI Based Time Series
     """
     new_strat_list = []
     num_strat = 0
-    
+
     if 1 in c.runROITimeseries:
 
-        if not (c.seedSpecificationFile is None):
-
-            try:
-                if os.path.exists(c.seedSpecificationFile):
-                    seeds = create_seeds_(c.seedSpecificationFile, c.roiDirectoryPath, c.FSLDIR)
-                    print 'seeds created %s -> ' % seeds
-            except:
-                raise IOError
-
-
         for strat in strat_list:
-            
+
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(), 
                                                   name='resample_functional_to_roi_%d'%num_strat)
             resample_functional_to_roi.inputs.interp = 'nearestneighbour'
             resample_functional_to_roi.inputs.apply_xfm = True
             resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
-            
-            roi_dataflow = create_roi_dataflow(c.roiDirectoryPath, 'roi_dataflow_%d'%num_strat)
-            
+
+            roi_dataflow = create_roi_dataflow(c.roiSpecificationFile, 'roi_dataflow_%d'%num_strat)
+
             roi_timeseries = get_roi_timeseries('roi_timeseries_%d'%num_strat) 
             roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
-        
+
             try:
-                
+
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                
+
                 #resample the input functional file to roi
                 workflow.connect(node, out_file,
                                  resample_functional_to_roi,'in_file' )
-                workflow.connect(roi_dataflow, 'out_file',
+                workflow.connect(roi_dataflow, 'select_roi.out_file',
                                  resample_functional_to_roi, 'reference')
-                
+
                 #connect it to the roi_timeseries
-                workflow.connect(roi_dataflow,'out_file',
+                workflow.connect(roi_dataflow, 'select_roi.out_file',
                                  roi_timeseries, 'input_roi.roi')
                 workflow.connect(resample_functional_to_roi, 'out_file',
                                  roi_timeseries, 'inputspec.rest')
-                
+
             except:
                 print 'Invalid Connection: ROI TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -1482,15 +1478,15 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('roi_timeseries')
-            
+
             strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
 
             num_strat += 1
 
     strat_list += new_strat_list
-    
+
 
     """
     Inserting SCA
@@ -1857,6 +1853,7 @@ def prep_workflow(sub_dict, c, strategies):
     num_strat = 0
     
     if 1 in c.runNetworkCentrality:
+
         for strat in strat_list:
             
             
@@ -1867,9 +1864,9 @@ def prep_workflow(sub_dict, c, strategies):
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
             
-            template_dataflow = create_mask_dataflow(c.templateDirectoryPath, 'template_dataflow_%d'%num_strat)
+            template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d'%num_strat)
             
-            network_centrality = create_resting_state_graphs(c.generateAdjacencyGraph, 'network_centrality_%d'%num_strat)
+            network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d'%num_strat)
             network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
             network_centrality.inputs.inputspec.threshold = c.correlationThreshold
             network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
@@ -1883,13 +1880,13 @@ def prep_workflow(sub_dict, c, strategies):
                 
                 #resample the input functional file to template(roi/mask) 
                 workflow.connect(node, out_file,
-                                 resample_functional_to_template,'in_file' )
-                workflow.connect(template_dataflow, 'out_file',
+                                 resample_functional_to_template, 'in_file' )
+                workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
                 
                 workflow.connect(resample_functional_to_template, 'out_file',
                                  network_centrality, 'inputspec.subject')
-                workflow.connect(template_dataflow, 'out_file',
+                workflow.connect(template_dataflow, 'outputspec.out_file',
                                  network_centrality, 'inputspec.template')
 
 
@@ -1897,8 +1894,6 @@ def prep_workflow(sub_dict, c, strategies):
     
                 strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
                 
-                if c.generateAdjacencyGraph:
-                    strat.update_resource_pool({'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
         
                 #if smoothing is required
                 if len(c.fwhm) > 0 :
@@ -1911,13 +1906,13 @@ def prep_workflow(sub_dict, c, strategies):
 
                     
                     #calculate zscores
-                    workflow.connect(template_dataflow, 'out_file',
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
                                      z_score, 'inputspec.input_file')
                     
                     #connecting zscores to smoothing
-                    workflow.connect(template_dataflow, 'out_file',
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
                                      smoothing, 'operand_files')
                     workflow.connect(z_score, 'outputspec.z_score_img',
                                     smoothing, 'in_file')
@@ -2087,14 +2082,19 @@ def prep_workflow(sub_dict, c, strategies):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
-    try:
-        if os.path.exists(sub_w_path) and c.removeWorkingDir:
-            import shutil
-            print "removing dir -> ", sub_w_path
-            shutil.rmtree(sub_w_path)
-    except:
-        print "Couldn't remove subjects %s working directory"%(wf_name)
-        pass
+    
+    if c.removeWorkingDir:
+        try:
+            if os.path.exists(sub_w_path):
+                import shutil
+                print "removing dir -> ", sub_w_path
+                shutil.rmtree(sub_w_path)
+        except:
+            print "Couldn't remove subjects %s working directory"%(wfname)
+            pass
+    
+    print "End of subject workflow ", wfname
+    
     return workflow
 
 

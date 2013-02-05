@@ -1,9 +1,9 @@
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.network_centrality import *
 
-def create_resting_state_graphs(generate_graph = False, wf_name = 'resting_state_graph'):
+def create_resting_state_graphs(allocated_memory = None,
+                                wf_name = 'resting_state_graph'):
     """
     Workflow to calculate degree and eigenvector centrality
     measures for the resting state data.
@@ -140,56 +140,35 @@ def create_resting_state_graphs(generate_graph = False, wf_name = 'resting_state
                read_data, 'template')
     
     
-    find_correlation = pe.Node(util.Function(input_names = ['timeseries_data'],
-                                        output_names = ['correlation_matrix'],
-                                        function = calculate_correlation ),
-                          name = 'find_correlation')
-    
-    wf.connect(read_data, 'timeseries_data', 
-               find_correlation, 'timeseries_data')
-    
-    wf.connect(find_correlation, 'correlation_matrix',
-               outputspec, 'correlation_matrix')
-    
-    threshold_correlation = pe.Node(util.Function(input_names = ['corr_matrix',  
-                                                                 'option', 
-                                                                 'threshold',
-                                                                 'scans'],
-                                                output_names = ['threshold_matrix'],
-                                                function = threshold_rmatrix),
-                                  name = 'threshold_correlation')
-    
-    wf.connect(read_data, 'scans', 
-               threshold_correlation, 'scans')
-    wf.connect(find_correlation, 'correlation_matrix',
-               threshold_correlation, 'corr_matrix')
-    wf.connect(inputspec, 'threshold', 
-               threshold_correlation, 'threshold')
-    wf.connect(inputspec, 'threshold_option', 
-               threshold_correlation, 'option')
-    
-    wf.connect(threshold_correlation, 'threshold_matrix',
-               outputspec, 'threshold_matrix')
-    
-    calculate_centrality = pe.Node(util.Function(input_names = ['threshold_matrix',
-                                                                'correlation_matrix',
-                                                                'template_data',
-                                                                'affine',
+    calculate_centrality = pe.Node(util.Function(input_names = ['method_options', 
                                                                 'weight_options',
-                                                                'method_options',
-                                                                'template_type'],
+                                                                'option',
+                                                                'threshold',
+                                                                'timeseries_data',
+                                                                'scans',
+                                                                'template_type',
+                                                                'template_data', 
+                                                                'affine',
+                                                                'allocated_memory'],
                                                  output_names = ['out_list'],
-                                                 function = get_centrality),
+                                                 function = calc_centrality),
                                    name = 'calculate_centrality')
+    
     
     wf.connect(centrality_options, 'method_options',
                calculate_centrality, 'method_options')
     wf.connect(centrality_options, 'weight_options',
                calculate_centrality, 'weight_options')
-    wf.connect(find_correlation, 'correlation_matrix',
-               calculate_centrality, 'correlation_matrix')
-    wf.connect(threshold_correlation, 'threshold_matrix',
-               calculate_centrality, 'threshold_matrix')
+    
+    wf.connect(inputspec, 'threshold', 
+               calculate_centrality, 'threshold')
+    wf.connect(inputspec, 'threshold_option', 
+               calculate_centrality, 'option')
+    
+    wf.connect(read_data, 'timeseries_data', 
+               calculate_centrality, 'timeseries_data')
+    wf.connect(read_data, 'scans', 
+               calculate_centrality, 'scans')
     wf.connect(read_data, 'mask_data',
                 calculate_centrality, 'template_data')
     wf.connect(read_data, 'affine',
@@ -197,37 +176,12 @@ def create_resting_state_graphs(generate_graph = False, wf_name = 'resting_state
     wf.connect(read_data, 'mask_type',
                calculate_centrality, 'template_type')
     
+    calculate_centrality.inputs.allocated_memory = allocated_memory
+    
     wf.connect(calculate_centrality, 'out_list',
                outputspec, 'centrality_outputs')
     
-    if generate_graph:
-    
-        generate_graph = pe.Node(util.Function(input_names = ['threshold_matrix',
-                                                              'correlation_matrix',
-                                                              'weight_options',
-                                                              'template_data',
-                                                              'template_type'],
-                                                  output_names= ['out_list'],
-                                                  function= generate_adjacency_graph),
-                                    name = 'generate_graph')
-        
-        
-        wf.connect(centrality_options, 'weight_options',
-                   generate_graph, 'weight_options')
-        wf.connect(find_correlation, 'correlation_matrix',
-                   generate_graph, 'correlation_matrix')
-        wf.connect(threshold_correlation, 'threshold_matrix',
-                   generate_graph, 'threshold_matrix')
-        wf.connect(read_data, 'mask_data',
-                   generate_graph, 'template_data')
-        wf.connect(read_data, 'mask_type',
-                   generate_graph, 'template_type')
-        
-        wf.connect(generate_graph, 'out_list',
-                   outputspec, 'graph_outputs')
-    
     return wf
-
 
 
 
@@ -274,9 +228,9 @@ def load(datafile, template):
         else:
             img = nib.load(datafile) 
         
-        data = img.get_data()
+        data = img.get_data().astype(np.float32)
         aff = img.get_affine()    
-        mask = nib.load(template).get_data()   
+        mask = nib.load(template).get_data().astype(np.float32)  
         scans = data.shape[3]
         
     except:
@@ -330,123 +284,16 @@ def load(datafile, template):
     return timeseries_data, affine, mask_data, template_type, scans
 
 
-
-def calculate_correlation(timeseries_data):
-    """
-    Method to calculate correlation between 
-    each voxel or node of data present in the 
-    template
-    
-    Parameters
-    ----------
-    timeseries_data : string (numpy matrix file)
-        Path to file containing data matrix
-    
-    Returns
-    -------
-    corr_file : string (mat file)
-        path to file containing the correlation matrix
+def get_centrality(timeseries_data, 
+                   method_options,
+                   weight_options,
+                   threshold,
+                   option,
+                   scans,
+                   memory_allocated):
     
     """
-    
-    import os
-    import numpy as np
-    from CPAC.network_centrality import load_mat
-    
-    timeseries = load_mat(timeseries_data)
-    r_matrix = np.corrcoef(timeseries)
-    r_matrix = np.nan_to_num(r_matrix)
-    cwd = os.getcwd()
-    
-    print "shape of correlation matrix", r_matrix.shape
-    
-    corr_mat_file = os.path.join(cwd, 'r_matrix.npy')
-    np.save(corr_mat_file,r_matrix)
-    
-    return corr_mat_file
-
-
-
-def threshold_rmatrix(corr_matrix, option, 
-                      threshold, scans):
-    
-    """
-    Method to threshold the correaltion matrix based on 
-    any of the two threshold options- sparsity, probability
-    or by simply providing correlation threshold. it is two 
-    step process, first calculate the threshold and then apply
-    the threshold to the correlation matrix.
-    
-    Parameters
-    ----------
-    corr_matrix : string (numpy npy file)
-        patht o file containing correlation matrix
-    option : string (int)
-        list of threshold option: 0 for pvalue, 1 for sparsity, 
-        any other for simply correlation threshold 
-    threshold : string (float)
-        pvalue/sparsity_threshold/correaltion_threshold
-    scans : string (int)
-        Total number of scans in input data
-        
-    Returns
-    -------
-    threshold_file : string (numpy npy file)
-        file containing threshold correlation matrix
-    
-    Raises
-    ------
-    Exception
-    """
-    
-    import numpy as np
-    import os
-    from CPAC.network_centrality import load_mat,\
-                                        convert_pvalue_to_r,\
-                                        convert_sparsity_to_r
-    
-    try:
-        r_matrix = load_mat(corr_matrix)
-       
-        print "threshold_option -->", option
-        
-        try:
-            if option == 0:
-                r_value = convert_pvalue_to_r(scans, threshold)
-            elif option == 1:
-                r_value = convert_sparsity_to_r(r_matrix, threshold)
-            else:
-                r_value = threshold
-        except:
-            print "Exception in calculating thresold value"
-            raise
-        
-        print "correlation threshold value -> ", r_value
-        print "thresholding the correlation matrix...."
-        
-        threshold_matrix = r_matrix > r_value
-        
-        threshold_file = os.path.join(os.getcwd(), 'threshold_matrix.npy')
-        np.save(threshold_file, threshold_matrix.astype(np.float))
-    
-    except Exception:
-        print "Exception while thresholding correlation matrix"
-        raise
-    
-    return threshold_file
-
-
-
-
-def get_centrality(weight_options, method_options, 
-                   threshold_matrix, correlation_matrix,
-                   template_data, affine, template_type):
-    
-    """
-    Method to calculate centrality measures
-    for resting state data. It is two step process
-    first calculate the centrality and then map the 
-    centrality matrix to a nifti file.
+    Method to calculate degree and eigen vector centrality
     
     Parameters
     ----------
@@ -459,148 +306,366 @@ def get_centrality(weight_options, method_options,
     correlation_matrix : string (numpy npy file)
         path to file containing correlation matrix
     template_data : string (numpy npy file)
-        path to file containing mask or parcellation unit data
-    affine : string (numpy npy file)
-        path to file containing affine matrix of input data
-    template_type : string 
-      o for mask, 1 for parcellation_unit
+        path to file containing mask or parcellation unit data    
     
     Returns
     -------
-    out_list : string (list of files)
-        nifti images for each input weight options and 
-        centrality methods
+    out_list : string (list of tuples)
+        list of tuple containing output name to be used to store nifti image
+        for centrality and centrality matrix 
     
     Raises
     ------
     Exception
     """
-    from CPAC.network_centrality import map_centrality_matrix,\
-                                        get_centrality_matrix
     
-    out_list =[]
+    import os
+    import numpy as np
+    from CPAC.network_centrality import load_mat,\
+                                        calc_corrcoef,\
+                                        calc_blocksize,\
+                                        calc_threshold,\
+                                        calc_eigenV
+    
+    from scipy.sparse import csc_matrix
+    
+    out_list=[]
     
     try:
+        
+        timeseries = load_mat(timeseries_data)
+        shape = timeseries.shape
+        block_size = calc_blocksize(shape, memory_allocated)
+        corr_matrix = np.zeros((shape[0], shape[0]), dtype = np.float16)
+        j=0
+        i = block_size
+        
+        while i <= timeseries.shape[0]:
+            print "block ->", i,j 
+            temp_matrix = np.nan_to_num(calc_corrcoef(timeseries[j:i].T, timeseries.T))
+            corr_matrix[j:i] = temp_matrix
+            j = i   
+            if i == timeseries.shape[0]:
+                break
+            elif (i+block_size) > timeseries.shape[0]: 
+                i = timeseries.shape[0] 
+            else:
+                i += block_size
+        
+        r_value = calc_threshold(option, 
+                                 threshold, 
+                                 scans, 
+                                 corr_matrix,
+                                 full_matrix = True)
+        
+        print "r_value ->", r_value
+                
+        if method_options[0]:
+            
+            print "calculating binarize degree centrality matrix..."
+            degree_matrix = np.sum( corr_matrix > r_value , axis = 1)  -1
+            out_list.append(('degree_centrality_binarize', degree_matrix))
+            
+            print "calculating weighted degree centrality matrix..."
+            degree_matrix = np.sum( corr_matrix*(corr_matrix > r_value), axis= 1) -1
+            out_list.append(('degree_centrality_weighted', degree_matrix))
+            
+        
+        if method_options[1]:
+            out_list.extend(calc_eigenV(corr_matrix, 
+                                           r_value, 
+                                           weight_options))
     
-        if not method_options or not weight_options :
-            raise Exception("Invalid options, method option"\
-                            "and weight options are required") 
-    
-        if True not in method_options or True not in weight_options:
-            raise Exception("Invalid method or weight options"\
-                             "atleast one True value is required")
-    
-        def get_image(matrix, template_type):
-            centrality_image = map_centrality_matrix(matrix, 
-                                                    affine, 
-                                                    template_data,
-                                                    template_type)
-            out_list.append(centrality_image)
-        
-        
-        centrality_matrix = get_centrality_matrix(threshold_matrix, 
-                                                  correlation_matrix, 
-                                                  weight_options,
-                                                  method_options)
-        
-        for mat in centrality_matrix:
-                get_image(mat, template_type)
-        
     except Exception:
-        print "Exception in calculating centrality measures"
+        print "Error while calculating centrality"
         raise
-         
+    
     return out_list
 
+
+
+def get_centrality_opt(timeseries_data,
+                       method_options,
+                       weight_options,
+                       memory_allocated,
+                       threshold,
+                       scans,
+                       r_value = None):
     
-def generate_adjacency_graph(correlation_matrix, threshold_matrix, 
-                             weight_options, template_data,template_type):
     """
-    Method to store the adjacency matrix as a compress sparse matrix which
-    can be loaded inot matlab. The method also create a png image of the 
-    graph.
+    Method to calculate degree and eigen vector centrality. 
+    This method takes into consideration the amount of memory
+    allocated by the user to calculate degree centrality.
     
     Parameters
     ----------
-    correlation_matrix : string (numpy matrix file)
-        path to correlation matrix file
-    threshold_matrix : string (numpy matrix file)
-        path to thresholded correlation matrix file
-    weight_options: boolean
-        True for weighted and False for binarize
-    template_data : string (numpy matrix file)
-        path to file containing parcellation unit
-    template_type : string
-        0 for mask, 1 for parcellation unit
+    timeseries_data : numpy array
+        timeseries of the input subject
+    weight_options : string (list of boolean)
+        list of two booleans for binarize and weighted options respectively
+    method_options : string (list of boolean)
+        list of two booleans for binarize and weighted options respectively
+    memory_allocated : a string
+        amount of memory allocated to degree centrality
+    scans : an integer
+        number of scans in the subject
+    r_value :a float
+        threshold value
+    
+    Returns
+    -------
+    out_list : string (list of tuples)
+        list of tuple containing output name to be used to store nifti image
+        for centrality and centrality matrix 
+    
+    Raises
+    ------
+    Exception
+    """
+    
+    
+    import numpy as np
+    import os
+    from CPAC.network_centrality import load_mat,\
+                                        calc_corrcoef,\
+                                        calc_blocksize,\
+                                        calc_eigenV,\
+                                        calc_threshold
+    #from scipy.sparse import dok_matrix
+    
+    try:                                    
+        out_list =[]
+        timeseries = load_mat(timeseries_data)
+        shape = timeseries.shape
+        try:
+            block_size = calc_blocksize(shape, memory_allocated)
+        except:
+           raise Exception("Error in calculating block size")
+        
+        r_matrix = None
+        
+        if method_options[0]:
+            if weight_options[0]:
+                degree_mat_binarize = np.zeros(shape[0], dtype= np.float32)
+                out_list.append(('degree_centrality_binarize', degree_mat_binarize))
+    
+            if weight_options[1]:
+                degree_mat_weighted = np.zeros(shape[0], dtype = np.float32)
+                out_list.append(('degree_centrality_weighted', degree_mat_weighted))
+            
+        if method_options[1]:
+            r_matrix = np.zeros((shape[0], shape[0]), dtype = np.float32)
+    
+        j=0
+        i = block_size
+        
+        while i <= timeseries.shape[0]:
+           
+           print "running block ->", i, j 
+           try:
+               corr_matrix = np.nan_to_num(calc_corrcoef(timeseries[j:i].T, timeseries.T))
+           except:
+               raise Exception("Error in calcuating block wise correlation for the block %,%"%(j,i))
+           
+           if r_value == None:
+                r_value = calc_threshold(1, threshold, scans, corr_matrix, full_matrix = False)
+    
+           if method_options[1]:
+               r_matrix[j:i] = corr_matrix 
+    
+           if method_options[0]:
+               if weight_options[0]:
+                   degree_mat_binarize[j:i] = np.sum((corr_matrix > r_value).astype(np.float32), axis = 1) -1
+               if weight_options[1]:
+                   degree_mat_weighted[j:i] = np.sum(corr_matrix*(corr_matrix > r_value).astype(np.float32), axis = 1) -1
+        
+           j = i   
+           if i == timeseries.shape[0]:
+               break
+           elif (i+block_size) > timeseries.shape[0]: 
+               i = timeseries.shape[0] 
+           else:
+               i += block_size    
+        
+        try:
+            if method_options[1]:
+                out_list.extend(calc_eigenV(r_matrix, r_value, weight_options))
+        except Exception:
+            print "Error in calcuating eigen vector centrality"
+            raise
+        
+        return out_list   
+    
+    except Exception: 
+        print "Error in calcuating Centrality"
+        raise
+ 
+ 
+def calc_eigenV(r_matrix, 
+                r_value, 
+                weight_options):
+    
+    """
+    Method to calculate Eigen Vector Centrality
+    
+    Parameters
+    ----------
+    
+    r_matrix : numpy array
+        correlation matrix
+    r_value : a float
+        threshold value
+    weight_options : list (boolean)
+        list of two booleans for binarize and weighted options respectively
+        
         
     Returns
     -------
-    out_matrix : string (mat file)
-        compressed sparse matrix
-    out_img : string (png file)
-        path to graph image file
-            
-    """
-    from pylab import imsave
-    import os
-    from scipy.sparse import lil_matrix, csc_matrix
-    from scipy.io import savemat
-    from CPAC.network_centrality import load_mat
+    out_list : list
+        list containing eigen vector centrality maps
+        
     
+    """
+    
+    
+    import scipy.sparse.linalg as LA
+    import numpy as np
+    from scipy.sparse import csc_matrix    
+
     out_list =[]
     
-    #if int(template_type)==1:
-    
-    thresh_matrix = load_mat(threshold_matrix)
-    corr_matrix = load_mat(correlation_matrix)
-    
-    if isinstance(template_data, list):
-        mask_name = os.path.splitext(os.path.basename(template_data[0]))[0]
-    else:
-        mask_name = os.path.splitext(os.path.basename(template_data))[0]
-    
-    
-    def save(filename, key, matrix):
-        import os
-        
-        out_matrix = os.path.join(os.getcwd(),filename + ".mat")
-        out_img = os.path.join(os.getcwd(), filename + ".png")
-        savemat(out_matrix, {key: matrix})
-        print out_matrix
-        print out_img
-        out_list.append(out_matrix)
-        imsave(out_img, matrix.todense())
-        out_list.append(out_img)
-    
     try:
-        
-        if weight_options[0]:
-            spedgemat = lil_matrix(thresh_matrix)
-            spcscmat = csc_matrix(spedgemat)
-            del spedgemat
-            filename = mask_name + "_adjacency_matrix"
-            save(filename, 'unit_graph', spcscmat)
-        
-        elif weight_options[1]:
-            matrix = thresh_matrix * corr_matrix
-            spedgemat = lil_matrix (matrix)
-            spcscmat = csc_matrix (spedgemat)
-            del spedgemat
-            filename = mask_name +"_weighted_adjacency_matrix"
-            save(filename,'unit_graph', spcscmat)
-            
-    except Exception:
-        print "Not Enough Memory available to generate sparse matrix"
-        raise
-    #else:
-    #    print "No voxel based sparse matrix generation, matrix size is too huge"
-        
+        def getEigenVectorCentrality(matrix):
+            """
+            from numpy import linalg as LA
+            w, v = LA.eig(a)
+            index = np.argmax(w)
+            eigenValue = w.max()
+            eigenvector= v[index]
+            """
+            #using scipy method, which is a wrapper to the ARPACK functions
+            #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
+            eigenValue, eigenVector= LA.eigsh(matrix, k=1, which='LM', maxiter=1000)
+            print "eigenValues : ", eigenValue
+            eigen_matrix=(matrix.dot(np.abs(eigenVector)))/eigenValue[0]
+            return eigen_matrix
+    except:
+        raise Exception("Exception in calculating eigenvector centrality")
     
+    if weight_options[0]:
+        print "calculating eigen vector centrality matrix..."
+        eigen_matrix_binarize = getEigenVectorCentrality(csc_matrix((r_matrix> r_value).astype(np.float32)))        
+        out_list.append(('eigenvector_centrality_binarize', eigen_matrix_binarize))
+    
+    if weight_options[1]:
+        print "calculating weighted eigen vector centrality matrix..."
+        eigen_matrix_weighted = getEigenVectorCentrality(csc_matrix(r_matrix*(r_matrix > r_value).astype(np.float32)))        
+        out_list.append(('eigenvector_centrality_weighted', eigen_matrix_weighted))
+        
     return out_list
+
+
+def calc_centrality(method_options, 
+                    weight_options,
+                    option,
+                    threshold,
+                    timeseries_data,
+                    scans,
+                    template_type,
+                    template_data, 
+                    affine,
+                    allocated_memory):
+    
+    """
+    Method to calculate centrality and map them to a nifti file
+    
+    Parameters
+    ----------
+        
+    method_options : list (boolean)
+        list of two booleans for binarize and weighted options respectively
+    weight_options : list (boolean)
+        list of two booleans for binarize and weighted options respectively
+    option : an integer
+        0 for probability p_value, 1 for sparsity threshold, 
+        any other for threshold value
+    threshold : a float
+        pvalue/sparsity_threshold/threshold value
+    timeseries_data : string (numpy filepath)
+        timeseries of the input subject
+    scans : an integer
+        number of scans in the subject
+    template_type : an integer
+        0 for mask, 1 for roi
+    template_data : string (numpy filepath)
+        path to file containing mask/parcellation unit matrix
+    affine : string (filepath)
+        path to file containing affine matrix of the input data
+    allocated_memory : string
+        amount of memory allocated to degree centrality
     
     
+    Returns
+    -------
+    out_list : list
+        list containing out mapped centrality images
+        
+    """
     
+    from CPAC.network_centrality import map_centrality_matrix,\
+                                        get_centrality, \
+                                        get_centrality_opt,\
+                                        calc_threshold
     
+    out_list = []
     
-    
-    
+    if method_options.count(True) == 0:  
+        raise Exception("Invalid values in method_options " \
+                        "Atleast one True value is required")
+   
+    if weight_options.count(True) == 0:
+        raise Exception("Invalid values in weight options" \
+                        "Atleast one True value is required")
+   
+    #for sparsity threshold
+    if option == 1 and allocated_memory == None:
+        
+        centrality_matrix = get_centrality(timeseries_data, 
+                                           method_options,
+                                           weight_options,
+                                           threshold,
+                                           option,
+                                           scans,
+                                           allocated_memory)
+    #optimized centrality
+    else:
+        
+        if option ==1 :
+            r_value = None
+        else:
+            r_value = calc_threshold(option, 
+                                     threshold,
+                                     scans)
+        
+        print "inside optimized_centraltity, r_value ->", r_value
+        
+        centrality_matrix = get_centrality_opt(timeseries_data,
+                                               method_options, 
+                                               weight_options,
+                                               allocated_memory,
+                                               threshold,
+                                               scans,
+                                               r_value)     
+        
+    def get_image(matrix, template_type):
+        
+        centrality_image = map_centrality_matrix(matrix, 
+                                                 affine, 
+                                                 template_data,
+                                                 template_type)
+        out_list.append(centrality_image) 
+         
+    for mat in centrality_matrix:
+        get_image(mat, template_type)
+               
+    return out_list
