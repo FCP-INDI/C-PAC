@@ -206,7 +206,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print commands.getoutput('qsub  %s ' % (subject_bash_file))
 
 
-def append_seeds_to_file(seed_list, seed_file):
+def append_seeds_to_file(working_dir, seed_list, seed_file):
 
     existing_seeds = []
     filtered_list = []
@@ -235,7 +235,7 @@ def append_seeds_to_file(seed_list, seed_file):
         #make tempfile and add seeds to it
         import tempfile
 
-        some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=c.workingDirectory, text=True)
+        some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=working_dir, text=True)
 
         f_handle = open(f_name, 'w')
 
@@ -277,19 +277,19 @@ def run(config_file, subject_list_file):
 
         if 2 in c.useSeedInAnalysis:
 
-            c.maskSpecificationFile = append_seeds_to_file(seeds_created, c.maskSpecificationFile)
+            c.maskSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.maskSpecificationFile)
 
     if 1 in c.runROITimeseries:
 
         if 1 in c.useSeedInAnalysis:
 
-            c.roiSpecificationFile = append_seeds_to_file(seeds_created, c.roiSpecificationFile)
+            c.roiSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFile)
 
     if 1 in c.runNetworkCentrality:
 
         if 3 in c.useSeedInAnalysis:
 
-            c.templateSpecificationFile = append_seeds_to_file(seeds_created, c.templateSpecificationFile)
+            c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
 
 
     if not c.runOnGrid:
