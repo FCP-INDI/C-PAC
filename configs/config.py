@@ -480,6 +480,8 @@ templateSpecificationFile = '/path/to/file_containing_templates.txt'
 
 
 # Memory allocated for degree centrality in GB
+# Note:- If eigen vector is turned on, CPAC will take extra memory to calculate 
+# eigen vector centrality. This memory is based on size of mask/template used. 
 memoryAllocatedForDegreeCentrality = 2
 
 """
