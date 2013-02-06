@@ -235,6 +235,15 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
         #make tempfile and add seeds to it
         import tempfile
 
+        try:
+            if not os.path.exists(working_dir):
+                os.makedirs(working_dir)
+
+        except Exception, e:
+
+            print 'error encountered : ', e
+            raise
+
         some_number, f_name = tempfile.mkstemp(suffix='.txt', prefix='temp_roi_seeds', dir=working_dir, text=True)
 
         f_handle = open(f_name, 'w')
