@@ -137,11 +137,10 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     import pickle
     from time import strftime
 
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
-    sys.path.append(path)
-    s = __import__(fname.split('.')[0])
-
-    sublist = s.subjects_list
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     shell = commands.getoutput('echo $SHELL')
 
@@ -177,12 +176,11 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     from time import strftime
 
 
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
-    sys.path.append(path)
-    s = __import__(fname.split('.')[0])
-
-    sublist = s.subjects_list
-
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
+    
     temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
     shell = commands.getoutput('echo $SHELL')
     subject_bash_file = os.path.join(temp_files_dir, 'submit_%s.pbs' % str(strftime("%Y_%m_%d_%H_%M_%S")))
@@ -261,7 +259,10 @@ def run(config_file, subject_list_file):
 
     c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
-    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     strategies = sorted(build_strategies(c))
 

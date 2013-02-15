@@ -199,7 +199,7 @@ prior_path: /path/to/tissuepriors/$standardResolution
 
 # These values will be set automatically based on prior_path
 PRIOR_CSF: $prior_path/avg152T1_csf_bin.nii.gz
-PRIOR_GRAY: $prior_path}/avg152T1_gray_bin.nii.gz
+PRIOR_GRAY: $prior_path/avg152T1_gray_bin.nii.gz
 PRIOR_WHITE: $prior_path/avg152T1_white_bin.nii.gz
 
 # Set thresholds for use during automatic tissue segmentation.

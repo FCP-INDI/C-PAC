@@ -7,6 +7,7 @@ import os
 import sys
 import glob
 
+from CPAC.utils import Configuration
 
 def split_folders(path):
     folders = []
@@ -153,11 +154,9 @@ def run(config_file, output_path_file):
     import re
     import os
     import glob
+    import yaml
 
-
-    path, fname = os.path.split(os.path.realpath(config_file))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
+    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
     subject_paths = []
 

@@ -2105,9 +2105,13 @@ def run(config, subject_list_file, indx, strategies):
     import pickle
     import yaml
     
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-
-    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))        
+    
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     sub_dict = sublist[int(indx) - 1]
 

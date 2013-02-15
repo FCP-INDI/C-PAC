@@ -8,7 +8,7 @@ import sys
 import glob
 
 from CPAC.utils.datasource import create_gpa_dataflow
-
+from CPAC.utils import Configuration
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
     print 'Preparing Group Analysis workflow for resource', resource
@@ -157,11 +157,9 @@ def run(config, subject_infos, resource):
     import os
     import sys
     import pickle
-
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
-
+    import yaml
+    
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
     prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
 
