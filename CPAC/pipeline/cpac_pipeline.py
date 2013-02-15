@@ -25,6 +25,7 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries,\
                             get_roi_timeseries, get_vertices_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
+from CPAC.utils import Configuration
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
                              get_scan_params, get_tr
@@ -34,6 +35,7 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
 import zlib
 import linecache
+from string import Template
 
 class strategy:
 
@@ -73,6 +75,8 @@ class strategy:
                 print 'Warning key %s already exists in resource pool, replacing with %s ' % (key, value)
 
             self.resource_pool[key] = value
+            
+
 
 def prep_workflow(sub_dict, c, strategies):
     
@@ -1938,14 +1942,6 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-#            strat.append_name('network_centrality')
-#            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
-            num_strat += 1
-
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
             num_strat += 1
 
     strat_list += new_strat_list  
@@ -2107,17 +2103,11 @@ def run(config, subject_list_file, indx, strategies):
     import sys
     import argparse
     import pickle
+    import yaml
+    
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
-
-
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
-    sys.path.append(path)
-    s = __import__(fname.split('.')[0])
-
-    sublist = s.subjects_list
+    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
 
     sub_dict = sublist[int(indx) - 1]
 

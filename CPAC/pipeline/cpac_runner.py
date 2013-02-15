@@ -5,7 +5,8 @@ import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
 from CPAC.utils.utils import create_seeds_
-
+from CPAC.utils import Configuration
+import yaml
 
 def get_vectors(strat):
 
@@ -258,17 +259,9 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 def run(config_file, subject_list_file):
 
+    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
-    path, fname = os.path.split(os.path.realpath(config_file))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
-
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
-    sys.path.append(path)
-    s = __import__(fname.split('.')[0])
-
-    sublist = s.subjects_list
-
+    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
 
     strategies = sorted(build_strategies(c))
 

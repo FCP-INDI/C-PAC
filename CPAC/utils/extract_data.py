@@ -3,6 +3,7 @@ import os
 import glob
 import string
 import logging
+import yaml
 
 #logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
 #                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
@@ -191,7 +192,7 @@ def extract_data(c, param_map):
     anat_session_present, anat_session_path, anat_relative = \
         check_for_sessions(anat_relative, anat_relative_len)
 
-    f = open("CPAC_subject_list.py", 'wb')
+    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml"), 'wb')
 
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
@@ -219,28 +220,25 @@ def extract_data(c, param_map):
         try:
 
             def print_begin_of_file(sub, session_id):
-                print >> f, "{"
-                print >> f, "    'subject_id': '" + sub + "',"
-                print >> f, "    'unique_id': '" + session_id + "',"
+                print >> f, "-"
+                print >> f, "    subject_id: '" + sub + "'"
+                print >> f, "    unique_id: '" + session_id + "'" 
 
             def print_end_of_file(sub):
                 if param_map is not None:
                     try:
                         logging.debug("site for sub %s -> %s" %(sub, subject_map.get(sub)))
                         logging.debug("scan parameters for the above site %s"%param_map.get(subject_map.get(sub)))
-                        print >> f, "    'scan_parameters':{"
-                        print >> f, "        'tr': '" + param_map.get(subject_map.get(sub))[4] + "',"
-                        print >> f, "        'acquisition': '" + param_map.get(subject_map.get(sub))[0] + "',"
-                        print >> f, "        'reference': '" + param_map.get(subject_map.get(sub))[3] + "'" + ","
-                        print >> f, "        'first_tr': '" + param_map.get(subject_map.get(sub))[1] + "'" + ","
-                        print >> f, "        'last_tr': '" + param_map.get(subject_map.get(sub))[2] + "'" + ","
-                        print >> f, "        }"
+                        print >> f, "    scan_parameters:"
+                        print >> f, "        tr: '" + param_map.get(subject_map.get(sub))[4] + "'" 
+                        print >> f, "        acquisition: '" + param_map.get(subject_map.get(sub))[0] + "'" 
+                        print >> f, "        reference: '" + param_map.get(subject_map.get(sub))[3] + "'"
+                        print >> f, "        first_tr: '" + param_map.get(subject_map.get(sub))[1] + "'"
+                        print >> f, "        last_tr: '" + param_map.get(subject_map.get(sub))[2] + "'"
                     except:
                         msg = " No Parameter values for the %s site is defined in the scan"\
                               " parameters csv file" %subject_map.get(sub)
                         raise ValueError(msg)
-
-                print >> f, "},"
 
             #get anatomical file
             anat_base_path = os.path.join(anat_base[i], anat_sub)
@@ -254,16 +252,15 @@ def extract_data(c, param_map):
 
             if anat and func:
                 print_begin_of_file(anat_sub.split("/")[0], session_id)
-                print >> f, "    'anat': '" + os.path.realpath(anat[0]) + "',"
-                print >>f, "    'rest':{"
+                print >> f, "    anat: '" + os.path.realpath(anat[0]) + "'"
+                print >> f, "    rest: "
 
                 #iterate for each rest session
                 for iter in func:
                     #get scan_id
                     iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path, '').lstrip("/"))[0])[0]
                     iterable = iterable.replace("/", "_")
-                    print>>f, "      '" + iterable + "': '" + os.path.realpath(iter) + "',"
-                print >> f, "      },"
+                    print>>f, "      " + iterable + ": '" + os.path.realpath(iter) + "'"
                 print_end_of_file(anat_sub.split("/")[0])
             else:
                 logging.debug("skipping subject %s"%anat_sub.split("/")[0])
@@ -327,7 +324,6 @@ def extract_data(c, param_map):
             logging.exception(msg)
             raise Exception(msg)
     try:
-        print >>f, "subjects_list = ["
         for i in range(len(anat_base)):
             for sub in os.listdir(anat_base[i]):
                 #check if subject is present in subject_list
@@ -340,9 +336,8 @@ def extract_data(c, param_map):
                     logging.debug("extracting data for subject: %s", sub)
                     walk(i, sub)
 
-        print >> f, "]"
-
-        name = os.path.join(os.getcwd(), 'CPAC_subject_list.py')
+        
+        name = os.path.join(c.outputSubjectListLocation, 'CPAC_subject_list.yml')
         print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" % name
     except Exception:
         logging.exception(Exception.message)
@@ -351,7 +346,7 @@ def extract_data(c, param_map):
         f.close()
 
 
-def generate_suplimentary_files():
+def generate_suplimentary_files(output_path):
     """
     Method to generate phenotypic template file
     and subject list for group analysis
@@ -359,14 +354,14 @@ def generate_suplimentary_files():
     from sets import Set
     import csv
 
-    c = __import__('CPAC_subject_list')
+    subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
 
     subject_scan_set = Set()
     subject_set = Set()
     scan_set = Set()
     data_list = []
 
-    for sub in c.subjects_list:
+    for sub in subjects_list:
         
         if sub['unique_id']:
             subject_id = sub['subject_id'] + "_" + sub['unique_id']
@@ -401,7 +396,7 @@ def generate_suplimentary_files():
         list1.extend(list(subject_set))
         list1.extend(list(scan_set))
 
-    file_name = os.path.join(os.getcwd(), 'phenotypic_template.csv')
+    file_name = os.path.join(output_path, 'phenotypic_template.csv')
     f = open(file_name, 'wb')
     writer = csv.writer(f)
 
@@ -417,7 +412,7 @@ def generate_suplimentary_files():
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
-    file_name = os.path.join(os.getcwd(), "subject_list_group_analysis.txt")
+    file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
     f = open(file_name, 'w')
 
     for sub in subject_set:
@@ -464,6 +459,18 @@ def read_csv(csv_input):
         logging.exception(msg)
         raise Exception(msg)
 
+
+"""
+Class to set dictionary keys as map attributes
+"""
+class Configuration(object):
+    def __init__(self, config_map):
+        for key in config_map:
+            if config_map[key] == 'None':
+                config_map[key] = None
+            setattr(self, key, config_map[key])
+        
+
 def run(data_config):
     """
     Run method takes data_config
@@ -479,9 +486,7 @@ def run(data_config):
     print "For any errors or messages check the log file - %s"\
            % os.path.join(os.getcwd(), 'extract_data_logs.log')
     
-    path, fname = os.path.split(os.path.realpath(data_config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
+    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
 
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
@@ -492,12 +497,12 @@ def run(data_config):
         s_param_map = None
 
     extract_data(c, s_param_map)
-    generate_suplimentary_files()
+    generate_suplimentary_files(c.outputSubjectListLocation)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "Usage: python extract_data.py data_config.py"
+        print "Usage: python extract_data.py data_config.yml"
         sys.exit()
     else:
         run(sys.argv[1])
