@@ -95,12 +95,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/'),
-                                      (r'(?<=model_files)(.)*_grp_model_','/'),
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/grp_model_'),
+                                      (r'(?<=model_files)(.)*_grp_model_','/grp_model_'),
                                       (r'(?<=merged)(.)*[/]','/'),
-                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/'),
-                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/'),
-                                      (r'(?<=stats/threshold)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/grp_model_'),
+                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/grp_model_'),
+                                      (r'(?<=stats/threshold)(.)*_grp_model_','/grp_model_'),
                                       (r'_cluster(.)*[/]',''),
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
