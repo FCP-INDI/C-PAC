@@ -12,7 +12,6 @@ from CPAC.sca.utils import *
 
 
 def create_sca(name_sca='sca'):
-
     """
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
@@ -35,10 +34,10 @@ def create_sca(name_sca='sca'):
     Notes
     -----
 
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_ 
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
- 
+
 
         inputspec.rest_res_filt : string (existing nifti file)
             Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
@@ -48,14 +47,14 @@ def create_sca(name_sca='sca'):
 
 
 
-        
+
     Workflow Outputs::
 
         outputspec.correlation_file : string (nifti file)
-            Correlations of the functional file and the input time series 
+            Correlations of the functional file and the input time series
 
         outputspec.Z_score : string (nifti file)
-            Fisher Z transformed correlations of the seed 
+            Fisher Z transformed correlations of the seed
 
 
     SCA Workflow Procedure:
@@ -64,29 +63,29 @@ def create_sca(name_sca='sca'):
        Use 3dTcorr1D to compute that. Input timeseries can be a 1D file containing parcellation ROI's
        or a 3D mask
 
-    2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a 
-       a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of 
-       nifti files 
-    
-    
-    
+    2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a
+       a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of
+       nifti files
+
+
+
     Workflow:
-    
+
     .. image:: ../images/sca_graph.dot.png
-        :width: 500 
-    
+        :width: 500
+
     Detailed Workflow:
-    
+
     .. image:: ../images/sca_detailed_graph.dot.png
-        :width: 500 
+        :width: 500
 
 
     Examples
     --------
-    
+
     >>> sca_w = create_sca("sca_wf")
     >>> sca_w.inputs.inputspec.rest_res_filt = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D' 
+    >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D'
     >>> sca_w.run() # doctest: +SKIP
 
     """
@@ -106,13 +105,13 @@ def create_sca(name_sca='sca'):
 
 
 
-    ## 2. Compute voxel-wise correlation with Seed Timeseries
+    # # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.ThreedTcorrOneD(),
                       name='corr')
     corr.inputs.options = "-pearson"
     corr.inputs.outputtype = 'NIFTI_GZ'
 
-    ## 3. Z-transform correlations
+    # # 3. Z-transform correlations
     z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d'],
                                output_names=['out_file'],
                  function=compute_fisher_z_score), name='z_score')
@@ -131,5 +130,49 @@ def create_sca(name_sca='sca'):
     sca.connect(z_score, 'out_file',
                 outputNode, 'Z_score')
 
-
     return sca
+
+def create_ca(wflow_name='ca'):
+    # make workflow
+    wflow = pe.Workflow(name=wflow_name)
+
+    # get the input and out put nodes
+    inputNode = pe.Node(util.IdentityInterface
+                        (fields=['subject_rest',
+                                 'subject_timeseries',
+                                 'subject_mask',
+                                 'demean',
+                                 'normalize']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface
+                         (fields=['component_map',
+                                  'component_map_z']),
+                          name='outputspec')
+    
+    temporalReg = pe.Node(interface=fsl.FSLGLM(),
+                          name='temporal_regression')
+    
+    # some fixed naming here
+    temporalReg.inputs.output_file = 'component_map.nii.gz'
+    temporalReg.inputs.out_z_name = 'component_map_z.nii.gz'
+
+    wflow.connect(inputNode, 'subject_rest',
+                  temporalReg, 'in_file')
+    wflow.connect(inputNode, 'subject_timeseries',
+                  temporalReg, 'design_file')
+    wflow.connect(inputNode, 'demean',
+                  temporalReg, 'demean')
+    wflow.connect(inputNode, 'normalize',
+                  temporalReg, 'des_norm')
+    wflow.connect(inputNode, 'subject_mask',
+                  temporalReg, 'mask')
+
+    # 3. Step: Bring it out again
+    wflow.connect(temporalReg, 'out_file',
+                  outputNode, 'component_map')
+    wflow.connect(temporalReg, 'out_z',
+                  outputNode, 'component_map_z')
+
+    return wflow
+

@@ -388,6 +388,19 @@ voxelTSOutputs: [False, False]
 
 maskSpecificationFile: /path/to/mask_definitions_file
 
+# Extract timeseries for independent components specified in a 4D group ICA
+# file that you have downloaded or created previously
+# Required if you wish to run dual regression
+runSpatialRegression: [0]
+
+# Path to file containing the paths to Spatial Pattern maps
+# All spatial patterns for one analysis have to be volumes in one 4D file
+# (see User Guide)
+spatialPatternMaps: /path/to/path_to_file_with_spatial_patterns.txt
+
+# do you want to demean your spatial pattern maps and input data (True / False)
+spatialDemean: [True]
+
 
 # Register timeseries data to a surface model built by FreeSurfer
 # Required to run vertex timeseries extraction
@@ -418,6 +431,24 @@ runSCA: [0]
 # IN ORDER TO RUN SCA, YOU MUST ALSO RUN TIMESERIES EXTRACTION.
 # SCA will be run on all ROI and voxel timeseries extracted above.
 # Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
+
+# As an additional option, you can use multiple regression as implemented in
+# fsl_glm to generate sca maps for each extracted timeseries
+runMultRegSCA: [0]
+
+###
+#=======================================
+#Dual Regression Analysis Options
+#=======================================
+###
+# Run Dual Regression
+runDualReg: [0]
+
+# IN ORDER TO RUN Dual Regression, YOU MUST ALSO RUN SPATIAL REGRESSION for the
+# Timeseries Extraction.
+
+# Normalize the timeseries (True / False)
+drNorm: [True]
 
 ###
 #===================================
