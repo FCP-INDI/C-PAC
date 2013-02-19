@@ -256,8 +256,16 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 def run(config_file, subject_list_file):
-
-    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+    
+    try:
+    
+        if not os.path.exists(config_file):
+            raise IOError("config file %s doesn't exist" %config_file)
+        else:
+            c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+    
+    except Exception:
+        print "Error reading config file - %s"%config_file 
 
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))

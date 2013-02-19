@@ -89,11 +89,16 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
     #out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
-    if 'sca_roi' in resource or 'centrality' in resource:
+    if 'sca_roi' in resource:
         out_dir = os.path.join(out_dir, \
           re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
-
-
+    if 'centrality' in resource:
+         names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+                  'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
+         for name in names:
+             if name in os.path.basename(s_paths[0]):
+                 out_dir = os.path.join(out_dir, name)
+                 break
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
         
