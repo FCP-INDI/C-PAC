@@ -1381,6 +1381,8 @@ def prep_workflow(sub_dict, c, strategies):
             resample_functional_to_ica_map.inputs.interp = 'nearestneighbour'
             resample_functional_to_ica_map.inputs.apply_xfm = True
             resample_functional_to_ica_map.inputs.in_matrix_file = c.identityMatrix
+            
+            resample_functional_mask_to_ica_map = resample_functional_to_ica_map.clone(name='resample_functional_mask_to_ica_map_%d' % num_strat)
 
             component_dataflow = create_component_dataflow(c.spatialPatternMaps, 'component_dataflow_%d' % num_strat)
 
@@ -1390,18 +1392,22 @@ def prep_workflow(sub_dict, c, strategies):
             try:
 
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask')
+                node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
-                # resample the input functional file to roi
+                # resample the input functional file and functional mask to spatial map
                 workflow.connect(node, out_file,
                                  resample_functional_to_ica_map, 'in_file')
                 workflow.connect(component_dataflow, 'select_ica_map.out_file',
                                  resample_functional_to_ica_map, 'reference')
+                workflow.connect(node2, out_file2,
+                                 resample_functional_mask_to_ica_map, 'in_file')
+                workflow.connect(component_dataflow, 'select_ica_map.out_file',
+                                 resample_functional_mask_to_ica_map, 'reference')                 
 
                 # connect it to the component_timeseries
                 workflow.connect(component_dataflow, 'select_ica_map.out_file',
                                  component_timeseries, 'inputspec.ICA_map')
-                workflow.connect(node2, out_file2,
+                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
                                  component_timeseries, 'inputspec.subject_mask')
                 workflow.connect(resample_functional_to_ica_map, 'out_file',
                                  component_timeseries, 'inputspec.subject_rest')
@@ -1419,7 +1425,7 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-            strat.append_name('component_timeseries')
+            # strat.append_name('component_timeseries')
 
             strat.update_resource_pool({'component_timeseries' : (component_timeseries, 'outputspec.subject_timeseries')})
 
@@ -1596,7 +1602,6 @@ def prep_workflow(sub_dict, c, strategies):
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 node2, out_file2 = strat.get_node_from_resource_pool('component_timeseries')
-                node3, out_file3 = strat.get_node_from_resource_pool('functional_brain_mask')
 
                 workflow.connect(node, out_file,
                                  dual_reg, 'inputspec.subject_rest')
@@ -1604,7 +1609,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node2, out_file2,
                                  dual_reg, 'inputspec.subject_timeseries')
 
-                workflow.connect(node3, out_file3,
+                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
                                  dual_reg, 'inputspec.subject_mask')
 
             except:
@@ -1614,7 +1619,7 @@ def prep_workflow(sub_dict, c, strategies):
 
             strat.update_resource_pool({'dual_reg_correlations':(dual_reg, 'outputspec.component_map')})
             strat.update_resource_pool({'dual_reg_Z':(dual_reg, 'outputspec.component_map_z')})
-            strat.append_name('dual_regs')
+            # strat.append_name('dual_regs')
             num_strat += 1
     strat_list += new_strat_list
 
