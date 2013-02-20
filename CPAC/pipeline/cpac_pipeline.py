@@ -854,68 +854,6 @@ def prep_workflow(sub_dict, c, strategies):
     strat_list += new_strat_list
 
     """
-    Spatial Regression Based Time Series
-    """
-    new_strat_list = []
-    num_strat = 0
-
-    if 1 in c.runSpatialRegression:
-
-        for strat in strat_list:
-
-            resample_functional_to_ica_map = pe.Node(interface=fsl.FLIRT(),
-                                                  name='resample_functional_to_ica_map_%d' % num_strat)
-            resample_functional_to_ica_map.inputs.interp = 'nearestneighbour'
-            resample_functional_to_ica_map.inputs.apply_xfm = True
-            resample_functional_to_ica_map.inputs.in_matrix_file = c.identityMatrix
-
-            component_dataflow = create_component_dataflow(c.spatialPatternMaps, 'component_dataflow_%d' % num_strat)
-
-            component_timeseries = get_component_timeseries('component_timeseries_%d' % num_strat)
-            component_timeseries.inputs.inputspec.demean = c.spatialDemean
-
-            try:
-
-                node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask')
-
-                # resample the input functional file to roi
-                workflow.connect(node, out_file,
-                                 resample_functional_to_ica_map, 'in_file')
-                workflow.connect(component_dataflow, 'select_ica_map.out_file',
-                                 resample_functional_to_ica_map, 'reference')
-
-                # connect it to the component_timeseries
-                workflow.connect(component_dataflow, 'select_ica_map.out_file',
-                                 component_timeseries, 'inputspec.ICA_map')
-                workflow.connect(node2, out_file2,
-                                 component_timeseries, 'inputspec.subject_mask')
-                workflow.connect(resample_functional_to_ica_map, 'out_file',
-                                 component_timeseries, 'inputspec.subject_rest')
-
-            except:
-                print 'Invalid Connection: Component TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
-                raise
-
-            if 0 in c.runROITimeseries:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-
-            strat.append_name('component_timeseries')
-
-            strat.update_resource_pool({'component_timeseries' : (component_timeseries, 'outputspec.subject_timeseries')})
-
-            num_strat += 1
-
-    strat_list += new_strat_list
-
-
-    """
     Inserting Frequency Filtering Node
     """
     new_strat_list = []
@@ -1425,6 +1363,68 @@ def prep_workflow(sub_dict, c, strategies):
                 strat.append_name('reho_Z_to_standard_smooth')
                 strat.update_resource_pool({'reho_Z_to_standard_smooth':(reho_Z_to_standard_smooth, 'out_file')})
             num_strat += 1
+    strat_list += new_strat_list
+
+
+    """
+    Spatial Regression Based Time Series
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runSpatialRegression:
+
+        for strat in strat_list:
+
+            resample_functional_to_ica_map = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_functional_to_ica_map_%d' % num_strat)
+            resample_functional_to_ica_map.inputs.interp = 'nearestneighbour'
+            resample_functional_to_ica_map.inputs.apply_xfm = True
+            resample_functional_to_ica_map.inputs.in_matrix_file = c.identityMatrix
+
+            component_dataflow = create_component_dataflow(c.spatialPatternMaps, 'component_dataflow_%d' % num_strat)
+
+            component_timeseries = get_component_timeseries('component_timeseries_%d' % num_strat)
+            component_timeseries.inputs.inputspec.demean = c.spatialDemean
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('functional_mni')
+                node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask')
+
+                # resample the input functional file to roi
+                workflow.connect(node, out_file,
+                                 resample_functional_to_ica_map, 'in_file')
+                workflow.connect(component_dataflow, 'select_ica_map.out_file',
+                                 resample_functional_to_ica_map, 'reference')
+
+                # connect it to the component_timeseries
+                workflow.connect(component_dataflow, 'select_ica_map.out_file',
+                                 component_timeseries, 'inputspec.ICA_map')
+                workflow.connect(node2, out_file2,
+                                 component_timeseries, 'inputspec.subject_mask')
+                workflow.connect(resample_functional_to_ica_map, 'out_file',
+                                 component_timeseries, 'inputspec.subject_rest')
+
+            except:
+                print 'Invalid Connection: Component TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            if 0 in c.runROITimeseries:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            strat.append_name('component_timeseries')
+
+            strat.update_resource_pool({'component_timeseries' : (component_timeseries, 'outputspec.subject_timeseries')})
+
+            num_strat += 1
+
     strat_list += new_strat_list
 
 
