@@ -9,6 +9,7 @@ import glob
 
 from CPAC.utils.datasource import create_gpa_dataflow
 from CPAC.utils import Configuration
+from CPAC.utils.utils import prepare_gp_links
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
     print 'Preparing Group Analysis workflow for resource', resource
@@ -88,6 +89,16 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
     #out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
+    if 'sca_roi' in resource:
+        out_dir = os.path.join(out_dir, \
+          re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+    if 'centrality' in resource:
+         names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+                  'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
+         for name in names:
+             if name in os.path.basename(s_paths[0]):
+                 out_dir = os.path.join(out_dir, name)
+                 break
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
         
@@ -95,15 +106,29 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/grp_model_'),
-                                      (r'(?<=model_files)(.)*_grp_model_','/grp_model_'),
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=model_files)(.)*_grp_model_','/_grp_model_'),
                                       (r'(?<=merged)(.)*[/]','/'),
-                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/grp_model_'),
-                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/grp_model_'),
-                                      (r'(?<=stats/threshold)(.)*_grp_model_','/grp_model_'),
+                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=stats/threshold)(.)*_grp_model_','/_grp_model_'),
                                       (r'_cluster(.)*[/]',''),
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
+
+    if 1 in c.runSymbolicLinks:
+
+
+        link_node = pe.MapNode(interface=util.Function(
+                            input_names=['in_file',
+                                        'resource'],
+                                output_names=[],
+                                function=prepare_gp_links),
+                                name='link_gp_', iterfield=['in_file'])
+        link_node.inputs.resource = resource
+        wf.connect(ds, 'out_file', link_node, 'in_file')
+
+
     ########datasink connections#########
     
     wf.connect(gp_flow, 'outputspec.mat',

@@ -49,10 +49,10 @@ class Configuration(object):
        
        for attr in attributes:
            new_key = check_pattern(attr[1])
-           check_path(new_key)
+           #check_path(new_key)
            setattr(self, attr[0], new_key)
         
-       print [(attr, getattr(self, attr)) for attr in dir(self) if not callable(attr) and not attr.startswith("__")]
+       #print [(attr, getattr(self, attr)) for attr in dir(self) if not callable(attr) and not attr.startswith("__")]
                                           
     __update_attr = update_attr
     

@@ -549,6 +549,215 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 commands.getoutput(cmd)
 
 
+def prepare_gp_links(in_file, resource):
+
+    import os
+    import re
+
+    in_file = os.path.abspath(in_file)
+    def get_param_val_(splittext, in_file):
+
+        param = in_file.split(splittext, 1)[1]
+
+        return param.split('/')[0]
+
+
+    in_file = os.path.abspath(in_file)
+
+    sink_dir, pipeline_id = in_file.split('/pipeline_')
+
+    pipeline_id = ''.join(['pipeline_', pipeline_id.split('/')[0]])
+
+    #sym link directory
+    sink_dir = os.path.join(sink_dir, 'sym_links')
+
+    #pipeline directory
+    sink_dir = os.path.join(sink_dir, pipeline_id)
+
+    #group directory
+    sink_dir = os.path.join(sink_dir, 'group_analysis_results')
+
+    strategy_identifier = ''
+    if '_selector_' in in_file:
+
+        prepath, strategy_identifier = in_file.split('_selector_')
+
+        strategy_identifier = strategy_identifier.split('/', 1)[0]
+
+        strategy_identifier = strategy_identifier.replace('pc10.', '')
+        strategy_identifier = strategy_identifier.replace('linear0.', '')
+        strategy_identifier = strategy_identifier.replace('wm0.', '')
+        strategy_identifier = strategy_identifier.replace('global0.', '')
+        strategy_identifier = strategy_identifier.replace('motion0.', '')
+        strategy_identifier = strategy_identifier.replace('quadratic0.', '')
+        strategy_identifier = strategy_identifier.replace('gm0.', '')
+        strategy_identifier = strategy_identifier.replace('csf0', '')
+        strategy_identifier = strategy_identifier.replace('compcor0.', '')
+
+        ncomponents = ''
+        if 'compcor1' in strategy_identifier:
+
+            ncomponents = prepath.split('_ncomponents_')[1]
+
+
+        strategy_identifier = strategy_identifier.replace('pc11.', 'pc1.')
+        strategy_identifier = strategy_identifier.replace('linear1.', 'lin.')
+        strategy_identifier = strategy_identifier.replace('wm1.', 'wm.')
+        strategy_identifier = strategy_identifier.replace('global1.', 'gl.')
+        strategy_identifier = strategy_identifier.replace('motion1.', 'motion.')
+        strategy_identifier = strategy_identifier.replace('quadratic1.', 'quad.')
+        strategy_identifier = strategy_identifier.replace('gm0.', 'gm.')
+        strategy_identifier = strategy_identifier.replace('csf1', 'csf')
+        strategy_identifier = strategy_identifier.replace('compcor1.', 'compcor_nc_%s.' % ncomponents)
+
+    scan_info = ''
+
+    if '/_scan_' in in_file:
+
+        scan_info = get_param_val_('/_scan_', in_file)
+
+    scrub = ''
+    if '/_threshold_' in in_file:
+        scrub = get_param_val_('/_threshold_', in_file)
+        strategy_identifier = 'SCRUB_%s' % scrub + '_' + strategy_identifier
+
+    if '/_wm_threshold' in in_file:
+        strategy_identifier += '_wmT_' + get_param_val_('/_wm_threshold_', in_file)
+
+    if '/_csf_threshold' in in_file:
+        strategy_identifier += '_csfT_' + get_param_val_('/_csf_threshold_', in_file)
+
+    if '/_gm_threshold' in in_file:
+        strategy_identifier += '_gmT_' + get_param_val_('/_gm_threshold_', in_file)
+
+
+    if not scan_info == '':
+        strategy_identifier = scan_info + '_' + strategy_identifier
+
+
+    sink_dir = os.path.join(sink_dir, strategy_identifier)
+
+
+    second_tier = ''
+    if '/_bandpass_freqs_' in in_file:
+        second_tier = 'bp_freqs_' + get_param_val_('/_bandpass_freqs_', in_file)
+
+    if '/_hp_' in in_file:
+        second_tier += '_hp_' + get_param_val_('/_hp_', in_file)
+
+    if '/_lp_' in in_file:
+        second_tier += '_lp_' + get_param_val_('/_lp_', in_file)
+
+    if '/_fwhm_' in in_file:
+        second_tier += '_fwhm_' + get_param_val_('/_fwhm_', in_file)
+
+
+    sink_dir = os.path.join(sink_dir, second_tier)
+    gp_dir = str(sink_dir)
+
+    if '/_grp_model_' in in_file:
+
+        model_info = get_param_val_('/_grp_model_', in_file)
+        sink_dir = os.path.join(sink_dir, model_info)
+
+
+
+    third_tier = ''
+
+    fourth_tier = ''
+
+    if 'sca_roi_Z' in resource and '/_roi_' in in_file:
+
+        third_tier = resource + '_' +get_param_val_('/_roi_', in_file)
+
+        roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
+        third_tier = third_tier + '/' + roi_number
+
+    elif ('sca_seed_Z' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
+
+        third_tier = resource + '_' + get_param_val_('/_mask_', in_file)
+
+        if 'centrality' in resource:
+
+            if 'degree_centrality_binarize' in in_file:
+                centrality_type = 'degree_centrality_binarize'
+            elif 'degree_centrality_weighted' in in_file:
+                centrality_type = 'degree_centrality_weighted'
+            elif 'eigenvector_centrality_binarize' in in_file:
+                centrality_type = 'eigenvector_centrality_binarize'
+            elif 'eigenvector_centrality_weighted' in in_file:
+                centrality_type = 'eigenvector_centrality_weighted'
+
+            else:
+                raise ValueError('centrality type not in degree_centrality_binarize, \
+                        degree_centrality_weighted eigenvector_centrality_binarize, \
+                        eigenvector_centrality_weighted')
+
+            third_tier = third_tier + '/' + centrality_type
+
+
+    else:
+
+        third_tier = resource
+
+
+    sink_dir = os.path.join(sink_dir, third_tier)
+
+    grp = None
+    if 'model_files' in in_file:
+        grp = re.search(r'model_files(.)*', in_file)
+
+    if 'merged' in in_file:
+
+        grp = re.search(r'merged(.)*', in_file)
+
+    if 'rendered' in in_file:
+
+        grp = re.search(r'rendered(.)*', in_file)
+
+    if 'stats' in in_file:
+
+        grp = re.search(r'stats(.)*', in_file)
+
+    tier_4 = os.path.dirname(re.sub(r'_grp_model_(.)+/', '', grp.group()))
+
+
+    sink_dir = os.path.join(sink_dir, tier_4)
+
+    if '/merged/' in in_file:
+        residual = sink_dir.split(gp_dir)[1].lstrip('/')
+        print '~~ ', residual
+        residual = residual.replace('/merged', '/')
+        print '^^ ', residual
+        sink_dir = os.path.join(gp_dir, os.path.join('merged_4D_files', residual))
+
+    if '/merged/' in in_file:
+            dirname = os.path.dirname(sink_dir)
+            if os.path.basename(in_file).endswith('.nii.gz'):
+                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii.gz']))
+            elif os.path.basename(in_file).endswith('.nii'):
+                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii']))
+            else:
+                raise ValueError('unsupported file format %s' % in_file)
+
+    else:
+        sink_dir = os.path.join(sink_dir, os.path.basename(in_file))
+
+    try:
+        os.makedirs(os.path.dirname(sink_dir))
+
+    except Exception, e:
+
+        print '.'
+
+
+    import commands
+
+    cmd = 'ln -s %s %s' % (in_file, sink_dir)
+    print cmd
+    commands.getoutput(cmd)
+
+
 def clean_strategy(strategies, helper):
 
 ###
@@ -556,7 +765,7 @@ def clean_strategy(strategies, helper):
 ### in the pipeline then remove them from the strategy tag list
 
     new_strat = []
-    
+
 
     for strat in strategies:
 

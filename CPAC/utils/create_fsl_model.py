@@ -509,13 +509,20 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
     #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
     f.close()
 
-
+"""
+Class to set dictionary keys as map attributes
+"""
+class Configuration(object):
+    def __init__(self, config_map):
+        for key in config_map:
+            if config_map[key] == 'None':
+                config_map[key] = None
+            setattr(self, key, config_map[key])
 
 def run(config):
 
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
+
+    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
 
 
     ###This generates the model file
