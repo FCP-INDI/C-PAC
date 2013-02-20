@@ -86,7 +86,10 @@ files_folders_wf = {
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
     'seg_partial_volume_map': 'anat',
-    'seg_partial_volume_files': 'anat'
+    'seg_partial_volume_files': 'anat',
+    'component_timeseries': 'timeseries',
+    'dual_reg_correlations': 'spatial_regression',
+    'dual_reg_Z': 'spatial_regression'
 }
 
 def safe_shape(*vol_data):
