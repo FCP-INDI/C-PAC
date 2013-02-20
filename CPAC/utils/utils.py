@@ -577,10 +577,6 @@ def prepare_gp_links(in_file, resource):
     #group directory
     sink_dir = os.path.join(sink_dir, 'group_analysis_results')
 
-
-
-
-
     strategy_identifier = ''
     if '_selector_' in in_file:
 
@@ -674,9 +670,8 @@ def prepare_gp_links(in_file, resource):
 
         third_tier = resource + '_' +get_param_val_('/_roi_', in_file)
 
-        if not '/merged/' in in_file:
-            roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
-            third_tier = third_tier + '/' + roi_number
+        roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
+        third_tier = third_tier + '/' + roi_number
 
     elif ('sca_seed_Z' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
 
@@ -684,7 +679,20 @@ def prepare_gp_links(in_file, resource):
 
         if 'centrality' in resource:
 
-            centrality_type = (in_file.split('_smooth_centrality_')[1]).split('/')[0]
+            if 'degree_centrality_binarize' in in_file:
+                centrality_type = 'degree_centrality_binarize'
+            elif 'degree_centrality_weighted' in in_file:
+                centrality_type = 'degree_centrality_weighted'
+            elif 'eigenvector_centrality_binarize' in in_file:
+                centrality_type = 'eigenvector_centrality_binarize'
+            elif 'eigenvector_centrality_weighted' in in_file:
+                centrality_type = 'eigenvector_centrality_weighted'
+
+            else:
+                raise ValueError('centrality type not in degree_centrality_binarize, \
+                        degree_centrality_weighted eigenvector_centrality_binarize, \
+                        eigenvector_centrality_weighted')
+
             third_tier = third_tier + '/' + centrality_type
 
 
@@ -722,14 +730,25 @@ def prepare_gp_links(in_file, resource):
         residual = residual.replace('/merged', '/')
         print '^^ ', residual
         sink_dir = os.path.join(gp_dir, os.path.join('merged_4D_files', residual))
+
+    if '/merged/' in in_file:
+            dirname = os.path.dirname(sink_dir)
+            if os.path.basename(in_file).endswith('.nii.gz'):
+                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii.gz']))
+            elif os.path.basename(in_file).endswith('.nii'):
+                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii']))
+            else:
+                raise ValueError('unsupported file format %s' % in_file)
+
+    else:
+        sink_dir = os.path.join(sink_dir, os.path.basename(in_file))
+
     try:
-        os.makedirs(sink_dir)
+        os.makedirs(os.path.dirname(sink_dir))
 
     except Exception, e:
 
         print '.'
-
-    sink_dir = os.path.join(sink_dir, os.path.basename(in_file))
 
 
     import commands
@@ -746,7 +765,7 @@ def clean_strategy(strategies, helper):
 ### in the pipeline then remove them from the strategy tag list
 
     new_strat = []
-    
+
 
     for strat in strategies:
 
