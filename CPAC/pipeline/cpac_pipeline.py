@@ -872,7 +872,7 @@ def prep_workflow(sub_dict, c, strategies):
             component_dataflow = create_component_dataflow(c.spatialPatternMaps, 'component_dataflow_%d' % num_strat)
 
             component_timeseries = get_component_timeseries('component_timeseries_%d' % num_strat)
-            component_timeseries.inputspec.demean = c.spatialDemean
+            component_timeseries.inputs.inputspec.demean = c.spatialDemean
 
             try:
 
