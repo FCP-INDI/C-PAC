@@ -521,9 +521,10 @@ class Configuration(object):
 
 def run(config):
 
-
-    c = Configuration(yaml.load(open(os.path.realpath(data_config), 'r')))
-
+    try:
+        c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+    except:
+        raise Exception("Error in reading % configuration file"%config) 
 
     ###This generates the model file
 

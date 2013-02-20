@@ -249,8 +249,6 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     seed_specifications = [line.rstrip('\r\n') for line in open(seed_specification_file, 'r').readlines() if (not line.startswith('#') and not (line == '\n')) ]
 
-
-
     seed_resolutions = {}
 
     for specification in seed_specifications:
@@ -260,8 +258,6 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
         if resolution not in seed_resolutions.keys():
             seed_resolutions[resolution] = []
         seed_resolutions[resolution].append((seed_label, x, y, z, radius, resolution))
-
-
 
     return_roi_files = []
     for resolution_key in seed_resolutions:
