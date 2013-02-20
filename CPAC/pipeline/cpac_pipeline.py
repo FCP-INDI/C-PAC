@@ -2034,7 +2034,7 @@ def prep_workflow(sub_dict, c, strategies):
             ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
             ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                               (r"/_smooth_centrality_(\d)+[/]", '/'),
-                                              (r"/_zscore(\d)+[/]", "/")]
+                                              (r"/_z_score(\d)+[/]", "/")]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
