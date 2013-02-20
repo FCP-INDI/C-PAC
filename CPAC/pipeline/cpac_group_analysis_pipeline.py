@@ -25,7 +25,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     wf.base_dir = c.workingDirectory
     
     #extract model files
-    model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r')]
+    model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r') if not (line == '\n') and not line.startswith('#')]
     
     if not model_list:
         raise Exception("mode_list is empty. Please provide" \
@@ -47,7 +47,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     #print model_map
     
-    input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
+    input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r') if not (line == '\n') and not line.startswith('#')]
     
     ordered_paths=[]
     for sub in input_subject_list :

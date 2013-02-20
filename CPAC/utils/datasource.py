@@ -76,6 +76,10 @@ def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
     for mask_file in masks:
 
         mask_file = mask_file.rstrip('\r\n')
+
+        if mask_file.strip() == '' or mask_file.startswith('#'):
+            continue
+
         base_file = os.path.basename(mask_file)
         base_name = ''
         if base_file.endswith('.nii'):
@@ -127,6 +131,10 @@ def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
     for roi_file in rois:
 
         roi_file = roi_file.rstrip('\r\n')
+
+        if roi_file.strip() == '' or roi_file.startswith('#'):
+            continue
+
         base_file = os.path.basename(roi_file)
         base_name = ''
         if base_file.endswith('.nii'):

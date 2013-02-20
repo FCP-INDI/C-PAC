@@ -767,9 +767,9 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.append_name('nuisance')
-            
+
             strat.set_leaf_properties(nuisance, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
@@ -789,7 +789,7 @@ def prep_workflow(sub_dict, c, strategies):
         workflow_bit_id['median_angle_corr'] = workflow_counter
         for strat in strat_list:
             median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
-            
+
             median_angle_corr.get_node('median_angle_correct').iterables = ('target_angle_deg', c.targetAngleDeg)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -807,9 +807,9 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('median_angle_corr')
-            
+
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
@@ -947,11 +947,11 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('scrubbing')
-            
+
             strat.set_leaf_properties(scrubbing, 'outputspec.preprocessed')
-            
+
             strat.update_resource_pool({'scrubbing_movement_parameters' : (scrubbing, 'outputspec.scrubbed_movement_parameters'),
                                         'scrubbed_preprocessed': (scrubbing, 'outputspec.preprocessed')})
 
@@ -975,7 +975,7 @@ def prep_workflow(sub_dict, c, strategies):
         functional_brain_mask_to_standard.inputs.interp = 'nn'
         functional_brain_mask_to_standard.inputs.ref_file = c.standard
 
-        try:    
+        try:
             node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
             workflow.connect(node, out_file,
                              func_mni_warp, 'field_file')
@@ -983,12 +983,12 @@ def prep_workflow(sub_dict, c, strategies):
             node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
             workflow.connect(node, out_file,
                              func_mni_warp, 'premat')  
-            
+
 
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              func_mni_warp, 'in_file')
-        
+
             node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
             workflow.connect(node, out_file,
                              functional_brain_mask_to_standard, 'in_file')
@@ -1004,12 +1004,12 @@ def prep_workflow(sub_dict, c, strategies):
         except:
             print 'Invalid Connection: Register Functional timeseries to MNI space:', num_strat, ' resource_pool: ', strat.get_resource_pool()
             raise
-        
+
         strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                     'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
-        
+
         num_strat += 1
-        
+
     strat_list += new_strat_list
 
     """
