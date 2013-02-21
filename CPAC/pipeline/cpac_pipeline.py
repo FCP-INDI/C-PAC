@@ -25,6 +25,7 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries,\
                             get_roi_timeseries, get_vertices_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
+from CPAC.utils import Configuration
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
                              get_scan_params, get_tr
@@ -34,6 +35,7 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca
 import zlib
 import linecache
+from string import Template
 
 class strategy:
 
@@ -73,6 +75,8 @@ class strategy:
                 print 'Warning key %s already exists in resource pool, replacing with %s ' % (key, value)
 
             self.resource_pool[key] = value
+            
+
 
 def prep_workflow(sub_dict, c, strategies):
     
@@ -763,9 +767,9 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-            
+
             strat.append_name('nuisance')
-            
+
             strat.set_leaf_properties(nuisance, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
@@ -785,7 +789,7 @@ def prep_workflow(sub_dict, c, strategies):
         workflow_bit_id['median_angle_corr'] = workflow_counter
         for strat in strat_list:
             median_angle_corr = create_median_angle_correction('median_angle_corr_%d' % num_strat)
-            
+
             median_angle_corr.get_node('median_angle_correct').iterables = ('target_angle_deg', c.targetAngleDeg)
             try:
                 node, out_file = strat.get_leaf_properties()
@@ -803,9 +807,9 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('median_angle_corr')
-            
+
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
@@ -943,11 +947,11 @@ def prep_workflow(sub_dict, c, strategies):
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
-                
+
             strat.append_name('scrubbing')
-            
+
             strat.set_leaf_properties(scrubbing, 'outputspec.preprocessed')
-            
+
             strat.update_resource_pool({'scrubbing_movement_parameters' : (scrubbing, 'outputspec.scrubbed_movement_parameters'),
                                         'scrubbed_preprocessed': (scrubbing, 'outputspec.preprocessed')})
 
@@ -971,7 +975,7 @@ def prep_workflow(sub_dict, c, strategies):
         functional_brain_mask_to_standard.inputs.interp = 'nn'
         functional_brain_mask_to_standard.inputs.ref_file = c.standard
 
-        try:    
+        try:
             node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
             workflow.connect(node, out_file,
                              func_mni_warp, 'field_file')
@@ -979,12 +983,12 @@ def prep_workflow(sub_dict, c, strategies):
             node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
             workflow.connect(node, out_file,
                              func_mni_warp, 'premat')  
-            
+
 
             node, out_file = strat.get_leaf_properties()
             workflow.connect(node, out_file,
                              func_mni_warp, 'in_file')
-        
+
             node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
             workflow.connect(node, out_file,
                              functional_brain_mask_to_standard, 'in_file')
@@ -1000,12 +1004,12 @@ def prep_workflow(sub_dict, c, strategies):
         except:
             print 'Invalid Connection: Register Functional timeseries to MNI space:', num_strat, ' resource_pool: ', strat.get_resource_pool()
             raise
-        
+
         strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                     'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
-        
+
         num_strat += 1
-        
+
     strat_list += new_strat_list
 
     """
@@ -1938,14 +1942,6 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-#            strat.append_name('network_centrality')
-#            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
-            num_strat += 1
-
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
             num_strat += 1
 
     strat_list += new_strat_list  
@@ -2036,7 +2032,9 @@ def prep_workflow(sub_dict, c, strategies):
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.sinkDirectory
             ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
-#            ds.inputs.regexp_substitutions = [(r"^(_)+", '')]
+            ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
+                                              (r"/_smooth_centrality_(\d)+[/]", '/'),
+                                              (r"/_z_score(\d)+[/]", "/")]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
@@ -2107,17 +2105,15 @@ def run(config, subject_list_file, indx, strategies):
     import sys
     import argparse
     import pickle
-
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
-
-
-    path, fname = os.path.split(os.path.realpath(subject_list_file))
-    sys.path.append(path)
-    s = __import__(fname.split('.')[0])
-
-    sublist = s.subjects_list
+    import yaml
+    
+    
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))        
+    
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     sub_dict = sublist[int(indx) - 1]
 

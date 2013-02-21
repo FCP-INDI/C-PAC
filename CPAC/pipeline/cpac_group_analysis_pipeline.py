@@ -8,7 +8,8 @@ import sys
 import glob
 
 from CPAC.utils.datasource import create_gpa_dataflow
-
+from CPAC.utils import Configuration
+from CPAC.utils.utils import prepare_gp_links
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
     print 'Preparing Group Analysis workflow for resource', resource
@@ -24,7 +25,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     wf.base_dir = c.workingDirectory
     
     #extract model files
-    model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r')]
+    model_list = [line.rstrip('\r\n') for line in open(c.modelFile, 'r') if not (line == '\n') and not line.startswith('#')]
     
     if not model_list:
         raise Exception("mode_list is empty. Please provide" \
@@ -46,7 +47,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     #print model_map
     
-    input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r')]
+    input_subject_list = [line.rstrip('\r\n') for line in open(c.groupAnalysisSubjectList, 'r') if not (line == '\n') and not line.startswith('#')]
     
     ordered_paths=[]
     for sub in input_subject_list :
@@ -88,6 +89,16 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
     #out_dir = os.path.join('group_analysis_results', resource)
     out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results')
+    if 'sca_roi' in resource:
+        out_dir = os.path.join(out_dir, \
+          re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+    if 'centrality' in resource:
+         names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+                  'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
+         for name in names:
+             if name in os.path.basename(s_paths[0]):
+                 out_dir = os.path.join(out_dir, name)
+                 break
     if c.mixedScanAnalysis == True:
         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
         
@@ -95,15 +106,29 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
     
-    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/'),
-                                      (r'(?<=model_files)(.)*_grp_model_','/'),
+    ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=model_files)(.)*_grp_model_','/_grp_model_'),
                                       (r'(?<=merged)(.)*[/]','/'),
-                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/'),
-                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/'),
-                                      (r'(?<=stats/threshold)(.)*_grp_model_','/'),
+                                      (r'(?<=stats/clusterMap)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=stats/unthreshold)(.)*_grp_model_','/_grp_model_'),
+                                      (r'(?<=stats/threshold)(.)*_grp_model_','/_grp_model_'),
                                       (r'_cluster(.)*[/]',''),
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
+
+    if 1 in c.runSymbolicLinks:
+
+
+        link_node = pe.MapNode(interface=util.Function(
+                            input_names=['in_file',
+                                        'resource'],
+                                output_names=[],
+                                function=prepare_gp_links),
+                                name='link_gp_', iterfield=['in_file'])
+        link_node.inputs.resource = resource
+        wf.connect(ds, 'out_file', link_node, 'in_file')
+
+
     ########datasink connections#########
     
     wf.connect(gp_flow, 'outputspec.mat',
@@ -157,11 +182,9 @@ def run(config, subject_infos, resource):
     import os
     import sys
     import pickle
-
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
-
+    import yaml
+    
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
     prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
 

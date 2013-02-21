@@ -1,6 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
+from CPAC.utils import Configuration
 
 import re
 import os
@@ -56,10 +57,9 @@ def run(config, subject_infos):
     import os
     import sys
     import pickle
+    import yaml
 
-    path, fname = os.path.split(os.path.realpath(config))
-    sys.path.append(path)
-    c = __import__(fname.split('.')[0])
+    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
 
     prep_basc_workflow(c, pickle.load(open(subject_infos, 'r') ))
