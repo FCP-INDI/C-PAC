@@ -1958,8 +1958,6 @@ def prep_workflow(sub_dict, c, strategies):
 
         for strat in strat_list:
 
-
-
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'nearestneighbour'
@@ -1973,7 +1971,6 @@ def prep_workflow(sub_dict, c, strategies):
             network_centrality.inputs.inputspec.threshold = c.correlationThreshold
             network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
             network_centrality.inputs.centrality_options.method_options = c.centralityMethodOptions
-
 
 
             try:
