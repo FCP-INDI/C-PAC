@@ -620,11 +620,12 @@ def gen_roi_timeseries(data_file,
     # generate txt that is required for multiple regression
     timeSeriesStack = np.array([])
     stackWithHeader = np.array([])
+    altKeys = node_dict.keys()
     
-    for roi in new_keys:
+    for roi in altKeys:
         stackWithHeader = np.append(timeSeriesStack, float(roi))
         
-    for roi in new_keys:
+    for roi in altKeys:
         timeSeries = node_dict[roi]
         if timeSeriesStack.size == 0: 
             timeSeriesStack = timeSeries[..., None]
