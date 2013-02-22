@@ -1658,6 +1658,44 @@ def prep_workflow(sub_dict, c, strategies):
 
 
     """
+    Temporal Regression for SCA
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runMultRegSCA and (1 in c.runSCA):
+        for strat in strat_list:
+
+            temp_reg = create_ca('temporal_regression_sca_%d' % num_strat)
+            temp_reg.inputs.inputspec.normalize = c.mrsNorm
+            temp_reg.inputs.inputspec.demean = c.mrsDemean
+
+            try:
+                node, out_file = strat.get_node_from_resource_pool('functional_mni')
+                node2, out_file2 = strat.get_node_from_resource_pool('sca_multireg_timeseries')
+
+                workflow.connect(node, out_file,
+                                 dual_reg, 'inputspec.subject_rest')
+
+                workflow.connect(node2, out_file2,
+                                 temp_reg, 'inputspec.subject_timeseries')
+
+                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
+                                 dual_reg, 'inputspec.subject_mask')
+
+            except:
+                print 'Invalid Connection: Dual Regression:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+
+            strat.update_resource_pool({'sca_multiple_regression_maps':(dual_reg, 'outputspec.component_map')})
+            strat.update_resource_pool({'sca_multiple_regression_maps_z':(dual_reg, 'outputspec.component_map_z')})
+            # strat.append_name('dual_regs')
+            num_strat += 1
+    strat_list += new_strat_list
+    
+
+    """
     Transforming SCA Voxel Z scores to MNI
     """
     new_strat_list = []

@@ -133,10 +133,85 @@ def create_sca(name_sca='sca'):
     return sca
 
 def create_ca(wflow_name='ca'):
-    # make workflow
+    """
+    Map of the correlations of the signal in the provided time series with all
+    the voxels in the brain.
+
+    Parameters
+    ----------
+
+    wflow_name : a string
+        Name of the temporal regression workflow
+
+    Returns
+    -------
+
+    wflow : workflow
+
+        temporal multiple regression Workflow
+
+
+
+    Notes
+    -----
+
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
+
+    Workflow Inputs::
+
+        inputspec.subject_rest : string (existing nifti file)
+            Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
+
+        inputspec.subject_timeseries : string (existing txt file)
+            text file containing the timeseries to be regressed on the subjects
+            functional file 
+            timeseries are organized by columns, timepoints by rows
+        
+        inputspec.subject_mask : string (existing nifti file)
+            path to subject functional mask
+            
+        inputspec.demean : Boolean
+            control whether to demean model and data
+            
+        inputspec.normalize : Boolean
+            control whether to normalize the input timeseries to unit standard deviation
+
+
+
+    Workflow Outputs::
+
+        outputspec.component_map : string (nifti file)
+            GLM parameter estimate image for each timeseries in the input file
+
+        outputspec.component_map_z : string (nifti file)
+            Normalized version of the GLM parameter estimates
+
+
+    Temporal Regression Workflow Procedure:
+    
+    Enter all timeseries into a general linear model and regress these 
+    timeseries to the subjects functional file to get spatial maps of voxels
+    showing activation patterns related to those in the timeseries.
+
+    References
+    ----------
+    `http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/DualRegression/UserGuide <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/DualRegression/UserGuide>`_
+
+    Examples
+    --------
+
+    >>> ca_w = create_ca('temporal regression')
+    >>> ca_w.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'
+    >>> ca_w.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'
+    >>> ca_w.inputs.inputspec.subject_mask = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> ca_w.inputs.inputspec.demean = True
+    >>> ca_w.inputs.inputspec.normalize = True
+    >>> ca_w.run() # doctest: +SKIP
+
+    """
+    
     wflow = pe.Workflow(name=wflow_name)
 
-    # get the input and out put nodes
     inputNode = pe.Node(util.IdentityInterface
                         (fields=['subject_rest',
                                  'subject_timeseries',
@@ -153,7 +228,6 @@ def create_ca(wflow_name='ca'):
     temporalReg = pe.Node(interface=fsl.FSLGLM(),
                           name='temporal_regression')
     
-    # some fixed naming here
     temporalReg.inputs.output_file = 'component_map.nii.gz'
     temporalReg.inputs.out_z_name = 'component_map_z.nii.gz'
 
@@ -168,7 +242,6 @@ def create_ca(wflow_name='ca'):
     wflow.connect(inputNode, 'subject_mask',
                   temporalReg, 'mask')
 
-    # 3. Step: Bring it out again
     wflow.connect(temporalReg, 'out_file',
                   outputNode, 'component_map')
     wflow.connect(temporalReg, 'out_z',

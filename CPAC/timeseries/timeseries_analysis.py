@@ -408,10 +408,60 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
 
 def get_component_timeseries(wf_name='component_timeseries'):
-    # make workflow
+    """
+    Workflow to extract regress each provided spatial
+    map to the subjects functional 4D file in order
+    to return a timeseries for each of the maps
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    wflow : workflow object
+        workflow object
+
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+
+    Workflow Inputs::
+
+        inputspec.subject_rest : string  (nifti file)
+            path to input functional data
+        inputspec.subject_mask : string (nifti file)
+            path to subject functional mask
+        inputspec.ICA_map : string (nifti file)
+            path to Spatial Maps
+        inputspec.demean : Boolean
+            control whether to demean model and data
+
+    Workflow Outputs::
+
+        outputspec.subject_timeseries: string (txt file)
+            list of time series stored in a space separated
+            txt file
+            the columns are spatial maps, rows are timepoints
+
+        High Level Workflow Graph:
+
+    Example
+    -------
+    >>> import CPAC.timeseries.timeseries_analysis as t
+    >>> wf = t.get_component_timeseries()
+    >>> wf.inputs.inputspec.subject_rest = '/home/data/rest.nii.gz'
+    >>> wf.inputs.inputspec.subject_mask = '/home/data/rest_mask.nii.gz'
+    >>> wf.inputs.inputspec.ICA_map = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> wf.inputs.inputspec.demean = True
+    >>> wf.base_dir = './'
+    >>> wf.run()
+
+    """
+    
     wflow = pe.Workflow(name=wf_name)
 
-    # get the input and out put nodes
     inputNode = pe.Node(util.IdentityInterface
                         (fields=['subject_rest',
                                  'subject_mask',
@@ -423,11 +473,9 @@ def get_component_timeseries(wf_name='component_timeseries'):
                          (fields=['subject_timeseries']),
                           name='outputspec')
 
-    # 1. Step: run the spatial regression
     spatialReg = pe.Node(interface=fsl.FSLGLM(),
                          name='spatial_regression')
     
-    # some fixed naming here
     spatialReg.inputs.output_file = 'component_timeseries.txt'
 
     wflow.connect(inputNode, 'subject_rest',
@@ -439,7 +487,6 @@ def get_component_timeseries(wf_name='component_timeseries'):
     wflow.connect(inputNode, 'demean',
                 spatialReg, 'demean')
 
-    # 2. Step: Bring it out again
     wflow.connect(spatialReg, 'out_file',
                   outputNode, 'subject_timeseries')
 
