@@ -59,7 +59,7 @@ def run(config, subject_infos):
     import pickle
     import yaml
 
-    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
 
     prep_basc_workflow(c, pickle.load(open(subject_infos, 'r') ))
