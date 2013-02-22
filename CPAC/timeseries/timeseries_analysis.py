@@ -551,8 +551,9 @@ def gen_roi_timeseries(data_file,
     tmp_file = os.path.splitext(tmp_file)[0]
     oneD_file = os.path.abspath('roi_' + tmp_file + '.1D')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
-    numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
-
+    numpy_file = os.path.abspath('roi_' + tmp_file + '.npz') 
+    txt_file = os.path.abspath('roi_' + tmp_file + '.txt')   
+    
     nodes.sort()
     for n in nodes:
         if n > 0:
@@ -615,6 +616,29 @@ def gen_roi_timeseries(data_file,
         print "writing npz file.."
         np.savez(numpy_file, **dict(node_dict))
         out_list.append(numpy_file)
+        
+    # generate txt that is required for multiple regression
+    timeSeriesStack = np.array([])
+    stackWithHeader = np.array([])
+    
+    for roi in new_keys:
+        stackWithHeader = np.append(timeSeriesStack, float(roi))
+        
+    for roi in new_keys:
+        timeSeries = node_dict[roi]
+        if timeSeriesStack.size == 0: 
+            timeSeriesStack = timeSeries[..., None]
+        else:
+            timeSeriesStack = np.concatenate((timeSeriesStack,
+                                              timeSeries[..., None]),
+                                             axis=1)
+    
+    stackWithHeader = np.append(stackWithHeader[None, ...], timeSeriesStack,
+                                axis=0)
+    
+    np.savetxt(txt_file, stackWithHeader, fmt='%.6f')
+    
+    out_list.append(txt_file)
 
     return out_list
 
