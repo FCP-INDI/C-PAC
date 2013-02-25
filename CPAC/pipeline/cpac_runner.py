@@ -167,6 +167,43 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print commands.getoutput('qsub  %s ' % (subject_bash_file))
 
 
+def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
+
+
+    import commands
+    import pickle
+    from time import strftime
+
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception ("Subject list is not in proper YAML format. Please check your file")
+
+    shell = commands.getoutput('echo $SHELL')
+
+    temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
+    subject_bash_file = os.path.join(temp_files_dir, 'submit_%s.condor' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    f = open(subject_bash_file, 'w')
+    print >>f, '#! %s' % shell
+    print >>f, '#$ -cwd'
+    print >>f, '#$ -S %s' % shell
+    print >>f, '#$ -V'
+    print >>f, '#$ -t 1-%d' % len(sublist)
+    print >>f, '#$ -pe %s %d' % (c.parallelEnvironment, c.numCoresPerSubject)
+    print >>f, '#$ -e %s' % os.path.join(temp_files_dir, 'c-pac_%s.err' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    print >>f, 'source ~/.bashrc'
+
+#    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file)
+
+    f.close()
+
+    commands.getoutput('chmod +x %s' % subject_bash_file )
+    print commands.getoutput('condor_submit  %s ' % (subject_bash_file))
+
+
+
 def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
 
 
@@ -376,8 +413,11 @@ def run(config_file, subject_list_file):
 
             run_sge_jobs(c, config_file, strategies_file, subject_list_file)
 
-
-
         elif 'pbs' in c.resourceManager.lower():
 
             run_pbs_jobs(c, config_file, strategies_file, subject_list_file)
+
+        elif 'condor' in c.resourceManager.lower():
+
+            run_condor_jobs(c, config_file, strategies_file, subject_list_file)
+
