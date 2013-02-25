@@ -3,6 +3,7 @@ import sys
 import argparse
 import numpy as np
 import csv
+import yaml
 
 def filter_phenotypic(c):
 
