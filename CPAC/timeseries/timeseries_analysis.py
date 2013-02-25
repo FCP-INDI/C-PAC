@@ -530,7 +530,7 @@ def gen_roi_timeseries(data_file,
     #if npz file is required
     if output_type[1]:
         print "writing npz file.."
-        np.savez(numpy_file, **dict(node_dict))
+        np.savez(numpy_file, roi_data = value_list, roi_numbers = roi_number_list)
         out_list.append(numpy_file)
 
     
