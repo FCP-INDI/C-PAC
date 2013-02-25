@@ -4,7 +4,6 @@ import glob
 import string
 import logging
 import yaml
-from CPAC.utils import Configuration
 
 #logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
 #                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
@@ -460,6 +459,17 @@ def read_csv(csv_input):
         logging.exception(msg)
         raise Exception(msg)
 
+
+"""
+Class to set dictionary keys as map attributes
+"""
+class Configuration(object):
+    def __init__(self, config_map):
+        for key in config_map:
+            if config_map[key] == 'None':
+                config_map[key] = None
+            setattr(self, key, config_map[key])
+        
 
 def run(data_config):
     """
