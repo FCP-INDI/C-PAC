@@ -8,6 +8,8 @@ from CPAC.utils.utils import create_seeds_
 from CPAC.utils import Configuration
 import yaml
 
+from IPython.core.debugger import Tracer; debug_here = Tracer()
+
 def get_vectors(strat):
 
     paths = []
@@ -184,18 +186,18 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
     subject_bash_file = os.path.join(temp_files_dir, 'submit_%s.condor' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     f = open(subject_bash_file, 'w')
 
-    print >>f, "Executable = python"
+    print >>f, "Executable = /usr/bin/python"
     print >>f, "Universe = vanilla"
+    print >>f, "transfer_executable = False"
     print >>f, "getenv = true"
-    print >>f, "log = %s" % % os.path.join(temp_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, "append = \\\"source ./~bashrc\\\""
+    print >>f, "log = %s" % os.path.join(temp_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
 
     sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     for sidx in range(1,len(sublist)+1):
         print >>f, "error = %s" % os.path.join(temp_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
-        print >>f, "output = %s" % % os.path.join(temp_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
+        print >>f, "output = %s" % os.path.join(temp_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
 
-        print >>f, "arguments = \\\'-c\\\' \\\'import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\'%s\\\',\\\'%s\\\',\\\'%s\\\',\\\'%s\\\')\\\'" % (str(config_file), subject_list_file, str(sidx), strategies_file)
+        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), strategies_file)
         print >>f, "queue"
 
     f.close()
@@ -406,7 +408,6 @@ def run(config_file, subject_list_file):
         f = open(strategies_file, 'w')
         pickle.dump(strategies, f)
         f.close()
-
 
         if 'sge' in c.resourceManager.lower():
 
