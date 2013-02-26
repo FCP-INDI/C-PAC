@@ -189,7 +189,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, "Executable = /usr/bin/python"
     print >>f, "Universe = vanilla"
     print >>f, "transfer_executable = False"
-    print >>f, "getenv = true"
+    print >>f, "getenv = True"
     print >>f, "log = %s" % os.path.join(temp_files_dir, 'c-pac_%s.log' % str(strftime("%Y_%m_%d_%H_%M_%S")))
 
     sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
@@ -203,7 +203,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
     f.close()
 
     #commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('condor_submit  %s ' % (subject_bash_file))
+    print commands.getoutput("condor_submit %s " % (subject_bash_file))
 
 
 
