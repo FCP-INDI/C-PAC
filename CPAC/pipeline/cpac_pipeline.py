@@ -2080,7 +2080,7 @@ def prep_workflow(sub_dict, c, strategies):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
-    
+
     if c.removeWorkingDir:
         try:
             if os.path.exists(sub_w_path):
@@ -2090,9 +2090,9 @@ def prep_workflow(sub_dict, c, strategies):
         except:
             print "Couldn't remove subjects %s working directory"%(wfname)
             pass
-    
+
     print "End of subject workflow ", wfname
-    
+
     return workflow
 
 
@@ -2106,10 +2106,10 @@ def run(config, subject_list_file, indx, strategies):
     import argparse
     import pickle
     import yaml
-    
-    
-    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))        
-    
+
+
+    c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
