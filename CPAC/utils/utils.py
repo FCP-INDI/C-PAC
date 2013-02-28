@@ -950,7 +950,35 @@ def select_model(model, model_map, ftest):
     return fts_file, con_file, grp_file, mat_file
 
 
-
+def pick_files(model, ftest):
+    """
+    Method to select model files
+    """
+    import os
+    
+    try:
+        files = os.listdir(model)
+        
+        if len(files) == 0:
+            raise Exception("No files foudn inside model %s"%model) 
+        
+        fts_file = ''
+        for file in files:
+            if file.endswith('.mat'):
+                mat_file = file
+            elif file.endswith('.grp'):
+                grp_file = file
+            elif file.endswith('.fts') and ftest:
+                 fts_file = file
+            elif file.endswith('.con'):
+                 con_file = file
+    
+    except Exception:
+        print "All the model files are not present. Please check the model folder %s"%model
+        raise
+    
+    return fts_file, con_file, grp_file, mat_file    
+    
     
 def select_model(model, model_map, ftest):
     """

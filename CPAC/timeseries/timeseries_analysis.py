@@ -469,7 +469,7 @@ def gen_roi_timeseries(data_file,
     oneD_file = os.path.abspath('roi_'+ tmp_file + '.1D')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
     numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
-
+    
     nodes.sort()
     for n in nodes:
         if n > 0:
@@ -600,11 +600,11 @@ def gen_voxel_timeseries(data_file,
     
     x, y, z = unit_data.shape
 
-    for xx in range(0, x):
-        for yy in range(0, y):
-            for zz in range(0, z):
-                if not (unit_data[xx][yy][zz] == 1 or unit_data[xx][yy][zz] == 0):
-                    raise ValueError('Supplied Mask file %s is not a mask (intensity values not in (0/1))' % template)
+#    for xx in range(0, x):
+#        for yy in range(0, y):
+#            for zz in range(0, z):
+#                if not (unit_data[xx][yy][zz] == 1 or unit_data[xx][yy][zz] == 0):
+#                    raise ValueError('Supplied Mask file %s is not a mask (intensity values not in (0/1))' % template)
 
 
     node_array = img_data[unit_data != 0]
