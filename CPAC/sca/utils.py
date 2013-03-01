@@ -82,3 +82,31 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
 
     return out_file
+
+
+def map_to_roi(timeseries, maps):
+    """
+    Method to map roi numbers to correct
+    component maps when split,
+    """
+    
+    try:
+        import os
+        import numpy as np
+        testMat = np.loadtxt(timeseries)
+        timepoints, rois = testMat.shape
+        
+        if rois > timepoints:
+            raise Exception('The number of timepoints is smaller than the'
+                            + ' number of ROIs to run - therefore the'
+                            + ' GLM is underspecified and can\'t run.')
+        labels = open(timeseries, 'r').readline().split()
+        labels = [os.path.join(os.path.dirname(maps[0]),'z_maps_roi_' + str(l)) \
+                  for l in labels]
+        maps.sort()
+        #output = zip(labels, component_maps)
+        print "labels, maps", labels, maps
+    except Exception:
+        print "Error while mapping roi to dual regression split 3d volumes"
+    return labels, maps
+

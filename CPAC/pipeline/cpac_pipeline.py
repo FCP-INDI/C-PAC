@@ -28,7 +28,8 @@ from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr
+                             get_scan_params, get_tr, \
+                             extract_txt
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -1416,7 +1417,7 @@ def prep_workflow(sub_dict, c, strategies):
                 print 'Invalid Connection: Component TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
 
-            if 0 in c.runROITimeseries:
+            if 0 in c.runSpatialRegression:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
@@ -1595,9 +1596,9 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runDualReg and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
-            dual_reg = create_ca('spatial_pattern_map%d' % num_strat)
-            dual_reg.inputs.inputspec.normalize = c.drNorm
-            dual_reg.inputs.inputspec.demean = c.spatialDemean
+            dual_reg = create_ca('spatial_pattern_map%d' % num_strat, which = 'RT')
+            dual_reg.inputs.inputspec.normalize = c.mrsNorm
+            dual_reg.inputs.inputspec.demean = c.mrsDemean
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
@@ -1672,13 +1673,13 @@ def prep_workflow(sub_dict, c, strategies):
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('sca_multireg_timeseries')
+                node2, out_file2 = strat.get_node_from_resource_pool('roi_timeseries')
 
                 workflow.connect(node, out_file,
                                  dual_reg, 'inputspec.subject_rest')
 
-                workflow.connect(node2, out_file2,
-                                 temp_reg, 'inputspec.subject_timeseries')
+                workflow.connect(node2, (out_file2, extract_txt),
+                                     dual_reg, 'inputspec.subject_timeseries')
 
                 workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
                                  dual_reg, 'inputspec.subject_mask')

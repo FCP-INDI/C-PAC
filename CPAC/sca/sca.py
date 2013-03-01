@@ -132,7 +132,8 @@ def create_sca(name_sca='sca'):
 
     return sca
 
-def create_ca(wflow_name='ca'):
+
+def create_ca(wflow_name='ca', which= 'SR'):
     """
     Map of the correlations of the signal in the provided time series with all
     the voxels in the brain.
@@ -143,6 +144,9 @@ def create_ca(wflow_name='ca'):
     wflow_name : a string
         Name of the temporal regression workflow
 
+    which: a string
+        SR: Spatial Regression, RT: ROI Timeseries
+        
     Returns
     -------
 
@@ -222,7 +226,8 @@ def create_ca(wflow_name='ca'):
 
     outputNode = pe.Node(util.IdentityInterface
                          (fields=['component_map',
-                                  'component_map_z']),
+                                  'component_map_z',
+                                  'component_map_z_stack']),
                           name='outputspec')
     
     temporalReg = pe.Node(interface=fsl.FSLGLM(),
@@ -242,10 +247,53 @@ def create_ca(wflow_name='ca'):
     wflow.connect(inputNode, 'subject_mask',
                   temporalReg, 'mask')
 
+
     wflow.connect(temporalReg, 'out_file',
                   outputNode, 'component_map')
     wflow.connect(temporalReg, 'out_z',
                   outputNode, 'component_map_z')
 
+    
+    split = pe.Node(interface = fsl.Split(),
+                    name = 'split_volumes')
+    split.inputs.dimension = 't'
+    split.inputs.out_base_name = 'component_map_z_'
+    
+    wflow.connect(temporalReg, 'out_z',
+                  split, 'in_file')
+
+    if which == 'SR':
+        wflow.connect(split, 'out_files',
+                      outputNode, 'component_map_z_stack')
+        
+    elif which == 'RT':
+        get_roi_order = pe.Node(util.Function(input_names=['maps',
+                                                           'timeseries'],
+                                              output_names=['labels',
+                                                            'maps'],
+                                              function= map_to_roi),
+                                name='get_roi_order')
+        
+        wflow.connect(split, 'out_files',
+                      get_roi_order, 'maps')
+        
+        wflow.connect(inputNode, 'subject_timeseries',
+                      get_roi_order, 'timeseries')
+        
+        rename_maps = pe.MapNode(interface = util.Rename(), 
+                                 name = 'rename_maps',
+                                 iterfield = ['in_file',
+                                              'format_string'])
+        rename_maps.inputs.keep_ext = True
+    
+        wflow.connect(get_roi_order, 'labels',
+                      rename_maps, 'format_string')
+        wflow.connect(get_roi_order, 'maps',
+                      rename_maps, 'in_file')
+        
+        wflow.connect(rename_maps, 'out_file',
+                      outputNode, 'component_map_z_stack')
+        
+    
     return wflow
 
