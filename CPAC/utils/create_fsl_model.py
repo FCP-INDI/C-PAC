@@ -537,7 +537,7 @@ def split_directionals(gp, directional, data, c):
 
         for col in directional:
 
-            new_col = col + '_' + key
+            new_col = col + '__' + key
 
             for idx in range(0, len(data)):
 
@@ -553,7 +553,7 @@ def split_gp_var(gp, data, c):
 
         indices = gp[key]
 
-        new_col = c.groupingVariable + '_' + key
+        new_col = c.groupingVariable + '__' + key
 
         for idx in range(0, len(data)):
 
@@ -572,7 +572,7 @@ def group_by_gp_categorical(categorical, data, c):
         if not (cat_col == c.groupingVariable):
 
             for idx in range(0, len(data)):
-                new_col = '_'.join([str(cat_col), str(data[idx][cat_col]), str(c.groupingVariable), str(data[idx][c.groupingVariable])])
+                new_col = '__'.join([str(cat_col), str(data[idx][cat_col]), str(c.groupingVariable), str(data[idx][c.groupingVariable])])
                 if new_col in gp_cat_dict:
                     gp_cat_dict[new_col].append(idx)
                 else:
@@ -660,9 +660,9 @@ def alternate_organize_data(data, c):
         for col in categorical:
             del data[idx][col]
 
-#    print '\t'.join(key for key in sorted(data[0].keys()) )
-#    for idx in range(0, len(data)):
-#        print '\t'.join(str(data[idx][key]) for key in sorted(data[idx].keys()))
+    print '\t'.join(key for key in sorted(data[0].keys()) )
+    for idx in range(0, len(data)):
+        print '\t'.join(str(data[idx][key]) for key in sorted(data[idx].keys()))
 
     return data, data[0].keys(), groups_grouping_var
 
