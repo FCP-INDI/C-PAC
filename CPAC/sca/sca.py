@@ -136,9 +136,10 @@ def create_sca(name_sca='sca'):
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     """
-    Map of the correlations of the signal in the provided time series with all
-    the voxels in the brain.
-
+    Temporal multiple regression workflow
+    Provides a spatial map of parameter estimates corresponding to each 
+    provided timeseries in a timeseries.txt file as regressors
+    
     Parameters
     ----------
 
@@ -147,6 +148,13 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     which: a string
         SR: Spatial Regression, RT: ROI Timeseries
+        
+    NOTE: If you set (which = 'RT'), the output of this workflow will be
+          renamed based on the header information provided in the
+          timeseries.txt file.
+          If you run the temporal regression workflow manually, don\'t set 
+          (which = 'RT') unless you provide a timeseries.txt file with a header
+          containing the names of the timeseries.
         
     Returns
     -------
@@ -205,13 +213,13 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     Examples
     --------
 
-    >>> ca_w = create_ca('temporal regression')
-    >>> ca_w.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> ca_w.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'
-    >>> ca_w.inputs.inputspec.subject_mask = '/home/data/spatialmaps/spatial_map.nii.gz'
-    >>> ca_w.inputs.inputspec.demean = True
-    >>> ca_w.inputs.inputspec.normalize = True
-    >>> ca_w.run() # doctest: +SKIP
+    >>> tr_wf = create_temporal_reg('temporal regression')
+    >>> tr_wf.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'
+    >>> tr_wf.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'
+    >>> tr_wf.inputs.inputspec.subject_mask = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> tr_wf.inputs.inputspec.demean = True
+    >>> tr_wf.inputs.inputspec.normalize = True
+    >>> tr_wf.run() # doctest: +SKIP
 
     """
     wflow = pe.Workflow(name=wflow_name)

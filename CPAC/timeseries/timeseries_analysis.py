@@ -409,7 +409,7 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
 def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     """
-    Workflow to extract regress each provided spatial
+    Workflow to regress each provided spatial
     map to the subjects functional 4D file in order
     to return a timeseries for each of the maps
 
@@ -450,7 +450,7 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     Example
     -------
     >>> import CPAC.timeseries.timeseries_analysis as t
-    >>> wf = t.get_component_timeseries()
+    >>> wf = t.get_spatial_map_timeseries()
     >>> wf.inputs.inputspec.subject_rest = '/home/data/rest.nii.gz'
     >>> wf.inputs.inputspec.subject_mask = '/home/data/rest_mask.nii.gz'
     >>> wf.inputs.inputspec.ICA_map = '/home/data/spatialmaps/spatial_map.nii.gz'
