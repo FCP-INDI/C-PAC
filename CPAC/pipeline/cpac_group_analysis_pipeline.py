@@ -30,7 +30,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         model, subject_list = model_sub
         
-        print "running for model %s"%model
+        print "running for model %s and resource %s..."%(os.path.basename(model), resource)
         
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exit"%model)
@@ -54,8 +54,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                if sub in path:
                    ordered_paths.append(path)
         
-        print "input_subject_list ->", input_subject_list
-        print "ordered_paths ->", ordered_paths
+        #print "input_subject_list ->", input_subject_list
+        #print "ordered_paths ->", ordered_paths
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
         for ch in ['.']:
@@ -175,7 +175,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         wf.run(plugin='MultiProc',
                              plugin_args={'n_procs': c.numCoresPerSubject})
     
-        print "Workflow Finished for model %s and resource %s"%os.path.basename(model), resource
+        print "**Workflow finished for model %s and resource %s"%(os.path.basename(model), resource)
 
 def run(config, subject_infos, resource):
     import re

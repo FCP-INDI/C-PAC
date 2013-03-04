@@ -193,7 +193,7 @@ def create_gpa_dataflow(wf_name = 'gp_dataflow'):
                              name  = 'selectnode')
         
         wf.connect(inputnode, 'ftest',
-                   selectnode, 'ftest')
+                   selectmodel, 'ftest')
         wf.connect(inputnode, 'grp_model', 
                    selectmodel, 'model')
         
