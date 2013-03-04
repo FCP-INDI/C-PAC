@@ -168,20 +168,20 @@ def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
 
 
 
-def create_group_analysis_dataflow(model, ftest, wf_name = 'gp_dataflow'):
+def create_gpa_dataflow(wf_name = 'gp_dataflow'):
         
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
-        from CPAC.utils import modify_model, select_model
+        from CPAC.utils import modify_model, select_model_files
         
         wf = pe.Workflow(name=wf_name) 
         
-        inputnode = pe.Node(util.IdentityInterface(
-                                fields=['grp_model', 
-                                        'input_sublist', 
-                                        'output_sublist'],
-                                mandatory_inputs=True),
-                        name='inputspec')
+        inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
+                                                           'grp_model', 
+                                                           'input_sublist', 
+                                                           'output_sublist'],
+                                                   mandatory_inputs=True),
+                            name='inputspec')
     
         selectmodel = pe.Node(util.Function(input_names=['model',
                                                          'ftest'],
@@ -189,10 +189,11 @@ def create_group_analysis_dataflow(model, ftest, wf_name = 'gp_dataflow'):
                                                          'con_file', 
                                                          'grp_file', 
                                                          'mat_file'],
-                                           function = pick_files),
+                                           function = select_model_files),
                              name  = 'selectnode')
-        selectmodel.inputs.ftest = ftest
         
+        wf.connect(inputnode, 'ftest',
+                   selectnode, 'ftest')
         wf.connect(inputnode, 'grp_model', 
                    selectmodel, 'model')
         
@@ -237,83 +238,3 @@ def create_group_analysis_dataflow(model, ftest, wf_name = 'gp_dataflow'):
         
         return wf
 
-        
-        
-        
-def create_gpa_dataflow(model_dict, ftest, wf_name = 'gp_dataflow'):
-        """
-        Dataflow to iterate over each model and 
-        pick the model files and modify if required
-        for group analysis
-        """
-        import nipype.pipeline.engine as pe
-        import nipype.interfaces.utility as util
-        from CPAC.utils import modify_model, select_model
-        
-        wf = pe.Workflow(name=wf_name) 
-        
-        inputnode = pe.Node(util.IdentityInterface(
-                                fields=['grp_model', 
-                                        'input_sublist', 
-                                        'output_sublist'],
-                                mandatory_inputs=True),
-                        name='inputspec')
-        
-        inputnode.iterables = [('grp_model', model_dict.keys())]
-        
-        selectmodel = pe.Node(util.Function(input_names=['model',
-                                                         'model_map', 
-                                                         'ftest'],
-                                           output_names=['fts_file', 
-                                                         'con_file', 
-                                                         'grp_file', 
-                                                         'mat_file'],
-                                           function = select_model),
-                             name  = 'selectnode')
-        selectmodel.inputs.model_map = model_dict
-        selectmodel.inputs.ftest = ftest
-        
-        wf.connect(inputnode, 'grp_model', 
-                   selectmodel, 'model')
-        
-        
-        modifymodel = pe.Node(util.Function(input_names = ['input_sublist',
-                                                            'output_sublist',
-                                                            'mat_file',
-                                                            'grp_file'],
-                                             output_names = ['grp_file',
-                                                             'mat_file',
-                                                             'sub_file'],
-                                             function = modify_model),
-                              name = 'modifymodel')
-        
-        wf.connect(selectmodel, 'mat_file',
-                   modifymodel, 'mat_file')
-        wf.connect(selectmodel, 'grp_file',
-                   modifymodel, 'grp_file')
-        wf.connect(inputnode, 'input_sublist',
-                   modifymodel, 'input_sublist')
-        wf.connect(inputnode, 'output_sublist',
-                   modifymodel, 'output_sublist')
-        
-        outputnode = pe.Node(util.IdentityInterface(fields=['fts', 
-                                                            'grp', 
-                                                            'mat',
-                                                            'con',
-                                                            'sublist'],
-                                mandatory_inputs=True),
-                    name='outputspec')
-        
-        wf.connect(modifymodel, 'mat_file',
-                   outputnode, 'mat')
-        wf.connect(modifymodel, 'grp_file',
-                   outputnode, 'grp')
-        wf.connect(modifymodel, 'sub_file',
-                   outputnode, 'sublist')
-        wf.connect(selectmodel, 'fts_file',
-                   outputnode, 'fts')
-        wf.connect(selectmodel, 'con_file',
-                   outputnode, 'con')
-        
-        
-        return wf

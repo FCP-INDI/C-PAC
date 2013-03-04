@@ -924,40 +924,15 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     return new_grp_file, new_mat_file, new_sub_file
 
 
-    
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
-    
-    try:
-        files = model_map[model]
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
-    
-    except Exception:
-        print "All the model files are not present. Please check the model folder"
-        raise
-    
-    return fts_file, con_file, grp_file, mat_file
-
-
-def pick_files(model, ftest):
+def select_model_files(model, ftest):
     """
     Method to select model files
     """
     import os
+    import glob
     
     try:
-        files = os.listdir(model)
+        files = glob.glob(os.path.join(model,'*'))
         
         if len(files) == 0:
             raise Exception("No files foudn inside model %s"%model) 
@@ -980,30 +955,6 @@ def pick_files(model, ftest):
     return fts_file, con_file, grp_file, mat_file    
     
     
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
-    
-    try:
-        files = model_map[model]
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
-    
-    except Exception:
-        print "All the model files are not present. Please check the model folder"
-        raise
-    
-    return fts_file, con_file, grp_file, mat_file
-
 
 def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     
