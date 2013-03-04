@@ -7,4 +7,5 @@ from .datasource import create_func_datasource
 from .datasource import create_mask_dataflow
 from .datasource import create_roi_dataflow
 from .datasource import create_gpa_dataflow
+from .datasource import create_spatial_map_dataflow
 from .configuration import Configuration
