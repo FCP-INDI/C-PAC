@@ -30,6 +30,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         model, subject_list = model_sub
         
+        print "running for model %s"%model
+        
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exit"%model)
         
@@ -51,8 +53,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
            for path in s_paths:
                if sub in path:
                    ordered_paths.append(path)
-        print "input_subject_list", input_subject_list
-        print "ordered_paths", ordered_paths
+        
+        print "input_subject_list ->", input_subject_list
+        print "ordered_paths ->", ordered_paths
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
         for ch in ['.']:
@@ -87,8 +90,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                        gpa_wf, 'inputspec.fts_file') 
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        #out_dir = os.path.join('group_analysis_results', resource)
         out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/grp_model_%s'%(os.path.basename(model)))
+        
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
               re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
@@ -99,6 +102,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                  if name in os.path.basename(s_paths[0]):
                      out_dir = os.path.join(out_dir, name)
                      break
+        
         if c.mixedScanAnalysis == True:
             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
             
@@ -171,7 +175,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         wf.run(plugin='MultiProc',
                              plugin_args={'n_procs': c.numCoresPerSubject})
     
-        
+        print "Workflow Finished for model %s and resource %s"%os.path.basename(model), resource
 
 def run(config, subject_infos, resource):
     import re
@@ -184,6 +188,5 @@ def run(config, subject_infos, resource):
     
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
     
-    run_group_analysis(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
-    #prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
+    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
 
