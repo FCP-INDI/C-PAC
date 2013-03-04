@@ -166,20 +166,20 @@ def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
                selectroi, 'scan')
     return wf
 
-def create_component_dataflow(dirPath, wf_name='datasource_maps'):
+def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
 
     import nipype.interfaces.io as nio
     import os
 
 
     wf = pe.Workflow(name=wf_name)
-    ica_maps = open(dirPath, 'r').readlines()
+    spatial_maps = open(dirPath, 'r').readlines()
 
-    ica_map_dict = {}
-    for ica_map_file in ica_maps:
+    spatial_map_dict = {}
+    for spatial_map_file in spatial_maps:
 
-        ica_map_file = ica_map_file.rstrip('\r\n')
-        base_file = os.path.basename(ica_map_file)
+        spatial_map_file = spatial_map_file.rstrip('\r\n')
+        base_file = os.path.basename(spatial_map_file)
         base_name = ''
         try:
             if base_file.endswith('.nii'):
@@ -187,30 +187,30 @@ def create_component_dataflow(dirPath, wf_name='datasource_maps'):
             elif(base_file.endswith('.nii.gz')):
                 base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
             else:
-                raise Exception("File extension not in  .nii and .nii.gz File: %s" % ica_map_file)
+                raise Exception("File extension not in  .nii and .nii.gz File: %s" % spatial_map_file)
         except Exception, e:
-            print('error in component_dataflow: ', e)
+            print('error in spatial_map_dataflow: ', e)
 
-        if not (base_name in ica_map_dict):
-            ica_map_dict[base_name] = ica_map_file
+        if not (base_name in spatial_map_dict):
+            spatial_map_dict[base_name] = spatial_map_file
         else:
-            raise ValueError('Files with same name not allowed %s %s' % (ica_map_file, ica_map_dict[base_name]))
+            raise ValueError('Files with same name not allowed %s %s' % (spatial_map_file, spatial_map_dict[base_name]))
 
     inputnode = pe.Node(util.IdentityInterface(
-                            fields=['ica_map'],
+                            fields=['spatial_map'],
                             mandatory_inputs=True),
                     name='inputspec')
 
-    inputnode.iterables = [('ica_map', ica_map_dict.keys())]
+    inputnode.iterables = [('spatial_map', spatial_map_dict.keys())]
 
-    select_ica_map = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
+    select_spatial_map = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
                                        output_names=['out_file'],
                                        function=get_rest),
-                         name='select_ica_map')
-    select_ica_map.inputs.rest_dict = ica_map_dict
+                         name='select_spatial_map')
+    select_spatial_map.inputs.rest_dict = spatial_map_dict
 
-    wf.connect(inputnode, 'ica_map',
-               select_ica_map, 'scan')
+    wf.connect(inputnode, 'spatial_map',
+               select_spatial_map, 'scan')
     return wf
 
 

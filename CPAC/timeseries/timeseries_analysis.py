@@ -407,7 +407,7 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
     return wflow
 
 
-def get_component_timeseries(wf_name='component_timeseries'):
+def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     """
     Workflow to extract regress each provided spatial
     map to the subjects functional 4D file in order
@@ -459,13 +459,13 @@ def get_component_timeseries(wf_name='component_timeseries'):
     >>> wf.run()
 
     """
-    
+
     wflow = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(util.IdentityInterface
                         (fields=['subject_rest',
                                  'subject_mask',
-                                 'ICA_map',
+                                 'spatial_map',
                                  'demean']),
                         name='inputspec')
 
@@ -475,14 +475,14 @@ def get_component_timeseries(wf_name='component_timeseries'):
 
     spatialReg = pe.Node(interface=fsl.FSLGLM(),
                          name='spatial_regression')
-    
-    spatialReg.inputs.output_file = 'component_timeseries.txt'
+
+    spatialReg.inputs.output_file = 'spatial_map_timeseries.txt'
 
     wflow.connect(inputNode, 'subject_rest',
                 spatialReg, 'in_file')
     wflow.connect(inputNode, 'subject_mask',
                 spatialReg, 'mask')
-    wflow.connect(inputNode, 'ICA_map',
+    wflow.connect(inputNode, 'spatial_map',
                 spatialReg, 'design_file')
     wflow.connect(inputNode, 'demean',
                 spatialReg, 'demean')
@@ -598,11 +598,11 @@ def gen_roi_timeseries(data_file,
         writer.writerow(list(column))
     f.close()
     out_list.append(oneD_file)
-    
-    #copy the 1D contents to txt file
+
+    # copy the 1D contents to txt file
     shutil.copy(oneD_file, txt_file)
     out_list.append(txt_file)
-    
+
     # if csv is required
     if output_type[0]:
         print "writing csv file.."
@@ -618,7 +618,7 @@ def gen_roi_timeseries(data_file,
     # if npz file is required
     if output_type[1]:
         print "writing npz file.."
-        np.savez(numpy_file, roi_data = value_list, roi_numbers = roi_number_list)
+        np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
     return out_list

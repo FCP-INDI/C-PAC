@@ -23,7 +23,7 @@ from CPAC.generate_motion_statistics import fristons_twenty_four
 from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import create_surface_registration, get_voxel_timeseries, \
                             get_roi_timeseries, get_vertices_timeseries, \
-                            get_component_timeseries
+                            get_spatial_map_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils.utils import extract_one_d, set_gauss, \
@@ -33,7 +33,7 @@ from CPAC.utils.utils import extract_one_d, set_gauss, \
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
-from CPAC.sca.sca import create_sca, create_ca
+from CPAC.sca.sca import create_sca, create_temporal_reg
 import zlib
 import linecache
 
@@ -900,9 +900,6 @@ def prep_workflow(sub_dict, c, strategies):
 
     strat_list += new_strat_list
 
-
-
-
     """
     Inserting Scrubbing Workflow
     """
@@ -1069,9 +1066,6 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
-
-
     """
     Inserting REHO
     Workflow
@@ -1105,8 +1099,6 @@ def prep_workflow(sub_dict, c, strategies):
             strat.append_name('reho')
             num_strat += 1
     strat_list += new_strat_list
-
-
 
     """
     Transforming ALFF Z scores and fAlff Z scores to MNI
@@ -1172,8 +1164,6 @@ def prep_workflow(sub_dict, c, strategies):
         inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
-
-
 
     """
     Smoothing ALFF fALFF Z scores and or possibly Z scores in MNI
@@ -1265,8 +1255,6 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
-
     """
     Transforming ReHo Z scores to MNI
     """
@@ -1306,9 +1294,7 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
     """
-
     Smoothing ReHo Z scores and or possibly Z scores in MNI
     """
     new_strat_list = []
@@ -1377,18 +1363,18 @@ def prep_workflow(sub_dict, c, strategies):
 
         for strat in strat_list:
 
-            resample_functional_to_ica_map = pe.Node(interface=fsl.FLIRT(),
-                                                  name='resample_functional_to_ica_map_%d' % num_strat)
-            resample_functional_to_ica_map.inputs.interp = 'nearestneighbour'
-            resample_functional_to_ica_map.inputs.apply_xfm = True
-            resample_functional_to_ica_map.inputs.in_matrix_file = c.identityMatrix
-            
-            resample_functional_mask_to_ica_map = resample_functional_to_ica_map.clone(name='resample_functional_mask_to_ica_map_%d' % num_strat)
+            resample_functional_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
+                                                         name='resample_functional_to_spatial_map_%d' % num_strat)
+            resample_functional_to_spatial_map.inputs.interp = 'nearestneighbour'
+            resample_functional_to_spatial_map.inputs.apply_xfm = True
+            resample_functional_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
 
-            component_dataflow = create_component_dataflow(c.spatialPatternMaps, 'component_dataflow_%d' % num_strat)
+            resample_functional_mask_to_spatial_map = resample_functional_to_spatial_map.clone(name='resample_functional_mask_to_spatial_map_%d' % num_strat)
 
-            component_timeseries = get_component_timeseries('component_timeseries_%d' % num_strat)
-            component_timeseries.inputs.inputspec.demean = c.spatialDemean
+            spatial_map_dataflow = create_spatial_map_dataflow(c.spatialPatternMaps, 'spatial_map_dataflow_%d' % num_strat)
+
+            spatial_map_timeseries = get_spatial_map_timeseries('spatial_map_timeseries_%d' % num_strat)
+            spatial_map_timeseries.inputs.inputspec.demean = c.spatialDemean
 
             try:
 
@@ -1397,24 +1383,24 @@ def prep_workflow(sub_dict, c, strategies):
 
                 # resample the input functional file and functional mask to spatial map
                 workflow.connect(node, out_file,
-                                 resample_functional_to_ica_map, 'in_file')
-                workflow.connect(component_dataflow, 'select_ica_map.out_file',
-                                 resample_functional_to_ica_map, 'reference')
+                                 resample_functional_to_spatial_map, 'in_file')
+                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+                                 resample_functional_to_spatial_map, 'reference')
                 workflow.connect(node2, out_file2,
-                                 resample_functional_mask_to_ica_map, 'in_file')
-                workflow.connect(component_dataflow, 'select_ica_map.out_file',
-                                 resample_functional_mask_to_ica_map, 'reference')                 
+                                 resample_functional_mask_to_spatial_map, 'in_file')
+                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+                                 resample_functional_mask_to_spatial_map, 'reference')
 
-                # connect it to the component_timeseries
-                workflow.connect(component_dataflow, 'select_ica_map.out_file',
-                                 component_timeseries, 'inputspec.ICA_map')
-                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
-                                 component_timeseries, 'inputspec.subject_mask')
-                workflow.connect(resample_functional_to_ica_map, 'out_file',
-                                 component_timeseries, 'inputspec.subject_rest')
+                # connect it to the spatial_map_timeseries
+                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+                                 spatial_map_timeseries, 'inputspec.spatial_map')
+                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
+                                 spatial_map_timeseries, 'inputspec.subject_mask')
+                workflow.connect(resample_functional_to_spatial_map, 'out_file',
+                                 spatial_map_timeseries, 'inputspec.subject_rest')
 
             except:
-                print 'Invalid Connection: Component TimeSeries Analysis Workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                print 'Invalid Connection: Spatial map timeSeries extraction workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
 
             if 0 in c.runSpatialRegression:
@@ -1426,9 +1412,9 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-            # strat.append_name('component_timeseries')
+            # strat.append_name('spatial_map_timeseries')
 
-            strat.update_resource_pool({'component_timeseries' : (component_timeseries, 'outputspec.subject_timeseries')})
+            strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
 
             num_strat += 1
 
@@ -1551,8 +1537,6 @@ def prep_workflow(sub_dict, c, strategies):
 
     strat_list += new_strat_list
 
-
-
     """
     Inserting SCA
     Workflow for ROI INPUT
@@ -1585,10 +1569,8 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
     """
-    Inserting Dual Regression
-    Workflow for Spatial Regression Timeseries
+    Temporal Regression for Dual Regression
     """
     new_strat_list = []
     num_strat = 0
@@ -1596,32 +1578,32 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runDualReg and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
-            dual_reg = create_ca('spatial_pattern_map%d' % num_strat)
-            dual_reg.inputs.inputspec.normalize = c.mrsNorm
-            dual_reg.inputs.inputspec.demean = c.mrsDemean
+            dr_temp_reg = create_temporal_reg('spatial_pattern_map%d' % num_strat)
+            dr_temp_reg.inputs.inputspec.normalize = c.mrsNorm
+            dr_temp_reg.inputs.inputspec.demean = c.mrsDemean
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('component_timeseries')
+                node2, out_file2 = strat.get_node_from_resource_pool('spatial_map_timeseries')
 
                 workflow.connect(node, out_file,
-                                 dual_reg, 'inputspec.subject_rest')
+                                 dr_temp_reg, 'inputspec.subject_rest')
 
                 workflow.connect(node2, out_file2,
-                                 dual_reg, 'inputspec.subject_timeseries')
+                                 dr_temp_reg, 'inputspec.subject_timeseries')
 
-                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
-                                 dual_reg, 'inputspec.subject_mask')
+                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
+                                 dr_temp_reg, 'inputspec.subject_mask')
 
             except:
-                print 'Invalid Connection: Dual Regression:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                print 'Invalid Connection: Temporal multiple regression for dual regression:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
 
 
-            strat.update_resource_pool({'dual_reg_correlations':(dual_reg, 'outputspec.component_map')})
-            strat.update_resource_pool({'dual_reg_z_stack':(dual_reg, 'outputspec.component_map_z'),
-                                        'dual_reg_z_files':(dual_reg, 'outputspec.component_map_z_stack')})            
-            #strat.append_name('dual_regs')
+            strat.update_resource_pool({'dr_temp_reg_maps':(dr_temp_reg, 'outputspec.temp_reg_map')})
+            strat.update_resource_pool({'dr_temp_reg_maps_z_stack':(dr_temp_reg, 'outputspec.temp_reg_map_z'),
+                                        'dr_temp_reg_maps_z_files':(dr_temp_reg, 'outputspec.temp_reg_map_z_stack')})
+            # strat.append_name('dual_regs')
             num_strat += 1
     strat_list += new_strat_list
 
@@ -1658,7 +1640,6 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
     """
     Temporal Regression for SCA
     """
@@ -1668,35 +1649,34 @@ def prep_workflow(sub_dict, c, strategies):
     if 1 in c.runMultRegSCA and (1 in c.runROITimeseries):
         for strat in strat_list:
 
-            temp_reg = create_ca('temporal_regression_sca_%d' % num_strat, which = 'RT')
-            temp_reg.inputs.inputspec.normalize = c.mrsNorm
-            temp_reg.inputs.inputspec.demean = c.mrsDemean
+            sc_temp_reg = create_temporal_reg('temporal_regression_sca_%d' % num_strat, which='RT')
+            sc_temp_reg.inputs.inputspec.normalize = c.mrsNorm
+            sc_temp_reg.inputs.inputspec.demean = c.mrsDemean
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 node2, out_file2 = strat.get_node_from_resource_pool('roi_timeseries')
 
                 workflow.connect(node, out_file,
-                                 temp_reg, 'inputspec.subject_rest')
+                                 sc_temp_reg, 'inputspec.subject_rest')
 
                 workflow.connect(node2, (out_file2, extract_txt),
-                                     temp_reg, 'inputspec.subject_timeseries')
+                                 sc_temp_reg, 'inputspec.subject_timeseries')
 
-                workflow.connect(resample_functional_mask_to_ica_map, 'out_file',
-                                 temp_reg, 'inputspec.subject_mask')
+                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
+                                 sc_temp_reg, 'inputspec.subject_mask')
 
             except:
-                print 'Invalid Connection: Dual Regression:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                print 'Invalid Connection: Temporal multiple regression for seed based connectivity:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
 
 
-            strat.update_resource_pool({'sca_mult_reg_maps':(temp_reg, 'outputspec.component_map')})
-            strat.update_resource_pool({'sca_mult_reg_maps_z_stack':(temp_reg, 'outputspec.component_map_z'),
-                                        'sca_mult_reg_maps_z_files':(temp_reg, 'outputspec.component_map_z_stack')})
-            #strat.append_name('multi_reg_sca')
+            strat.update_resource_pool({'sc_temp_reg_maps':(sc_temp_reg, 'outputspec.temp_reg_map')})
+            strat.update_resource_pool({'sc_temp_reg_maps_z_stack':(sc_temp_reg, 'outputspec.temp_reg_map_z'),
+                                        'sc_temp_reg_maps_z_files':(sc_temp_reg, 'outputspec.temp_reg_map_z_stack')})
+            # strat.append_name('multi_reg_sca')
             num_strat += 1
     strat_list += new_strat_list
-    
 
     """
     Transforming SCA Voxel Z scores to MNI
@@ -1737,8 +1717,6 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
-
     """
     Transforming SCA ROI Z scores to MNI
     """
@@ -1778,10 +1756,7 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
-
     """
-
     Smoothing SCA seed based Z scores and or possibly Z scores in MNI
     """
     new_strat_list = []
@@ -1839,9 +1814,7 @@ def prep_workflow(sub_dict, c, strategies):
             num_strat += 1
     strat_list += new_strat_list
 
-
     """
-
     Smoothing SCA roi based Z scores and or possibly Z scores in MNI
     """
     if (1 in c.runSCA) and (1 in c.runROITimeseries) and len(c.fwhm) > 0:
@@ -1896,8 +1869,6 @@ def prep_workflow(sub_dict, c, strategies):
                 strat.update_resource_pool({'sca_roi_Z_to_standard_smooth':(sca_roi_Z_to_standard_smooth, 'out_file')})
             num_strat += 1
     strat_list += new_strat_list
-
-
 
     """
     Inserting Surface Registration
