@@ -907,6 +907,7 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     remove_index = []
     for subject in input_sublist:
          if subject not in output_sublist:
+              print "Derivative output not found for subject %s " %(subject)
               remove_index.append(input_sublist.index(subject))
          else:
               print >>f, subject
@@ -914,6 +915,7 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     f.close()
 
     print "removing subject at the indices", remove_index
+    print "modifying the mat and grp files"
      
     model_map = read_model_file(mat_file)
     new_mat_file = write_model_file(model_map, mat_file, remove_index)
