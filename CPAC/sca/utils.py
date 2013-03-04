@@ -82,6 +82,20 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
 
     return out_file
+    
+
+def check_ts(in_file):
+    import numpy as np
+    timepoints, rois = np.loadtxt(in_file).shape
+    if rois > timepoints:
+        message = ('\n\n\n****The number of timepoints (' + str(timepoints)
+                   + ') is smaller than the number of ROIs to run ('
+                   + str(rois) + ') - therefore the GLM is'
+                   + ' underspecified and can\'t run.****\n\n\n')
+        print(message)
+        raise Exception(message)
+    else:
+        return in_file
 
 
 def map_to_roi(timeseries, maps):
@@ -101,9 +115,15 @@ def map_to_roi(timeseries, maps):
                             + ' number of ROIs to run - therefore the'
                             + ' GLM is underspecified and can\'t run.')
         labels = open(timeseries, 'r').readline().split()
-        labels = [os.path.join(os.path.dirname(maps[0]),'z_maps_roi_' + str(l)) \
+        labels = [os.path.join(os.getcwd(),'z_maps_roi_' + str(l)) \
                   for l in labels]
+        numMaps = len(maps)
         maps.sort()
+        if not numMaps/2 == rois:
+            raise Exception('You specified ' + str(rois) + ' timeseries but ' 
+                            + ' only ' + str(numMaps/2) + ' spatial maps were'
+                            + ' generated')
+        maps = maps[:rois]
         #output = zip(labels, component_maps)
         print "labels, maps", labels, maps
     except Exception:

@@ -89,7 +89,11 @@ files_folders_wf = {
     'seg_partial_volume_files': 'anat',
     'component_timeseries': 'timeseries',
     'dual_reg_correlations': 'spatial_regression',
-    'dual_reg_Z': 'spatial_regression'
+    'dual_reg_z_stack': 'spatial_regression',
+    'dual_reg_z_files': 'spatial_regression',
+    'sca_mult_reg_maps': 'sca_roi',
+    'sca_mult_reg_maps_z_stack': 'sca_roi',
+    'sca_mult_reg_maps_z_files' : 'sca_roi'   
 }
 
 def safe_shape(*vol_data):

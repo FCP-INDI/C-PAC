@@ -2,6 +2,7 @@ import sys
 from CPAC.interfaces.afni import preprocess
 import os
 import commands
+import numpy as np
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
@@ -213,7 +214,6 @@ def create_ca(wflow_name='ca', which= 'SR'):
     >>> ca_w.run() # doctest: +SKIP
 
     """
-    
     wflow = pe.Workflow(name=wflow_name)
 
     inputNode = pe.Node(util.IdentityInterface
@@ -230,6 +230,14 @@ def create_ca(wflow_name='ca', which= 'SR'):
                                   'component_map_z_stack']),
                           name='outputspec')
     
+    check_timeseries = pe.Node(util.Function(input_names = ['in_file'],
+                                             output_names = ['out_file'],
+                                             function = check_ts),
+                               name = 'check_timeseries')
+
+    wflow.connect(inputNode, 'subject_timeseries',
+                  check_timeseries, 'in_file')
+    
     temporalReg = pe.Node(interface=fsl.FSLGLM(),
                           name='temporal_regression')
     
@@ -238,7 +246,7 @@ def create_ca(wflow_name='ca', which= 'SR'):
 
     wflow.connect(inputNode, 'subject_rest',
                   temporalReg, 'in_file')
-    wflow.connect(inputNode, 'subject_timeseries',
+    wflow.connect(check_timeseries, 'out_file', 
                   temporalReg, 'design_file')
     wflow.connect(inputNode, 'demean',
                   temporalReg, 'demean')
