@@ -720,22 +720,8 @@ def prepare_gp_links(in_file, resource):
 
     sink_dir = os.path.join(sink_dir, tier_4)
 
-    if '/merged/' in in_file:
-        residual = sink_dir.split(gp_dir)[1].lstrip('/')
-        print '~~ ', residual
-        residual = residual.replace('/merged', '/')
-        print '^^ ', residual
-        sink_dir = os.path.join(gp_dir, os.path.join('merged_4D_files', residual))
-
-    if '/merged/' in in_file:
-            dirname = os.path.dirname(sink_dir)
-            if os.path.basename(in_file).endswith('.nii.gz'):
-                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii.gz']))
-            elif os.path.basename(in_file).endswith('.nii'):
-                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii']))
-            else:
-                raise ValueError('unsupported file format %s' % in_file)
-
+    if 'merged' in in_file:
+        sink_dir = os.path.join(sink_dir, 'merged.nii.gz')
     else:
         sink_dir = os.path.join(sink_dir, os.path.basename(in_file))
 
