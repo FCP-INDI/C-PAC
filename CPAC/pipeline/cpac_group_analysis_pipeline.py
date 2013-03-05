@@ -39,9 +39,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception("path to input subject list %s is invalid"%subject_list)
         
         if c.mixedScanAnalysis == True:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
+            wf = pe.Workflow(name = 'group_analysis/%s/_grp_model_%s'%(resource, os.path.basename(model)))
         else:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+            wf = pe.Workflow(name = 'group_analysis/%s/_grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
     
