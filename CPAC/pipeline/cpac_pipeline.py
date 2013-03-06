@@ -1412,7 +1412,7 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-            # strat.append_name('spatial_map_timeseries')
+            strat.append_name('spatial_map_timeseries')
 
             strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
 
@@ -1603,7 +1603,7 @@ def prep_workflow(sub_dict, c, strategies):
             strat.update_resource_pool({'dr_temp_reg_maps':(dr_temp_reg, 'outputspec.temp_reg_map')})
             strat.update_resource_pool({'dr_temp_reg_maps_z_stack':(dr_temp_reg, 'outputspec.temp_reg_map_z'),
                                         'dr_temp_reg_maps_z_files':(dr_temp_reg, 'outputspec.temp_reg_map_z_stack')})
-            # strat.append_name('dual_regs')
+            strat.append_name('temporal_dual_regression')
             num_strat += 1
     strat_list += new_strat_list
 
@@ -1674,7 +1674,7 @@ def prep_workflow(sub_dict, c, strategies):
             strat.update_resource_pool({'sc_temp_reg_maps':(sc_temp_reg, 'outputspec.temp_reg_map')})
             strat.update_resource_pool({'sc_temp_reg_maps_z_stack':(sc_temp_reg, 'outputspec.temp_reg_map_z'),
                                         'sc_temp_reg_maps_z_files':(sc_temp_reg, 'outputspec.temp_reg_map_z_stack')})
-            # strat.append_name('multi_reg_sca')
+            strat.append_name('temporal_regression_sca')
             num_strat += 1
     strat_list += new_strat_list
 
@@ -2049,14 +2049,6 @@ def prep_workflow(sub_dict, c, strategies):
                 strat = tmp
                 new_strat_list.append(strat)
 
-#            strat.append_name('network_centrality')
-#            strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs'),
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
-            num_strat += 1
-
-#                                        'centrality_graphs' :  (network_centrality, 'outputspec.graph_outputs')})
-
             num_strat += 1
 
     strat_list += new_strat_list
@@ -2122,10 +2114,12 @@ def prep_workflow(sub_dict, c, strategies):
 
         hash_val = 0
 
+
         for name in strat.get_name():
-            if not ('alff' in name.lower()) and not ('vmhc' in name.lower()) \
+           if not ('alff' in name.lower()) and not ('vmhc' in name.lower()) \
             and not ('reho' in name.lower()) and not ('sca' in name.lower()) \
-            and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()):
+            and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()) \
+	    and not ('temporal_dual_regression' in name.lower()) and not ('temporal_regression_sca' in name.lower()):
 
                 strat_tag += name + '_'
 
