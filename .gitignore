@@ -3,6 +3,7 @@
 # Packages
 *.egg
 *.egg-info
+*.pyc
 dist
 build
 eggs
@@ -28,3 +29,7 @@ pip-log.txt
 
 #CPAC Specific
 /doc/_build
+
+#Eclipse project files
+.project
+.pydevproject
