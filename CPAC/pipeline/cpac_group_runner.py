@@ -160,8 +160,6 @@ def run(config_file, output_path_file):
 
     subject_paths = []
 
-    input_subject_ids = [subject_id.rstrip('\r\n') for subject_id in open(c.groupAnalysisSubjectList, 'r').readlines()]
-
     for file in glob.glob(os.path.abspath(output_path_file)):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
@@ -195,8 +193,7 @@ def run(config_file, output_path_file):
         if c.mixedScanAnalysis == True:
             key = key.replace(scan_id, '*')
 
-        if subject_id in input_subject_ids:
-            analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+        analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
 
     for resource, glob_key in analysis_map.keys():

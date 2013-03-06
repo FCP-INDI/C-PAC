@@ -554,7 +554,7 @@ def gen_roi_timeseries(data_file,
     txt_file = os.path.abspath('roi_' + tmp_file + '.txt')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
     numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
-
+    
     nodes.sort()
     for n in nodes:
         if n > 0:

@@ -213,45 +213,36 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
                select_spatial_map, 'scan')
     return wf
 
-
-def create_gpa_dataflow(model_dict, ftest, wf_name='gp_dataflow'):
-        """
-        Dataflow to iterate over each model and
-        pick the model files and modify if required
-        for group analysis
-        """
+def create_gpa_dataflow(wf_name = 'gp_dataflow'):
+        
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
-        from CPAC.utils import modify_model, select_model
-
-        wf = pe.Workflow(name=wf_name)
-
-        inputnode = pe.Node(util.IdentityInterface(
-                                fields=['grp_model',
-                                        'input_sublist',
-                                        'output_sublist'],
-                                mandatory_inputs=True),
-                        name='inputspec')
-
-        inputnode.iterables = [('grp_model', model_dict.keys())]
-
+        from CPAC.utils import modify_model, select_model_files
+        
+        wf = pe.Workflow(name=wf_name) 
+        
+        inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
+                                                           'grp_model', 
+                                                           'input_sublist', 
+                                                           'output_sublist'],
+                                                   mandatory_inputs=True),
+                            name='inputspec')
+    
         selectmodel = pe.Node(util.Function(input_names=['model',
-                                                         'model_map',
                                                          'ftest'],
                                            output_names=['fts_file',
                                                          'con_file',
                                                          'grp_file',
                                                          'mat_file'],
-                                           function=select_model),
-                             name='selectnode')
-        selectmodel.inputs.model_map = model_dict
-        selectmodel.inputs.ftest = ftest
-
-        wf.connect(inputnode, 'grp_model',
+                                           function = select_model_files),
+                             name  = 'selectnode')
+        
+        wf.connect(inputnode, 'ftest',
+                   selectmodel, 'ftest')
+        wf.connect(inputnode, 'grp_model', 
                    selectmodel, 'model')
-
-
-        modifymodel = pe.Node(util.Function(input_names=['input_sublist',
+        
+        modifymodel = pe.Node(util.Function(input_names = ['input_sublist',
                                                             'output_sublist',
                                                             'mat_file',
                                                             'grp_file'],
@@ -291,3 +282,4 @@ def create_gpa_dataflow(model_dict, ftest, wf_name='gp_dataflow'):
 
 
         return wf
+
