@@ -39,9 +39,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception("path to input subject list %s is invalid"%subject_list)
         
         if c.mixedScanAnalysis == True:
-            wf = pe.Workflow(name = 'group_analysis/%s/_grp_model_%s'%(resource, os.path.basename(model)))
+            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         else:
-            wf = pe.Workflow(name = 'group_analysis/%s/_grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
     
@@ -90,7 +90,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                        gpa_wf, 'inputspec.fts_file') 
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/grp_model_%s'%(os.path.basename(model)))
+        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(os.path.basename(model)))
         
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
