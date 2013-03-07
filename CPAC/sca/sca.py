@@ -149,12 +149,12 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     which: a string
         SR: Spatial Regression, RT: ROI Timeseries
         
-    NOTE: If you set (which = 'RT'), the output of this workflow will be
-          renamed based on the header information provided in the
-          timeseries.txt file.
-          If you run the temporal regression workflow manually, don\'t set 
-          (which = 'RT') unless you provide a timeseries.txt file with a header
-          containing the names of the timeseries.
+        NOTE: If you set (which = 'RT'), the output of this workflow will be
+        renamed based on the header information provided in the
+        timeseries.txt file.
+        If you run the temporal regression workflow manually, don\'t set 
+        (which = 'RT') unless you provide a timeseries.txt file with a header
+        containing the names of the timeseries.
         
     Returns
     -------
@@ -205,6 +205,17 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     Enter all timeseries into a general linear model and regress these 
     timeseries to the subjects functional file to get spatial maps of voxels
     showing activation patterns related to those in the timeseries.
+    
+
+    Workflow:
+
+    .. image:: ../images/create_temporal_regression.png
+        :width: 500
+
+    Detailed Workflow:
+
+    .. image:: ../images/detailed_graph_create_temporal_regression.png
+        :width: 500    
 
     References
     ----------
