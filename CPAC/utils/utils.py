@@ -928,12 +928,8 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     f.close()
 
     print "removing subject at the indices", remove_index
-<<<<<<< HEAD
-
-=======
     print "modifying the mat and grp files"
      
->>>>>>> 0fd403ec3c0a658f8450d2df45d21508de601868
     model_map = read_model_file(mat_file)
     new_mat_file = write_model_file(model_map, mat_file, remove_index)
 
@@ -943,14 +939,6 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     return new_grp_file, new_mat_file, new_sub_file
 
 
-<<<<<<< HEAD
-
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
-
-=======
 def select_model_files(model, ftest):
     """
     Method to select model files
@@ -958,7 +946,6 @@ def select_model_files(model, ftest):
     import os
     import glob
     
->>>>>>> 0fd403ec3c0a658f8450d2df45d21508de601868
     try:
         files = glob.glob(os.path.join(model,'*'))
         
@@ -979,43 +966,9 @@ def select_model_files(model, ftest):
     except Exception:
         print "All the model files are not present. Please check the model folder %s"%model
         raise
-<<<<<<< HEAD
-
-    return fts_file, con_file, grp_file, mat_file
-
-
-
-
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
-
-    try:
-        files = model_map[model]
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
-
-    except Exception:
-        print "All the model files are not present. Please check the model folder"
-        raise
-
-    return fts_file, con_file, grp_file, mat_file
-
-=======
     
     return fts_file, con_file, grp_file, mat_file    
     
-    
->>>>>>> 0fd403ec3c0a658f8450d2df45d21508de601868
 
 def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 

@@ -212,7 +212,17 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
             npz files.By default it outputs mean of voxels
             across each time point in a afni compatible 1D file.
 
-        High Level Workflow Graph:
+
+    High Level Workflow Graph:
+
+    .. image:: ../images/graph_get_spatial_timeseries.png
+       :width: 1000
+
+
+    Detailed Workflow Graph:
+
+    .. image:: ../images/detailed_graph_get_spatial_timeseries.png
+       :width: 1000
 
     Example
     -------
