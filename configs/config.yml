@@ -567,11 +567,6 @@ cwasRegressorFile: /path/to/cwas_regressor_file
 
 runGroupAnalysis: [0]
 
-# Path to list of subjects on which to run group statistics
-# This file should be created automatically when you run extract_data.py
-# The order of subjects in this list must match the order in your model
-groupAnalysisSubjectList: /path/to/subject_list_group_analysis.txt
-
 # Select which measures should be included in group analysis:
 ## sca_seed_Z_to_standard_smooth = voxel-based SCA
 ## sca_roi_Z_to_standard_smooth = ROI based SCA
@@ -593,7 +588,27 @@ derivativeList:
 # If fTest = True (see below), model directories must also contain a .fts file
 # These models can be generated through FSL, or using create_fsl_model.py
 # For instructions on using create_fsl_model.py, see the user guide
-modelFile: /path/to/subject_list_model_list.txt
+#
+#It can be a file with model and subject list(for that model) path in each line
+#   modelFile: /path/to/model_list_and_subject_list.txt
+#
+#This file should have full path to model directory space full path to subject list for that model
+# 
+#or It can be yaml list  
+#   modelFile: 
+#   -
+#     - /home/data/configs/model_a 
+#     - /home/data/configs/subject_list_group_analysis_a.txt
+#   -
+#     - /home/data/configs/model_b 
+#     - /home/data/configs/subject_list_group_analysis_b.txt
+#
+#or it can be a simple list
+#   
+#  modelFile : [ ['/home/data/configs/model_a', '/home/data/configs/model_a_sublist.txt'], \
+#                ['/home/data/configs/model_b', '/home/data/configs/model_b_sublist.txt'] ]
+
+modelFile: /path/to/model_list_and_subject_list.txt
 
 # If a subjecs has multiple scans:
 # False = Consdier only the first scan session during group analysis
