@@ -720,22 +720,8 @@ def prepare_gp_links(in_file, resource):
 
     sink_dir = os.path.join(sink_dir, tier_4)
 
-    if '/merged/' in in_file:
-        residual = sink_dir.split(gp_dir)[1].lstrip('/')
-        print '~~ ', residual
-        residual = residual.replace('/merged', '/')
-        print '^^ ', residual
-        sink_dir = os.path.join(gp_dir, os.path.join('merged_4D_files', residual))
-
-    if '/merged/' in in_file:
-            dirname = os.path.dirname(sink_dir)
-            if os.path.basename(in_file).endswith('.nii.gz'):
-                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii.gz']))
-            elif os.path.basename(in_file).endswith('.nii'):
-                sink_dir = os.path.join(os.path.dirname(dirname), ''.join([os.path.basename(dirname), '.nii']))
-            else:
-                raise ValueError('unsupported file format %s' % in_file)
-
+    if 'merged' in in_file:
+        sink_dir = os.path.join(sink_dir, 'merged.nii.gz')
     else:
         sink_dir = os.path.join(sink_dir, os.path.basename(in_file))
 
@@ -907,6 +893,7 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     remove_index = []
     for subject in input_sublist:
          if subject not in output_sublist:
+              print "Derivative output not found for subject %s " %(subject)
               remove_index.append(input_sublist.index(subject))
          else:
               print >>f, subject
@@ -914,6 +901,7 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     f.close()
 
     print "removing subject at the indices", remove_index
+    print "modifying the mat and grp files"
      
     model_map = read_model_file(mat_file)
     new_mat_file = write_model_file(model_map, mat_file, remove_index)
@@ -924,14 +912,19 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     return new_grp_file, new_mat_file, new_sub_file
 
 
-    
-def select_model(model, model_map, ftest):
+def select_model_files(model, ftest):
     """
     Method to select model files
     """
+    import os
+    import glob
     
     try:
-        files = model_map[model]
+        files = glob.glob(os.path.join(model,'*'))
+        
+        if len(files) == 0:
+            raise Exception("No files foudn inside model %s"%model) 
+        
         fts_file = ''
         for file in files:
             if file.endswith('.mat'):
@@ -944,38 +937,12 @@ def select_model(model, model_map, ftest):
                  con_file = file
     
     except Exception:
-        print "All the model files are not present. Please check the model folder"
+        print "All the model files are not present. Please check the model folder %s"%model
         raise
     
-    return fts_file, con_file, grp_file, mat_file
-
-
-
+    return fts_file, con_file, grp_file, mat_file    
     
-def select_model(model, model_map, ftest):
-    """
-    Method to select model files
-    """
     
-    try:
-        files = model_map[model]
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
-    
-    except Exception:
-        print "All the model files are not present. Please check the model folder"
-        raise
-    
-    return fts_file, con_file, grp_file, mat_file
-
 
 def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     
