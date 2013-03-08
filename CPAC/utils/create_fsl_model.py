@@ -65,8 +65,6 @@ def filter_phenotypic(c):
         subject = subject.rstrip('\r\n')
         f_r.append(record_dict[subject])
 
-    #print f_r
-
     return f_r
 
 
@@ -100,9 +98,6 @@ def organize_data(filter_data, c):
     mean_cols = []
     directional_cols = []
     directional_map = {}
-    lens_grouping_variable = {}
-    gp_var = {}
-    order = []
 
     ### line up columns for the model
     for i in range(0, len(c.columnsInModel)):
@@ -117,37 +112,15 @@ def organize_data(filter_data, c):
     idx = 0
     for data in filter_data:
 
-        if c.modelGroupVariancesSeparately == 1:
-            if not (data[c.groupingVariable] in gp_var.keys()):
-                gp_var[data[c.groupingVariable]] = [idx]
-                order.append(data[c.groupingVariable])
-            else:
-                val = gp_var[data[c.groupingVariable]]
-                val.append(idx)
-                gp_var[data[c.groupingVariable]] = val
-            idx += 1
-
         for col in mean_cols:
 
             try:
 
-                if c.modelGroupVariancesSeparately == 0:
-                    if not col in mean:
+                if not col in mean:
 
-                        mean[col] = float(data[col])
-                    else:
-                        mean[col] += float(data[col])
-
+                    mean[col] = float(data[col])
                 else:
-
-                    key = col + '#' + str(data[c.groupingVariable])
-
-                    if not key in mean:
-                        mean[key] = float(data[col])
-                        lens_grouping_variable[key] = 1
-                    else:
-                        mean[key] += float(data[col])
-                        lens_grouping_variable[key] += 1
+                    mean[col] += float(data[col])
 
             except ValueError, e:
                 print 'error ', e, ' for data row: ', data
@@ -202,10 +175,7 @@ def organize_data(filter_data, c):
 
     for col in mean.keys():
 
-        if c.modelGroupVariancesSeparately == 1:
-            mean[col] = float(mean[col])/float(lens_grouping_variable[col])
-        else:
-            mean[col] = float(mean[col])/float(len(filter_data))
+        mean[col] = float(mean[col])/float(len(filter_data))
     idx = 0
     for data in filter_data:
 
@@ -213,17 +183,10 @@ def organize_data(filter_data, c):
         for col in mean.keys():
 
             val = 0.0
-            if c.modelGroupVariancesSeparately == 1:
-                val = float(data[col.split('#')[0]])
-            else:
-                val = float(data[col])
+            val = float(data[col])
             val = val - mean[col]
 
-            if c.modelGroupVariancesSeparately == 1:
-                if data[c.groupingVariable+ '__'+ col.split('#')[1]] == '1':
-                    data[col.split('#')[0]] = str(val)
-            else:
-                data[col] = str(val)
+            data[col] = str(val)
         filter_data[idx] = data
         idx += 1
 
@@ -233,15 +196,6 @@ def organize_data(filter_data, c):
     field_names = [c.subjectColumn]
 
     keys = zeroth.keys()
-
-    if c.groupingVariable in directional_map:
-        gp_variable_vals = sorted(directional_map[(c.groupingVariable)])
-
-        for val in gp_variable_vals:
-
-            field_names.append(val)
-
-        del directional_map[(c.groupingVariable)]
 
     for ignore, directional_columns in directional_map.items():
 
@@ -253,10 +207,7 @@ def organize_data(filter_data, c):
 
     for col in sorted(mean.keys()):
 
-        if c.modelGroupVariancesSeparately == 1:
-            field_names.append(col.split('#')[0])
-        else:
-            field_names.append(col)
+        field_names.append(col)
 
     for f_n in filter_data[0].keys():
 
@@ -264,7 +215,7 @@ def organize_data(filter_data, c):
             field_names.append(f_n)
 
 
-    return filter_data, field_names, gp_var, order
+    return filter_data, field_names
 
 
 def check_multicollinearity(matrix):
@@ -317,7 +268,7 @@ def write_data(model_data, field_names, c):
 
     evs = open(c.contrastFile, 'r').readline()
     evs = evs.rstrip('\r\n').split(',')
-
+    evs = [ev.replace("\"", '') for ev in evs]
     idx = 0
     new_evs = []
     for ev in evs:
@@ -343,8 +294,11 @@ def write_data(model_data, field_names, c):
 
         writer.writerow(header)
 
-        dropped_columns = []
-        dropped_columns = [name for name in field_names if not (name in list(set(field_names) & set(new_field_names))) ]
+        dropped_columns_a = []
+        dropped_columns_b = []
+        dropped_columns_a = [name for name in field_names if not (name in list(set(field_names) & set(new_field_names))) ]
+        dropped_columns_b = [name for name in new_field_names if not (name in list(set(field_names) & set(new_field_names))) ]
+        dropped_columns = list(set(dropped_columns_a + dropped_columns_b))
 
         if not (len(dropped_columns) == 0):
             print 'dropping columns(not specified in contrasts) from the model ', dropped_columns
@@ -406,7 +360,7 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     f.close()
 
-def create_grp_file(data, model_name, gp_var, order, outputModelFilesDirectory):
+def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
     """
     create the grp file
@@ -416,9 +370,9 @@ def create_grp_file(data, model_name, gp_var, order, outputModelFilesDirectory):
     data = np.ones(dimx)
 
 
-    if not (gp_var == []):
+    if not (gp_var == None):
         i = 1
-        for key in order:
+        for key in sorted(gp_var.keys()):
 
             for index in gp_var[key]:
                 data[index] = i
@@ -520,12 +474,206 @@ class Configuration(object):
                 config_map[key] = None
             setattr(self, key, config_map[key])
 
+
+def pandas_alternate_organize_data(data, c):
+
+    import pandas as ps
+    import csv
+
+    df = ps.DataFrame(data)
+
+    categorical = []
+    directional = []
+    for i in range(0, len(c.columnsInModel)):
+
+        if c.deMean[i]:
+            col = c.columnsInModel[i]
+            df[col] = df[col].astype('float32') - df[col].astype('float32').mean()
+
+        if c.categoricalVsDirectional[i]:
+            categorical.append(c.columnsInModel[i])
+        else:
+            directional.append(c.columnsInModel[i])
+
+
+    #split on the grouping variable
+    for name, group in df.groupby(c.groupingVariable):
+        group[c.groupingVariable] = 1
+        group[c.groupingVariable]= group[c.groupingVariable]
+        df[c.groupingVariable + '__'+ name] = group[c.groupingVariable]
+        df[c.groupingVariable + '__'+ name] = df[c.groupingVariable + '__'+ name].fillna(0)
+
+        for col in directional:
+
+            group[col] = group[col]
+            df[col + '__'+ name] = group[col]
+            df[col + '__'+ name] = df[col + '__'+ name].fillna(0)
+
+
+    #split on (grouping variable and each of the (categoricals- grouping variable) )
+    for col in categorical:
+
+        if not (col == c.groupingVariable):
+            for name, group in df.groupby([c.groupingVariable, col]):
+                group[col] = 1
+                df[col+'__'+'_'.join([str(e) for e in name])] = group[col]
+                df[col+'__'+'_'.join([str(e) for e in name])] = df[col+'__'+'_'.join([str(e) for e in name])].fillna(0)
+
+    for col in c.columnsInModel:
+        del df[col]
+
+
+    df.to_csv('./tempfile.csv', sep=',', index=False)
+
+    print 'saved to abc.csv'
+    sys.exit()
+
+
+def split_directionals(gp, directional, data, c):
+
+    for key in gp.keys():
+
+        indices = gp[key]
+
+        for col in directional:
+
+            new_col = col + '__' + key
+
+            for idx in range(0, len(data)):
+
+                if idx in indices:
+                    data[idx][new_col] = data[idx][col]
+                else:
+                    data[idx][new_col] = 0
+
+def split_gp_var(gp, data, c):
+
+
+    for key in gp.keys():
+
+        indices = gp[key]
+
+        new_col = c.groupingVariable + '__' + key
+
+        for idx in range(0, len(data)):
+
+            if idx in indices:
+                data[idx][new_col] = 1
+            else:
+                data[idx][new_col] = 0
+
+
+def group_by_gp_categorical(categorical, data, c):
+
+
+    gp_cat_dict = {}
+    for cat_col in categorical:
+
+        if not (cat_col == c.groupingVariable):
+
+            for idx in range(0, len(data)):
+                new_col = '__'.join([str(cat_col), str(data[idx][cat_col]), str(c.groupingVariable), str(data[idx][c.groupingVariable])])
+                if new_col in gp_cat_dict:
+                    gp_cat_dict[new_col].append(idx)
+                else:
+                    gp_cat_dict[new_col] = [idx]
+
+
+
+    for col in gp_cat_dict.keys():
+
+        indices = gp_cat_dict[col]
+
+        for idx in range(0, len(data)):
+
+            if idx in indices:
+                data[idx][col] = 1
+            else:
+                data[idx][col] = 0
+
+
+
+
+
+def alternate_organize_data(data, c):
+
+    categorical = []
+    directional = []
+    mean_cols = []
+
+    groups_grouping_var = {}
+
+    for i in range(0, len(c.columnsInModel)):
+
+        if c.deMean[i]:
+            col = c.columnsInModel[i]
+            mean_cols.append(col)
+
+        if c.categoricalVsDirectional[i]:
+            categorical.append(c.columnsInModel[i])
+        else:
+            directional.append(c.columnsInModel[i])
+
+    sum_ = {}
+
+    idx = 0
+    #take sum of each of columns to be demeaned
+    for row in data:
+
+        #on the side create groups for groups_grouping_var
+        try:
+            groups_grouping_var[str(row[c.groupingVariable])].append(idx)
+        except:
+            groups_grouping_var[str(row[c.groupingVariable])] = [idx]
+
+
+
+        for col in mean_cols:
+            try:
+                sum_[col] += float(row[col])
+            except:
+                sum_[col] = float(row[col])
+
+        idx += 1
+
+    #take the mean
+    for  row in data:
+
+        for col in mean_cols:
+
+            row[col] = float(row[col]) - float(sum_[col])/float(len(data))
+
+
+    #split the directonal columns according to the groupingVariable
+    split_directionals(groups_grouping_var, directional, data, c)
+    #split the groupingVariable col
+    split_gp_var(groups_grouping_var, data, c)
+    #split categorical cols according to groupingVariable
+    group_by_gp_categorical(categorical, data, c)
+
+    #delete all original categorical and directional columns 
+    for idx in range(0, len(data)):
+        #del data[idx]['subject_id']
+        for col in directional:
+            del data[idx][col]
+
+        for col in categorical:
+            del data[idx][col]
+
+    print '\t'.join(key for key in sorted(data[0].keys()) )
+    for idx in range(0, len(data)):
+        print '\t'.join(str(data[idx][key]) for key in sorted(data[idx].keys()))
+
+    return data, data[0].keys(), groups_grouping_var
+
+
+
 def run(config):
 
     try:
         c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
     except:
-        raise Exception("Error in reading %s configuration file"%config) 
+        raise Exception("Error in reading %s configuration file" % config)
 
     ###This generates the model file
 
@@ -549,7 +697,18 @@ def run(config):
 
 
     filter_data = filter_phenotypic(c)
-    model_ready_data, field_names, gp_var, order = organize_data(filter_data, c)
+
+
+    model_ready_data = None
+    field_names = None
+    gp_var = None
+    order = None
+
+    if c.modelGroupVariancesSeparately == 0:
+        model_ready_data, field_names = organize_data(filter_data, c)
+    else:
+        model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
+
     write_data(model_ready_data, field_names, c)
 
 
@@ -576,5 +735,5 @@ def run(config):
     print len(data[:])
     data = np.array(data, dtype=np.float16)
     create_mat_file(data, model_name, c.outputModelFilesDirectory)
-    create_grp_file(data, model_name, gp_var, order, c.outputModelFilesDirectory)
+    create_grp_file(data, model_name, gp_var, c.outputModelFilesDirectory)
     create_con_ftst_file(con, model_name, c.outputModelFilesDirectory)
