@@ -86,7 +86,14 @@ files_folders_wf = {
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
     'seg_partial_volume_map': 'anat',
-    'seg_partial_volume_files': 'anat'
+    'seg_partial_volume_files': 'anat',
+    'spatial_map_timeseries': 'timeseries',
+    'dr_temp_reg_maps': 'spatial_regression',
+    'dr_temp_reg_maps_z_stack': 'spatial_regression',
+    'dr_temp_reg_maps_z_files': 'spatial_regression',
+    'sc_temp_reg_maps': 'sca_roi',
+    'sc_temp_reg_maps_z_stack': 'sca_roi',
+    'sc_temp_reg_maps_z_files' : 'sca_roi'
 }
 
 def safe_shape(*vol_data):
@@ -231,11 +238,11 @@ def get_hplpfwhmseed_(parameter, remainder_path):
 
     partial_parameter_value = remainder_path.split(parameter)[1]
 
-    #print partial_parameter_value, ' ~~~~', parameter
+    # print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
-    return parameter.lstrip('/_')+value
+    return parameter.lstrip('/_') + value
 
 
 def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
@@ -270,14 +277,14 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
                 os.makedirs(seedOutputLocation)
 
             print 'checking if file exists ', '%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)
-            assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)) )
+            assert(os.path.exists('%s/data/standard/MNI152_T1_%s_brain.nii.gz' % (FSLDIR, resolution)))
             cmd = "echo %s %s %s | 3dUndump -prefix %s.nii.gz -master %s/data/standard/MNI152_T1_%s_brain.nii.gz \
--srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(seedOutputLocation, str(index) +'_'+ seed_label +'_'+resolution), FSLDIR, resolution, radius)
+-srad %s -orient LPI -xyz -" % (x, y, z, os.path.join(seedOutputLocation, str(index) + '_' + seed_label + '_' + resolution), FSLDIR, resolution, radius)
 
             print cmd
             try:
                 commands.getoutput(cmd)
-                seed_files.append((os.path.join(seedOutputLocation, '%s.nii.gz' % (str(index) +'_'+ seed_label +'_'+resolution)), seed_label))
+                seed_files.append((os.path.join(seedOutputLocation, '%s.nii.gz' % (str(index) + '_' + seed_label + '_' + resolution)), seed_label))
                 print seed_files
             except:
                 raise
@@ -291,19 +298,19 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
             seed, intensity = seed_files[idx]
 
-            intensities += intensity+'_'
+            intensities += intensity + '_'
 
-            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed)))
+            cmd = "3dcalc -a %s -expr 'a*%s' -prefix %s" % (seed, intensity, os.path.join(seedOutputLocation, 'ic_' + os.path.basename(seed)))
             print cmd
             try:
                 commands.getoutput(cmd)
 
-                seed_str += "%s " % os.path.join(seedOutputLocation, 'ic_'+ os.path.basename(seed))
+                seed_str += "%s " % os.path.join(seedOutputLocation, 'ic_' + os.path.basename(seed))
             except:
                 raise
 
 
-        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(seedOutputLocation, 'rois_'+resolution), seed_str)
+        cmd = '3dMean  -prefix %s.nii.gz -sum %s' % (os.path.join(seedOutputLocation, 'rois_' + resolution), seed_str)
         print cmd
         try:
             commands.getoutput(cmd)
@@ -316,14 +323,14 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
             commands.getoutput(cmd)
             for seed, intensity in seed_files:
                 try:
-                    cmd  = 'rm -f  '+ seed
+                    cmd = 'rm -f  ' + seed
                     print cmd
                     commands.getoutput(cmd)
                 except:
                     raise
         except:
             raise
-        return_roi_files.append(os.path.join(seedOutputLocation, 'rois_'+resolution+'.nii.gz'))
+        return_roi_files.append(os.path.join(seedOutputLocation, 'rois_' + resolution + '.nii.gz'))
 
     print return_roi_files
     return return_roi_files
@@ -338,7 +345,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
     from CPAC.utils.utils import get_workflow, get_session, \
                      get_hplpfwhmseed_
 
-    #from sink import global_lock
+    # from sink import global_lock
 
 
     for strategy in relevant_strategies:
@@ -398,7 +405,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             raise
 
 
-        #remove unused corrections
+        # remove unused corrections
         strategy_identifier = strategy_identifier.replace('pc10.', '')
         strategy_identifier = strategy_identifier.replace('linear0.', '')
         strategy_identifier = strategy_identifier.replace('wm0.', '')
@@ -411,7 +418,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
 #        strategy_identifier = 'regressors.' + strategy_identifier
 
-        #start making basic sym link directories
+        # start making basic sym link directories
         sym_path = os.path.join(sym_path, strategy_identifier)
         new_sub_path = os.path.join(sym_path, subject_id)
         file_name, wf, remainder_path = get_workflow(remainder_path)
@@ -421,7 +428,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         new_path = new_wf_path
 
 
-        #bring into use the tier 2 iterables for recursive directory structure
+        # bring into use the tier 2 iterables for recursive directory structure
 
         scan_info = '~~~'
         if '/_scan_' in path:
@@ -494,9 +501,9 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global_lock.acquire()
 
             if not '~~~' in scan_info:
-                f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' +strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
+                f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
 
-                print >>f, path
+                print >> f, path
             global_lock.release()
 
         except:
@@ -535,10 +542,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             commands.getoutput(cmd)
         else:
 
-            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name+ ext))
+            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name + ext))
             try:
 
-                f1 = open(os.path.join(new_path, file_name+ ext))
+                f1 = open(os.path.join(new_path, file_name + ext))
 
             except:
                 print cmd
@@ -564,13 +571,13 @@ def prepare_gp_links(in_file, resource):
 
     pipeline_id = ''.join(['pipeline_', pipeline_id.split('/')[0]])
 
-    #sym link directory
+    # sym link directory
     sink_dir = os.path.join(sink_dir, 'sym_links')
 
-    #pipeline directory
+    # pipeline directory
     sink_dir = os.path.join(sink_dir, pipeline_id)
 
-    #group directory
+    # group directory
     sink_dir = os.path.join(sink_dir, 'group_analysis_results')
 
     strategy_identifier = ''
@@ -664,7 +671,7 @@ def prepare_gp_links(in_file, resource):
 
     if 'sca_roi_Z' in resource and '/_roi_' in in_file:
 
-        third_tier = resource + '_' +get_param_val_('/_roi_', in_file)
+        third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
 
         roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
         third_tier = third_tier + '/' + roi_number
@@ -742,9 +749,9 @@ def prepare_gp_links(in_file, resource):
 
 def clean_strategy(strategies, helper):
 
-###
-### If segmentation or scrubbing or nuisance or median is turned off
-### in the pipeline then remove them from the strategy tag list
+# ##
+# ## If segmentation or scrubbing or nuisance or median is turned off
+# ## in the pipeline then remove them from the strategy tag list
 
     new_strat = []
 
@@ -833,18 +840,18 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     new_sub_file : string (txt file)
         new model subject list 
     """
-    
+
     import os
     def read_model_file(file):
         """
         Method to read model file and
         create a map out of it
         """
-        dict1={}
+        dict1 = {}
         for line in open(file, 'r'):
-            if line.strip() !='':
-                if 'NumWaves' in line: 
-                    dict1['/NumWaves']= line.split()[1]
+            if line.strip() != '':
+                if 'NumWaves' in line:
+                    dict1['/NumWaves'] = line.split()[1]
                 elif 'NumPoints' in line:
                     dict1['/NumPoints'] = line.split()[1]
                 elif 'PPheights' in line:
@@ -854,61 +861,61 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
                 else:
                     dict1.get('/Matrix').append(line)
         return dict1
-    
+
     def write_model_file(model_map, model_file, remove_index):
-        
+
         out_file, ext = os.path.splitext(os.path.basename(model_file))
         out_file = out_file + '_new' + ext
         out_file = os.path.join(os.getcwd(), out_file)
 
-        #create an index of all subjects for a derivative for which 
-        #CPAC did not run successfully
+        # create an index of all subjects for a derivative for which
+        # CPAC did not run successfully
 
         f = open(out_file, 'wb')
         print >> f, '/NumWaves\t' + model_map['/NumWaves']
-        
+
         num_points = int(model_map['/NumPoints']) - len(remove_index)
         print >> f, '/NumPoints\t' + str(num_points)
         if ext == ".mat":
             f.write('/PPHeights\t\t')
             for val in model_map['/PPHeights']:
-                f.write(val+'\t')
+                f.write(val + '\t')
             f.write('\n')
         print >> f, ''
         print >> f, '/Matrix'
-        count =0
+        count = 0
         for values in model_map['/Matrix']:
-            #remove the row form matrix for all unsuccessful subjects 
+            # remove the row form matrix for all unsuccessful subjects
             if count not in remove_index:
                 f.write(values)
-            count+=1
-    
+            count += 1
+
         f.close()
-  
+
         return out_file
-     
-    #get new subject list     
+
+    # get new subject list
     new_sub_file = os.path.join(os.getcwd(), 'model_subject_list.txt')
     f = open(new_sub_file, 'wb')
     remove_index = []
     for subject in input_sublist:
          if subject not in output_sublist:
-              print "Derivative output not found for subject %s " %(subject)
+              print "Derivative output not found for subject %s " % (subject)
               remove_index.append(input_sublist.index(subject))
          else:
-              print >>f, subject
-        
+              print >> f, subject
+
     f.close()
 
     print "removing subject at the indices", remove_index
     print "modifying the mat and grp files"
-     
+
     model_map = read_model_file(mat_file)
     new_mat_file = write_model_file(model_map, mat_file, remove_index)
-    
+
     model_map = read_model_file(grp_file)
     new_grp_file = write_model_file(model_map, grp_file, remove_index)
-        
+
     return new_grp_file, new_mat_file, new_sub_file
 
 
@@ -918,13 +925,13 @@ def select_model_files(model, ftest):
     """
     import os
     import glob
-    
+
     try:
-        files = glob.glob(os.path.join(model,'*'))
-        
+        files = glob.glob(os.path.join(model, '*'))
+
         if len(files) == 0:
-            raise Exception("No files foudn inside model %s"%model) 
-        
+            raise Exception("No files foudn inside model %s" % model)
+
         fts_file = ''
         for file in files:
             if file.endswith('.mat'):
@@ -935,17 +942,17 @@ def select_model_files(model, ftest):
                  fts_file = file
             elif file.endswith('.con'):
                  con_file = file
-    
+
     except Exception:
-        print "All the model files are not present. Please check the model folder %s"%model
+        print "All the model files are not present. Please check the model folder %s" % model
         raise
-    
-    return fts_file, con_file, grp_file, mat_file    
-    
-    
+
+    return fts_file, con_file, grp_file, mat_file
+
+
 
 def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
-    
+
     """
     Method to extract slice timing correction parameters
     and scan parameters.
@@ -976,76 +983,76 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     last_tr : an integer
         ending TR or ending volume index
     """
-    
+
     import os
     import warnings
-                            
+
     def check(val, throw_exception):
-        
+
         if isinstance(subject_map['scan_parameters'][val], dict):
             ret_val = subject_map['scan_parameters'][val][scan]
         else:
             ret_val = subject_map['scan_parameters'][val]
-        
+
         if ret_val == 'None':
             if throw_exception:
-                raise Exception("None Parameter Value for %s for subject %s"%(val,subject))
+                raise Exception("None Parameter Value for %s for subject %s" % (val, subject))
             else:
                 ret_val = None
-                
+
         if ret_val == '' and throw_exception:
-            raise Exception("Missing Value for %s for subject %s"%(val,subject))
-        
+            raise Exception("Missing Value for %s for subject %s" % (val, subject))
+
         return ret_val
-            
+
     check2 = lambda val : val if val == None or val == '' else int(val)
-    
+
     TR = float(check('tr', True))
     pattern = str(check('acquisition', True))
     ref_slice = int(check('reference', True))
     first_tr = check2(check('first_tr', False))
     last_tr = check2(check('last_tr', False))
     unit = 's'
-    #if empty override with config information
+    # if empty override with config information
     if first_tr == '':
-        first_tr = start_indx  
-    
+        first_tr = start_indx
+
     if last_tr == '':
         last_tr = stop_indx
-    
-    if pattern not in ['alt+z', 'altplus', 'alt+z2','alt-z', 'altminus', 
-                   'alt-z2', 'seq+z', 'seqplus',  'seq-z','seqminus']:
+
+    if pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+                   'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']:
         if not os.path.exists(pattern):
-            raise Exception ("Invalid Pattern file path %s , Please provide the correct path"%pattern)
+            raise Exception ("Invalid Pattern file path %s , Please provide the correct path" % pattern)
         else:
             lines = open(pattern, 'r').readlines()
             if len(lines) < 2:
                 raise Exception('Invalid slice timing file format. The file should contain '\
                                 'only one value per row. Use new line char as delimiter')
-            pattern = '@' +  pattern
-            
+            pattern = '@' + pattern
+
             slice_timings = [float(l.rstrip('\r\n')) for l in lines]
             slice_timings.sort()
             max_slice_offset = slice_timings[-1]
-            #checking if the unit of TR and slice timing match or not
-            #if slice timing in ms convert TR to ms as well
+            # checking if the unit of TR and slice timing match or not
+            # if slice timing in ms convert TR to ms as well
             if  max_slice_offset > TR:
                 warnings.warn("TR is in seconds and slice timings are in milliseconds."\
                               "Converting TR into milliseconds")
-                TR = TR*1000
-                print "New TR value %.2f ms" %TR
+                TR = TR * 1000
+                print "New TR value %.2f ms" % TR
                 unit = 'ms'
-            
+
     else:
-        #check to see, if TR is in milliseconds, convert it into seconds
+        # check to see, if TR is in milliseconds, convert it into seconds
         if TR > 10:
             warnings.warn('TR is in milliseconds, Converting it into seconds')
-            TR = TR/1000.0 
-            print "New TR value %.2f s" %TR
+            TR = TR / 1000.0
+            print "New TR value %.2f s" % TR
             unit = 's'
-            
-    print "scan_parameters -> ",subject, scan, str(TR)+unit, pattern, ref_slice, first_tr, last_tr
-    
+
+    print "scan_parameters -> ", subject, scan, str(TR) + unit, pattern, ref_slice, first_tr, last_tr
+
     return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
@@ -1057,7 +1064,7 @@ def get_tr (tr):
     if tr != None:
        tr = re.search("\d+.\d+", str(tr)).group(0)
        tr = float(tr)
-       if tr >10: 
-           tr = tr/1000.0 
+       if tr > 10:
+           tr = tr / 1000.0
     return tr
-        
+

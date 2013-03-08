@@ -4,7 +4,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.freesurfer as fs
 
-def create_surface_registration(wf_name = 'surface_registration'):
+def create_surface_registration(wf_name='surface_registration'):
     """
     Workflow to generate surface from anatomical data and register 
     the structural data to FreeSurfer anatomical and assign it 
@@ -97,87 +97,87 @@ def create_surface_registration(wf_name = 'surface_registration'):
                                                        'subject_id',
                                                        'rest']),
                         name='inputspec')
-    
-    outputNode = pe.Node(util.IdentityInterface(fields= ['reconall_subjects_dir',
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['reconall_subjects_dir',
                                                          'reconall_subjects_id',
                                                          'out_reg_file',
                                                          'lh_surface_file',
                                                          'rh_surface_file']),
-                         name = 'outputspec')
-    
-    
-    reconall = pe.Node(interface=fs.ReconAll(), 
+                         name='outputspec')
+
+
+    reconall = pe.Node(interface=fs.ReconAll(),
                        name="reconall")
     reconall.inputs.directive = 'all'
-    
-    
-    wflow.connect(inputNode, 'brain', 
+
+
+    wflow.connect(inputNode, 'brain',
                   reconall, 'T1_files')
-    wflow.connect(inputNode, 'subject_id', 
+    wflow.connect(inputNode, 'subject_id',
                   reconall, 'subject_id')
-    wflow.connect(inputNode, 'recon_subjects', 
+    wflow.connect(inputNode, 'recon_subjects',
                   reconall, 'subjects_dir')
-    
+
     wflow.connect(reconall, 'subjects_dir',
                   outputNode, 'reconall_subjects_dir')
     wflow.connect(reconall, 'subject_id',
                   outputNode, 'reconall_subjects_id')
-    
-    
-    bbregister = pe.Node(interface=fs.BBRegister(init='fsl', 
-                                                 contrast_type='t2', 
-                                                 registered_file=True, 
-                                                 out_fsl_file=True), 
+
+
+    bbregister = pe.Node(interface=fs.BBRegister(init='fsl',
+                                                 contrast_type='t2',
+                                                 registered_file=True,
+                                                 out_fsl_file=True),
                         name='bbregister')
-    
-    wflow.connect(inputNode, 'rest', 
-                  bbregister, 'source_file' )
-    wflow.connect(reconall, 'subjects_dir', 
-                  bbregister, 'subjects_dir' )
-    wflow.connect(reconall, 'subject_id', 
-                  bbregister, 'subject_id' )
-    
-    wflow.connect(bbregister,'out_reg_file',
+
+    wflow.connect(inputNode, 'rest',
+                  bbregister, 'source_file')
+    wflow.connect(reconall, 'subjects_dir',
+                  bbregister, 'subjects_dir')
+    wflow.connect(reconall, 'subject_id',
+                  bbregister, 'subject_id')
+
+    wflow.connect(bbregister, 'out_reg_file',
                   outputNode, 'out_reg_file')
-    
-    
-    sample_to_surface_lh = pe.Node(interface=fs.SampleToSurface(hemi="lh"), 
+
+
+    sample_to_surface_lh = pe.Node(interface=fs.SampleToSurface(hemi="lh"),
                                     name='sample_to_surface_lh')
     sample_to_surface_lh.inputs.no_reshape = True
     sample_to_surface_lh.inputs.interp_method = 'trilinear'
     sample_to_surface_lh.inputs.sampling_method = "point"
     sample_to_surface_lh.inputs.sampling_range = 0.5
     sample_to_surface_lh.inputs.sampling_units = "frac"
-    
-    wflow.connect(bbregister, 'out_reg_file', 
-                  sample_to_surface_lh, 'reg_file' )
-    wflow.connect(inputNode, 'rest', 
+
+    wflow.connect(bbregister, 'out_reg_file',
+                  sample_to_surface_lh, 'reg_file')
+    wflow.connect(inputNode, 'rest',
                   sample_to_surface_lh, 'source_file')
-    
+
     wflow.connect(sample_to_surface_lh, 'out_file',
                outputNode, 'lh_surface_file')
-        
 
-    sample_to_surface_rh = pe.Node(interface=fs.SampleToSurface(hemi="rh"), 
+
+    sample_to_surface_rh = pe.Node(interface=fs.SampleToSurface(hemi="rh"),
                                     name='sample_to_surface_rh')
     sample_to_surface_rh.inputs.no_reshape = True
     sample_to_surface_rh.inputs.interp_method = 'trilinear'
     sample_to_surface_rh.inputs.sampling_method = "point"
     sample_to_surface_rh.inputs.sampling_range = 0.5
     sample_to_surface_rh.inputs.sampling_units = "frac"
-    
-    wflow.connect(bbregister, 'out_reg_file', 
-                  sample_to_surface_rh, 'reg_file' )
-    wflow.connect(inputNode, 'rest', 
+
+    wflow.connect(bbregister, 'out_reg_file',
+                  sample_to_surface_rh, 'reg_file')
+    wflow.connect(inputNode, 'rest',
                   sample_to_surface_rh, 'source_file')
-    
+
     wflow.connect(sample_to_surface_rh, 'out_file',
                outputNode, 'rh_surface_file')
-        
+
     return wflow
 
 
-def get_voxel_timeseries(wf_name = 'voxel_timeseries'):
+def get_voxel_timeseries(wf_name='voxel_timeseries'):
     """
     Workflow to extract time series for each voxel
     in the data that is present in the input mask
@@ -225,40 +225,40 @@ def get_voxel_timeseries(wf_name = 'voxel_timeseries'):
     >>> wf.run()
     
     """
-    
+
     wflow = pe.Workflow(name=wf_name)
-    
+
     inputNode = pe.Node(util.IdentityInterface(fields=['rest',
                                                        'output_type']),
                         name='inputspec')
     inputNode_mask = pe.Node(util.IdentityInterface(fields=['mask']),
                                 name='input_mask')
-    
+
     outputNode = pe.Node(util.IdentityInterface(fields=['mask_outputs']),
                         name='outputspec')
-    
-    timeseries_voxel= pe.Node(util.Function(input_names=['data_file', 
-                                                         'template', 
+
+    timeseries_voxel = pe.Node(util.Function(input_names=['data_file',
+                                                         'template',
                                                          'output_type'],
                                             output_names=['out_file'],
                                             function=gen_voxel_timeseries),
                               name='timeseries_voxel')
-    
-    wflow.connect(inputNode, 'rest', 
+
+    wflow.connect(inputNode, 'rest',
                   timeseries_voxel, 'data_file')
-    wflow.connect(inputNode, 'output_type', 
+    wflow.connect(inputNode, 'output_type',
                   timeseries_voxel, 'output_type')
-    wflow.connect(inputNode_mask, 'mask', 
+    wflow.connect(inputNode_mask, 'mask',
                   timeseries_voxel, 'template')
 
-    wflow.connect(timeseries_voxel, 'out_file', 
+    wflow.connect(timeseries_voxel, 'out_file',
                   outputNode, 'mask_outputs')
 
     return wflow
 
 
-def get_roi_timeseries(wf_name = 'roi_timeseries'):
-    
+def get_roi_timeseries(wf_name='roi_timeseries'):
+
     """
     Workflow to extract timeseries for each node in the ROI mask.
     For each node, mean across all the timepoint is calculated and stored 
@@ -305,9 +305,9 @@ def get_roi_timeseries(wf_name = 'roi_timeseries'):
     >>> wf.run()
     
     """
-    
-    wflow = pe.Workflow(name = wf_name)
-    
+
+    wflow = pe.Workflow(name=wf_name)
+
     inputNode = pe.Node(util.IdentityInterface(fields=['rest',
                                                        'output_type']),
                         name='inputspec')
@@ -318,28 +318,114 @@ def get_roi_timeseries(wf_name = 'roi_timeseries'):
     outputNode = pe.Node(util.IdentityInterface(fields=['roi_outputs']),
                         name='outputspec')
 
-    timeseries_roi = pe.Node(util.Function(input_names=['data_file', 
-                                                        'template', 
+    timeseries_roi = pe.Node(util.Function(input_names=['data_file',
+                                                        'template',
                                                         'output_type'],
                                                   output_names=['out_file'],
                                                   function=gen_roi_timeseries),
                                                   name='timeseries_roi')
-    wflow.connect(inputNode, 'rest', 
+    wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'data_file')
-    wflow.connect(inputNode, 'output_type', 
+    wflow.connect(inputNode, 'output_type',
                   timeseries_roi, 'output_type')
-    wflow.connect(inputnode_roi, 'roi', 
+    wflow.connect(inputnode_roi, 'roi',
                   timeseries_roi, 'template')
 
-    wflow.connect(timeseries_roi, 'out_file', 
+    wflow.connect(timeseries_roi, 'out_file',
                   outputNode, 'roi_outputs')
 
 
     return wflow
 
 
-def get_vertices_timeseries(wf_name = 'vertices_timeseries'):
-    
+def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
+    """
+    Workflow to regress each provided spatial
+    map to the subjects functional 4D file in order
+    to return a timeseries for each of the maps
+
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+
+    Returns
+    -------
+    wflow : workflow object
+        workflow object
+
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+
+    Workflow Inputs::
+
+        inputspec.subject_rest : string  (nifti file)
+            path to input functional data
+        inputspec.subject_mask : string (nifti file)
+            path to subject functional mask
+        inputspec.ICA_map : string (nifti file)
+            path to Spatial Maps
+        inputspec.demean : Boolean
+            control whether to demean model and data
+
+    Workflow Outputs::
+
+        outputspec.subject_timeseries: string (txt file)
+            list of time series stored in a space separated
+            txt file
+            the columns are spatial maps, rows are timepoints
+
+        High Level Workflow Graph:
+
+    Example
+    -------
+    >>> import CPAC.timeseries.timeseries_analysis as t
+    >>> wf = t.get_spatial_map_timeseries()
+    >>> wf.inputs.inputspec.subject_rest = '/home/data/rest.nii.gz'
+    >>> wf.inputs.inputspec.subject_mask = '/home/data/rest_mask.nii.gz'
+    >>> wf.inputs.inputspec.ICA_map = '/home/data/spatialmaps/spatial_map.nii.gz'
+    >>> wf.inputs.inputspec.demean = True
+    >>> wf.base_dir = './'
+    >>> wf.run()
+
+    """
+
+    wflow = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(util.IdentityInterface
+                        (fields=['subject_rest',
+                                 'subject_mask',
+                                 'spatial_map',
+                                 'demean']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface
+                         (fields=['subject_timeseries']),
+                          name='outputspec')
+
+    spatialReg = pe.Node(interface=fsl.FSLGLM(),
+                         name='spatial_regression')
+
+    spatialReg.inputs.output_file = 'spatial_map_timeseries.txt'
+
+    wflow.connect(inputNode, 'subject_rest',
+                spatialReg, 'in_file')
+    wflow.connect(inputNode, 'subject_mask',
+                spatialReg, 'mask')
+    wflow.connect(inputNode, 'spatial_map',
+                spatialReg, 'design_file')
+    wflow.connect(inputNode, 'demean',
+                spatialReg, 'demean')
+
+    wflow.connect(spatialReg, 'out_file',
+                  outputNode, 'subject_timeseries')
+
+    return wflow
+
+
+def get_vertices_timeseries(wf_name='vertices_timeseries'):
+
     """
     Workflow to get vertices time series from a FreeSurfer surface file 
     
@@ -379,34 +465,34 @@ def get_vertices_timeseries(wf_name = 'vertices_timeseries'):
     >>> wf.base_dir = './'
     >>> wf.run()
     """
-        
-    wflow = pe.Workflow(name = wf_name)
-    
+
+    wflow = pe.Workflow(name=wf_name)
+
     inputNode = pe.Node(util.IdentityInterface(fields=['lh_surface_file',
                                                        'rh_surface_file']),
                         name='inputspec')
-    
-    timeseries_surface = pe.Node(util.Function(input_names=['rh_surface_file', 
+
+    timeseries_surface = pe.Node(util.Function(input_names=['rh_surface_file',
                                                             'lh_surface_file'],
                                                 output_names=['out_file'],
                                                 function=gen_vertices_timeseries),
                                 name='timeseries_surface')
-    
-    
+
+
     outputNode = pe.Node(util.IdentityInterface(fields=['surface_outputs']),
                         name='outputspec')
 
-    wflow.connect(inputNode, 'rh_surface_file', 
-                  timeseries_surface, 'rh_surface_file' )
-    wflow.connect(inputNode, 'lh_surface_file', 
+    wflow.connect(inputNode, 'rh_surface_file',
+                  timeseries_surface, 'rh_surface_file')
+    wflow.connect(inputNode, 'lh_surface_file',
                   timeseries_surface, 'lh_surface_file')
-    
-    wflow.connect(timeseries_surface, 'out_file', 
+
+    wflow.connect(timeseries_surface, 'out_file',
                   outputNode, 'surface_outputs')
-    
+
 
     return wflow
-    
+
 
 def gen_roi_timeseries(data_file,
                        template,
@@ -439,17 +525,17 @@ def gen_roi_timeseries(data_file,
     Exception
         
     """
-    
+
     import nibabel as nib
     import csv
     import numpy as np
     import os
-    
+
     unit_data = nib.load(template).get_data()
     datafile = nib.load(data_file)
     img_data = datafile.get_data()
     vol = img_data.shape[3]
-    
+
     if unit_data.shape != img_data.shape[:3]:
         raise Exception('Invalid Shape Error.'\
                         'Please check the voxel dimensions.'\
@@ -460,13 +546,13 @@ def gen_roi_timeseries(data_file,
     sorted_list = []
     node_dict = {}
     out_list = []
-    
-    
-    #extracting filename from input template
+
+
+    # extracting filename from input template
     tmp_file = os.path.splitext(
                     os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
-    oneD_file = os.path.abspath('roi_'+ tmp_file + '.1D')
+    oneD_file = os.path.abspath('roi_' + tmp_file + '.1D')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
     numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
 
@@ -482,7 +568,7 @@ def gen_roi_timeseries(data_file,
             node_dict[node_str] = avg.tolist()
 
 
-    #writing to 1Dfile    
+    # writing to 1Dfile
     print "writing 1D file.."
     f = open(oneD_file, 'w')
     writer = csv.writer(f, delimiter='\t')
@@ -515,7 +601,7 @@ def gen_roi_timeseries(data_file,
     f.close()
     out_list.append(oneD_file)
 
-    #if csv is required
+    # if csv is required
     if output_type[0]:
         print "writing csv file.."
         f = open(csv_file, 'wt')
@@ -527,13 +613,13 @@ def gen_roi_timeseries(data_file,
         f.close()
         out_list.append(csv_file)
 
-    #if npz file is required
+    # if npz file is required
     if output_type[1]:
         print "writing npz file.."
-        np.savez(numpy_file, roi_data = value_list, roi_numbers = roi_number_list)
+        np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
-    
+
     return out_list
 
 
@@ -574,7 +660,7 @@ def gen_voxel_timeseries(data_file,
     import numpy as np
     import csv
     import os
-    
+
     unit = nib.load(template)
     unit_data = unit.get_data()
     datafile = nib.load(data_file)
@@ -584,20 +670,20 @@ def gen_voxel_timeseries(data_file,
     sorted_list = []
     vol_dict = {}
     out_list = []
-    
+
     if unit_data.shape != img_data.shape[:3]:
         raise Exception('Invalid Shape Error.'\
                         'Please check the voxel dimensions.'\
                         'Data and mask should have same shape')
-    
+
 
 
     tmp_file = os.path.splitext(
                   os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
-    oneD_file = os.path.abspath('mask_'+ tmp_file + '.1D')
+    oneD_file = os.path.abspath('mask_' + tmp_file + '.1D')
     f = open(oneD_file, 'wt')
-    
+
     x, y, z = unit_data.shape
 
     node_array = img_data[unit_data != 0]
@@ -606,11 +692,11 @@ def gen_voxel_timeseries(data_file,
     for t in range(0, time_points):
         str = 'vol %s' % (t)
         vol_dict[str] = node_array[t]
-        print >>f, np.round(np.mean(node_array[t]),6)
+        print >> f, np.round(np.mean(node_array[t]), 6)
         val = node_array[t].tolist()
         val.insert(0, t)
         sorted_list.append(val)
-    
+
     f.close()
     out_list.append(oneD_file)
 
@@ -664,7 +750,7 @@ def gen_vertices_timeseries(rh_surface_file,
     import gradunwarp
     import numpy as np
     import os
-    
+
     out_list = []
     rh_file = os.path.splitext(
                     os.path.basename(rh_surface_file))[0] + '_rh.csv'
