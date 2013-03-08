@@ -2009,9 +2009,9 @@ def prep_workflow(sub_dict, c, strategies):
 
         for name in strat.get_name():
             if not ('alff' in name.lower()) and not ('vmhc' in name.lower()) \
-            and not ('reho' in name.lower()) and not ('sca' in name.lower()) \
-            and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()):
-
+             and not ('reho' in name.lower()) and not ('sca' in name.lower()) \
+             and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()) \
+             and not ('temporal_dual_regression' in name.lower()) and not ('temporal_regression_sca' in name.lower()):
                 strat_tag += name + '_'
 
                 print name, ' ~~~ ', 2 ** workflow_bit_id[name]
