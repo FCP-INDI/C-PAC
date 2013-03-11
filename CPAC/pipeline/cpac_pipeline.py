@@ -29,7 +29,7 @@ from CPAC.utils.datasource import *
 from CPAC.utils import Configuration
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr
+                             get_scan_params, get_tr, extract_txt
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -1608,13 +1608,12 @@ def prep_workflow(sub_dict, c, strategies):
             dr_temp_reg.inputs.inputspec.demean = c.mrsDemean
 
             try:
-                node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('spatial_map_timeseries')
+                node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
 
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_spatial_map, 'out_file',
                                  dr_temp_reg, 'inputspec.subject_rest')
 
-                workflow.connect(node2, out_file2,
+                workflow.connect(node, out_file,
                                  dr_temp_reg, 'inputspec.subject_timeseries')
 
                 workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
@@ -1682,6 +1681,7 @@ def prep_workflow(sub_dict, c, strategies):
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 node2, out_file2 = strat.get_node_from_resource_pool('roi_timeseries')
+                node3, out_file3 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
                 workflow.connect(node, out_file,
                                  sc_temp_reg, 'inputspec.subject_rest')
@@ -1689,7 +1689,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node2, (out_file2, extract_txt),
                                  sc_temp_reg, 'inputspec.subject_timeseries')
 
-                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
+                workflow.connect(node3, out_file3,
                                  sc_temp_reg, 'inputspec.subject_mask')
 
             except:
@@ -2244,7 +2244,8 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-def run(config, subject_list_file, indx, strategies):
+def run(config, subject_list_file, indx, strategies, \
+     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -2262,5 +2263,10 @@ def run(config, subject_list_file, indx, strategies):
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     sub_dict = sublist[int(indx) - 1]
+
+
+    c.maskSpecificationFile = maskSpecificationFile
+    c.roiSpecificationFile = roiSpecificationFile
+    c.templateSpecificationFile = templateSpecificationFile
 
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))

@@ -136,6 +136,25 @@ def extract_one_d(list_timeseries):
 
             return None
 
+
+def extract_txt(list_timeseries):
+    """
+    Method to extract txt file containing 
+    roi timeseries required for dual regression
+    """
+
+    out_file = None
+    for timeseries in list_timeseries:
+        if timeseries.endswith('.txt'):
+            out_file = timeseries
+
+    if not out_file:
+        raise Exception("Unable to retrieve roi timeseries txt"\
+                          " file required for dual regression")
+
+    return out_file
+
+
 def set_gauss(fwhm):
 
     op_string = ""
