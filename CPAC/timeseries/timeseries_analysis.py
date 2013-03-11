@@ -497,39 +497,38 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 def gen_roi_timeseries(data_file,
                        template,
                        output_type):
-
     """
     Method to extract mean of voxel across
     all timepoints for each node in roi mask
-    
+
     Parameters
     ----------
-    datafile : string 
-        path to input functional data 
-    template : string 
+    datafile : string
+        path to input functional data
+    template : string
         path to input roi mask in functional native space
     output_type : list
         list of two boolean values suggesting
-        the output types - numpy npz file and csv 
+        the output types - numpy npz file and csv
         format
-        
+
     Returns
     -------
     out_list : list
-        list of 1D file, csv file and/or npz file containing 
-        mean timeseries for each scan corresponding 
+        list of 1D file, txt file, csv file and/or npz file containing
+        mean timeseries for each scan corresponding
         to each node in roi mask
-        
+
     Raises
     ------
     Exception
-        
-    """
 
+    """
     import nibabel as nib
     import csv
     import numpy as np
     import os
+    import shutil
 
     unit_data = nib.load(template).get_data()
     datafile = nib.load(data_file)
@@ -553,9 +552,10 @@ def gen_roi_timeseries(data_file,
                     os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
     oneD_file = os.path.abspath('roi_' + tmp_file + '.1D')
+    txt_file = os.path.abspath('roi_' + tmp_file + '.txt')
     csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
     numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
-
+    
     nodes.sort()
     for n in nodes:
         if n > 0:
@@ -572,7 +572,6 @@ def gen_roi_timeseries(data_file,
     print "writing 1D file.."
     f = open(oneD_file, 'w')
     writer = csv.writer(f, delimiter='\t')
-
 
     value_list = []
 
@@ -601,6 +600,10 @@ def gen_roi_timeseries(data_file,
     f.close()
     out_list.append(oneD_file)
 
+    # copy the 1D contents to txt file
+    shutil.copy(oneD_file, txt_file)
+    out_list.append(txt_file)
+
     # if csv is required
     if output_type[0]:
         print "writing csv file.."
@@ -618,7 +621,6 @@ def gen_roi_timeseries(data_file,
         print "writing npz file.."
         np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
-
 
     return out_list
 
