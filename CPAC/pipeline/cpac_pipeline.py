@@ -1608,13 +1608,12 @@ def prep_workflow(sub_dict, c, strategies):
             dr_temp_reg.inputs.inputspec.demean = c.mrsDemean
 
             try:
-                node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                node2, out_file2 = strat.get_node_from_resource_pool('spatial_map_timeseries')
+                node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
 
-                workflow.connect(node, out_file,
+                workflow.connect(resample_functional_to_spatial_map, 'out_file',
                                  dr_temp_reg, 'inputspec.subject_rest')
 
-                workflow.connect(node2, out_file2,
+                workflow.connect(node, out_file,
                                  dr_temp_reg, 'inputspec.subject_timeseries')
 
                 workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
@@ -1682,6 +1681,7 @@ def prep_workflow(sub_dict, c, strategies):
             try:
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 node2, out_file2 = strat.get_node_from_resource_pool('roi_timeseries')
+                node3, out_file3 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
                 workflow.connect(node, out_file,
                                  sc_temp_reg, 'inputspec.subject_rest')
@@ -1689,7 +1689,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(node2, (out_file2, extract_txt),
                                  sc_temp_reg, 'inputspec.subject_timeseries')
 
-                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
+                workflow.connect(node3, out_file3,
                                  sc_temp_reg, 'inputspec.subject_mask')
 
             except:
