@@ -29,7 +29,7 @@ from CPAC.utils.datasource import *
 from CPAC.utils import Configuration
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr
+                             get_scan_params, get_tr, extract_txt
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -2244,7 +2244,8 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 
-def run(config, subject_list_file, indx, strategies):
+def run(config, subject_list_file, indx, strategies, \
+     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -2262,5 +2263,10 @@ def run(config, subject_list_file, indx, strategies):
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     sub_dict = sublist[int(indx) - 1]
+
+
+    c.maskSpecificationFile = maskSpecificationFile
+    c.roiSpecificationFile = roiSpecificationFile
+    c.templateSpecificationFile = templateSpecificationFile
 
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))
