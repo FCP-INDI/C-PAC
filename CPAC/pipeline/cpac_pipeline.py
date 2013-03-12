@@ -1434,7 +1434,9 @@ def prep_workflow(sub_dict, c, strategies):
 
             strat.append_name('spatial_map_timeseries')
 
-            strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
+            strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries'),
+                                       'functional_to_spatial_map' : (resample_functional_to_spatial_map, 'out_file'),
+                                       'functional_mask_to_spatial_map' : (resample_functional_mask_to_spatial_map, 'out_file')})
 
             num_strat += 1
 
@@ -1609,6 +1611,8 @@ def prep_workflow(sub_dict, c, strategies):
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
+                node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
+                node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
 
                 workflow.connect(resample_functional_to_spatial_map, 'out_file',
                                  dr_temp_reg, 'inputspec.subject_rest')
@@ -1701,6 +1705,128 @@ def prep_workflow(sub_dict, c, strategies):
             strat.update_resource_pool({'sc_temp_reg_maps_z_stack':(sc_temp_reg, 'outputspec.temp_reg_map_z'),
                                         'sc_temp_reg_maps_z_files':(sc_temp_reg, 'outputspec.temp_reg_map_z_stack')})
             strat.append_name('temporal_regression_sca')
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+    """
+    Smoothing Temporal Regression for SCA scores
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries) and len(c.fwhm) > 0:
+        for strat in strat_list:
+
+            sc_temp_reg_maps_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='sca_tempreg__maps_smooth_%d' % num_strat, iterfield=['in_file'])
+            sc_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='sca_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+            sc_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='sca_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+
+            try:
+                node, out_file = strat.get_node_from_resource_pool('sc_temp_reg_maps')
+                node2, out_file2 = strat.get_node_from_resource_pool('sc_temp_reg_maps_z_stack')
+                node3, out_file3 = strat.get_node_from_resource_pool('sc_temp_reg_maps_z_files')
+                node4, out_file4 = strat.get_node_from_resource_pool('functional_brain_mask')
+
+                # non-normalized stack
+                workflow.connect(node, out_file,
+                                 sc_temp_reg_maps_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 sc_temp_reg_maps_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 sc_temp_reg_maps_smooth, 'operand_files')
+
+                # normalized stack
+                workflow.connect(node, out_file,
+                                 sc_temp_reg_maps_Z_stack_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 sc_temp_reg_maps_Z_stack_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 sc_temp_reg_maps_Z_stack_smooth, 'operand_files')
+
+                # normalized files
+                workflow.connect(node, out_file,
+                                 sc_temp_reg_maps_Z_files_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 sc_temp_reg_maps_Z_files_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 sc_temp_reg_maps_Z_files_smooth, 'operand_files')
+
+            except:
+                print 'Invalid Connection: sca_tempreg smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            strat.append_name('temporal_regression_sca_smooth')
+            strat.update_resource_pool({'sca_tempreg_maps_smooth':(sc_temp_reg_maps_smooth, 'out_file'),
+                                       'sca_tempreg_maps_z_stack_smooth':(sc_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                       'sca_tempreg_maps_z_files_smooth':(sc_temp_reg_maps_Z_files_smooth, 'out_file')})
+
+            num_strat += 1
+    strat_list += new_strat_list
+
+
+    """
+    Smoothing Temporal Regression for Dual Regression
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runDualReg) and (1 in c.runSpatialRegression) and len(c.fwhm) > 0:
+        for strat in strat_list:
+
+            dr_temp_reg_maps_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg__maps_smooth_%d' % num_strat, iterfield=['in_file'])
+            dr_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+            dr_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+
+            try:
+                node, out_file = strat.get_node_from_resource_pool('dr_temp_reg_maps')
+                node2, out_file2 = strat.get_node_from_resource_pool('dr_temp_reg_maps_z_stack')
+                node3, out_file3 = strat.get_node_from_resource_pool('dr_temp_reg_maps_z_files')
+                node4, out_file4 = strat.get_node_from_resource_pool('functional_brain_mask')
+
+                # non-normalized stack
+                workflow.connect(node, out_file,
+                                 dr_temp_reg_maps_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 dr_temp_reg_maps_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 dr_temp_reg_maps_smooth, 'operand_files')
+
+                # normalized stack
+                workflow.connect(node, out_file,
+                                 dr_temp_reg_maps_Z_stack_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 dr_temp_reg_maps_Z_stack_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 dr_temp_reg_maps_Z_stack_smooth, 'operand_files')
+
+                # normalized files
+                workflow.connect(node, out_file,
+                                 dr_temp_reg_maps_Z_files_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 dr_temp_reg_maps_Z_files_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 dr_temp_reg_maps_Z_files_smooth, 'operand_files')
+
+            except:
+                print 'Invalid Connection: dr_tempreg smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+            strat.append_name('temporal_dual_regression_smooth')
+            strat.update_resource_pool({'dr_tempreg_maps_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
+                                       'dr_tempreg_maps_z_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                       'dr_tempreg_maps_z_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
+
             num_strat += 1
     strat_list += new_strat_list
 

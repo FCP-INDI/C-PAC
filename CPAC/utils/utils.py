@@ -14,6 +14,8 @@ files_folders_wf = {
     'anatomical_wm_mask': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
+    'functional_to_spatial_map': 'func',
+    'functional_mask_to_spatial_map': 'func',
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
@@ -91,9 +93,15 @@ files_folders_wf = {
     'dr_temp_reg_maps': 'spatial_regression',
     'dr_temp_reg_maps_z_stack': 'spatial_regression',
     'dr_temp_reg_maps_z_files': 'spatial_regression',
+    'dr_tempreg_maps_smooth': 'spatial_regression',
+    'dr_tempreg_maps_z_stack_smooth': 'spatial_regression',
+    'dr_tempreg_maps_z_files_smooth':'spatial_regression',
     'sc_temp_reg_maps': 'sca_roi',
     'sc_temp_reg_maps_z_stack': 'sca_roi',
-    'sc_temp_reg_maps_z_files' : 'sca_roi'
+    'sc_temp_reg_maps_z_files' : 'sca_roi',
+    'sca_tempreg_maps_smooth': 'sca_roi',
+    'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
+    'sca_tempreg_maps_z_files_smooth': 'sca_roi',
 }
 
 def safe_shape(*vol_data):
