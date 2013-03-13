@@ -143,7 +143,7 @@ def map_to_roi(timeseries, maps):
                             + ' number of ROIs to run - therefore the'
                             + ' GLM is underspecified and can\'t run.')
         labels = open(timeseries, 'r').readline().split()
-        labels = [os.path.join(os.getcwd(), 'z_maps_roi_' + str(l)) \
+        labels = [os.path.join(os.getcwd(), 'sca_tempreg_z_maps_roi_' + str(l)) \
                   for l in labels]
         numMaps = len(maps)
         maps.sort()

@@ -90,16 +90,16 @@ files_folders_wf = {
     'seg_partial_volume_map': 'anat',
     'seg_partial_volume_files': 'anat',
     'spatial_map_timeseries': 'timeseries',
-    'dr_temp_reg_maps': 'spatial_regression',
-    'dr_temp_reg_maps_z_stack': 'spatial_regression',
-    'dr_temp_reg_maps_z_files': 'spatial_regression',
-    'dr_tempreg_maps_smooth': 'spatial_regression',
+    'dr_tempreg_maps_stack': 'spatial_regression',
+    'dr_tempreg_maps_z_stack': 'spatial_regression',
+    'dr_tempreg_maps_z_files': 'spatial_regression',
+    'dr_tempreg_maps_stack_smooth': 'spatial_regression',
     'dr_tempreg_maps_z_stack_smooth': 'spatial_regression',
     'dr_tempreg_maps_z_files_smooth':'spatial_regression',
-    'sc_temp_reg_maps': 'sca_roi',
-    'sc_temp_reg_maps_z_stack': 'sca_roi',
-    'sc_temp_reg_maps_z_files' : 'sca_roi',
-    'sca_tempreg_maps_smooth': 'sca_roi',
+    'sca_tempreg_maps_stack': 'sca_roi',
+    'sca_tempreg_maps_z_stack': 'sca_roi',
+    'sca_tempreg_maps_z_files' : 'sca_roi',
+    'sca_tempreg_maps_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_z_files_smooth': 'sca_roi',
 }
@@ -501,6 +501,12 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         fwhm_str = ''
 
+
+        spatial_map = ''
+        if('_spatial_map_' in remainder_path):
+            spatial_map = get_hplpfwhmseed_('/_spatial_map_', remainder_path)
+            new_path = os.path.join(new_path, spatial_map)
+
         if ('_fwhm_' in remainder_path):
 
 
@@ -560,7 +566,11 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         'seg_probability_maps',
         'seg_mixeltype',
         'seg_partial_volume_map',
-        'seg_partial_volume_files']
+        'seg_partial_volume_files',
+        'dr_tempreg_maps_z_files',
+        'dr_tempreg_maps_z_files_smooth',
+        'sca_tempreg_maps_z_files',
+        'sca_tempreg_maps_z_files_smooth']
 
         if file_name in dont_change_fname:
 
