@@ -2302,7 +2302,7 @@ def prep_workflow(sub_dict, c, strategies):
 
         for key in rp.keys():
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-            ds.inputs.base_directory = c.sinkDirectory
+            ds.inputs.base_directory = c.outputDirectory
             ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
             ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                               (r"/_smooth_centrality_(\d)+[/]", '/'),
@@ -2329,7 +2329,7 @@ def prep_workflow(sub_dict, c, strategies):
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
 
-        d_name = os.path.join(c.sinkDirectory, ds.inputs.container)
+        d_name = os.path.join(c.outputDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
 

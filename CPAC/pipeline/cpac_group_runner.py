@@ -167,7 +167,7 @@ def run(config_file, output_path_file):
     set_subject_paths = set(subject_paths)
     subject_paths = list(set_subject_paths)
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
-    base_path = c.sinkDirectory
+    base_path = c.outputDirectory
 
     from collections import defaultdict
     analysis_map = defaultdict(list)
