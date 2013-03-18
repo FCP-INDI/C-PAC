@@ -102,6 +102,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                  if name in os.path.basename(s_paths[0]):
                      out_dir = os.path.join(out_dir, name)
                      break
+        if 'tempreg_maps_z_files' in resource:
+            out_dir = os.path.join(out_dir, \
+                re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
         
         if c.mixedScanAnalysis == True:
             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
