@@ -713,6 +713,17 @@ def prepare_gp_links(in_file, resource):
         roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
         third_tier = third_tier + '/' + roi_number
 
+    elif ('dr_tempreg_maps_z_files' in resource and '/temp_reg_map_z_' in in_file):
+
+        third_tier = resource + '_' + get_param_val_('/_spatial_map_', in_file)
+        third_tier = third_tier + '/' + get_param_val_('/temp_reg_map_z_', in_file)
+
+    elif ('sca_tempreg_maps_z_files' in resource and '/sca_tempreg_z_maps_roi_' in in_file):
+        third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
+        roi_number = ''.join(['ROI_', get_param_val_('/sca_tempreg_z_maps_roi_', in_file)])
+        third_tier = third_tier + '/' + roi_number
+
+
     elif ('sca_seed_Z' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
 
         third_tier = resource + '_' + get_param_val_('/_mask_', in_file)
