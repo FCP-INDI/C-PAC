@@ -94,6 +94,16 @@ def prep_workflow(sub_dict, c, strategies):
     workflow.base_dir = c.workingDirectory
     workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
 
+    if c.reGenerateOutputs is True:
+
+        import commands
+        cmd = "find %s -name \'*sink*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        print cmd
+        commands.getoutput(cmd)
+        cmd = "find %s -name \'*link*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        print cmd
+        commands.getoutput(cmd)
+
     mflow = None
     pflow = None
 
@@ -2300,7 +2310,7 @@ def prep_workflow(sub_dict, c, strategies):
 
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
 
-        for key in rp.keys():
+        for key in sorted(rp.keys()):
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.outputDirectory
             ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
@@ -2319,7 +2329,7 @@ def prep_workflow(sub_dict, c, strategies):
                                         'subject_id', 'pipeline_id', 'helper'],
                                         output_names=[],
                                         function=prepare_symbolic_links),
-                                        name='link_%d' % sink_idx, iterfield=['in_file'])
+                                        name='link_%d' % sink_idx)
 
                 link_node.inputs.strategies = strategies
                 link_node.inputs.subject_id = subject_id

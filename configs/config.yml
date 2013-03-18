@@ -74,6 +74,9 @@ outputDirectory: /path/to/output_directory
 #Truncate Working Directory after run
 removeWorkingDir: False
 
+#regenerates all the outputs for all the subjects and their symlinks
+reGenerateOutputs: True
+
 #Resolution and Smoothing
 
 # The resolution (in mm) to which functional images are transformed during registration
