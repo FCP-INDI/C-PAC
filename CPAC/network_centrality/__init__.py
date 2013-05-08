@@ -20,9 +20,9 @@ __all__ = ['create_resting_state_graphs', \
            'load',\
            'load_mat',\
            'get_centrality',\
-           'get_centrality_opt'\
+           'get_centrality_opt',\
            'map_centrality_matrix',\
-           'get_zscore'
+           'get_zscore',\
            'calc_corrcoef',\
            'calc_centrality', \
            'calc_eigenV', \
