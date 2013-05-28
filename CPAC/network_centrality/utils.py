@@ -122,11 +122,16 @@ def calc_threshold(option,
     Parameters
     ----------
     option : an integer
+        threshold option
     threshold : a float
-        
+        thrshold value
     scans : an integer
+        no of timepoints
     corr_matrix : numpy array
+        correlation matrix
     full_matrix : boolean
+        True, if full matrix is considered.
+        False, if only upper triangle is considered.
     
     Return 
     ------
@@ -275,6 +280,18 @@ def calc_blocksize (shape, memory_allocated = None):
     Method to calculate blocksize to calculate correlation matrix
     as per the memory allocated by the user. By default, the block
     size is 1000. 
+
+    Parameters
+    ----------
+    shape : tuple
+       shape of array
+    memory_allocated : float
+       memory allocated in GB for degree centrality
+    
+    Returns
+    -------
+    block_size : an integer
+      size of block for matrix calculation
     """
     
     import warnings
@@ -311,15 +328,14 @@ def check_timeseries(data):
     then return the indices of those points. 
     
     Parameters
-    ---------
+    ----------
     data : numpy array
     
     Returns
     -------
     index : list
         indices of all where a
-    
-    data : 
+    data : numpy array
     """
     index= np.where(np.all(data==0, axis=1))[0].tolist()
     print "index where timeseries is zero ", index
