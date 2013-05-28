@@ -25,6 +25,7 @@ import anat_preproc, \
        nuisance, \
        generate_motion_statistics, \
        alff, \
+       qc, \
        seg_preproc, \
        vmhc, \
        median_angle, \
@@ -36,7 +37,7 @@ import anat_preproc, \
        utils, \
        pipeline
 
-__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh']
+__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc']
 
 #__version__ = '0.1-git'
 

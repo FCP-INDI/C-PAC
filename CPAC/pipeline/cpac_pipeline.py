@@ -27,6 +27,10 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries, \
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration
+from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
+from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
+                          gen_histogram, gen_plot_png, gen_motion_plt, \
+                          gen_std_dev, gen_func_anat_xfm, gen_snr, generateQCPages
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
                              get_scan_params, get_tr, extract_txt
@@ -83,6 +87,10 @@ def prep_workflow(sub_dict, c, strategies):
 
     print '********************', c.standardResolutionBrain
 
+    qc_montage_id_a = {}
+    qc_montage_id_s = {}
+    qc_plot_id = {}
+    qc_hist_id = {}
     if sub_dict['unique_id']:
         subject_id = sub_dict['subject_id'] + "_" + sub_dict['unique_id']
     else:
@@ -2229,6 +2237,820 @@ def prep_workflow(sub_dict, c, strategies):
     strat_list += new_strat_list
 
 
+    num_strat = 0
+    """
+    Quality Control
+    """
+    if 1 in c.generateQualityControlImages:
+
+        #register color palettes
+        register_pallete(os.path.realpath(
+                os.path.join(CPAC.__path__[0], 'qc', 'red.py')), 'red')
+        register_pallete(os.path.realpath(
+                os.path.join(CPAC.__path__[0], 'qc', 'green.py')), 'green')
+        register_pallete(os.path.realpath(
+                os.path.join(CPAC.__path__[0], 'qc', 'blue.py')), 'blue')
+        register_pallete(os.path.realpath(
+                os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
+        register_pallete(os.path.realpath(
+                os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
+
+        hist = pe.Node(util.Function(input_names=['measure_file',
+                                                   'measure'],
+                                     output_names=['hist_path'],
+                                     function=gen_histogram),
+                        name='histogram')
+        for strat in strat_list:
+
+            #make SNR plot
+
+            if 1 in c.runFunctionalPreprocessing:
+
+                try:
+
+
+                    hist_ = hist.clone('hist_snr_%d' % num_strat)
+                    hist_.inputs.measure = 'snr'
+
+                    drop_percent = pe.Node(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_snr_%d' % num_strat)
+                    drop_percent.inputs.percent_ = 99
+
+                    preproc, out_file = strat.get_node_from_resource_pool('preprocessed')
+                    brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                    func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                    anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
+                    mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
+
+                    std_dev = pe.Node(util.Function(input_names=['mask_', 'func_'],
+                                                    output_names=['new_fname'],
+                                                      function=gen_std_dev),
+                                        name='std_dev_%d' % num_strat)
+
+                    std_dev_anat = pe.Node(util.Function(input_names=['func_',
+                                                                      'ref_',
+                                                                      'xfm_',
+                                                                      'interp_'],
+                                                         output_names=['new_fname'],
+                                                         function=gen_func_anat_xfm),
+                                           name='std_dev_anat_%d' % num_strat)
+
+                    snr = pe.Node(util.Function(input_names=['std_dev', 'mean_func_anat'],
+                                                output_names=['new_fname'],
+                                                function=gen_snr),
+                                  name='snr_%d' % num_strat)
+
+
+                    std_dev_anat.inputs.interp_ = 'trilinear'
+
+                    montage_snr = create_montage('montage_snr_%d' % num_strat,
+                                    'red_to_blue', 'snr')
+
+
+                    workflow.connect(preproc, out_file,
+                                     std_dev, 'func_')
+
+                    workflow.connect(brain_mask, mask_file,
+                                     std_dev, 'mask_')
+
+                    workflow.connect(std_dev, 'new_fname',
+                                     std_dev_anat, 'func_')
+
+                    workflow.connect(func_to_anat_xfm, xfm_file,
+                                     std_dev_anat, 'xfm_')
+
+                    workflow.connect(anat_ref, ref_file,
+                                     std_dev_anat, 'ref_')
+
+                    workflow.connect(std_dev_anat, 'new_fname',
+                                     snr, 'std_dev')
+
+                    workflow.connect(mfa, mfa_file,
+                                     snr, 'mean_func_anat')
+
+                    workflow.connect(snr, 'new_fname',
+                                     hist_, 'measure_file')
+
+                    workflow.connect(snr, 'new_fname',
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_snr, 'inputspec.overlay')
+
+                    workflow.connect(anat_ref, ref_file,
+                                    montage_snr, 'inputspec.underlay')
+
+
+                    strat.update_resource_pool({'qc___snr_a': (montage_snr, 'outputspec.axial_png'),
+                                                'qc___snr_s': (montage_snr, 'outputspec.sagittal_png'),
+                                                'qc___snr_hist': (hist_, 'hist_path')})
+                    if not 3 in qc_montage_id_a:
+                        qc_montage_id_a[3] = 'snr_a'
+                        qc_montage_id_s[3] = 'snr_s'
+                        qc_hist_id[3] = 'snr_hist'
+
+                except:
+                    print 'unable to get resources for SNR plot'
+                    raise
+
+
+            #make motion parameters plot
+
+            if 1 in c.runFunctionalPreprocessing:
+
+                try:
+
+                    mov_param, out_file = strat.get_node_from_resource_pool('movement_parameters')
+                    mov_plot = pe.Node(util.Function(input_names=['motion_parameters'],
+                                                     output_names=['translation_plot',
+                                                                   'rotation_plot'],
+                                                     function=gen_motion_plt),
+                                       name='motion_plt_%d' % num_strat)
+
+                    workflow.connect(mov_param, out_file,
+                                     mov_plot, 'motion_parameters')
+                    strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),
+                                                'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
+
+                    if not 6 in qc_plot_id:
+                        qc_plot_id[6] = 'movement_trans_plot'
+
+                    if not 7 in qc_plot_id:
+                        qc_plot_id[7] = 'movement_rot_plot'
+
+
+                except:
+                    print 'unable to get resources for Motion Parameters Plot'
+                    raise
+
+
+            # make FD plot and volumes removed
+            if 1 in c.runGenerateMotionStatistics:
+
+                try:
+                    fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement')
+                    excluded, out_file_ex = strat.get_node_from_resource_pool('scrubbing_frames_excluded')
+
+                    fd_plot = pe.Node(util.Function(input_names=['arr',
+                                                                 'ex_vol',
+                                                                 'measure'],
+                                                    output_names=['hist_path'],
+                                                    function=gen_plot_png),
+                                      name='fd_plot_%d' % num_strat)
+                    fd_plot.inputs.measure = 'FD'
+                    workflow.connect(fd, out_file,
+                                     fd_plot, 'arr')
+                    workflow.connect(excluded, out_file_ex,
+                                     fd_plot, 'ex_vol')
+                    strat.update_resource_pool({'qc___fd_plot': (fd_plot, 'hist_path')})
+                    if not 8 in qc_plot_id:
+                        qc_plot_id[8] = 'fd_plot'
+
+
+                except:
+                    print 'unable to get resources for FD Plot'
+                    raise
+
+
+            # make QC montages for Skull Stripping Visualization
+
+            try:
+                anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
+
+
+                montage_skull = create_montage('montage_skull_%d' % num_strat,
+                                    'green', 'skull_vis')
+
+                skull_edge = pe.Node(util.Function(input_names=['file_'],
+                                                   output_names=['new_fname'],
+                                                   function=make_edge),
+                                     name='skull_edge_%d' % num_strat)
+
+
+                workflow.connect(skull, out_file_s,
+                                 skull_edge, 'file_')
+
+                workflow.connect(anat_underlay, out_file,
+                                 montage_skull, 'inputspec.underlay')
+
+                workflow.connect(skull_edge, 'new_fname',
+                                 montage_skull, 'inputspec.overlay')
+
+                strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),
+                                            'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
+
+                if not 1 in qc_montage_id_a:
+                        qc_montage_id_a[1] = 'skullstrip_vis_a'
+                        qc_montage_id_s[1] = 'skullstrip_vis_s'
+
+            except:
+
+                print 'Cannot generate QC montages for Skull Stripping: Resources Not Found'
+                raise
+
+            # make QC montages for CSF WM GM
+
+            try:
+                anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                csf_overlay, out_file_csf = strat.get_node_from_resource_pool('anatomical_csf_mask')
+                wm_overlay, out_file_wm = strat.get_node_from_resource_pool('anatomical_wm_mask')
+                gm_overlay, out_file_gm = strat.get_node_from_resource_pool('anatomical_gm_mask')
+
+                montage_csf_gm_wm = create_montage_gm_wm_csf('montage_csf_gm_wm_%d' % num_strat,
+                                    'montage_csf_gm_wm')
+
+                workflow.connect(anat_underlay, out_file,
+                                 montage_csf_gm_wm, 'inputspec.underlay')
+
+                workflow.connect(csf_overlay, out_file_csf,
+                                 montage_csf_gm_wm, 'inputspec.overlay_csf')
+
+                workflow.connect(wm_overlay, out_file_wm,
+                                 montage_csf_gm_wm, 'inputspec.overlay_wm')
+
+                workflow.connect(gm_overlay, out_file_gm,
+                                 montage_csf_gm_wm, 'inputspec.overlay_gm')
+
+                strat.update_resource_pool({'qc___csf_gm_wm_a': (montage_csf_gm_wm, 'outputspec.axial_png'),
+                                            'qc___csf_gm_wm_s': (montage_csf_gm_wm, 'outputspec.sagittal_png')})
+
+                if not 2 in qc_montage_id_a:
+                        qc_montage_id_a[2] = 'csf_gm_wm_a'
+                        qc_montage_id_s[2] = 'csf_gm_wm_s'
+
+            except:
+                print 'Cannot generate QC montages for WM GM CSF masks: Resources Not Found'
+                raise
+
+
+            # make QC montage for Mean Functional in T1 with T1 edge
+
+            try:
+                anat, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                m_f_a, out_file_mfa = strat.get_node_from_resource_pool('mean_functional_in_anat')
+
+                montage_anat = create_montage('montage_anat_%d' % num_strat,
+                                    'green', 't1_edge_on_mean_func_in_t1')
+
+                anat_edge = pe.Node(util.Function(input_names=['file_'],
+                                                   output_names=['new_fname'],
+                                                   function=make_edge),
+                                     name='anat_edge_%d' % num_strat)
+
+                workflow.connect(anat, out_file,
+                                 anat_edge, 'file_')
+
+
+                workflow.connect(m_f_a, out_file_mfa,
+                                 montage_anat, 'inputspec.underlay')
+
+                workflow.connect(anat_edge, 'new_fname',
+                                 montage_anat, 'inputspec.overlay')
+
+                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),
+                                            'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
+
+                if not 4 in qc_montage_id_a:
+                        qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
+                        qc_montage_id_s[4] = 'mean_func_with_t1_edge_s'
+
+
+            except:
+                print 'Cannot generate QC montages for Mean Functional in T1 with T1 edge: Resources Not Found'
+                raise
+
+            # make QC montage for Mean Functional in MNI with MNI edge
+
+            try:
+                m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_in_mni')
+
+                montage_mfi = create_montage('montage_mfi_%d' % num_strat,
+                                    'green', 'MNI_edge_on_mean_func_mni')
+
+                MNI_edge = pe.Node(util.Function(input_names=['file_'],
+                                                   output_names=['new_fname'],
+                                                   function=make_edge),
+                                     name='MNI_edge_%d' % num_strat)
+                MNI_edge.inputs.file_ = c.standardResolutionBrain
+
+
+                workflow.connect(m_f_i, out_file,
+                                 montage_mfi, 'inputspec.underlay')
+
+                workflow.connect(MNI_edge, 'new_fname',
+                                 montage_mfi, 'inputspec.overlay')
+
+                strat.update_resource_pool({'qc___mean_func_with_mni_edge_a': (montage_mfi, 'outputspec.axial_png'),
+                                            'qc___mean_func_with_mni_edge_s': (montage_mfi, 'outputspec.sagittal_png')})
+
+                if not 5 in qc_montage_id_a:
+                        qc_montage_id_a[5] = 'mean_func_with_mni_edge_a'
+                        qc_montage_id_s[5] = 'mean_func_with_mni_edge_s'
+
+
+            except:
+                print 'Cannot generate QC montages for Mean Functional in MNI with MNI edge: Resources Not Found'
+                raise
+
+
+            # make QC montages for SCA ROI Smoothed Derivative
+            if (1 in c.runSCA) and (1 in c.runROITimeseries):
+
+                hist_ = hist.clone('hist_sca_roi_%d' % num_strat)
+                hist_.inputs.measure = 'sca_roi'
+
+                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_sca_roi_%d' % num_strat, iterfield=['measure_file'])
+                drop_percent.inputs.percent_ = 99.999
+                if len(c.fwhm) > 0:
+
+                    sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_Z_to_standard_smooth')
+                    montage_sca_roi = create_montage('montage_sca_roi_standard_smooth_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_roi_smooth')
+
+                    montage_sca_roi.inputs.inputspec.underlay = c.standardResolutionBrain
+
+                    workflow.connect(sca_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_sca_roi, 'inputspec.overlay')
+
+                    workflow.connect(sca_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___sca_roi_smooth_a': (montage_sca_roi, 'outputspec.axial_png'),
+                                            'qc___sca_roi_smooth_s': (montage_sca_roi, 'outputspec.sagittal_png'),
+                                            'qc___sca_roi_smooth_hist': (hist_, 'hist_path')})
+
+                    if not 9 in qc_montage_id_a:
+                        qc_montage_id_a[9] = 'sca_roi_smooth_a'
+                        qc_montage_id_s[9] = 'sca_roi_smooth_s'
+                        qc_hist_id[9] = 'sca_roi_smooth_hist'
+
+
+                else:
+
+                    sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_Z_to_standard')
+                    montage_sca_roi = create_montage('montage_sca_roi_standard_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_roi')
+
+                    montage_sca_roi.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(sca_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_sca_roi, 'inputspec.overlay')
+
+                    workflow.connect(sca_overlay, out_file,
+                                     hist_, 'measure_file')
+
+                    strat.update_resource_pool({'qc___sca_roi_a': (montage_sca_roi, 'outputspec.axial_png'),
+                                            'qc___sca_roi_s': (montage_sca_roi, 'outputspec.sagittal_png'),
+                                            'qc___sca_roi_hist': (hist_, 'hist_path')})
+
+                    if not 9 in qc_montage_id_a:
+                        qc_montage_id_a[9] = 'sca_roi_a'
+                        qc_montage_id_s[9] = 'sca_roi_s'
+                        qc_hist_id[9] = 'sca_roi_hist'
+
+
+
+            # make QC montages for SCA Smoothed Derivative
+            if (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+                hist_ = hist.clone('hist_sca_seeds_%d' % num_strat)
+                hist_.inputs.measure = 'sca_seeds'
+
+                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_sca_seed_%d' % num_strat, iterfield=['measure_file'])
+                drop_percent.inputs.percent_ = 99.999
+                if len(c.fwhm) > 0:
+
+                    sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_Z_to_standard_smooth')
+                    montage_sca_seeds = create_montage('montage_seed_standard_smooth_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_seed_smooth')
+
+                    montage_sca_seeds.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(sca_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_sca_seeds, 'inputspec.overlay')
+
+                    workflow.connect(sca_overlay, out_file,
+                                     hist_, 'measure_file')
+
+                    strat.update_resource_pool({'qc___sca_seeds_smooth_a': (montage_sca_seeds, 'outputspec.axial_png'),
+                                            'qc___sca_seeds_smooth_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
+                                            'qc___sca_seeds_smooth_hist': (hist_, 'hist_path')})
+
+                    if not 10 in qc_montage_id_a:
+                        qc_montage_id_a[10] = 'sca_seeds_smooth_a'
+                        qc_montage_id_s[10] = 'sca_seeds_smooth_s'
+                        qc_hist_id[10] = 'sca_seeds_smooth_hist'
+
+                else:
+                
+                    sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_Z_to_standard')
+                    montage_sca_seeds = create_montage('montage_sca_seed_standard_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_seed')
+
+                    montage_sca_seeds.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(sca_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_sca_seeds, 'inputspec.overlay')
+
+                    workflow.connect(sca_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___sca_seeds_a': (montage_sca_seeds, 'outputspec.axial_png'),
+                                            'qc___sca_seeds_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
+                                            'qc___sca_seeds_hist': (hist_, 'hist_path')})
+
+                    if not 10 in qc_montage_id_a:
+                        qc_montage_id_a[10] = 'sca_seeds_a'
+                        qc_montage_id_s[10] = 'sca_seeds_s'
+                        qc_hist_id[10] = 'sca_seeds_hist'
+
+
+
+
+            # make QC montages for Network Centrality
+            if 1 in c.runNetworkCentrality:
+
+                hist_ = hist.clone('hist_centrality_%d' % num_strat)
+                hist_.inputs.measure = 'centrality'
+
+                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_centrality_%d' % num_strat, iterfield=['measure_file'])
+                drop_percent.inputs.percent_ = 99.999
+                if len(c.fwhm) > 0:
+
+                    centrality_overlay, out_file = strat.get_node_from_resource_pool('centrality_outputs_smoothed')
+                    montage_centrality = create_montage('montage_centrality_%d' % num_strat,
+                                    'cyan_to_yellow', 'centrality')
+
+                    montage_centrality.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(centrality_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_centrality, 'inputspec.overlay')
+
+                    workflow.connect(centrality_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___centrality_smooth_a': (montage_centrality, 'outputspec.axial_png'),
+                                            'qc___centrality_smooth_s': (montage_centrality, 'outputspec.sagittal_png'),
+                                            'qc___centrality_smooth_hist': (hist_, 'hist_path')})
+                    if not 11 in qc_montage_id_a:
+                        qc_montage_id_a[11] = 'centrality_smooth_a'
+                        qc_montage_id_s[11] = 'centrality_smooth_s'
+                        qc_hist_id[11] = 'centrality_smooth_hist'
+
+
+
+                else:
+
+                    centrality_overlay, out_file = strat.get_node_from_resource_pool('centrality_outputs')
+                    montage_centrality = create_montage('montage_centrality_standard_%d' % num_strat,
+                                    'cyan_to_yellow', 'centrality')
+
+                    montage_centrality.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(centrality_overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage_centrality, 'inputspec.overlay')
+
+                    workflow.connect(centrality_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___centrality_a': (montage_centrality, 'outputspec.axial_png'),
+                                            'qc___centrality_s': (montage_centrality, 'outputspec.sagittal_png'),
+                                            'qc___centrality_hist': (hist_, 'hist_path')})
+                    if not 11 in qc_montage_id_a:
+                        qc_montage_id_a[11] = 'centrality_a'
+                        qc_montage_id_s[11] = 'centrality_s'
+                        qc_hist_id[11] = 'centrality_hist'
+
+
+
+
+
+            #QC Montages for MultiReg SCA
+            if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+
+
+                hist_ = hist.clone('hist_dr_sca_%d' % num_strat)
+                hist_.inputs.measure = 'temporal_regression_sca'
+
+                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                      'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_temporal_regression_sca_%d' % num_strat, iterfield=['measure_file'])
+                drop_percent.inputs.percent_ = 99.98
+
+                if len(c.fwhm) > 0:
+
+                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_z_files_smooth')
+                    montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
+                                      'cyan_to_yellow', 'temporal_regression_sca_smooth')
+
+                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.standardResolutionBrain
+                    strat.update_resource_pool({'qc___temporal_regression_sca_smooth_a': (montage_temporal_regression_sca, 'outputspec.axial_png'),
+                                            'qc___temporal_regression_sca_smooth_s': (montage_temporal_regression_sca, 'outputspec.sagittal_png'),
+                                            'qc___temporal_regression_sca_smooth_hist': (hist_, 'hist_path')})
+
+                    if not 12 in qc_montage_id_a:
+                        qc_montage_id_a[12] = 'temporal_regression_sca_smooth_a'
+                        qc_montage_id_s[12] = 'temporal_regression_sca_smooth_s'
+                        qc_hist_id[12] = 'temporal_regression_sca_smooth_hist'
+
+                else:
+                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_z_files')
+                    montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
+                                      'cyan_to_yellow', 'temporal_regression_sca')
+
+                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.standardResolutionBrain
+                    strat.update_resource_pool({'qc___temporal_regression_sca_a': (montage_temporal_regression_sca, 'outputspec.axial_png'),
+                                            'qc___temporal_regression_sca_s': (montage_temporal_regression_sca, 'outputspec.sagittal_png'),
+                                            'qc___temporal_regression_sca_hist': (hist_, 'hist_path')})
+
+                    if not 12 in qc_montage_id_a:
+                        qc_montage_id_a[12] = 'temporal_regression_sca_a'
+                        qc_montage_id_s[12] = 'temporal_regression_sca_s'
+                        qc_hist_id[12] = 'temporal_regression_sca_hist'
+
+
+
+
+                workflow.connect(temporal_regression_sca_overlay, out_file,
+                                 drop_percent, 'measure_file')
+
+                workflow.connect(drop_percent, 'modified_measure_file',
+                                 montage_temporal_regression_sca, 'inputspec.overlay')
+                workflow.connect(temporal_regression_sca_overlay, out_file,
+                                     hist_, 'measure_file')
+
+            #QC Montages for MultiReg DR
+            if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
+
+
+                hist_ = hist.clone('hist_temp_dr_%d' % num_strat)
+                hist_.inputs.measure = 'temporal_dual_regression'
+
+                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                      'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_temporal_dual_regression_%d' % num_strat, iterfield=['measure_file'])
+                drop_percent.inputs.percent_ = 99.98
+
+                if len(c.fwhm) > 0:
+
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files_smooth')
+                    montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
+                                      'cyan_to_yellow', 'temporal_dual_regression_smooth')
+
+                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.standardResolutionBrain
+                    strat.update_resource_pool({'qc___temporal_dual_regression_smooth_a': (montage_temporal_dual_regression, 'outputspec.axial_png'),
+                                            'qc___temporal_dual_regression_smooth_s': (montage_temporal_dual_regression, 'outputspec.sagittal_png'),
+                                            'qc___temporal_dual_regression_smooth_hist': (hist_, 'hist_path')})
+                    if not 13 in qc_montage_id_a:
+                        qc_montage_id_a[13] = 'temporal_dual_regression_smooth_a'
+                        qc_montage_id_s[13] = 'temporal_dual_regression_smooth_s'
+                        qc_hist_id[13] = 'temporal_dual_regression_smooth_hist'
+
+
+                else:
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files')
+                    montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
+                                      'cyan_to_yellow', 'temporal_dual_regression')
+
+                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.standardResolutionBrain
+                    strat.update_resource_pool({'qc___temporal_dual_regression_a': (montage_temporal_dual_regression, 'outputspec.axial_png'),
+                                            'qc___temporal_dual_regression_s': (montage_temporal_dual_regression, 'outputspec.sagittal_png'),
+                                            'qc___temporal_dual_regression_hist': (hist_, 'hist_path')})
+                    if not 13 in qc_montage_id_a:
+                        qc_montage_id_a[13] = 'temporal_dual_regression_a'
+                        qc_montage_id_s[13] = 'temporal_dual_regression_s'
+                        qc_hist_id[13] = 'temporal_dual_regression_hist'
+
+
+
+
+
+
+                workflow.connect(temporal_dual_regression_overlay, out_file,
+                                 drop_percent, 'measure_file')
+
+                workflow.connect(drop_percent, 'modified_measure_file',
+                                 montage_temporal_dual_regression, 'inputspec.overlay')
+                workflow.connect(temporal_dual_regression_overlay, out_file,
+                                     hist_, 'measure_file')
+
+
+            if 1 in c.runVMHC:
+                hist_ = hist.clone('hist_vmhc_%d' % num_strat)
+                hist_.inputs.measure = 'vmhc'
+
+                drop_percent = pe.Node(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_vmhc%d' % num_strat)
+                drop_percent.inputs.percent_ = 99.98
+
+                vmhc_overlay, out_file = strat.get_node_from_resource_pool('vmhc_z_score_stat_map')
+                montage_vmhc = create_montage('montage_vmhc_%d' % num_strat,
+                                  'cyan_to_yellow', 'vmhc_smooth')
+
+                montage_vmhc.inputs.inputspec.underlay = c.standardResolutionBrain
+                workflow.connect(vmhc_overlay, out_file,
+                                 drop_percent, 'measure_file')
+
+                workflow.connect(drop_percent, 'modified_measure_file',
+                                 montage_vmhc, 'inputspec.overlay')
+                workflow.connect(vmhc_overlay, out_file,
+                                     hist_, 'measure_file')
+                strat.update_resource_pool({'qc___vmhc_smooth_a': (montage_vmhc, 'outputspec.axial_png'),
+                                            'qc___vmhc_smooth_s': (montage_vmhc, 'outputspec.sagittal_png'),
+                                            'qc___vmhc_smooth_hist': (hist_, 'hist_path')})
+
+                if not 14 in qc_montage_id_a:
+                    qc_montage_id_a[14] = 'vmhc_smooth_a'
+                    qc_montage_id_s[14] = 'vmhc_smooth_s'
+                    qc_hist_id[14] = 'vmhc_smooth_hist'
+
+
+
+            if 1 in c.runReHo:
+                hist_ = hist.clone('hist_reho_%d' % num_strat)
+                hist_.inputs.measure = 'reho'
+
+                drop_percent = pe.Node(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_reho%d' % num_strat)
+                drop_percent.inputs.percent_ = 99.999
+
+                if len(c.fwhm) > 0:
+                    reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard_smooth')
+                    montage_reho = create_montage('montage_reho_%d' % num_strat,
+                                  'cyan_to_yellow', 'reho_standard_smooth')
+                    montage_reho.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(reho_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___reho_smooth_a': (montage_reho, 'outputspec.axial_png'),
+                                            'qc___reho_smooth_s': (montage_reho, 'outputspec.sagittal_png'),
+                                            'qc___reho_smooth_hist': (hist_, 'hist_path')})
+
+                    if not 15 in qc_montage_id_a:
+                        qc_montage_id_a[15] = 'reho_smooth_a'
+                        qc_montage_id_s[15] = 'reho_smooth_s'
+                        qc_hist_id[15] = 'reho_smooth_hist'
+
+
+                else:
+                    reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
+                    montage_reho = create_montage('montage_reho_%d' % num_strat,
+                                  'cyan_to_yellow', 'reho_standard')
+                    montage_reho.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(reho_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___reho_a': (montage_reho, 'outputspec.axial_png'),
+                                            'qc___reho_s': (montage_reho, 'outputspec.sagittal_png'),
+                                            'qc___reho_hist': (hist_, 'hist_path')})
+
+                    if not 15 in qc_montage_id_a:
+                        qc_montage_id_a[15] = 'reho_a'
+                        qc_montage_id_s[15] = 'reho_s'
+                        qc_hist_id[15] = 'reho_hist'
+
+
+                workflow.connect(reho_overlay, out_file,
+                                 drop_percent, 'measure_file')
+
+                workflow.connect(drop_percent, 'modified_measure_file',
+                                 montage_reho, 'inputspec.overlay')
+
+
+            if 1 in c.runALFF:
+                hist_alff = hist.clone('hist_alff_%d' % num_strat)
+                hist_alff.inputs.measure = 'alff'
+
+                hist_falff = hist.clone('hist_falff_%d' % num_strat)
+                hist_falff.inputs.measure = 'falff'
+
+
+                drop_percent = pe.Node(util.Function(input_names=['measure_file',
+                                                     'percent_'],
+                                       output_names=['modified_measure_file'],
+                                       function=drop_percent_),
+                                       name='dp_alff%d' % num_strat)
+                drop_percent.inputs.percent_ = 99.7
+
+                drop_percent_falff = drop_percent.clone('dp_falff%d' % num_strat)
+                drop_percent_falff.inputs.percent_ = 99.999
+
+                if len(c.fwhm) > 0:
+                    alff_overlay, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard_smooth')
+                    falff_overlay, out_file_f = strat.get_node_from_resource_pool('falff_Z_to_standard_smooth')
+                    montage_alff = create_montage('montage_alff_%d' % num_strat,
+                                  'cyan_to_yellow', 'alff_standard_smooth')
+                    montage_alff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_falff = create_montage('montage_falff_%d' % num_strat,
+                                  'cyan_to_yellow', 'falff_standard_smooth')
+                    montage_falff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(alff_overlay, out_file,
+                                     hist_alff, 'measure_file')
+
+                    workflow.connect(falff_overlay, out_file_f,
+                                     hist_falff, 'measure_file')
+                    strat.update_resource_pool({'qc___alff_smooth_a': (montage_alff, 'outputspec.axial_png'),
+                                            'qc___alff_smooth_s': (montage_alff, 'outputspec.sagittal_png'),
+                                            'qc___falff_smooth_a': (montage_falff, 'outputspec.axial_png'),
+                                            'qc___falff_smooth_s': (montage_falff, 'outputspec.sagittal_png'),
+                                            'qc___alff_smooth_hist': (hist_alff, 'hist_path'),
+                                            'qc___falff_smooth_hist': (hist_falff, 'hist_path')})
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[16] = 'alff_smooth_a'
+                        qc_montage_id_s[16] = 'alff_smooth_s'
+                        qc_hist_id[16] = 'alff_smooth_hist'
+
+                    if not 17 in qc_montage_id_a:
+                        qc_montage_id_a[17] = 'falff_smooth_a'
+                        qc_montage_id_s[17] = 'falff_smooth_s'
+                        qc_hist_id[17] = 'falff_smooth_hist'
+
+
+
+                else:
+                    alff_overlay, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard')
+                    falff_overlay, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
+                    montage_alff = create_montage('montage_alff_%d' % num_strat,
+                                  'cyan_to_yellow', 'alff_standard')
+                    montage_alff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_falff = create_montage('montage_falff_%d' % num_strat,
+                                  'cyan_to_yellow', 'falff_standard')
+                    montage_falff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    workflow.connect(alff_overlay, out_file,
+                                     hist_alff, 'measure_file')
+
+                    workflow.connect(falff_overlay, out_file_f,
+                                     hist_falff, 'measure_file')
+                    strat.update_resource_pool({'qc___alff_a': (montage_alff, 'outputspec.axial_png'),
+                                            'qc___alff_s': (montage_alff, 'outputspec.sagittal_png'),
+                                            'qc___falff_a': (montage_falff, 'outputspec.axial_png'),
+                                            'qc___falff_s': (montage_falff, 'outputspec.sagittal_png'),
+                                            'qc___alff_hist': (hist_alff, 'hist_path'),
+                                            'qc___falff_hist': (hist_falff, 'hist_path')})
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[16] = 'alff_a'
+                        qc_montage_id_s[16] = 'alff_smooth_s'
+                        qc_hist_id[16] = 'alff_smooth_hist'
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[17] = 'falff_a'
+                        qc_montage_id_s[17] = 'falff_s'
+                        qc_hist_id[17] = 'falff_hist'
+
+
+
+                workflow.connect(alff_overlay, out_file,
+                                 drop_percent, 'measure_file')
+
+                workflow.connect(drop_percent, 'modified_measure_file',
+                                 montage_alff, 'inputspec.overlay')
+
+                workflow.connect(falff_overlay, out_file,
+                                 drop_percent_falff, 'measure_file')
+
+                workflow.connect(drop_percent_falff, 'modified_measure_file',
+                                 montage_falff, 'inputspec.overlay')
+
+
+
+
+            num_strat += 1
+
+
 
     ###################### end of workflow ###########
     try:
@@ -2241,6 +3063,7 @@ def prep_workflow(sub_dict, c, strategies):
     import networkx as nx
     num_strat = 0
     sink_idx = 0
+    pip_ids = []
     for strat in strat_list:
         rp = strat.get_resource_pool()
 
@@ -2309,8 +3132,11 @@ def prep_workflow(sub_dict, c, strategies):
             pipeline_id = zlib.crc32(strat_tag)
 
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
+        pip_ids.append(pipeline_id)
 
         for key in sorted(rp.keys()):
+
+
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.outputDirectory
             ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
@@ -2318,7 +3144,8 @@ def prep_workflow(sub_dict, c, strategies):
                                               (r"/_smooth_centrality_(\d)+[/]", '/'),
                                               (r"/_z_score(\d)+[/]", "/"),
                                               (r"/_dr_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
-                                              (r"/_sca_tempreg_maps_Z_files_smooth_(\d)+[/]", "/")]
+                                              (r"/_sca_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
+                                              (r"/qc___", '/qc/')]
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
@@ -2364,6 +3191,17 @@ def prep_workflow(sub_dict, c, strategies):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
+
+    if 1 in c.generateQualityControlImages:
+
+        for pip_id in pip_ids:
+
+            f_path = os.path.join(os.path.join(c.outputDirectory, 'pipeline_' + pip_id), subject_id)
+
+            f_path = os.path.join(f_path, 'qc_files_here')
+
+            generateQCPages(f_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+
 
     if c.removeWorkingDir:
         try:

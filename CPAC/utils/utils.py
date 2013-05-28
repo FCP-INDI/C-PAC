@@ -5,6 +5,7 @@ global_lock = threading.Lock()
 
 files_folders_wf = {
     'anatomical_brain': 'anat',
+    'qc': 'qc',
     'anatomical_reorient': 'anat',
     'anatomical_to_mni_linear_xfm': 'anat',
     'mni_to_anatomical_linear_xfm': 'anat',
@@ -98,7 +99,7 @@ files_folders_wf = {
     'dr_tempreg_maps_z_files_smooth':'spatial_regression',
     'sca_tempreg_maps_stack': 'sca_roi',
     'sca_tempreg_maps_z_stack': 'sca_roi',
-    'sca_tempreg_maps_z_files' : 'sca_roi',
+    'sca_tempreg_maps_z_files': 'sca_roi',
     'sca_tempreg_maps_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_z_files_smooth': 'sca_roi',
@@ -521,8 +522,12 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
 
         try:
-            new_f_path = os.path.join(file_path, 'path_files_here')
-            os.makedirs(new_f_path)
+            if 'qc' == wf:
+                new_f_path = os.path.join(file_path, 'qc_files_here')
+                os.makedirs(new_f_path)
+            else:
+                new_f_path = os.path.join(file_path, 'path_files_here')
+                os.makedirs(new_f_path)
         except:
             print '.'
 
@@ -533,10 +538,15 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global global_lock
             global_lock.acquire()
 
-            if not '~~~' in scan_info:
-                f = open(os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str), 'a')
+            scan_info = scan_info.replace('~~~', '')
+            f_n = None
+            if wf == 'qc':
+                f_n = os.path.join(new_f_path, 'qc_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+            else:
+                f_n = os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+            f = open(f_n, 'a')
 
-                print >> f, path
+            print >> f, path
             global_lock.release()
 
         except:
@@ -572,7 +582,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         'sca_tempreg_maps_z_files',
         'sca_tempreg_maps_z_files_smooth']
 
-        if file_name in dont_change_fname:
+        if file_name in dont_change_fname or 'qc' == wf:
 
             cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
             print cmd
