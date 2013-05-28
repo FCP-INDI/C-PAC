@@ -83,7 +83,7 @@ class strategy:
 
 
 
-def prep_workflow(sub_dict, c, strategies):
+def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     print '********************', c.standardResolutionBrain
 
@@ -3122,14 +3122,17 @@ def prep_workflow(sub_dict, c, strategies):
                 print name, ' ~~~ ', 2 ** workflow_bit_id[name]
                 hash_val += 2 ** workflow_bit_id[name]
 
-
-        pipeline_id = ''
-        pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
-        pipeline_id = pipeline_id.rstrip('\r\n')
-        if pipeline_id == '':
-            print 'hash value ', hash_val, ' is greater than the number of words'
-            print 'resorting to crc32 value as pipeline_id'
-            pipeline_id = zlib.crc32(strat_tag)
+        if p_name == None:
+            pipeline_id = ''
+            pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
+            pipeline_id = pipeline_id.rstrip('\r\n')
+            if pipeline_id == '':
+                print 'hash value ', hash_val, ' is greater than the number of words'
+                print 'resorting to crc32 value as pipeline_id'
+                pipeline_id = zlib.crc32(strat_tag)
+        else:
+            pipeline_id = p_name
+            p_name = None
 
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
         pip_ids.append(pipeline_id)
@@ -3221,7 +3224,7 @@ def prep_workflow(sub_dict, c, strategies):
 
 
 def run(config, subject_list_file, indx, strategies, \
-     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile):
+     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile, p_name = None):
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
@@ -3245,4 +3248,4 @@ def run(config, subject_list_file, indx, strategies, \
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')))
+    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), p_name)
