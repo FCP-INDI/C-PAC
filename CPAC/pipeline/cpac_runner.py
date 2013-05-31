@@ -130,7 +130,7 @@ def build_strategies(configuration):
 
 
 
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
+def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
@@ -159,8 +159,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, 'source ~/.bashrc'
 
 #    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
-        subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
+        subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
 
     f.close()
 
@@ -168,7 +168,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file):
     print commands.getoutput('qsub  %s ' % (subject_bash_file))
 
 
-def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
+def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
@@ -195,7 +195,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
         print >>f, "error = %s" % os.path.join(temp_files_dir, 'c-pac_%s.%s.err' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
         print >>f, "output = %s" % os.path.join(temp_files_dir, 'c-pac_%s.%s.out' % (str(strftime("%Y_%m_%d_%H_%M_%S")), str(sidx)))
 
-        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'', ''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile)
+        print >>f, "arguments = \"-c 'import CPAC; CPAC.pipeline.cpac_pipeline.run( ''%s'',''%s'',''%s'',''%s'', ''%s'',''%s'',''%s'',''%s'')\'\"" % (str(config_file), subject_list_file, str(sidx), strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
         print >>f, "queue"
 
     f.close()
@@ -207,7 +207,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file):
 
 
 
-def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
+def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
 
@@ -235,8 +235,8 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file):
     print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     print >>f, 'source ~/.bashrc'
 
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
-        subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile)
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
+        subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
 #    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
     #print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
     f.close()
@@ -295,7 +295,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 
-def run(config_file, subject_list_file):
+def run(config_file, subject_list_file, p_name = None):
     
     try:
     
@@ -347,7 +347,7 @@ def run(config_file, subject_list_file):
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies)) for sub in sublist]
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies, p_name)) for sub in sublist]
 
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
@@ -415,13 +415,13 @@ def run(config_file, subject_list_file):
 
         if 'sge' in c.resourceManager.lower():
 
-            run_sge_jobs(c, config_file, strategies_file, subject_list_file)
+            run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name)
 
 
         elif 'pbs' in c.resourceManager.lower():
 
-            run_pbs_jobs(c, config_file, strategies_file, subject_list_file)
+            run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name)
 
         elif 'condor' in c.resourceManager.lower():
 
-            run_condor_jobs(c, config_file, strategies_file, subject_list_file)
+            run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
