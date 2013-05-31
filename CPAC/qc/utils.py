@@ -4,27 +4,30 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-def append_to_files(list_files, file_):
-
-    f_1 = open(file_, 'r')
-
-    lines = f_1.readlines()
-
-    lines = [line.rstrip('\r\n') for line in lines]
-
-    f_1.close()
-
-    for f_ in list_files:
-
-        f_2 = open(f_, 'a')
-
-        for line in lines:
-
-            print >> f_2, line
-
-        f_2.close
-
 def append_to_files_in_dict_way(list_files, file_):
+
+    """
+    Combine files so at each resource in file appears exactly once
+
+    Parameters
+    ----------
+
+    list_files : list
+
+    file_ : string
+
+    Returns
+    -------
+
+    None
+
+    Notes
+    -----
+
+    Writes contents of file_ into list_files, ensuring list_files finally has
+    each resource appearing exactly once
+
+    """
 
     f_1 = open(file_, 'r')
 
@@ -69,6 +72,29 @@ def append_to_files_in_dict_way(list_files, file_):
 
 
 def first_pass_organizing_files(qc_path):
+
+
+    """
+    First Pass at organizing qc txt files
+
+    Parameters
+    ----------
+
+    qc_path : string
+        existing path of qc_files_here directory
+
+    Returns
+    -------
+
+    None
+
+    Notes
+    -----
+
+    Combines files with same strategy. First pass combines file names,
+    where one file name is substring of the other.
+
+    """
 
     import os
     from CPAC.qc.utils import append_to_files_in_dict_way
@@ -131,6 +157,29 @@ def first_pass_organizing_files(qc_path):
 
 
 def second_pass_organizing_files(qc_path):
+
+
+    """
+    Second Pass at organizing qc txt files
+
+    Parameters
+    ----------
+
+    qc_path : string
+        existing path of qc_files_here directory
+
+    Returns
+    -------
+
+    None
+
+    Notes
+    -----
+
+    Combines files with same strategy. combines files for derivative 
+    falff , alff with others
+
+    """
 
     import os
     from CPAC.qc.utils import append_to_files_in_dict_way
@@ -208,11 +257,35 @@ def second_pass_organizing_files(qc_path):
             else:
                 print 'Error: duplicate keys for files in QC 2nd file_org pass: %s %s' % (strat_dict[str_], file_)
                 raise
-        print strat_dict
 
 
 def organize(dict_, all_ids, png_, new_dict):
 
+    """
+    Organizes pngs according to their IDS in new_dict dictionary
+
+    Parameters
+    ----------
+
+    dict_ : dictionary
+        dict containing png id no and png type(montage/plot/hist)
+
+    all_ids : list
+        list of all png id numbers
+
+    png_ : string
+        path to png
+
+    new_dict : dictionary
+        dictionary containg ids and png lists
+
+
+    Returns
+    -------
+
+    all_ids : list
+        list of png id nos
+    """
 
     for id_no, png_type in dict_.items():
 
@@ -231,6 +304,54 @@ def organize(dict_, all_ids, png_, new_dict):
 
 
 def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+
+    """
+    Groups pngs by their ids
+
+    Parameters
+    ----------
+
+    pngs_ : list
+        list of all pngs
+
+    qc_montage_id_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of png types 
+
+    qc_montage_id_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of png types 
+
+    qc_plot_id : dictionary
+          dictionary of plot pngs key : id no
+          value is list of png types
+
+    qc_hist_id : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of png types
+
+
+    Returns
+    -------
+    dict_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of paths to axial montages
+
+    dict_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of paths to sagittal montages
+
+    dict_plot : dictionary
+          dictionary of plot pngs key : id no
+          value is list of paths to plots
+
+    dict_hist : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of paths to histogram pngs
+
+    all_ids : list
+        list of png id nos
+    """
 
     from CPAC.qc.utils import organize
 
@@ -253,6 +374,28 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
 def add_head(f_html_, f_html_0, f_html_1):
 
+    """
+    Write HTML Headers to various html files
+
+    Parameters
+    ----------
+
+    f_html_ : string
+        path to main html file
+
+    f_html_0 : string
+        path to navigation bar html file
+
+    f_html_1 : string
+        path to html file contaning pngs and plots
+
+
+    Returns
+    -------
+
+    None
+
+    """
     print >>f_html_, "<html>"
     print >>f_html_, "<head>"
     print >>f_html_, "<title>QC</title>"
@@ -278,6 +421,29 @@ def add_head(f_html_, f_html_0, f_html_1):
 
 def add_tail(f_html_, f_html_0, f_html_1):
 
+
+    """
+    Write HTML Tail Tags to various html files
+
+    Parameters
+    ----------
+
+    f_html_ : string
+        path to main html file
+
+    f_html_0 : string
+        path to navigation bar html file
+
+    f_html_1 : string
+        path to html file contaning pngs and plots
+
+
+    Returns
+    -------
+
+    None
+
+    """
     print >>f_html_0, "<br>"
     print >>f_html_0, "<br>"
     print >>f_html_0, "<form method=\"post\" action=\"\"> \
@@ -308,12 +474,66 @@ def feed_line_nav(id_,
                f_html_0,
                f_html_1):
 
+    """
+    Write to navigation bar html file
+
+    Parameters
+    ----------
+
+    id_ : string
+        id of the image
+
+    anchor : string
+        anchor id of the image
+
+    image_name : string
+        name of image
+    
+    f_html_0 : string
+        path to navigation bar html file
+
+    f_html_1 : string
+        path to html file contaning pngs and plots
+
+
+    Returns
+    -------
+
+    None
+
+    """
+
     print >>f_html_0, "<br><a href='%s#%s'> %s </a>" % (f_html_1.name, \
         anchor, image_name)
 
 
 
 def feed_line_body(image_name, anchor, image, f_html_1):
+    """
+    Write to html file that has to contain images
+
+    Parameters
+    ----------
+
+    image_name : string
+        name of image
+
+    anchor : string
+        anchor id of the image
+
+    image : string
+        path to the image
+
+    f_html_1 : string
+        path to html file contaning pngs and plots
+
+
+    Returns
+    -------
+
+    None
+
+    """
 
             print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_name)
             data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
@@ -323,21 +543,63 @@ def feed_line_body(image_name, anchor, image, f_html_1):
 
 def get_map_id(str_, id_):
 
+    """
+    Returns the proper map name given identifier for it
+
+    Parameters
+    ----------
+
+    str_ : string
+        string containing text for identifier
+
+    id_ : string
+        string for identifier
+
+    Returns
+    -------
+
+    map_id : string
+        proper name for a map
+    """
+    map_id = None
+
     if 'centrality' in id_:
         str_ = str_.split('_centrality_a.png')[0]
         type_, str_ = str_.split(id_)
         str_ = str_.split('_')[0]
 
         type_ = type_.replace('_', '')
-        return '_'.join([type_, id_, str_])
+        map_id = '_'.join([type_, id_, str_])
+        return map_id
 
     else:
         str_ = str_.split(id_)[1]
         str_ = str_.split('_')[0]
-        return '_'.join([id_, str_])
+        map_id = '_'.join([id_, str_])
+        return map_id
 
 
 def get_map_and_measure(png_a):
+
+    """
+    Extract Map name and Measure name from png
+
+    Parameters
+    ----------
+
+    png_a : string
+        name of png
+
+    Returns
+    -------
+
+    map_name : string
+        proper name for map
+
+    measure_name : string
+        proper name for measure    
+
+    """
 
     import os
     from CPAC.qc.utils import get_map_id
@@ -388,6 +650,57 @@ def feed_lines_html(id_,
                         f_html_0,
                         f_html_1):
 
+    """
+    Write HTML Tags to various html files and embeds images
+
+    Parameters
+    ----------
+
+    dict_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of paths to axial montages
+
+    dict_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of paths to sagittal montages
+
+    dict_plot : dictionary
+          dictionary of plot pngs key : id no
+          value is list of paths to plots
+
+    dict_hist : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of paths to histogram pngs
+
+    qc_montage_id_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of png types 
+
+    qc_montage_id_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of png types 
+
+    qc_plot_id : dictionary
+          dictionary of plot pngs key : id no
+          value is list of png types
+
+    qc_hist_id : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of png types
+
+    f_html_0 : string
+        path to navigation bar html file
+
+    f_html_1 : string
+        path to html file contaning pngs and plots
+
+
+    Returns
+    -------
+
+    None
+
+    """
     from CPAC.qc.utils import feed_line_nav
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
@@ -500,6 +813,38 @@ def feed_lines_html(id_,
 
 def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
+    """
+    Make Page
+
+    Parameters
+    ----------
+
+    file_ : string
+        path to qc path file
+
+    qc_montage_id_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of png types 
+
+    qc_montage_id_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of png types 
+
+    qc_plot_id : dictionary
+          dictionary of plot pngs key : id no
+          value is list of png types
+
+    qc_hist_id : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of png types
+
+
+    Returns
+    -------
+
+    None
+
+    """
     import os
     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
                         feed_lines_html
@@ -552,6 +897,39 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
+
+    """
+    Calls make page
+
+    Parameters
+    ----------
+
+    qc_path : string
+        path to qc_files_here directory
+
+    qc_montage_id_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of png types 
+
+    qc_montage_id_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of png types 
+
+    qc_plot_id : dictionary
+          dictionary of plot pngs key : id no
+          value is list of png types
+
+    qc_hist_id : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of png types
+
+
+    Returns
+    -------
+
+    None
+
+    """
     import os
     from CPAC.qc.utils import make_page
 
@@ -569,6 +947,38 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
+    """
+    Calls make_qc_page and organizes qc path files
+
+    Parameters
+    ----------
+
+    qc_path : string
+        path to qc_files_here directory
+
+    qc_montage_id_a : dictionary
+        dictionary of axial montages key : id no
+        value is list of png types 
+
+    qc_montage_id_s : dictionary
+          dictionary of sagittal montages key : id no
+          value is list of png types 
+
+    qc_plot_id : dictionary
+          dictionary of plot pngs key : id no
+          value is list of png types
+
+    qc_hist_id : dictionary
+          dictionary of histogram pngs key : id no
+          value is list of png types
+
+
+    Returns
+    -------
+
+    None
+
+    """
     import os
     from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
     from CPAC.qc.utils import make_qc_pages
@@ -586,6 +996,23 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
 
 
 def make_edge(file_):
+
+    """
+    Make edge file from a scan image
+
+    Parameters
+    ----------
+
+    file_ :    string
+        path to the scan
+
+    Returns
+    -------
+
+    new_fname : string
+        path to edge file
+
+    """
 
     import commands
     import os
@@ -608,6 +1035,31 @@ def make_edge(file_):
 
 def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
+    """
+    Transform functional file (std dev) into anatomical space
+
+    Parameters
+    ----------
+
+    func_ : string
+        functional scan
+
+    ref_ : string
+        path to reference file
+
+    xfm_ : string
+        path to transformation mat file
+
+    interp_ : string
+        interpolation measure string
+
+    Returns
+    -------
+
+    new_fname : string
+        path to the transformed scan
+    """
+
     import os
     import commands
 
@@ -623,6 +1075,25 @@ def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
 def gen_snr(std_dev, mean_func_anat):
 
+    """
+    Generate SNR file
+
+    Parameters
+    ----------
+
+    std_dev : string
+        path to std dev file in anat space
+
+    mean_func_anat : string
+        path to mean functional scan in anatomical space
+
+
+    Returns
+    -------
+
+    new_fname : string
+        path to the snr file
+    """
     import os
     import commands
 
@@ -638,6 +1109,25 @@ def gen_snr(std_dev, mean_func_anat):
 
 
 def gen_std_dev(mask_, func_):
+
+    """
+    Generate std dev file
+
+    Parameters
+    ----------
+    
+    mask_ : string
+        path to whole brain mask file
+
+    func_ : string
+        path to functional scan
+
+    Returns
+    -------
+
+    new_fname : string
+        path to standard deviation file
+    """
 
     import os
     import commands
@@ -1159,6 +1649,29 @@ def determine_start_and_end(data, direction, percent):
 def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
+    Draws Montage using overlay on Anatomical brain in Axial Direction
+	calls make_montage_axial
+
+    Parameters
+    ----------
+
+    overlay : string
+            Nifi file
+
+    underlay : string
+            Nifti for Anatomical Brain
+
+    cbar_name : string
+            name of the cbar 
+
+    png_name : string
+            Proposed name of the montage plot
+
+    Returns
+    -------
+
+    png_name : Path to generated PNG
+
     """
     import os
     from CPAC.qc.utils import make_montage_axial
@@ -1182,6 +1695,30 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
 def make_montage_axial(overlay, underlay, png_name, cbar_name):
 
+    """
+    Draws Montage using overlay on Anatomical brain in Axial Direction
+
+    Parameters
+    ----------
+
+    overlay : string
+            Nifi file
+
+    underlay : string
+            Nifti for Anatomical Brain
+
+    cbar_name : string
+            name of the cbar 
+
+    png_name : string
+            Proposed name of the montage plot
+
+    Returns
+    -------
+
+    png_name : Path to generated PNG
+
+    """
     import matplotlib
     import commands
 #    matplotlib.use('Agg')
@@ -1276,6 +1813,31 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
 
 def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
+    """
+    Draws Montage using overlay on Anatomical brain in Sagittal Direction
+	calls make_montage_sagittal
+
+    Parameters
+    ----------
+
+    overlay : string
+            Nifi file
+
+    underlay : string
+            Nifti for Anatomical Brain
+
+    cbar_name : string
+            name of the cbar 
+
+    png_name : string
+            Proposed name of the montage plot
+
+    Returns
+    -------
+
+    png_name : Path to generated PNG
+
+    """
     import os
     from CPAC.qc.utils import make_montage_sagittal
     pngs = None
@@ -1296,6 +1858,30 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
 def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
+    """
+    Draws Montage using overlay on Anatomical brain in Sagittal Direction
+
+    Parameters
+    ----------
+
+    overlay : string
+            Nifi file
+
+    underlay : string
+            Nifti for Anatomical Brain
+
+    cbar_name : string
+            name of the cbar 
+
+    png_name : string
+            Proposed name of the montage plot
+
+    Returns
+    -------
+
+    png_name : Path to generated PNG
+
+    """
     from CPAC.qc.utils import determine_start_and_end, get_spacing
     import matplotlib
     import commands
@@ -1384,6 +1970,33 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
 def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_name):
 
+    """
+    Draws Montage using GM WM and CSF overlays on Anatomical brain in Sagittal Direction
+
+    Parameters
+    ----------
+
+    overlay_csf : string
+            Nifi file CSF MAP
+
+    overlay_wm : string
+            Nifti file WM MAP
+
+    overlay_gm : string
+            Nifti file GM MAP
+
+    underlay : string
+            Nifti for Anatomical Brain
+
+    png_name : string
+            Proposed name of the montage plot
+
+    Returns
+    -------
+
+    png_name : Path to generated PNG
+
+    """
 
     import os
     import matplotlib
@@ -1611,6 +2224,23 @@ def register_pallete(file_, cbar_name):
 
 
 def resample_1mm(file_):
+
+    """
+    Calls make_resample_1mm which resamples file to 1mm space
+
+    Parameters
+    ----------
+
+    file_ : string
+        path to the scan
+
+    Returns
+    -------
+
+    new_fname : string
+        path to 1mm resampled nifti file
+
+    """
 
     from CPAC.qc.utils import make_resample_1mm
 
