@@ -449,9 +449,11 @@ def add_tail(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "<form method=\"post\" action=\"\"> \
 <br> \
 Recommendation for QC <br>\
-<input type=\"radio\" name=\"group1\" value=\"Yes\"> Yes<br> \
-<input type=\"radio\" name=\"group1\" value=\"No\" checked> No<br> \
-<input type=\"radio\" name=\"group1\" value=\"May Be\" checked> May Be<br> \
+<input type=\"radio\" name=\"group1\" value=\"1\"> 1-Yes<br> \
+<input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
+<input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
+<input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
+<input type=\"radio\" name=\"group1\" value=\"5\" checked>5-No<br> \
  <br> Notes\
 <br> \
 <textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
