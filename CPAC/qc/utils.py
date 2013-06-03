@@ -97,7 +97,7 @@ def first_pass_organizing_files(qc_path):
     """
 
     import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
+    #from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
     strat_dict = {}
@@ -182,7 +182,7 @@ def second_pass_organizing_files(qc_path):
     """
 
     import os
-    from CPAC.qc.utils import append_to_files_in_dict_way
+    #from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
 
@@ -353,7 +353,7 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
         list of png id nos
     """
 
-    from CPAC.qc.utils import organize
+    #from CPAC.qc.utils import organize
 
     dict_a = {}
     dict_s = {}
@@ -537,10 +537,12 @@ def feed_line_body(image_name, anchor, image, f_html_1):
 
     """
 
-            print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_name)
-            data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
-            img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
-            print >>f_html_1, img_tag
+    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_name)
+    
+    data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
+    img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
+    
+    print >>f_html_1, img_tag
 
 
 def get_map_id(str_, id_):
@@ -604,7 +606,7 @@ def get_map_and_measure(png_a):
     """
 
     import os
-    from CPAC.qc.utils import get_map_id
+    #from CPAC.qc.utils import get_map_id
 
     measure_name = None
     map_name = None
@@ -703,9 +705,9 @@ def feed_lines_html(id_,
     None
 
     """
-    from CPAC.qc.utils import feed_line_nav
-    from CPAC.qc.utils import feed_line_body
-    from CPAC.qc.utils import get_map_and_measure
+#     from CPAC.qc.utils import feed_line_nav
+#     from CPAC.qc.utils import feed_line_body
+#     from CPAC.qc.utils import get_map_and_measure
 
     print 'id_ :', id_
     if id_ in dict_a:
@@ -848,8 +850,8 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     """
     import os
-    from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
-                        feed_lines_html
+#     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
+#                         feed_lines_html
 
 
 
@@ -933,7 +935,7 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
     """
     import os
-    from CPAC.qc.utils import make_page
+#     from CPAC.qc.utils import make_page
 
     qc_files = os.listdir(qc_path)
 
@@ -982,8 +984,8 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
 
     """
     import os
-    from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
-    from CPAC.qc.utils import make_qc_pages
+#     from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
+#     from CPAC.qc.utils import make_qc_pages
 
     os.system('rm -rf %s/*.html')
 
@@ -1353,7 +1355,7 @@ def gen_histogram(measure_file, measure):
     """
     hist_path = None
 
-    from CPAC.qc.utils import make_histogram
+    #from CPAC.qc.utils import make_histogram
     import os
     m_ = measure
     if isinstance(measure_file, list):
@@ -1676,7 +1678,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
     import os
-    from CPAC.qc.utils import make_montage_axial
+    #from CPAC.qc.utils import make_montage_axial
     pngs = None
     if isinstance(overlay, list):
         pngs = []
@@ -1732,7 +1734,7 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import matplotlib.colors as col
     import nibabel as nb
     import numpy as np
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
+    #from CPAC.qc.utils import determine_start_and_end, get_spacing
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
@@ -1841,7 +1843,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     """
     import os
-    from CPAC.qc.utils import make_montage_sagittal
+    #from CPAC.qc.utils import make_montage_sagittal
     pngs = None
     if isinstance(overlay, list):
         pngs = []
@@ -1884,7 +1886,7 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     png_name : Path to generated PNG
 
     """
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
+    #from CPAC.qc.utils import determine_start_and_end, get_spacing
     import matplotlib
     import commands
 #    matplotlib.use('Agg')
@@ -2004,7 +2006,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     import matplotlib
     import commands
 #    matplotlib.use('Agg')
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
+    #from CPAC.qc.utils import determine_start_and_end, get_spacing
     import numpy as np
     from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.pyplot as plt
@@ -2111,7 +2113,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     import matplotlib
     import commands
 #    matplotlib.use('Agg')
-    from CPAC.qc.utils import determine_start_and_end, get_spacing
+    #from CPAC.qc.utils import determine_start_and_end, get_spacing
     import numpy as np
     from mpl_toolkits.axes_grid1 import ImageGrid
     import matplotlib.pyplot as plt
@@ -2244,7 +2246,7 @@ def resample_1mm(file_):
 
     """
 
-    from CPAC.qc.utils import make_resample_1mm
+    #from CPAC.qc.utils import make_resample_1mm
 
     new_fname = None
     if isinstance(file_, list):
