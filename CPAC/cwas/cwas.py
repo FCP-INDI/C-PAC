@@ -343,12 +343,14 @@ def create_cwas(name='cwas'):
                  ncwas, 'regressor')
     cwas.connect(inputspec, 'f_samples',
                  ncwas, 'f_samples')
-    
+    cwas.connect(inputspec, 'cols',
+                 ncwas, 'cols')
 #    cwas.connect(ctf, 'compiled_dot_norm',
 #                 ncwas, 'compiled_func')
-
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
+    cwas.connect(inputspec, 'strata',
+                 ncwas, 'strata')
     
     #Merge the computed CWAS data
     cwas.connect(ncwas, 'result_batch',
