@@ -3,6 +3,7 @@ from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 import os
 import yaml
+import pkg_resources as p
 
 ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
@@ -103,7 +104,7 @@ class DataConfig(wx.Frame):
         self.multiscan = wx.CheckBox(btnPanel, -1, label = "Multiscan Data")
         hbox.Add(self.multiscan, 0.6, flag = wx.RIGHT| wx.BOTTOM, border =5)
         
-        img = wx.Image("images/help.png", wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         help = wx.BitmapButton(btnPanel, id=-1, bitmap=img,
                                pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
         help.Bind(wx.EVT_BUTTON, self.onHelp)
