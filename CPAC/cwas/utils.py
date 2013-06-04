@@ -1,4 +1,5 @@
 import numpy as np
+from mdmr import *
 
 def norm_cols(X):
     """
@@ -9,7 +10,7 @@ def norm_cols(X):
 
 
 
-def calc_cwas(subjects_data, regressor, iter):
+def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
     """
     Performs Connectome-Wide Association Studies (CWAS) [1]_ for every voxel.  Implementation based on
     [2]_.
@@ -42,7 +43,7 @@ def calc_cwas(subjects_data, regressor, iter):
     .. [2] Xiao-Wei Song, Zhang-Ye Dong, Xiang-Yu Long, Su-Fang Li, Xi-Nian Zuo, Chao-Zhe Zhu, Yong He, Chao-Gan Yan, Yu-Feng Zang. (2011) REST: A Toolkit for Resting-State Functional Magnetic Resonance Imaging Data Processing. PLoS ONE 6(9): e25031. doi:10.1371/journal.pone.0025031
     
     """
-
+    
     nSubjects = subjects_data.shape[0]
     nVoxels = subjects_data[0].shape[1]
     #Number of timepoints may be consistent between subjects
@@ -72,81 +73,7 @@ def calc_cwas(subjects_data, regressor, iter):
         #Normalize the rows
         S0 = norm_cols(S0.T).T
         D[i,:,:] = 1-S0.dot(S0.T)
-        F_set[i], p_set[i] = y_mdmr(D[i], regressor, iter)
+        
+        p_set[i], F_set[i] = mdmr(D[i].flatten(), regressor, cols, iter, strata)
     
     return F_set, p_set
-
-def y_mdmr(yDis, x, iter):
-    """
-    Multivariate Distance Matrix Regression
-    
-    Parameters
-    ----------
-    yDis : ndarray
-    x : ndarray
-    iter : integer
-    
-    Returns
-    --------
-    F : float
-    p : float
-    
-    Notes
-    -----
-    Implementation based on work by YAN Chao-Gan (ycg.yan@gmail.com) and References section.
-    
-    References
-    -----------
-    .. [1] Anderson, M. J. 2002. DISTML v.2: a FORTRAN computer program to calculate a distance-based multivariate analysis for a linear model. Dept. of Statistics University of Auckland. (http://www.stat.auckland.ac.nz/PEOPLE/marti/)
-    .. [2] Anderson, M. J. 2001. A new method for non-parametric multivariate analysis of variance. Austral Ecology 26: 32-46.
-    .. [3] Legendre, P. & L. Legendre. 1998. Numerical ecology. 2nd English ed. Elsevier Science BV, Amsterdam.
-    .. [4] McArdle, B. H. and M. J. Anderson. 2001. Fitting multivariate models to community data: a comment on distance-based redundancy analysis. Ecology 290-297.
-    .. [5] Neter, J., M. H. Kutner, C. J. Nachtsheim, and W. Wasserman. 1996. Applied linear statistical models. 4th ed. Irwin, Chicago, Illinois.
-    """
-    n = yDis.shape[0]
-    A = -0.5*(yDis**2)
-    I = np.eye(n,n)
-    uno = np.ones((n,1))
-    C = I - (1.0/n)*uno.dot(uno.T)
-    
-    # G is similar to matrix of inner products from distances used in Partha Niyogi's
-    # multidimensional scaling
-
-    G = C.dot(A).dot(C)
-    xx = np.hstack((uno, x))
-    Q1, R1 = np.linalg.qr(xx)
-
-    H = Q1.dot(Q1.T)
-    m = xx.shape[1]
-    
-    df_among = m-1
-    df_resid = n-m
-    df_total = n-1
-    
-    SS_among = np.trace(H.dot(G).dot(H))
-    SS_resid = np.trace((I-H).dot(G).dot(I-H))
-    
-    SS_total = np.trace(G)
-    
-    MS_among = SS_among/df_among
-    MS_resid = SS_resid/df_resid
-    
-    F = MS_among/MS_resid
-    
-    if iter > 0:
-        F_perm = np.zeros(iter-1)
-        for i in range(iter-1):
-            IndexRandPerm = np.random.permutation(n)
-            # Would it be better to permute the regressors x rather than G?
-            G_perm = G.take(IndexRandPerm, axis=0)
-            G_perm = G_perm.take(IndexRandPerm, axis=1)
-            MS_perm = np.trace(H.dot(G_perm).dot(H))/df_among
-            MSE_perm = np.trace((I-H).dot(G_perm).dot(I-H))/df_resid
-            F_perm[i] = MS_perm/MSE_perm
-        j = (F_perm >= F).sum().astype('float')
-        p = (j+1.0)/iter
-    else:
-        print 'No permutation tests done.'
-        p = np.NAN
-    
-    return F, p
