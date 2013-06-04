@@ -27,7 +27,7 @@ class ListBox(wx.Frame):
         self.sublist_map= {}
         
         mainPanel = wx.Panel(self)
-        mainPanel.SetBackgroundColour('#FAF0E6')
+        mainPanel.SetBackgroundColour('#E9E3DB')
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
         outerPanel1 = wx.Panel(mainPanel)
@@ -72,7 +72,7 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 1), id=ID_CLEAR)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)        
 
-        btnSizer1.Add((-1, 30))
+        btnSizer1.Add((-1, 25))
         btnSizer1.Add(new)
         btnSizer1.Add(load, 0, wx.TOP, 5)
         btnSizer1.Add(edit, 0, wx.TOP, 5)
@@ -109,11 +109,11 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddItem, id=ID_ADD)
         self.Bind(wx.EVT_BUTTON, self.OnShow, id= ID_SHOW)
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2), id=ID_CLEARALL)
-        btnSizer2.Add((-1, 30))
-        btnSizer2.Add(create)
-        btnSizer2.Add(add)
-        btnSizer2.Add(show)
-        btnSizer2.Add(clr2)
+        btnSizer2.Add((-1, 25))
+        btnSizer2.Add(create, 0, wx.TOP, 5)
+        btnSizer2.Add(add, 0, wx.TOP, 5)
+        btnSizer2.Add(show, 0, wx.TOP, 5)
+        btnSizer2.Add(clr2, 0, wx.TOP, 5)
         btnPanel2.SetSizer(btnSizer2)
         
         
@@ -127,26 +127,38 @@ class ListBox(wx.Frame):
         
         outerPanel1.SetSizer(outerSizer1)
         
-        bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
-        self.runCPAC1 = AB.AquaButton(outerPanel2, bitmap = bmp, label="Run Individual Level Analysis")
+        #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
+        self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
         self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
+        self.runCPAC1.SetBackgroundColour('#BBCFE9')
+        self.runCPAC1.SetHoverColor('#0071B2')
         
-        self.runCPAC2 = AB.AquaButton(outerPanel2, bitmap = bmp, label ="Run Group Level Analysis")
+        self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
+        self.runCPAC2.SetBackgroundColour('#BBCFE9')
+        self.runCPAC2.SetHoverColor('#0071B2')
         
         outerSizer2.Add(self.runCPAC1, 1, wx.EXPAND | wx.RIGHT, 40)
         outerSizer2.Add(self.runCPAC2, 1, wx.EXPAND | wx.LEFT, 40)
         outerPanel2.SetSizer(outerSizer2)
         
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        #hbox = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=20)
+        #hbox.AddGrowableCol(1)
         text1 = wx.StaticText(mainPanel, -1, "Configure CPAC")
         text1.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/cpac_rgb.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        logo = wx.StaticBitmap(mainPanel, -1, img)
+        hbox.Add(text1, 1, wx.TOP | wx.EXPAND, 15)
+        hbox.Add(logo, 0,wx.ALIGN_RIGHT | wx.RIGHT)
         
         text2 = wx.StaticText(mainPanel, -1, "Run CPAC")
         text2.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
         
-        mainSizer.Add(text1, 0, wx.EXPAND| wx.ALL, 10)
+        #mainSizer.Add(text1, 0, wx.EXPAND| wx.ALL, 10)
+        mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL,10)
         mainSizer.Add(outerPanel1, 1, wx.EXPAND | wx.ALL, 20)
         mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 10)
         mainSizer.Add(text2, 0, wx.EXPAND| wx.ALL, 5)
