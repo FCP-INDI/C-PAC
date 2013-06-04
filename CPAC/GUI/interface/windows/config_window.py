@@ -241,8 +241,9 @@ class MainFrame(wx.Frame):
             for ctrl in ctrl_list:
                 name = ctrl.get_name()
                 val = config_file_map.get(str(name))
-                print "loading ctrl -> value", name, "->", val
+                print "loading ctrl ->", name, "->", val
                 sample_list = ctrl.get_values()
+                print "sample_list -->", sample_list
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
                 if val:
@@ -286,8 +287,9 @@ class MainFrame(wx.Frame):
                                 else:
                                     value = str(v)
                     else:
-                        if ctrl.get_datatype() == 2 and ctrl.get_type() == 0:
-                            value = sample_list[val]
+                        if ctrl.get_datatype() == 2 and ctrl.get_type() == 0 and\
+                        str(val) not in sample_list:
+                                value = sample_list[val]
                         else:
                             value = str(val)
                 else:
