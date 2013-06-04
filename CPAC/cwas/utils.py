@@ -45,7 +45,7 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
     """
     
     nSubjects = subjects_data.shape[0]
-    nVoxels = subjects_data[0].shape[1]
+    nVoxels = subjects_data.shape[2]
     #Number of timepoints may be consistent between subjects
 
     subjects_data_n = np.zeros_like(subjects_data)
@@ -74,6 +74,6 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
         S0 = norm_cols(S0.T).T
         D[i,:,:] = 1-S0.dot(S0.T)
         
-        p_set[i], F_set[i] = mdmr(D[i].flatten(), regressor, cols, iter, strata)
+        p_set[i], F_set[i] = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
     
     return F_set, p_set
