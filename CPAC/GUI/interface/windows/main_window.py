@@ -133,12 +133,14 @@ class ListBox(wx.Frame):
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
         self.runCPAC1.SetBackgroundColour('#BBCFE9')
         self.runCPAC1.SetHoverColor('#0071B2')
+        self.runCPAC1.SetForegroundColour('#000000')
         
         self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
         self.runCPAC2.SetBackgroundColour('#BBCFE9')
         self.runCPAC2.SetHoverColor('#0071B2')
+        self.runCPAC2.SetForegroundColour('#000000')
         
         outerSizer2.Add(self.runCPAC1, 1, wx.EXPAND | wx.RIGHT, 40)
         outerSizer2.Add(self.runCPAC2, 1, wx.EXPAND | wx.LEFT, 40)
