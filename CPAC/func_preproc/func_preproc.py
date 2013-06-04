@@ -253,6 +253,7 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                                                         'motion_correct_ref',
                                                         'movement_parameters',
                                                         'max_displacement',
+                                                        'xform_matrix',
                                                         'mask',
                                                         'skullstrip',
                                                         'example_func',
@@ -377,6 +378,8 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     outputNode, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
                     outputNode, 'movement_parameters')
+    preproc.connect(func_motion_correct_A, 'mat1d_file',
+                    outputNode, 'xform_matrix')
 
     
     func_get_brain_mask = pe.Node(interface=preprocess.ThreedAutomask(),
