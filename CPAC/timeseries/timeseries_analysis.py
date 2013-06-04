@@ -376,7 +376,6 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
             txt file
             the columns are spatial maps, rows are timepoints
 
-        High Level Workflow Graph:
 
     Example
     -------

@@ -337,7 +337,13 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
     create the .mat file
     """
 
-    dimx, dimy = data.shape
+    dimx = None
+    dimy = None
+    if len(data.shape) == 1:
+        dimy = 1
+        dimx = data.shape[0]
+    else:
+        dimx, dimy = data.shape
 
     ppstring = '/PPheights'
 
@@ -366,7 +372,13 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
     create the grp file
     """
 
-    dimx, dimy = data.shape
+    dimx = None
+    dimy = None
+    if len(data.shape) == 1:
+        dimy = 1
+        dimx = data.shape[0]
+    else:
+        dimx, dimy = data.shape
     data = np.ones(dimx)
 
 
@@ -730,7 +742,7 @@ def run(config):
     data = []
 
     for tp in data_lst:
-        data.append(tp[:])
+        data.append(tp)
 
     print len(data[:])
     data = np.array(data, dtype=np.float16)
