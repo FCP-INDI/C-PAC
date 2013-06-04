@@ -74,6 +74,6 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
         S0 = norm_cols(S0.T).T
         D[i,:,:] = 1-S0.dot(S0.T)
         
-        p_set[i], F_set[i] = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
+        p_set[i], F_set[i], _, _ = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
     
     return F_set, p_set
