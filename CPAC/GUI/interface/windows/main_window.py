@@ -4,6 +4,7 @@ from dataconfig_window import DataConfig
 import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
+import sys
 ID_NEW = 1
 ID_RENAME = 2
 ID_CLEAR = 3
@@ -55,6 +56,8 @@ class ListBox(wx.Frame):
         lboxSizer1.Add(self.listbox, 1, wx.EXPAND | wx.ALL, 10)
         lboxPanel1.SetSizer(lboxSizer1)
         
+        lboxPanel1.SetBackgroundColour('#E9E3DB')
+        
         new = wx.Button(btnPanel1, ID_NEW, 'New', size=(90, 30))
         ren = wx.Button(btnPanel1, ID_RENAME, 'Rename', size=(90, 30))
         dlt = wx.Button(btnPanel1, ID_DELETE, 'Delete', size=(90, 30))
@@ -72,7 +75,11 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 1), id=ID_CLEAR)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)        
 
-        btnSizer1.Add((-1, 25))
+        if 'linux' in sys.platform:
+            btnSizer1.Add((-1,32))
+        else:
+            btnSizer1.Add((-1, 25))
+        
         btnSizer1.Add(new)
         btnSizer1.Add(load, 0, wx.TOP, 5)
         btnSizer1.Add(edit, 0, wx.TOP, 5)
@@ -81,11 +88,18 @@ class ListBox(wx.Frame):
         btnSizer1.Add(dlt, 0, wx.TOP, 5)
         btnSizer1.Add(clr, 0, wx.TOP, 5)
         btnPanel1.SetSizer(btnSizer1)
+        
+        btnPanel1.SetBackgroundColour('#E9E3DB')
                 
         innerSizer1.Add(lboxPanel1, 1, wx.EXPAND | wx.ALL)
-        innerSizer1.Add(btnPanel1, 1, wx.EXPAND | wx.ALL)
+        
+        if 'linux' in sys.platform:
+            innerSizer1.Add(btnPanel1, 1, wx.EXPAND | wx.ALL, 5)
+        else:
+            innerSizer1.Add(btnPanel1, 1, wx.EXPAND | wx.ALL)
         
         innerPanel1.SetSizer(innerSizer1)
+        innerPanel1.SetBackgroundColour('#E9E3DB')
         
         lboxPanel2 = wx.Panel(innerPanel2)
         lboxSizer2 = wx.BoxSizer(wx.VERTICAL)
@@ -100,6 +114,8 @@ class ListBox(wx.Frame):
         lboxSizer2.Add(label2, 0,wx.ALIGN_CENTER)
         lboxSizer2.Add(self.listbox2, 1, wx.EXPAND | wx.ALL, 10)
         lboxPanel2.SetSizer(lboxSizer2)
+        
+        lboxPanel2.SetBackgroundColour('#E9E3DB')
                 
         create = wx.Button(btnPanel2, ID_CREATE, 'New', size=(90, 30))
         add = wx.Button(btnPanel2, ID_ADD, 'Load', size= (90,30))
@@ -109,23 +125,34 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddItem, id=ID_ADD)
         self.Bind(wx.EVT_BUTTON, self.OnShow, id= ID_SHOW)
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2), id=ID_CLEARALL)
-        btnSizer2.Add((-1, 25))
+        
+        if 'linux' in sys.platform:
+            btnSizer2.Add((-1,32))
+        else:
+            btnSizer2.Add((-1, 25))
+        
         btnSizer2.Add(create, 0, wx.TOP, 5)
         btnSizer2.Add(add, 0, wx.TOP, 5)
         btnSizer2.Add(show, 0, wx.TOP, 5)
         btnSizer2.Add(clr2, 0, wx.TOP, 5)
         btnPanel2.SetSizer(btnSizer2)
-        
+        btnPanel2.SetBackgroundColour('#E9E3DB')
         
         innerSizer2.Add(lboxPanel2, 1, wx.EXPAND | wx.ALL)
-        innerSizer2.Add(btnPanel2, 1, wx.EXPAND | wx.ALL)
+        
+        if 'linux' in sys.platform:
+            innerSizer2.Add(btnPanel2, 1, wx.EXPAND | wx.ALL, 5)
+        else:
+            innerSizer2.Add(btnPanel2, 1, wx.EXPAND | wx.ALL)
         
         innerPanel2.SetSizer(innerSizer2)
+        innerPanel2.SetBackgroundColour('#E9E3DB')
         
         outerSizer1.Add(innerPanel2, 1, wx.EXPAND | wx.ALL)
         outerSizer1.Add(innerPanel1, 1, wx.EXPAND | wx.ALL)
         
         outerPanel1.SetSizer(outerSizer1)
+        outerPanel1.SetBackgroundColour('#E9E3DB')
         
         #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
         self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
@@ -145,19 +172,20 @@ class ListBox(wx.Frame):
         outerSizer2.Add(self.runCPAC1, 1, wx.EXPAND | wx.RIGHT, 40)
         outerSizer2.Add(self.runCPAC2, 1, wx.EXPAND | wx.LEFT, 40)
         outerPanel2.SetSizer(outerSizer2)
+        outerPanel2.SetBackgroundColour('#E9E3DB')
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         #hbox = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=20)
         #hbox.AddGrowableCol(1)
         text1 = wx.StaticText(mainPanel, -1, "Configure CPAC")
-        text1.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        text1.SetFont(wx.Font(17, wx.SWISS, wx.NORMAL, wx.BOLD))
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/cpac_rgb.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         logo = wx.StaticBitmap(mainPanel, -1, img)
         hbox.Add(text1, 1, wx.TOP | wx.EXPAND, 15)
         hbox.Add(logo, 0,wx.ALIGN_RIGHT | wx.RIGHT)
         
         text2 = wx.StaticText(mainPanel, -1, "Run CPAC")
-        text2.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        text2.SetFont(wx.Font(17, wx.SWISS, wx.NORMAL, wx.BOLD))
         
         #mainSizer.Add(text1, 0, wx.EXPAND| wx.ALL, 10)
         mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL,10)
