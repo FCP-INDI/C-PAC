@@ -82,7 +82,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     import numpy as np
     import os
     from CPAC.cwas import calc_cwas
-
+    
     #Check regressor is a column vector
     if(len(regressor.shape) == 1):
         regressor = regressor[:, np.newaxis]
@@ -91,19 +91,20 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     
     if(len(subjects_file_list) != regressor.shape[0]):
         raise ValueError('Number of subjects does not match regressor size')
-
+    
     #Load the data to produce the joint mask
     mask = nb.load(mask_file).get_data().astype('bool')
     mask_indices = np.where(mask)
-    batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
-
+    #batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
+    
     #Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
-    subjects_data = [nb.load(subject_file).get_data().astype('float64')[batch_indices].T for subject_file in subjects_file_list]
+    subjects_data = [ nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
+                        for subject_file in subjects_file_list ]
     subjects_data = np.array(subjects_data)
     print '... subject data loaded', subjects_data.shape, 'batch voxel range', voxel_range
-
-    F_set, p_set = calc_cwas(subjects_data, regressor, cols, f_samples, strata)
-
+    
+    F_set, p_set = calc_cwas(subjects_data, regressor, cols, f_samples, voxel_range, strata)
+    
     print '... writing cwas data to disk'
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
