@@ -1,16 +1,8 @@
 import numpy as np
 from mdmr import *
+from subdist import *
 
-def norm_cols(X):
-    """
-    Theano expression which centers and normalizes columns of X `||x_i|| = 1`
-    """
-    Xc = X - X.mean(0)
-    return Xc/np.sqrt( (Xc**2.).sum(0) )
-
-
-
-def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
+def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
     """
     Performs Connectome-Wide Association Studies (CWAS) [1]_ for every voxel.  Implementation based on
     [2]_.
@@ -24,7 +16,11 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
         Matrix of shape (`S`, `R`), `S` subjects and `R` regressors
     iter : integer
         Number of permutations to derive significance tests
-
+    voxel_range : tuple
+        (start, end) tuple specify the range of voxels (inside the mask) to perform cwas on.    
+    strata : None or list
+        todo
+        
     Returns
     -------
     F_set : ndarray
@@ -44,14 +40,13 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
     
     """
     
-    nSubjects = subjects_data.shape[0]
-    nVoxels = subjects_data.shape[2]
+    nSubjects   = subjects_data.shape[0]
+    vox_inds    = range(*voxel_range)
+    nVoxels     = len(vox_inds)
     #Number of timepoints may be consistent between subjects
-
-    subjects_data_n = np.zeros_like(subjects_data)
-    for i in range(nSubjects):
-        subjects_data_n[i] = norm_cols(subjects_data[i])
-
+    
+    subjects_normed_data = norm_subjects(subjects_data)
+    
     # Distance matrices for every voxel
     D = np.zeros((nVoxels, nSubjects, nSubjects))
     
@@ -59,20 +54,12 @@ def calc_cwas(subjects_data, regressor, cols, iter, strata=None):
     p_set = np.zeros(nVoxels)
     
     # For a particular voxel v, its spatial correlation map for every subject
-    S = np.zeros((nSubjects, nVoxels))
+    S = np.zeros((nSubjects, 1, nVoxels))
     
     for i in range(nVoxels):
-        for i_s in range(nSubjects):
-            # Correlate voxel i with every other voxel in the same subject
-            S[i_s,:] = subjects_data_n[i_s][:,i][np.newaxis, :].dot(subjects_data_n[i_s])
-        # Remove auto-correlation column to prevent infinity in Fischer z transformation
-        S0 = np.delete(S,i,1)
-        
-        S0 = 0.5*np.log((1+S0)/(1-S0))
-        
-        #Normalize the rows
-        S0 = norm_cols(S0.T).T
-        D[i,:,:] = 1-S0.dot(S0.T)
+        S = ncor_subjects(subjects_normed_data, [vox_inds[i]])
+        S0 = fischers_transform(S[:,0,:])
+        D[i,:,:] = compute_distances(S0)
         
         p_set[i], F_set[i], _, _ = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
     
