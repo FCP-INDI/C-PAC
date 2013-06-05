@@ -49,7 +49,12 @@ class ListBox(wx.Frame):
         btnSizer1 = wx.BoxSizer(wx.VERTICAL)
         
         label = wx.StaticText(lboxPanel1, -1, "Pipelines")
-        label.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
+        if 'linux' in sys.platform:
+            label.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
+        else:
+            label.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
+            
         self.listbox = wx.CheckListBox(lboxPanel1, -1, size = (160,400))
         
         lboxSizer1.Add(label, 0, wx.ALIGN_CENTER)
@@ -76,7 +81,7 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)        
 
         if 'linux' in sys.platform:
-            btnSizer1.Add((-1,32))
+            btnSizer1.Add((-1,30))
         else:
             btnSizer1.Add((-1, 25))
         
@@ -106,9 +111,13 @@ class ListBox(wx.Frame):
         btnPanel2 = wx.Panel(innerPanel2, -1)
         btnSizer2 = wx.BoxSizer(wx.VERTICAL)
 
-
         label2 = wx.StaticText(lboxPanel2, -1, "Subject Lists")
-        label2.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
+        if 'linux' in sys.platform:
+            label2.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.BOLD))
+        else:
+            label2.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.BOLD))
+            
         self.listbox2 = wx.CheckListBox(lboxPanel2, -1, size= (160,400)) 
         self.listbox2.Bind(wx.EVT_LISTBOX_DCLICK, self.OnShow)
         lboxSizer2.Add(label2, 0,wx.ALIGN_CENTER)
@@ -127,7 +136,7 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2), id=ID_CLEARALL)
         
         if 'linux' in sys.platform:
-            btnSizer2.Add((-1,32))
+            btnSizer2.Add((-1,30))
         else:
             btnSizer2.Add((-1, 25))
         
@@ -175,19 +184,25 @@ class ListBox(wx.Frame):
         outerPanel2.SetBackgroundColour('#E9E3DB')
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        #hbox = wx.FlexGridSizer(rows=1, cols=2, vgap=10, hgap=20)
-        #hbox.AddGrowableCol(1)
         text1 = wx.StaticText(mainPanel, -1, "Configure CPAC")
-        text1.SetFont(wx.Font(17, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
+        if 'linux' in sys.platform:
+            text1.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
+        else:
+            text1.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+            
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/cpac_rgb.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap()
         logo = wx.StaticBitmap(mainPanel, -1, img)
         hbox.Add(text1, 1, wx.TOP | wx.EXPAND, 15)
         hbox.Add(logo, 0,wx.ALIGN_RIGHT | wx.RIGHT)
         
         text2 = wx.StaticText(mainPanel, -1, "Run CPAC")
-        text2.SetFont(wx.Font(17, wx.SWISS, wx.NORMAL, wx.BOLD))
         
-        #mainSizer.Add(text1, 0, wx.EXPAND| wx.ALL, 10)
+        if 'linux' in sys.platform:
+            text2.SetFont(wx.Font(14, wx.SWISS, wx.NORMAL, wx.BOLD))
+        else:
+            text2.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
+        
         mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL,10)
         mainSizer.Add(outerPanel1, 1, wx.EXPAND | wx.ALL, 20)
         mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 10)
