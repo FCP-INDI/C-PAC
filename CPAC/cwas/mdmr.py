@@ -36,13 +36,13 @@ def gower_center(yDis):
     return G
 
 def gower_center_many(dmats):
-    nobs    = np.sqrt(dmats.shape[0])
-    ntests  = dmats.shape[1]
+    ntests  = dmats.shape[0]
+    nobs    = np.sqrt(dmats.shape[1])
     Gs      = np.zeros_like(dmats)
     
     for i in range(ntests):
-        Dmat    = dmats[:,i].reshape(nobs,nobs)
-        Gs[:,i] = gower_center(Dmat).flatten()
+        Dmat    = dmats[i].reshape(nobs,nobs)
+        Gs[i]   = gower_center(Dmat).flatten()
     
     return Gs
 
@@ -158,7 +158,7 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     
     # Permutations of Fstats
     F_perms = ftest_fast(H2perms, IHperms, Gs,
-                         df_among, df_resid)
+                         df_among, df_resid, transpose=False)
     
     # F-values
     Fs = F_perms[0,:]
