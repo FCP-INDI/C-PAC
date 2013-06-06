@@ -162,7 +162,7 @@ class Mybook(wx.Treebook):
         # This is a workaround for a sizing bug on Mac...
         wx.FutureCall(100, self.AdjustSize)
         
-        self.SetSelection(0)
+        self.SetSelection(1)
 
         self.Refresh()
 
