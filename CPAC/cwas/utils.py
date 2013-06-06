@@ -74,6 +74,6 @@ def calc_mdmrs(D, regressor, cols, iter, strata=None):
     p_set = np.zeros(nVoxels)
     
     for i in range(nVoxels):
-        p_set[i], F_set[i], _, _ = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
+        p_set[i], F_set[i], _, _ = mdmr(D[i].reshape(1,nSubjects**2), regressor, cols, iter, strata)
     
     return F_set, p_set
