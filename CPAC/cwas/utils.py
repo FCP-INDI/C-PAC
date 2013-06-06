@@ -40,6 +40,12 @@ def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
     
     """
     
+    D            = calc_subdists(subjects_data, voxel_range)
+    F_set, p_set = calc_mdmrs(D, regressor, cols, iter, strata)
+    
+    return F_set, p_set
+
+def calc_subdists(subjects_data, voxel_range):
     nSubjects   = subjects_data.shape[0]
     vox_inds    = range(*voxel_range)
     nVoxels     = len(vox_inds)
@@ -49,10 +55,7 @@ def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
     
     # Distance matrices for every voxel
     D = np.zeros((nVoxels, nSubjects, nSubjects))
-    
-    F_set = np.zeros(nVoxels)
-    p_set = np.zeros(nVoxels)
-    
+        
     # For a particular voxel v, its spatial correlation map for every subject
     S = np.zeros((nSubjects, 1, nVoxels))
     
@@ -60,7 +63,17 @@ def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
         S = ncor_subjects(subjects_normed_data, [vox_inds[i]])
         S0 = fischers_transform(S[:,0,:])
         D[i,:,:] = compute_distances(S0)
-        
+    
+    return D
+
+def calc_mdmrs(D, regressor, cols, iter, strata=None):
+    nVoxels = D.shape[0]
+    nSubjects = D.shape[1]
+    
+    F_set = np.zeros(nVoxels)
+    p_set = np.zeros(nVoxels)
+    
+    for i in range(nVoxels):
         p_set[i], F_set[i], _, _ = mdmr(D[i].reshape(nSubjects**2,1), regressor, cols, iter, strata)
     
     return F_set, p_set
