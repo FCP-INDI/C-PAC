@@ -30,15 +30,15 @@ class GenericClass(wx.ScrolledWindow):
         hbox= wx.BoxSizer(wx.HORIZONTAL)
         t = wx.StaticText(self.parent, -1, self.title)
         t.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
-        img_path = p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg')
+        img_path = p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo_2.jpg')
         img = wx.Image(img_path, wx.BITMAP_TYPE_JPEG).ConvertToBitmap()
         #img = wx.Image('images/cpac_logo2.jpg', wx.BITMAP_TYPE_JPEG).ConvertToBitmap()
         bmp = wx.StaticBitmap(self.parent, -1, img)
         
         hbox.Add(bmp)
-        hbox.Add(t)
+        hbox.Add(t, 0, wx.TOP, 8)
         self.mainSizer.Add(hbox, proportion=0, flag=wx.ALL, border=5)
-        self.mainSizer.Add(wx.StaticLine(self.parent), 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 5)
+        self.mainSizer.Add(wx.StaticLine(self.parent), 0, wx.EXPAND|wx.TOP)
         
     __add_static = add_static
         
@@ -159,7 +159,7 @@ class GenericClass(wx.ScrolledWindow):
 
     def set_sizer(self):
         
-        self.mainSizer.Add(self.flexSizer,1,wx.EXPAND|wx.ALL,10)
+        self.mainSizer.Add(self.flexSizer,1,wx.EXPAND|wx.ALL,15)
         self.parent.SetSizer(self.mainSizer)
         
     

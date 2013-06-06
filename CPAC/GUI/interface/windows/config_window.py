@@ -161,6 +161,8 @@ class Mybook(wx.Treebook):
 
         # This is a workaround for a sizing bug on Mac...
         wx.FutureCall(100, self.AdjustSize)
+        
+        self.SetSelection(0)
 
         self.Refresh()
 
@@ -191,7 +193,7 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id=""):
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC Pipeline Configuration", size=(1200, 500))
+            self, parent=parent, title="CPAC Pipeline Configuration", size=(1200, 520))
 
         # Here we create a panel and a notebook on the panel
         self.p = wx.Panel(self)

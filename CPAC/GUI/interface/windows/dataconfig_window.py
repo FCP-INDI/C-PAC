@@ -14,7 +14,7 @@ class DataConfig(wx.Frame):
     
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (800,450))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,450))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -105,9 +105,9 @@ class DataConfig(wx.Frame):
         self.multiscan = wx.CheckBox(btnPanel, -1, label = "Multiscan Data")
         
         if 'linux' in sys.platform:
-            hbox.Add(self.multiscan,0, flag = wx.TOP, border = 5)
+            hbox.Add(self.multiscan,0, flag=wx.TOP, border=5)
         else:
-            hbox.Add(self.multiscan, 0.6, flag = wx.RIGHT| wx.BOTTOM, border =5)
+            hbox.Add(self.multiscan, 0, flag=wx.RIGHT | wx.BOTTOM, border=5)
         
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         help = wx.BitmapButton(btnPanel, id=-1, bitmap=img,
@@ -117,7 +117,7 @@ class DataConfig(wx.Frame):
         if 'linux' in sys.platform:
             hbox.Add(help, 0, flag = wx.TOP, border =5)
         else:
-            hbox.Add(help, 0.6, flag = wx.RIGHT | wx.BOTTOM, border =5)
+            hbox.Add(help, 0, flag=wx.RIGHT | wx.BOTTOM, border=5)
         
         buffer2 = wx.StaticText(btnPanel, label = "\t")
         hbox.Add(buffer2)
