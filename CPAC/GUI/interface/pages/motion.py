@@ -45,7 +45,7 @@ class MotionOptions(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='runFristonModel',
                       type=dtype.LSTR,
-                      comment="use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
+                      comment="Use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
                       values=["On", "Off"])
 
         self.page.add(label="Calculate Motion Statistics ",
@@ -79,7 +79,7 @@ class Scrubbing(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch=True)
 
-        self.page.add(label="Framewise Displacement (FD) Threshold ",
+        self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",
                       control=control.TEXT_BOX,
                       name='scrubbingThreshold',
                       type=dtype.LNUM,

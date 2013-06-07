@@ -58,6 +58,7 @@ class CentralitySettings(wx.ScrolledWindow):
                       name = "centralityMethodOptions",
                       type = dtype.LBOOL,
                       values = ['Degree Centrality', 'Eigenvector Centrality'],
+                      size = (250,90),
                       comment = "Calculating Eigenvector Centrality will take significantly longer and require significantly more computing power to calculate than Degree Centrality.")
         
         self.page.add(label = "Connection Weight Options ",
