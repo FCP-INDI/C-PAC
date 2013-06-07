@@ -442,7 +442,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
             strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
-            strat.update_resource_pool({'xform_matrix':(func_preproc, 'outputspec.xform_matrix')})
+            #strat.update_resource_pool({'xform_matrix':(func_preproc, 'outputspec.xform_matrix')})
             strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
             strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
             strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
