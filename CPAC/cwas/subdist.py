@@ -33,9 +33,9 @@ def ncor_subjects(subjects_normed_data, vox_inds):
     for i in range(nSubjects):
         S[i] = ncor(subjects_normed_data[i], vox_inds)
     
-    # Prevent infinity for Fischer's Tranfrom of autocorrelation (1s)
-    for j in range(nSeeds):
-        S[:,j,vox_inds[j]] = S[:,j,vox_inds[j]] - 1e-9
+    ## Prevent infinity for Fischer's Tranfrom of autocorrelation (1s)
+    #for j in range(nSeeds):
+    #    S[:,j,vox_inds[j]] = S[:,j,vox_inds[j]] - 1e-9
     
     return S
 

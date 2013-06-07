@@ -60,9 +60,10 @@ def calc_subdists(subjects_data, voxel_range):
     S = np.zeros((nSubjects, 1, nVoxels))
     
     for i in range(nVoxels):
-        S = ncor_subjects(subjects_normed_data, [vox_inds[i]])
-        S0 = fischers_transform(S[:,0,:])
-        D[i,:,:] = compute_distances(S0)
+        S    = ncor_subjects(subjects_normed_data, [vox_inds[i]])
+        S0   = np.delete(S[:,0,:], vox_inds[i], 1)    # remove autocorrelations
+        S0   = fischers_transform(S0)
+        D[i] = compute_distances(S0)
     
     return D
 
