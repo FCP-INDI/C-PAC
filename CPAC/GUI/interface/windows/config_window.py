@@ -243,9 +243,9 @@ class MainFrame(wx.Frame):
             for ctrl in ctrl_list:
                 name = ctrl.get_name()
                 val = config_file_map.get(str(name))
-                print "loading ctrl ->", name, "->", val
+                #print "loading ctrl ->", name, "->", val
                 sample_list = ctrl.get_values()
-                print "sample_list -->", sample_list
+                #print "sample_list -->", sample_list
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
                 if val:
@@ -297,8 +297,8 @@ class MainFrame(wx.Frame):
                 else:
                     value = ""
 
-                print "setting value in ctrl -->", value
-                print "type -->", type(value)
+                #print "setting value in ctrl -->", value
+                #print "type -->", type(value)
                 ctrl.set_value(value)
 
     def submit_item(self, event):
@@ -316,17 +316,17 @@ class MainFrame(wx.Frame):
         hash_val = 0
         wf_counter = []
 
-        print "self.nb.get_page_list()", self.nb.get_page_list()
+        #print "self.nb.get_page_list()", self.nb.get_page_list()
         for page in self.nb.get_page_list():
-            print "page ----> ", page
+            #print "page ----> ", page
             switch = page.page.get_switch()
-            print "switch ---->", switch
+            #print "switch ---->", switch
             ctrl_list = page.page.get_ctrl_list()
             validate = False
 
             if switch:
                 switch_val = str(switch.get_selection()).lower()
-                print "switch_val ---->", switch_val
+                #print "switch_val ---->", switch_val
                 if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
                     validate = True
                     wf_counter.append(page.get_counter())
@@ -338,9 +338,9 @@ class MainFrame(wx.Frame):
 
 
                     win = ctrl.get_ctrl()
-                    print "validating ctrl-->", ctrl.get_name()
-                    print "ctrl.get_selection()", ctrl.get_selection()
-                    print "type(ctrl.get_selection())", type(ctrl.get_selection())
+                    #print "validating ctrl-->", ctrl.get_name()
+                    #print "ctrl.get_selection()", ctrl.get_selection()
+                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
 
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
@@ -378,8 +378,8 @@ class MainFrame(wx.Frame):
                 for counter in wf_counter:
                     if counter != 0:
                         hash_val += 2 ** counter
-                print "wf_counter -- ", wf_counter
-                print "hashval --> ", hash_val
+                #print "wf_counter -- ", wf_counter
+                #print "hashval --> ", hash_val
                 pipeline_id = linecache.getline(p.resource_filename('CPAC', 'GUI/resources/pipeline_names.py'), hash_val)
                 print "pipeline_id ==", pipeline_id
                 if os.path.exists(self.path):
@@ -433,7 +433,7 @@ class MainFrame(wx.Frame):
 
                 sample_list = item.get_values()
                 comment = item.get_help()
-                print "*****label : type : value -->", label, " : ", dtype, " : ", value
+                #print "*****label : type : value -->", label, " : ", dtype, " : ", value
                 for line in comment.split("\n"):
                     if line:
                         print>>f, "#", line
@@ -472,7 +472,6 @@ class MainFrame(wx.Frame):
                     for val in value:
                         val = val.strip()
                         sval = substitution_map.get(val)
-                        print "val, sval -->", val, sval
                         if sval != None:
                             values.append(sval)
                         else:
@@ -501,7 +500,6 @@ class MainFrame(wx.Frame):
                     value = ast.literal_eval(str(value))
                     for val in value:
                         val = val.split(',')
-                        print "val-->", val
                         f.write("  - ")
                         flag = 0
                         for sample in sample_list:

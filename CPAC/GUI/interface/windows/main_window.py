@@ -309,7 +309,6 @@ class ListBox(wx.Frame):
         sel = self.listbox.GetSelection()
         if sel != -1:
             text = self.listbox.GetString(sel)
-            print "text--> ",text
             path = self.get_pipeline_path(text)
             if os.path.exists(path):
                 MainFrame(self, option ="edit", path=path, pipeline_id = text)

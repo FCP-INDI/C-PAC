@@ -227,10 +227,10 @@ class DataConfig(wx.Frame):
         
         try:
             for ctrl in self.page.get_ctrl_list():
-                print "validating ctrl-->", ctrl.get_name()
+                #print "validating ctrl-->", ctrl.get_name()
                 win = ctrl.get_ctrl()
-                print "ctrl.get_selection()", ctrl.get_selection()
-                print "type(ctrl.get_selection())", type(ctrl.get_selection())
+                #print "ctrl.get_selection()", ctrl.get_selection()
+                #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
                 name = ctrl.get_name()
