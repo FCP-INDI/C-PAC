@@ -303,7 +303,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     calculate_FDJ = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_J),
-                             name='calculate_FD')
+                             name='calculate_FDJ')
     
     pm.connect(inputNode, 'movement_parameters', 
                calculate_FDJ, 'in_file' )
