@@ -44,11 +44,11 @@ class ComputerSettings(wx.ScrolledWindow):
             
 
         self.page = GenericClass(self, "Computer Settings")
-        self.page.add(label="Run CPAC on Grid:",
+        self.page.add(label="Run CPAC on a Cluster/Grid ",
                       control=control.CHOICE_BOX,
                       name='runOnGrid',
                       type=dtype.BOOL,
-                      comment="True = Run on compute cluster, False = Run on non-cluster machine",
+                      comment="Select False if you intend to run CPAC on a single machine.\n\nIf set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.",
                       values=["False", "True"],
                       wkf_switch=True)
 
@@ -64,20 +64,20 @@ class ComputerSettings(wx.ScrolledWindow):
                       name='resourceManager',
                       type=dtype.STR,
                       values=["SGE", "PBS"],
-                      comment="Sun Grid Engine (SGE) or Portable Batch System (PBS)")
+                      comment="Sun Grid Engine (SGE) or Portable Batch System (PBS).\n\nOnly applies if you are running on a grid or compute cluster.")
 
         self.page.add(label='SGE Parallel Environment ',
                       control=control.TEXT_BOX,
                       name='parallelEnvironment',
                       type=dtype.STR,
-                      comment='SGE Parallel Environment to use when running CPAC.',
+                      comment='SGE Parallel Environment to use when running CPAC.\n\nOnly applies when you are running on a grid or compute cluster using SGE.',
                       values='cpac')
 
         self.page.add(label='SGE Queue ',
                       control=control.TEXT_BOX,
                       name='queue',
                       type=dtype.STR,
-                      comment='SGE Queue to use when running CPAC.',
+                      comment='SGE Queue to use when running CPAC.\n\nOnly applies when you are running on a grid or compute cluster using SGE.',
                       values='all.q')
 
         self.page.add(label="Number of Cores Per Subject ",
