@@ -4,6 +4,7 @@ from ..utils.constants import control, dtype
 import os
 import yaml
 import pkg_resources as p
+import sys
 
 ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
@@ -13,7 +14,7 @@ class DataConfig(wx.Frame):
     
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (800,450))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,450))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -100,15 +101,23 @@ class DataConfig(wx.Frame):
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-
+        
         self.multiscan = wx.CheckBox(btnPanel, -1, label = "Multiscan Data")
-        hbox.Add(self.multiscan, 0.6, flag = wx.RIGHT| wx.BOTTOM, border =5)
+        
+        if 'linux' in sys.platform:
+            hbox.Add(self.multiscan,0, flag=wx.TOP, border=5)
+        else:
+            hbox.Add(self.multiscan, 0, flag=wx.RIGHT | wx.BOTTOM, border=5)
         
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         help = wx.BitmapButton(btnPanel, id=-1, bitmap=img,
                                pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
         help.Bind(wx.EVT_BUTTON, self.onHelp)
-        hbox.Add(help, 0.6, flag = wx.RIGHT | wx.BOTTOM, border =5)
+        
+        if 'linux' in sys.platform:
+            hbox.Add(help, 0, flag = wx.TOP, border =5)
+        else:
+            hbox.Add(help, 0, flag=wx.RIGHT | wx.BOTTOM, border=5)
         
         buffer2 = wx.StaticText(btnPanel, label = "\t")
         hbox.Add(buffer2)
@@ -218,10 +227,10 @@ class DataConfig(wx.Frame):
         
         try:
             for ctrl in self.page.get_ctrl_list():
-                print "validating ctrl-->", ctrl.get_name()
+                #print "validating ctrl-->", ctrl.get_name()
                 win = ctrl.get_ctrl()
-                print "ctrl.get_selection()", ctrl.get_selection()
-                print "type(ctrl.get_selection())", type(ctrl.get_selection())
+                #print "ctrl.get_selection()", ctrl.get_selection()
+                #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
                 name = ctrl.get_name()

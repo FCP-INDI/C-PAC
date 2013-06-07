@@ -110,6 +110,9 @@ def grab(output_dir):
                         Flag = 0
 
     print "process finished..."
+    
+def run(output_path):
+    grab(output_path)
 
 if __name__ == "__main__":
     import sys

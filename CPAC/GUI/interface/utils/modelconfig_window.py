@@ -245,9 +245,9 @@ class ModelConfig(wx.Frame):
 
         for ctrl in self.page.get_ctrl_list():
 
-            print "validating ctrl-->", ctrl.get_name()
-            print "ctrl.get_selection()", ctrl.get_selection()
-            print "type(ctrl.get_selection())", type(ctrl.get_selection())
+            #print "validating ctrl-->", ctrl.get_name()
+            #print "ctrl.get_selection()", ctrl.get_selection()
+            #print "type(ctrl.get_selection())", type(ctrl.get_selection())
 
             win = ctrl.get_ctrl()
             value = str(ctrl.get_selection())

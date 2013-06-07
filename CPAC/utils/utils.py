@@ -20,6 +20,7 @@ files_folders_wf = {
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
+    'xform_matrix' : 'parameters',
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
