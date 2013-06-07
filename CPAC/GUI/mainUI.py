@@ -9,6 +9,5 @@ def run():
     ListBox(None, -1, 'Configure & Run CPAC')
     app.MainLoop()
     
-    
 if __name__ == "main":
     run()

@@ -140,51 +140,50 @@ class BASCSettings(wx.ScrolledWindow):
         
         self.page = GenericClass(self, "Bootstrap Analysis of Stable Clusters (BASC)")
         
-        self.page.add(label="Run BASC:", 
+        self.page.add(label="Run BASC ", 
                       control=control.CHOICE_BOX, 
                       name='runBASC', 
                       type=dtype.LSTR, 
-                      comment="Run BASC", 
+                      comment="Run Bootstrap Analysis of Stable Clusters", 
                       values=["Off","On"],
                       wkf_switch = True)
         
-        self.page.add(label="BASC ROI File:", 
+        self.page.add(label="Mask File ", 
                      control=control.COMBO_BOX, 
                      name='bascROIFile', 
                      type=dtype.STR, 
-                     values = "/path/to/basc_mask_file",
-                     comment="Path to a mask file. Voxels outside this mask will be excluded from BASC.")
-        
-        self.page.add(label="BASC Affinity Threshold File:", 
-                     control=control.COMBO_BOX, 
-                     name='bascAffinityThresholdFile', 
-                     type=dtype.STR, 
-                     values = "/path/to/basc_affinity_threshold_file",
-                     comment="Path to a text file containing Affinity Thresholds for each subject.\n"\
-                            "These are correlation thresholds applied prior to spectral clustering.\n"\
-                            "Can be subject specific when subjects have differing numbers of timepoints.\n"\
-                            "Subjects should be in the same order as in the main subject list.")
-        
-        self.page.add(label= "BASC Clusters",
-                 control=control.INT_CTRL, 
-                 name='bascClusters', 
-                 type=dtype.NUM, 
-                 comment="Number of clusters at both the individual and group level.", 
-                 values=6)
-        
-        self.page.add(label= "Number of Timeseries Bootstraps",
+                     values = "None",
+                     comment="Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.\n\nIf you do not wish to use a mask, set this field to None.\n\nNote: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.")
+
+        self.page.add(label= "Number of Time Series Bootstraps ",
                  control=control.INT_CTRL, 
                  name='bascTimeseriesBootstraps', 
                  type=dtype.NUM, 
-                 comment="Number of bootstraps to apply to original timeseries data.", 
+                 comment="Number of bootstraps to apply to individual time series.", 
                  values=100)
             
-        self.page.add(label= "Number of Dataset Bootstraps",
+        self.page.add(label= "Number of Dataset Bootstraps ",
                  control=control.INT_CTRL, 
                  name='bascDatasetBootstraps', 
                  type=dtype.NUM, 
-                 comment="Number of bootstraps to apply to individual stability matrices.", 
+                 comment="Number of bootstraps to apply to the original dataset.", 
                  values=100)
+        
+        self.page.add(label="Correlation Threshold File ", 
+                     control=control.COMBO_BOX, 
+                     name='bascAffinityThresholdFile', 
+                     type=dtype.STR, 
+                     values = "",
+                     comment="Path to a text file containing correlation threshold for each subject. These thresholds will be applied to the correlation matrix before clustering.\n\nThis file should contain one value per line, with each line corresponding to the subject on the same line in the group analysis subject list file.\n\nIn most cases, the same threshold can be used for all subjects. Different thresholds are useful when subjects have time series of different lengths.")
+        
+        self.page.add(label= "Number of Clusters ",
+                 control=control.INT_CTRL, 
+                 name='bascClusters', 
+                 type=dtype.NUM, 
+                 comment="Number of clusters to create during clustering at both the individual and group levels.", 
+                 values=6)
+        
+        
         
         self.page.set_sizer()
         parent.get_page_list().append(self)

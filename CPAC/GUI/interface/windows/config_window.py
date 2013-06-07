@@ -147,7 +147,7 @@ class Mybook(wx.Treebook):
         self.AddPage(page39, "Spatial Smoothing", wx.ID_ANY)
         self.AddSubPage(page40, "Spatial Smoothing Options", wx.ID_ANY)
 
-        self.AddPage(page41, "BASC", wx.ID_ANY)
+        self.AddPage(page41, "Bootstrap Analysis of Stable Clusters", wx.ID_ANY)
         self.AddSubPage(page42, "BASC Settings", wx.ID_ANY)
 
         self.AddPage(page43, "CWAS", wx.ID_ANY)
