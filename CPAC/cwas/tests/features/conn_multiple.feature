@@ -4,8 +4,9 @@ Feature: Connectivity via Pearson Correlations for multiple subjects
 Scenario: Correlation for simulated multi-subject data
     Given simulated subjects time-series data
     When we norm the subjects data
-    and we compute the connectivity on normed subjects data
-    Then the correlation values for multiple subjects should be like the standard correlation function
+    and we compute the connectivity for multiple subjects on normed data
+    and we compute the connectivity for multiple subjects with numpy
+    Then the correlation values for cpac should be like numpy
 
 @connectivity, @nki
 Scenario: Correlation for nki data
@@ -13,5 +14,5 @@ Scenario: Correlation for nki data
     and mask data from "/home/data/Projects/Z_CPAC_Regression_Test/2013-05-30_cwas/rois/nki_mask_gray_4mm.nii.gz"
     and the subjects data are masked
     When we norm the subjects data
-    and we compute the connectivity on normed subjects data
-    Then the correlation values for multiple subjects should be like the standard correlation function
+    and we compute the connectivity for multiple subjects on normed data
+    Then the correlation values for cpac should be like numpy

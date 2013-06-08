@@ -1,11 +1,12 @@
 Feature: Connectivity via Pearson Correlations for a single subject
 
-@connectivity
+@connectivity, @simulated
 Scenario: Correlation for simulated data
     Given simulated time-series data 
     When we norm the data
     and we compute the connectivity on normed data
-    Then the correlation values should be like the standard correlation function
+    and we compute the connectivity with numpy
+    Then the correlation values for cpac should be like numpy
 
 @connectivity, @nki
 Scenario: Correlation for nki data
@@ -14,4 +15,5 @@ Scenario: Correlation for nki data
     and the subject data is masked
     When we norm the data
     and we compute the connectivity on normed data
-    Then the correlation values should be like the standard correlation function
+    and we compute the connectivity with numpy
+    Then the correlation values for cpac should be like numpy

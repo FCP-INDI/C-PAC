@@ -26,12 +26,13 @@ def step(context):
 @when('we compute the connectivity on normed data')
 def step(context):
     context.vox_inds = range(12)
-    context.cmat = ncor(context.sdata_normed, context.vox_inds)
+    context.cmats = ncor(context.sdata_normed, context.vox_inds)
 
-@then('the correlation values should be like the standard correlation function')
+@when('we compute the connectivity with numpy')
 def step(context):
-    import code
-    #code.interact(local=locals())
-    context.ref_cmat = np.corrcoef(context.sdata.T)[context.vox_inds,:]
-    comp = np.allclose(context.cmat, context.ref_cmat)
-    assert_that(comp, "subject correlation")
+    context.ref_cmats = custom_corrcoef(context.sdata[:,context.vox_inds].T, context.sdata)
+
+@then('the correlation values for cpac should be like numpy')
+def step(context):
+    comp = np.allclose(context.cmats, context.ref_cmats)
+    assert_that(comp, "subject correlations")
