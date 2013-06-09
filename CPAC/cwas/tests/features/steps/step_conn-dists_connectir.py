@@ -49,7 +49,7 @@ def step(context, nseeds):
     context.ref_dmats   = np.zeros((context.nseeds, context.nsubs, context.nsubs))
     Smaps = np.zeros((context.nsubs, context.nseeds, context.nvoxs))
     for i in range(context.nsubs):
-        x = custom_corrcoef(context.sdata[i,:,context.seeds].T, context.sdata[i,:,:])
+        x = custom_corrcoef(context.sdata[i][:,context.seeds].T, context.sdata[i])
         Smaps[i,:,:] = x
     for j in range(context.nseeds):
         S   = Smaps[:,context.seeds[j],:]

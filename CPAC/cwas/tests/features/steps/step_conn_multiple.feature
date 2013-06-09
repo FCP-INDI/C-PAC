@@ -22,9 +22,8 @@ def step(context, sfile):
 def step(context):
     context.sdata = [ nib.load(sfile).get_data().astype('float64')[context.indices].T
                         for sfile in context.slist ]
-    context.sdata = np.array(context.sdata)
-    context.ntpts = context.sdata.shape[1]
-    context.nvoxs = context.sdata.shape[2]
+    context.ntpts = context.sdata[0].shape[0]
+    context.nvoxs = context.sdata[0].shape[1]
 
 @when('we norm the subjects data')
 def step(context):
@@ -39,7 +38,7 @@ def step(context):
 def step(context):
     context.ref_cmats = np.zeros_like(context.cmats)
     for i in range(context.nsubs):
-        context.ref_cmats[i] = custom_corrcoef(context.sdata[i,:,context.vox_inds].T, context.sdata[i,:,:])
+        context.ref_cmats[i] = custom_corrcoef(context.sdata[i][:,context.vox_inds].T, context.sdata[i])
 
 ## Defined in conn_single.feature
 #@then('the correlation values for cpac should be like numpy')
