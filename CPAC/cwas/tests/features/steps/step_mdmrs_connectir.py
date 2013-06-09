@@ -48,7 +48,7 @@ def step(context):
 @when('we compute a single MDMR in python')
 def step(context):
     context.voxs = [0]
-    ps, Fs, F_perms, _ = mdmr(context.dmats[0].reshape(10**2,1), context.regressors,  
+    ps, Fs, F_perms, _ = mdmr(context.dmats[0].reshape(context.nobs**2,1), context.regressors,  
                               context.cols, context.perms)
     context.ps = ps
     context.Fs = Fs
