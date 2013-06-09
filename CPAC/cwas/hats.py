@@ -2,8 +2,8 @@ import numpy as np
 
 # TODO: make better exception class?
 def check_rank(x):
-    k    = x.shape[0]
-    rank = numpy.linalg.matrix_rank(x)
+    k    = x.shape[1]
+    rank = np.linalg.matrix_rank(x)
     if rank < k:
         raise Exception("matrix is rank deficient (rank %i vs cols %i)" % (rank, k))
 

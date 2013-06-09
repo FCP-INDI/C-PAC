@@ -131,6 +131,8 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     .. [4] McArdle, B. H. and M. J. Anderson. 2001. Fitting multivariate models to community data: a comment on distance-based redundancy analysis. Ecology 290-297.
     .. [5] Neter, J., M. H. Kutner, C. J. Nachtsheim, and W. Wasserman. 1996. Applied linear statistical models. 4th ed. Irwin, Chicago, Illinois.
     """
+    check_rank(x)
+    
     ntests  = ys.shape[1]
     nobs    = x.shape[0]
     if nobs != np.sqrt(ys.shape[0]):
