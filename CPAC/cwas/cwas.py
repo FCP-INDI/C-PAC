@@ -100,8 +100,8 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     #Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
     subjects_data = [ nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
                         for subject_file in subjects_file_list ]
-    subjects_data = np.array(subjects_data)
-    print '... subject data loaded', subjects_data.shape, 'batch voxel range', voxel_range
+    #subjects_data = np.array(subjects_data)
+    print '... subject data loaded', len(subjects_data), 'batch voxel range', voxel_range
     
     F_set, p_set = calc_cwas(subjects_data, regressor, cols, f_samples, voxel_range, strata)
     

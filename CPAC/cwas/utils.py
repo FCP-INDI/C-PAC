@@ -46,7 +46,7 @@ def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
     return F_set, p_set
 
 def calc_subdists(subjects_data, voxel_range):
-    nSubjects   = subjects_data.shape[0]
+    nSubjects   = len(subjects_data)
     vox_inds    = range(*voxel_range)
     nVoxels     = len(vox_inds)
     #Number of timepoints may be consistent between subjects

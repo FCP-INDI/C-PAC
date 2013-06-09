@@ -12,8 +12,8 @@ def norm_cols(X):
     return Xc/np.sqrt( (Xc**2.).sum(0) )
 
 def norm_subjects(subjects_data):
-    nSubjects = subjects_data.shape[0]
-    subjects_data_n = np.zeros_like(subjects_data)
+    nSubjects = len(subjects_data)
+    subjects_data_n = [None] * nSubjects
     for i in range(nSubjects):
         subjects_data_n[i] = norm_cols(subjects_data[i])
     return subjects_data_n
@@ -25,8 +25,8 @@ def ncor(normed_data, vox_inds):
     return normed_data[:,vox_inds].T.dot(normed_data)
 
 def ncor_subjects(subjects_normed_data, vox_inds):
-    nSubjects = subjects_normed_data.shape[0]
-    nVoxels   = subjects_normed_data.shape[2]
+    nSubjects = len(subjects_normed_data)
+    nVoxels   = subjects_normed_data[0].shape[1]
     nSeeds    = len(vox_inds)
     
     S         = np.zeros((nSubjects, nSeeds, nVoxels))
