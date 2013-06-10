@@ -538,10 +538,8 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     """
 
     print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_name)
-    
     data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
     img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
-    
     print >>f_html_1, img_tag
 
 
