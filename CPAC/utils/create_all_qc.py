@@ -1,4 +1,3 @@
-import glob
 import os
 
 def first_pass_organizing_files(qc_path):
@@ -267,7 +266,7 @@ def get_resources_for_strategy(files_, resources, special_res, dict_):
 
     for file_ in files_:
 
-        f_ = open(file_, 'r')
+        f = open(file_, 'r')
 
         lines = f.readlines()
 
@@ -328,51 +327,51 @@ def get_resources_for_strategy(files_, resources, special_res, dict_):
 
 
 
-def organize_resources(output_path, pipelines):
-
-    from CPAC.utils.create_all_qc import get_path_files_in_dict
-    from CPAC.utils.create_all_qc import get_resources_for_strategy
-
-    resources = ['/alff_Z_to_standard/', '/falff_Z_to_standard/', \
-                '/reho_Z_to_standard/', \
-                '/vmhc_z_score_stat_map/']
-
-    special_res = ['/sca_roi_Z_to_standard/', '/sca_seed_Z_to_standard/', \
-                   '/dr_tempreg_maps_z_files/', '/sca_tempreg_maps_z_files/', \
-                   '/centrality_outputs_zscore/']
-
-
-    resource_dict = {}
-    for pipeline in sorted(pipelines):
-
-        pip_path = os.path.join(output_path, pipeline)
-        subjects = os.listdir(pip_path)
-        subjects = [subj for subj in subjects if os.path.isdir(os.path.join(pip_path, subj))]
-
-        for subj in sorted(subjects):
-
-            subj_path = os.path.join(pip_path, subj)
-            qc_path = os.path.join(subj_path, 'qc_files_here')
-            html_files = os.listdir(qc_path)
-            html_files = [html for html in html_files if not (html.endswith('_0.html') or html.endswith('_1.html') or html.endswith('.txt'))]
-            dict_ = get_path_files_in_dict(qc_path, html_files)
-
-            for strat, resource_files in dict_.items():
-
-                if not strat in resource_dict:
-
-                    per_strat_dict = {}
-                    per_strat_dict = get_resources_for_strategy(resource_files, resources, special_res, per_strat_dict)
-                    resource_dict[strat] = dict(per_strat_dict)
-
-                else:
-
-                    per_strat_dict = dict(resource_dict[strat])
-                    per_strat_dict = get_resources_for_strategy(resource_files, resources, special_res, per_strat_dict)
-                    resource_dict[strat] = dict(per_strat_dict)
-
-
-    return resource_dict
+# def organize_resources(output_path, pipelines):
+# 
+#     from CPAC.utils.create_all_qc import get_path_files_in_dict
+#     from CPAC.utils.create_all_qc import get_resources_for_strategy
+# 
+#     resources = ['/alff_Z_to_standard/', '/falff_Z_to_standard/', \
+#                 '/reho_Z_to_standard/', \
+#                 '/vmhc_z_score_stat_map/']
+# 
+#     special_res = ['/sca_roi_Z_to_standard/', '/sca_seed_Z_to_standard/', \
+#                    '/dr_tempreg_maps_z_files/', '/sca_tempreg_maps_z_files/', \
+#                    '/centrality_outputs_zscore/']
+# 
+# 
+#     resource_dict = {}
+#     for pipeline in sorted(pipelines):
+# 
+#         pip_path = os.path.join(output_path, pipeline)
+#         subjects = os.listdir(pip_path)
+#         subjects = [subj for subj in subjects if os.path.isdir(os.path.join(pip_path, subj))]
+# 
+#         for subj in sorted(subjects):
+# 
+#             subj_path = os.path.join(pip_path, subj)
+#             qc_path = os.path.join(subj_path, 'qc_files_here')
+#             html_files = os.listdir(qc_path)
+#             html_files = [html for html in html_files if not (html.endswith('_0.html') or html.endswith('_1.html') or html.endswith('.txt'))]
+#             dict_ = get_path_files_in_dict(qc_path, html_files)
+# 
+#             for strat, resource_files in dict_.items():
+# 
+#                 if not strat in resource_dict:
+# 
+#                     per_strat_dict = {}
+#                     per_strat_dict = get_resources_for_strategy(resource_files, resources, special_res, per_strat_dict)
+#                     resource_dict[strat] = dict(per_strat_dict)
+# 
+#                 else:
+# 
+#                     per_strat_dict = dict(resource_dict[strat])
+#                     per_strat_dict = get_resources_for_strategy(resource_files, resources, special_res, per_strat_dict)
+#                     resource_dict[strat] = dict(per_strat_dict)
+# 
+# 
+#     return resource_dict
 
 
 def get_power_params(qc_path, file_):
@@ -467,9 +466,9 @@ def write_closing_tags(file_):
 def make_group_htmls(output_path):
 
     import os
-    from CPAC.utils.create_all_qc import populate_htmls, prep_resources, write_closing_tags
-    from CPAC.utils.create_all_qc import first_pass_organizing_files
-    from CPAC.utils.create_all_qc import second_pass_organizing_files
+    #from CPAC.utils.create_all_qc import populate_htmls, prep_resources, write_closing_tags
+    #from CPAC.utils.create_all_qc import first_pass_organizing_files
+    #from CPAC.utils.create_all_qc import second_pass_organizing_files
 
     files_ = []
     pipelines = os.listdir(output_path)
@@ -522,6 +521,6 @@ def make_group_htmls(output_path):
 
 def run(output_path):
 
-    from CPAC.utils.create_all_qc import make_group_htmls
+    #from CPAC.utils.create_all_qc import make_group_htmls
 
     make_group_htmls(output_path)

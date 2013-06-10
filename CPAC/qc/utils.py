@@ -849,7 +849,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     """
     import os
     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
-                        feed_lines_html
+                            feed_lines_html
 
 
 

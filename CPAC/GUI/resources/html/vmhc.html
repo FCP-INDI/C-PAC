@@ -1,0 +1,87 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <title>Voxel-Mirrored Homotopic Connectivity (VMHC) &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Bootstrap Analysis of Stable Clusters (BASC)" href="basc.html" />
+    <link rel="prev" title="Amplitude of Low Frequency Fluctuations (ALFF)" href="alff.html" /> 
+  </head>
+  <body>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="voxel-mirrored-homotopic-connectivity-vmhc">
+<h1>Voxel-Mirrored Homotopic Connectivity (VMHC)<a class="headerlink" href="#voxel-mirrored-homotopic-connectivity-vmhc" title="Permalink to this headline"></a></h1>
+<div class="section" id="introduction-background">
+<h2>Introduction &amp; Background<a class="headerlink" href="#introduction-background" title="Permalink to this headline"></a></h2>
+<p>Functional homotopy, the synchrony in patterns of spontaneous activity between homotopic (geometrically corresponding) regions in each hemisphere, is a fundamental characteristic of the brain&#8217;s functional architecture (Salvador et al., 2005). Though homotopic patterns of Resting State Functional Connectivity (RSFC) have been observed across the brain,  the strength of this connectivity can vary between regions (Stark et al., 2008). This variation (seen in the figure below taken from Stark et al., 2008) is thought to reflect hemispheric and regional specialization in information processing.</p>
+<div class="figure">
+<img alt="_images/vmhc_stark_regions.png" src="_images/vmhc_stark_regions.png" />
+</div>
+<p>VMHC quantifies functional homotopy by providing a voxel-wise measure of RSFC between hemispheres. This is done by computing the connectivity between each voxel in one hemisphere and its mirrored counterpart in the other (Zuo et al., 2010).</p>
+<div class="figure">
+<img alt="_images/vmhc_gee_schematic.png" src="_images/vmhc_gee_schematic.png" />
+</div>
+<p>The schematic above (adapted from Gee et al., 2011) illustrates how VMHC compares mirrored voxels across hemispheres in a symmetrical brain.</p>
+</div>
+<div class="section" id="computation-and-analysis-considerations">
+<h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline"></a></h2>
+<p>VMHC assumes symmetric morphology between hemispheres. As this assumption does not hold for real brains, images must be transformed before VMHC can be calculated. The initial transformation is applied to anatomical data, and consists of averaging an image with its left-right mirrored version to create identical mirrored hemispheres. Functional data is then transformed to fit the new symmetrical anatomical image. VMHC is computed as the resting-state functional connectivity between any pair of symmetric interhemispheric voxels. For more details on how C-PAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.com/docs/developer/workflows/vmhc.html">VMHC section of the developer documentation</a>.</p>
+<p>It is worth noting that VMHC is somewhat affected by the level of spatial smoothing used. Specifically, smoothing improves the correspondence between homotopic regions and results in greater VMHC strength across subjects. Importantly however, smoothing does not affect the overall pattern of VMHC.</p>
+<div class="figure">
+<img alt="_images/vmhc_zuo_smoothing.png" src="_images/vmhc_zuo_smoothing.png" />
+</div>
+<p>The image above (taken from Zuo et al., 2010) shows differences in VMHC due to smoothing. These differences should be taken into account when comparing studies using VMHC.</p>
+</div>
+<div class="section" id="applications-and-recommendations">
+<h2>Applications and Recommendations<a class="headerlink" href="#applications-and-recommendations" title="Permalink to this headline"></a></h2>
+<p>Despite being a relatively new analysis method, a number of studies have already utilized VMHC to investigate group differences in functional homotopy. Kelly et al. (2011) found reduced VMHC between prefrontal regions in patients with cocaine addiction compared to healthy controls, and Zuo and colleagues (2010) were able to chart changing functional homotopy across healthy aging.</p>
+<p>Other recent studies examining functional homotopy (but not using VMHC) have found reduced interhemispheric connectivity in patients with autism (Anderson et al., 2011), and that negative correlations between hemispheres were stronger than positive correlations within a hemisphere (Gee et al. 2001).</p>
+<p>Future studies may benefit from using VMHC as an indicator of disturbed functional specialization in patient groups, as well as in longitudinal studies to investigate changes in functional homotopy over time due to treatment, intervention, or development.</p>
+</div>
+
+</div>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<p>Gee, D. G., Biswal, B. B., Kelly, C., Stark, D. E., Margulies, D. S., Shehzad, Z., Uddin, L. Q., et al. (2011). <a class="reference external" href="/http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3134281/">Low frequency fluctuations reveal integrated and segregated processing among the cerebral hemispheres</a>. Neuroimage, 54(1), 517Ð527.</p>
+<p>Kelly, C., Zuo, X.-N., Gotimer, K., Cox, C. L., Lynch, L., Brock, D., Imperati, D., et al. (2011). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3056937/">Reduced interhemispheric resting state functional connectivity in cocaine addiction</a>. Biological Psychiatry, 69(7), 684Ð692.</p>
+<p>Salvador R, Suckling J, Coleman MR, Pickard JD, Menon D, Bullmore E (2005) Neurophysiological architecture of functional magnetic resonance images of human brain. Cereb Cortex 15:1332Ð1342.</p>
+<p>Stark, D. E., Margulies, D. S., Shehzad, Z. E., Reiss, P., Kelly, A. M. C., Uddin, L. Q., Gee, D. G., et al. (2008). <a class="reference external" href="http://www.jneurosci.org/content/28/51/13754.long">Regional variation in interhemispheric coordination of intrinsic hemodynamic fluctuations</a>. The Journal of Neuroscience, 28(51), 13754Ð13764.</p>
+<p>Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., Grzadzinski, R., et al. (2010). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2997358/">Growing together and growing apart: regional and sex differences in the lifespan developmental trajectories of functional homotopy</a>. The Journal of Neuroscience, 30(45), 15034Ð15043.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+
+  </body>
+</html>

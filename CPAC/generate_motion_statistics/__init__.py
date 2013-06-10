@@ -1,5 +1,6 @@
 from generate_motion_statistics import  motion_power_statistics,\
-                                 set_FD,\
+                                 calculate_FD_P,\
+                                 calculate_FD_J,\
                                  set_frames_ex,\
                                  set_frames_in,\
                                  gen_motion_parameters,\
@@ -9,7 +10,8 @@ from generate_motion_statistics import  motion_power_statistics,\
                                  calc_friston_twenty_four
 
 __all__ = ['motion_power_statistics', \
-           'set_FD', \
+           'calculate_FD_P', \
+           'calculate_FD_J', \
            'set_frames_ex',\
            'set_frames_in',\
            'gen_motion_parameters', \

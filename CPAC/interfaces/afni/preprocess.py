@@ -696,6 +696,12 @@ class ThreedvolregInputSpec(AFNITraitedSpec):
                     argstr = '-1Dfile %s',
                     position = -3,
             genfile = True)
+    
+    mat1d_file = File(desc = '1D matrix transformation from base to input coordinates',
+                    argstr = '-1Dmatrix_save %s',
+                    position = -7,
+            genfile = True)
+    
     verbose = traits.Bool(desc = 'more detailed description of the process',
                           argstr = '-verbose')
     timeshift = traits.Bool(desc = 'time shift to mean slice time offset',
@@ -710,6 +716,7 @@ class ThreedvolregOutputSpec(AFNITraitedSpec):
                     exists = True)
     md1d_file = File(desc = 'max displacement info file')
     oned_file = File(desc = 'movement parameters info file')
+    mat1d_file = File(desc = 'matrix transformation file') 
 
 class Threedvolreg(AFNICommand):
     """Register input volumes to a base volume using AFNI 3dvolreg command.
@@ -736,7 +743,11 @@ For complete details, see the `3dvolreg Documentation.
         if name == 'md1d_file':
             _, fname, ext = split_filename(self.inputs.in_file)
             return ('./' + fname+ '_3dvmd1D'+'.1D')
-
+        
+        if name == 'mat1d_file':
+            _, fname, ext = split_filename(self.inputs.in_file)
+            return ('./' + fname+ '_3dmat1D'+'.1D') 
+            
     def _list_outputs(self):
         outputs = self.output_spec().get()
 
@@ -753,7 +764,13 @@ For complete details, see the `3dvolreg Documentation.
         if not isdefined(self.inputs.md1d_file):
             outputs['md1d_file'] = os.path.abspath(self._gen_filename('md1d_file'))
         else:
-            outputs['md1d_file'] = os.path.abspath(self.inputs.oned_file)
+            outputs['md1d_file'] = os.path.abspath(self.inputs.md1d_file)
+            
+        if not isdefined(self.inputs.mat1d_file):
+            outputs['mat1d_file'] = os.path.abspath(self._gen_filename('mat1d_file'))
+        else:
+            outputs['mat1d_file'] = os.path.abspath(self.inputs.mat1d_file)
+        
         return outputs
 
 

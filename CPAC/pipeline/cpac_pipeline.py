@@ -442,6 +442,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
             strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
             strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
+            #strat.update_resource_pool({'xform_matrix':(func_preproc, 'outputspec.xform_matrix')})
             strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
             strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
             strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
@@ -983,51 +984,51 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     """
     new_strat_list = []
     num_strat = 0
-
-    for strat in strat_list:
-        func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                name='func_mni_warp_%d' % num_strat)
-        func_mni_warp.inputs.ref_file = c.standardResolutionBrain
-
-        functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                                                    name='functional_brain_mask_to_standard1_%d' % num_strat)
-        functional_brain_mask_to_standard.inputs.interp = 'nn'
-        functional_brain_mask_to_standard.inputs.ref_file = c.standard
-
-        try:
-            node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-            workflow.connect(node, out_file,
-                             func_mni_warp, 'field_file')
-
-            node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-            workflow.connect(node, out_file,
-                             func_mni_warp, 'premat')
-
-
-            node, out_file = strat.get_leaf_properties()
-            workflow.connect(node, out_file,
-                             func_mni_warp, 'in_file')
-
-            node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-            workflow.connect(node, out_file,
-                             functional_brain_mask_to_standard, 'in_file')
-
-
-            node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-            workflow.connect(node, out_file,
-                             functional_brain_mask_to_standard, 'premat')
-
-            node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-            workflow.connect(node, out_file,
-                             functional_brain_mask_to_standard, 'field_file')
-        except:
-            print 'Invalid Connection: Register Functional timeseries to MNI space:', num_strat, ' resource_pool: ', strat.get_resource_pool()
-            raise
-
-        strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
-                                    'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
-
-        num_strat += 1
+    if 1 in c.runRegisterFuncToMNI:
+        for strat in strat_list:
+            func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                    name='func_mni_warp_%d' % num_strat)
+            func_mni_warp.inputs.ref_file = c.standardResolutionBrain
+    
+            functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                                        name='functional_brain_mask_to_standard1_%d' % num_strat)
+            functional_brain_mask_to_standard.inputs.interp = 'nn'
+            functional_brain_mask_to_standard.inputs.ref_file = c.standard
+    
+            try:
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 func_mni_warp, 'field_file')
+    
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 func_mni_warp, 'premat')
+    
+    
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file,
+                                 func_mni_warp, 'in_file')
+    
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                workflow.connect(node, out_file,
+                                 functional_brain_mask_to_standard, 'in_file')
+    
+    
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 functional_brain_mask_to_standard, 'premat')
+    
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 functional_brain_mask_to_standard, 'field_file')
+            except:
+                print 'Invalid Connection: Register Functional timeseries to MNI space:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+    
+            strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
+                                        'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
+    
+            num_strat += 1
 
     strat_list += new_strat_list
 
