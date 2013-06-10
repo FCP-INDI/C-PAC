@@ -72,5 +72,4 @@ def step(context):
 @then('the many p-values should be similar to R')
 def step(context):
     comp = np.corrcoef(context.ps, context.r_ps[context.voxs])[0,1]
-    code.interact(local=locals())
     assert_that(comp, greater_than(0.98), "p-values")
