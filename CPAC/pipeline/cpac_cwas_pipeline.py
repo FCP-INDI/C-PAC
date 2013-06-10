@@ -20,10 +20,12 @@ def prep_cwas_workflow(c, subject_infos):
     regressor = np.loadtxt(c.cwasRegressorFile)
 
     cw = create_cwas()
-    cw.inputs.inputspec.roi = c.cwasROIFile
-    cw.inputs.inputspec.subjects = s_paths
-    cw.inputs.inputspec.regressor = regressor
-    cw.inputs.inputspec.f_samples = c.cwasFSamples
+    cw.inputs.inputspec.roi         = c.cwasROIFile
+    cw.inputs.inputspec.subjects    = s_paths
+    cw.inputs.inputspec.regressor   = regressor
+    cw.inputs.inputspec.cols        = c.cwasRegressorCols
+    cw.inputs.inputspec.f_samples   = c.cwasFSamples
+    cw.inputs.inputspec.strata      = c.cwasRegressorStrata # will stay None?
     cw.inputs.inputspec.parallel_nodes = c.cwasParallelNodes
     
     ds = pe.Node(nio.DataSink(), name='cwas_sink')
