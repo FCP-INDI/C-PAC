@@ -1,5 +1,13 @@
 from hamcrest import assert_that, is_not
 
+def test_adhd04():
+    rt = RegressionTester('adhd04', 'diagnosis', 'diagnosis')
+    rt.run()
+
+def test_adhd40():
+    rt = RegressionTester('adhd40', 'diagnosis + age + sex + meanFD', 'diagnosis')
+    rt.run()
+
 class RegressionTester(object):
     """
     tmp = RegressionTester('adhd04', 'diagnosis', 'diagnosis')
@@ -16,13 +24,13 @@ class RegressionTester(object):
     
     def run(self):
         print "Python-Based CWAS"
-        run_cwas()
+        self.run_cwas()
         
         print "R-Based CWAS"
-        run_connectir()
+        self.run_connectir()
         
         print "Compare Python and R"
-        compare_py_vs_r()
+        self.compare_py_vs_r()
     
     def run_cwas(self):
         import os
@@ -76,7 +84,7 @@ class RegressionTester(object):
         c.inputs.inputspec.parallel_nodes   = 4
         #c.base_dir = op.join(obase, 'results_fs%i_pn%i' % \
         #                (c.inputs.inputspec.f_samples, c.inputs.inputspec.parallel_nodes))
-        c.base_dir = op.join(obase, "results_%s.py" % self.name)
+        c.base_dir = op.join(self.base, "results_%s.py" % self.name)
     
         # export MKL_NUM_THREADS=X # in command line
         # import mkl
@@ -120,6 +128,8 @@ class RegressionTester(object):
         """
         This will compare the output from the CPAC python vs the R connectir
         """
+        import os
+        os.chdir("%s/C-PAC" % self.base)
     
         import numpy as np
         from os import path as op
@@ -153,6 +163,20 @@ class RegressionTester(object):
         
         
         ###
+        # Get regressors and represent as hat matrices
+        ###
+        
+        from pandas import read_cwas
+        from CPAC.cwas.hats import hatify
+        
+        x = np.loadtxt(op.join(self.base, "configs", "%s_regressors.txt" % self.name))
+        py_hat = hatify(x)
+        
+        y = read_csv(op.join(rbase, "model_evs.txt"))
+        r_hat = hatify(y)
+        
+        
+        ###
         # Create R=>Py Indices
         ###
         
@@ -180,6 +204,9 @@ class RegressionTester(object):
         ###
         # Compare
         ###
+        
+        comp = np.allclose(py_hat, r_hat)
+        assert_that(comp, "regressors as hat matrices")
     
         comp = np.corrcoef(py_fs, r_fs[inds_r2py])[0,1] > 0.99
         assert_that(comp, "Fstats")
