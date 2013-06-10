@@ -5,7 +5,7 @@ def test_adhd04():
     rt.run()
 
 def test_adhd40():
-    rt = RegressionTester('adhd40', 'diagnosis + age + sex + meanFD', 'diagnosis')
+    rt = RegressionTester('adhd40', 'diagnosis', 'diagnosis + age + sex + meanFD')
     rt.run()
 
 class RegressionTester(object):
@@ -166,14 +166,14 @@ class RegressionTester(object):
         # Get regressors and represent as hat matrices
         ###
         
-        from pandas import read_cwas
+        from pandas import read_csv
         from CPAC.cwas.hats import hatify
         
         x = np.loadtxt(op.join(self.base, "configs", "%s_regressors.txt" % self.name))
         py_hat = hatify(x)
         
         y = read_csv(op.join(rbase, "model_evs.txt"))
-        r_hat = hatify(y)
+        r_hat = hatify(y.ix[:,1:])
         
         
         ###
@@ -197,8 +197,6 @@ class RegressionTester(object):
         bigmemory = importr('bigmemory')
         r_fs = np.array(robjects.r("attach.big.matrix('%s')[1,]" % r_fs_file))
         r_ps = np.array(robjects.r("as.matrix(attach.big.matrix('%s'))" % r_ps_file))
-    
-        code.interact(local=locals())
         
         
         ###
@@ -209,10 +207,18 @@ class RegressionTester(object):
         assert_that(comp, "regressors as hat matrices")
     
         comp = np.corrcoef(py_fs, r_fs[inds_r2py])[0,1] > 0.99
-        assert_that(comp, "Fstats")
+        assert_that(comp, "Fstats similarity")
         
         comp = np.corrcoef(py_ps, r_ps[inds_r2py])[0,1] > 0.99
-        assert_that(comp, "p-values")
+        assert_that(comp, "p-values similarity ")
+        
+        comp = abs(py_fs - r_fs[inds_r2py]).mean() < 0.01
+        assert_that(comp, "Fstats difference")
+        
+        comp = abs(py_ps - r_ps[inds_r2py]).mean() < 0.05
+        assert_that(comp, "p-values difference")
+        
+        print "tests were all good"
     
     
 
