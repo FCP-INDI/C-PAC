@@ -7,7 +7,8 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 from   nipype.pipeline.utils import format_dot
-
+from nipype import config
+from nipype import logging
 from multiprocessing import Process
 import CPAC
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
@@ -101,6 +102,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
+    config.update_config({'logging': {'log_directory': c.outputDirectory,
+                                  'log_to_file': True}})
+    logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
 

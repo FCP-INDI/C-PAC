@@ -69,7 +69,7 @@ class ListBox(wx.Frame):
         load = wx.Button(btnPanel1, ID_LOAD, 'Load', size=(90,30))
         edit = wx.Button(btnPanel1, ID_EDIT, 'Edit', size=(90,30))
         shw = wx.Button(btnPanel1, ID_DISPLAY, 'View', size=(90,30))
-        clr = wx.Button(btnPanel1, ID_CLEARALL, 'Clear', size=(90, 30))
+        clr = wx.Button(btnPanel1, ID_CLEAR, 'Clear', size=(90, 30))
     
         self.Bind(wx.EVT_BUTTON, self.NewItem, id=ID_NEW)
         self.Bind(wx.EVT_BUTTON, self.OnRename, id=ID_RENAME)
@@ -129,7 +129,7 @@ class ListBox(wx.Frame):
         create = wx.Button(btnPanel2, ID_CREATE, 'New', size=(90, 30))
         add = wx.Button(btnPanel2, ID_ADD, 'Load', size= (90,30))
         show = wx.Button(btnPanel2, ID_SHOW, 'View', size= (90,30))
-        clr2 = wx.Button(btnPanel2, ID_CLEAR, 'Clear', size=(90, 30))
+        clr2 = wx.Button(btnPanel2, ID_CLEARALL, 'Clear', size=(90, 30))
         self.Bind(wx.EVT_BUTTON, self.CreateItem, id=ID_CREATE)
         self.Bind(wx.EVT_BUTTON, self.AddItem, id=ID_ADD)
         self.Bind(wx.EVT_BUTTON, self.OnShow, id= ID_SHOW)
@@ -234,6 +234,7 @@ class ListBox(wx.Frame):
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
                             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
                 else:
