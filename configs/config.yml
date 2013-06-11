@@ -581,6 +581,7 @@ bascDatasetBootstraps: 100
 # Subjects should be in the same order as in the main subject list.
 bascAffinityThresholdFile: /path/to/basc_affinity_threshold_file
 
+
 ####
 #================================================
 #Connectome-wide Association Study (CWAS) Options
@@ -597,10 +598,27 @@ cwasFSamples: 5000
 
 # Number of NiPype nodes to be created while computing CWAS.
 # This number depends on computing resources
-cwasParallelNodes: 10
+cwasParallelNodes: 4
 
 # Path to a text file containing phenotypic regressor.
 cwasRegressorFile: /path/to/cwas_regressor_file
+
+# Column Number with Regressor of Interest
+# remember this is 0 indexed so the 1st column is 0
+# assuming the 1st column is the intercept, I've chosen the second column here
+cwasRegressorCols: [1]
+
+# A list with length equal to the total number of rows in your regressor file
+# Each element of the list, indicates that elements group. Leave it as None
+# if you have a between-subject design and give it a value if not.
+# 
+# For instance, if you have multiple scans per subject, then you would want to
+# do a permutation within-subject between scans. For this to occur, the list 
+# below could be something like ['s1', 's1', 's2', 's2', 's3', 's3', ...], 
+# indicating what subject each element/scan is associated with and permutations
+# would only be done between scans within each subject.
+cwasRegressorStrata: None
+
 
 ###
 #========================
