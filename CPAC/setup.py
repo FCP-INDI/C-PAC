@@ -17,6 +17,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('GUI/interface/utils')
     
     config.add_data_dir('GUI/resources')
+    config.add_data_dir('resources')
 
     
     return config

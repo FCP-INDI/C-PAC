@@ -1,5 +1,6 @@
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
+import nipype.pipeline.engine as pe
 
 import re
 import os
@@ -29,7 +30,7 @@ def prep_cwas_workflow(c, subject_infos):
     cw.inputs.inputspec.parallel_nodes = c.cwasParallelNodes
     
     ds = pe.Node(nio.DataSink(), name='cwas_sink')
-    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'basc_results')
+    out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'cwas_results')
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''
 
@@ -39,7 +40,7 @@ def prep_cwas_workflow(c, subject_infos):
                ds, 'p_map')
 
 
-    w.run(plugin='MultiProc',
+    wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
 

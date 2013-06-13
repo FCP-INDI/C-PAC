@@ -10,7 +10,9 @@ from   nipype.pipeline.utils import format_dot
 from nipype import config
 from nipype import logging
 from multiprocessing import Process
+import pkg_resources as p
 import CPAC
+import shutil
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -83,7 +85,6 @@ class strategy:
             self.resource_pool[key] = value
 
 
-
 def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     print '********************', c.standardResolutionBrain
@@ -102,7 +103,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-    config.update_config({'logging': {'log_directory': c.outputDirectory,
+    config.update_config({'logging': {'log_directory': os.path.join(c.workingDirectory, wfname),
                                   'log_to_file': True}})
     logging.update_logging(config)
 
@@ -2536,18 +2537,19 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
                                     'green', 'MNI_edge_on_mean_func_mni')
 
-                MNI_edge = pe.Node(util.Function(input_names=['file_'],
-                                                   output_names=['new_fname'],
-                                                   function=make_edge),
-                                     name='MNI_edge_%d' % num_strat)
-                MNI_edge.inputs.file_ = c.standardResolutionBrain
-
+#                  MNI_edge = pe.Node(util.Function(input_names=['file_'],
+#                                                     output_names=['new_fname'],
+#                                                     function=make_edge),
+#                                       name='MNI_edge_%d' % num_strat)
+#                  #MNI_edge.inputs.file_ = c.standardResolutionBrain
+#                 workflow.connect(MNI_edge, 'new_fname',
+#                                  montage_mfi, 'inputspec.overlay')
 
                 workflow.connect(m_f_i, out_file,
                                  montage_mfi, 'inputspec.underlay')
 
-                workflow.connect(MNI_edge, 'new_fname',
-                                 montage_mfi, 'inputspec.overlay')
+                montage_mfi.inputs.inputspec.overlay = p.resource_filename('CPAC','resources/templates/MNI152_Edge_AllTissues.nii.gz')
+
 
                 strat.update_resource_pool({'qc___mean_func_with_mni_edge_a': (montage_mfi, 'outputspec.axial_png'),
                                             'qc___mean_func_with_mni_edge_s': (montage_mfi, 'outputspec.sagittal_png')})
@@ -3127,7 +3129,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 print name, ' ~~~ ', 2 ** workflow_bit_id[name]
                 hash_val += 2 ** workflow_bit_id[name]
 
-        if p_name == None:
+        if p_name == None or p_name == 'None':
             pipeline_id = ''
             pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
             pipeline_id = pipeline_id.rstrip('\r\n')
@@ -3137,8 +3139,10 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 pipeline_id = zlib.crc32(strat_tag)
         else:
             pipeline_id = p_name
+            #if running multiple pipelines with gui, need to change this in future
             p_name = None
 
+        
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
         pip_ids.append(pipeline_id)
 
@@ -3199,6 +3203,16 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
+    
+    import shutil
+    log_dir = os.path.join(c.outputDirectory, 'logs', subject_id)
+    
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
+    
+    shutil.copyfile(os.path.join(sub_w_path, 'pypeline.log'), 
+                                 os.path.join(c.outputDirectory, 'logs', subject_id, subject_id + '.log'))
+    
 
     if 1 in c.generateQualityControlImages:
 

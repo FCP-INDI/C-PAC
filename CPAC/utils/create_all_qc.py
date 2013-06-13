@@ -147,7 +147,9 @@ def populate_htmls(gp_html, sub_html, subj,
                 max_rms):
 
     f_ = None
-
+    
+        
+    
     if not os.path.isfile(gp_html):
 
         f_ = open(gp_html, 'w')
@@ -205,7 +207,8 @@ def prep_resources(output_path, pipelines):
                 qc_path = os.path.join(subj_path, 'qc_files_here')
                 path_files_here = os.path.join(subj_path, 'path_files_here')
                 path_copy = os.path.join(qc_path, 'path')
-                os.makedirs(path_copy)
+                if not os.path.exists(path_copy):
+                    os.makedirs(path_copy)
                 os.system('cp %s/*.txt %s/' % (path_files_here, path_copy))
                 first_pass_organizing_files(path_copy)
                 second_pass_organizing_files(path_copy)
@@ -397,7 +400,7 @@ def get_power_params(qc_path, file_):
             threshold = '_threshold_'
 
             if 'SCRUB_' in file_:
-                threshold += (file.split('SCRUB_')[1]).split('_')[0]
+                threshold += (file_.split('SCRUB_')[1]).split('_')[0]
                 subj_dir = os.path.join(subj_dir, threshold)
             else:
 
@@ -478,6 +481,7 @@ def make_group_htmls(output_path):
 
     for pipeline in sorted(pipelines):
         pip_path = os.path.join(output_path, pipeline)
+
         os.system('rm -f %s/qc_*.html'  % pip_path)
         subjects = os.listdir(pip_path)
         subjects = [subj for subj in subjects if os.path.isdir(os.path.join(pip_path, subj))]

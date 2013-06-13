@@ -1,6 +1,7 @@
 import commands
 import numpy as np
 import matplotlib
+import pkg_resources as p
 matplotlib.use('Agg')
 
 
@@ -401,16 +402,19 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_, "<title>QC</title>"
     print >>f_html_, "</head>"
     print >>f_html_, ""
-    print >>f_html_, "<frameset cols=\"25%,75%\">"
+    print >>f_html_, "<frameset cols=\"15%,85%\">"
     print >>f_html_, ""
     print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s\" name=\"content\"></frameset>" %(f_html_0.name, f_html_1.name)
     print >>f_html_, ""
     print >>f_html_, "</html>"
 
     print >>f_html_0, "<html>"
+    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"resources/bootstrap/css/bootstrap.min.css"))
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
+    print >>f_html_0, "<body>"
+    print >>f_html_0, "<ul class=\"nav nav-list\">"
 
     print >>f_html_1, '<link href="default.css" rel="stylesheet" type="text/css" />'
     print >>f_html_1, "<html>"
@@ -444,16 +448,17 @@ def add_tail(f_html_, f_html_0, f_html_1):
     None
 
     """
+    print >>f_html_0, "</ul>"
     print >>f_html_0, "<br>"
     print >>f_html_0, "<br>"
-    print >>f_html_0, "<form method=\"post\" action=\"\"> \
+    print >>f_html_0, "<form class=\"navbar-form pull-left\" method=\"post\" action=\"\"> \
 <br> \
 Recommendation for QC <br>\
-<input type=\"radio\" name=\"group1\" value=\"1\"> 1-Yes<br> \
+<input type=\"radio\" name=\"group1\" value=\"1\"> 1<br> \
 <input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
 <input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
 <input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
-<input type=\"radio\" name=\"group1\" value=\"5\" checked>5-No<br> \
+<input type=\"radio\" name=\"group1\" value=\"5\" checked>5<br> \
  <br> Notes\
 <br> \
 <textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
@@ -465,6 +470,7 @@ Enter QC Notes here... \
 <br> \
 <br> \
 </form>"
+    print >>f_html_0, "</body>"
     print >>f_html_0, "</html>"
     print >>f_html_1, "</body>"
     print >>f_html_1, "</html>"
@@ -505,7 +511,7 @@ def feed_line_nav(id_,
 
     """
 
-    print >>f_html_0, "<br><a href='%s#%s'> %s </a>" % (f_html_1.name, \
+    print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name, \
         anchor, image_name)
 
 
@@ -896,7 +902,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     f_html_0.close()
     f_html_1.close()
 
-
+    
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
 

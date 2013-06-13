@@ -233,7 +233,9 @@ class ListBox(wx.Frame):
                             pipeline = self.pipeline_map.get(p)
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
-                            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+                            MyForm(pipeline, sublist, p).Show()
+                            #CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+                            
 
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
@@ -246,7 +248,7 @@ class ListBox(wx.Frame):
                 print e
         except Exception, e:
                 print e
-                wx.MessageBox(e, "Error") 
+                #wx.MessageBox(e, "Error") 
                 
     def runGroupLevelAnalysis(self, event):
         print "running Group Analysis"
@@ -452,4 +454,45 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
+
+class RedirectText(object):
+    def __init__(self,aWxTextCtrl):
+        self.out=aWxTextCtrl
+ 
+    def write(self, string):
+        wx.CallAfter(self.out.WriteText, string)
+        
+class MyForm(wx.Frame):
+ 
+    def __init__(self, pipeline, sublist, p):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "wxPython Redirect Tutorial")
+        
+        print "inside Myform"
+        
+        # Add a panel so it looks the correct on all platforms
+        panel = wx.Panel(self, wx.ID_ANY)
+        log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
+                          style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
+        btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
+        self.Bind(wx.EVT_BUTTON, self.onButton, btn)
+ 
+        # Add widgets to a sizer        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
+        sizer.Add(btn, 0, wx.ALL|wx.CENTER, 5)
+        panel.SetSizer(sizer)
+        
+        import CPAC
+        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+ 
+        # redirect text here
+        redir=RedirectText(log)
+        sys.stdout=redir
+        print pipeline ,sublist
+        print "process id --> ", os.getpid()
+        
+
+ 
+    def onButton(self, event):        
+        print "kill -9" ,os.kill(os.getpid(), 0)
                     

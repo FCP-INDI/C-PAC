@@ -864,6 +864,8 @@ def calculate_DVARS(rest, mask):
     #square root and mean across all timepoints inside mask
     DVARS = np.sqrt(np.mean(data, axis=0))
     
+    print "PRINT TO CHECK IF THIS IN LOG FILE ****************"
+    
     np.save(out_file, DVARS)
     
     return out_file
