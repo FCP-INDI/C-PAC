@@ -1,5 +1,5 @@
 from utils import calc_cwas, \
-                  y_mdmr
+                  mdmr
 
 from cwas import joint_mask, \
                  nifti_cwas, \
@@ -7,6 +7,6 @@ from cwas import joint_mask, \
 
 __all__ = ['create_cwas',
            'calc_cwas',
-           'y_mdmr',
+           'mdmr',
            'joint_mask',
            'nifti_cwas']

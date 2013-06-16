@@ -18,27 +18,19 @@ def create_alff(wf_name = 'alff_workflow'):
 
     Parameters
     ----------
-
     wf_name : string
         Workflow name
 
     Returns
     -------
-
     alff_workflow : workflow object
-
         ALFF workflow
-
-    Examples
-    --------
-
 
     Notes
     -----
-
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/alff/alff.py>`_
 
-    Workflow Inputs: ::
+    Workflow Inputs::
 
         hp_input.hp : list (float) 
             high pass frequencies
@@ -53,7 +45,7 @@ def create_alff(wf_name = 'alff_workflow'):
             A mask volume(derived by dilating the motion corrected functional volume) in native space
 
 
-    Workflow Outputs: ::
+    Workflow Outputs::
 
         outputspec.alff_img : string (nifti file)
             outputs image containing the sum of the amplitudes in the low frequency band
@@ -69,6 +61,7 @@ def create_alff(wf_name = 'alff_workflow'):
 
 
     Order of Commands:
+
     - Filter the input file rest file( slice-time, motion corrected and nuisance regressed) ::
         3dBandpass -prefix residual_filtered.nii.gz 
                     0.009 0.08 residual.nii.gz
@@ -127,12 +120,12 @@ def create_alff(wf_name = 'alff_workflow'):
         -mas rest_mask.nii.gz
         fALFF_Z.nii.gz
 
-    Workflow ALFF and fractional ALFF:
+    High Level Workflow Graph:
     
     .. image:: ../images/alff.dot.png
         :width: 500
 
-    Workflow Detailed:
+    Detailed Workflow Graph:
 
     .. image:: ../images/alff_detailed.dot.png
         :width: 500
@@ -149,10 +142,8 @@ def create_alff(wf_name = 'alff_workflow'):
     >>> alff_w = create_alff()
     >>> alff_w.inputs.hp_input.hp = [0.01]
     >>> alff_w.inputs.lp_input.lp = [0.1]
-    >>> alff_w.get_node('hp_input').iterables = ('hp',
-                                                [0.01])
-    >>> alff_w.get_node('lp_input').iterables = ('lp',
-                                                [0.1])
+    >>> alff_w.get_node('hp_input').iterables = ('hp',[0.01])
+    >>> alff_w.get_node('lp_input').iterables = ('lp',[0.1])
     >>> alff_w.inputs.inputspec.rest_res = '/home/data/subject/func/rest_bandpassed.nii.gz'
     >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz' 
     >>> alff_w.run() # doctest: +SKIP

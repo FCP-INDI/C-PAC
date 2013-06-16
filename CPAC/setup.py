@@ -10,6 +10,15 @@ def configuration(parent_package='', top_path=None):
     
     config.add_subpackage('interfaces')
     config.add_subpackage('interfaces/afni')
+    config.add_subpackage('GUI')
+    config.add_subpackage('GUI/interface')
+    config.add_subpackage('GUI/interface/pages')
+    config.add_subpackage('GUI/interface/windows')
+    config.add_subpackage('GUI/interface/utils')
+    
+    config.add_data_dir('GUI/resources')
+    config.add_data_dir('resources')
+
     
     return config
 

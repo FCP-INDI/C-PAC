@@ -44,7 +44,8 @@ def joint_mask(subjects_file_list, mask_file):
     
     return img_file
 
-def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range):
+def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples, 
+               voxel_range, strata=None):
     """
     Performs CWAS for a group of subjects
     
@@ -56,11 +57,15 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range)
         Path to a mask file in nifti format
     regressor : ndarray
         Vector of shape (`S`) or (`S`, `1`), `S` subjects
+    cols : list
+        todo
     f_samples : integer
         Number of pseudo f values to sample using a random permutation test
     voxel_range : tuple
         (start, end) tuple specify the range of voxels (inside the mask) to perform cwas on.
         Index ordering is based on the np.where(mask) command
+    strata : ndarray (optional)
+        todo
     
     Returns
     -------
@@ -77,7 +82,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range)
     import numpy as np
     import os
     from CPAC.cwas import calc_cwas
-
+    
     #Check regressor is a column vector
     if(len(regressor.shape) == 1):
         regressor = regressor[:, np.newaxis]
@@ -86,19 +91,20 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, f_samples, voxel_range)
     
     if(len(subjects_file_list) != regressor.shape[0]):
         raise ValueError('Number of subjects does not match regressor size')
-
+    
     #Load the data to produce the joint mask
     mask = nb.load(mask_file).get_data().astype('bool')
     mask_indices = np.where(mask)
-    batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
-
+    #batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
+    
     #Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
-    subjects_data = [nb.load(subject_file).get_data().astype('float64')[batch_indices].T for subject_file in subjects_file_list]
-    subjects_data = np.array(subjects_data)
-    print '... subject data loaded', subjects_data.shape, 'batch voxel range', voxel_range
-
-    F_set, p_set = calc_cwas(subjects_data, regressor, f_samples)
-
+    subjects_data = [ nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
+                        for subject_file in subjects_file_list ]
+    #subjects_data = np.array(subjects_data)
+    print '... subject data loaded', len(subjects_data), 'batch voxel range', voxel_range
+    
+    F_set, p_set = calc_cwas(subjects_data, regressor, cols, f_samples, voxel_range, strata)
+    
     print '... writing cwas data to disk'
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
@@ -226,8 +232,12 @@ def create_cwas(name='cwas'):
             4-D timeseries of a group of subjects normalized to MNI space
         inputspec.regressor : list (float)
             Corresponding list of the regressor variable of shape (`N`) or (`N`,`1`), `N` subjects
+        inputspec.cols : list (int)
+            todo
         inputspec.f_samples : int
             Number of permutation samples to draw from the pseudo F distribution
+        inputspec.strata : None or ndarray
+            todo
         inputspec.parallel_nodes : integer
             Number of nodes to create and potentially parallelize over
         
@@ -264,8 +274,10 @@ def create_cwas(name='cwas'):
     
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
-                                                       'regressor',
-                                                       'f_samples',
+                                                       'regressor', 
+                                                       'cols', 
+                                                       'f_samples', 
+                                                       'strata', 
                                                        'parallel_nodes']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['F_map',
@@ -282,10 +294,12 @@ def create_cwas(name='cwas'):
     
     ncwas = pe.MapNode(util.Function(input_names=['subjects_file_list',
                                                   'mask_file',
-                                                  'regressor',
+                                                  'regressor', 
+                                                  'cols', 
                                                   'f_samples',
-                                                  'compiled_func',
-                                                  'voxel_range'],
+#                                                  'compiled_func',
+                                                  'voxel_range', 
+                                                  'strata'],
                                      output_names=['result_batch'],
                                      function=nifti_cwas),
                        name='cwas_batch',
@@ -330,12 +344,14 @@ def create_cwas(name='cwas'):
                  ncwas, 'regressor')
     cwas.connect(inputspec, 'f_samples',
                  ncwas, 'f_samples')
-    
+    cwas.connect(inputspec, 'cols',
+                 ncwas, 'cols')
 #    cwas.connect(ctf, 'compiled_dot_norm',
 #                 ncwas, 'compiled_func')
-
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
+    cwas.connect(inputspec, 'strata',
+                 ncwas, 'strata')
     
     #Merge the computed CWAS data
     cwas.connect(ncwas, 'result_batch',

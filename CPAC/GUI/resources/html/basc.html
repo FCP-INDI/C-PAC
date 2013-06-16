@@ -1,0 +1,88 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <title>Bootstrap Analysis of Stable Clusters (BASC) &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Regional Homotopy" href="reho.html" />
+    <link rel="prev" title="Voxel-Mirrored Homotopic Connectivity (VMHC)" href="vmhc.html" /> 
+  </head>
+  <body>
+ 
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="bootstrap-analysis-of-stable-clusters-basc">
+<h1>Bootstrap Analysis of Stable Clusters (BASC)<a class="headerlink" href="#bootstrap-analysis-of-stable-clusters-basc" title="Permalink to this headline"></a></h1>
+<div class="section" id="introduction-background">
+<h2>Introduction &amp; Background<a class="headerlink" href="#introduction-background" title="Permalink to this headline"></a></h2>
+<p>Bootstrap Analysis of Stable Clusters (BASC) is a statistical framework that quantifies the stability of Resting State Networks (RSNs) by comparing the results of cluster analysis across replications (Bellec et al. 2010) As it is often impossible or impractical to repeat data collection for an experiment multiple times, BASC utilizes bootstrapping to generate a large number of samples from the existing data. BASC can be used to characterize stable RSNs at both the individual and group levels.</p>
+</div>
+<div class="section" id="computation-and-analysis-considerations">
+<h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline"></a></h2>
+<p>Note: Though they are computed together, it is possible to specify different numbers of bootstraps for individual and group analysis. Additionally, BASC analysis can be limited to ROIs by applying a mask during setup.</p>
+<p><strong>Individual-level BASC:</strong></p>
+<ol class="arabic simple">
+<li>For each subject, bootstrapping is applied to the original data set. For each bootstrap, multiple time windows (fixed width) are randomly selected from the original timeseries (with replacement) to create a new timeseries of equal length. This results in <em>B</em> new timeseries where <em>B</em> is the number of bootstraps set by the user.</li>
+<li>A clustering algorithm is applied to each new timeseries. Clustering partitions the 4D data matrix into <em>C</em> clusters such that each voxel timeseries is a member of only one cluster. <em>C</em> is the number of clusters specified by the user. This results in <em>B</em> adjacency matrices which represent the cluster membership of each voxel.</li>
+<li>All adjacency matrices are then averaged to form a stability matrix which quantifies the stable features (voxel memberships) across sets.</li>
+</ol>
+<p><strong>Group-level BASC:</strong></p>
+<ol class="arabic simple">
+<li>Bootstrapping is applied to the individual stability matrices. For each bootstrap, subjects are drawn (with replacement) from the original data set to create <em>B</em> new sets, each of which have the same number of subjects as the original. This process is intended to mimic random variations in subject recruitment.</li>
+<li>Within each new data set, individual stability matrices are averaged to create an average individual stability matrix.</li>
+<li>A clustering algorithm is applied to each individual stability matrix to generate a group-level adjacency matrix.</li>
+<li>All group-level adjacency matrices are averaged to create a group stability matrix.</li>
+<li>The group stability matrix is fed into a clustering algorithm to derive stable clusters.</li>
+</ol>
+<p>The figure below (taken from Garcia-Garcia et al.) shows a visual representation of these steps. For more detail on how C-PAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.com/docs/developer/workflows/basc.html">BASC section of the developer documentation</a>.</p>
+<div class="figure">
+<img alt="_images/basc_manu_schematic.png" src="_images/basc_manu_schematic.png" />
+</div>
+<p>Note that clusters do not by themselves convey any quantitative information regarding stability. Based on a stability matrix, it is possible to construct a stability map for each cluster that will depict the stability of each voxel&#8217;s membership to that cluster. This can be done at both the individual and group level.</p>
+</div>
+<div class="section" id="applications-and-recommendations">
+<h2>Applications and Recommendations<a class="headerlink" href="#applications-and-recommendations" title="Permalink to this headline"></a></h2>
+<p>BASC has recently been used to investigate differences in striatal organization between children with ADHD and typically developing controls (Garcia-Garcia et al., 2012), and has been shown to have good test-retest reliability (Garcia-Garcia et al., in prep).</p>
+<p>A number of parameters can influence the results of a BASC analysis, the most important of which is the number of clusters. Users are directed to Bellec et al. 2010 for an in-depth discussion of how each parameter influences calculation.</p>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<p>Bellec, P. Rosa-Neto, O. C. Lyttelton, H. Benali, and A. C. Evans, <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/20226257">Multi-level bootstrap analysis of stable clusters in resting-state fMRI</a>., NeuroImage, vol. 51, no. 3, pp. 1126-39, Jul. 2010.</p>
+<p>Manuel Garcia-Garcia, Brian Cheung, Adriana Di Martino, Pierre Bellec, Clare Kelly, F. Xavier Castellanos, Michael Milham. <a class="reference external" href="http://ww4.aievolution.com/hbm1201/index.cfm?do=abs.viewAbs&amp;abs=7010">Stability of Functional Connectivity networks in the Basal Ganglia in ADHD</a>. Poster. 2012.</p>
+<p>Garcia-Garcia, M., Bellec, P., Craddock, C., Cheung, B., Zuo, X-N., Kelly, C., Di Martino, A., Castellanos, F.X., and Milham, M.P. Individual stability of resting-state functional units: a new reliable tool.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+
+  </body>
+</html>

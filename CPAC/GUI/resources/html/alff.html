@@ -1,0 +1,83 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <title>Amplitude of Low Frequency Fluctuations (ALFF) &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Voxel-Mirrored Homotopic Connectivity (VMHC)" href="vmhc.html" />
+    <link rel="prev" title="Seed-based Correlation Analysis (SCA)" href="sca.html" /> 
+  </head>
+  <body>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="amplitude-of-low-frequency-fluctuations-alff">
+<h1>Amplitude of Low Frequency Fluctuations (ALFF)<a class="headerlink" href="#amplitude-of-low-frequency-fluctuations-alff" title="Permalink to this headline"></a></h1>
+<div class="section" id="introduction-background">
+<h2>Introduction &amp; Background<a class="headerlink" href="#introduction-background" title="Permalink to this headline"></a></h2>
+<p>Slow fluctuations in activity are a fundamental feature of the resting brain, and their presence is key to determining correlated activity between brain regions and defining resting state networks. The relative magnitude of these fluctuations can differ between brain regions and between subjects, and thus may act as a marker for individual differences or dysfunction. Amplitude of Low Frequency Fluctuations (ALFF; Zang et al., 2007) and fractional Amplitude of Low Frequency Fluctuations (fALFF; Zuo et al., 2008) are related measures that quantify the amplitude of these low frequency oscillations (LFOs).</p>
+<p>ALFF is defined as the total power within the frequency range between 0.01 and 0.1 Hz, and thus indexes the strength or intensity of LFO. fALFF is defined as the power within the low-frequency range (0.01-0.1 Hz) divided by the total power in the entire detectable frequency range, and represents the relative contribution of specific LFO to the whole frequency range (Zuo et al., 2010).</p>
+</div>
+<div class="section" id="computation-and-analysis-considerations">
+<h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline"></a></h2>
+<p>All computations are performed in a subjects native space. After transforming voxel time series frequency information into the power domain, calculation of these measures is relatively simple. ALFF is calculated as the sum of amplitudes within a specific low frequency range. fALFF is calculated as a fraction of the sum of amplitudes across the entire frequency range detectable in a given signal. For both measures, amplitudes in subject-level maps are transformed into Z-scores to create standardized subject-level maps. Anatomical images and Z-score maps are then transformed into MNI152 standard space. If selected, group-level analysis is then performed using FSL. For more detail on how C-PAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.com/docs/developer/workflows/alff.html">ALFF section of the developer documentation</a>.</p>
+<p>Though both measures are sensitive mostly to signal from gray matter, ALFF is more prone to noise from physiological sources, particularly near the ventricles and large blood vessels (Zuo et al., 2008;2010). The figure below (from Zuo et al., 2010) shows areas in which ALFF shows higher amplitude than fALFF, as well as the relative sensitivity of these measures to gray matter.</p>
+<div class="figure">
+<img alt="_images/alff_zuo_difference.png" src="_images/alff_zuo_difference.png" />
+</div>
+<p>Both ALFF and fALFF show moderate to high test-retest reliability in gray matter regions, but reliability for ALFF tends to be higher than for fALFF (Zuo et al., 2010). As it is more reliable, ALFF may be more sensitive to differences between groups and individuals. The figure below (also from Zuo et al., 2010) shows differences in test-retest reliability as measured by Intraclass Correlation (ICC; Shrout and Fleiss, 1979).</p>
+<div class="figure">
+<img alt="_images/alff_zuo_trt.png" src="_images/alff_zuo_trt.png" />
+</div>
+<p>Finally, as these measures require a constant timecourse on which to do frequency and power analyses, they cannot be run on scrubbed data (Power et al., 2012) in which volumes with excessive movement have been removed.</p>
+</div>
+<div class="section" id="applications-and-recommendations">
+<h2>Applications and Recommendations<a class="headerlink" href="#applications-and-recommendations" title="Permalink to this headline"></a></h2>
+<p>These methods have been used to uncover differences in amplitude power both between subjects and between conditions. Zang et al. (2007) found that children with ADHD show reduced ALFF amplitude in some brain areas and increased amplitude in others compared to controls, while Yan and colleagues (2009) saw increased amplitude in the Default Mode Network during Eyes Open vs. Eyes Closed resting periods.</p>
+<p>The increased specificity to the gray matter signal for fALFF compared to ALFF may suggest favoring the former, but doing so would come at the cost of reduced test-retest reliability. As such, in order to maximize the reliability across subjects while providing sufficient specificity to examine individual differences, reporting both measures is recommended ( Zuo et al., 2010).</p>
+</div>
+
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<p>Power, J. D., Barnes, K. A., Snyder, A. Z., Schlaggar, B. L., &amp; Petersen, S. E. (2012). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/22019881">Spurious but systematic correlations in functional connectivity MRI networks arise from subject motion</a>. Neuroimage, 59(3), 2142Ð2154.</p>
+<p>Shrout, P.E., Fleiss, J.L., 1979. <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/18839484">Intraclass correlations: uses in assessing rater reliability</a>.
+Psychol. Bull. 86, 420Ð428.</p>
+<p>Zang, Y.-F., He, Y., Zhu, C.-Z., Cao, Q.-J., Sui, M.-Q., Liang, M., Tian, L.-X., et al. (2007). <a class="reference external" href="http://nlpr-web.ia.ac.cn/2007papers/gjkw/gk38.pdf">Altered baseline brain activity in children with ADHD revealed by resting-state functional MRI</a>. Brain &amp; development, 29(2), 83Ð91.</p>
+<p>Zou, Q.-H., Zhu, C.-Z., Yang, Y., Zuo, X.-N., Long, X.-Y., Cao, Q.-J., Wang, Y.-F., et al. (2008). <a class="reference external" href="http://www.nlpr.labs.gov.cn/2008papers/gjkw/gk26.pdf">An improved approach to detection of amplitude of low-frequency fluctuation (ALFF) for resting-state fMRI: Fractional ALFF</a>. Journal of neuroscience methods, 172(1), 137Ð141.</p>
+<p>Zuo, X.-N., Di Martino, A., Kelly, C., Shehzad, Z. E., Gee, D. G., Klein, D. F., Castellanos, F. X., et al. (2010). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2856476/">The oscillating brain: complex and reliable</a>. Neuroimage, 49(2), 1432Ð1445.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+ 
+  </body>
+</html>

@@ -140,10 +140,14 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     Order of commands:
     
-    - Calculate Frame Wise Displacement FD
+    - Calculate Frame Wise Displacement FD as per power et al., 2012
     
       Differentiating head realignment parameters across frames yields a six dimensional timeseries that represents instantaneous head motion.   
       Rotational displacements are converted from degrees to millimeters by calculating displacement on the surface of a sphere of radius 50 mm.[R5]
+      
+    - Calculate Frame wise Displacement FD as per jenkinson et al., 2002
+    
+        
       
     - Calculate Frames to exclude
     
@@ -247,6 +251,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
            toward optimizing motion artifact removal in functional connectivity MRI; a reply to Carp.
            NeuroImage. doi:10.1016/j.neuroimage.2012.03.017
     
+    .. [3] Jenkinson, M., Bannister, P., Brady, M., Smith, S., 2002. Improved optimization for the robust 
+           and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
      
     """
     pm = pe.Workflow(name=wf_name)
@@ -255,8 +261,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                                        'movement_parameters',
                                                        'max_displacement',
                                                        'motion_correct',
-                                                       'mask'
-                                                    ]),
+                                                       'mask']),
                         name='inputspec')
 
     scrubbing_input = pe.Node(util.IdentityInterface(fields=['threshold',
@@ -265,6 +270,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                              name='scrubbing_input')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
+                                                        'FDJ_1D',
                                                         'frames_ex_1D',
                                                         'frames_in_1D',
                                                         'power_params',
@@ -281,10 +287,10 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
     
-    ###Calculating mean Framewise Displacement    
+    ###Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FD = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
-                                           function=set_FD),
+                                           function=calculate_FD_P),
                              name='calculate_FD')
     
     pm.connect(inputNode, 'movement_parameters', 
@@ -292,6 +298,18 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     pm.connect(calculate_FD, 'out_file', 
                outputNode, 'FD_1D')
+    
+    ###Calculating mean Framewise Displacement as per jenkinson et al., 2002   
+    calculate_FDJ = pe.Node(util.Function(input_names=['in_file'],
+                                         output_names=['out_file'],
+                                           function=calculate_FD_J),
+                             name='calculate_FDJ')
+    
+    pm.connect(inputNode, 'movement_parameters', 
+               calculate_FDJ, 'in_file' )
+    
+    pm.connect(calculate_FDJ, 'out_file', 
+               outputNode, 'FDJ_1D')
 
     ##calculating frames to exclude and include after scrubbing
     exclude_frames = pe.Node(util.Function(input_names=['in_file', 
@@ -354,7 +372,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
     calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
-                                                                "FD_1D", 
+                                                                "FD_1D",
+                                                                "FDJ_1D", 
                                                                 "threshold",
                                                                 "DVARS"],
                                                    output_names=['out_file'],
@@ -368,6 +387,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                calc_power_parameters, 'DVARS')
     pm.connect(calculate_FD, 'out_file',
                calc_power_parameters, 'FD_1D')
+    pm.connect(calculate_FDJ, 'out_file',
+               calc_power_parameters, 'FDJ_1D')
     pm.connect(scrubbing_input, 'threshold',
                calc_power_parameters, 'threshold')
 
@@ -377,62 +398,6 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
 
     return pm
-
-
-def set_FD(in_file):
-    """
-    Method to calculate Framewise Displacement (FD) calculations
-    
-    Parameters
-    ----------
-    in_file : string
-        movement parameters vector file path
-    
-    Returns
-    -------
-    out_file : string
-        Frame -wise displalcement mat 
-        file path
-    
-    """
-    import subprocess as sb
-    import os
-
-    out_file = os.path.join(os.getcwd(), 'FD.1D')
-    
-    #Rotational displacements are converted from degrees to millimeters
-    #by calculating displacement on the surface of a sphere of radius 50 mm
-    cmd1 = sb.Popen(
-        ['awk', '{x=$4} {y=$5} {z=$6} {a=$1} {b=$2} {c=$3} ' +
-        '{print 2*3.142*50*(a/360),2*3.142*50*(b/360),' +
-        ' 2*3.142*50*(c/360), x, y, z}',
-        in_file], stdin=sb.PIPE, stdout=sb.PIPE,)
-
-    #calculating relative displacement
-    cmd2 = sb.Popen(
-        ['awk', '{a=$1} {b=$2} {c=$3} {x=$4} {y=$5} {z=$6} ' +
-        'NR>=1{print a-d, b-e, c-f, x-u, y-v, z-w}' +
-        '{d=a} {e=b} {f=c} {u=x} {v=y} {w=z}'],
-        stdin=cmd1.stdout, stdout=sb.PIPE,)
-
-    #taking the absolute
-    cmd3 = sb.Popen(
-        ['awk', '{ for (i=1; i<=NF; i=i+1) {' +
-        'if ($i < 0) $i = -$i} print}'],
-        stdin=cmd2.stdout, stdout=sb.PIPE,)
-
-    #summing the columns up
-    cmd4 = sb.Popen(
-        ['awk', '{a=$1+$2+$3+$4+$5+$6} {print a}'],
-        stdin=cmd3.stdout, stdout=sb.PIPE,)
-
-    stdout_value, stderr_value = cmd4.communicate()
-    output = stdout_value.split()
-    f = open(out_file, 'w')
-    for out in output:
-        print >>f, float(out)
-    f.close()
-    return out_file
 
 
 def set_frames_ex(in_file, threshold, 
@@ -506,6 +471,111 @@ def set_frames_ex(in_file, threshold,
     f.close()
 
     return out_file
+
+
+def calculate_FD_P(in_file):
+    """
+    Method to calculate Framewise Displacement (FD) calculations
+    (Power et al., 2012)
+    
+    Parameters
+    ----------
+    in_file : string
+        movement parameters vector file path
+    
+    Returns
+    -------
+    out_file : string
+        Frame -wise displalcement mat 
+        file path
+    
+    """
+    
+    import os
+    import numpy as np
+
+    out_file = os.path.join(os.getcwd(), 'FD.1D') 
+
+    lines = open(in_file, 'r').readlines()
+    rows = [[float(x) for x in line.split()] for line in lines]
+    cols = np.array([list(col) for col in zip(*rows)])
+    
+    translations = np.transpose(np.abs(np.diff(cols[0:3, :])))
+    rotations = np.transpose(np.abs(np.diff(cols[3:6, :])))
+
+    FD_power = np.sum(translations, axis = 1) + (50*3.141/180)*np.sum(rotations, axis =1)
+    
+    #FD is zero for the first time point
+    FD_power = np.insert(FD_power, 0, 0)
+    
+    np.savetxt(out_file, FD_power)
+    
+    return out_file
+    
+
+def calculate_FD_J(in_file):
+    
+    """
+    Method to calculate Framewise Displacement (FD) calculations
+    (Jenkinson et al., 2002)
+    
+    Parameters
+    ----------
+    in_file : string
+        movement parameters vector file path
+    
+    Returns
+    -------
+    out_file : string
+        Frame -wise displalcement mat 
+        file path
+    
+    """
+    
+    import os
+    import numpy as np
+    import math
+
+    out_file = os.path.join(os.getcwd(), 'FD_jenkinson.1D')
+    
+    f = open(out_file, 'w')
+    
+    pm = np.loadtxt(in_file)
+    
+    flag = 0
+
+    #The default radius (as in FSL) of a sphere represents the brain
+    rmax = 80.0
+
+    #rigid body transformation matrix 
+    T_rb_prev = np.matrix(np.eye(4))
+    
+    for i in range(0, pm.shape[0]):
+
+        t1 = np.matrix([[1,0,0,pm[i][0]], [0,1,0, pm[i][1]], [0,0,1,pm[i][2]], [0,0,0,1]] )
+        t2 = np.matrix([[1,0,0,0], [0, math.cos(pm[i][3]), math.sin(pm[i][3]),0], [0, - math.sin(pm[i][3]), math.cos(pm[i][3]), 0], [0,0,0,1]])
+        t3 = np.matrix([[math.cos(pm[i][4]), 0, math.sin(pm[i][4]),0], [0,1,0,0], [-math.sin(pm[i][4]), 0, math.cos(pm[i][4]), 0], [0,0,0,1]])
+        t4 = np.matrix([[math.cos(pm[i][5]), math.sin(pm[i][5]), 0, 0], [-math.sin(pm[i][5]), math.cos(pm[i][5]), 0, 0], [0,0,1,0], [0,0,0,1]])
+        T_rb  = np.dot(np.dot(t1,t2), np.dot(t3,t4))
+        
+        if flag == 0:
+            flag = 1
+            # first timepoint
+            print >> f, 0 
+        else:
+            M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
+            A = M[0:3, 0:3]
+            b = M[0:3, 3]
+
+            FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
+            print >> f, '%.4f'%FD_J
+                
+        T_rb_prev = T_rb
+    
+    f.close()
+    
+    return out_file
+
 
 def set_frames_in(in_file, threshold, exclude_list):
 
@@ -679,7 +749,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FD_1D, DVARS, threshold = 1.0):
+def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 1.0):
     
     """
     Method to generate Power parameters for scrubbing
@@ -691,7 +761,9 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, DVARS, threshold = 1.0):
     scan_id : string
         scan name or id
     FD_ID: string 
-        framewise displacement file path
+        framewise displacement(FD as per power et al., 2012) file path
+    FDJ_ID: string 
+        framewise displacement(FD as per jenkinson et al., 2002) file path
     threshold : float
         scrubbing threshold set in the configuration
         by default the value is set to 1.0
@@ -713,7 +785,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, DVARS, threshold = 1.0):
     f= open(out_file,'w')
     print >>f, "Subject,Scan,MeanFD,NumFD_greater_than_%.2f," \
     "rootMeanSquareFD,FDquartile(top1/4thFD),PercentFD_greater_than_%.2f," \
-     "MeanDVARS"%(threshold,threshold)
+     "MeanDVARS, MeanFD_Jenkinson"%(threshold,threshold)
 
     f.write("%s," % subject_id)
     f.write("%s," % scan_id)
@@ -748,6 +820,10 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, DVARS, threshold = 1.0):
     meanDVARS = np.mean(np.load(DVARS))
     f.write('%.4f,' % meanDVARS)
 
+    #Mean FD Jenkinson
+    meanFD_Jenkinson = np.mean(loadtxt(FDJ_1D))
+    f.write('%.4f,' % meanFD_Jenkinson)
+    
     f.close()
     return out_file
 
@@ -787,6 +863,8 @@ def calculate_DVARS(rest, mask):
     data = data[mask_data]
     #square root and mean across all timepoints inside mask
     DVARS = np.sqrt(np.mean(data, axis=0))
+    
+    print "PRINT TO CHECK IF THIS IN LOG FILE ****************"
     
     np.save(out_file, DVARS)
     
