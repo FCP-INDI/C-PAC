@@ -97,13 +97,18 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         subject_id = sub_dict['subject_id'] + "_" + sub_dict['unique_id']
     else:
         subject_id = sub_dict['subject_id']
+        
+    log_dir = os.path.join(c.outputDirectory, 'logs', subject_id)
+
+    if not os.path.exists(log_dir):
+        os.makedirs(os.path.join(log_dir))
 
 
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-    config.update_config({'logging': {'log_directory': os.path.join(c.workingDirectory, wfname),
+    config.update_config({'logging': {'log_directory': log_dir,
                                   'log_to_file': True}})
     logging.update_logging(config)
 
@@ -3203,16 +3208,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
     sub_w_path = os.path.join(c.workingDirectory, wfname)
-    
-    import shutil
-    log_dir = os.path.join(c.outputDirectory, 'logs', subject_id)
-    
-    if not os.path.exists(log_dir):
-        os.makedirs(os.path.join(log_dir))
-    
-    shutil.copyfile(os.path.join(sub_w_path, 'pypeline.log'), 
-                                 os.path.join(c.outputDirectory, 'logs', subject_id, subject_id + '.log'))
-    
+        
 
     if 1 in c.generateQualityControlImages:
 

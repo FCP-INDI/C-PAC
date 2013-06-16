@@ -409,12 +409,19 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_, "</html>"
 
     print >>f_html_0, "<html>"
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"resources/bootstrap/css/bootstrap.min.css"))
+    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"))
+    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"))
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
     print >>f_html_0, "<body>"
-    print >>f_html_0, "<ul class=\"nav nav-list\">"
+    print >>f_html_0, "<div>"
+    print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
+    print >>f_html_0, "<p class=\"logo\"><a href=\"#\">"
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cpac_logo.jpg"))
+    print >>f_html_0, "</a></p>"
+    print >>f_html_0, "<h3><a href=\"#\">Table Of Contents</a></h3>"
+    print >>f_html_0, "<ul>"
 
     print >>f_html_1, '<link href="default.css" rel="stylesheet" type="text/css" />'
     print >>f_html_1, "<html>"
@@ -448,28 +455,31 @@ def add_tail(f_html_, f_html_0, f_html_1):
     None
 
     """
+#     print >>f_html_0, "</ul>"
+#     print >>f_html_0, "<br>"
+#     print >>f_html_0, "<br>"
+#     print >>f_html_0, "<form class=\"navbar-form pull-left\" method=\"post\" action=\"\"> \
+# <br> \
+# Recommendation for QC <br>\
+# <input type=\"radio\" name=\"group1\" value=\"1\"> 1<br> \
+# <input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
+# <input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
+# <input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
+# <input type=\"radio\" name=\"group1\" value=\"5\" checked>5<br> \
+#  <br> Notes\
+# <br> \
+# <textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
+# Enter QC Notes here... \
+# </textarea><br> \
+# <br> \
+# <input type=\"submit\" value=\"Submit\" /> \
+# <br> \
+# <br> \
+# <br> \
+# </form>"
     print >>f_html_0, "</ul>"
-    print >>f_html_0, "<br>"
-    print >>f_html_0, "<br>"
-    print >>f_html_0, "<form class=\"navbar-form pull-left\" method=\"post\" action=\"\"> \
-<br> \
-Recommendation for QC <br>\
-<input type=\"radio\" name=\"group1\" value=\"1\"> 1<br> \
-<input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
-<input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
-<input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
-<input type=\"radio\" name=\"group1\" value=\"5\" checked>5<br> \
- <br> Notes\
-<br> \
-<textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
-Enter QC Notes here... \
-</textarea><br> \
-<br> \
-<input type=\"submit\" value=\"Submit\" /> \
-<br> \
-<br> \
-<br> \
-</form>"
+    print >>f_html_0, "</div>"
+    print >>f_html_0, "</div>"
     print >>f_html_0, "</body>"
     print >>f_html_0, "</html>"
     print >>f_html_1, "</body>"

@@ -19,7 +19,7 @@ ID_CLEARALL = 11
 
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title, size=(670, 650))
+        wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         
         self.CreateStatusBar()
         self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC)")
@@ -83,15 +83,15 @@ class ListBox(wx.Frame):
         if 'linux' in sys.platform:
             btnSizer1.Add((-1,30))
         else:
-            btnSizer1.Add((-1, 25))
+            btnSizer1.Add((-1, 27))
         
-        btnSizer1.Add(new)
-        btnSizer1.Add(load, 0, wx.TOP, 5)
-        btnSizer1.Add(edit, 0, wx.TOP, 5)
-        btnSizer1.Add(shw, 0, wx.TOP, 5)
-        btnSizer1.Add(ren, 0, wx.TOP, 5)
-        btnSizer1.Add(dlt, 0, wx.TOP, 5)
-        btnSizer1.Add(clr, 0, wx.TOP, 5)
+        btnSizer1.Add(new, 0, wx.TOP)
+        btnSizer1.Add(load, 0, wx.TOP)
+        btnSizer1.Add(edit, 0, wx.TOP)
+        btnSizer1.Add(shw, 0, wx.TOP)
+        btnSizer1.Add(ren, 0, wx.TOP)
+        btnSizer1.Add(dlt, 0, wx.TOP)
+        btnSizer1.Add(clr, 0, wx.TOP)
         btnPanel1.SetSizer(btnSizer1)
         
         btnPanel1.SetBackgroundColour('#E9E3DB')
@@ -138,12 +138,12 @@ class ListBox(wx.Frame):
         if 'linux' in sys.platform:
             btnSizer2.Add((-1,30))
         else:
-            btnSizer2.Add((-1, 25))
+            btnSizer2.Add((-1, 27))
         
-        btnSizer2.Add(create, 0, wx.TOP, 5)
-        btnSizer2.Add(add, 0, wx.TOP, 5)
-        btnSizer2.Add(show, 0, wx.TOP, 5)
-        btnSizer2.Add(clr2, 0, wx.TOP, 5)
+        btnSizer2.Add(create, 0, wx.TOP)
+        btnSizer2.Add(add, 0, wx.TOP)
+        btnSizer2.Add(show, 0, wx.TOP)
+        btnSizer2.Add(clr2, 0, wx.TOP)
         btnPanel2.SetSizer(btnSizer2)
         btnPanel2.SetBackgroundColour('#E9E3DB')
         
@@ -164,22 +164,31 @@ class ListBox(wx.Frame):
         outerPanel1.SetBackgroundColour('#E9E3DB')
         
         #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
-        self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
-        self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
+#         self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
+#         self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
+#         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
+#         self.runCPAC1.SetBackgroundColour('#BBCFE9')
+#         self.runCPAC1.SetHoverColor('#0071B2')
+
+        self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
-        self.runCPAC1.SetBackgroundColour('#BBCFE9')
-        self.runCPAC1.SetHoverColor('#0071B2')
-        self.runCPAC1.SetForegroundColour('#000000')
         
-        self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
-        self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
+#         self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
+#         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
+#         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
+#         self.runCPAC2.SetBackgroundColour('#BBCFE9')
+#         self.runCPAC2.SetHoverColor('#0071B2')
+#         self.runCPAC2.SetForegroundColour('#000000')
+
+        self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
-        self.runCPAC2.SetBackgroundColour('#BBCFE9')
-        self.runCPAC2.SetHoverColor('#0071B2')
-        self.runCPAC2.SetForegroundColour('#000000')
         
-        outerSizer2.Add(self.runCPAC1, 1, wx.EXPAND | wx.RIGHT, 40)
-        outerSizer2.Add(self.runCPAC2, 1, wx.EXPAND | wx.LEFT, 40)
+#         outerSizer2.Add(self.runCPAC1, 1, wx.EXPAND | wx.RIGHT, 40)
+#         outerSizer2.Add(self.runCPAC2, 1, wx.EXPAND | wx.LEFT, 40)
+
+        outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 20)
+        outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 20)
+
         outerPanel2.SetSizer(outerSizer2)
         outerPanel2.SetBackgroundColour('#E9E3DB')
         
@@ -223,7 +232,7 @@ class ListBox(wx.Frame):
                     pipelines = self.listbox.GetCheckedStrings()
                     sublists = self.listbox2.GetCheckedStrings()
                     
-                    self.runCPAC1.SetPulseOnFocus(True)
+                    #self.runCPAC1.SetPulseOnFocus(True)
                     
                     import CPAC
                     
@@ -465,15 +474,14 @@ class RedirectText(object):
 class MyForm(wx.Frame):
  
     def __init__(self, pipeline, sublist, p):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "wxPython Redirect Tutorial")
-        
-        print "inside Myform"
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
+    
         
         # Add a panel so it looks the correct on all platforms
         panel = wx.Panel(self, wx.ID_ANY)
         log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
                           style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
-        btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
+        btn = wx.Button(panel, wx.ID_ANY, 'Close')
         self.Bind(wx.EVT_BUTTON, self.onButton, btn)
  
         # Add widgets to a sizer        
@@ -488,11 +496,11 @@ class MyForm(wx.Frame):
         # redirect text here
         redir=RedirectText(log)
         sys.stdout=redir
-        print pipeline ,sublist
+        print "running pipeline --> ", p
         print "process id --> ", os.getpid()
         
 
  
     def onButton(self, event):        
         print "kill -9" ,os.kill(os.getpid(), 0)
-                    
+        self.Close()
