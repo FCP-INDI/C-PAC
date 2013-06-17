@@ -8,6 +8,16 @@ from CPAC.utils.utils import create_seeds_
 from CPAC.utils import Configuration
 import yaml
 
+
+def validate(config_obj):
+    
+    #check for path lengths
+    working_dir = config_obj.workingDirectory
+    
+    if len(working_dir) > 70:
+        raise Exception("Path to working directory- %s should NOT be more than 70 characters."\
+                        "Please update your configuration"%(working_dir))
+
 def get_vectors(strat):
 
     paths = []
@@ -303,9 +313,12 @@ def run(config_file, subject_list_file, p_name = None):
             raise IOError("config file %s doesn't exist" %config_file)
         else:
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
-    
+            
     except Exception:
         print "Error reading config file - %s"%config_file 
+
+    #do some validation
+    validate(c)
 
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))

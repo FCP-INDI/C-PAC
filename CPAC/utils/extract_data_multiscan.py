@@ -97,6 +97,21 @@ def extract_data(c, param_map):
         sites = os.listdir(base)
         return sites
 
+    def check_length(scan_name, file_name):
+               
+        if len(file_name) > 30:
+            msg = "filename- %s is too long."\
+                   "It should not be more than 30 characters."%(file_name)
+            raise Exception(msg)
+        
+        if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 20:
+            msg = "scan name %s is too long."\
+                  "It should not be more than 20 characters"\
+                  %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
+            raise Exception(msg)
+        
+
+
     def create_site_subject_mapping(base, relative):
 
         #mapping between site and subject
@@ -273,6 +288,7 @@ def extract_data(c, param_map):
                     iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path,'').lstrip("/"))[0])[0]
                     scan_name = iterable.replace("/", "_")
                     scan_list.append((os.path.dirname(iterable), scan_name))
+                    check_length(scan_name, os.path.basename(iter))
                     print>>f,  "      " + scan_name + ": '" + iter +  "'"
                 print_end_of_file(anat_sub.split("/")[0], scan_list)
 

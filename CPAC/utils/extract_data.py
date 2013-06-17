@@ -93,6 +93,24 @@ def extract_data(c, param_map):
         base, relative = path.split('%s')
         sites = os.listdir(base)
         return sites
+    
+    def check_length(scan_name, file_name):
+        
+        if len(file_name) > 30:
+            msg = "filename- %s is too long."\
+                   "It should not be more than 30 characters."%(file_name)
+            logging.exception(msg)
+            raise Exception(msg)
+        
+        if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 20:
+            msg = "scan name %s is too long."\
+                  "It should not be more than 20 characters"\
+                  %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
+            logging.exception(msg)
+            raise Exception(msg)
+        
+
+        
 
     def create_site_subject_mapping(base, relative):
 
@@ -260,16 +278,19 @@ def extract_data(c, param_map):
                     #get scan_id
                     iterable = os.path.splitext(os.path.splitext(iter.replace(func_base_path, '').lstrip("/"))[0])[0]
                     iterable = iterable.replace("/", "_")
+                    check_length(iterable, os.path.basename(os.path.realpath(iter)))
                     print>>f, "      " + iterable + ": '" + os.path.realpath(iter) + "'"
+                
                 print_end_of_file(anat_sub.split("/")[0])
+                
             else:
                 logging.debug("skipping subject %s"%anat_sub.split("/")[0])
         
         except ValueError:
             logging.exception(ValueError.message)
             raise
-        except:
-            msg = "Exception while fetching anatomical and functional paths"
+        except Exception, e:
+            msg = "Exception while fetching anatomical and functional paths. " + str(e)
             logging.exception(msg)
             raise Exception(msg)
 
