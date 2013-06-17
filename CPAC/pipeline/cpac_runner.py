@@ -15,7 +15,8 @@ def validate(config_obj):
     working_dir = config_obj.workingDirectory
     
     if len(working_dir) > 70:
-        raise Exception("Path to working directory cannot be more than 70 characters.")
+        raise Exception("Path to working directory- %s should NOT be more than 70 characters."\
+                        "Please update your configuration"%(working_dir))
 
 def get_vectors(strat):
 
