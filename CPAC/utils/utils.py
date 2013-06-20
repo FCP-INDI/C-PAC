@@ -1243,3 +1243,43 @@ def create_log(
                    outputNode, 'out_file')
         
         return wf
+
+def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
+    import datetime, os
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    
+    now = datetime.datetime.now()
+
+    tvars = {}
+    tvars['subject_id']  = subject_id
+    tvars['scans']       = scan_ids
+    tvars['pipelines']   = pip_ids
+    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
+    
+    reportdir = op.join(logdir, "reports")
+    if not op.exists(reportdir):
+        os.mkdir(reportdir)
+    
+    for scan in scan_ids:
+        jsfile   = op.join(reportdir, "%s.js" % scan)
+        open(jsfile, 'a').close()
+        
+        tvars['cur_scan']    = scan
+        tvars['logfile']     = jsfile
+        tvars['timestamp']   = now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        htmlfile = op.join(reportdir, "%s.html" % scan)
+        
+        tfile = open(p.resource_filename('CPAC','resources/templates/cpac_runner.html'), 'r')
+        tcontents = tfile.read()
+        tfile.close()
+        template = Template(tcontents)
+
+        text = template.render(**tvars)
+
+        html = open(htmlfile, 'w')
+        html.write(text)
+        html.close()
+    
