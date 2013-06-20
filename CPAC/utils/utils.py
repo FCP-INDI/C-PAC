@@ -1127,3 +1127,119 @@ def get_tr (tr):
            tr = tr / 1000.0
     return tr
 
+
+def write_to_log(workflow, log_dir, index, inputs ):
+    
+    import os
+    import CPAC
+     
+    version = CPAC.__version__
+         
+    subject_id = os.path.basename(log_dir)
+    scan_id = "scan"
+    strategy = ""
+    
+    import time
+    import datetime
+    ts = time.time()
+    
+    stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    
+    wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+    
+    if wf_path and wf_path != "":
+        if '/' in wf_path:
+            scan_id, strategy = wf_path.split('/',1)
+            scan_id = scan_id.strip('_')
+            strategy = strategy.replace("/","")
+        else:
+            scan_id = wf_path.strip('_')
+
+    file_path = os.path.join(log_dir, scan_id, workflow)
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
+        
+    out_file = os.path.join(file_path, 'log_%s.py'%strategy)
+    f = open(out_file, 'w')
+    
+    print >> f, "log = {"
+    print >>f, "\"version\" : \"%s\","%(str(version))
+    print >>f, "\"timestamp\": \"%s\","%(stamp)
+    print >>f, "\"pipeline_index\": %d,"%(index) 
+    print >>f, "\"subject_id\": \"%s\","%(subject_id)
+    print >>f, "\"scan_id\": \"%s\","%(scan_id)
+    print >>f, "\"strategy\": \"%s\","%(strategy)
+    print >>f, "\"workflow_name\": \"%s\","%(workflow)
+        
+        
+    from nipype import logging
+    iflogger = logging.getLogger('interface')
+    iflogger.info("CPAC custom log :")
+        
+    if os.path.exists(inputs):
+
+        print >>f,  "\"wf_status\": \"DONE\""
+        #print subject_id, scan_id, workflow, strategy, index, wf_path, "completed" , os.getcwd()
+
+        iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
+                      %(subject_id, scan_id, strategy,workflow, index, 'completed') )
+        #print>>f, subject_id, scan_id, workflow, strategy, index, wf_path, "completed" 
+    else:
+        
+        iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
+                      %(subject_id, scan_id, strategy,workflow, index, 'ERROR') )
+        print>>f, "\"wf_status\": \"Error\""
+    
+    print >> f, "}"
+    
+    f.close()        
+    
+    
+    #call zarrare script
+    #os.system("zarrar_script.py %s %s"%(out_file, log_dir))
+    
+    return out_file
+
+def create_log( 
+               wf_name = "log"):
+    
+        import nipype.pipeline.engine as pe
+        import nipype.interfaces.utility as util
+        
+        wf = pe.Workflow(name=wf_name)
+        
+        inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                           'log_dir',
+                                                           'index',
+                                                           'inputs'
+                                                        ]),
+                            name='inputspec')
+    
+    
+        outputNode = pe.Node(util.IdentityInterface(fields=[
+                                                            'out_file']),
+                            name='outputspec')
+    
+        write_log = pe.Node(util.Function(input_names=[ 'workflow',
+                                                        'log_dir',
+                                                        'index',
+                                                        'inputs'],
+                                                   output_names=['out_file'],
+                                                   function=write_to_log),
+                                     name='write_log')
+    
+
+        wf.connect(inputNode, 'workflow',
+                   write_log, 'workflow')
+        wf.connect(inputNode, 'log_dir',
+                   write_log, 'log_dir')
+        wf.connect(inputNode, 'index',
+                   write_log, 'index')
+        wf.connect(inputNode, 'inputs',
+                   write_log, 'inputs')
+    
+
+        wf.connect(write_log, 'out_file',
+                   outputNode, 'out_file')
+        
+        return wf
