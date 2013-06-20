@@ -1136,7 +1136,7 @@ def write_to_log(workflow, log_dir, index, inputs ):
     version = CPAC.__version__
          
     subject_id = os.path.basename(log_dir)
-    scan_id = "scan"
+    scan_id = "scan_anat"
     strategy = ""
     
     import time

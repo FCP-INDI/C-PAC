@@ -52,7 +52,6 @@ class strategy:
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []
-        self.wf = []
 
     def append_name(self, name):
         self.name.append(name)
@@ -84,12 +83,7 @@ class strategy:
                 print 'Warning key %s already exists in resource pool, replacing with %s ' % (key, value)
 
             self.resource_pool[key] = value
-    
-    def append_wf(self, wf):
-        self.wf.append(wf)
-        
-    def get_wf(self):
-        return self.wf
+
     
 def prep_workflow(sub_dict, c, strategies, p_name=None):
 
@@ -131,7 +125,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     mflow = None
     pflow = None
 
-    def create_log_node(wflow, output, indx, scan_id = None):
+    def create_log_node(wflow, output, indx):
         #call logging workflow
         log_wf = create_log(wf_name = 'log_%s' %wflow.name)
         log_wf.inputs.inputspec.workflow = wflow.name
@@ -217,7 +211,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'anatomical_reorient':(anat_preproc, 'outputspec.reorient')})
             
             #write to log
-            create_log_node(anat_preproc, 'outputspec.brain', num_strat, scan_id = None)
+            create_log_node(anat_preproc, 'outputspec.brain', num_strat)
 
             num_strat += 1
 
@@ -277,7 +271,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 #             workflow.connect(reg_anat_mni,'outputspec.output_brain',
 #                              log_wf, 'inputspec.inputs')
 
-            create_log_node(reg_anat_mni, 'outputspec.output_brain', num_strat, scan_id = None)
+            create_log_node(reg_anat_mni, 'outputspec.output_brain', num_strat)
             
             
             num_strat += 1
@@ -347,7 +341,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'seg_partial_volume_map': (seg_preproc, 'outputspec.partial_volume_map'),
                                         'seg_partial_volume_files': (seg_preproc, 'outputspec.partial_volume_files')})
 
-            create_log_node(seg_preproc, 'outputspec.partial_volume_map', num_strat, scan_id = None)
+            create_log_node(seg_preproc, 'outputspec.partial_volume_map', num_strat)
             num_strat += 1
 
     strat_list += new_strat_list
@@ -490,7 +484,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
 
 
-            create_log_node(func_preproc, 'outputspec.preprocessed', num_strat, scan_id = None)
+            create_log_node(func_preproc, 'outputspec.preprocessed', num_strat)
             num_strat += 1
 
             
@@ -538,7 +532,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'movement_parameters':(fristons_model, 'outputspec.movement_file')})
 
     
-            create_log_node(fristons_model, 'outputspec.movement_file', num_strat, scan_id = None)
+            create_log_node(fristons_model, 'outputspec.movement_file', num_strat)
             
             num_strat += 1
     strat_list += new_strat_list
@@ -635,7 +629,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'functional_wm_mask':(func_wm, 'out_file'),
                                         'functional_csf_mask':(func_csf, 'out_file')})
             
-            create_log_node(anat_to_func_reg, 'out_matrix_file', num_strat, scan_id = None)
+            create_log_node(anat_to_func_reg, 'out_matrix_file', num_strat)
 
             num_strat += 1
 
@@ -706,7 +700,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'functional_to_mni_linear_xfm':(func_to_mni, 'outputspec.func_to_mni_linear_xfm'),
                                         'mni_to_functional_linear_xfm':(func_to_mni, 'outputspec.mni_to_func_linear_xfm')})
             
-            create_log_node(func_to_mni, 'outputspec.mni_func', num_strat, scan_id = None)
+            create_log_node(func_to_mni, 'outputspec.mni_func', num_strat)
             num_strat += 1
 
     strat_list += new_strat_list
@@ -774,7 +768,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'power_params':(gen_motion_stats, 'outputspec.power_params'),
                                         'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
             
-            create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat, scan_id = None)
+            create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat)
             num_strat += 1
 
     strat_list += new_strat_list
@@ -846,7 +840,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             strat.update_resource_pool({'functional_nuisance_residuals':(nuisance, 'outputspec.subject')})
 
-            create_log_node(nuisance, 'outputspec.subject', num_strat, scan_id = None)
+            create_log_node(nuisance, 'outputspec.subject', num_strat)
             
             num_strat += 1
 
@@ -927,7 +921,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
             strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
             
-            create_log_node(alff, 'outputspec.falff_img', num_strat, scan_id = None)
+            create_log_node(alff, 'outputspec.falff_img', num_strat)
 
             num_strat += 1
     strat_list += new_strat_list
@@ -977,7 +971,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             strat.update_resource_pool({'functional_freq_filtered':(frequency_filter, 'bandpassed_file')})
 
-            create_log_node(frequency_filter, 'bandpassed_file', num_strat, scan_id = None)
+            create_log_node(frequency_filter, 'bandpassed_file', num_strat)
             
             num_strat += 1
 
@@ -3127,7 +3121,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     pip_ids = []
     
     wf_names = []
-    scan_ids = ['scan']
+    scan_ids = ['scan_anat']
     for id in sub_dict['rest']:
         scan_ids.append('scan_'+ str(id))
     
@@ -3267,6 +3261,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         num_strat += 1
 
     print "For zarrar strategies, pip_ids, wf_names, scan_ids, subject_id ---> ", pip_ids, wf_names, scan_ids, subject_id
+    
+    #create_log_template(pip_ids, scan_ids, subject_id, log_dir)
     
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
