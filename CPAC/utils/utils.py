@@ -1261,19 +1261,23 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     from jinja2 import Template
     import pkg_resources as p
     import CPAC
-    import numpy as np
+    import itertools
     
     now = datetime.datetime.now()
-
+    
+    chain = itertools.chain(*wf_list)
+    wf_keys = list(chain)
+    wf_keys = list(set(wf_keys))
+    
     tvars = {}
     tvars['subject_id']  = subject_id
     tvars['scans']       = scan_ids
     tvars['pipelines']   = pip_ids
     tvars['wf_list']     = "%s" % wf_list
-    tvars['wf_keys']     = "%s" % np.unique(np.array(wf_list).flatten()).tolist()
+    tvars['wf_keys']     = "%s" % wf_keys
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
     tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
-    
+        
     reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
         os.mkdir(reportdir)
