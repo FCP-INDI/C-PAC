@@ -1159,17 +1159,25 @@ def write_to_log(workflow, log_dir, index, inputs ):
     if not os.path.exists(file_path):
         os.makedirs(file_path)
         
-    out_file = os.path.join(file_path, 'log_%s.py'%strategy)
+    out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
     f = open(out_file, 'w')
     
-    print >> f, "log = {"
-    print >>f, "\"version\" : \"%s\","%(str(version))
-    print >>f, "\"timestamp\": \"%s\","%(stamp)
-    print >>f, "\"pipeline_index\": %d,"%(index) 
-    print >>f, "\"subject_id\": \"%s\","%(subject_id)
-    print >>f, "\"scan_id\": \"%s\","%(scan_id)
-    print >>f, "\"strategy\": \"%s\","%(strategy)
-    print >>f, "\"workflow_name\": \"%s\","%(workflow)
+#     print >> f, "log = {"
+#     print >>f, "\"version\" : \"%s\","%(str(version))
+#     print >>f, "\"timestamp\": \"%s\","%(stamp)
+#     print >>f, "\"pipeline_index\": %d,"%(index) 
+#     print >>f, "\"subject_id\": \"%s\","%(subject_id)
+#     print >>f, "\"scan_id\": \"%s\","%(scan_id)
+#     print >>f, "\"strategy\": \"%s\","%(strategy)
+#     print >>f, "\"workflow_name\": \"%s\","%(workflow)
+
+    print >>f, "version : %s"%(str(version))
+    print >>f, "timestamp: %s"%(str(stamp))
+    print >>f, "pipeline_index: %d"%(index) 
+    print >>f, "subject_id: %s"%(subject_id)
+    print >>f, "scan_id: %s"%(scan_id)
+    print >>f, "strategy: %s"%(strategy)
+    print >>f, "workflow_name: %s"%(workflow)
         
         
     from nipype import logging
@@ -1178,7 +1186,7 @@ def write_to_log(workflow, log_dir, index, inputs ):
         
     if os.path.exists(inputs):
 
-        print >>f,  "\"wf_status\": \"DONE\""
+        print >>f,  "wf_status: DONE"
         #print subject_id, scan_id, workflow, strategy, index, wf_path, "completed" , os.getcwd()
 
         iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
@@ -1188,9 +1196,9 @@ def write_to_log(workflow, log_dir, index, inputs ):
         
         iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
                       %(subject_id, scan_id, strategy,workflow, index, 'ERROR') )
-        print>>f, "\"wf_status\": \"Error\""
+        print>>f, "wf_status: Error"
     
-    print >> f, "}"
+    #print >> f, "}"
     
     f.close()        
     
