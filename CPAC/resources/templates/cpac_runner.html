@@ -149,20 +149,9 @@
 				wf_info[{{ pindex }}] = [];
 			{% endfor %}
 			
-			var wf_list = new Array();
-			{% for wfs in wf_list %}
-				var pipe_wfs = [];
-				{% for wf in wfs %}
-					pipe_wfs.push("{{ wf }}");
-				{% endfor %}
-				wf_list.push(pipe_wfs);
-			{% endfor %}
-			
-			var wf_keys = new Array();
-			{% for k in wf_keys %}
-				wf_keys.push("{{ k }}");
-			{% endfor %}
-			
+			var wf_list = {{ wf_list }};			
+			var wf_keys = {{ wf_keys }};
+				
 			wf_pipes = {};
 			for (var k in wf_keys) {
 			    wf_pipes[k] = [];
@@ -170,7 +159,7 @@
 			for (var pi = 0; pi < wf_list.length; pi++) {
 			    for (var wi = 0; wi < wf_list[pi].length; wi++) {
 			        var wf_name = wf_list[pi][wi];
-			        wf_pipes[wf_name].append(pi)
+			        wf_pipes[wf_name].push(pi);
 			    }
 			}
 		</script>
