@@ -56,7 +56,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="brand" href="#">{{ subject_id }}</a>
+          <a class="brand" href="index.html">{{ subject_id }}</a>
           <div class="nav-collapse collapse">
 			<!--
 			<p class="navbar-text pull-right">
@@ -89,14 +89,17 @@
 					</div>
         </div><!--/span-->
         <div class="span9">
-					<div class="alert alert-info">
+					<div id="global_status" class="alert alert-info">
 					  <button type="button" class="close" data-dismiss="alert">&times;</button>
-					  <strong>Running!</strong> CPAC started running at {{ timestamp }}. Vitement!
+					  <strong>Running!</strong> CPAC started running at {{ timestamp }}.
 					</div>
 					{% for pipeline in pipelines %}
-						<div id="{{ pipeline }}" class="row-fluid pipeline">
+						<div id="{{ pipeline }}" class="row-fluid pipeline" data-offset-top="200">
 							<a name="{{ pipeline }}"></a>
-							<h1>Pipeline {{ pipeline }}</h1>
+							<h1>
+								Pipeline {{ pipeline }} 
+								<a href="#" class="pull-right btn btn-info disabled">RUNNING</a>
+							</h1>
 					
 						  <table class="table table-hover">
 								<thead>
@@ -159,6 +162,15 @@
 	  <script src="{{ resources }}/bootstrap/js/kul-substitute.js"></script>
 		
 		<script type="text/javascript" charset="utf-8">
+			// Set the workflow pipeline rows to start
+			// this will shift as things are added
+			for (var pindex in pipe_inds) {
+				var pipeline = pipe_names[pindex];
+				$('#'+pipeline).data('row-start', 0);
+				$('#'+pipeline).data('done', 0);
+				$('#'+pipeline).data('errors', 0);
+			}
+			
 			// Fix the sidebar on the left
 			$('#sidenav').affix();
 		
@@ -167,39 +179,64 @@
 			// also would like to know the different pipelines and strategies to do a search
 		
 			// These are the possible values to expect from the .js files output from CPAC
-			status_options	= ["WAITING", "RUNNING", "ERROR", "DONE"];
+			var status_options	= ["WAITING", "RUNNING", "ERROR", "DONE"];
 		
 			// Mapping of status to the class of the table row
-			row_classes			= {"WAITING": 'muted', "RUNNING": 'info', 
+			var row_classes			= {"WAITING": 'muted', "RUNNING": 'info', 
 												'ERROR': 'error', 'DONE': ''};
 		
 			// Mapping of status to the class of the span class label
-			status_classes	= {"WAITING": '', "RUNNING": 'label-info', 
-												 'ERROR': 'label-important', 'DONE': 'label-success'};
-		
-		
-			// Go through each individual node and log completion level
-		
-			// Summaries will be
-			// - WAITING: default and if all are waiting
-			// - RUNNING: if at least one is running
-			// - ERROR:   if all done and there is at least one error
-			// - DONE:    if all are done
-			
-			//var ref_summary = {'done': 0, 'error': 0, 'running': 0, 
-			//									 'waiting': 0, 'total': 0};
-			
-			for (pindex in pipe_inds) {
-				var pipeline = pipe_names[pindex];
+			var status_classes	= {"WAITING": '', "RUNNING": 'label-info', 
+												 	   'ERROR': 'label-important', 'DONE': 'label-success'};
+		</script>
+	
+	<script type="text/javascript">
+		// Reloads the page every minute
 				
-				for (var wi=0; wi<wf_info[pindex].length; wi++) {
+	  window.onload = setupRefresh;
+
+	  function setupRefresh() {
+	    setTimeout("reload_logs();", 10000); // milliseconds (10s)
+	  }
+		
+	  //function refreshPage() {
+	  //  window.location = location.href;
+	  //}
+		
+    function reload_logs(src) {
+        $('script[src="' + src + '"]').remove();
+        $('<script>').attr('src', src).appendTo('head');
+				parse_logs();
+    }
+		
+		function parse_logs() {
+			var tot_done	 = 0;
+			var tot_errors = 0;
+			
+			for (var pindex in pipe_inds) {
+				var pipeline = pipe_names[pindex];
+				var row_start = $('#'+pipeline).data('row-start');
+				
+				for (var wi=row_start; wi<wf_info[pindex].length; wi++) {
 					// Setup workflow info object
 					// each info should have strategy, wf_name, wf_status as keys
 					var info = wf_info[pindex][wi]
 					info.pipeline  = pipeline;
 					info.wf_status = info.wf_status.toUpperCase();
-					info.wf_id		 = info.strategy + "_" + info.wf_name;
 					info.row_id		 = wi+1;
+					
+					// Is this a special all done entry?
+					if (info.wf_status == 'DONE' & info.wf_name == 'DONE') {
+						$('#'+pipeline).data('done', 1);
+						alert(pipeline + " done!");
+						continue
+					}
+					
+					// Update error count
+					if (info.wf_status == 'ERROR') {
+						var nerrors = $('#'+pipeline).data('errors');
+						$('#'+pipeline).data('errors', nerrors+1);
+					}
 					
 					// Get element with id
 					var str  = $.substitute("#${ pipeline } table #${ wf_id }", info)
@@ -232,25 +269,56 @@
 						status_node.removeClass();
 						status_node.addClass("label");
 						status_node.addClass(status_classes[info.wf_status]);
-					}				
+					}
 					
-					// Save workflow summary
+					// Update row offset
+					$('#'+pipeline).data('row-start', wi+1);					
+				}
+				
+				var isdone  = $('#'+pipeline).data('done');
+				if (isdone == 1) {
+					tot_done += 1;
+					btn_node = $('#'+pipeline+' h1 a.btn');
+					btn_node.text('DONE');
+					btn_node.removeClass('btn-info');
+					btn_node.addClass('btn-success');
+				}
+				
+				// Note if pipeline is both done and has errors, this will only show errors
+				var nerrors = $('#'+pipeline).data('errors');
+				if (nerrors > 0) {
+					tot_errors += nerrors;
+					btn_node = $('#'+pipeline+' h1 a.btn');
+					btn_node.text('DONE');
+					btn_node.removeClass('btn-info');
+					btn_node.removeClass('btn-success');
+					btn_node.addClass('btn-danger');
 				}
 			}
-		</script>
+			
+			// Update alert message
+			alert_node	= $('#global_status');
+			strong_node = $('#global_status strong');
+			alert_node.removeClass('alert-info');
+			if (tot_done == wf_info.length && tot_errors > 0) {
+				alert_node.addClass('alert-error');
+				var msg = $.substitute('DONE with ${ errors } ERROR(s).', {errors: tot_errors});
+				strong_node.text(msg);
+			} else if (tot_errors > 0) {
+				alert_node.addClass('alert-error');
+				var msg = $.substitute('${ errors } ERROR(s).', {errors: tot_errors});
+				strong_node.text(msg);
+			} else if (tot_done == wf_info.length) {
+				alert_node.addClass('alert-success');
+				strong_node.text('DONE!');
+			} else {
+				alert_node.addClass('alert-info');
+			}
+		}
+	</script>
 	
 	<script type="text/javascript">
-		// Reloads the page every minute
-		// code borrowed from: http://www.techtricky.com/how-to-refresh-page-or-part-of-the-page-automatically
-		
-	  window.onload = setupRefresh;
-
-	  function setupRefresh() {
-	    setTimeout("refreshPage();", 60000); // milliseconds
-	  }
-	  function refreshPage() {
-	    window.location = location.href;
-	  }
+		reload_logs('{{ logfile }}');
 	</script>
 
   </body>
