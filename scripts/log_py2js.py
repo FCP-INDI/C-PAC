@@ -6,6 +6,7 @@
 import os, sys
 from os import path as op
 from lockfile import FileLock
+import yaml
 
 if len(sys.argv) != 3:
     print "usage: %s log-file log-dir" % sys.argv[0]
@@ -15,9 +16,12 @@ logfile = sys.argv[1]
 logdir  = sys.argv[2]
 
 # Get dictionary containing log values
-sys.path.append(op.dirname(logfile))
-log     = __import__(op.basename(logfile).replace(".py",""))
-wf_info = log.log
+wf_info = yaml.load(open(logfile))
+
+# Fix Nones
+for k,v in wf_info.iteritems():
+    if v is None:
+        wf_info[k] = ''
 
 # Output path
 jsfile = op.join(logdir, "reports", "%s.js" % wf_info["scan_id"])
