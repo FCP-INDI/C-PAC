@@ -331,6 +331,13 @@ def run(config_file, subject_list_file, p_name = None):
     strategies = sorted(build_strategies(c))
     
     print "strategies ---> ", strategies
+    
+    sub_ids =[]
+    for sub in sublist:
+        if sub['unique_id']:
+            sub_ids.append(sub['subject_id']+"_" + sub["unique_id"])
+        else:
+            sub_ids.append(sub['subject_id'])
 
     seeds_created = []
     if not (c.seedSpecificationFile is None):

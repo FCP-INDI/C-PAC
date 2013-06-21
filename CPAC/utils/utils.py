@@ -1254,7 +1254,7 @@ def create_log(
         
         return wf
 
-def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
+def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
    
     import datetime, os
     from os import path as op
@@ -1314,6 +1314,7 @@ def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
 
 def create_group_log_template(subject_ids, log_dir):
     
+    import os
     from os import path as op
     from jinja2 import Template
     import pkg_resources as p
@@ -1321,12 +1322,12 @@ def create_group_log_template(subject_ids, log_dir):
     
     tvars = {}
     tvars['subject_ids'] = subject_ids
-    tvars['resources']   = os.path.join(CPAC.__path__[0], 'resources')
+    tvars['resources']   = op.join(CPAC.__path__[0], 'resources')
     tvars['log_dir']     = log_dir
     
     reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
-        os.mkdir(reportdir)
+        os.makedirs(reportdir)
     
     fname    = p.resource_filename('CPAC','resources/templates/logger_group_index.html')
     tfile    = open(fname, 'r')
@@ -1336,7 +1337,7 @@ def create_group_log_template(subject_ids, log_dir):
     template = Template(raw_text)
     text     = template.render(**tvars)
     
-    htmlfile = op.join(reportdir, "%s.html" % scan)
+    htmlfile = op.join(reportdir, "index.html")
     html     = open(htmlfile, 'w')
     html.write(text)
     html.close()

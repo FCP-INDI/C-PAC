@@ -127,13 +127,20 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     def create_log_node(wflow, output, indx):
         #call logging workflow
-        log_wf = create_log(wf_name = 'log_%s' %wflow.name)
-        log_wf.inputs.inputspec.workflow = wflow.name
-        log_wf.inputs.inputspec.index = indx
-        log_wf.inputs.inputspec.log_dir = log_dir
-        workflow.connect(wflow, output,
-                         log_wf, 'inputspec.inputs')
 
+        if wflow: 
+            log_wf = create_log(wf_name = 'log_%s' %wflow.name)
+            log_wf.inputs.inputspec.workflow = wflow.name
+            log_wf.inputs.inputspec.index = indx
+            log_wf.inputs.inputspec.log_dir = log_dir
+            workflow.connect(wflow, output,
+                         log_wf, 'inputspec.inputs')
+        else:
+            log_wf = create_log(wf_name = 'log_done_%d'%indx)
+            log_wf.inputs.inputspec.workflow = "done"
+            log_wf.inputs.inputspec.index = indx
+            log_wf.inputs.inputspec.log_dir = log_dir
+            log_wf.inputspec.inputs = log_dir
 
     strat_list = []
 
@@ -3207,6 +3214,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
         pip_ids.append(pipeline_id)
         wf_names.append(strat.get_name())
+        
+        create_log_node(None, None, num_strat)
         for key in sorted(rp.keys()):
 
 
@@ -3262,7 +3271,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     print "For zarrar strategies, pip_ids, wf_names, scan_ids, subject_id ---> ", pip_ids, wf_names, scan_ids, subject_id
     
-    create_log_template(pip_ids, scan_ids, subject_id, log_dir)
+    create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
     
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
