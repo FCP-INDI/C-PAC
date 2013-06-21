@@ -1275,16 +1275,62 @@ def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
         tvars['logfile']     = jsfile
         tvars['timestamp']   = now.strftime("%Y-%m-%d %H:%M:%S")
         
-        htmlfile = op.join(reportdir, "%s.html" % scan)
-        
-        tfile = open(p.resource_filename('CPAC','resources/templates/cpac_runner.html'), 'r')
-        tcontents = tfile.read()
+        fname    = p.resource_filename('CPAC','resources/templates/cpac_runner.html')
+        tfile    = open(fname, 'r')
+        raw_text = tfile.read()
         tfile.close()
-        template = Template(tcontents)
-
-        text = template.render(**tvars)
-
-        html = open(htmlfile, 'w')
+        
+        template = Template(raw_text)
+        text     = template.render(**tvars)
+        
+        htmlfile = op.join(reportdir, "%s.html" % scan)
+        html     = open(htmlfile, 'w')
         html.write(text)
         html.close()
     
+    # Index File
+    fname       = p.resource_filename('CPAC','resources/templates/logger_subject_index.html')
+    tfile       = open(fname, 'r')
+    raw_text    = tfile.read()
+    tfile.close()
+    
+    template    = Template(raw_text)
+    text        = template.render(**tvars)
+    
+    htmlfile    = op.join(reportdir, "index.html")
+    html        = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return
+
+def create_group_log_template(subject_ids, log_dir):
+    
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    import CPAC
+    
+    tvars = {}
+    tvars['subject_ids'] = subject_ids
+    tvars['resources']   = os.path.join(CPAC.__path__[0], 'resources')
+    tvars['log_dir']     = log_dir
+    
+    reportdir = op.join(log_dir, "reports")
+    if not op.exists(reportdir):
+        os.mkdir(reportdir)
+    
+    fname    = p.resource_filename('CPAC','resources/templates/logger_group_index.html')
+    tfile    = open(fname, 'r')
+    raw_text = tfile.read()
+    tfile.close()
+    
+    template = Template(raw_text)
+    text     = template.render(**tvars)
+    
+    htmlfile = op.join(reportdir, "%s.html" % scan)
+    html     = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return
