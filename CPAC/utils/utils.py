@@ -1261,6 +1261,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     from jinja2 import Template
     import pkg_resources as p
     import CPAC
+    import numpy as np
     
     now = datetime.datetime.now()
 
@@ -1268,6 +1269,8 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     tvars['subject_id']  = subject_id
     tvars['scans']       = scan_ids
     tvars['pipelines']   = pip_ids
+    tvars['wf_list']     = wf_list
+    tvars['wf_keys']     = np.unique(np.array(wf_list).flatten()).tolist()
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
     tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
     
