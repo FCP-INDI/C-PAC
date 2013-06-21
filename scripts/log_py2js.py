@@ -24,7 +24,7 @@ for k,v in wf_info.iteritems():
         wf_info[k] = ''
 
 # Add ID
-wf_id = wf_info['strategy'] + "_" + wf_info['workflow_name'].replace(".", "_")
+wf_id = wf_info['workflow_name'] + "_" + wf_info['strategy'].replace(".", "_")
 wf_info['wf_id'] = wf_id
 
 # Output path

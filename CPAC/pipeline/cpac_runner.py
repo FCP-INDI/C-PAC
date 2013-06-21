@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
-from CPAC.utils.utils import create_seeds_
+from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
 
@@ -338,6 +338,8 @@ def run(config_file, subject_list_file, p_name = None):
             sub_ids.append(sub['subject_id']+"_" + sub["unique_id"])
         else:
             sub_ids.append(sub['subject_id'])
+            
+    create_group_log_template(sub_ids, os.path.join(c.outputDirectory, 'logs'))
 
     seeds_created = []
     if not (c.seedSpecificationFile is None):

@@ -140,7 +140,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             log_wf.inputs.inputspec.workflow = "done"
             log_wf.inputs.inputspec.index = indx
             log_wf.inputs.inputspec.log_dir = log_dir
-            log_wf.inputspec.inputs = log_dir
+            log_wf.inputs.inputspec.inputs = log_dir
 
     strat_list = []
 
@@ -3215,7 +3215,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         pip_ids.append(pipeline_id)
         wf_names.append(strat.get_name())
         
-        create_log_node(None, None, num_strat)
+
         for key in sorted(rp.keys()):
 
 
@@ -3276,6 +3276,10 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 #    workflow.run(updatehash=True)
+
+    for count, id in enumerate(pip_ids):
+            create_log_node(None, None, count)
+        
     sub_w_path = os.path.join(c.workingDirectory, wfname)
         
 
