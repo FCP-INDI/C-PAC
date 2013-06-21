@@ -23,6 +23,10 @@ for k,v in wf_info.iteritems():
     if v is None:
         wf_info[k] = ''
 
+# Add ID
+wf_id = wf_info['strategy'] + "_" + wf_info['workflow_name'].replace(".", "_")
+wf_info['wf_id'] = wf_id
+
 # Output path
 jsfile = op.join(logdir, "reports", "%s.js" % wf_info["scan_id"])
 
@@ -32,6 +36,7 @@ with lock:
     # Append workflow info for this pipeline
     js = open(jsfile, 'a')
     js.write("wf_info[%(pipeline_index)s].push({\n" % wf_info)
+    js.write("\twf_id: '%(wf_id)s', \n" % wf_info) 
     js.write("\tstrategy: '%(strategy)s', \n" % wf_info) 
     js.write("\twf_name: '%(workflow_name)s', \n" % wf_info)
     js.write("\twf_status: '%(wf_status)s', \n" % wf_info)
