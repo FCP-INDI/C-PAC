@@ -1196,7 +1196,9 @@ def write_to_log(workflow, log_dir, index, inputs ):
     
     
     #call zarrare script
-    #os.system("zarrar_script.py %s %s"%(out_file, log_dir))
+    print "******************************calling log_py2js.py********************###################3", out_file
+    iflogger.info("******************************custom calling log_py2js.py********************###################3 %s"%out_file)
+    os.system("log_py2js.py %s %s"%(out_file, log_dir))
     
     return out_file
 
@@ -1245,10 +1247,12 @@ def create_log(
         return wf
 
 def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
+   
     import datetime, os
     from os import path as op
     from jinja2 import Template
     import pkg_resources as p
+    import CPAC
     
     now = datetime.datetime.now()
 
@@ -1257,8 +1261,9 @@ def create_log_template(pip_ids, scan_ids, subject_id, log_dir):
     tvars['scans']       = scan_ids
     tvars['pipelines']   = pip_ids
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
+    tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
     
-    reportdir = op.join(logdir, "reports")
+    reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
         os.mkdir(reportdir)
     

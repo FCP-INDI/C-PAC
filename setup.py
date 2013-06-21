@@ -38,9 +38,7 @@ if __name__ == "__main__":
     sys.path.insert(0, local_path)
     
     setup(configuration=configuration, 
-          scripts=[
-              'scripts/log_py2js.py'
-          ]
+          scripts=['scripts/log_py2js.py'],
           name=DISTNAME,
           maintainer=MAINTAINER,
           maintainer_email=MAINTAINER_EMAIL,

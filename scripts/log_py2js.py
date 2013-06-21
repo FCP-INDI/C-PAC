@@ -20,7 +20,7 @@ log     = __import__(op.basename(logfile).replace(".py",""))
 wf_info = log.log
 
 # Output path
-jsfile = op.join(logdir, "report", "%s.js" % wf_info["scan_id"])
+jsfile = op.join(logdir, "reports", "%s.js" % wf_info["scan_id"])
 
 # Lock file
 lock = FileLock(jsfile)

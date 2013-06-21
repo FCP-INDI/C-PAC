@@ -29,7 +29,7 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries, \
                             get_spatial_map_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
-from CPAC.utils import Configuration
+from CPAC.utils import Configuration, create_log_template
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
                           gen_histogram, gen_plot_png, gen_motion_plt, \
@@ -3262,7 +3262,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     print "For zarrar strategies, pip_ids, wf_names, scan_ids, subject_id ---> ", pip_ids, wf_names, scan_ids, subject_id
     
-    #create_log_template(pip_ids, scan_ids, subject_id, log_dir)
+    create_log_template(pip_ids, scan_ids, subject_id, log_dir)
     
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
