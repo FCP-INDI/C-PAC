@@ -1128,7 +1128,7 @@ def get_tr (tr):
     return tr
 
 
-def write_to_log(workflow, log_dir, index, inputs ):
+def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
     import os
     import CPAC
@@ -1136,7 +1136,10 @@ def write_to_log(workflow, log_dir, index, inputs ):
     version = CPAC.__version__
          
     subject_id = os.path.basename(log_dir)
-    scan_id = "scan_anat"
+    
+    if scan_id == None:
+        scan_id = "scan_anat"
+    
     strategy = ""
     
     import time
@@ -1145,32 +1148,27 @@ def write_to_log(workflow, log_dir, index, inputs ):
     
     stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     
-    wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+    if workflow!= 'DONE':
+        wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+        
+        if wf_path and wf_path != "":
+            if '/' in wf_path:
+                scan_id, strategy = wf_path.split('/',1)
+                scan_id = scan_id.strip('_')
+                strategy = strategy.replace("/","")
+            else:
+                scan_id = wf_path.strip('_')
     
-    if wf_path and wf_path != "":
-        if '/' in wf_path:
-            scan_id, strategy = wf_path.split('/',1)
-            scan_id = scan_id.strip('_')
-            strategy = strategy.replace("/","")
-        else:
-            scan_id = wf_path.strip('_')
-
-    file_path = os.path.join(log_dir, scan_id, workflow)
-    if not os.path.exists(file_path):
-        os.makedirs(file_path)
+        file_path = os.path.join(log_dir, scan_id, workflow)
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+    else:
+        file_path = os.path.join(log_dir, scan_id)
         
     out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
     f = open(out_file, 'w')
     
-#     print >> f, "log = {"
-#     print >>f, "\"version\" : \"%s\","%(str(version))
-#     print >>f, "\"timestamp\": \"%s\","%(stamp)
-#     print >>f, "\"pipeline_index\": %d,"%(index) 
-#     print >>f, "\"subject_id\": \"%s\","%(subject_id)
-#     print >>f, "\"scan_id\": \"%s\","%(scan_id)
-#     print >>f, "\"strategy\": \"%s\","%(strategy)
-#     print >>f, "\"workflow_name\": \"%s\","%(workflow)
-
+    
     print >>f, "version : %s"%(str(version))
     print >>f, "timestamp: %s"%(str(stamp))
     print >>f, "pipeline_index: %d"%(index) 
@@ -1187,23 +1185,19 @@ def write_to_log(workflow, log_dir, index, inputs ):
     if os.path.exists(inputs):
 
         print >>f,  "wf_status: DONE"
-        #print subject_id, scan_id, workflow, strategy, index, wf_path, "completed" , os.getcwd()
-
+  
         iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
                       %(subject_id, scan_id, strategy,workflow, index, 'completed') )
-        #print>>f, subject_id, scan_id, workflow, strategy, index, wf_path, "completed" 
+  
     else:
         
         iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
                       %(subject_id, scan_id, strategy,workflow, index, 'ERROR') )
-        print>>f, "wf_status: Error"
     
-    #print >> f, "}"
+        print>>f, "wf_status: ERROR"
     
     f.close()        
     
-    
-    #call zarrare script
     print "******************************calling log_py2js.py********************###################3", out_file
     iflogger.info("******************************custom calling log_py2js.py********************###################3 %s"%out_file)
     os.system("log_py2js.py %s %s"%(out_file, log_dir))
@@ -1211,7 +1205,7 @@ def write_to_log(workflow, log_dir, index, inputs ):
     return out_file
 
 def create_log( 
-               wf_name = "log"):
+               wf_name = "log", scan_id = None):
     
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
@@ -1233,7 +1227,8 @@ def create_log(
         write_log = pe.Node(util.Function(input_names=[ 'workflow',
                                                         'log_dir',
                                                         'index',
-                                                        'inputs'],
+                                                        'inputs',
+                                                        'scan_id'],
                                                    output_names=['out_file'],
                                                    function=write_to_log),
                                      name='write_log')
@@ -1247,7 +1242,8 @@ def create_log(
                    write_log, 'index')
         wf.connect(inputNode, 'inputs',
                    write_log, 'inputs')
-    
+        
+        write_log.inputs.scan_id = scan_id
 
         wf.connect(write_log, 'out_file',
                    outputNode, 'out_file')

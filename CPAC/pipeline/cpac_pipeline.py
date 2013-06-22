@@ -125,7 +125,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     mflow = None
     pflow = None
 
-    def create_log_node(wflow, output, indx):
+    def create_log_node(wflow, output, indx, scan_id = None):
         #call logging workflow
 
         if wflow: 
@@ -136,11 +136,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             workflow.connect(wflow, output,
                          log_wf, 'inputspec.inputs')
         else:
-            log_wf = create_log(wf_name = 'log_done_%d'%indx)
-            log_wf.inputs.inputspec.workflow = "done"
+            log_wf = create_log(wf_name = 'log_done_%s'%scan_id, scan_id= scan_id)
+            log_wf.inputs.inputspec.workflow = 'DONE'
             log_wf.inputs.inputspec.index = indx
             log_wf.inputs.inputspec.log_dir = log_dir
             log_wf.inputs.inputspec.inputs = log_dir
+            return log_wf
 
     strat_list = []
 
@@ -3269,7 +3270,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         print d_name, '*'
         num_strat += 1
 
-    print "For zarrar strategies, pip_ids, wf_names, scan_ids, subject_id ---> ", pip_ids, wf_names, scan_ids, subject_id
+    print "For zarrar strategies, pip_ids, wf_names, scan_ids, subject_id, log_dir ---> ", pip_ids, wf_names, scan_ids, subject_id, log_dir
     
     create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
     
@@ -3278,7 +3279,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 #    workflow.run(updatehash=True)
 
     for count, id in enumerate(pip_ids):
-            create_log_node(None, None, count)
+        for scan in scan_ids:
+            create_log_node(None, None, count, scan).run()
         
     sub_w_path = os.path.join(c.workingDirectory, wfname)
         
