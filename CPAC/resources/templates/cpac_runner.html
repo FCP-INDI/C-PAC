@@ -211,7 +211,9 @@
 	  window.onload = setupRefresh;
 
 	  function setupRefresh() {
-	    setTimeout("reload_logs();", 10000); // milliseconds (10s)
+			setInterval(function() {
+				reload_logs();
+			}, 1000);
 	  }
 		
 	  //function refreshPage() {
@@ -278,7 +280,6 @@
 					// Is this a special all done entry?
 					if (info.wf_status == 'DONE' & info.wf_name == 'DONE') {
 						$('#'+pipeline).data('done', 1);
-						alert(pipeline + " done!");
 						continue
 					}
 					
