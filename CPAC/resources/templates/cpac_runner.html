@@ -153,8 +153,9 @@
 			var wf_keys = {{ wf_keys }};
 				
 			wf_pipes = {};
-			for (var k in wf_keys) {
-			    wf_pipes[k] = [];
+			for (var i = 0; i < wf_keys.length; i++) {
+				var k = wf_keys[i];
+				wf_pipes[k] = [];
 			}
 			for (var pi = 0; pi < wf_list.length; pi++) {
 			    for (var wi = 0; wi < wf_list[pi].length; wi++) {
@@ -262,7 +263,8 @@
 			var tot_done	 = 0;
 			var tot_errors = 0;
 			
-			for (var pindex in pipe_inds) {
+			for (var pi=0; pi<pipe_inds.length; pi++) {
+				var pindex	 = pipe_inds[pi]
 				var pipeline = pipe_names[pindex];
 				var row_start = $('#'+pipeline).data('row-start');
 				
@@ -270,7 +272,6 @@
 					// Setup workflow info object
 					// each info should have strategy, wf_name, wf_status as keys
 					var info = wf_info[pindex][wi]
-					info.pipeline  = pipeline;
 					info.wf_status = info.wf_status.toUpperCase();
 					info.row_id		 = wi+1;
 					
@@ -287,18 +288,14 @@
 						$('#'+pipeline).data('errors', nerrors+1);
 					}
 					
-					// Update html
-					update_workflow_html(info);
-					
 					// Is this workflow duplicated in other pipelines?
 					// duplicated nodes won't be run in other pipelines
 					// so copy and add them to the other pipelines here
-					for (var pindex2 in wf_pipes[info.wf_name]) {
-						if (pindex != pindex2) {
-							var info2 = jQuery.extend(true, {}, info);
-							info2.pipeline = pipe_names[pindex2];
-							update_workflow_html(info2);
-						}
+					for (var pi2=0; pi2<wf_pipes[info.wf_name].length; pi2++) {
+						var pindex2 = wf_pipes[info.wf_name][pi2]
+						var info2 = jQuery.extend(true, {}, info);
+						info2.pipeline = pipe_names[pindex2];
+						update_workflow_html(info2);
 					}
 					
 					// Update row offset
