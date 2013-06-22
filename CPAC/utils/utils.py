@@ -1198,8 +1198,8 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
     f.close()        
     
-    print "******************************calling log_py2js.py********************###################3", out_file
-    iflogger.info("******************************custom calling log_py2js.py********************###################3 %s"%out_file)
+#     print "******************************calling log_py2js.py********************###################3", out_file
+#     iflogger.info("******************************custom calling log_py2js.py********************###################3 %s"%out_file)
     os.system("log_py2js.py %s %s"%(out_file, log_dir))
     
     return out_file
