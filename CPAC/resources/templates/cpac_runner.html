@@ -134,6 +134,7 @@
       <hr>
 
       <footer>
+				<img src="{{ gui_resources }}/images/cpac_new_logo.png">
         <p>&copy; CPAC 2013</p>
       </footer>
 
@@ -182,6 +183,7 @@
 			for (var pindex in pipe_inds) {
 				var pipeline = pipe_names[pindex];
 				$('#'+pipeline).data('row-start', 0);
+				$('#'+pipeline).data('row-id', 0);
 				$('#'+pipeline).data('done', 0);
 				$('#'+pipeline).data('errors', 0);
 			}
@@ -231,12 +233,15 @@
 			var str  = $.substitute("#${ pipeline } table #${ wf_id }", info)
 			var node = $(str)
 			
+			// Get number of rows in table and put in row_id
+			info.row_id = $('#'+info.pipeline).data('row-id') + 1
+			
 			// Add row only if the id is empty
 			if (node.length == 0) {
 			  var new_row = $.substitute('<tr id="${ wf_id }"> \
 						<td>${ row_id }</td> \
 						<td>${ wf_name }</td> \
-						<td>${ strategy }</td> \
+						<td>${ disp_strategy }</td> \
 						<td>${ timestamp }</td> \
 						<td><span id="status" class="label">WAITING</span></td> \
 					</tr>', info)
@@ -259,6 +264,8 @@
 				status_node.addClass("label");
 				status_node.addClass(status_classes[info.wf_status]);
 			}
+			
+			$('#'+info.pipeline).data('row-id', info.row_id);
 		}
 		
 		function parse_logs() {
@@ -273,9 +280,9 @@
 				for (var wi=row_start; wi<wf_info[pindex].length; wi++) {
 					// Setup workflow info object
 					// each info should have strategy, wf_name, wf_status as keys
-					var info = wf_info[pindex][wi]
+					var info = jQuery.extend(true, {}, wf_info[pindex][wi]);
+					info.disp_strategy = info.strategy.replace(/_/g, " ");
 					info.wf_status = info.wf_status.toUpperCase();
-					info.row_id		 = wi+1;
 					
 					// Is this a special all done entry?
 					if (info.wf_status == 'DONE' & info.wf_name == 'DONE') {
