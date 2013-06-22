@@ -225,7 +225,7 @@
     function reload_logs(src) {
         $('script[src="' + src + '"]').remove();
         $('<script>').attr('src', src).appendTo('head');
-				parse_logs();
+				parse_logs('{{ logfile }}');
     }
 		
 		function update_workflow_html(info) {
