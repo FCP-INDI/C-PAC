@@ -1277,7 +1277,8 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     tvars['wf_keys']     = "%s" % wf_keys
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
     tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
-        
+    tvars['gui_resources'] = os.path.join(CPAC.__path__[0], 'GUI', 'resources')
+    
     reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
         os.mkdir(reportdir)
