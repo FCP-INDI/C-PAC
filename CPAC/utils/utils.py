@@ -1129,6 +1129,9 @@ def get_tr (tr):
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
+    """
+    Method to write into log file the status of the workflow run.
+    """
     
     import os
     import CPAC
@@ -1181,74 +1184,81 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     from nipype import logging
     iflogger = logging.getLogger('interface')
     iflogger.info("CPAC custom log :")
+    
+    if isinstance(inputs, list):
+        inputs = inputs[0]
         
     if os.path.exists(inputs):
 
         print >>f,  "wf_status: DONE"
   
-        iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
-                      %(subject_id, scan_id, strategy,workflow, index, 'completed') )
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'COMPLETED') )
   
     else:
         
-        iflogger.info(" subject_id - %s, scan_id -%s, strategy -%s, workflow - %s, index -%s, status -%s"\
-                      %(subject_id, scan_id, strategy,workflow, index, 'ERROR') )
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'ERROR') )
     
         print>>f, "wf_status: ERROR"
     
     f.close()        
     
-#     print "******************************calling log_py2js.py********************###################3", out_file
-#     iflogger.info("******************************custom calling log_py2js.py********************###################3 %s"%out_file)
     os.system("log_py2js.py %s %s"%(out_file, log_dir))
     
     return out_file
 
-def create_log( 
-               wf_name = "log", scan_id = None):
-    
-        import nipype.pipeline.engine as pe
-        import nipype.interfaces.utility as util
-        
-        wf = pe.Workflow(name=wf_name)
-        
-        inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
-                                                           'log_dir',
-                                                           'index',
-                                                           'inputs'
-                                                        ]),
-                            name='inputspec')
-    
-    
-        outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                            'out_file']),
-                            name='outputspec')
-    
-        write_log = pe.Node(util.Function(input_names=[ 'workflow',
-                                                        'log_dir',
-                                                        'index',
-                                                        'inputs',
-                                                        'scan_id'],
-                                                   output_names=['out_file'],
-                                                   function=write_to_log),
-                                     name='write_log')
-    
 
-        wf.connect(inputNode, 'workflow',
-                   write_log, 'workflow')
-        wf.connect(inputNode, 'log_dir',
-                   write_log, 'log_dir')
-        wf.connect(inputNode, 'index',
-                   write_log, 'index')
-        wf.connect(inputNode, 'inputs',
-                   write_log, 'inputs')
-        
-        write_log.inputs.scan_id = scan_id
+def create_log( wf_name = "log", 
+                scan_id = None):
+    
+    """
+    Workflow to create log 
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    
+    wf = pe.Workflow(name=wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                       'log_dir',
+                                                       'index',
+                                                       'inputs'
+                                                    ]),
+                        name='inputspec')
 
-        wf.connect(write_log, 'out_file',
-                   outputNode, 'out_file')
-        
-        return wf
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                        name='outputspec')
+
+    write_log = pe.Node(util.Function(input_names=[ 'workflow',
+                                                    'log_dir',
+                                                    'index',
+                                                    'inputs',
+                                                    'scan_id'],
+                                               output_names=['out_file'],
+                                               function=write_to_log),
+                                 name='write_log')
+
+
+    wf.connect(inputNode, 'workflow',
+               write_log, 'workflow')
+    wf.connect(inputNode, 'log_dir',
+               write_log, 'log_dir')
+    wf.connect(inputNode, 'index',
+               write_log, 'index')
+    wf.connect(inputNode, 'inputs',
+               write_log, 'inputs')
+    
+    write_log.inputs.scan_id = scan_id
+
+    wf.connect(write_log, 'out_file',
+               outputNode, 'out_file')
+    
+    return wf
+    
 
 def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
    
@@ -1315,6 +1325,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     html.close()
     
     return
+
 
 def create_group_log_template(subject_ids, log_dir):
     
