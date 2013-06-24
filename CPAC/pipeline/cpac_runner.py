@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
-from CPAC.utils.utils import create_seeds_
+from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
 
@@ -310,12 +310,15 @@ def run(config_file, subject_list_file, p_name = None):
     try:
     
         if not os.path.exists(config_file):
-            raise IOError("config file %s doesn't exist" %config_file)
+            raise IOError
         else:
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
-            
+    
+    except IOError:
+        print "config file %s doesn't exist" %config_file
+        raise
     except Exception:
-        print "Error reading config file - %s"%config_file 
+        raise Exception("Error reading config file - %s"%config_file) 
 
     #do some validation
     validate(c)
@@ -326,6 +329,17 @@ def run(config_file, subject_list_file, p_name = None):
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     strategies = sorted(build_strategies(c))
+    
+    print "strategies ---> ", strategies
+    
+    sub_ids =[]
+    for sub in sublist:
+        if sub['unique_id']:
+            sub_ids.append(sub['subject_id']+"_" + sub["unique_id"])
+        else:
+            sub_ids.append(sub['subject_id'])
+            
+    create_group_log_template(sub_ids, os.path.join(c.outputDirectory, 'logs'))
 
     seeds_created = []
     if not (c.seedSpecificationFile is None):
