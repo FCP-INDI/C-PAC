@@ -1001,7 +1001,7 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
     from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
     from CPAC.qc.utils import make_qc_pages
 
-    os.system('rm -rf %s/*.html')
+    #os.system('rm -rf %s/*.html')
 
     #according to preprocessing strategy combines the files
     first_pass_organizing_files(qc_path)

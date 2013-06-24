@@ -121,6 +121,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         cmd = "find %s -name \'*link*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
         print cmd
         commands.getoutput(cmd)
+        cmd = "find %s -name \'*log*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        print cmd
+        commands.getoutput(cmd)
 
     mflow = None
     pflow = None

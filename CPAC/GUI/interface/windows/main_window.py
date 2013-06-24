@@ -163,22 +163,10 @@ class ListBox(wx.Frame):
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
         
-        #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
-#         self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
-#         self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
-#         self.runCPAC1.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC1.SetHoverColor('#0071B2')
 
         self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
         
-#         self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
-#         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
-#         self.runCPAC2.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC2.SetHoverColor('#0071B2')
-#         self.runCPAC2.SetForegroundColour('#000000')
 
         self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
@@ -242,7 +230,7 @@ class ListBox(wx.Frame):
                             pipeline = self.pipeline_map.get(p)
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
-                            MyForm(pipeline, sublist, p).Show()
+                            runCPAC(pipeline, sublist, p).Show()
                             #CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
                             
 
@@ -464,6 +452,7 @@ class ListBox(wx.Frame):
                     dlg.Destroy
                     break
 
+
 class RedirectText(object):
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
@@ -471,7 +460,8 @@ class RedirectText(object):
     def write(self, string):
         wx.CallAfter(self.out.WriteText, string)
         
-class MyForm(wx.Frame):
+        
+class runCPAC(wx.Frame):
  
     def __init__(self, pipeline, sublist, p):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
@@ -497,10 +487,12 @@ class MyForm(wx.Frame):
         redir=RedirectText(log)
         sys.stdout=redir
         print "running pipeline --> ", p
-        print "process id --> ", os.getpid()
+        print "pipeline config --> ", pipeline
+        print "subject list --> ", sublist
         
-
  
     def onButton(self, event):        
         print "kill -9" ,os.kill(os.getpid(), 0)
         self.Close()
+        
+        
