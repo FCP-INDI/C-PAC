@@ -1127,3 +1127,234 @@ def get_tr (tr):
            tr = tr / 1000.0
     return tr
 
+
+def write_to_log(workflow, log_dir, index, inputs, scan_id ):
+    """
+    Method to write into log file the status of the workflow run.
+    """
+    
+    import os
+    import CPAC
+     
+    version = CPAC.__version__
+         
+    subject_id = os.path.basename(log_dir)
+    
+    if scan_id == None:
+        scan_id = "scan_anat"
+    
+    strategy = ""
+    
+    import time
+    import datetime
+    ts = time.time()
+    
+    stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    
+    if workflow!= 'DONE':
+        wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+        
+        if wf_path and wf_path != "":
+            if '/' in wf_path:
+                scan_id, strategy = wf_path.split('/',1)
+                scan_id = scan_id.strip('_')
+                strategy = strategy.replace("/","")
+            else:
+                scan_id = wf_path.strip('_')
+    
+        file_path = os.path.join(log_dir, scan_id, workflow)
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+    else:
+        file_path = os.path.join(log_dir, scan_id)
+        
+    out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
+    f = open(out_file, 'w')
+    
+    
+    print >>f, "version : %s"%(str(version))
+    print >>f, "timestamp: %s"%(str(stamp))
+    print >>f, "pipeline_index: %d"%(index) 
+    print >>f, "subject_id: %s"%(subject_id)
+    print >>f, "scan_id: %s"%(scan_id)
+    print >>f, "strategy: %s"%(strategy)
+    print >>f, "workflow_name: %s"%(workflow)
+        
+        
+    from nipype import logging
+    iflogger = logging.getLogger('interface')
+    iflogger.info("CPAC custom log :")
+    
+    if isinstance(inputs, list):
+        inputs = inputs[0]
+        
+    if os.path.exists(inputs):
+
+        print >>f,  "wf_status: DONE"
+  
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'COMPLETED') )
+  
+    else:
+        
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'ERROR') )
+    
+        print>>f, "wf_status: ERROR"
+    
+    f.close()        
+    
+    os.system("log_py2js.py %s %s"%(out_file, log_dir))
+    
+    return out_file
+
+
+def create_log( wf_name = "log", 
+                scan_id = None):
+    
+    """
+    Workflow to create log 
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    
+    wf = pe.Workflow(name=wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                       'log_dir',
+                                                       'index',
+                                                       'inputs'
+                                                    ]),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                        name='outputspec')
+
+    write_log = pe.Node(util.Function(input_names=[ 'workflow',
+                                                    'log_dir',
+                                                    'index',
+                                                    'inputs',
+                                                    'scan_id'],
+                                               output_names=['out_file'],
+                                               function=write_to_log),
+                                 name='write_log')
+
+
+    wf.connect(inputNode, 'workflow',
+               write_log, 'workflow')
+    wf.connect(inputNode, 'log_dir',
+               write_log, 'log_dir')
+    wf.connect(inputNode, 'index',
+               write_log, 'index')
+    wf.connect(inputNode, 'inputs',
+               write_log, 'inputs')
+    
+    write_log.inputs.scan_id = scan_id
+
+    wf.connect(write_log, 'out_file',
+               outputNode, 'out_file')
+    
+    return wf
+    
+
+def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
+   
+    import datetime, os
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    import CPAC
+    import itertools
+    
+    now = datetime.datetime.now()
+    
+    chain = itertools.chain(*wf_list)
+    wf_keys = list(chain)
+    wf_keys = list(set(wf_keys))
+    
+    tvars = {}
+    tvars['subject_id']  = subject_id
+    tvars['scans']       = scan_ids
+    tvars['pipelines']   = pip_ids
+    tvars['wf_list']     = "%s" % wf_list
+    tvars['wf_keys']     = "%s" % wf_keys
+    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
+    tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
+    tvars['gui_resources'] = os.path.join(CPAC.__path__[0], 'GUI', 'resources')
+    
+    reportdir = op.join(log_dir, "reports")
+    if not op.exists(reportdir):
+        os.mkdir(reportdir)
+    
+    for scan in scan_ids:
+        jsfile   = op.join(reportdir, "%s.js" % scan)
+        open(jsfile, 'a').close()
+        
+        tvars['cur_scan']    = scan
+        tvars['logfile']     = jsfile
+        tvars['timestamp']   = now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        fname    = p.resource_filename('CPAC','resources/templates/cpac_runner.html')
+        tfile    = open(fname, 'r')
+        raw_text = tfile.read()
+        tfile.close()
+        
+        template = Template(raw_text)
+        text     = template.render(**tvars)
+        
+        htmlfile = op.join(reportdir, "%s.html" % scan)
+        html     = open(htmlfile, 'w')
+        html.write(text)
+        html.close()
+    
+    # Index File
+    fname       = p.resource_filename('CPAC','resources/templates/logger_subject_index.html')
+    tfile       = open(fname, 'r')
+    raw_text    = tfile.read()
+    tfile.close()
+    
+    template    = Template(raw_text)
+    text        = template.render(**tvars)
+    
+    htmlfile    = op.join(reportdir, "index.html")
+    html        = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return
+
+
+def create_group_log_template(subject_ids, log_dir):
+    
+    import os
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    import CPAC
+    
+    tvars = {}
+    tvars['subject_ids'] = subject_ids
+    tvars['resources']   = op.join(CPAC.__path__[0], 'resources')
+    tvars['log_dir']     = log_dir
+    
+    reportdir = op.join(log_dir, "reports")
+    if not op.exists(reportdir):
+        os.makedirs(reportdir)
+    
+    fname    = p.resource_filename('CPAC','resources/templates/logger_group_index.html')
+    tfile    = open(fname, 'r')
+    raw_text = tfile.read()
+    tfile.close()
+    
+    template = Template(raw_text)
+    text     = template.render(**tvars)
+    
+    htmlfile = op.join(reportdir, "index.html")
+    html     = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return
