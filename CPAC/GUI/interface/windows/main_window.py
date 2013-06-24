@@ -210,12 +210,20 @@ class ListBox(wx.Frame):
 
         self.Centre()
         self.Show(True)
+        
+    def runAnalysis1(self,pipeline, sublist, p):
+        
+        import CPAC
+        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+        
 
     def runIndividualAnalysis(self, event):
 
         try:
                 if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
                     (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
+                    
+                    import thread
                     
                     pipelines = self.listbox.GetCheckedStrings()
                     sublists = self.listbox2.GetCheckedStrings()
@@ -230,9 +238,31 @@ class ListBox(wx.Frame):
                             pipeline = self.pipeline_map.get(p)
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
-                            runCPAC(pipeline, sublist, p).Show()
-                            #CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
                             
+                            thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
+
+                            
+                            import time
+                            time.sleep(20)
+                            
+                            try:
+                                import yaml
+                                config = yaml.load(open(pipeline, 'r'))
+                            except:
+                                raise Exception("Error reading config file- %s", config)
+                            
+                            try:
+                                if config.get('outputDirectory'):
+                                    pid = [ int(id.strip()) for id in open(os.path.join(config.get('outputDirectory'),\
+                                       'pid.txt')).readlines()]
+                            except ImportError:
+                                print "unable to find the file %s"% os.path.join(config.outputDirectory, 'pid.txt')
+                                pid = None
+                            except Exception:
+                                print "Unable to retrieve process id"
+                                pid = None
+                            
+                            runCPAC(pipeline, sublist, p, pid).Show()
 
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
@@ -451,48 +481,46 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
-
-
-class RedirectText(object):
-    def __init__(self,aWxTextCtrl):
-        self.out=aWxTextCtrl
- 
-    def write(self, string):
-        wx.CallAfter(self.out.WriteText, string)
-        
-        
+              
 class runCPAC(wx.Frame):
  
-    def __init__(self, pipeline, sublist, p):
+    def __init__(self, pipeline, sublist, p, pid):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
-    
-        
+                
         # Add a panel so it looks the correct on all platforms
         panel = wx.Panel(self, wx.ID_ANY)
         log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
                           style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
-        btn = wx.Button(panel, wx.ID_ANY, 'Close')
-        self.Bind(wx.EVT_BUTTON, self.onButton, btn)
+        btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
+        self.Bind(wx.EVT_BUTTON,lambda event: self.onButton(event, pid), btn)
  
         # Add widgets to a sizer        
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
         sizer.Add(btn, 0, wx.ALL|wx.CENTER, 5)
         panel.SetSizer(sizer)
-        
-        import CPAC
-        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
  
-        # redirect text here
-        redir=RedirectText(log)
-        sys.stdout=redir
-        print "running pipeline --> ", p
-        print "pipeline config --> ", pipeline
-        print "subject list --> ", sublist
-        
+        log.AppendText("running for pipeline --> %s \n"%p)
+        log.AppendText("pipeline config --> %s \n"%pipeline)
+        log.AppendText("subject list --> %s \n"%sublist)
+        log.AppendText("process ids ---> %s \n"%pid)
+
+       
+
  
-    def onButton(self, event):        
-        print "kill -9" ,os.kill(os.getpid(), 0)
-        self.Close()
+    def onButton(self, event, pid):        
+        if pid:
+            for id in pid:
+                print "killing process id -%s"% id
+                os.kill(id, 9)
+                print "please restart the gui"
+        
+            self.Close()
+        else:
+            dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. Please kill the process from command prompt',
+                                   'Alert!',
+                                   wx.OK | wx.ICON_INFORMATION)
+            dlg.Destroy()
+            
         
         

@@ -892,6 +892,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.set_leaf_properties(median_angle_corr, 'outputspec.subject')
 
             strat.update_resource_pool({'functional_median_angle_corrected':(median_angle_corr, 'outputspec.subject')})
+            
+            create_log_node(median_angle_corr, 'outputspec.subject', num_strat)
 
             num_strat += 1
 
@@ -1320,9 +1322,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.append_name(alff_Z_smooth.name)
             strat.update_resource_pool({'alff_Z_smooth':(alff_Z_smooth, 'out_file')})
             strat.update_resource_pool({'falff_Z_smooth':(falff_Z_smooth, 'out_file')})
-
-            create_log_node(falff_Z_smooth, 'out_file', num_strat)
-
+            
+  
             if c.runRegisterFuncToMNI:
 
                 alff_Z_to_standard_smooth = alff_Z_smooth.clone('alff_Z_to_standard_smooth_%d' % num_strat)
@@ -2284,6 +2285,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 strat.append_name(network_centrality.name)
 
                 strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
+                
                 create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
 
                 # if smoothing is required
