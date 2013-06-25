@@ -213,9 +213,15 @@ class ListBox(wx.Frame):
         
     def runAnalysis1(self,pipeline, sublist, p):
         
-        import CPAC
-        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+        try:
+            
+            import CPAC
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
         
+        except ImportError, e:
+            wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
+            print "Error importing CPAC"
+            print e
 
     def runIndividualAnalysis(self, event):
 
@@ -269,16 +275,38 @@ class ListBox(wx.Frame):
                 else:
                     print "no pipeline and subject list selected"
                     
-        except ImportError, e:
-                wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
-                print "Error importing CPAC"
-                print e
+
         except Exception, e:
                 print e
                 #wx.MessageBox(e, "Error") 
                 
     def runGroupLevelAnalysis(self, event):
         print "running Group Analysis"
+        
+#         try:
+#             if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+#                     import thread
+#                     
+#                     pipelines = self.listbox.GetCheckedStrings()
+#                     for pipeline in pipelines:
+#                         
+#                         import yaml
+#                         config = yaml.load(open(pipeline, 'r'))
+#                         output = config.get('outputDirectory')
+#                         
+#                         dlg = wx.TextEntryDialog(
+#                             self, 'Enter the path to file containing derivatives',
+#                             'Group Level Analysis', )
+#             
+#                         dlg.SetValue("Python is the best!")
+#             
+#                         if dlg.ShowModal() == wx.ID_OK:
+#                             self.log.WriteText('You entered: %s\n' % dlg.GetValue())
+#             
+#                             dlg.Destroy()
+#         
+#         except Exception:
+#             pass        
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -522,5 +550,4 @@ class runCPAC(wx.Frame):
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
             
-        
         
