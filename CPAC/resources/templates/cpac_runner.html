@@ -214,8 +214,9 @@
 
 	  function setupRefresh() {
 			setInterval(function() {
-				reload_logs();
-			}, 1000);
+				location.reload(true);
+				//reload_logs();
+			}, 5000);
 	  }
 		
 	  //function refreshPage() {
@@ -230,11 +231,11 @@
 		
 		function update_workflow_html(info) {
 			// Get element with id
-			var str  = $.substitute("#${ pipeline } table #${ wf_id }", info)
-			var node = $(str)
+			var str  = $.substitute("#${ pipeline } table #${ wf_id }", info);
+			var node = $(str);
 			
 			// Get number of rows in table and put in row_id
-			info.row_id = $('#'+info.pipeline).data('row-id') + 1
+			info.row_id = $('#'+info.pipeline).data('row-id') + 1;
 			
 			// Add row only if the id is empty
 			if (node.length == 0) {
@@ -244,17 +245,17 @@
 						<td>${ disp_strategy }</td> \
 						<td>${ timestamp }</td> \
 						<td><span id="status" class="label">WAITING</span></td> \
-					</tr>', info)
-			  str  = $.substitute("#${ pipeline } table tbody:last", info)
-				$(str).append(new_row)
+					</tr>', info);
+			  str  = $.substitute("#${ pipeline } table tbody:last", info);
+				$(str).append(new_row);
 				
-				str  = $.substitute("#${ pipeline } table #${ wf_id }", info)
-				node = $(str)
+				str  = $.substitute("#${ pipeline } table #${ wf_id }", info);
+				node = $(str);
 			}
 			
 			// Update table row color and row status
-			str = $.substitute("#${ pipeline } table #${ wf_id } #status", info)
-			var status_node = $(str)
+			str = $.substitute("#${ pipeline } table #${ wf_id } #status", info);
+			var status_node = $(str);
 			if (status_node.text() != info.wf_status) {
 				node.removeClass();
 				node.addClass(row_classes[info.wf_status]);
@@ -272,10 +273,14 @@
 			var tot_done	 = 0;
 			var tot_errors = 0;
 			
+			console.log('call parse_logs');
+			
 			for (var pi=0; pi<pipe_inds.length; pi++) {
 				var pindex	 = pipe_inds[pi]
 				var pipeline = pipe_names[pindex];
 				var row_start = $('#'+pipeline).data('row-start');
+				
+				console.log('\tpipeline: ' + pipeline);
 				
 				for (var wi=row_start; wi<wf_info[pindex].length; wi++) {
 					// Setup workflow info object
@@ -283,6 +288,9 @@
 					var info = jQuery.extend(true, {}, wf_info[pindex][wi]);
 					info.disp_strategy = info.strategy.replace(/_/g, " ");
 					info.wf_status = info.wf_status.toUpperCase();
+					
+					info.wi = wi;
+					console.log($.substitute('\t\twi: ${wi}, workflow: ${wf_name}', info));
 					
 					// Is this a special all done entry?
 					if (info.wf_status == 'DONE' & info.wf_name == 'DONE') {
@@ -294,6 +302,12 @@
 					if (info.wf_status == 'ERROR') {
 						var nerrors = $('#'+pipeline).data('errors');
 						$('#'+pipeline).data('errors', nerrors+1);
+					}
+					
+					// Is the workflow even present in our master list?
+					if (wf_pipes[info.wf_name] == undefined) {
+						console.log($.substitute('Could not find workflow ${wf_name} in wf_pipes', info));
+						continue;
 					}
 					
 					// Is this workflow duplicated in other pipelines?
@@ -324,7 +338,7 @@
 				if (nerrors > 0) {
 					tot_errors += nerrors;
 					btn_node = $('#'+pipeline+' h1 a.btn');
-					btn_node.text('DONE');
+					btn_node.text('ERROR');
 					btn_node.removeClass('btn-info');
 					btn_node.removeClass('btn-success');
 					btn_node.addClass('btn-danger');
