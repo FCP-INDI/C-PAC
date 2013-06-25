@@ -1291,7 +1291,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     
     for scan in scan_ids:
         jsfile   = op.join(reportdir, "%s.js" % scan)
-        open(jsfile, 'a').close()
+        open(jsfile, 'w').close()
         
         tvars['cur_scan']    = scan
         tvars['logfile']     = jsfile
