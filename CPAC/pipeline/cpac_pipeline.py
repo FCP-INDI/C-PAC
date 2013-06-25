@@ -1094,7 +1094,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     
             strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                         'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file')})
-    
+            strat.append_name(func_mni_warp.name)
             create_log_node(func_mni_warp, 'out_file', num_strat)
             
             num_strat += 1
@@ -1360,6 +1360,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                     raise
 
                 strat.append_name(alff_Z_to_standard_smooth.name)
+                strat.append_name(falff_Z_to_standard_smooth.name)
                 strat.update_resource_pool({'alff_Z_to_standard_smooth':(alff_Z_to_standard_smooth, 'out_file')})
                 strat.update_resource_pool({'falff_Z_to_standard_smooth':(falff_Z_to_standard_smooth, 'out_file')})
 
@@ -1875,7 +1876,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             except:
                 print 'Invalid Connection: sca_tempreg smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            strat.append_name('temporal_regression_sca_smooth_%d'%num_strat)
+            strat.append_name(sc_temp_reg_maps_smooth.name)
             strat.update_resource_pool({'sca_tempreg_maps_stack_smooth':(sc_temp_reg_maps_smooth, 'out_file'),
                                        'sca_tempreg_maps_z_stack_smooth':(sc_temp_reg_maps_Z_stack_smooth, 'out_file'),
                                        'sca_tempreg_maps_z_files_smooth':(sc_temp_reg_maps_Z_files_smooth, 'out_file')})
@@ -1937,7 +1938,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             except:
                 print 'Invalid Connection: dr_tempreg smooth:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
-            strat.append_name('temporal_dual_regression_smooth_%d'%num_strat)
+            strat.append_name(dr_temp_reg_maps_smooth.name)
             strat.update_resource_pool({'dr_tempreg_maps_stack_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
                                        'dr_tempreg_maps_z_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
                                        'dr_tempreg_maps_z_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
@@ -2315,7 +2316,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                     strat.append_name(smoothing.name)
                     strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
                                                 'centrality_outputs_zscore' :   (z_score, 'outputspec.z_score_img')})
-
+                    
+                    strat.append_name(smoothing.name)
                     create_log_node(smoothing, 'out_file', num_strat)
 
             except:
