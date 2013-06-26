@@ -296,13 +296,13 @@ class ListBox(wx.Frame):
                     except:
                             raise Exception("Error reading config file- %s", config)
                     
-                    try:
-                        if config.get('outputDirectory'):
-                            path = os.path.join(config.get('ouputDirectory'), 'pipeline_*', '*', 'path_files_here/*.txt')
-                    except Exception:
-                        path = ''
-                        
-                    runGLA(pipeline, path)
+                    if config.get('outputDirectory'):
+                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                    else:
+                        derv_path = ''
+                    
+                    runGLA(pipeline, derv_path)
+                
                 else:
                     print "pipeline doesn't exist"
                     
@@ -511,6 +511,7 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
+       
               
 class runCPAC(wx.Frame):
  
@@ -536,8 +537,6 @@ class runCPAC(wx.Frame):
         log.AppendText("process ids ---> %s \n"%pid)
 
        
-
- 
     def onButton(self, event, pid):        
         if pid:
             for id in pid:
@@ -551,15 +550,15 @@ class runCPAC(wx.Frame):
                                    'Alert!',
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
+       
             
 class runGLA(wx.Frame):
     
     def __init__(self, pipeline, path):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Group Level Analysis")
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis", size = (680,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
-        
         
         flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
 
@@ -574,8 +573,8 @@ class runGLA(wx.Frame):
                                  pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
         help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
         
-        hbox1.Add(label2)
-        hbox1.Add(help2)
+        hbox1.Add(label1)
+        hbox1.Add(help1)
         
         flexsizer.Add(hbox1)
         flexsizer.Add(self.box1, flag = wx.EXPAND | wx.ALL)
@@ -587,7 +586,7 @@ class runGLA(wx.Frame):
         
         button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
         button2.Bind(wx.EVT_BUTTON, lambda event: \
-                         self.onOK(event, pipeline, path))
+                         self.onOK(event, pipeline) )
         
         hbox.Add(button3, 1, wx.EXPAND, border =5)
         hbox.Add(button2, 1, wx.EXPAND, border =5)
@@ -601,17 +600,21 @@ class runGLA(wx.Frame):
     def onCancel(self, event):
         self.Close()
         
-    def runCPAC(self, pipeline, path):
+    def runAnalysis(self, pipeline, path):
         
-        import CPAC
-        CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+        try:
+            import CPAC
+            CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+        except Exception:
+            print "Exception while running cpac_group_runner"
+            
         
     def onOK(self, event, pipeline):
         
         import thread
         
         if self.box1.GetValue():
-            thread.start_new(runCPAC, (pipeline, self.box1.GetValue()))
+            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
             self.Close()
         else:
             wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")
