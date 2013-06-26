@@ -301,7 +301,7 @@ class ListBox(wx.Frame):
                     else:
                         derv_path = ''
                     
-                    runGLA(pipeline, derv_path)
+                    runGLA(pipeline, derv_path, p)
                 
                 else:
                     print "pipeline doesn't exist"
@@ -554,8 +554,8 @@ class runCPAC(wx.Frame):
             
 class runGLA(wx.Frame):
     
-    def __init__(self, pipeline, path):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis", size = (680,120))
+    def __init__(self, pipeline, path, name):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
@@ -601,7 +601,6 @@ class runGLA(wx.Frame):
         self.Close()
         
     def runAnalysis(self, pipeline, path):
-        
         try:
             import CPAC
             CPAC.pipeline.cpac_group_runner.run(pipeline, path)
