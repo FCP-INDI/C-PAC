@@ -175,8 +175,14 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('qsub  %s ' % (subject_bash_file))
-
+    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+    out = commands.getoutput('qsub  %s ' % (subject_bash_file))
+    
+    import re
+    pid = re.search("(?<=Your job-array )\d+", out).group(0)
+    print >> p,  pid 
+    
+    p.close()
 
 def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
@@ -375,7 +381,9 @@ def run(config_file, subject_list_file, p_name = None):
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
         procss = [Process(target=prep_workflow, args=(sub, c, strategies, p_name)) for sub in sublist]
-
+        pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+        import subprocess
+        
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
             """
@@ -385,7 +393,7 @@ def run(config_file, subject_list_file, p_name = None):
             """
             for p in procss:
                 p.start()
-
+                print >>pid,p.pid
 
         else:
 
@@ -404,6 +412,7 @@ def run(config_file, subject_list_file, p_name = None):
                     for p in procss[idc: idc + c.numSubjectsAtOnce]:
 
                         p.start()
+                        print >>pid,p.pid
                         jobQueue.append(p)
                         idx += 1
 
@@ -421,7 +430,7 @@ def run(config_file, subject_list_file, p_name = None):
                             idx += 1
 
 
-
+        pid.close()
     else:
 
         import commands
@@ -452,3 +461,5 @@ def run(config_file, subject_list_file, p_name = None):
         elif 'condor' in c.resourceManager.lower():
 
             run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+
+    return 1

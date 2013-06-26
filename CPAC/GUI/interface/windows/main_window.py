@@ -163,22 +163,10 @@ class ListBox(wx.Frame):
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
         
-        #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
-#         self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
-#         self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
-#         self.runCPAC1.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC1.SetHoverColor('#0071B2')
 
         self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
         
-#         self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
-#         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
-#         self.runCPAC2.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC2.SetHoverColor('#0071B2')
-#         self.runCPAC2.SetForegroundColour('#000000')
 
         self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
@@ -222,12 +210,26 @@ class ListBox(wx.Frame):
 
         self.Centre()
         self.Show(True)
+        
+    def runAnalysis1(self,pipeline, sublist, p):
+        
+        try:
+            
+            import CPAC
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+        
+        except ImportError, e:
+            wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
+            print "Error importing CPAC"
+            print e
 
     def runIndividualAnalysis(self, event):
 
         try:
                 if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
                     (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
+                    
+                    import thread
                     
                     pipelines = self.listbox.GetCheckedStrings()
                     sublists = self.listbox2.GetCheckedStrings()
@@ -242,25 +244,69 @@ class ListBox(wx.Frame):
                             pipeline = self.pipeline_map.get(p)
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
-                            MyForm(pipeline, sublist, p).Show()
-                            #CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
                             
+                            thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
+
+                            
+                            import time
+                            time.sleep(20)
+                            
+                            try:
+                                import yaml
+                                config = yaml.load(open(pipeline, 'r'))
+                            except:
+                                raise Exception("Error reading config file- %s", config)
+                            
+                            try:
+                                if config.get('outputDirectory'):
+                                    pid = [ int(id.strip()) for id in open(os.path.join(config.get('outputDirectory'),\
+                                       'pid.txt')).readlines()]
+                            except ImportError:
+                                print "unable to find the file %s"% os.path.join(config.outputDirectory, 'pid.txt')
+                                pid = None
+                            except Exception:
+                                print "Unable to retrieve process id"
+                                pid = None
+                            
+                            runCPAC(pipeline, sublist, p, pid).Show()
 
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
                 else:
                     print "no pipeline and subject list selected"
                     
-        except ImportError, e:
-                wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
-                print "Error importing CPAC"
-                print e
+
         except Exception, e:
                 print e
                 #wx.MessageBox(e, "Error") 
                 
     def runGroupLevelAnalysis(self, event):
         print "running Group Analysis"
+        
+#         try:
+#             if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+#                     import thread
+#                     
+#                     pipelines = self.listbox.GetCheckedStrings()
+#                     for pipeline in pipelines:
+#                         
+#                         import yaml
+#                         config = yaml.load(open(pipeline, 'r'))
+#                         output = config.get('outputDirectory')
+#                         
+#                         dlg = wx.TextEntryDialog(
+#                             self, 'Enter the path to file containing derivatives',
+#                             'Group Level Analysis', )
+#             
+#                         dlg.SetValue("Python is the best!")
+#             
+#                         if dlg.ShowModal() == wx.ID_OK:
+#                             self.log.WriteText('You entered: %s\n' % dlg.GetValue())
+#             
+#                             dlg.Destroy()
+#         
+#         except Exception:
+#             pass        
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -463,44 +509,45 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
-
-class RedirectText(object):
-    def __init__(self,aWxTextCtrl):
-        self.out=aWxTextCtrl
+              
+class runCPAC(wx.Frame):
  
-    def write(self, string):
-        wx.CallAfter(self.out.WriteText, string)
-        
-class MyForm(wx.Frame):
- 
-    def __init__(self, pipeline, sublist, p):
+    def __init__(self, pipeline, sublist, p, pid):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
-    
-        
+                
         # Add a panel so it looks the correct on all platforms
         panel = wx.Panel(self, wx.ID_ANY)
         log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
                           style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
-        btn = wx.Button(panel, wx.ID_ANY, 'Close')
-        self.Bind(wx.EVT_BUTTON, self.onButton, btn)
+        btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
+        self.Bind(wx.EVT_BUTTON,lambda event: self.onButton(event, pid), btn)
  
         # Add widgets to a sizer        
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
         sizer.Add(btn, 0, wx.ALL|wx.CENTER, 5)
         panel.SetSizer(sizer)
-        
-        import CPAC
-        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
  
-        # redirect text here
-        redir=RedirectText(log)
-        sys.stdout=redir
-        print "running pipeline --> ", p
-        print "process id --> ", os.getpid()
-        
+        log.AppendText("running for pipeline --> %s \n"%p)
+        log.AppendText("pipeline config --> %s \n"%pipeline)
+        log.AppendText("subject list --> %s \n"%sublist)
+        log.AppendText("process ids ---> %s \n"%pid)
+
+       
 
  
-    def onButton(self, event):        
-        print "kill -9" ,os.kill(os.getpid(), 0)
-        self.Close()
+    def onButton(self, event, pid):        
+        if pid:
+            for id in pid:
+                print "killing process id -%s"% id
+                os.kill(id, 9)
+                print "please restart the gui"
+        
+            self.Close()
+        else:
+            dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. Please kill the process from command prompt',
+                                   'Alert!',
+                                   wx.OK | wx.ICON_INFORMATION)
+            dlg.Destroy()
+            
+        
