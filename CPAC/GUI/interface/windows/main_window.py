@@ -1,6 +1,7 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
+from ..utils.custom_control import FileSelectorCombo
 import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
@@ -299,7 +300,7 @@ class ListBox(wx.Frame):
                         if config.get('outputDirectory'):
                             path = os.path.join(config.get('ouputDirectory'), 'pipeline_*', '*', 'path_files_here/*.txt')
                     except Exception:
-                        path = None
+                        path = ''
                         
                     runGLA(pipeline, path)
                 else:
@@ -566,7 +567,7 @@ class runGLA(wx.Frame):
        
         label1 = wx.StaticText(panel, -1, label = 'Derivative Path File ')
         self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
-        self.box1.GetTextCtrl().SetValue(path)
+        self.box1.GetTextCtrl().SetValue(str(path))
         
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
