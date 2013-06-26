@@ -1,6 +1,7 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
+from ..utils.custom_control import FileSelectorCombo
 import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
@@ -283,30 +284,31 @@ class ListBox(wx.Frame):
     def runGroupLevelAnalysis(self, event):
         print "running Group Analysis"
         
-#         try:
-#             if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
-#                     import thread
-#                     
-#                     pipelines = self.listbox.GetCheckedStrings()
-#                     for pipeline in pipelines:
-#                         
-#                         import yaml
-#                         config = yaml.load(open(pipeline, 'r'))
-#                         output = config.get('outputDirectory')
-#                         
-#                         dlg = wx.TextEntryDialog(
-#                             self, 'Enter the path to file containing derivatives',
-#                             'Group Level Analysis', )
-#             
-#                         dlg.SetValue("Python is the best!")
-#             
-#                         if dlg.ShowModal() == wx.ID_OK:
-#                             self.log.WriteText('You entered: %s\n' % dlg.GetValue())
-#             
-#                             dlg.Destroy()
-#         
-#         except Exception:
-#             pass        
+        if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+            pipelines = self.listbox.GetCheckedStrings()
+            for p in pipelines:
+                pipeline = self.pipeline_map.get(p)
+                
+                if os.path.exists(pipeline):
+                    try:
+                        import yaml
+                        config = yaml.load(open(pipeline, 'r'))
+                    except:
+                            raise Exception("Error reading config file- %s", config)
+                    
+                    if config.get('outputDirectory'):
+                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                    else:
+                        derv_path = ''
+                    
+                    runGLA(pipeline, derv_path, p)
+                
+                else:
+                    print "pipeline doesn't exist"
+                    
+                
+        else:
+            print "No pipeline selected"
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -509,6 +511,7 @@ class ListBox(wx.Frame):
                     dlg2.Destroy()
                     dlg.Destroy
                     break
+       
               
 class runCPAC(wx.Frame):
  
@@ -534,8 +537,6 @@ class runCPAC(wx.Frame):
         log.AppendText("process ids ---> %s \n"%pid)
 
        
-
- 
     def onButton(self, event, pid):        
         if pid:
             for id in pid:
@@ -549,5 +550,73 @@ class runCPAC(wx.Frame):
                                    'Alert!',
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
+       
+            
+class runGLA(wx.Frame):
+    
+    def __init__(self, pipeline, path, name):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        panel = wx.Panel(self)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
+
+        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+       
+        label1 = wx.StaticText(panel, -1, label = 'Derivative Path File ')
+        self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
+        self.box1.GetTextCtrl().SetValue(str(path))
+        
+        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+        help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
+                                 pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
+        help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
+        
+        hbox1.Add(label1)
+        hbox1.Add(help1)
+        
+        flexsizer.Add(hbox1)
+        flexsizer.Add(self.box1, flag = wx.EXPAND | wx.ALL)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        
+        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size =(120,30))
+        button3.Bind(wx.EVT_BUTTON, self.onCancel)
+        
+        button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
+        button2.Bind(wx.EVT_BUTTON, lambda event: \
+                         self.onOK(event, pipeline) )
+        
+        hbox.Add(button3, 1, wx.EXPAND, border =5)
+        hbox.Add(button2, 1, wx.EXPAND, border =5)
+        
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+        
+    def onCancel(self, event):
+        self.Close()
+        
+    def runAnalysis(self, pipeline, path):
+        try:
+            import CPAC
+            CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+        except Exception:
+            print "Exception while running cpac_group_runner"
             
         
+    def onOK(self, event, pipeline):
+        
+        import thread
+        
+        if self.box1.GetValue():
+            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
+            self.Close()
+        else:
+            wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")
+            
+    def OnShowDoc(self, event):
+        wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
