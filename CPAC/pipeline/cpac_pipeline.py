@@ -696,7 +696,19 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.append_name(func_to_mni.name)
             # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
-            strat.update_resource_pool({'mean_functional_in_mni':(func_to_mni, 'outputspec.mni_func'),
+            # UpdateTR
+            check_tr = pe.Node(util.Function(input_names=['tr', 'in_file'], output_names=['tr'], 
+                                               function=check_tr), name='check_tr_%d' % num_strat)
+                                               
+            copy_tr = pe.Node(interface=preprocess.Threedrefit(), name='copy_tr')
+            
+            workflow.connect(convert_tr, 'tr', check_tr, 'tr')
+            workflow.connect(funcFlow, 'outputspec.subject', check_tr, 'in_file')
+            
+            workflow.connect(check_tr, 'tr', copy_tr, 'tr')
+            workflow.connect(func_to_mni, 'outputspec.mni_func', copy_tr, 'in_file')
+
+            strat.update_resource_pool({'mean_functional_in_mni':(copy_tr, 'out_file'),
                                         'mean_functional_in_anat':(func_to_mni, 'outputspec.anat_func'),
                                         'anatomical_wm_edge':(func_to_mni, 'outputspec.anat_wm_edge'),
                                         'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
