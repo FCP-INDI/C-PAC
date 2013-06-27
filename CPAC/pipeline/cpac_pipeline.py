@@ -273,14 +273,6 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'mni_to_anatomical_linear_xfm':(reg_anat_mni, 'outputspec.invlinear_xfm'),
                                         'mni_normalized_anatomical':(reg_anat_mni, 'outputspec.output_brain')})
 
-            #call logging workflow
-#             log_wf = create_log(wf_name = 'log_anat_mni_register_%d' % num_strat)
-#             log_wf.inputs.inputspec.workflow = reg_anat_mni.name
-#             log_wf.inputs.inputspec.scan_id = None
-#             log_wf.inputs.inputspec.index = num_strat
-#             log_wf.inputs.inputspec.log_dir = log_dir
-#             workflow.connect(reg_anat_mni,'outputspec.output_brain',
-#                              log_wf, 'inputspec.inputs')
 
             create_log_node(reg_anat_mni, 'outputspec.output_brain', num_strat)
             
@@ -3190,8 +3182,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         # build helper dictionary to assist with a clean strategy label for symlinks
 
         strategy_tag_helper_symlinks = {}
+        import re
 
-        if 'scrubbing' in strat.get_name():
+        if any('scrubbing' in name for name in strat.get_name()):
 
             strategy_tag_helper_symlinks['_threshold'] = 1
 
@@ -3201,7 +3194,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
 
-        if 'seg_preproc' in strat.get_name():
+        if any('seg_preproc' in name for name in strat.get_name()):
 
             strategy_tag_helper_symlinks['_csf_threshold'] = 1
             strategy_tag_helper_symlinks['_wm_threshold'] = 1
@@ -3213,7 +3206,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strategy_tag_helper_symlinks['_gm_threshold'] = 0
 
 
-        if 'median_angle_corr' in strat.get_name():
+        if any('median_angle_corr'in name for name in strat.get_name()):
 
             strategy_tag_helper_symlinks['_target_angle_deg'] = 1
 
@@ -3221,7 +3214,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strategy_tag_helper_symlinks['_target_angle_deg'] = 0
 
 
-        if 'nuisance' in strat.get_name():
+        if any('nuisance'in name for name in strat.get_name()):
 
             strategy_tag_helper_symlinks['nuisance'] = 1
 
@@ -3240,10 +3233,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             if extra_string:
                 name = name.split(extra_string)[0]
             
-            if not ('alff' in name.lower()) and not ('vmhc' in name.lower()) \
-                 and not ('reho' in name.lower()) and not ('sca' in name.lower()) \
-                 and not ('network_centrality' in name.lower()) and not ('timeseries' in name.lower()) \
-                 and not ('temporal_dual_regression' in name.lower()) and not ('temporal_regression_sca' in name.lower()):
+            if workflow_bit_id.get(name) != None:
                     strat_tag += name + '_'
                     
                     print name, ' ~~~ ', 2 ** workflow_bit_id[name]
@@ -3266,7 +3256,6 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
         pip_ids.append(pipeline_id)
         wf_names.append(strat.get_name())
-        
 
         for key in sorted(rp.keys()):
 
@@ -3291,7 +3280,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         output_names=[],
                                         function=prepare_symbolic_links),
                                         name='link_%d' % sink_idx)
-
+                                
                 link_node.inputs.strategies = strategies
                 link_node.inputs.subject_id = subject_id
                 link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
@@ -3322,7 +3311,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         num_strat += 1
 
     create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
-    
+
     workflow.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 

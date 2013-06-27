@@ -857,8 +857,8 @@ def clean_strategy(strategies, helper):
 def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
 
     from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
-
-
+       
+    
     for path in in_file:
 
         for strategy in strategies:
@@ -866,9 +866,9 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper)
             strategy.append(pipeline_id)
 
         relevant_strategies = get_strategies_for_path(path, strategies)
-
+        
         cleaned_strategies = clean_strategy(relevant_strategies, helper)
-
+        
         create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
 
 
