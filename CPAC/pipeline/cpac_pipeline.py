@@ -700,7 +700,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             check_tr = pe.Node(util.Function(input_names=['tr', 'in_file'], output_names=['tr'], 
                                                function=check_tr), name='check_tr_%d' % num_strat)
                                                
-            copy_tr = pe.Node(interface=preprocess.Threedrefit(), name='copy_tr')
+            copy_tr = pe.Node(interface=preprocess.Threedrefit(), name='copy_tr_%d' % num_strat)
             
             workflow.connect(convert_tr, 'tr', check_tr, 'tr')
             workflow.connect(funcFlow, 'outputspec.subject', check_tr, 'in_file')
@@ -1523,6 +1523,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                  spatial_map_timeseries, 'inputspec.subject_mask')
                 workflow.connect(resample_functional_to_spatial_map, 'out_file',
                                  spatial_map_timeseries, 'inputspec.subject_rest')
+                               
+                
 
             except:
                 print 'Invalid Connection: Spatial map timeSeries extraction workflow:', num_strat, ' resource_pool: ', strat.get_resource_pool()
