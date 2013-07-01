@@ -134,10 +134,10 @@ class GenericClass(wx.ScrolledWindow):
         index = event.GetSelection()
         label = ctrl.get_ctrl().GetString(index)
         if ctrl.get_ctrl().IsChecked(index):
-            print "label selected -->", label, index
+            #print "label selected -->", label, index
             ctrl.set_selection(label, index)
         else:
-            print "label to be removed -->", label, index
+            #print "label to be removed -->", label, index
             ctrl.set_selection(label,index, True)
     
     def EvtListBoxCombo(self, event, ctrl):
@@ -247,6 +247,7 @@ class Control(wx.Control):
                 self.selection = {}
                 for val in values:
                     self.set_selection(val, values.index(val), True)
+                    
             else:
                 self.selection = []
                 
@@ -337,8 +338,9 @@ class Control(wx.Control):
                 #self.ctrl.SetChecked(val)
                 self.ctrl.SetCheckedStrings(val)
                 strings = self.ctrl.GetCheckedStrings() 
+                sample_list = self.get_values()
                 for s in strings:
-                    self.set_selection(s)
+                    self.set_selection(s, sample_list.index(s))
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):
