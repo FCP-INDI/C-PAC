@@ -32,6 +32,39 @@ def calc_friston_twenty_four(in_file):
 
 
 def fristons_twenty_four(wf_name='fristons_twenty_four'):
+    """
+    The main purpose of this workflow os to get the 6 motion 
+    parameters of the current volume and the preceeding volume, 
+    plus each of these values squared.
+    
+    Parameters
+    ----------
+    wf_name : workflow object
+        Workflow name
+    
+    Returns 
+    -------
+    wf : workflow object
+         
+    
+    Notes
+    -----
+    
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/generate_parmeters/generate_parmeters.py>`_
+    
+    Workflow Inputs::
+        
+        inputspec.movement_file : string
+            path to the input movement file from motion correction
+            
+    Workflow Outputs::
+        
+        outputspec.FD_1D : movement_file
+            mean Framewise Displacement (FD)
+            
+    High Level Workflow Graph:
+    
+    """
 
     wf = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=[
