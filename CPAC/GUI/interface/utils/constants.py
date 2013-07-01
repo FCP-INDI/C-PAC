@@ -9,7 +9,8 @@ control = enum(CHOICE_BOX=0,
                FLOAT_CTRL = 4,
                DIR_COMBO_BOX = 5,
                CHECKLIST_BOX =6,
-               LISTBOX_COMBO = 7)
+               LISTBOX_COMBO = 7,
+               TEXTBOX_COMBO = 8)
 
 dtype = enum(BOOL=0,
              STR=1,

@@ -1,5 +1,5 @@
 import wx
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -102,9 +102,10 @@ class GenericClass(wx.ScrolledWindow):
         elif control ==7:
             self.parent.Bind(wx.EVT_CHECKLISTBOX,lambda event: self.EvtListBoxCombo(event, ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl())
-#        elif control ==8:
-#            self.parent.Bind(wx.EVT_CHECKLISTBOX,lambda event: self.EvtListBoxCombo(event, ctrl), id = ctrl.get_id())
-#            self.flexSizer.Add(ctrl.get_ctrl())
+        elif control == 8 :
+            self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
+            self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
+
 
     def EvtChoice(self, event, ctrl):
         
@@ -127,6 +128,7 @@ class GenericClass(wx.ScrolledWindow):
         #print "type ctrl.text_ctrl.GetValue() -->", type(ctrl.text_ctrl.GetValue())
         #print "ctrl.text_ctrl.GetValue() -->", ctrl.text_ctrl.GetValue()
         ctrl.set_selection(ctrl.text_ctrl.GetValue())
+        
     
     def EvtCheckListBox(self, event, ctrl):
         index = event.GetSelection()
@@ -255,6 +257,15 @@ class Control(wx.Control):
             self.listbox_ctrl = self.ctrl.GetListBoxCtrl()
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
+            
+        elif type == 8:
+            self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 
+                                         size=size, style=style,
+                                         validator = validator,
+                                         value = values)  
+            
+            self.text_ctrl = self.ctrl.GetTextCtrl()
+            self.selection = self.text_ctrl.GetValue()
                 
         self.set_id()
         
@@ -337,7 +348,7 @@ class Control(wx.Control):
                 elif self.get_type() ==3 or self.get_type()==4:
                     val = ast.literal_eval(val)
                     self.ctrl.SetValue(val)
-                elif self.get_type() ==2 or self.get_type()==5:
+                elif self.get_type() ==2 or self.get_type()==5 or self.get_type()==8:
                     self.text_ctrl.SetValue(val)
                 else:
                     self.ctrl.SetValue(val)

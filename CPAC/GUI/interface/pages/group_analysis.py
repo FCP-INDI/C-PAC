@@ -65,7 +65,7 @@ class GPASettings(wx.ScrolledWindow):
         self.page.add(label = "Models to Run ",
                       control = control.LISTBOX_COMBO,
                       name = 'modelFile',
-                      type = dtype.LOFL,
+                      type = dtype.LSTR,
                       values = "",
                       comment="Use the + to add FSL models to be run.",
                       size = (400,100),
@@ -92,12 +92,6 @@ class GPASettings(wx.ScrolledWindow):
                      comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
                      values=0.05)
 
-        self.page.add(label="Include All Scans ", 
-                 control=control.CHOICE_BOX, 
-                 name='mixedScanAnalysis', 
-                 type=dtype.BOOL, 
-                 comment="In cases where each subject has more than one functional scan, specify whether all or only the first scan should be included when running group analysis.", 
-                 values=["False","True"])
                 
         self.page.set_sizer()
         parent.get_page_list().append(self)
