@@ -64,7 +64,7 @@ class GPASettings(wx.ScrolledWindow):
  
         self.page.add(label = "Models to Run ",
                       control = control.LISTBOX_COMBO,
-                      name = 'modelFile',
+                      name = 'modelConfigs',
                       type = dtype.LSTR,
                       values = "",
                       comment="Use the + to add FSL models to be run.",
