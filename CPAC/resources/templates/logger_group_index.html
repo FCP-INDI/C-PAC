@@ -107,7 +107,7 @@
 			
 			var wf_info = [];
 			for (var i = 0; i < 24; i++) { // Need to replace 10 with number of pipelines
-				wf_info[pindex] = [];
+				wf_info[i] = [];
 			}
 			
 			// These are the possible values to expect from the .js files output from CPAC
@@ -141,7 +141,7 @@
 		<!-- Load all the js files -->
 		{% for subject_id in subject_ids %}			
 			{% for scan_id in scan_ids[subject_id] %}
-				<script type="text/javascript" src="file://localhost/{{ logdir }}/{{ subject_id }}/reports/{{ scan_id }}.js"></script>				
+				<script type="text/javascript" src="file://localhost/{{ log_dir }}/{{ subject_id }}/reports/{{ scan_id }}.js"></script>				
 			{% endfor %}
 		{% endfor %}
 		
@@ -172,7 +172,7 @@
 			}
 			
 			function update_subject_row(subject_id, new_status) {
-				var search = "table #" + subject_id;
+				var search = "#" + subject_id;
 				var node = $(search);				
 			
 				search = search + " #status";
@@ -222,7 +222,7 @@
 					var scan = scan_ids[subj][j];
 					statuses[subj].all.done  		+= (statuses[subj][scan].done > 0);
 					statuses[subj].all.error 	 	+= statuses[subj][scan].error;
-					statuses[subj].all.entires 	+= statuses[subj][scan].entries;
+					statuses[subj].all.entries 	+= statuses[subj][scan].entries;
 				}
 			}
 			
@@ -231,7 +231,7 @@
 				var subj = subject_ids[i];
 				if (statuses[subj].all.error > 0) {
 					update_subject_row(subj, "ERROR");
-				} else if (statuses[subj].all.done == (scan_ids[subj].length) {
+				} else if (statuses[subj].all.done == (scan_ids[subj].length)) {
 					update_subject_row(subj, "DONE");
 				} else if (statuses[subj].all.entries > 0) {
 					update_subject_row(subj, "RUNNING");
