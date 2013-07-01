@@ -69,9 +69,7 @@
 								</tr>							
 							{% endfor %}							
 					  </tbody>
-				  </table>
-					{% endfor %}
-					</ul>					
+				  </table>				
         </div><!--/span-->
       </div><!--/row-->
 
@@ -106,11 +104,9 @@
 		<script type="text/javascript" charset="utf-8">
 			var subject_ids = {{ subject_ids }};
 			var scan_ids		= {{ scan_ids }};
-			var pipe_inds		= {{ pipeline_indices }};
 			
 			var wf_info = [];
-			for (var i = 0; i < pipe_inds.length; i++) {
-				var pindex = pipe_inds[i];
+			for (var i = 0; i < 24; i++) { // Need to replace 10 with number of pipelines
 				wf_info[pindex] = [];
 			}
 			
@@ -200,8 +196,8 @@
 			}
 			
 			// Compile all the log entries by subject and scan
-			for (var i = 0; i < pipe_inds.length; i++) {
-				var pindex = pipe_inds[i];
+			for (var i = 0; i < wf_info.length; i++) {
+				var pindex = i;
 				
 				// Loop through every entry
 				for (var j = 0; j < wf_info[pindex].length; j++) {
@@ -224,26 +220,9 @@
 				// Get the total numbers across scans
 				for (var j = 0; j < scan_ids[subj].length; j++) {
 					var scan = scan_ids[subj][j];
-					statuses[subj].all.done  		+= statuses[subj][scan].done;
+					statuses[subj].all.done  		+= (statuses[subj][scan].done > 0);
 					statuses[subj].all.error 	 	+= statuses[subj][scan].error;
 					statuses[subj].all.entires 	+= statuses[subj][scan].entries;
-				}
-				
-				// Summarize
-				if (statuses[subj].all.done == (scan_ids[subj].length * pipe_inds.length)) {
-					statuses[subj].all.is_done = true;
-				} else {
-					statuses[subj].all.is_done = false;
-				}
-				if (statuses[subj].all.error > 0) {
-					statuses[subj].all.has_error = true;
-				} else {
-					statuses[subj].all.has_error = false;
-				}
-				if (statuses[subj].all.entries > 0) {
-					statuses[subj].all.has_started = true;
-				} else {
-					statuses[subj].all.has_started = false;
 				}
 			}
 			
@@ -252,7 +231,7 @@
 				var subj = subject_ids[i];
 				if (statuses[subj].all.error > 0) {
 					update_subject_row(subj, "ERROR");
-				} else if (statuses[subj].all.done == (scan_ids[subj].length * pipe_inds.length)) {
+				} else if (statuses[subj].all.done == (scan_ids[subj].length) {
 					update_subject_row(subj, "DONE");
 				} else if (statuses[subj].all.entries > 0) {
 					update_subject_row(subj, "RUNNING");

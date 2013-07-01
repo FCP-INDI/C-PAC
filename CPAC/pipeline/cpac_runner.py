@@ -338,14 +338,20 @@ def run(config_file, subject_list_file, p_name = None):
     
     print "strategies ---> ", strategies
     
-    sub_ids =[]
+    sub_scan_map ={}
     for sub in sublist:
         if sub['unique_id']:
-            sub_ids.append(sub['subject_id']+"_" + sub["unique_id"])
+            s = sub['subject_id']+"_" + sub["unique_id"]
         else:
-            sub_ids.append(sub['subject_id'])
-            
-    create_group_log_template(sub_ids, os.path.join(c.outputDirectory, 'logs'))
+            s = sub['subject_id']
+        
+        scan_ids = ['scan_anat']
+        for id in sub['rest']:
+            scan_ids.append('scan_'+ str(id))
+        sub_scan_map[s] = scan_ids 
+        
+    create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
+ 
 
     seeds_created = []
     if not (c.seedSpecificationFile is None):
