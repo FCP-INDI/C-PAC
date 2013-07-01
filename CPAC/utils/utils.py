@@ -1335,7 +1335,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     return
 
 
-def create_group_log_template(subject_ids, log_dir):
+def create_group_log_template(subject_ids, scan_ids, pip_ids, log_dir):
     
     import os
     from os import path as op
@@ -1345,6 +1345,9 @@ def create_group_log_template(subject_ids, log_dir):
     
     tvars = {}
     tvars['subject_ids'] = subject_ids
+    tvars['scan_ids']    = scan_ids
+    tvars['pipelines']   = pip_ids
+    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
     tvars['resources']   = op.join(CPAC.__path__[0], 'resources')
     tvars['log_dir']     = log_dir
     
