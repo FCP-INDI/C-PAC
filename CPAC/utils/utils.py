@@ -1131,28 +1131,29 @@ def get_tr (tr):
 def check_tr(tr, in_file):
 
     # imageData would have to be the image data from the funcFlow workflow, funcFlow outputspec.subject
+    import nibabel as nib
     img = nib.load(in_file)
     
     # get header from image data, then extract TR information, TR is fourth item in list returned by get_zooms()
     imageHeader = img.get_header()
     imageZooms = imageHeader.get_zooms()
     header_tr = imageZooms[3]
+    
                 
     # If the TR information from header_tr (funcFlow) and convert_tr node (TR from config file)
     # do not match, prepare to update the TR information from either convert_tr or header_tr using
     # afni 3drefit, then append to func_to_mni
     if header_tr != tr:
         
-        if tr != None:
-            return tr
-        else if header_tr != None:
-            return header_tr
+        if tr != None and tr != "":
+            TR = tr
         else:
-            # if both are none?
-            pass        
-                        
-        print 'Warning: The TR information does not match between the config and subject list files.'
-
+            TR = header_tr
+            
+        import warnings
+        warnings.warn('Warning: The TR information does not match between the config and subject list files.')
+    
+    return TR
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     """
