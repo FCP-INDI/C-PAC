@@ -294,6 +294,7 @@ class ModelConfig(wx.Frame):
                     f.close()
                     
                     self.Parent.box2.GetTextCtrl().SetValue(path)
+                    self.Close()
 
 #                     if flag == 'run':
 #                         if self.run_model(path) > 0:

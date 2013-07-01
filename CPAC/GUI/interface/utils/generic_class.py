@@ -326,7 +326,7 @@ class Control(wx.Control):
         if val == None or val =="":
             val = self.get_values()
         else:
-            if self.get_type()==7 or self.get_type() ==8:
+            if self.get_type()==7:
                 listbox = self.ctrl.GetListBoxCtrl()
                 for v in val:
                     if v:                       
