@@ -3170,24 +3170,16 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         # build helper dictionary to assist with a clean strategy label for symlinks
 
         strategy_tag_helper_symlinks = {}
-        import re
-
+ 
         if any('scrubbing' in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_threshold'] = 1
-
         else:
-
             strategy_tag_helper_symlinks['_threshold'] = 0
 
-
-
         if any('seg_preproc' in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_csf_threshold'] = 1
             strategy_tag_helper_symlinks['_wm_threshold'] = 1
             strategy_tag_helper_symlinks['_gm_threshold'] = 1
-
         else:
             strategy_tag_helper_symlinks['_csf_threshold'] = 0
             strategy_tag_helper_symlinks['_wm_threshold'] = 0
@@ -3195,17 +3187,13 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
         if any('median_angle_corr'in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_target_angle_deg'] = 1
-
         else:
             strategy_tag_helper_symlinks['_target_angle_deg'] = 0
 
 
         if any('nuisance'in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['nuisance'] = 1
-
         else:
             strategy_tag_helper_symlinks['nuisance'] = 0
 

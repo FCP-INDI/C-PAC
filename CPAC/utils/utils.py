@@ -1135,6 +1135,8 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
     import os
     import CPAC
+    from nipype import logging
+    iflogger = logging.getLogger('interface')
      
     version = CPAC.__version__
          
@@ -1150,24 +1152,31 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     ts = time.time()
     
     stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    
-    if workflow!= 'DONE':
-        wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+    try:
+        if workflow!= 'DONE':
+            wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+            
+            if wf_path and wf_path != "":
+                if '/' in wf_path:
+                    scan_id, strategy = wf_path.split('/',1)
+                    scan_id = scan_id.strip('_')
+                    strategy = strategy.replace("/","")
+                else:
+                    scan_id = wf_path.strip('_')
         
-        if wf_path and wf_path != "":
-            if '/' in wf_path:
-                scan_id, strategy = wf_path.split('/',1)
-                scan_id = scan_id.strip('_')
-                strategy = strategy.replace("/","")
-            else:
-                scan_id = wf_path.strip('_')
-    
-        file_path = os.path.join(log_dir, scan_id, workflow)
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-    else:
-        file_path = os.path.join(log_dir, scan_id)
-        
+            file_path = os.path.join(log_dir, scan_id, workflow)
+            try:
+                os.makedirs(file_path)
+            except Exception:
+                iflogger.info("filepath already exist, filepath- %s, curr_dir - %s"%(file_path, os.getcwd()))
+
+        else:
+            file_path = os.path.join(log_dir, scan_id)
+    except Exception:
+        print "ERROR in write log"
+        raise
+
+               
     out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
     f = open(out_file, 'w')
     
@@ -1181,8 +1190,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     print >>f, "workflow_name: %s"%(workflow)
         
         
-    from nipype import logging
-    iflogger = logging.getLogger('interface')
+
     iflogger.info("CPAC custom log :")
     
     if isinstance(inputs, list):

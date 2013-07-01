@@ -26,7 +26,7 @@ def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
         "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A," \
         "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A,"\
         "MeanFD,NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD),"\
-        "PercentFD_greater_than_%.2f,MeanDVARS, MeanFD_Jenkinson" % (threshold_val, threshold_val)
+        "PercentFD_greater_than_%.2f,MeanDVARS,MeanFD_Jenkinson" % (threshold_val, threshold_val)
     else:
         f = open(outfile, 'a')
 

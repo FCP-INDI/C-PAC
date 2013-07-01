@@ -680,12 +680,15 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config):
+def run(config, CPAC_run = False):
 
-    try:
-        c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-    except:
-        raise Exception("Error in reading %s configuration file" % config)
+    if CPAC_run:
+        c = config
+    else:
+        try:
+            c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+        except:
+            raise Exception("Error in reading %s configuration file" % config)
 
     ###This generates the model file
 
