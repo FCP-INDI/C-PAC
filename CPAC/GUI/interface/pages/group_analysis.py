@@ -64,10 +64,10 @@ class GPASettings(wx.ScrolledWindow):
  
         self.page.add(label = "Models to Run ",
                       control = control.LISTBOX_COMBO,
-                      name = 'modelFile',
+                      name = 'modelConfigs',
                       type = dtype.LSTR,
                       values = "",
-                      comment="Use the + to add FSL models to be run.",
+                      comment="Use the + to add FSL model configuration to be run.",
                       size = (400,100),
                       combo_type = 3)
 

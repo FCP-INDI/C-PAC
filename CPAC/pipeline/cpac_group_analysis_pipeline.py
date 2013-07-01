@@ -71,7 +71,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
     threshold_val = None
     measure_dict = None
-    measure_list = ['MeanFD', 'MeanFD_Jenkinson']
+    measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
     model_sub_list = []
     
     if re.search('(?<=/_threshold_)\d+.\d+',s_paths[0]):
