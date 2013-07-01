@@ -467,5 +467,3 @@ def run(config_file, subject_list_file, p_name = None):
         elif 'condor' in c.resourceManager.lower():
 
             run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
-
-    return 1
