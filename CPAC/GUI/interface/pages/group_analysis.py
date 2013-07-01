@@ -67,7 +67,7 @@ class GPASettings(wx.ScrolledWindow):
                       name = 'modelConfigs',
                       type = dtype.LSTR,
                       values = "",
-                      comment="Use the + to add FSL models to be run.",
+                      comment="Use the + to add FSL model configuration to be run.",
                       size = (400,100),
                       combo_type = 3)
 

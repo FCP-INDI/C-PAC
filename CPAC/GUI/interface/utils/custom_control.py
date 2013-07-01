@@ -250,7 +250,6 @@ class ListBoxCombo(wx.Panel):
         
     def onButtonClick(self, event):
         if self.ctype == 3:
-            print "calling config Fsl Frame"
             ConfigFslFrame(self, self.values)
         elif self.ctype == 2:    
             TextBoxFrame(self, self.values)
@@ -282,12 +281,12 @@ class ListBoxCombo(wx.Panel):
 class ParametersCheckBox(wx.Frame):
     
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title="Select EV as measures from CPAC", size = (200,130))
+        wx.Frame.__init__(self, parent, title="Select EV as measures from CPAC", size = (300,130))
         sizer = wx.BoxSizer(wx.VERTICAL)
         
         panel = wx.Panel(self)
         self.ctrl = wx.CheckListBox(panel, id = wx.ID_ANY,
-                                    choices = ['MeanFD', 'MeanFD_Jenkinson'])
+                                    choices = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS'])
         button = wx.Button(panel, -1, 'OK', size= (90,30))
         button.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(self.ctrl, 1, wx.EXPAND | wx.ALL, 10)
