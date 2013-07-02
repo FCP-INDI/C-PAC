@@ -218,7 +218,7 @@ class CWASSettings(wx.ScrolledWindow):
         
         self.page = GenericClass(self, "Connectome-wide Association Studies (CWAS)")
         
-        self.page.add(label="Run CWAS:", 
+        self.page.add(label="Run CWAS ", 
                       control=control.CHOICE_BOX, 
                       name='runCWAS', 
                       type=dtype.LSTR, 
@@ -226,34 +226,59 @@ class CWASSettings(wx.ScrolledWindow):
                       values=["Off","On"],
                       wkf_switch = True)
         
-        self.page.add(label="CWAS ROI File:", 
+        self.page.add(label="CWAS ROI File ", 
                      control=control.COMBO_BOX, 
                      name='cwasROIFile', 
                      type=dtype.STR, 
                      values = "/path/to/cwas_mask_file",
                      comment="Path to a mask file. Voxels outside this mask will be excluded from CWAS.")
         
-        self.page.add(label="CWAS Regressor File:", 
+        self.page.add(label="CWAS Regressor File ", 
                      control=control.COMBO_BOX, 
                      name='cwasRegressorFile', 
                      type=dtype.STR, 
                      values= '/path/to/cwas_regressor_file',
                      comment = "Path to a text file containing phenotypic regressor.")
         
-        self.page.add(label= "CWAS FSamples",
+        self.page.add(label= "CWAS FSamples ",
                  control=control.INT_CTRL, 
                  name='cwasFSamples', 
                  type=dtype.NUM, 
                  comment="Number of permutation tests to run on the Psuedo-F statistic.", 
                  values=5000)
             
-        self.page.add(label= "CWAS Parallel Nodes",
+        self.page.add(label= "CWAS Parallel Nodes ",
                  control=control.INT_CTRL, 
                  name='cwasParallelNodes', 
                  type=dtype.NUM, 
                  comment="Number of NiPype nodes to be created while computing CWAS.\n"\
                          "This number depends on computing resources.", 
                  values=10)
+
+        self.page.add(label= "Column Number with Regressor of Interest ",
+                 control=control.TEXT_BOX, 
+                 name='cwasRegressorCols', 
+                 type=dtype.LNUM, 
+                 values = "",
+                 size = (300,-1),
+                 validator = CharValidator("no-alpha"),
+                 comment="Column Number with Regressor of Interest.\n\nRemember this is 0 indexed so the 1st column is 0.\n\n"\
+                         "For instance, assuming the 1st column is the intercept, column number with regressor of interest = 1")
+        
+        self.page.add(label= "CWAS Regressor Strata ",
+                 control=control.TEXT_BOX, 
+                 name='cwasRegressorStrata', 
+                 type=dtype.STR, 
+                 values = "None",
+                 size = (300,-1),
+                 comment="A list with length equal to the total number of rows in your regressor file.\n"\
+                         "Each element of the list, indicates that elements group. Leave it as None.\n"\
+                         "if you have a between-subject design and give it a value if not.\n"\
+                         "For instance, if you have multiple scans per subject, then you would want to\n"\
+                         "do a permutation within-subject between scans. For this to occur, the list\n"\
+                         "below could be something like ['s1', 's1', 's2', 's2', 's3', 's3', ...], \n"\
+                         "indicating what subject each element/scan is associated with and permutations"\
+                         "would only be done between scans within each subject.")
         
         self.page.set_sizer()
         parent.get_page_list().append(self)

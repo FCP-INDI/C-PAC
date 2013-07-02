@@ -348,7 +348,8 @@ class Control(wx.Control):
                     #print "combo box value, default values---------------> ", val, self.get_values()
                     self.ctrl.SetStringSelection(val)
                 elif self.get_type() ==3 or self.get_type()==4:
-                    val = ast.literal_eval(val)
+                    if str(val) != 'None':
+                        val = ast.literal_eval(val)
                     self.ctrl.SetValue(val)
                 elif self.get_type() ==2 or self.get_type()==5 or self.get_type()==8:
                     self.text_ctrl.SetValue(val)

@@ -36,3 +36,17 @@ substitution_map = {'On': 1,
                    'Dual Regression':'dr_tempreg_maps_z_files_smooth',
                    'End': 'None'
                    }
+
+
+multiple_value_wfs = ['runAnatomicalPreprocessing',
+                      'runFunctionalPreprocessing',
+                      'runRegistrationPreprocessing',
+                      'runRegisterFuncToMNI',
+                      'runAnatomicalToFunctionalRegistration',
+                      'runSegmentationPreprocessing',
+                      'runNuisance',
+                      'runFrequencyFiltering',
+                      'runMedianAngleCorrection',
+                      'runGenerateMotionStatistics',
+                      'runScrubbing',
+                      'runFristonModel']

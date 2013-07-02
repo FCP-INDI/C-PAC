@@ -167,8 +167,8 @@ def populate_htmls(gp_html, sub_html, subj,
         print >> f_, "        <td>MEAN_DVARS</td>"
         print >> f_, "        <td>Mean_Relative_RMS_Displacement</td>"
         print >> f_, "        <td>Max_Relative_RMS_Displacement</td>"
-        print >> f_, "        <td>Include in Group Analysis</td>"
-        print >> f_, "        <td>Comments</td>"
+#         print >> f_, "        <td>Include in Group Analysis</td>"
+#         print >> f_, "        <td>Comments</td>"
         print >> f_, "    </tr>"
 
     else:
@@ -180,9 +180,9 @@ def populate_htmls(gp_html, sub_html, subj,
     print >> f_, "        <td>%s</td>" % (meanDVARS)
     print >> f_, "        <td>%s</td>" % (mean_rms)
     print >> f_, "        <td>%s</td>" % (max_rms)
-    print >> f_, "        <td><input type=\"checkbox\" name=\"gp_inc\" value=\"Y\">Y<br></td>"
-#    print >> f_, "        <td><textarea name=\"comments\" cols=\"3\" rows=\"1\"><br></td>"
-    print >> f_, "        <td>No Comments Yet!</td>"
+#     print >> f_, "        <td><input type=\"checkbox\" name=\"gp_inc\" value=\"Y\">Y<br></td>"
+# #    print >> f_, "        <td><textarea name=\"comments\" cols=\"3\" rows=\"1\"><br></td>"
+#     print >> f_, "        <td>No Comments Yet!</td>"
     print >> f_, "    </tr>"
 
     f_.close()
@@ -460,7 +460,7 @@ def write_closing_tags(file_):
     print >> f_, "</table>"
     print >> f_, "<br>"
     print >> f_, "<br>"
-    print >> f_, "<input type=\"submit\" value=\"create group subject list\" />"
+    #print >> f_, "<input type=\"submit\" value=\"create group subject list\" />"
     print >> f_, "</html>"
 
     f_.close()
