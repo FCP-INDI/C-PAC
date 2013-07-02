@@ -215,6 +215,54 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
     return wf
 
 
+def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
+
+        import nipype.pipeline.engine as pe
+        import nipype.interfaces.utility as util
+        from CPAC.utils import  select_model_files
+
+        wf = pe.Workflow(name=wf_name)
+
+        inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
+                                                           'grp_model'],
+                                                   mandatory_inputs=True),
+                            name='inputspec')
+
+        selectmodel = pe.Node(util.Function(input_names=['model',
+                                                         'ftest'],
+                                           output_names=['fts_file',
+                                                         'con_file',
+                                                         'grp_file',
+                                                         'mat_file'],
+                                           function=select_model_files),
+                             name='selectnode')
+
+        wf.connect(inputnode, 'ftest',
+                   selectmodel, 'ftest')
+        wf.connect(inputnode, 'grp_model',
+                   selectmodel, 'model')
+
+
+
+        outputnode = pe.Node(util.IdentityInterface(fields=['fts',
+                                                            'grp',
+                                                            'mat',
+                                                            'con'],
+                                mandatory_inputs=True),
+                    name='outputspec')
+
+        wf.connect(selectmodel, 'mat_file',
+                   outputnode, 'mat')
+        wf.connect(selectmodel, 'grp_file',
+                   outputnode, 'grp') 
+        wf.connect(selectmodel, 'fts_file',
+                   outputnode, 'fts')
+        wf.connect(selectmodel, 'con_file',
+                   outputnode, 'con')
+
+
+        return wf
+
 def create_gpa_dataflow(wf_name='gp_dataflow'):
 
         import nipype.pipeline.engine as pe

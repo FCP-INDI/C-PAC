@@ -1131,28 +1131,29 @@ def get_tr (tr):
 def check_tr(tr, in_file):
 
     # imageData would have to be the image data from the funcFlow workflow, funcFlow outputspec.subject
+    import nibabel as nib
     img = nib.load(in_file)
     
     # get header from image data, then extract TR information, TR is fourth item in list returned by get_zooms()
     imageHeader = img.get_header()
     imageZooms = imageHeader.get_zooms()
     header_tr = imageZooms[3]
+    
                 
     # If the TR information from header_tr (funcFlow) and convert_tr node (TR from config file)
     # do not match, prepare to update the TR information from either convert_tr or header_tr using
     # afni 3drefit, then append to func_to_mni
     if header_tr != tr:
         
-        if tr != None:
-            return tr
-        else if header_tr != None:
-            return header_tr
+        if tr != None and tr != "":
+            TR = tr
         else:
-            # if both are none?
-            pass        
-                        
-        print 'Warning: The TR information does not match between the config and subject list files.'
-
+            TR = header_tr
+            
+        import warnings
+        warnings.warn('Warning: The TR information does not match between the config and subject list files.')
+    
+    return TR
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     """
@@ -1161,6 +1162,8 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
     import os
     import CPAC
+    from nipype import logging
+    iflogger = logging.getLogger('interface')
      
     version = CPAC.__version__
          
@@ -1176,24 +1179,31 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     ts = time.time()
     
     stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    
-    if workflow!= 'DONE':
-        wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+    try:
+        if workflow!= 'DONE':
+            wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+            
+            if wf_path and wf_path != "":
+                if '/' in wf_path:
+                    scan_id, strategy = wf_path.split('/',1)
+                    scan_id = scan_id.strip('_')
+                    strategy = strategy.replace("/","")
+                else:
+                    scan_id = wf_path.strip('_')
         
-        if wf_path and wf_path != "":
-            if '/' in wf_path:
-                scan_id, strategy = wf_path.split('/',1)
-                scan_id = scan_id.strip('_')
-                strategy = strategy.replace("/","")
-            else:
-                scan_id = wf_path.strip('_')
-    
-        file_path = os.path.join(log_dir, scan_id, workflow)
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-    else:
-        file_path = os.path.join(log_dir, scan_id)
-        
+            file_path = os.path.join(log_dir, scan_id, workflow)
+            try:
+                os.makedirs(file_path)
+            except Exception:
+                iflogger.info("filepath already exist, filepath- %s, curr_dir - %s"%(file_path, os.getcwd()))
+
+        else:
+            file_path = os.path.join(log_dir, scan_id)
+    except Exception:
+        print "ERROR in write log"
+        raise
+
+               
     out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
     f = open(out_file, 'w')
     
@@ -1207,8 +1217,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     print >>f, "workflow_name: %s"%(workflow)
         
         
-    from nipype import logging
-    iflogger = logging.getLogger('interface')
+
     iflogger.info("CPAC custom log :")
     
     if isinstance(inputs, list):
@@ -1353,16 +1362,17 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     return
 
 
-def create_group_log_template(subject_ids, log_dir):
+def create_group_log_template(subject_scan_map, log_dir):
     
     import os
     from os import path as op
     from jinja2 import Template
     import pkg_resources as p
     import CPAC
-    
+
     tvars = {}
-    tvars['subject_ids'] = subject_ids
+    tvars['subject_ids'] = subject_scan_map.keys()
+    tvars['scan_ids']    = subject_scan_map
     tvars['resources']   = op.join(CPAC.__path__[0], 'resources')
     tvars['log_dir']     = log_dir
     

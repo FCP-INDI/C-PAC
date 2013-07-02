@@ -41,6 +41,7 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
+from CPAC.interfaces.afni import preprocess 
 import zlib
 import linecache
 from string import Template
@@ -652,6 +653,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             func_to_mni.inputs.inputspec.interp = 'trilinear'
             func_to_mni.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
 
+            # UpdateTR
+#             check_tr = pe.Node(util.Function(input_names=['tr', 'in_file'], output_names=['tr'], 
+#                                                function=check_tr), name='check_tr_%d' % num_strat)
+#                                                
+#             copy_tr = pe.Node(interface=preprocess.Threedrefit(), name='copy_tr_%d' % num_strat)
+
             try:
                 def pick_wm(seg_prob_list):
                     seg_prob_list.sort()
@@ -680,6 +687,13 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file,
                                  func_to_mni, 'inputspec.anat_to_mni_nonlinear_xfm')
+                
+            
+#                 workflow.connect(convert_tr, 'tr', check_tr, 'tr')
+#                 workflow.connect(funcFlow, 'outputspec.subject', check_tr, 'in_file')
+#                 
+#                 workflow.connect(check_tr, 'tr', copy_tr, 'tr')
+#                 workflow.connect(func_to_mni, 'outputspec.mni_func', copy_tr, 'in_file')
             except:
                 print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
@@ -696,19 +710,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             strat.append_name(func_to_mni.name)
             # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
-            # UpdateTR
-            check_tr = pe.Node(util.Function(input_names=['tr', 'in_file'], output_names=['tr'], 
-                                               function=check_tr), name='check_tr_%d' % num_strat)
-                                               
-            copy_tr = pe.Node(interface=preprocess.Threedrefit(), name='copy_tr_%d' % num_strat)
-            
-            workflow.connect(convert_tr, 'tr', check_tr, 'tr')
-            workflow.connect(funcFlow, 'outputspec.subject', check_tr, 'in_file')
-            
-            workflow.connect(check_tr, 'tr', copy_tr, 'tr')
-            workflow.connect(func_to_mni, 'outputspec.mni_func', copy_tr, 'in_file')
-
-            strat.update_resource_pool({'mean_functional_in_mni':(copy_tr, 'out_file'),
+            strat.update_resource_pool({#'mean_functional_in_mni':(copy_tr, 'out_file'),
+                                        'mean_functional_in_mni':(func_to_mni, 'outputspec.mni_func'),
                                         'mean_functional_in_anat':(func_to_mni, 'outputspec.anat_func'),
                                         'anatomical_wm_edge':(func_to_mni, 'outputspec.anat_wm_edge'),
                                         'functional_to_anat_linear_xfm':(func_to_mni, 'outputspec.func_to_anat_linear_xfm'),
@@ -3184,24 +3187,16 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         # build helper dictionary to assist with a clean strategy label for symlinks
 
         strategy_tag_helper_symlinks = {}
-        import re
-
+ 
         if any('scrubbing' in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_threshold'] = 1
-
         else:
-
             strategy_tag_helper_symlinks['_threshold'] = 0
 
-
-
         if any('seg_preproc' in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_csf_threshold'] = 1
             strategy_tag_helper_symlinks['_wm_threshold'] = 1
             strategy_tag_helper_symlinks['_gm_threshold'] = 1
-
         else:
             strategy_tag_helper_symlinks['_csf_threshold'] = 0
             strategy_tag_helper_symlinks['_wm_threshold'] = 0
@@ -3209,17 +3204,13 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
         if any('median_angle_corr'in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['_target_angle_deg'] = 1
-
         else:
             strategy_tag_helper_symlinks['_target_angle_deg'] = 0
 
 
         if any('nuisance'in name for name in strat.get_name()):
-
             strategy_tag_helper_symlinks['nuisance'] = 1
-
         else:
             strategy_tag_helper_symlinks['nuisance'] = 0
 

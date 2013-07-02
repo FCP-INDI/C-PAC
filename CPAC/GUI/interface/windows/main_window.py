@@ -2,6 +2,7 @@ import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
 from ..utils.custom_control import FileSelectorCombo
+from ..utils.constants import multiple_value_wfs
 import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
@@ -478,6 +479,36 @@ class ListBox(wx.Frame):
                     break
                             
                             
+                            
+    def check_config(self, config):
+        
+        ret_val = 1
+        
+        try:
+            import yaml
+            c = yaml.load(open(config, 'r'))
+        except:
+            dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+            ret_val = -1
+            dlg.ShowModal()
+            dlg.Destroy()
+        else:
+            for wf in multiple_value_wfs:
+                if c.get(wf):
+                    if len(c.get(wf))>1:
+                        dlg = wx.MessageDialog(self, "Configuration with multiple pipeline is not yet accepted by the gui. The multiple"\
+                                                      "pipeline is due to workflow - %s"%wf,
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                        ret_val = -1
+            
+        return ret_val
+    
+                            
     def AddConfig(self, event):
         
         dlg = wx.FileDialog(
@@ -488,29 +519,32 @@ class ListBox(wx.Frame):
             style=wx.OPEN | wx.CHANGE_DIR)
         
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()            
-            while True:
-                dlg2 = wx.TextEntryDialog(self, 'Please enter a unique pipeline id for the configuration',
-                                         'Pipeline Id', "")
-                if dlg2.ShowModal() == wx.ID_OK:
-                    if len(dlg2.GetValue()) >0:
-                        if self.pipeline_map.get(dlg2.GetValue()) == None:
-                            self.pipeline_map[dlg2.GetValue()] = path
-                            self.listbox.Append(dlg2.GetValue())
-                            dlg2.Destroy()
-                            dlg.Destroy()
-                            break
-                        else:        
-                                   
-                            dlg3 = wx.MessageDialog(self, 'Pipeline already exist. Please enter a new name',
-                                           'Error!',
-                                       wx.OK | wx.ICON_ERROR)
-                            dlg3.ShowModal()
-                            dlg3.Destroy()
-                else:
-                    dlg2.Destroy()
-                    dlg.Destroy
-                    break
+            path = dlg.GetPath()
+            if self.check_config(path) > 0:
+                while True:
+                    dlg2 = wx.TextEntryDialog(self, 'Please enter a unique pipeline id for the configuration',
+                                             'Pipeline Id', "")
+                    if dlg2.ShowModal() == wx.ID_OK:
+                        if len(dlg2.GetValue()) >0:
+                            
+                                
+                            if self.pipeline_map.get(dlg2.GetValue()) == None:
+                                self.pipeline_map[dlg2.GetValue()] = path
+                                self.listbox.Append(dlg2.GetValue())
+                                dlg2.Destroy()
+                                dlg.Destroy()
+                                break
+                            else:        
+                                       
+                                dlg3 = wx.MessageDialog(self, 'Pipeline already exist. Please enter a new name',
+                                               'Error!',
+                                           wx.OK | wx.ICON_ERROR)
+                                dlg3.ShowModal()
+                                dlg3.Destroy()
+                    else:
+                        dlg2.Destroy()
+                        dlg.Destroy
+                        break
        
               
 class runCPAC(wx.Frame):

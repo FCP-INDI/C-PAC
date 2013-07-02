@@ -7,25 +7,172 @@ import os
 import sys
 import glob
 
-from CPAC.utils.datasource import create_gpa_dataflow
+from CPAC.utils.datasource import create_grp_analysis_dataflow
 from CPAC.utils import Configuration
 from CPAC.utils.utils import prepare_gp_links
-
 
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))    
+    #print "p_id -%s, s_ids -%s, scan_ids -%s, s_paths -%s" %(p_id, s_ids, scan_ids, s_paths)
     
-    if type(c.modelFile) is list:
-        model_sub_list = c.modelFile
-    elif os.path.exists(c.modelFile):    
-        model_sub_list = [line.rstrip('\r\n').split() \
-                          for line in open(c.modelFile, 'r') \
-                          if not (line == '\n') and not line.startswith('#')]
-    else:
-        raise ValueError("modelFile %s has invalid entry" %(c.modelFile)) 
+    
+    def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path):
+        
+        #print "phenotypic_file, m_dict", phenotypic_file, m_dict
+        import csv
+        reader = csv.reader(open(phenotypic_file, 'rU'))
+        columns = {}
+        order = {}
+        count =0
+        headers = reader.next()
+                
+        for h in headers:
+            columns[h] =[]
+            order[h] = count
+            count+=1
+            
+        for r in reader:
+            for h, v in zip(headers, r):
+                if v:
+                    columns[h].append(str(v))
 
+        if m_dict:
+            for measure in m_list:
+                if measure in headers:
+                    #check if 'MeanFD  is present'
+                    if len(columns[measure]) < 1:
+                        for sub in columns['sub_id']:
+                            if m_dict.get(sub):
+                                if m_dict.get(sub).get(measure):
+                                    columns[measure].append(m_dict[sub][measure])
+                                else:
+                                    raise Exception("Couldn't find %s value for subject %s"%(measure,sub))
+                            else:
+                                raise Exception("Couldn't find subject %s in the parameter file"%sub)
+        
+        b = zip(*([k] + columns[k] for k in sorted(columns, key=order.get)))
+        
+        
+        try:
+            os.makedirs(mod_path)
+        except:
+            print "%s already exist"%(mod_path)
+            
+        new_phenotypic_file = os.path.join(mod_path, os.path.basename(phenotypic_file))
+                
+        a = csv.writer(open(new_phenotypic_file, 'w'))
+        
+        for col in b:
+            a.writerow(list(col))
+          
+        return new_phenotypic_file
+
+    threshold_val = None
+    measure_dict = None
+    measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+    model_sub_list = []
+    
+    if re.search('(?<=/_threshold_)\d+.\d+',s_paths[0]):
+        threshold_val = re.search('(?<=/_threshold_)\d+.\d+',s_paths[0]).group(0)
+    elif len(c.scrubbingThreshold) == 1:
+        threshold_val = c.scrubbingThreshold[0]
+    else:
+        print ("Found Multiple threshold value ")
+   
+    print "threhsold_val -->", threshold_val
+    
+    if threshold_val:    
+        try:
+            parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+            if os.path.exists(parameter_file):
+                import csv
+                measure_dict = {}
+                f = csv.DictReader(open(parameter_file,'r'))
+                for line in f:
+                    measure_map = {}
+                    for m in measure_list:
+                        if line.get(m):
+                            measure_map[m] = line[m]
+
+                    measure_dict[line['Subject']] = measure_map
+            else:
+                print "No file name %s found"%parameter_file
+                
+        except Exception:
+            print "Exception while extracting parameters from movement file - %s"%(parameter_file)
+            
+        
+    
+    for config in c.modelConfigs:
+        
+        import yaml
+        
+        try:
+            conf = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+        except:
+            raise Exception("Error in reading %s configuration file" % config)
+    
+        subject_list = [line.rstrip('\r\n') for line in open(conf.subjectListFile, 'r') \
+                              if not (line == '\n') and not line.startswith('#')]
+
+        exist_paths=[]
+        
+        for sub in subject_list :
+            for path in s_paths:
+                if sub in path:
+                    exist_paths.append(sub)
+
+        if len(list(set(subject_list) - set(exist_paths))) >0:
+            msg = "list of outputs missing for subjects %s for derivative -%s at path- %s"\
+                  %(list(set(subject_list) - set(exist_paths)),resource, os.path.dirname(s_paths[0]).replace(s_ids[0], '*'))
+            print msg
+            import warnings
+            warnings.warn(msg)
+        
+        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName)),
+                                'model_files')
+                
+        try:
+            os.makedirs(mod_path)
+        except:
+            print "path %s already exists"%mod_path
+           
+        
+        new_sub_file = os.path.join(mod_path, os.path.basename(conf.subjectListFile))
+        f = open(new_sub_file, 'w')
+         
+        for sub in exist_paths:
+            print >>f, sub
+        
+        f.close()
+                
+        conf.update('subjectListFile',new_sub_file)
+        
+        if measure_dict != None:
+            conf.update('phenotypicFile',get_phenotypic_file(conf.phenotypicFile, measure_dict, measure_list, mod_path))
+            
+            
+        print "model config dictionary ->", conf.__dict__
+
+        try:
+            from CPAC.utils import create_fsl_model
+            create_fsl_model.run(conf, True)
+        except Exception, e:
+            print "Error in create_fsl_model script"
+            print e
+            
+        model_sub_list.append((conf.outputModelFilesDirectory, conf.subjectListFile))
+
+        print "model_sub_list ->", model_sub_list
+
+    
+    if len(model_sub_list) == 0:
+        raise Exception("no model found")
+
+
+    #start group analysis
     for model_sub in model_sub_list:
         
         model, subject_list = model_sub
@@ -38,23 +185,40 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         if not os.path.exists(subject_list):
             raise Exception("path to input subject list %s is invalid"%subject_list)
         
-        if c.mixedScanAnalysis == True:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
-        else:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+        #if c.mixedScanAnalysis == True:
+        #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
+        #else:
+        
+        wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
+        wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
+        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s'%(os.path.basename(model)))
+        try:
+            os.makedirs(log_dir)
+        except:
+            print "log_dir already exist"
+        
+        #enable logging    
+        from nipype import config
+        from nipype import logging
+        
+        config.update_config({'logging': {'log_directory': log_dir,
+                              'log_to_file': True}})
+        logging.update_logging(config)
+        iflogger = logging.getLogger('interface')
+    
     
         input_subject_list = [line.rstrip('\r\n') for line in open(subject_list, 'r') \
                               if not (line == '\n') and not line.startswith('#')]
     
         ordered_paths=[]
         for sub in input_subject_list :
-           for path in s_paths:
-               if sub in path:
-                   ordered_paths.append(path)
+            for path in s_paths:
+                if sub in path:
+                    ordered_paths.append(path)
         
-        print "input_subject_list ->", input_subject_list
+        iflogger.info("input_subject_list -> %s"%input_subject_list)
         #print "ordered_paths ->", ordered_paths
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
@@ -62,9 +226,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             if ch in strgy_path:
                 strgy_path = strgy_path.replace(ch, '_')
         
-        gp_flow = create_gpa_dataflow("gp_dataflow%s"%strgy_path)
-        gp_flow.inputs.inputspec.input_sublist = input_subject_list 
-        gp_flow.inputs.inputspec.output_sublist = s_ids
+        gp_flow = create_grp_analysis_dataflow("gp_dataflow%s"%strgy_path)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
         
@@ -95,21 +257,22 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
               re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            
         if 'centrality' in resource:
-             names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+            names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
                       'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
-             for name in names:
-                 if name in os.path.basename(s_paths[0]):
-                     out_dir = os.path.join(out_dir, name)
-                     break
+            for name in names:
+                if name in os.path.basename(s_paths[0]):
+                    out_dir = os.path.join(out_dir, name)
+                    break
+        
         if 'tempreg_maps_z_files' in resource:
             out_dir = os.path.join(out_dir, \
                 re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
         
-        if c.mixedScanAnalysis == True:
-            out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
-            
-            
+#         if c.mixedScanAnalysis == True:
+#             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
+                
         ds.inputs.base_directory = out_dir
         ds.inputs.container = ''
         
@@ -139,11 +302,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         ########datasink connections#########
         
         wf.connect(gp_flow, 'outputspec.mat',
-                   ds, 'model_files')
+                   ds, 'model_files.@1' )
+        wf.connect(gp_flow, 'outputspec.con',
+                   ds, 'model_files.@2')
         wf.connect(gp_flow, 'outputspec.grp',
-                   ds, 'model_files.@02')
-        wf.connect(gp_flow, 'outputspec.sublist',
-                   ds, 'model_files.@03')
+                   ds, 'model_files.@3')
         wf.connect(gpa_wf, 'outputspec.merged',
                    ds, 'merged')
         wf.connect(gpa_wf, 'outputspec.zstats',

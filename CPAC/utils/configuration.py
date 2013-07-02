@@ -56,6 +56,6 @@ class Configuration(object):
                                           
     __update_attr = update_attr
     
-    
-
+    def update(self, key, val):
+        setattr(self, key, val)
         

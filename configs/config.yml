@@ -644,38 +644,8 @@ derivativeList:
 - vmhc_z_score_stat_map
 - reho_Z_to_standard_smooth
 
-# Location of a text file contaning a list of FSL models
-# Each line in this file should be the path to a model directory
-# Each model directory should contain a .mat, .con, and .grp file
-# If fTest = True (see below), model directories must also contain a .fts file
-# These models can be generated through FSL, or using create_fsl_model.py
-# For instructions on using create_fsl_model.py, see the user guide
-#
-#It can be a file with model and subject list(for that model) path in each line
-#   modelFile: /path/to/model_list_and_subject_list.txt
-#
-#This file should have full path to model directory space full path to subject list for that model
-# 
-#or It can be yaml list  
-#   modelFile: 
-#   -
-#     - /home/data/configs/model_a 
-#     - /home/data/configs/subject_list_group_analysis_a.txt
-#   -
-#     - /home/data/configs/model_b 
-#     - /home/data/configs/subject_list_group_analysis_b.txt
-#
-#or it can be a simple list
-#   
-#  modelFile : [ ['/home/data/configs/model_a', '/home/data/configs/model_a_sublist.txt'], \
-#                ['/home/data/configs/model_b', '/home/data/configs/model_b_sublist.txt'] ]
-
-modelFile: /path/to/model_list_and_subject_list.txt
-
-# If a subjecs has multiple scans:
-# False = Consdier only the first scan session during group analysis
-# True = Consider all scan sessions
-mixedScanAnalysis: False
+#list of fsl model configuratiion file
+modelConfigs : ['/home2/data/Projects/configs/config_fsl.yml']
 
 zThreshold: 2.3
 
