@@ -1496,8 +1496,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             resample_functional_to_spatial_map.inputs.interp = 'trilinear'
             resample_functional_to_spatial_map.inputs.apply_xfm = True
             resample_functional_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
-
-            resample_functional_mask_to_spatial_map = resample_functional_to_spatial_map.clone(name='resample_functional_mask_to_spatial_map_%d' % num_strat)
+            
+            resample_functional_mask_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
+                                                         name='resample_functional_mask_to_spatial_map_%d' % num_strat)
+            resample_functional_mask_to_spatial_map.inputs.interp = 'nearestneighbour'
+            resample_functional_mask_to_spatial_map.inputs.apply_xfm = True
+            resample_functional_mask_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
 
             spatial_map_dataflow = create_spatial_map_dataflow(c.spatialPatternMaps, 'spatial_map_dataflow_%d' % num_strat)
 
@@ -1757,6 +1761,86 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             num_strat += 1
     strat_list += new_strat_list
 
+    """
+    Transforming Dual REgression Z stats to MNI
+    
+    """
+    new_strat_list = []
+    num_strat = 0
+
+
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runDualReg) and (1 in c.runSpatialRegression):
+        for strat in strat_list:
+
+            dr_tempreg_stack_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                           name='dr_tempreg_stack_Z_to_standard_%d' % num_strat)
+            dr_tempreg_stack_Z_to_standard.inputs.ref_file = c.standard
+            
+            dr_tempreg_files_Z_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
+                                                        name = 'dr_tempreg_files_Z_to_standard_%d' % num_strat,
+                                                        iterfield=['in_file'])
+            dr_tempreg_files_Z_to_standard.inputs.ref_file = c.standard
+            
+            dr_tempreg_stack_to_standard = dr_tempreg_stack_Z_to_standard.clone(name- 'dr_tempreg_stack_to_standard_%d' % num_strat)
+
+
+            try:
+                
+                ##dual tempreg z stack
+                node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_stack')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_Z_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_Z_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_Z_to_standard, 'field_file')
+                
+                ####dual tempreg z files
+                node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_files_Z_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_files_Z_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_files_Z_to_standard, 'field_file')
+                
+                ##dual tempreg stack
+                node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 dr_tempreg_stack_to_standard, 'field_file')                
+
+
+
+            except:
+                print 'Invalid Connection: Register Functional to MNI:', num_strat, ' resource_pool: ', strat.get_resource_pool()
+                raise
+
+            strat.update_resource_pool({'dr_tempreg_maps_z_stack_to_standard':(dr_tempreg_stack_Z_to_standard, 'out_file')})
+            strat.update_resource_pool({'dr_tempreg_maps_z_files_to_standard':(dr_tempreg_files_Z_to_standard, 'out_file')})
+            strat.update_resource_pool({'dr_tempreg_maps_stack_to_standard':(dr_tempreg_stack_to_standard, 'out_file')})
+            strat.append_name(dr_tempreg_stack_to_standard.name)
+            
+            
+            num_strat += 1
+    strat_list += new_strat_list
+    
+
 
     """
     Inserting SCA
@@ -1905,17 +1989,17 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     if (1 in c.runDualReg) and (1 in c.runSpatialRegression) and len(c.fwhm) > 0:
         for strat in strat_list:
 
-            dr_temp_reg_maps_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_stack_smooth_%d' % num_strat, iterfield=['in_file'])
-            dr_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+            dr_temp_reg_maps_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg_maps_stack_smooth_%d' % num_strat)
+            dr_temp_reg_maps_Z_stack_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
-                node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack')
-                node2, out_file2 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_stack')
-                node3, out_file3 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files')
+                node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack_to_standard')
+                node2, out_file2 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_stack_to_standard')
+                node3, out_file3 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files_to_standard')
                 node4, out_file4 = strat.get_node_from_resource_pool('functional_mask_to_spatial_map')
 
                 # non-normalized stack
