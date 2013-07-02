@@ -125,9 +125,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                     exist_paths.append(sub)
 
         if len(list(set(subject_list) - set(exist_paths))) >0:
-            print "list of outputs missing for subjects %s for derivative -%s at path- %s"\
+            msg = "list of outputs missing for subjects %s for derivative -%s at path- %s"\
                   %(list(set(subject_list) - set(exist_paths)),resource, os.path.dirname(s_paths[0]).replace(s_ids[0], '*'))
-          
+            print msg
+            import warnings
+            warnings.warn(msg)
         
         mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName)),
                                 'model_files')
@@ -183,10 +185,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         if not os.path.exists(subject_list):
             raise Exception("path to input subject list %s is invalid"%subject_list)
         
-        if c.mixedScanAnalysis == True:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
-        else:
-            wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+        #if c.mixedScanAnalysis == True:
+        #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
+        #else:
+        
+        wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
@@ -298,7 +301,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
         ########datasink connections#########
         
-
+        wf.connect(gp_flow, 'outputspec.mat',
+                   ds, 'model_files.@1' )
+        wf.connect(gp_flow, 'outputspec.con',
+                   ds, 'model_files.@2')
+        wf.connect(gp_flow, 'outputspec.grp',
+                   ds, 'model_files.@3')
         wf.connect(gpa_wf, 'outputspec.merged',
                    ds, 'merged')
         wf.connect(gpa_wf, 'outputspec.zstats',
