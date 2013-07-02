@@ -1781,7 +1781,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                                         iterfield=['in_file'])
             dr_tempreg_files_Z_to_standard.inputs.ref_file = c.standard
             
-            dr_tempreg_stack_to_standard = dr_tempreg_stack_Z_to_standard.clone(name- 'dr_tempreg_stack_to_standard_%d' % num_strat)
+            dr_tempreg_stack_to_standard = dr_tempreg_stack_Z_to_standard.clone(name= 'dr_tempreg_stack_to_standard_%d' % num_strat)
 
 
             try:
