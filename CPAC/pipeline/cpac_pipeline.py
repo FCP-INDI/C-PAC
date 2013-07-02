@@ -2000,7 +2000,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack_to_standard')
                 node2, out_file2 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_stack_to_standard')
                 node3, out_file3 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files_to_standard')
-                node4, out_file4 = strat.get_node_from_resource_pool('functional_mask_to_spatial_map')
+                node4, out_file4 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
                 # non-normalized stack
                 workflow.connect(node, out_file,
