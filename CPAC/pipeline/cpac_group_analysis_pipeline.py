@@ -74,6 +74,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
     model_sub_list = []
     
+    #get scrubbing threshold
     if re.search('(?<=/_threshold_)\d+.\d+',s_paths[0]):
         threshold_val = re.search('(?<=/_threshold_)\d+.\d+',s_paths[0]).group(0)
     elif len(c.scrubbingThreshold) == 1:
@@ -83,6 +84,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
    
     print "threhsold_val -->", threshold_val
     
+    #pick the right parameter file from the pipeline folder
+    #create a dictionary of subject and measures in measure_list
     if threshold_val:    
         try:
             parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
@@ -119,6 +122,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         exist_paths=[]
         
+        #check for missing subject for the derivative
         for sub in subject_list :
             for path in s_paths:
                 if sub in path:
@@ -300,6 +304,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     
     
         ########datasink connections#########
+        if c.fTest:
+            wf.connect(gp_flow, 'outputspec.fts',
+                       ds, 'model_files.@0') 
         
         wf.connect(gp_flow, 'outputspec.mat',
                    ds, 'model_files.@1' )

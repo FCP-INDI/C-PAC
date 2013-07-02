@@ -1493,7 +1493,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             resample_functional_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
                                                          name='resample_functional_to_spatial_map_%d' % num_strat)
-            resample_functional_to_spatial_map.inputs.interp = 'nearestneighbour'
+            resample_functional_to_spatial_map.inputs.interp = 'trilinear'
             resample_functional_to_spatial_map.inputs.apply_xfm = True
             resample_functional_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
 
@@ -1567,7 +1567,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_mask_%d' % num_strat)
-            resample_functional_to_mask.inputs.interp = 'nearestneighbour'
+            resample_functional_to_mask.inputs.interp = 'trilinear'
             resample_functional_to_mask.inputs.apply_xfm = True
             resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
 
@@ -1630,7 +1630,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_roi_%d' % num_strat)
-            resample_functional_to_roi.inputs.interp = 'nearestneighbour'
+            resample_functional_to_roi.inputs.interp = 'trilinear'
             resample_functional_to_roi.inputs.apply_xfm = True
             resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
 
@@ -1729,8 +1729,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('spatial_map_timeseries')
-                node2, out_file2 = strat.get_node_from_resource_pool('functional_to_spatial_map')
-                node3, out_file3 = strat.get_node_from_resource_pool('functional_mask_to_spatial_map')
+                
+                node2, out_file2 = strat.get_leaf_properties()
+                node3, out_file3 = strat.get_node_from_resource_pool('functional_brain_mask')
 
                 workflow.connect(node2, out_file2,
                                  dr_temp_reg, 'inputspec.subject_rest')
@@ -2262,7 +2263,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
-            resample_functional_to_template.inputs.interp = 'nearestneighbour'
+            resample_functional_to_template.inputs.interp = 'trilinear'
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
