@@ -210,6 +210,8 @@ class ThreedrefitInputSpec(AFNITraitedSpec):
           copyfile = True)
     deoblique = traits.Bool(desc = 'replace current transformation matrix with cardinal matrix',
                             argstr = '-deoblique')
+    tr = traits.Str(desc = 'Changes the TR time to a new value',
+                         argstr = '-tr %s')
     xorigin = traits.Str(desc = 'x distance for edge voxel offset',
                          argstr = '-xorigin %s')
     yorigin = traits.Str(desc = 'y distance for edge voxel offset',
@@ -1657,4 +1659,3 @@ class InvWarp(FSLCommand):
             outputs['out_file'] = os.path.abspath(self.inputs.out_file)
 
         return outputs
-
