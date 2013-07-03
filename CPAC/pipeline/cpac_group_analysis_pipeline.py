@@ -166,8 +166,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             from CPAC.utils import create_fsl_model
             create_fsl_model.run(conf, True)
         except Exception, e:
-            print "Error in create_fsl_model script"
-            print e
+            print "Error in creating models in the create_fsl_model script"
+            print "Error ->", e
+            raise
             
         model_sub_list.append((conf.outputModelFilesDirectory, conf.subjectListFile))
 
