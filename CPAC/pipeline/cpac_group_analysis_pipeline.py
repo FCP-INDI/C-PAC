@@ -18,7 +18,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     #print "p_id -%s, s_ids -%s, scan_ids -%s, s_paths -%s" %(p_id, s_ids, scan_ids, s_paths)
     
     
-    def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path):
+    def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path, sub_id):
         
         #print "phenotypic_file, m_dict", phenotypic_file, m_dict
         import csv
@@ -43,7 +43,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 if measure in headers:
                     #check if 'MeanFD  is present'
                     if len(columns[measure]) < 1:
-                        for sub in columns['sub_id']:
+                        for sub in columns[sub_id]:
                             if m_dict.get(sub):
                                 if m_dict.get(sub).get(measure):
                                     columns[measure].append(m_dict[sub][measure])
@@ -154,8 +154,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 
         conf.update('subjectListFile',new_sub_file)
         
+        sub_id = conf.subjectColumn
+        
         if measure_dict != None:
-            conf.update('phenotypicFile',get_phenotypic_file(conf.phenotypicFile, measure_dict, measure_list, mod_path))
+            conf.update('phenotypicFile',get_phenotypic_file(conf.phenotypicFile, measure_dict, measure_list, mod_path, sub_id))
             
             
         print "model config dictionary ->", conf.__dict__
