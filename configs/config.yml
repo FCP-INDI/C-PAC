@@ -1,4 +1,3 @@
-
 #Computer Settings
 
 # True = Run on compute cluster
@@ -95,6 +94,11 @@ fwhm: [4]
 # Directory where FSL is located
 # If you have added FSL to your .bashrc file, this will be set automatically
 FSLDIR: /usr/local/fsl
+
+# User-specified warp resolution parameter for FNIRT
+# If left as none, parameter is pulled from FNIRT config file 'configFileTwomm'
+# format example - fnirtWarpResolution: (10,10,10) or fnirtWarpResolution: None
+fnirtWarpResolution: None
 
 # The following options specify the path of various resources used by C-PAC
 # By default, C-PAC will automatically locate most files based on FSLDIR
