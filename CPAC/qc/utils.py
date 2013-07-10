@@ -402,7 +402,7 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_, "<title>QC</title>"
     print >>f_html_, "</head>"
     print >>f_html_, ""
-    print >>f_html_, "<frameset cols=\"15%,85%\">"
+    print >>f_html_, "<frameset cols=\"20%,80%\">"
     print >>f_html_, ""
     print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s\" name=\"content\"></frameset>" %(f_html_0.name, f_html_1.name)
     print >>f_html_, ""
@@ -1001,7 +1001,7 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
     from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
     from CPAC.qc.utils import make_qc_pages
 
-    os.system('rm -rf %s/*.html')
+    #os.system('rm -rf %s/*.html')
 
     #according to preprocessing strategy combines the files
     first_pass_organizing_files(qc_path)

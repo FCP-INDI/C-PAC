@@ -1,6 +1,8 @@
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
+from ..utils.custom_control import FileSelectorCombo
+from ..utils.constants import multiple_value_wfs
 import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
@@ -163,22 +165,10 @@ class ListBox(wx.Frame):
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
         
-        #bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo2.jpg'), wx.BITMAP_TYPE_ANY)
-#         self.runCPAC1 = AB.AquaButton(outerPanel2, label="Run Individual Level Analysis")
-#         self.runCPAC1.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
-#         self.runCPAC1.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC1.SetHoverColor('#0071B2')
 
         self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
         
-#         self.runCPAC2 = AB.AquaButton(outerPanel2, label ="Run Group Level Analysis")
-#         self.runCPAC2.SetFont(wx.Font(13, wx.SWISS, wx.ITALIC, wx.LIGHT))
-#         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
-#         self.runCPAC2.SetBackgroundColour('#BBCFE9')
-#         self.runCPAC2.SetHoverColor('#0071B2')
-#         self.runCPAC2.SetForegroundColour('#000000')
 
         self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
@@ -222,12 +212,26 @@ class ListBox(wx.Frame):
 
         self.Centre()
         self.Show(True)
+        
+    def runAnalysis1(self,pipeline, sublist, p):
+        
+        try:
+            
+            import CPAC
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+        
+        except ImportError, e:
+            wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
+            print "Error importing CPAC"
+            print e
 
     def runIndividualAnalysis(self, event):
 
         try:
                 if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
                     (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
+                    
+                    import thread
                     
                     pipelines = self.listbox.GetCheckedStrings()
                     sublists = self.listbox2.GetCheckedStrings()
@@ -242,25 +246,70 @@ class ListBox(wx.Frame):
                             pipeline = self.pipeline_map.get(p)
                             print "running for configuration, subject list, pipeline_id -->", \
                                   pipeline, sublist, p
-                            MyForm(pipeline, sublist, p).Show()
-                            #CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
                             
+                            thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
+
+                            
+                            import time
+                            time.sleep(20)
+                            
+                            try:
+                                import yaml
+                                config = yaml.load(open(pipeline, 'r'))
+                            except:
+                                raise Exception("Error reading config file- %s", config)
+                            
+                            try:
+                                if config.get('outputDirectory'):
+                                    pid = [ int(id.strip()) for id in open(os.path.join(config.get('outputDirectory'),\
+                                       'pid.txt')).readlines()]
+                            except ImportError:
+                                print "unable to find the file %s"% os.path.join(config.outputDirectory, 'pid.txt')
+                                pid = None
+                            except Exception:
+                                print "Unable to retrieve process id"
+                                pid = None
+                            
+                            runCPAC(pipeline, sublist, p, pid).Show()
 
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
                 else:
                     print "no pipeline and subject list selected"
                     
-        except ImportError, e:
-                wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
-                print "Error importing CPAC"
-                print e
+
         except Exception, e:
                 print e
                 #wx.MessageBox(e, "Error") 
                 
     def runGroupLevelAnalysis(self, event):
         print "running Group Analysis"
+        
+        if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+            pipelines = self.listbox.GetCheckedStrings()
+            for p in pipelines:
+                pipeline = self.pipeline_map.get(p)
+                
+                if os.path.exists(pipeline):
+                    try:
+                        import yaml
+                        config = yaml.load(open(pipeline, 'r'))
+                    except:
+                            raise Exception("Error reading config file- %s", config)
+                    
+                    if config.get('outputDirectory'):
+                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                    else:
+                        derv_path = ''
+                    
+                    runGLA(pipeline, derv_path, p)
+                
+                else:
+                    print "pipeline doesn't exist"
+                    
+                
+        else:
+            print "No pipeline selected"
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -430,6 +479,36 @@ class ListBox(wx.Frame):
                     break
                             
                             
+                            
+    def check_config(self, config):
+        
+        ret_val = 1
+        
+        try:
+            import yaml
+            c = yaml.load(open(config, 'r'))
+        except:
+            dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+            ret_val = -1
+            dlg.ShowModal()
+            dlg.Destroy()
+        else:
+            for wf in multiple_value_wfs:
+                if c.get(wf):
+                    if len(c.get(wf))>1:
+                        dlg = wx.MessageDialog(self, "Configuration with multiple pipeline is not yet accepted by the gui. The multiple"\
+                                                      "pipeline is due to workflow - %s"%wf,
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+                        dlg.ShowModal()
+                        dlg.Destroy()
+                        ret_val = -1
+            
+        return ret_val
+    
+                            
     def AddConfig(self, event):
         
         dlg = wx.FileDialog(
@@ -440,67 +519,138 @@ class ListBox(wx.Frame):
             style=wx.OPEN | wx.CHANGE_DIR)
         
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()            
-            while True:
-                dlg2 = wx.TextEntryDialog(self, 'Please enter a unique pipeline id for the configuration',
-                                         'Pipeline Id', "")
-                if dlg2.ShowModal() == wx.ID_OK:
-                    if len(dlg2.GetValue()) >0:
-                        if self.pipeline_map.get(dlg2.GetValue()) == None:
-                            self.pipeline_map[dlg2.GetValue()] = path
-                            self.listbox.Append(dlg2.GetValue())
-                            dlg2.Destroy()
-                            dlg.Destroy()
-                            break
-                        else:        
-                                   
-                            dlg3 = wx.MessageDialog(self, 'Pipeline already exist. Please enter a new name',
-                                           'Error!',
-                                       wx.OK | wx.ICON_ERROR)
-                            dlg3.ShowModal()
-                            dlg3.Destroy()
-                else:
-                    dlg2.Destroy()
-                    dlg.Destroy
-                    break
-
-class RedirectText(object):
-    def __init__(self,aWxTextCtrl):
-        self.out=aWxTextCtrl
+            path = dlg.GetPath()
+            if self.check_config(path) > 0:
+                while True:
+                    dlg2 = wx.TextEntryDialog(self, 'Please enter a unique pipeline id for the configuration',
+                                             'Pipeline Id', "")
+                    if dlg2.ShowModal() == wx.ID_OK:
+                        if len(dlg2.GetValue()) >0:
+                            
+                                
+                            if self.pipeline_map.get(dlg2.GetValue()) == None:
+                                self.pipeline_map[dlg2.GetValue()] = path
+                                self.listbox.Append(dlg2.GetValue())
+                                dlg2.Destroy()
+                                dlg.Destroy()
+                                break
+                            else:        
+                                       
+                                dlg3 = wx.MessageDialog(self, 'Pipeline already exist. Please enter a new name',
+                                               'Error!',
+                                           wx.OK | wx.ICON_ERROR)
+                                dlg3.ShowModal()
+                                dlg3.Destroy()
+                    else:
+                        dlg2.Destroy()
+                        dlg.Destroy
+                        break
+       
+              
+class runCPAC(wx.Frame):
  
-    def write(self, string):
-        wx.CallAfter(self.out.WriteText, string)
-        
-class MyForm(wx.Frame):
- 
-    def __init__(self, pipeline, sublist, p):
+    def __init__(self, pipeline, sublist, p, pid):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Running CPAC")
-    
-        
+                
         # Add a panel so it looks the correct on all platforms
         panel = wx.Panel(self, wx.ID_ANY)
         log = wx.TextCtrl(panel, wx.ID_ANY, size=(300,100),
                           style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
-        btn = wx.Button(panel, wx.ID_ANY, 'Close')
-        self.Bind(wx.EVT_BUTTON, self.onButton, btn)
+        btn = wx.Button(panel, wx.ID_ANY, 'Kill CPAC!')
+        self.Bind(wx.EVT_BUTTON,lambda event: self.onButton(event, pid), btn)
  
         # Add widgets to a sizer        
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
         sizer.Add(btn, 0, wx.ALL|wx.CENTER, 5)
         panel.SetSizer(sizer)
-        
-        import CPAC
-        CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
  
-        # redirect text here
-        redir=RedirectText(log)
-        sys.stdout=redir
-        print "running pipeline --> ", p
-        print "process id --> ", os.getpid()
-        
+        log.AppendText("running for pipeline --> %s \n"%p)
+        log.AppendText("pipeline config --> %s \n"%pipeline)
+        log.AppendText("subject list --> %s \n"%sublist)
+        log.AppendText("process ids ---> %s \n"%pid)
 
- 
-    def onButton(self, event):        
-        print "kill -9" ,os.kill(os.getpid(), 0)
+       
+    def onButton(self, event, pid):        
+        if pid:
+            for id in pid:
+                print "killing process id -%s"% id
+                os.kill(id, 9)
+                print "please restart the gui"
+        
+            self.Close()
+        else:
+            dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. Please kill the process from command prompt',
+                                   'Alert!',
+                                   wx.OK | wx.ICON_INFORMATION)
+            dlg.Destroy()
+       
+            
+class runGLA(wx.Frame):
+    
+    def __init__(self, pipeline, path, name):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        panel = wx.Panel(self)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
+
+        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+       
+        label1 = wx.StaticText(panel, -1, label = 'Derivative Path File ')
+        self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
+        self.box1.GetTextCtrl().SetValue(str(path))
+        
+        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+        help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
+                                 pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
+        help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
+        
+        hbox1.Add(label1)
+        hbox1.Add(help1)
+        
+        flexsizer.Add(hbox1)
+        flexsizer.Add(self.box1, flag = wx.EXPAND | wx.ALL)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        
+        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size =(120,30))
+        button3.Bind(wx.EVT_BUTTON, self.onCancel)
+        
+        button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
+        button2.Bind(wx.EVT_BUTTON, lambda event: \
+                         self.onOK(event, pipeline) )
+        
+        hbox.Add(button3, 1, wx.EXPAND, border =5)
+        hbox.Add(button2, 1, wx.EXPAND, border =5)
+        
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+        
+    def onCancel(self, event):
         self.Close()
+        
+    def runAnalysis(self, pipeline, path):
+        try:
+            import CPAC
+            CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+        except Exception:
+            print "Exception while running cpac_group_runner"
+            
+        
+    def onOK(self, event, pipeline):
+        
+        import thread
+        
+        if self.box1.GetValue():
+            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
+            self.Close()
+        else:
+            wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")
+            
+    def OnShowDoc(self, event):
+        wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)

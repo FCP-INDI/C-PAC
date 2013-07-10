@@ -83,7 +83,9 @@ def create_nonlinear_register(name='nonlinear_register'):
                             name='nonlinear_reg_1')
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-    nonlinear_reg.inputs.warp_resolution = (10,10,10)
+    #Temporarily remove warp resolution parameters
+    #to see effect on registration quality
+    #nonlinear_reg.inputs.warp_resolution = (10,10,10)
     
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
                          name='brain_warp')

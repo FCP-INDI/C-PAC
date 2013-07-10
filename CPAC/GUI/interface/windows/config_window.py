@@ -234,7 +234,7 @@ class MainFrame(wx.Frame):
         try:
             config_file_map = yaml.load(open(self.path, 'r'))
         except:
-            Exception("Error importing file - %s , Make"
+            raise Exception("Error importing file - %s , Make"
                       " sure it is in correct yaml format")
 
         for page in self.nb.get_page_list():

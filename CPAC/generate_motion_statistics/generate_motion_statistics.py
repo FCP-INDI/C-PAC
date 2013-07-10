@@ -2,6 +2,20 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 def calc_friston_twenty_four(in_file):
+    """
+    Method to calculate friston twenty four parameters
+    
+    Parameters
+    ----------
+    in_file: string
+        input movement parameters file from motion correction
+    
+    Returns
+    -------
+    new_file: string
+        output 1D file containing 24 parameter values
+        
+    """
 
     import numpy as np
     import os
@@ -32,6 +46,64 @@ def calc_friston_twenty_four(in_file):
 
 
 def fristons_twenty_four(wf_name='fristons_twenty_four'):
+    """
+    The main purpose of this workflow is to calculate 24 parameters including
+    the 6 motion parameters of the current volume and the preceeding volume, 
+    plus each of these values squared. 
+    
+    Parameters
+    ----------
+    wf_name : workflow object
+        Workflow name
+    
+    Returns 
+    -------
+    wf : workflow object
+         
+    
+    Notes
+    -----
+    
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/generate_parmeters/generate_parmeters.py>`_
+    
+    Workflow Inputs::
+        
+        inputspec.movement_file : string
+            path to the input movement file from motion correction
+            
+    Workflow Outputs::
+        
+        outputspec.movement_file : movement_file
+            path to 1D file containing the friston 24 parameters
+            
+     
+    High Level Workflow Graph:
+    
+    .. image:: ../images/fristons_twenty_four.dot.png
+       :width: 500
+    
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/fristons_twenty_four_detailed.dot.png
+       :width: 500
+    
+    
+    Examples
+    --------
+    
+    >>> from CPAC.generate_motion_statistics import fristons_twenty_four
+    >>> wf = fristons_tewenty_four()
+    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sub01/func/movement_parameteres/rest_mc.1D'
+    >>> wf.run()
+    
+    References
+    ----------
+    
+    .. [1] Friston, K. J., Williams, S., Howard, R., Frackowiak, R. S., & Turner, R. (1996). 
+          Movement-related effects in fMRI time-series. Magnetic Resonance in Medicine, 35(3),346-355
+          
+    """
 
     wf = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=[

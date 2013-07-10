@@ -98,6 +98,9 @@ files_folders_wf = {
     'dr_tempreg_maps_stack_smooth': 'spatial_regression',
     'dr_tempreg_maps_z_stack_smooth': 'spatial_regression',
     'dr_tempreg_maps_z_files_smooth':'spatial_regression',
+    'dr_tempreg_maps_z_stack_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_z_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
     'sca_tempreg_maps_stack': 'sca_roi',
     'sca_tempreg_maps_z_stack': 'sca_roi',
     'sca_tempreg_maps_z_files': 'sca_roi',
@@ -857,8 +860,8 @@ def clean_strategy(strategies, helper):
 def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
 
     from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
-
-
+       
+    
     for path in in_file:
 
         for strategy in strategies:
@@ -866,9 +869,9 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper)
             strategy.append(pipeline_id)
 
         relevant_strategies = get_strategies_for_path(path, strategies)
-
+        
         cleaned_strategies = clean_strategy(relevant_strategies, helper)
-
+        
         create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
 
 
@@ -1127,3 +1130,270 @@ def get_tr (tr):
            tr = tr / 1000.0
     return tr
 
+
+def check_tr(tr, in_file):
+
+    # imageData would have to be the image data from the funcFlow workflow, funcFlow outputspec.subject
+    import nibabel as nib
+    img = nib.load(in_file)
+    
+    # get header from image data, then extract TR information, TR is fourth item in list returned by get_zooms()
+    imageHeader = img.get_header()
+    imageZooms = imageHeader.get_zooms()
+    header_tr = imageZooms[3]
+    
+                
+    # If the TR information from header_tr (funcFlow) and convert_tr node (TR from config file)
+    # do not match, prepare to update the TR information from either convert_tr or header_tr using
+    # afni 3drefit, then append to func_to_mni
+    if header_tr != tr:
+        
+        if tr != None and tr != "":
+            TR = tr
+        else:
+            TR = header_tr
+            
+        import warnings
+        warnings.warn('Warning: The TR information does not match between the config and subject list files.')
+    
+    return TR
+
+def write_to_log(workflow, log_dir, index, inputs, scan_id ):
+    """
+    Method to write into log file the status of the workflow run.
+    """
+    
+    import os
+    import CPAC
+    from nipype import logging
+    iflogger = logging.getLogger('interface')
+     
+    version = CPAC.__version__
+         
+    subject_id = os.path.basename(log_dir)
+    
+    if scan_id == None:
+        scan_id = "scan_anat"
+    
+    strategy = ""
+    
+    import time
+    import datetime
+    ts = time.time()
+    
+    stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        if workflow!= 'DONE':
+            wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
+            
+            if wf_path and wf_path != "":
+                if '/' in wf_path:
+                    scan_id, strategy = wf_path.split('/',1)
+                    scan_id = scan_id.strip('_')
+                    strategy = strategy.replace("/","")
+                else:
+                    scan_id = wf_path.strip('_')
+        
+            file_path = os.path.join(log_dir, scan_id, workflow)
+            try:
+                os.makedirs(file_path)
+            except Exception:
+                iflogger.info("filepath already exist, filepath- %s, curr_dir - %s"%(file_path, os.getcwd()))
+
+        else:
+            file_path = os.path.join(log_dir, scan_id)
+    except Exception:
+        print "ERROR in write log"
+        raise
+
+               
+    out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
+    f = open(out_file, 'w')
+    
+    
+    print >>f, "version : %s"%(str(version))
+    print >>f, "timestamp: %s"%(str(stamp))
+    print >>f, "pipeline_index: %d"%(index) 
+    print >>f, "subject_id: %s"%(subject_id)
+    print >>f, "scan_id: %s"%(scan_id)
+    print >>f, "strategy: %s"%(strategy)
+    print >>f, "workflow_name: %s"%(workflow)
+        
+        
+
+    iflogger.info("CPAC custom log :")
+    
+    if isinstance(inputs, list):
+        inputs = inputs[0]
+        
+    if os.path.exists(inputs):
+
+        print >>f,  "wf_status: DONE"
+  
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'COMPLETED') )
+  
+    else:
+        
+        iflogger.info(" version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s"\
+                      %(str(version), str(stamp), subject_id, scan_id,strategy,workflow,'ERROR') )
+    
+        print>>f, "wf_status: ERROR"
+    
+    f.close()        
+    
+    os.system("log_py2js.py %s %s"%(out_file, log_dir))
+    
+    return out_file
+
+
+def create_log( wf_name = "log", 
+                scan_id = None):
+    
+    """
+    Workflow to create log 
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    
+    wf = pe.Workflow(name=wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
+                                                       'log_dir',
+                                                       'index',
+                                                       'inputs'
+                                                    ]),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
+                        name='outputspec')
+
+    write_log = pe.Node(util.Function(input_names=[ 'workflow',
+                                                    'log_dir',
+                                                    'index',
+                                                    'inputs',
+                                                    'scan_id'],
+                                               output_names=['out_file'],
+                                               function=write_to_log),
+                                 name='write_log')
+
+
+    wf.connect(inputNode, 'workflow',
+               write_log, 'workflow')
+    wf.connect(inputNode, 'log_dir',
+               write_log, 'log_dir')
+    wf.connect(inputNode, 'index',
+               write_log, 'index')
+    wf.connect(inputNode, 'inputs',
+               write_log, 'inputs')
+    
+    write_log.inputs.scan_id = scan_id
+
+    wf.connect(write_log, 'out_file',
+               outputNode, 'out_file')
+    
+    return wf
+    
+
+def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
+   
+    import datetime, os
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    import CPAC
+    import itertools
+    
+    now = datetime.datetime.now()
+    
+    chain = itertools.chain(*wf_list)
+    wf_keys = list(chain)
+    wf_keys = list(set(wf_keys))
+    
+    tvars = {}
+    tvars['subject_id']  = subject_id
+    tvars['scans']       = scan_ids
+    tvars['pipelines']   = pip_ids
+    tvars['wf_list']     = "%s" % wf_list
+    tvars['wf_keys']     = "%s" % wf_keys
+    tvars['pipeline_indices'] = range(len(tvars['pipelines']))
+    tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
+    tvars['gui_resources'] = os.path.join(CPAC.__path__[0], 'GUI', 'resources')
+    
+    reportdir = op.join(log_dir, "reports")
+    if not op.exists(reportdir):
+        os.mkdir(reportdir)
+    
+    for scan in scan_ids:
+        jsfile   = op.join(reportdir, "%s.js" % scan)
+        open(jsfile, 'w').close()
+        
+        tvars['cur_scan']    = scan
+        tvars['logfile']     = jsfile
+        tvars['timestamp']   = now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        fname    = p.resource_filename('CPAC','resources/templates/cpac_runner.html')
+        tfile    = open(fname, 'r')
+        raw_text = tfile.read()
+        tfile.close()
+        
+        template = Template(raw_text)
+        text     = template.render(**tvars)
+        
+        htmlfile = op.join(reportdir, "%s.html" % scan)
+        html     = open(htmlfile, 'w')
+        html.write(text)
+        html.close()
+    
+    # Index File
+    fname       = p.resource_filename('CPAC','resources/templates/logger_subject_index.html')
+    tfile       = open(fname, 'r')
+    raw_text    = tfile.read()
+    tfile.close()
+    
+    template    = Template(raw_text)
+    text        = template.render(**tvars)
+    
+    htmlfile    = op.join(reportdir, "index.html")
+    html        = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return
+
+
+def create_group_log_template(subject_scan_map, log_dir):
+    
+    import os
+    from os import path as op
+    from jinja2 import Template
+    import pkg_resources as p
+    import CPAC
+
+    tvars = {}
+    tvars['subject_ids'] = subject_scan_map.keys()
+    tvars['scan_ids']    = subject_scan_map
+    tvars['resources']   = op.join(CPAC.__path__[0], 'resources')
+    tvars['log_dir']     = log_dir
+    
+    reportdir = op.join(log_dir, "reports")
+    if not op.exists(reportdir):
+        os.makedirs(reportdir)
+    
+    fname    = p.resource_filename('CPAC','resources/templates/logger_group_index.html')
+    tfile    = open(fname, 'r')
+    raw_text = tfile.read()
+    tfile.close()
+    
+    template = Template(raw_text)
+    text     = template.render(**tvars)
+    
+    htmlfile = op.join(reportdir, "index.html")
+    html     = open(htmlfile, 'w')
+    html.write(text)
+    html.close()
+    
+    return

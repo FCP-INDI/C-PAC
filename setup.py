@@ -37,7 +37,8 @@ if __name__ == "__main__":
     os.chdir(local_path)
     sys.path.insert(0, local_path)
     
-    setup(configuration=configuration,
+    setup(configuration=configuration, 
+          scripts=['scripts/log_py2js.py', 'scripts/cpac_gui'],
           name=DISTNAME,
           maintainer=MAINTAINER,
           maintainer_email=MAINTAINER_EMAIL,

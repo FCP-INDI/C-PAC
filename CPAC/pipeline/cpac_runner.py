@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 from CPAC.pipeline import cpac_pipeline
-from CPAC.utils.utils import create_seeds_
+from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
 
@@ -175,8 +175,14 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('qsub  %s ' % (subject_bash_file))
-
+    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+    out = commands.getoutput('qsub  %s ' % (subject_bash_file))
+    
+    import re
+    pid = re.search("(?<=Your job-array )\d+", out).group(0)
+    print >> p,  pid 
+    
+    p.close()
 
 def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
@@ -310,12 +316,15 @@ def run(config_file, subject_list_file, p_name = None):
     try:
     
         if not os.path.exists(config_file):
-            raise IOError("config file %s doesn't exist" %config_file)
+            raise IOError
         else:
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
-            
+    
+    except IOError:
+        print "config file %s doesn't exist" %config_file
+        raise
     except Exception:
-        print "Error reading config file - %s"%config_file 
+        raise Exception("Error reading config file - %s"%config_file) 
 
     #do some validation
     validate(c)
@@ -326,6 +335,23 @@ def run(config_file, subject_list_file, p_name = None):
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     strategies = sorted(build_strategies(c))
+    
+    print "strategies ---> ", strategies
+    
+    sub_scan_map ={}
+    for sub in sublist:
+        if sub['unique_id']:
+            s = sub['subject_id']+"_" + sub["unique_id"]
+        else:
+            s = sub['subject_id']
+        
+        scan_ids = ['scan_anat']
+        for id in sub['rest']:
+            scan_ids.append('scan_'+ str(id))
+        sub_scan_map[s] = scan_ids 
+        
+    create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
+ 
 
     seeds_created = []
     if not (c.seedSpecificationFile is None):
@@ -361,7 +387,9 @@ def run(config_file, subject_list_file, p_name = None):
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
         procss = [Process(target=prep_workflow, args=(sub, c, strategies, p_name)) for sub in sublist]
-
+        pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+        import subprocess
+        
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
             """
@@ -371,7 +399,7 @@ def run(config_file, subject_list_file, p_name = None):
             """
             for p in procss:
                 p.start()
-
+                print >>pid,p.pid
 
         else:
 
@@ -390,6 +418,7 @@ def run(config_file, subject_list_file, p_name = None):
                     for p in procss[idc: idc + c.numSubjectsAtOnce]:
 
                         p.start()
+                        print >>pid,p.pid
                         jobQueue.append(p)
                         idx += 1
 
@@ -407,7 +436,7 @@ def run(config_file, subject_list_file, p_name = None):
                             idx += 1
 
 
-
+        pid.close()
     else:
 
         import commands
