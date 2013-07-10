@@ -67,7 +67,8 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
-                                                       'fnirt_config']),
+                                                       'fnirt_config',
+                                                       'fnirt_warp_res']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
                                                        'linear_xfm',
@@ -83,6 +84,15 @@ def create_nonlinear_register(name='nonlinear_register'):
                             name='nonlinear_reg_1')
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
+    
+    # warp resolution parameter of FNIRT is specified by FSL file
+    # 'configFileTwomm' by default which has its path listed in the
+    # pipeline_config file - but if it is user-specified in pipeline_config,
+    # then pass it here
+    if nonlinear_register.inputspec.fnirt_warp_res != None:
+        nonlinear_register.connect(inputspec, 'fnirt_warp_res',
+                                   nonlinear_reg, 'warp_resolution')
+        
     #Temporarily remove warp resolution parameters
     #to see effect on registration quality
     #nonlinear_reg.inputs.warp_resolution = (10,10,10)
