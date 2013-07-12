@@ -96,6 +96,8 @@ fwhm: [4]
 FSLDIR: /usr/local/fsl
 
 # FSL config file name
+# T1_2_MNI152_2mm is default value, user may change this to alternate
+# FSL configuration file to run FNIRT registration with different parameters
 fnirtConfig :  'T1_2_MNI152_2mm'
 
 # The following options specify the path of various resources used by C-PAC
