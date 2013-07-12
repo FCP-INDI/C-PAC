@@ -67,9 +67,10 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
-                                                       'fnirt_config']),
+                                                      'fnirt_config'),
                         name='inputspec')
-    outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+  
+  outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
                                                        'linear_xfm',
                                                        'invlinear_xfm',
                                                        'nonlinear_xfm']),
@@ -81,15 +82,15 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
+    
+    # these input parameters override any specified in the
+    # fnirt_config file (passed below)
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-    #Temporarily remove warp resolution parameters
-    #to see effect on registration quality
-    #nonlinear_reg.inputs.warp_resolution = (10,10,10)
-    
+   
+   
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
-                         name='brain_warp')
-    
+                         name='brain_warp')    
     
     inv_flirt_xfm = pe.Node(interface=fsl.utils.ConvertXFM(),
                             name='inv_linear_reg0_xfm')
@@ -97,31 +98,42 @@ def create_nonlinear_register(name='nonlinear_register'):
 
     nonlinear_register.connect(inputspec, 'input_brain',
                                linear_reg, 'in_file')
+
     nonlinear_register.connect(inputspec, 'reference_brain',
                                linear_reg, 'reference')
         
     nonlinear_register.connect(inputspec, 'input_skull',
                                nonlinear_reg, 'in_file')
+
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
+    
+    # FNIRT parameters are specified by FSL config file
+    # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
     nonlinear_register.connect(inputspec, 'fnirt_config',
                                nonlinear_reg, 'config_file')
+
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')
+
     nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
                                outputspec, 'nonlinear_xfm')
 
     nonlinear_register.connect(inputspec, 'input_brain',
                                brain_warp, 'in_file')
+
     nonlinear_register.connect(nonlinear_reg, 'fieldcoeff_file',
                                brain_warp, 'field_file')
+
     nonlinear_register.connect(inputspec, 'reference_brain',
                                brain_warp, 'ref_file')
+
     nonlinear_register.connect(brain_warp, 'out_file',
                                outputspec, 'output_brain')
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                inv_flirt_xfm, 'in_file')
+
     nonlinear_register.connect(inv_flirt_xfm, 'out_file',
                                outputspec, 'invlinear_xfm')
 
