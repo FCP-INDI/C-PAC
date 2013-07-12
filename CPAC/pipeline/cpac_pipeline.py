@@ -247,13 +247,18 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
                                  reg_anat_mni, 'inputspec.input_brain')
+
                 node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node, out_file,
                                  reg_anat_mni, 'inputspec.input_skull')
 
+                # pass the reference files                
                 reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrainAnat
                 reg_anat_mni.inputs.inputspec.reference_skull = c.standardAnat
-                reg_anat_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
+
+                # assign the FSL FNIRT config file specified in pipeline config.yml
+                reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
+                
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
