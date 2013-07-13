@@ -5,9 +5,33 @@ def test_nonlinear_register():
     import nipype.pipeline.engine as pe
     import nipype.interfaces.fsl as fsl
     
-    func_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/nuisance_preproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/regress_nuisance/mapflow/_regress_nuisance0/residual.nii.gz'
+    ## necessary inputs
+    ## -input_brain
+    ## -input_skull
+    ## -reference_brain
+    ## -reference_skull
+    ## -fnirt_config
+    ## -fnirt_warp_res
+    
+    ## input_brain
     anat_bet_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/anatpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/anat_skullstrip/mprage_anonymized_RPI_3dT.nii.gz'
+    
+    ## input_skull
+    
+    ## reference_brain
     mni_file = '/usr/share/fsl/4.1/data/standard/MNI152_T1_3mm_brain.nii.gz'
+    
+    ## reference_skull
+    
+    ## fnirt_config
+    fnirt_config = 'T1_2_MNI152_3mm'
+    
+    ## fnirt_warp_res
+    fnirt_warp_res = None
+    
+    #?? what is this for?:
+    func_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/nuisance_preproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/regress_nuisance/mapflow/_regress_nuisance0/residual.nii.gz'
+    
     
     mni_workflow = pe.Workflow(name='mni_workflow')
 
