@@ -67,10 +67,10 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
-                                                      'fnirt_config'),
+                                                       'fnirt_config']),
                         name='inputspec')
   
-  outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
+    outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
                                                        'linear_xfm',
                                                        'invlinear_xfm',
                                                        'nonlinear_xfm']),
@@ -82,12 +82,35 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
-    
-    # these input parameters override any specified in the
-    # fnirt_config file (passed below)
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
-   
+
+    #nonlinear_reg.inputs.config_file = nonlinear_register.inputspec.fnirt_config
+
+    ## TEMPORARY: Hard-coded FSL config file input parameters,
+    ## remove once FSL config file issue is resolved
+    nonlinear_reg.inputs.refmask_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz'
+    nonlinear_reg.inputs.skip_implicit_ref_masking = False
+    nonlinear_reg.inputs.skip_implicit_in_masking = False
+    nonlinear_reg.inputs.refmask_val = 0.0
+    nonlinear_reg.inputs.inmask_val = 0.0
+    nonlinear_reg.inputs.subsampling_scheme = [4,2,1,1]
+    nonlinear_reg.inputs.max_nonlin_iter = [5,5,5,5]
+    nonlinear_reg.inputs.in_fwhm = [6,4,2,2]
+    nonlinear_reg.inputs.ref_fwhm = [4,2,0,0]
+    nonlinear_reg.inputs.regularization_lambda = [300,150,100,50]
+    nonlinear_reg.inputs.skip_intensity_mapping = False
+    nonlinear_reg.inputs.skip_refmask = False
+    nonlinear_reg.inputs.skip_inmask = False
+    nonlinear_reg.inputs.warp_resolution = (10,10,10)
+    nonlinear_reg.inputs.skip_lambda_ssq = False
+    nonlinear_reg.inputs.regularization_model = 'bending_energy'
+    nonlinear_reg.inputs.intensity_mapping_model = 'global_non_linear_with_bias'
+    nonlinear_reg.inputs.intensity_mapping_order = 5
+    nonlinear_reg.inputs.biasfield_resolution = (50,50,50)
+    nonlinear_reg.inputs.bias_regularization_lambda = 10000
+    nonlinear_reg.inputs.derive_from_ref = False
+
    
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
                          name='brain_warp')    
@@ -110,8 +133,8 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     # FNIRT parameters are specified by FSL config file
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
-    nonlinear_register.connect(inputspec, 'fnirt_config',
-                               nonlinear_reg, 'config_file')
+    #nonlinear_register.connect(inputspec, 'fnirt_config',
+     #                          nonlinear_reg, 'config_file')
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')
@@ -141,6 +164,7 @@ def create_nonlinear_register(name='nonlinear_register'):
                                outputspec, 'linear_xfm')
     
     return nonlinear_register
+    
 
 def create_register_func_to_mni(name='register_func_to_mni'):
     """
