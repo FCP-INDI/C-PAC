@@ -85,8 +85,6 @@ def create_nonlinear_register(name='nonlinear_register'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
 
-    #nonlinear_reg.inputs.config_file = nonlinear_register.inputspec.fnirt_config
-
     ## TEMPORARY: Hard-coded FSL config file input parameters,
     ## remove once FSL config file issue is resolved
     nonlinear_reg.inputs.refmask_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz'
@@ -133,8 +131,8 @@ def create_nonlinear_register(name='nonlinear_register'):
     
     # FNIRT parameters are specified by FSL config file
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
-    #nonlinear_register.connect(inputspec, 'fnirt_config',
-     #                          nonlinear_reg, 'config_file')
+    nonlinear_register.connect(inputspec, 'fnirt_config',
+                               nonlinear_reg, 'config_file')
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')
