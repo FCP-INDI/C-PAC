@@ -95,10 +95,13 @@ fwhm: [4]
 # If you have added FSL to your .bashrc file, this will be set automatically
 FSLDIR: /usr/local/fsl
 
-# User-specified warp resolution parameter for FNIRT
-# If left as none, parameter is pulled from FNIRT config file 'configFileTwomm'
-# format example - fnirtWarpResolution: (10,10,10) or fnirtWarpResolution: None
-fnirtWarpResolution: None
+# FSL config file name
+# T1_2_MNI152_2mm is default value, user may change this to alternate
+# FSL configuration file to run FNIRT registration with different parameters
+fnirtConfig :  'T1_2_MNI152_2mm'
+
+# temporary measure - turn override of fnirt parameters on or off
+fnirtOverride : False
 
 # The following options specify the path of various resources used by C-PAC
 # By default, C-PAC will automatically locate most files based on FSLDIR
