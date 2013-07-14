@@ -255,21 +255,11 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 # pass the reference files                
                 reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrainAnat
                 reg_anat_mni.inputs.inputspec.reference_skull = c.standardAnat
-<<<<<<< HEAD
-                
-                # check user-specified FNIRT warp resolution setting in pipeline_config file
-                # if None, use default settings in FSL FNIRT config file
-                if c.fnirtWarpResolution == None:
-                    reg_anat_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
-                else:
-                    reg_anat_mni.inputs.inputspec.fnirt_warp_res = c.fnirtWarpResolution
-                    
-=======
 
                 # assign the FSL FNIRT config file specified in pipeline config.yml
                 reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
                 
->>>>>>> 59634b7a6ca573f61e99a47ee4a55d9abbc56ab1
+
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise
