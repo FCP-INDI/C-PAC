@@ -87,8 +87,7 @@ def create_nonlinear_register(name='nonlinear_register'):
 
     if c.fnirtOverride == True:
         ## TEMPORARY: Hard-coded FSL config file input parameters,
-        ## remove once FSL config file issue is resolved
-        nonlinear_reg.inputs.refmask_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz'
+        ## still to be decided which will be left to customize
         nonlinear_reg.inputs.skip_implicit_ref_masking = False
         nonlinear_reg.inputs.skip_implicit_in_masking = False
         nonlinear_reg.inputs.refmask_val = 0.0
