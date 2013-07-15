@@ -491,6 +491,64 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
 
     return wflow
+    
+    
+    
+def get_normalized_moments(wf_name='normalized_moments'):
+
+    """
+    Workflow to calculate the normalized moments for skewedness calculations
+    
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+    
+    Returns 
+    -------
+    wflow : workflow object
+        workflow object
+    
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    
+    Workflow Inputs::
+            
+        inputspec.spatial_timeseries : string (nifti file)
+            spatial map timeseries
+        
+    Workflow Outputs::
+        
+        outputspec.moments: list
+            list of moment values
+        
+    Example
+    -------
+    >>> import CPAC.timeseries.timeseries_analysis as t
+    >>> wf = t.get_normalized_moments()
+    >>> wf.inputs.inputspec.spatial_timeseries = '/home/data/outputs/SurfaceRegistration/lh_surface_file.nii.gz'
+    >>> wf.base_dir = './'
+    >>> wf.run()
+    """
+
+    wflow = pe.Workflow(name=wf_name)
+
+    inputNode = pe.Node(util.IdentityInterface(fields=['spatial_timeseries']), name='inputspec')
+
+    # calculate normalized moments
+    # output of this node is a list, 'moments'
+    norm_moments = pe.Node(util.CalculateNormalizedMoments(moment='3'), name='norm_moments')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['moments_outputs']), name='outputspec')
+
+    wflow.connect(inputNode, 'spatial_timeseries', norm_moments, 'timeseries_file')
+
+    wflow.connect(norm_moments, 'moments', outputNode, 'moments_outputs')
+
+
+    return wflow
+
 
 
 def gen_roi_timeseries(data_file,
