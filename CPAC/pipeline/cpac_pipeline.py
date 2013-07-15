@@ -259,6 +259,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 # assign the FSL FNIRT config file specified in pipeline config.yml
                 reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
                 
+
             except:
                 print 'Invalid Connection: Anatomical Registration:', num_strat, ' resource_pool: ', strat.get_resource_pool()
                 raise

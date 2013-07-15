@@ -100,8 +100,6 @@ FSLDIR: /usr/local/fsl
 # FSL configuration file to run FNIRT registration with different parameters
 fnirtConfig :  'T1_2_MNI152_2mm'
 
-# temporary measure - turn override of fnirt parameters on or off
-fnirtOverride : False
 
 # The following options specify the path of various resources used by C-PAC
 # By default, C-PAC will automatically locate most files based on FSLDIR
