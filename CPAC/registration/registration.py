@@ -85,29 +85,30 @@ def create_nonlinear_register(name='nonlinear_register'):
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
 
-    ## TEMPORARY: Hard-coded FSL config file input parameters,
-    ## remove once FSL config file issue is resolved
-    nonlinear_reg.inputs.refmask_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz'
-    nonlinear_reg.inputs.skip_implicit_ref_masking = False
-    nonlinear_reg.inputs.skip_implicit_in_masking = False
-    nonlinear_reg.inputs.refmask_val = 0.0
-    nonlinear_reg.inputs.inmask_val = 0.0
-    nonlinear_reg.inputs.subsampling_scheme = [4,2,1,1]
-    nonlinear_reg.inputs.max_nonlin_iter = [5,5,5,5]
-    nonlinear_reg.inputs.in_fwhm = [6,4,2,2]
-    nonlinear_reg.inputs.ref_fwhm = [4,2,0,0]
-    nonlinear_reg.inputs.regularization_lambda = [300,150,100,50]
-    nonlinear_reg.inputs.skip_intensity_mapping = False
-    nonlinear_reg.inputs.skip_refmask = False
-    nonlinear_reg.inputs.skip_inmask = False
-    nonlinear_reg.inputs.warp_resolution = (10,10,10)
-    nonlinear_reg.inputs.skip_lambda_ssq = False
-    nonlinear_reg.inputs.regularization_model = 'bending_energy'
-    nonlinear_reg.inputs.intensity_mapping_model = 'global_non_linear_with_bias'
-    nonlinear_reg.inputs.intensity_mapping_order = 5
-    nonlinear_reg.inputs.biasfield_resolution = (50,50,50)
-    nonlinear_reg.inputs.bias_regularization_lambda = 10000
-    nonlinear_reg.inputs.derive_from_ref = False
+    if c.fnirtOverride == True:
+        ## TEMPORARY: Hard-coded FSL config file input parameters,
+        ## remove once FSL config file issue is resolved
+        nonlinear_reg.inputs.refmask_file = '/usr/share/fsl/5.0/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz'
+        nonlinear_reg.inputs.skip_implicit_ref_masking = False
+        nonlinear_reg.inputs.skip_implicit_in_masking = False
+        nonlinear_reg.inputs.refmask_val = 0.0
+        nonlinear_reg.inputs.inmask_val = 0.0
+        nonlinear_reg.inputs.subsampling_scheme = [4,2,1,1]
+        nonlinear_reg.inputs.max_nonlin_iter = [5,5,5,5]
+        nonlinear_reg.inputs.in_fwhm = [6,4,2,2]
+        nonlinear_reg.inputs.ref_fwhm = [4,2,0,0]
+        nonlinear_reg.inputs.regularization_lambda = [300,150,100,50]
+        nonlinear_reg.inputs.skip_intensity_mapping = False
+        nonlinear_reg.inputs.skip_refmask = False
+        nonlinear_reg.inputs.skip_inmask = False
+        nonlinear_reg.inputs.warp_resolution = (10,10,10)
+        nonlinear_reg.inputs.skip_lambda_ssq = False
+        nonlinear_reg.inputs.regularization_model = 'bending_energy'
+        nonlinear_reg.inputs.intensity_mapping_model = 'global_non_linear_with_bias'
+        nonlinear_reg.inputs.intensity_mapping_order = 5
+        nonlinear_reg.inputs.biasfield_resolution = (50,50,50)
+        nonlinear_reg.inputs.bias_regularization_lambda = 10000
+        nonlinear_reg.inputs.derive_from_ref = False
 
    
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
