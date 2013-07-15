@@ -194,10 +194,10 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     Workflow Outputs::
 
-        outputspec.component_map : string (nifti file)
+        outputspec.temp_reg_map : string (nifti file)
             GLM parameter estimate image for each timeseries in the input file
 
-        outputspec.component_map_z : string (nifti file)
+        outputspec.temp_reg_map_z : string (nifti file)
             Normalized version of the GLM parameter estimates
 
 
@@ -258,16 +258,16 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_timeseries',
                   check_timeseries, 'in_file')
 
-    temporalReg = pe.Node(interface=fsl.FSLGLM(),
+    temporalReg = pe.Node(interface=fsl.GLM(),
                           name='temporal_regression')
 
-    temporalReg.inputs.output_file = 'temp_reg_map.nii.gz'
+    temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
     wflow.connect(inputNode, 'subject_rest',
                   temporalReg, 'in_file')
     wflow.connect(check_timeseries, 'out_file',
-                  temporalReg, 'design_file')
+                  temporalReg, 'design')
     wflow.connect(inputNode, 'demean',
                   temporalReg, 'demean')
     wflow.connect(inputNode, 'normalize',

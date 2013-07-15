@@ -364,7 +364,7 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
             path to input functional data
         inputspec.subject_mask : string (nifti file)
             path to subject functional mask
-        inputspec.ICA_map : string (nifti file)
+        inputspec.spatial_map : string (nifti file)
             path to Spatial Maps
         inputspec.demean : Boolean
             control whether to demean model and data
@@ -403,17 +403,17 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                          (fields=['subject_timeseries']),
                           name='outputspec')
 
-    spatialReg = pe.Node(interface=fsl.FSLGLM(),
+    spatialReg = pe.Node(interface=fsl.GLM(),
                          name='spatial_regression')
 
-    spatialReg.inputs.output_file = 'spatial_map_timeseries.txt'
+    spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
     wflow.connect(inputNode, 'subject_rest',
                 spatialReg, 'in_file')
     wflow.connect(inputNode, 'subject_mask',
                 spatialReg, 'mask')
     wflow.connect(inputNode, 'spatial_map',
-                spatialReg, 'design_file')
+                spatialReg, 'design')
     wflow.connect(inputNode, 'demean',
                 spatialReg, 'demean')
 
