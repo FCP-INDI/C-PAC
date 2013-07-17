@@ -258,9 +258,12 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     
     return register_func_to_mni
 
-def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
+
+
+def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
+  
     """
-    Registers a functional scan in native space to MNI standard space.  This is meant to be used 
+    Registers a functional scan in native space to structural.  This is meant to be used 
     after create_nonlinear_register() has been run and relies on some of it's outputs.
 
     Parameters
@@ -270,11 +273,13 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
 
     Returns
     -------
-    register_func_to_mni : nipype.pipeline.engine.Workflow
+    register_func_to_anat : nipype.pipeline.engine.Workflow
 
     Notes
     -----
     
+    !!!! SOME OF THE BELOW HAS CHANGED, OBSOLETE CODE HAS BEEN REMOVED
+
     Workflow Inputs::
 
         inputspec.func : string (nifti file)
@@ -319,24 +324,26 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
     .. image:: ../images/register_func_to_mni_detailed.dot.png
         :width: 500
     """
-    register_func_to_mni = pe.Workflow(name=name)
+    
+    register_func_to_anat = pe.Workflow(name=name)
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
-                                                       'mni',
+                                                       #'mni',
                                                        'anat',
                                                        'anat_skull',
                                                        'interp',
-                                                       'anat_to_mni_nonlinear_xfm',
-                                                       'anat_to_mni_linear_xfm',
+                                                       #'anat_to_mni_nonlinear_xfm',
+                                                       #'anat_to_mni_linear_xfm',
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule']),
                         name='inputspec')
-    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm',
-                                                        'func_to_mni_linear_xfm',
-                                                        'mni_to_func_linear_xfm',
-                                                        'anat_wm_edge',
-                                                        'anat_func',
-                                                        'mni_func']),
+
+    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm'])
+                                                        #'func_to_mni_linear_xfm',
+                                                        #'mni_to_func_linear_xfm',
+                                                        #'anat_wm_edge',
+                                                        #'anat_func',
+                                                        #'mni_func']),
                          name='outputspec')
     
     linear_reg = pe.Node(interface=fsl.FLIRT(),
@@ -344,28 +351,37 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
 
-    mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                       name='mni_warp')
+
+    #mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+    #                   name='mni_warp')
+
     
-    mni_affine = pe.Node(interface=fsl.ConvertXFM(),
-                         name='mni_affine')
-    mni_affine.inputs.concat_xfm = True
+    #mni_affine = pe.Node(interface=fsl.ConvertXFM(),
+    #                     name='mni_affine')
+    #mni_affine.inputs.concat_xfm = True
+
 
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='wm_bb_mask')
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
-    register_func_to_mni.connect(inputspec, 'anat_wm_segmentation',
-                                 wm_bb_mask, 'in_file')
+
+
+    #register_func_to_mni.connect(inputspec, 'anat_wm_segmentation',
+    #                             wm_bb_mask, 'in_file')
 
     def wm_bb_edge_args(mas_file):
         return '-edge -bin -mas ' + mas_file
 
-    wm_bb_edge = pe.Node(interface=fsl.ImageMaths(),
-                         name='wm_bb_edge')
-    register_func_to_mni.connect(wm_bb_mask, 'out_file',
-                                 wm_bb_edge, 'in_file')
-    register_func_to_mni.connect(wm_bb_mask, ('out_file', wm_bb_edge_args),
-                                 wm_bb_edge, 'op_string')
+
+    #wm_bb_edge = pe.Node(interface=fsl.ImageMaths(),
+    #                     name='wm_bb_edge')
+
+
+    #register_func_to_mni.connect(wm_bb_mask, 'out_file',
+    #                             wm_bb_edge, 'in_file')
+
+    #register_func_to_mni.connect(wm_bb_mask, ('out_file', wm_bb_edge_args),
+    #                             wm_bb_edge, 'op_string')
 
     def bbreg_args(bbreg_target):
         return '-cost bbr -wmseg ' + bbreg_target
@@ -373,56 +389,72 @@ def create_bbregister_func_to_mni(name='bbregister_func_to_mni'):
     bbreg_func_to_anat = pe.Node(interface=fsl.FLIRT(),
                                  name='bbreg_func_to_anat')
     bbreg_func_to_anat.inputs.dof = 6    
-    register_func_to_mni.connect(inputspec, 'bbr_schedule',
+ 
+    register_func_to_anat.connect(inputspec, 'bbr_schedule',
                                  bbreg_func_to_anat, 'schedule')
-    register_func_to_mni.connect(wm_bb_mask, ('out_file', bbreg_args),
+ 
+    register_func_to_anat.connect(wm_bb_mask, ('out_file', bbreg_args),
                                  bbreg_func_to_anat, 'args')
-    register_func_to_mni.connect(inputspec, 'func',
+ 
+    register_func_to_anat.connect(inputspec, 'func',
                                  bbreg_func_to_anat, 'in_file')
-    register_func_to_mni.connect(inputspec, 'anat_skull',
+ 
+    register_func_to_anat.connect(inputspec, 'anat_skull',
                                  bbreg_func_to_anat, 'reference')
-    register_func_to_mni.connect(linear_reg, 'out_matrix_file',
+ 
+    register_func_to_anat.connect(linear_reg, 'out_matrix_file',
                                  bbreg_func_to_anat, 'in_matrix_file')
  
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
-                                 mni_affine, 'in_file')    
-    register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
-                                 mni_affine, 'in_file2')
-    register_func_to_mni.connect(mni_affine, 'out_file',
-                                 outputspec, 'func_to_mni_linear_xfm')
+    #register_func_to_mni.connect(inputspec, 'anat_to_mni_linear_xfm',
+    #                             mni_affine, 'in_file')
+  
+    #register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
+    #                             mni_affine, 'in_file2')
+  
+    #register_func_to_mni.connect(mni_affine, 'out_file',
+    #                             outputspec, 'func_to_mni_linear_xfm')
         
-    inv_mni_affine = pe.Node(interface=fsl.ConvertXFM(),
-                            name='inv_mni_affine')
-    inv_mni_affine.inputs.invert_xfm = True
-    register_func_to_mni.connect(mni_affine, 'out_file',
-                                 inv_mni_affine, 'in_file')
-    register_func_to_mni.connect(inv_mni_affine, 'out_file',
-                                 outputspec, 'mni_to_func_linear_xfm')
+    #inv_mni_affine = pe.Node(interface=fsl.ConvertXFM(),
+    #                        name='inv_mni_affine')
+    #inv_mni_affine.inputs.invert_xfm = True
+    
+    #register_func_to_mni.connect(mni_affine, 'out_file',
+    #                             inv_mni_affine, 'in_file')
+    
+    #register_func_to_mni.connect(inv_mni_affine, 'out_file',
+    #                             outputspec, 'mni_to_func_linear_xfm')
 
-    register_func_to_mni.connect(inputspec, 'func',
+    register_func_to_anat.connect(inputspec, 'func',
                                  linear_reg, 'in_file')
-    register_func_to_mni.connect(inputspec, 'anat',
+    
+    register_func_to_anat.connect(inputspec, 'anat',
                                  linear_reg, 'reference')
-    register_func_to_mni.connect(inputspec, 'interp',
+    
+    register_func_to_anat.connect(inputspec, 'interp',
                                  linear_reg, 'interp')
     
-    register_func_to_mni.connect(inputspec, 'func',
-                                 mni_warp, 'in_file')
-    register_func_to_mni.connect(inputspec, 'mni',
-                                 mni_warp, 'ref_file')
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
-                                 mni_warp, 'field_file')
+    #register_func_to_mni.connect(inputspec, 'func',
+    #                             mni_warp, 'in_file')
     
-    register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
-                                 mni_warp, 'premat')
+    #register_func_to_mni.connect(inputspec, 'mni',
+    #                             mni_warp, 'ref_file')
+    
+    #register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
+    #                             mni_warp, 'field_file')
+    
+    #register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
+    #                             mni_warp, 'premat')
 
-    register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
+    register_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  outputspec, 'func_to_anat_linear_xfm')
-    register_func_to_mni.connect(bbreg_func_to_anat, 'out_file',
-                                 outputspec, 'anat_func')
-    register_func_to_mni.connect(mni_warp, 'out_file',
-                                 outputspec, 'mni_func')
-    register_func_to_mni.connect(wm_bb_edge, 'out_file',
-                                 outputspec, 'anat_wm_edge')
     
-    return register_func_to_mni
+    #register_func_to_anat.connect(bbreg_func_to_anat, 'out_file',
+    #                             outputspec, 'anat_func')
+    
+    #register_func_to_mni.connect(mni_warp, 'out_file',
+    #                             outputspec, 'mni_func')
+    
+    #register_func_to_mni.connect(wm_bb_edge, 'out_file',
+    #                             outputspec, 'anat_wm_edge')
+    
+    return register_func_to_anat
