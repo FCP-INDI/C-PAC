@@ -770,8 +770,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
             strat.update_resource_pool({#'mean_functional_in_mni':(copy_tr, 'out_file'),
-                                        #'mean_functional_in_mni':(func_to_anat, 'outputspec.mni_func'),
-                                        #'mean_functional_in_anat':(func_to_anat, 'outputspec.anat_func'),
+                                        'mean_functional_in_mni':(func_to_anat, 'outputspec.mni_func'),
+                                        'mean_functional_in_anat':(func_to_anat, 'outputspec.anat_func'),
                                         #'anatomical_wm_edge':(func_to_anat, 'outputspec.anat_wm_edge'),
                                         'functional_to_anat_linear_xfm':(func_to_anat, 'outputspec.func_to_anat_linear_xfm')})
                                         #'functional_to_mni_linear_xfm':(func_to_anat, 'outputspec.func_to_anat_linear_xfm'),
