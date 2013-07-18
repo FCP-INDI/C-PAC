@@ -291,7 +291,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             
             
     # or run ANTS anatomical-to-MNI registration instead        
-    else if 2 in c.runRegistrationPreprocessing:
+    elif 2 in c.runRegistrationPreprocessing:
 
         workflow_bit_id['anat_mni_register'] = workflow_counter
         for strat in strat_list:
