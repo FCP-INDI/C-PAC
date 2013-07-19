@@ -328,11 +328,11 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     register_func_to_anat = pe.Workflow(name=name)
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
-                                                       #'mni',
+                                                       'mni',
                                                        'anat',
                                                        'anat_skull',
                                                        'interp',
-                                                       #'anat_to_mni_nonlinear_xfm',
+                                                       'anat_to_mni_nonlinear_xfm',
                                                        #'anat_to_mni_linear_xfm',
                                                        'anat_wm_segmentation',
                                                        'bbr_schedule']),
@@ -342,8 +342,8 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
                                                         #'func_to_mni_linear_xfm',
                                                         #'mni_to_func_linear_xfm',
                                                         #'anat_wm_edge',
-                                                        #'anat_func',
-                                                        #'mni_func']),
+                                                        'anat_func',
+                                                        'mni_func']),
                          name='outputspec')
     
     linear_reg = pe.Node(interface=fsl.FLIRT(),
@@ -352,8 +352,8 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     linear_reg.inputs.dof = 6
 
 
-    #mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-    #                   name='mni_warp')
+    mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                       name='mni_warp')
 
     
     #mni_affine = pe.Node(interface=fsl.ConvertXFM(),
@@ -433,26 +433,26 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     register_func_to_anat.connect(inputspec, 'interp',
                                  linear_reg, 'interp')
     
-    #register_func_to_mni.connect(inputspec, 'func',
-    #                             mni_warp, 'in_file')
+    register_func_to_mni.connect(inputspec, 'func',
+                                 mni_warp, 'in_file')
     
-    #register_func_to_mni.connect(inputspec, 'mni',
-    #                             mni_warp, 'ref_file')
+    register_func_to_mni.connect(inputspec, 'mni',
+                                 mni_warp, 'ref_file')
     
-    #register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
-    #                             mni_warp, 'field_file')
+    register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
+                                 mni_warp, 'field_file')
     
-    #register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
-    #                             mni_warp, 'premat')
+    register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
+                                 mni_warp, 'premat')
 
     register_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  outputspec, 'func_to_anat_linear_xfm')
     
-    #register_func_to_anat.connect(bbreg_func_to_anat, 'out_file',
-    #                             outputspec, 'anat_func')
+    register_func_to_anat.connect(bbreg_func_to_anat, 'out_file',
+                                 outputspec, 'anat_func')
     
-    #register_func_to_mni.connect(mni_warp, 'out_file',
-    #                             outputspec, 'mni_func')
+    register_func_to_mni.connect(mni_warp, 'out_file',
+                                 outputspec, 'mni_func')
     
     #register_func_to_mni.connect(wm_bb_edge, 'out_file',
     #                             outputspec, 'anat_wm_edge')
