@@ -433,16 +433,16 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     register_func_to_anat.connect(inputspec, 'interp',
                                  linear_reg, 'interp')
     
-    register_func_to_mni.connect(inputspec, 'func',
+    register_func_to_anat.connect(inputspec, 'func',
                                  mni_warp, 'in_file')
     
-    register_func_to_mni.connect(inputspec, 'mni',
+    register_func_to_anat.connect(inputspec, 'mni',
                                  mni_warp, 'ref_file')
     
-    register_func_to_mni.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
+    register_func_to_anat.connect(inputspec, 'anat_to_mni_nonlinear_xfm',
                                  mni_warp, 'field_file')
     
-    register_func_to_mni.connect(bbreg_func_to_anat, 'out_matrix_file',
+    register_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  mni_warp, 'premat')
 
     register_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
@@ -451,7 +451,7 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     register_func_to_anat.connect(bbreg_func_to_anat, 'out_file',
                                  outputspec, 'anat_func')
     
-    register_func_to_mni.connect(mni_warp, 'out_file',
+    register_func_to_anat.connect(mni_warp, 'out_file',
                                  outputspec, 'mni_func')
     
     #register_func_to_mni.connect(wm_bb_edge, 'out_file',
