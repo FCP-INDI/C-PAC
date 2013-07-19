@@ -718,8 +718,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     if 1 in c.runRegisterFuncToAnat:
         workflow_bit_id['func_to_anat'] = workflow_counter
         for strat in strat_list:
-            func_to_anat = create_bbregister_func_to_mni('func_to_anat_%d' % num_strat)
-            #func_to_anat.inputs.inputspec.mni = c.standardResolutionBrain
+            func_to_anat = create_bbregister_func_to_anat('func_to_anat_%d' % num_strat)
+            func_to_anat.inputs.inputspec.mni = c.standardResolutionBrain
             func_to_anat.inputs.inputspec.interp = 'trilinear'
             func_to_anat.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
 
@@ -748,9 +748,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 #workflow.connect(node, out_file,
                 #                 func_to_anat, 'inputspec.anat_to_mni_linear_xfm')
 
-                #node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                #workflow.connect(node, out_file,
-                #                 func_to_anat, 'inputspec.anat_to_mni_nonlinear_xfm')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 func_to_anat, 'inputspec.anat_to_mni_nonlinear_xfm')
    
 
             except:
