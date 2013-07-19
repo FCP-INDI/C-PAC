@@ -341,7 +341,7 @@ class MainFrame(wx.Frame):
                     #print "validating ctrl-->", ctrl.get_name()
                     #print "ctrl.get_selection()", ctrl.get_selection()
                     #print "type(ctrl.get_selection())", type(ctrl.get_selection())
-                    '''
+                    
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
                         if not value:
@@ -361,7 +361,7 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
-                    '''
+                    
                 config_list.append(ctrl)
 
         dlg = wx.FileDialog(
