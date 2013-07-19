@@ -458,3 +458,39 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     #                             outputspec, 'anat_wm_edge')
     
     return register_func_to_anat
+    
+    
+def create_ants_nonlinear_xfm(name='ants_nonlinear_xfm'):
+
+    import nipype.interfaces.ants as ants
+    from nipype.interfaces.ants.legacy import GenWarpFields
+
+    ants_nonlinear_xfm = pe.Workflow(name=name)
+
+    inputspec = pe.Node(
+        util.IdentityInterface(
+            fields=['anatomical_brain', 'reference_brain']),
+        name='inputspec')
+
+
+    # use ANTS to warp the masked anatomical image to a template image
+    warp_brain = pe.Node(GenWarpFields(),
+                         name='warp_brain')
+
+    outputspec = pe.Node(
+        util.IdentityInterface(
+            fields=['warp_field', 'affine_transformation',
+                'inverse_warp', 'output_brain']),
+        name='outputspec')
+
+
+    ants_nonlinear_xfm.connect(inputspec, 'anatomical_brain', warp_brain, 'input_image')
+    ants_nonlinear_xfm.connect(inputspec, 'reference_brain', warp_brain, 'reference_image')
+
+    ants_nonlinear_xfm.connect(warp_brain, 'warp_field', outputspec, 'warp_field')
+    ants_nonlinear_xfm.connect(warp_brain, 'affine_transformation', outputspec, 'affine_transformation')
+    ants_nonlinear_xfm.connect(warp_brain, 'inverse_warp_field', outputspec, 'inverse_warp')
+    ants_nonlinear_xfm.connect(warp_brain, 'output_file', outputspec, 'output_brain')
+
+
+    return ants_nonlinear_xfm
