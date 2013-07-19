@@ -17,7 +17,7 @@ from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
-from CPAC.registration import create_nonlinear_register, create_bbregister_func_to_anat
+from CPAC.registration import create_nonlinear_register, create_bbregister_func_to_anat, create_ants_nonlinear_xfm
 from CPAC.nuisance import create_nuisance, bandpass_voxels
 
 from CPAC.median_angle import create_median_angle_correction
