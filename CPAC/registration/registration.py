@@ -338,7 +338,7 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
                                                        'bbr_schedule']),
                         name='inputspec')
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm'])
+    outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm',
                                                         #'func_to_mni_linear_xfm',
                                                         #'mni_to_func_linear_xfm',
                                                         #'anat_wm_edge',
