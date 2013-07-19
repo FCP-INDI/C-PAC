@@ -366,8 +366,8 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
 
 
-    #register_func_to_mni.connect(inputspec, 'anat_wm_segmentation',
-    #                             wm_bb_mask, 'in_file')
+    register_func_to_anat.connect(inputspec, 'anat_wm_segmentation',
+                                 wm_bb_mask, 'in_file')
 
     def wm_bb_edge_args(mas_file):
         return '-edge -bin -mas ' + mas_file
