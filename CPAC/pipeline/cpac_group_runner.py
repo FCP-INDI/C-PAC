@@ -151,11 +151,14 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 def run(config_file, output_path_file):
     
+    # Runs group analysis
+
     import re
     import os
     import glob
     import yaml
 
+    # Load the config file into 'c'
     c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
     subject_paths = []
@@ -231,22 +234,36 @@ def run(config_file, output_path_file):
         if resource in c.derivativeList:
 
             if 1 in c.runGroupAnalysis:
+              
                 #get all the motion parameters across subjects
+
                 try:
+
                     from CPAC.utils import extract_parameters
                     extract_parameters.run(c.outputDirectory)
+
                 except Exception:
+
                     print "Extract parameters script did not run correctly"
 
 
                 if not c.runOnGrid:
+
                     from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+
+                    #print c, "   ", resource, "   ", analysis_map_gp[(resource, glob_key)], "   ", glob_key
                     prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
 
-                else:
-                    if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
 
+
+                else:
+
+                    if 'sge' in c.resourceManager.lower():
+                        
+                        run_sge_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
+                       
                     elif 'pbs' in c.resourceManager.lower():
+                     
                         run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
+
 
