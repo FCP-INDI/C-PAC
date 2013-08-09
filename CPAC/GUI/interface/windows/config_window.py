@@ -426,10 +426,17 @@ class MainFrame(wx.Frame):
             f = open(path, 'w')
 
             for item in config_list:
+
                 label = item.get_name()
-                value= item.get_selection()
+                value = item.get_selection()
                 dtype = item.get_datatype()
                 type = item.get_type()
+
+                print "LABEL: ", label
+                print "VALUE: ", value
+                print "DTYPE: ", dtype
+                print "TYPE: ", type
+                print ""
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -444,7 +451,7 @@ class MainFrame(wx.Frame):
 
 
                 # parameters that are strings (ex. " False " or a path)
-                if dtype == 0 or dtype== 1:
+                if dtype == 0 or dtype == 1:
 
                     print >>f, label, ": ", str(value)
                     print >>f,"\n"
@@ -453,7 +460,7 @@ class MainFrame(wx.Frame):
                 # parameters that are integers
                 elif dtype == 2:
 
-                    if type ==0:
+                    if type == 0:
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
@@ -504,20 +511,32 @@ class MainFrame(wx.Frame):
 
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
-                 
+
+                    '''
+                    print "1: ", ast.literal_eval(value)
+                    print "2: ", ast.literal_eval(str(value))
+                    print "3: ", value
+                    print "4: ", str(value)
+                    print "5: ", [value]
+                    print "6: ", list(value)
+                    print "7: ", [sample_list.index(val) for val in value]
+                    '''                  
+
                     if isinstance(value, list):
                         value = ast.literal_eval(str(value))
                     else:
-                        value = str(value).split(",")
+                        value = str(value)
                     
+                    '''
                     if isinstance(value, tuple):
                         value = list(value)
                     elif isinstance(value, list):
                         value = [sample_list.index(val) for val in value]
                     else:
                         value = [value]
-
-                    print>>f, label, ":", #value
+                    '''
+                    
+                    print>>f, label, ":", value
                     print>>f, "\n"
 
 
