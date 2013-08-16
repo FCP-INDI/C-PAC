@@ -27,8 +27,10 @@ def get_vectors(strat):
             paths.append(path)
 
         else:
-            vals = val_list.pop()
+            vals = []
+            vals.append(val_list.pop())
             for val in vals:
+            #for val in val_list:
                 if path == '':
                     dfs(list(val_list), str(val))
                 else:
@@ -105,28 +107,29 @@ def build_strategies(configuration):
     print corrections_dict_list
 
     main_all_options = []
-    for corrections_dict in corrections_dict_list:
-        string = ""
-        for correction in corrections_order:
 
-            string += correction + str(corrections_dict[correction]) + '.'
+    if corrections_dict_list != None:
 
-        string = string[0:len(string) -1]
+        for corrections_dict in corrections_dict_list:
+            string = ""
+            for correction in corrections_order:
+
+                string += correction + str(corrections_dict[correction]) + '.'
+
+            string = string[0:len(string) -1]
+
+            cmpcor_components = eval('configuration.nComponents')
+
+            all_options = []
+            for comp in cmpcor_components:
+
+                comp = int(comp)
+                all_options.append('ncomponents_%d' %comp + '_selector_' + string)
+
+            main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
 
 
-
-        cmpcor_components = eval('configuration.nComponents')
-
-
-        all_options = []
-        for comp in cmpcor_components:
-
-            all_options.append('ncomponents_%d' %comp + '_selector_' + string)
-
-        main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
-
-
-    config_iterables['_compcor'] = main_all_options
+        config_iterables['_compcor'] = main_all_options
 
 
     ############
@@ -175,12 +178,19 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w') 
+
     out = commands.getoutput('qsub  %s ' % (subject_bash_file))
-    
+
     import re
+    if re.search("(?<=Your job-array )\d+", out) == None:
+
+        print "Error: Running of 'qsub' command in terminal failed - is qsub installed?"
+        print ""
+        raise Exception
+
     pid = re.search("(?<=Your job-array )\d+", out).group(0)
-    print >> p,  pid 
+    print >> p, pid
     
     p.close()
 
@@ -324,10 +334,11 @@ def run(config_file, subject_list_file, p_name = None):
         print "config file %s doesn't exist" %config_file
         raise
     except Exception:
-        raise Exception("Error reading config file - %s"%config_file) 
+        raise Exception("Error reading config file - %s"%config_file)
 
     #do some validation
     validate(c)
+
 
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
