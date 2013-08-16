@@ -522,11 +522,13 @@ class MainFrame(wx.Frame):
                     print "7: ", [sample_list.index(val) for val in value]
                     '''                  
 
+                    '''
                     if isinstance(value, list):
                         value = ast.literal_eval(str(value))
                     else:
                         value = str(value)
-                    
+                    '''                  
+
                     '''
                     if isinstance(value, tuple):
                         value = list(value)
@@ -535,8 +537,20 @@ class MainFrame(wx.Frame):
                     else:
                         value = [value]
                     '''
+
+                    print "VALUE!!!: ", value
+
+                    if len(value) > 1:
+                        value = float(value)
+                    elif len(value) == 1:
+                        value = int(value)
+                    else:
+                        value = None
+
+                    valueList = []
+                    valueList.append(value)
                     
-                    print>>f, label, ":", value
+                    print>>f, label, ":", valueList
                     print>>f, "\n"
 
 
