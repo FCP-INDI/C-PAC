@@ -545,7 +545,7 @@ class MainFrame(wx.Frame):
                     elif len(value) == 1:
                         value = int(value)
                     else:
-                        value = None
+                        value = 0
 
                     valueList = []
                     valueList.append(value)
