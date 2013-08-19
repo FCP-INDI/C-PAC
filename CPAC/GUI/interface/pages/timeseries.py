@@ -59,9 +59,9 @@ class GenerateSeeds(wx.ScrolledWindow):
         self.page.add(label="Use New Seeds In ", 
          control=control.CHECKLIST_BOX, 
          name='useSeedInAnalysis', 
-         type=dtype.LNUM, 
+         type=dtype.LSTR, 
          comment="It is possible to use the newly generated seeds when running a number of the analyses included in CPAC. Note that these analyses will be run using all new seeds.\n\nIf you wish to use these new seeds to run Seed-based Correlation Analysis, select ROI Average Timeseries Extraction.\n\nIf you do not wish to use new seeds in these analyses, select none.",
-         values=[ 'None', 'ROI Average Time Series Extraction', 'ROI Voxelwise Time Series Extraction', 'Network Centrality'],
+         values=[ "None", "ROI Average Time Series Extraction", "ROI Voxelwise Time Series Extraction", "Network Centrality"],
          size = (310,90),
          validation_req = False)
 
