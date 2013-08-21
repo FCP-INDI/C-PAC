@@ -79,18 +79,18 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
         
         self.counter = counter
                 
-        self.page = GenericClass(self, "Anatomical to Functional Registration")
+        self.page = GenericClass(self, "Functional to Anatomical Registration")
         
         fsl = os.environ.get('FSLDIR')
         if fsl == None:
             fsl = "$FSLDIR"
         
         
-        self.page.add(label="Run Anatomical to Functional Registration:", 
+        self.page.add(label="Run Functional to Anatomical Registration:", 
                      control=control.CHOICE_BOX, 
-                     name='runAnatomicalToFunctionalRegistration', 
+                     name='runRegisterFuncToAnat', 
                      type=dtype.LSTR, 
-                     comment="Run Anatomical to Functional Registration", 
+                     comment="Run Functional to Anatomical Registration", 
                      values=["On","Off"],
                      wkf_switch = True)
         

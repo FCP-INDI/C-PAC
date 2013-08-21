@@ -25,16 +25,21 @@ dtype = enum(BOOL=0,
 
 substitution_map = {'On': 1,
                     'Off': 0,
-                   'Voxelwise SCA': 'sca_seed_Z_to_standard_smooth',
-                   'ROI Average SCA':'sca_roi_Z_to_standard_smooth',
-                   'Multiple Regression SCA':'sca_tempreg_maps_z_files_smooth',
-                   'ALFF':'alff_Z_to_standard_smooth',
-                   'f/ALFF':'falff_Z_to_standard_smooth',
-                   'VMHC':'vmhc_z_score_stat_map',
-                   'ReHo':'reho_Z_to_standard_smooth',
-                   'Network Centrality':'centrality_outputs_smoothed',
-                   'Dual Regression':'dr_tempreg_maps_z_files_smooth',
-                   'End': 'None'
+                    'FSL': 1,
+                    'ANTS': 2,
+                    'Voxelwise SCA': 'sca_seed_Z_to_standard_smooth',
+                    'ROI Average SCA':'sca_roi_Z_to_standard_smooth',
+                    'Multiple Regression SCA':'sca_tempreg_maps_z_files_smooth',
+                    'ALFF':'alff_Z_to_standard_smooth',
+                    'f/ALFF':'falff_Z_to_standard_smooth',
+                    'VMHC':'vmhc_z_score_stat_map',
+                    'ReHo':'reho_Z_to_standard_smooth',
+                    'Network Centrality':'centrality_outputs_smoothed',
+                    'Dual Regression':'dr_tempreg_maps_z_files_smooth',
+                    'End': 'None',
+                    'ROI Average Time Series Extraction': 1,
+                    'ROI Voxelwise Time Series Extraction': 2,
+                    'Network Centrality': 3
                    }
 
 

@@ -100,6 +100,7 @@ FSLDIR: /usr/local/fsl
 # FSL configuration file to run FNIRT registration with different parameters
 fnirtConfig :  'T1_2_MNI152_2mm'
 
+
 # The following options specify the path of various resources used by C-PAC
 # By default, C-PAC will automatically locate most files based on FSLDIR
 # Most users will not need to modify these values
@@ -179,11 +180,15 @@ runAnatomicalPreprocessing: [1]
 
 runFunctionalPreprocessing: [1]
 
+# 0 = off, 1 = FSL anatomical-to-MNI, 2 = ANTS anatomical-to-MNI
 runRegistrationPreprocessing: [1]
+
+runRegisterFuncToAnat: [1]
 
 runRegisterFuncToMNI: [1]
 
-runAnatomicalToFunctionalRegistration: [1]
+# REDUNDANT REGISTRATION -- DOUBLE CHECK
+runAnatomicalToFunctionalRegistration: [0]
 
 runSymbolicLinks: [1]
 

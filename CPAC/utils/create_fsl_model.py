@@ -5,6 +5,7 @@ import numpy as np
 import csv
 import yaml
 
+
 def filter_phenotypic(c):
 
     """
@@ -29,7 +30,7 @@ def filter_phenotypic(c):
     sublist = c.subjectListFile
 
     p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
-
+   
 
     f = open(sublist, 'r')
 
@@ -39,6 +40,48 @@ def filter_phenotypic(c):
     p_dict = {}
 
 
+    
+    pheno_dict_list = []
+
+    # Read in the phenotypic CSV file into a dictionary named pheno_dict
+    # while preserving the header fields as they correspond to the data
+    with open(os.path.abspath(ph), 'rU') as pheno:
+
+        firstLine = pheno.readline()
+
+        pheno_entire_header = firstLine.split("\n")
+
+        pheno_header_items = pheno_entire_header[0].split(",")
+
+
+        for line in pheno:
+
+            j = 0
+
+            tempDict = {}
+
+            items = line.split("\n")
+            items = items[0].split(",")
+            
+
+            for fields in pheno_header_items:
+     
+                key = pheno_header_items[j]
+                value = items[j]
+
+                tempDict[key] = value
+
+                j += 1
+
+      
+            pheno_dict_list.append(tempDict)
+
+  
+
+
+    # Creates a dictionary sub_dict which stores the amount of
+    # instances of each subject, per subject
+  
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
@@ -50,20 +93,52 @@ def filter_phenotypic(c):
     final_reader = []
     f_r = []
 
-    record_dict = {}
-    for record in p_reader:
-
-        if record[c.subjectColumn] in sub_dict:
+    
 
 
-            for rec in record.keys():
-                if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
-                    del record[rec]
-            record_dict[record[c.subjectColumn]] = record
+    # Iterate over phenotypic CSV file removing any fields that are not listed
+    # in the columnsInModel parameter in the FSL config file, and then write the
+    # remaining fields into record_dict dictionary
+
+    try:
+
+        record_dict = {}
+
+        for record in pheno_dict_list:
+            
+            if record[c.subjectColumn] in sub_dict:
+
+                for rec in record.keys():
+                    
+                    if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
+                        
+                        del record[rec]
+                
+                record_dict[record[c.subjectColumn]] = record
+
+
+
+    except:
+    
+        print "Error processing phenotypic file data: ", ph
+        print "\n"
+        raise Exception
+
+
 
     for subject in subjects:
+
         subject = subject.rstrip('\r\n')
-        f_r.append(record_dict[subject])
+
+        try:
+
+            if subject in record_dict.keys():
+                f_r.append(record_dict[subject])
+
+        except:
+
+            print "Exception: Could not read from record lookup table for subject #: ", subject
+            raise Exception
 
     return f_r
 
@@ -110,6 +185,7 @@ def organize_data(filter_data, c):
 
 
     idx = 0
+
     for data in filter_data:
 
         for col in mean_cols:
@@ -266,33 +342,56 @@ def write_data(model_data, field_names, c):
     #print model_data
     #print field_names
 
+    print "field names: ", field_names
+
     evs = open(c.contrastFile, 'r').readline()
-    evs = evs.rstrip('\r\n').split(',')
+    evs = evs.rstrip('\n')
+    evs = evs.rstrip('\n')
+    evs = evs.split(',')
     evs = [ev.replace("\"", '') for ev in evs]
     idx = 0
     new_evs = []
+
+
+    print "EVS: ", evs
+
     for ev in evs:
         if (ev in field_names):
             new_evs.append(ev)
+
+    print "new EVS: ", new_evs
+
 
     evs = list(new_evs)
     del new_evs
 
     new_field_names = [c.subjectColumn] + evs
 
-
     #print model_data[0]
     #print new_field_names
 
-    f = open(c.outputModelFile, 'wt')
+    try:
+
+        f = open(c.outputModelFile, 'wt')
+
+    except:
+
+        print "Could not open the output model file: ", c.outputModelFile
+        print ""
+        raise Exception
 
 
     try:
-        writer = csv.DictWriter(f, fieldnames=new_field_names)
 
-        header = dict((n, n) for n in new_field_names)
+        # CHANGED THE FIELDNAMES TO FIELD_NAMES FOR NOW, BUT HAVE TO FIGURE OUT WHY
+        # EVS IS NOT BEING WRITTEN PROPERLY AND MISSING THE LAST HEADER ITEM
+
+        writer = csv.DictWriter(f, fieldnames=field_names) #new_field_names)
+
+        header = dict((n, n) for n in field_names) #new_field_names)
 
         writer.writerow(header)
+
 
         dropped_columns_a = []
         dropped_columns_b = []
@@ -303,13 +402,14 @@ def write_data(model_data, field_names, c):
         if not (len(dropped_columns) == 0):
             print 'dropping columns(not specified in contrasts) from the model ', dropped_columns
 
+
         new_data = []
         for data in model_data:
 
             data_row = []
             for name in field_names:
 
-                if not name in new_field_names:
+                if not name in field_names: #new_field_names:
                     del data[name]
                 else:
                     if not (c.subjectColumn in name):
@@ -317,6 +417,7 @@ def write_data(model_data, field_names, c):
             new_data.append(list(data_row))
 
             writer.writerow(data)
+
 
         detect = 0
 
@@ -339,6 +440,7 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     dimx = None
     dimy = None
+
     if len(data.shape) == 1:
         dimy = 1
         dimx = data.shape[0]
@@ -381,7 +483,6 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
         dimx, dimy = data.shape
     data = np.ones(dimx)
 
-
     if not (gp_var == None):
         i = 1
         for key in sorted(gp_var.keys()):
@@ -406,6 +507,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
     """
     Create the contrasts and fts file
     """
+
     evs = open(con_file, 'r').readline()
     evs = evs.rstrip('\r\n').split(',')
     count_ftests = 0
@@ -416,10 +518,8 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
 
             count_ftests += 1
 
-
-
     data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
-
+    
     lst = data.tolist()
 
     ftst = []
@@ -458,7 +558,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
     print >>f, pp_str
     print >>f, re_str + '\n'
     print >>f, '/Matrix'
-
+   
 
     np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
@@ -700,6 +800,7 @@ def run(config, CPAC_run = False):
     if c.modelGroupVariancesSeparately == 1 and (c.groupingVariable == None or (not c.groupingVariable in c.columnsInModel)):
         raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
 
+
     try:
         if not os.path.exists(c.outputModelFilesDirectory):
 
@@ -713,18 +814,23 @@ def run(config, CPAC_run = False):
 
     filter_data = filter_phenotypic(c)
 
-
     model_ready_data = None
     field_names = None
     gp_var = None
     order = None
 
+
+
     if c.modelGroupVariancesSeparately == 0:
+
         model_ready_data, field_names = organize_data(filter_data, c)
+   
     else:
+
         model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
 
     write_data(model_ready_data, field_names, c)
+
 
 
     ###generate the final FSL .grp, .mat, .con, .fts files 
@@ -737,6 +843,7 @@ def run(config, CPAC_run = False):
     rdr = csv.DictReader(open(model, "rb"))
     no_of_columns = len(rdr.fieldnames)
 
+
     tuple_columns = tuple([n for n in range(1, no_of_columns)])
     data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
 
@@ -747,8 +854,27 @@ def run(config, CPAC_run = False):
     for tp in data_lst:
         data.append(tp)
 
-    print len(data[:])
+    print "Length of data list: ", len(data[:])
+    print ""
     data = np.array(data, dtype=np.float16)
-    create_mat_file(data, model_name, c.outputModelFilesDirectory)
-    create_grp_file(data, model_name, gp_var, c.outputModelFilesDirectory)
-    create_con_ftst_file(con, model_name, c.outputModelFilesDirectory)
+
+    try:
+        create_mat_file(data, model_name, c.outputModelFilesDirectory)
+    except:
+        print "Error: Could not create .mat file."
+        print ""
+        raise Exception
+
+    try:
+        create_grp_file(data, model_name, gp_var, c.outputModelFilesDirectory)
+    except:
+        print "Error: Could not create .grp file."
+        print ""
+        raise Exception
+
+    try:
+        create_con_ftst_file(con, model_name, c.outputModelFilesDirectory)
+    except:
+        print "Error: Could not create ftst file."
+        print ""
+        raise Exception

@@ -150,6 +150,21 @@ class Registration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${standardResolutionAnat}.nii.gz")),
                      comment="Template to be used during registration.\n\nIt is not necessary to change this path unless you intend to use a non-standard template.")
+        '''
+        self.page.add(label="Anatomical to Template Registration Method ", 
+                     control=control.CHOICE_BOX, 
+                     name='runRegistrationPreprocessing', 
+                     type=dtype.LSTR, 
+                     comment="Use either FSL (FLIRT and FNIRT) or ANTS as your anatomical registration method.", 
+                     values=["FSL","ANTS"],
+                     wkf_switch = True)
+        '''
+        self.page.add(label="FSL FNIRT Configuration File (FSL only) ", 
+                     control=control.COMBO_BOX, 
+                     name='fnirtConfig', 
+                     type=dtype.STR, 
+                     values =  str(os.path.join("T1_2_MNI152_2mm")),
+                     comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

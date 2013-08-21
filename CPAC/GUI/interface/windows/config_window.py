@@ -99,7 +99,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page6, "Anatomial Registration", wx.ID_ANY)
+        self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
         self.AddSubPage(page7, "Tissue Segmentation", wx.ID_ANY)
 
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
@@ -341,7 +341,7 @@ class MainFrame(wx.Frame):
                     #print "validating ctrl-->", ctrl.get_name()
                     #print "ctrl.get_selection()", ctrl.get_selection()
                     #print "type(ctrl.get_selection())", type(ctrl.get_selection())
-
+                    
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
                         if not value:
@@ -361,7 +361,7 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
-
+                    
                 config_list.append(ctrl)
 
         dlg = wx.FileDialog(
@@ -426,10 +426,17 @@ class MainFrame(wx.Frame):
             f = open(path, 'w')
 
             for item in config_list:
+
                 label = item.get_name()
-                value= item.get_selection()
+                value = item.get_selection()
                 dtype = item.get_datatype()
                 type = item.get_type()
+
+                print "LABEL: ", label
+                print "VALUE: ", value
+                print "DTYPE: ", dtype
+                print "TYPE: ", type
+                print ""
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -438,20 +445,36 @@ class MainFrame(wx.Frame):
                     if line:
                         print>>f, "#", line
 
-                if dtype ==0 or dtype==1:
+
+                # prints setting names and values (ex. " runAnatomicalProcessing: [1] ") into the
+                # pipeline_config file, using a different set of code depending on the data type
+
+
+                # parameters that are strings (ex. " False " or a path)
+                if dtype == 0 or dtype == 1:
+
                     print >>f, label, ": ", str(value)
                     print >>f,"\n"
-                elif dtype ==2:
-                    if type ==0:
+
+
+                # parameters that are integers
+                elif dtype == 2:
+
+                    if type == 0:
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
                             value = substitution_map.get(value)
                         elif value != 'None':
                             value = ast.literal_eval(str(value))
+                    
                     print >>f, label, ": ", value
                     print >>f,"\n"
-                elif dtype ==3:
+                
+
+                # parameters that are lists (ex. " [False, False] ")
+                elif dtype == 3:
+
                     map = ast.literal_eval(str(value))
                     values = []
                     for x in range(0, len(map.keys())):
@@ -459,9 +482,14 @@ class MainFrame(wx.Frame):
                     for k, v in map.iteritems():
                         item, idx = k
                         values[idx] = v
-                    print>> f, label, ": ", values
+
+                    print>>f, label, ": ", values
                     print>>f,"\n"
-                elif dtype ==4:
+                
+
+                # parameters that are switches (ex. [0] or [1] )
+                elif dtype == 4:
+
                     values=[]
 
                     if isinstance(value, list):
@@ -476,28 +504,75 @@ class MainFrame(wx.Frame):
                             values.append(sval)
                         else:
                             values.append(val)
-                    print>> f, label, ": ", values
+
+                    print>>f, label, ": ", values
                     print>>f,"\n"
-                elif dtype ==5:
-                    value = ast.literal_eval(str(value))
+                
+
+                # parameters that are bracketed numbers (int or float)
+                elif dtype == 5:
+
+                    '''
+                    print "1: ", ast.literal_eval(value)
+                    print "2: ", ast.literal_eval(str(value))
+                    print "3: ", value
+                    print "4: ", str(value)
+                    print "5: ", [value]
+                    print "6: ", list(value)
+                    print "7: ", [sample_list.index(val) for val in value]
+                    '''                  
+
+                    '''
+                    if isinstance(value, list):
+                        value = ast.literal_eval(str(value))
+                    else:
+                        value = str(value)
+                    '''                  
+
+                    '''
                     if isinstance(value, tuple):
                         value = list(value)
                     elif isinstance(value, list):
                         value = [sample_list.index(val) for val in value]
                     else:
                         value = [value]
-                    print>>f, label, ":", value
+                    '''
+
+                    print "VALUE!!!: ", value
+
+                    if len(value) > 1:
+                        value = float(value)
+                    elif len(value) == 1:
+                        value = int(value)
+                    else:
+                        value = 0
+
+                    valueList = []
+                    valueList.append(value)
+                    
+                    print>>f, label, ":", valueList
                     print>>f, "\n"
-                elif dtype ==6:
-                    values = [] 
+
+
+                # parameters that are ? (bandpass filter specs)
+                elif dtype == 6:
+
+                    values = []
+ 
                     for val in ast.literal_eval(str(value)):
                         values.append(ast.literal_eval(val))
+
                     print>>f, label, ":", values
                     print>>f, "\n"
-                elif dtype ==8:
+
+
+                # parameters that are whole words
+                elif dtype == 8:
+
                     print>>f, label,":"
 
                     value = ast.literal_eval(str(value))
+
                     for val in value:
                         val = val.split(',')
                         f.write("  - ")
@@ -512,14 +587,20 @@ class MainFrame(wx.Frame):
                                 print>>f, space, sample, ": ", 1
                             else:
                                 print>>f, space, sample, ": ", 0
+
                     print >>f, "\n"
 
+
                 else:
+
                     value = ast.literal_eval(str(value))
+
                     print>>f, label, ":", value
                     print>>f, "\n"
 
+
             f.close()
+
         except Exception, e:
             print e
             print "Error Writing the pipeline configuration file %s" % path
