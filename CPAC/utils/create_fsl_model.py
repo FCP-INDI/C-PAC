@@ -199,7 +199,7 @@ def organize_data(filter_data, c):
                     mean[col] += float(data[col])
 
             except ValueError, e:
-                print 'error ', e, ' for data row: ', data
+                print 'error ', e, ' for column: ', col, 'in data row: ', data
                 raise
 
 
@@ -226,6 +226,9 @@ def organize_data(filter_data, c):
     idx = 0
     for data in filter_data:
 
+        print "data: ", data
+        print "directional map keys: ", directional_map.keys()
+
         for col in directional_map.keys():
 
             val = data[col]
@@ -233,6 +236,9 @@ def organize_data(filter_data, c):
             vals = directional_map[col]
 
             del data[col]
+
+            print "VALS: ", vals
+
             for value in vals:
 
                 column_name, v = value.split('__')
