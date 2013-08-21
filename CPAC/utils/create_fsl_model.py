@@ -76,15 +76,7 @@ def filter_phenotypic(c):
       
             pheno_dict_list.append(tempDict)
 
-
-
-
-
-
-        # removes header, there should be a cleaner way to do this
-        #if 'Subject' in pheno_dict:
-        #    del pheno_dict['Subject']
-    
+  
 
 
     # Creates a dictionary sub_dict which stores the amount of
@@ -114,7 +106,7 @@ def filter_phenotypic(c):
 
         for record in pheno_dict_list:
             
-            if record['Subject'] in sub_dict:
+            if record[c.subjectColumn] in sub_dict:
 
                 for rec in record.keys():
                     
@@ -122,13 +114,13 @@ def filter_phenotypic(c):
                         
                         del record[rec]
                 
-                record_dict[record['Subject']] = record
+                record_dict[record[c.subjectColumn]] = record
 
 
 
     except:
     
-        print "Error reading phenotypic file: ", ph
+        print "Error processing phenotypic file data: ", ph
         print "\n"
         raise Exception
 
@@ -193,6 +185,7 @@ def organize_data(filter_data, c):
 
 
     idx = 0
+
     for data in filter_data:
 
         for col in mean_cols:
