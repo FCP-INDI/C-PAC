@@ -524,9 +524,19 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
 
             count_ftests += 1
 
-    data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
-    
+
+    try:
+
+        data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
+
+    except:
+
+        print "Error: Could not successfully read in contrast file: ", con_file
+        raise Exception
+
+
     lst = data.tolist()
+
 
     ftst = []
     contrasts = []
@@ -534,6 +544,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
 
     length = None
     length = len(list(lst[0]))
+
 
     for tp in lst:
 
@@ -544,6 +555,11 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
 
 
     contrasts = np.array(contrasts, dtype=np.float16)
+
+    print "CONTRASTS!: ", contrasts
+    print "contrasts.shape ", contrasts.shape
+    print "0: ", (contrasts.shape)[0]
+    print "1: ", (contrasts.shape)[1]
 
     fts_n = np.array(ftst)
     f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
