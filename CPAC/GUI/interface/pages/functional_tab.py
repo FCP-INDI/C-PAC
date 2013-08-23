@@ -93,6 +93,14 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                      comment="Run Functional to Anatomical Registration", 
                      values=["On","Off"],
                      wkf_switch = True)
+
+        self.page.add(label="Using BB Register:", 
+                     control=control.CHOICE_BOX, 
+                     name='runBBReg', 
+                     type=dtype.LSTR, 
+                     comment="Run Functional to Anatomical Registration with BB Register", 
+                     values=["On","Off"],
+                     wkf_switch = True)
         
         self.page.add(label="Functional Standard Resolution:", 
                      control=control.CHOICE_BOX, 
