@@ -1259,7 +1259,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     
                 strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                             'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file'),
-                                            'mni_func':(mean_functional_warp, 'out_file')})
+                                            'mean_functional_in_mni':(mean_functional_warp, 'out_file')})
                 strat.append_name(func_mni_warp.name)
                 create_log_node(func_mni_warp, 'out_file', num_strat)
             
