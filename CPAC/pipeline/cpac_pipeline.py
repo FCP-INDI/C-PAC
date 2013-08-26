@@ -723,7 +723,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
     if 1 in c.runRegisterFuncToAnat:
         workflow_bit_id['func_to_anat'] = workflow_counter
         for strat in strat_list:
-            func_to_anat = create_func_to_anat('func_to_anat_%d' % num_strat)
+            func_to_anat = create_register_func_to_anat('func_to_anat_%d' % num_strat)
        
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
