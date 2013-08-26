@@ -1215,7 +1215,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 functional_brain_mask_to_standard.inputs.interp = 'nn'
                 functional_brain_mask_to_standard.inputs.ref_file = c.standard
 
-                mean_functional_warp = pe.Node(interface=fsl.ApplyWarp(), name='mean_func_warp')
+                mean_functional_warp = pe.Node(interface=fsl.ApplyWarp(), name='mean_func_warp_%d' % num_strat)
                 mean_functional_warp.inputs.ref_file = c.standardResolutionBrain
     
                 try:
