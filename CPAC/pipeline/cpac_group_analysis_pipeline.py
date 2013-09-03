@@ -16,8 +16,30 @@ from CPAC.group_analysis import create_group_analysis
 def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    #print "p_id -%s, s_ids -%s, scan_ids -%s, s_paths -%s" %(p_id, s_ids, scan_ids, s_paths)
-    
+    #print "p_id -%s, s_ids -%s, scan_ids -%s, s_paths -%s" %(p_id, s_ids, scan_ids, s_paths) 
+
+    '''
+    #diag = open(os.path.join('/home/data/Projects/CPAC_Regression_Test/2013-08-19-20_v0-3-1/fsl-model/2013-09-03', 'group_analysis_diagnostic.txt'), 'wt')
+
+    #for tup in subject_infos:
+    #    print >>diag, list(tup)
+
+    #print >>diag, ""
+
+    #for tup in zip(*subject_infos):
+    #    print >>diag, list(tup)
+
+    #print >>diag, ""
+
+
+    print >>diag, "Working variables passed from cpac_group_runner: "
+    print >>diag, ""
+    print >>diag, "Pipeline ID (p_id): ", p_id
+    print >>diag, "Subject IDs (s_ids): ", s_ids
+    print >>diag, "Scan IDs (scan_ids): ", scan_ids
+    print >>diag, "(s_paths): ", s_paths
+    print >>diag, ""
+    '''
 
     def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path, sub_id):
         
@@ -125,6 +147,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         except Exception:
             print "Exception while extracting parameters from movement file - %s"%(parameter_file)
 
+
+    #print >>diag, "Begins to iterate over each config file listed here: ", c.modelConfigs
+    #print >>diag, ""
     
     for config in c.modelConfigs:
         
@@ -134,18 +159,49 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             conf = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
         except:
             raise Exception("Error in reading %s configuration file" % config)
-    
-        subject_list = [line.rstrip('\r\n') for line in open(conf.subjectListFile, 'r') \
+
+        #print >>diag, "Starting iteration for config: ", config
+        #print >>diag, ""
+
+
+        group_sublist = open(conf.subjectListFile, 'r')
+
+        sublist_items = group_sublist.readlines()
+
+        subject_list = [line.rstrip('\n') for line in sublist_items \
                               if not (line == '\n') and not line.startswith('#')]
+
+
+        #print >>diag, "Subject list run-through #1: ", subject_list
+        #print >>diag, ""
+
+    
+        #subject_list = [line.rstrip('\r\n') for line in open(conf.subjectListFile, 'r') \
+        #                      if not (line == '\n') and not line.startswith('#')]
 
         # list of subject paths which DO exist
         exist_paths = []
         
         # check for missing subject for the derivative
+
+
+        #print >>diag, "> Iterates over subject_list - for each subject in the subject list, it iterates over the paths in s_paths."
+        #print >>diag, "> For each path, it checks if the current subject exists in this path, and then appends this subject to 'exist_paths' list."
+        #print >>diag, ""
+
         for sub in subject_list :
+
             for path in s_paths:
+
                 if sub in path:
                     exist_paths.append(sub)
+
+
+        #print >>diag, "Current status of exist_paths list: "
+        #print >>diag, exist_paths
+        #print >>diag, ""
+
+
 
         # check to see if any derivatives of subjects are missing
         if len(list(set(subject_list) - set(exist_paths))) >0:
@@ -168,6 +224,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName)),
                                 'model_files')
+
+
+        #print >>diag, "> Created mod_path variable: ", mod_path
+        #print >>diag, ""
+
                 
         print "basename: ", os.path.basename(conf.subjectListFile)
 
@@ -196,6 +257,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
             f.close()
 
+            #print >>diag, "> Created new subject list file: ", new_sub_file
+            #print >>diag, ""
+
+            #print >>diag, "> ..which is filled with the subjects from exist_paths"
+            #print >>diag, ""
+
         except:
 
             print "Error: Could not open subject list file: ", new_sub_file
@@ -203,10 +270,25 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception
 
 
+        #print >>diag, "> Updates the FSL model config's subject list file parameter from: ", conf.subjectListFile
+
         conf.update('subjectListFile',new_sub_file)
+
+        #print >>diag, "> ..to new subject list file: ", conf.subjectListFile
+        #print >>diag, ""
         
         sub_id = conf.subjectColumn
         
+        '''
+        print >>diag, "> If measure_dict is not empty, it updates the phenotypic file with these parameters: "
+        print >>diag, ""
+
+        print >>diag, "measure_dict: ", measure_dict
+        print >>diag, "measure_list: ", measure_list
+        print >>diag, "mod_path: ", mod_path
+        print >>diag, "sub_id: ", sub_id
+        print >>diag, ""
+        '''
 
         if measure_dict != None:
             conf.update('phenotypicFile',get_phenotypic_file(conf.phenotypicFile, measure_dict, measure_list, mod_path, sub_id))
@@ -226,9 +308,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             from CPAC.utils import create_fsl_model
             create_fsl_model.run(conf, True)
 
+            #print >>diag, "> Runs create_fsl_model."
+            #print >>diag, ""
+
         except Exception, e:
 
-            print "Error in creating models in the create_fsl_model script"
+            print "FSL Group Analysis model not successfully created - error in create_fsl_model script"
             #print "Error ->", e
             raise
 
@@ -238,18 +323,39 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         print "model_sub_list ->", model_sub_list
 
+        '''
+        print >>diag, "> Appends FSL config's outputModelFilesDirectory: ", conf.outputModelFilesDirectory
+        print >>diag, "> and FSL config's subjectListFile: ", conf.subjectListFile
+        print >>diag, "> ..to model_sub_list, which is now: ", model_sub_list
+        print >>diag, ""
+
+
+    print >>diag, "> Ending modelConfigs iteration."
+    print >>diag, ""
+    '''
     
     if len(model_sub_list) == 0:
         raise Exception("no model found")
 
 
+
+
+
     #start group analysis
+
+    #print >>diag, "> Starting iteration over 'model_sub's in model_sub_list: ", model_sub_list
+    #print >>diag, ""
+
     for model_sub in model_sub_list:
+
+        #print >>diag, "Current model_sub: ", model_sub
+        #print >>diag, ""
         
         model, subject_list = model_sub
         
         print "running for model %s and resource %s..."%(os.path.basename(model), resource)
         
+
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exit"%model)
         
@@ -259,7 +365,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         #if c.mixedScanAnalysis == True:
         #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         #else:
-        
+
         wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
@@ -287,18 +393,46 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         iflogger = logging.getLogger('interface')
     
     
-        input_subject_list = [line.rstrip('\r\n') for line in open(subject_list, 'r') \
+        group_sublist = open(subject_list, 'r')
+
+        #print >>diag, "> Opened subject list: ", subject_list
+        #print >>diag, ""
+
+        sublist_items = group_sublist.readlines()
+
+        input_subject_list = [line.rstrip('\n') for line in sublist_items \
                               if not (line == '\n') and not line.startswith('#')]
-    
+
+        '''
+        print >>diag, "Subject list run-through #2: ", input_subject_list
+        print >>diag, ""    
+
+
+        print >>diag, "> Now iterating over each subject in this subject list."
+        print >>diag, "> For each subject, for each path in s_paths, it checks if the current"
+        print >>diag, "> subject is in path, and then appends it into ordered_paths."
+        print >>diag, ""
+        '''
+
         ordered_paths = []
         pathcount = 0
+        subcount = 0
         for sub in input_subject_list :
+            subcount += 1
             for path in s_paths:
+
                 if sub in path:
                     pathcount += 1
                     ordered_paths.append(path)
 
-        print "pathcount: ", pathcount
+        '''
+        print >>diag, "Ordered paths: ", ordered_paths
+        print >>diag, ""
+
+        print >>diag, "> The list ordered_paths is then fed into the group analysis"
+        print >>diag, "> workflow input 'zmap_files'."
+        print >>diag, ""
+        '''
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
         print ""
@@ -411,6 +545,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             wf.connect(ds, 'out_file', link_node, 'in_file')
     
 
+
         ########datasink connections#########
         if c.fTest:
             wf.connect(gp_flow, 'outputspec.fts',
@@ -463,17 +598,21 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             wf.run()#(plugin='MultiProc',
                      #            plugin_args={'n_procs': c.numCoresPerSubject})
 
-        except Exception as e:
+        except:
 
             print "Error: Group analysis workflow run command did not complete successfully."
-            print "%d: %s" % (e.errno, e.strerror)
-            print "Error type: ", type(e)
-            print "Error args: ", e.args
-            print "e: ", e
-            print ""
+            print "subcount: ", subcount
+            print "pathcount: ", pathcount
+            print "sublist: ", sublist_items
+            print "input subject list: ", input_subject_list
+            print "conf: ", conf.subjectListFile
+            
             raise Exception
     
         print "**Workflow finished for model %s and resource %s"%(os.path.basename(model), resource)
+
+
+    #diag.close()
 
 
 
