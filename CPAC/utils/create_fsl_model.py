@@ -107,13 +107,14 @@ def filter_phenotypic(c):
         for record in pheno_dict_list:
             
             if record[c.subjectColumn] in sub_dict:
-
+                
                 for rec in record.keys():
                     
                     if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
                         
                         del record[rec]
-                
+                            
+
                 record_dict[record[c.subjectColumn]] = record
 
 
@@ -123,6 +124,14 @@ def filter_phenotypic(c):
         print "Error processing phenotypic file data: ", ph
         print "\n"
         raise Exception
+
+
+    record = open(os.path.join(c.outputDirectory, 'phenotypic_loading.txt'), 'wt')
+
+    print >>record, "record_dict: \n"
+    print >>record, record_dict
+
+    record.close()
 
 
 
@@ -237,7 +246,6 @@ def organize_data(filter_data, c):
 
             del data[col]
 
-            print "VALS: ", vals
 
             for value in vals:
 
@@ -900,3 +908,4 @@ def run(config, CPAC_run = False):
         print "Error: Could not create ftst file."
         print ""
         raise Exception
+
