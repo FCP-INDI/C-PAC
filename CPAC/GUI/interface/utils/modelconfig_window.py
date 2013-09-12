@@ -55,7 +55,7 @@ class ModelConfig(wx.Frame):
                       values="",
                       style=wx.EXPAND | wx.ALL,
                       size=(400, -1))
-
+'''
         self.page.add(label="EV Type ",
                       control=control.TEXT_BOX,
                       name="categoricalVsDirectional",
@@ -64,7 +64,7 @@ class ModelConfig(wx.Frame):
                       values="",
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
-
+'''
         self.page.add(label="Demean ",
                       control=control.TEXT_BOX,
                       name="deMean",
@@ -343,3 +343,4 @@ class ModelConfig(wx.Frame):
                 ctrl.set_value(str(val))
 
             dlg.Destroy()
+
