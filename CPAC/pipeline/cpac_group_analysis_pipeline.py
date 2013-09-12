@@ -629,3 +629,4 @@ def run(config, subject_infos, resource):
     
     prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
 
+

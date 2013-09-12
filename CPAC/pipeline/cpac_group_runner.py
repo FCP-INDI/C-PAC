@@ -202,14 +202,13 @@ def run(config_file, output_path_file):
         rs_path = rs_path.lstrip('/')
 
         folders = split_folders(rs_path)
-
         
         pipeline_id = folders[0]
         subject_id = folders[1]
         resource_id = folders[2]
         scan_id = folders[3]
 
-        
+
         #if scan_id == '_scan_rest_1_rest':
 
         key = subject_path.replace(subject_id, '*')
@@ -436,5 +435,6 @@ def run(config_file, output_path_file):
 
     timing.close()
     #diag.close()
+
 
 
