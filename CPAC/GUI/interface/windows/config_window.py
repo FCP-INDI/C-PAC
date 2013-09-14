@@ -432,11 +432,13 @@ class MainFrame(wx.Frame):
                 dtype = item.get_datatype()
                 type = item.get_type()
 
+                '''
                 print "LABEL: ", label
                 print "VALUE: ", value
                 print "DTYPE: ", dtype
                 print "TYPE: ", type
                 print ""
+                '''
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -538,7 +540,6 @@ class MainFrame(wx.Frame):
                         value = [value]
                     '''
 
-                    print "VALUE!!!: ", value
 
                     if len(value) > 1:
                         value = float(value)
@@ -605,3 +606,4 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise Exception
+
