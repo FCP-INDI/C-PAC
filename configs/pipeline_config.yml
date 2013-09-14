@@ -179,11 +179,15 @@ runAnatomicalPreprocessing: [1]
 
 runFunctionalPreprocessing: [1]
 
+# 0 = off, 1 = FSL anatomical-to-MNI, 2 = ANTS anatomical-to-MNI
 runRegistrationPreprocessing: [1]
+
+runRegisterFuncToAnat: [1]
 
 runRegisterFuncToMNI: [1]
 
-runAnatomicalToFunctionalRegistration: [1]
+# REDUNDANT REGISTRATION -- DOUBLE CHECK
+runAnatomicalToFunctionalRegistration: [0]
 
 runSymbolicLinks: [1]
 

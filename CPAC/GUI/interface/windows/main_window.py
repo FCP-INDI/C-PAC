@@ -282,12 +282,22 @@ class ListBox(wx.Frame):
                 print e
                 #wx.MessageBox(e, "Error") 
                 
+
+
     def runGroupLevelAnalysis(self, event):
-        print "running Group Analysis"
+
+        # Runs group analysis when user clicks "Run Group Level Analysis" in GUI
+
+        print ""
+        print "Running CPAC Group Analysis..."
+        print ""
         
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
+            
             pipelines = self.listbox.GetCheckedStrings()
+
             for p in pipelines:
+
                 pipeline = self.pipeline_map.get(p)
                 
                 if os.path.exists(pipeline):
@@ -302,8 +312,10 @@ class ListBox(wx.Frame):
                     else:
                         derv_path = ''
                     
+                    # Opens the sub-window which prompts the user
+                    # for the derivative file paths
                     runGLA(pipeline, derv_path, p)
-                
+
                 else:
                     print "pipeline doesn't exist"
                     
@@ -588,6 +600,12 @@ class runCPAC(wx.Frame):
             
 class runGLA(wx.Frame):
     
+    # Opens sub window prompting user to input the derivative file path(s).
+    # If this is already supplied to the function, the path will show up
+    # in the input box already by default.
+
+    # Once the user clicks "Run", group level analysis begins
+
     def __init__(self, pipeline, path, name):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
         
@@ -638,14 +656,24 @@ class runGLA(wx.Frame):
         try:
             import CPAC
             CPAC.pipeline.cpac_group_runner.run(pipeline, path)
-        except Exception:
+        except AttributeError as e:
             print "Exception while running cpac_group_runner"
+            #print "%d: %s" % (e.errno, e.strerror)
+            print "Error type: ", type(e)
+            print "Error args: ", e.args
+            print "e: ", e
+            print ""
+            raise Exception
             
         
     def onOK(self, event, pipeline):
+
+        # Once the user clicks "Run" in the derivative path file window
+        # (from runGLA function), get the filepath and run the
+        # "runAnalysis" function
         
         import thread
-        
+
         if self.box1.GetValue():
             thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
             self.Close()
@@ -654,3 +682,4 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+

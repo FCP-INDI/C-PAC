@@ -181,7 +181,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     >>> preproc.inputs.inputspec.z_threshold = 2.3
     >>> preproc.inputs.inputspec.p_threshold = 0.05
     >>> preproc.inputs.inputspec.parameters = ('/usr/local/fsl/', 'MNI152')
-    >>> preporc.run()  -- SKIP doctest
+    >>> preproc.run()  -- SKIP doctest
             
     """
     grp_analysis = pe.Workflow(name=wf_name)
@@ -212,9 +212,13 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                                                         'rendered_image_zf']),
                          name='outputspec')
 
+
+
+    
     merge_to_4d = pe.Node(interface=fsl.Merge(),
                           name='merge_to_4d')
     merge_to_4d.inputs.dimension = 't'
+    
 
     ### create analysis specific mask
     #-Tmin: min across time
@@ -321,6 +325,8 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          outputnode, 'merged')
     grp_analysis.connect(fsl_flameo, 'zstats',
                          outputnode, 'zstats')
+
+
 
     grp_analysis.connect(easy_thresh_z, 'outputspec.cluster_threshold',
                          outputnode, 'cluster_threshold')

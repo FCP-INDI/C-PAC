@@ -102,7 +102,7 @@ def extract_data(c, param_map):
             logging.exception(msg)
             raise Exception(msg)
         
-        if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 20:
+        if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 40:
             msg = "scan name %s is too long."\
                   "It should not be more than 20 characters"\
                   %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
