@@ -682,3 +682,4 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+
