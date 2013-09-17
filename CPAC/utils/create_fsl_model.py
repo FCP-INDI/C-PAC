@@ -126,13 +126,6 @@ def filter_phenotypic(c):
         raise Exception
 
 
-    record = open(os.path.join(c.outputDirectory, 'phenotypic_loading.txt'), 'wt')
-
-    print >>record, "record_dict: \n"
-    print >>record, record_dict
-
-    record.close()
-
 
 
     for subject in subjects:
