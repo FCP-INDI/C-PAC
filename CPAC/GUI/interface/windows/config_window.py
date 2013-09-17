@@ -540,6 +540,8 @@ class MainFrame(wx.Frame):
                         value = [value]
                     '''
 
+                    #print "label: ", label
+                    #print "VALUE!!!: ", value
 
                     if len(value) > 1:
                         value = float(value)
@@ -606,4 +608,3 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise Exception
-
