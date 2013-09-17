@@ -195,7 +195,7 @@ class ModelConfig(wx.Frame):
                         self.display(val[
                                      0], "%s field contains incorrect path. Please enter correct path!" % key)
 
-                if key == 'deMean': # or key == 'categoricalVsDirectional'
+                if key == 'deMean' or key == 'categoricalVsDirectional':
                     value = [int(v) for v in val[1].split(",")]
                     for v in value:
                         if v not in [1, 0]:
