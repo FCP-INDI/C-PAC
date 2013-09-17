@@ -195,7 +195,7 @@ class ModelConfig(wx.Frame):
                         self.display(val[
                                      0], "%s field contains incorrect path. Please enter correct path!" % key)
 
-                if key == 'deMean' or key == 'categoricalVsDirectional':
+                if key == 'deMean': # or key == 'categoricalVsDirectional':
                     value = [int(v) for v in val[1].split(",")]
                     for v in value:
                         if v not in [1, 0]:
@@ -258,6 +258,14 @@ class ModelConfig(wx.Frame):
 
             config_list.append((name, value, dtype, help))
             config_map[name] = [win, value, validation]
+
+            # TEMPORARY CODE FOR HARD-CODING OF EVTYPES AS ALL ZEROES
+            if name == 'deMean':
+
+                evTypes = value.replace("1", "0")
+
+        # TEMPORARY CODE FOR HARD-CODING OF EVTYPES AS ALL ZEROES
+        config_list.append(("categoricalVsDirectional", evTypes, 5, "Placeholder for EV types - should be all zeroes - do not modify."))
 
         try:
             if self.validate(config_map) > 0:
