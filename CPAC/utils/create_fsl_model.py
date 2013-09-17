@@ -182,8 +182,10 @@ def organize_data(filter_data, c):
         if c.deMean[i]:
             mean_cols.append(c.columnsInModel[i])
 
+        '''
         if c.categoricalVsDirectional[i]:
             directional_cols.append(c.columnsInModel[i])
+        '''
 
 
     idx = 0
@@ -625,10 +627,12 @@ def pandas_alternate_organize_data(data, c):
             col = c.columnsInModel[i]
             df[col] = df[col].astype('float32') - df[col].astype('float32').mean()
 
+        '''
         if c.categoricalVsDirectional[i]:
             categorical.append(c.columnsInModel[i])
         else:
             directional.append(c.columnsInModel[i])
+        '''
 
 
     #split on the grouping variable
@@ -744,10 +748,12 @@ def alternate_organize_data(data, c):
             col = c.columnsInModel[i]
             mean_cols.append(col)
 
+        '''
         if c.categoricalVsDirectional[i]:
             categorical.append(c.columnsInModel[i])
         else:
             directional.append(c.columnsInModel[i])
+        '''
 
     sum_ = {}
 
