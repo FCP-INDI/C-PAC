@@ -1,6 +1,7 @@
 ============================================================
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
+This is Hai's version.
 
 A configurable, open-source, Nipype-based, automated processing pipeline for resting state fMRI data. 
 Designed for use by both novice users and experts, C-PAC brings the power, flexibility and elegance 
