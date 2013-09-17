@@ -453,7 +453,9 @@ class MainFrame(wx.Frame):
 
 
                 # parameters that are strings (ex. " False " or a path)
+
                 if dtype == 0 or dtype == 1:
+
 
                     print >>f, label, ": ", str(value)
                     print >>f,"\n"
@@ -463,6 +465,7 @@ class MainFrame(wx.Frame):
                 elif dtype == 2:
 
                     if type == 0:
+
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
@@ -514,32 +517,6 @@ class MainFrame(wx.Frame):
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
 
-                    '''
-                    print "1: ", ast.literal_eval(value)
-                    print "2: ", ast.literal_eval(str(value))
-                    print "3: ", value
-                    print "4: ", str(value)
-                    print "5: ", [value]
-                    print "6: ", list(value)
-                    print "7: ", [sample_list.index(val) for val in value]
-                    '''                  
-
-                    '''
-                    if isinstance(value, list):
-                        value = ast.literal_eval(str(value))
-                    else:
-                        value = str(value)
-                    '''                  
-
-                    '''
-                    if isinstance(value, tuple):
-                        value = list(value)
-                    elif isinstance(value, list):
-                        value = [sample_list.index(val) for val in value]
-                    else:
-                        value = [value]
-                    '''
-
                     #print "label: ", label
                     #print "VALUE!!!: ", value
 
@@ -554,6 +531,7 @@ class MainFrame(wx.Frame):
                     valueList.append(value)
                     
                     print>>f, label, ":", valueList
+
                     print>>f, "\n"
 
 
