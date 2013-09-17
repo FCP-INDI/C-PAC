@@ -182,10 +182,8 @@ def organize_data(filter_data, c):
         if c.deMean[i]:
             mean_cols.append(c.columnsInModel[i])
 
-        '''
         if c.categoricalVsDirectional[i]:
             directional_cols.append(c.columnsInModel[i])
-        '''
 
 
     idx = 0
@@ -261,6 +259,8 @@ def organize_data(filter_data, c):
     for col in mean.keys():
 
         mean[col] = float(mean[col])/float(len(filter_data))
+
+
     idx = 0
     for data in filter_data:
 
@@ -559,11 +559,6 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
 
     contrasts = np.array(contrasts, dtype=np.float16)
 
-    print "CONTRASTS!: ", contrasts
-    print "contrasts.shape ", contrasts.shape
-    print "0: ", (contrasts.shape)[0]
-    print "1: ", (contrasts.shape)[1]
-
     fts_n = np.array(ftst)
     f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
 
@@ -627,13 +622,10 @@ def pandas_alternate_organize_data(data, c):
             col = c.columnsInModel[i]
             df[col] = df[col].astype('float32') - df[col].astype('float32').mean()
 
-        '''
         if c.categoricalVsDirectional[i]:
             categorical.append(c.columnsInModel[i])
         else:
             directional.append(c.columnsInModel[i])
-        '''
-
 
     #split on the grouping variable
     for name, group in df.groupby(c.groupingVariable):
@@ -748,12 +740,11 @@ def alternate_organize_data(data, c):
             col = c.columnsInModel[i]
             mean_cols.append(col)
 
-        '''
         if c.categoricalVsDirectional[i]:
             categorical.append(c.columnsInModel[i])
         else:
             directional.append(c.columnsInModel[i])
-        '''
+
 
     sum_ = {}
 
