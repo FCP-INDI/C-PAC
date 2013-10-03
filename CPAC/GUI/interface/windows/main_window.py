@@ -22,9 +22,11 @@ ID_CLEARALL = 11
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+
+        import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC)")
+        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.version)
     
         self.pipeline_map = {}
         self.sublist_map= {}

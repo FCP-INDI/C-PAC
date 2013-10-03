@@ -1,7 +1,7 @@
 import wx
-from ..utils.constants import substitution_map
+from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
-from ..pages import WorkflowConfig, Motion, AnatomicalPreprocessing, \
+from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreprocessing, \
     Segmentation,  Registration, FunctionalPreProcessing,\
     MotionOptions, Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
@@ -541,18 +541,41 @@ class MainFrame(wx.Frame):
                     '''
 
 
+                    ### parse user input   ### can't use internal function type() here???
+                    if value.find(',') != -1:
+                        lvalue = value.split(',')
+                    elif value.find(';') != -1:
+                        lvalue = value.split(';')
+                    elif value.find(':') != -1:
+                        lvalue = value.split(':')
+                    else:
+                        lvalue = [value]
+
+                    #print 'split value: ', lvalue
+
+                    if value.find('.') != -1:
+                        lvalue = [float(item) for item in lvalue]
+                    elif len(value) > 0:
+                        lvalue = [int(item) for item in lvalue]
+                    else:
+                        lvalue = 0
+                    #print 'final value: ', lvalue
+
+                    """
                     if len(value) > 1:
                         value = float(value)
                     elif len(value) == 1:
                         value = int(value)
                     else:
                         value = 0
-
+                    
                     valueList = []
                     valueList.append(value)
+                    """
                     
-                    print>>f, label, ":", valueList
+                    print>>f, label, ":", lvalue   ###
                     print>>f, "\n"
+
 
 
                 # parameters that are ? (bandpass filter specs)

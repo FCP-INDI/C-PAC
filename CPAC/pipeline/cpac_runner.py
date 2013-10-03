@@ -31,6 +31,13 @@ def get_vectors(strat):
             vals.append(val_list.pop())
             for val in vals:
             #for val in val_list:
+
+                ### check if val is float, correct it on some version of python or ipython
+                ### avoid auto change to double quote of the path
+                if isinstance(val[0], float):
+                    #val = '%.2f' % val[0]
+                    val = [str(val[0])]
+
                 if path == '':
                     dfs(list(val_list), str(val))
                 else:
@@ -44,7 +51,8 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
-    print paths
+    print 'Paths: ', paths
+    
     return paths
 
 
@@ -72,7 +80,10 @@ def make_enteries(paths, path_iterables):
             sub_enteries.append(path_iterables[indx] + '_' + value)
             indx += 1
 
-
+        ### remove single quote in the paths
+        sub_enteries = map(lambda x: x.replace("'", ""), sub_enteries)
+        print sub_enteries
+      
         enteries.append(sub_enteries)
 
     return enteries
@@ -83,6 +94,7 @@ def build_strategies(configuration):
 
     import collections
 
+    ### make paths shorter
     path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
     non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
@@ -94,6 +106,19 @@ def build_strategies(configuration):
 
     config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
+
+    """
+    path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
+    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
+
+    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
+                    '_gm_threshold':'Gray Matter Threshold = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
+
+
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    """
 
     ### This is really dirty code and ordering of corrections in 
     ### in output directory is dependant on the nuisance workflow

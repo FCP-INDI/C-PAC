@@ -31,14 +31,14 @@ from CPAC.timeseries import create_surface_registration, get_voxel_timeseries, \
                             get_spatial_map_timeseries
 from CPAC.network_centrality import create_resting_state_graphs, get_zscore
 from CPAC.utils.datasource import *
-from CPAC.utils import Configuration, create_log_template
+from CPAC.utils import Configuration, create_all_qc   ### no create_log_template here, move in CPAC/utils/utils.py
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
                           gen_histogram, gen_plot_png, gen_motion_plt, \
-                          gen_std_dev, gen_func_anat_xfm, gen_snr, generateQCPages
+                          gen_std_dev, gen_func_anat_xfm, gen_snr, generateQCPages, cal_snr_val   ###
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, \
-                             get_scan_params, get_tr, extract_txt, create_log
+                             get_scan_params, get_tr, extract_txt, create_log, create_log_template   ###
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -290,6 +290,16 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                         'anatomical_to_mni_nonlinear_xfm':(reg_anat_mni, 'outputspec.nonlinear_xfm'),
                                         'mni_to_anatomical_linear_xfm':(reg_anat_mni, 'outputspec.invlinear_xfm'),
                                         'mni_normalized_anatomical':(reg_anat_mni, 'outputspec.output_brain')})
+
+
+            """
+            ### add mni normalized anatomical to qc output html page
+            strat.update_resource_pool({'qc___mni_normalized_anatomical': (reg_anat_mni, 'outputspec.output_brain')})
+
+            if not 6 in qc_montage_id_a:
+                qc_montage_id_a[6] = 'mni_normalized_anatomical'
+                ###qc_montage_id_s[6] = 'skullstrip_vis_s'
+            """
 
 
             create_log_node(reg_anat_mni, 'outputspec.output_brain', num_strat)
@@ -2622,9 +2632,14 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
     num_strat = 0
+
+
+
     """
     Quality Control
     """
+
+
     if 1 in c.generateQualityControlImages:
 
         #register color palettes
@@ -2638,7 +2653,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
-
+    
         hist = pe.Node(util.Function(input_names=['measure_file',
                                                    'measure'],
                                      output_names=['hist_path'],
@@ -2687,6 +2702,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                                                 function=gen_snr),
                                   name='snr_%d' % num_strat)
 
+                    ###
+                    snr_val = pe.Node(util.Function(input_names=['measure_file'],
+                                                output_names=['snr_storefl'],
+                                                function=cal_snr_val),
+                                  name='snr_val%d' % num_strat)
+
 
                     std_dev_anat.inputs.interp_ = 'trilinear'
 
@@ -2721,6 +2742,10 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                     workflow.connect(snr, 'new_fname',
                                      drop_percent, 'measure_file')
 
+                    workflow.connect(snr, 'new_fname',
+                                     snr_val, 'measure_file')   ###
+
+
                     workflow.connect(drop_percent, 'modified_measure_file',
                                      montage_snr, 'inputspec.overlay')
 
@@ -2730,7 +2755,8 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
                     strat.update_resource_pool({'qc___snr_a': (montage_snr, 'outputspec.axial_png'),
                                                 'qc___snr_s': (montage_snr, 'outputspec.sagittal_png'),
-                                                'qc___snr_hist': (hist_, 'hist_path')})
+                                                'qc___snr_hist': (hist_, 'hist_path'),
+                                                'qc___snr_val': (snr_val, 'snr_storefl')})   ###
                     if not 3 in qc_montage_id_a:
                         qc_montage_id_a[3] = 'snr_a'
                         qc_montage_id_s[3] = 'snr_s'
@@ -2807,7 +2833,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
                 montage_skull = create_montage('montage_skull_%d' % num_strat,
-                                    'green', 'skull_vis')
+                                    'red', 'skull_vis')   ###
 
                 skull_edge = pe.Node(util.Function(input_names=['file_'],
                                                    output_names=['new_fname'],
@@ -2835,6 +2861,34 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
                 print 'Cannot generate QC montages for Skull Stripping: Resources Not Found'
                 raise
+
+
+            ### make QC montages for mni normalized anatomical image
+
+            try:
+                mni_anat_underlay, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+
+                montage_mni_anat = create_montage('montage_mni_anat_%d' % num_strat,
+                                    'red', 'mni_anat')  
+
+                workflow.connect(mni_anat_underlay, out_file,
+                                 montage_mni_anat, 'inputspec.underlay')
+
+                montage_mni_anat.inputs.inputspec.overlay = p.resource_filename('CPAC','resources/templates/MNI152_Edge_AllTissues.nii.gz')
+
+                strat.update_resource_pool({'qc___mni_normalized_anatomical_a': (montage_mni_anat, 'outputspec.axial_png'),
+                                            'qc___mni_normalized_anatomical_s': (montage_mni_anat, 'outputspec.sagittal_png')})
+
+                if not 6 in qc_montage_id_a:
+                        qc_montage_id_a[6] = 'mni_normalized_anatomical_a'
+                        qc_montage_id_s[6] = 'mni_normalized_anatomical_s'
+
+            except:
+
+                print 'Cannot generate QC montages for mni normalized anatomical: Resources Not Found'
+                raise
+
+
 
             # make QC montages for CSF WM GM
 
@@ -2878,7 +2932,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 m_f_a, out_file_mfa = strat.get_node_from_resource_pool('mean_functional_in_anat')
 
                 montage_anat = create_montage('montage_anat_%d' % num_strat,
-                                    'green', 't1_edge_on_mean_func_in_t1')
+                                    'red', 't1_edge_on_mean_func_in_t1')   ###
 
                 anat_edge = pe.Node(util.Function(input_names=['file_'],
                                                    output_names=['new_fname'],
@@ -2913,7 +2967,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
                 m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_in_mni')
 
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
-                                    'green', 'MNI_edge_on_mean_func_mni')
+                                    'red', 'MNI_edge_on_mean_func_mni')   ###
 
 #                  MNI_edge = pe.Node(util.Function(input_names=['file_'],
 #                                                     output_names=['new_fname'],
@@ -3438,10 +3492,14 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
 
     ###################### end of workflow ###########
+
+
     try:
         workflow.write_graph(graph2use='orig')
     except:
         pass
+
+
     """
     Datasink
     """
@@ -3519,13 +3577,11 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             #if running multiple pipelines with gui, need to change this in future
             p_name = None
 
-        
-        print strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
+        print 'strat_tag,  ~~~~~ , hash_val,  ~~~~~~ , pipeline_id: ', strat_tag, ' ~~~~~ ', hash_val, ' ~~~~~~ ', pipeline_id
         pip_ids.append(pipeline_id)
         wf_names.append(strat.get_name())
 
         for key in sorted(rp.keys()):
-
 
             ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
             ds.inputs.base_directory = c.outputDirectory
@@ -3539,6 +3595,7 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             node, out_file = rp[key]
             workflow.connect(node, out_file,
                              ds, key)
+            print 'node, out_file, key: ', node, out_file, key
 
             if 1 in c.runSymbolicLinks:
 
@@ -3555,12 +3612,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
             sink_idx += 1
+            print 'sink index: ', sink_idx
 
         d_name = os.path.join(c.outputDirectory, ds.inputs.container)
         if not os.path.exists(d_name):
             os.makedirs(d_name)
-
-
+        
 
         try:
             G = nx.DiGraph()
@@ -3579,8 +3636,12 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
 
     create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
 
+
+
     workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
-    '''
+
+    
+    """
     try:
 
         workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
@@ -3591,8 +3652,9 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
         print ""
         print e
         print type(e)
-        raise Exception
-    '''
+        ###raise Exception
+    """
+
     for count, id in enumerate(pip_ids):
         for scan in scan_ids:
             create_log_node(None, None, count, scan).run()
@@ -3609,6 +3671,11 @@ def prep_workflow(sub_dict, c, strategies, p_name=None):
             f_path = os.path.join(f_path, 'qc_files_here')
 
             generateQCPages(f_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+
+
+        ### Automatically generate QC index page
+        create_all_qc.run(c.outputDirectory)
+
 
 
     if c.removeWorkingDir:

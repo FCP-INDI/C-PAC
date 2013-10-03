@@ -241,7 +241,13 @@ def calc_residuals(subject,
     
     #Easier to read for debugging purposes
     regressors_file = os.path.join(os.getcwd(), 'nuisance_regressors.mat')
-    scipy.io.savemat(regressors_file, regressor_map, oned_as='column')
+
+    if scipy.__version__ == '0.7.0':
+        scipy.io.savemat(regressors_file, regressor_map)                        ### for scipy v0.7.0
+    else:
+        scipy.io.savemat(regressors_file, regressor_map, oned_as='column')   ### for scipy v0.12: OK
+
+    
     
     return residual_file, csv_filename
 
