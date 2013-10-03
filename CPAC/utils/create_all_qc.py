@@ -144,7 +144,8 @@ def populate_htmls(gp_html, sub_html, subj,
                 meanFD, \
                 meanDVARS, \
                 mean_rms,\
-                max_rms):
+                max_rms,\
+                snr_val):
 
     f_ = None
     
@@ -167,6 +168,7 @@ def populate_htmls(gp_html, sub_html, subj,
         print >> f_, "        <td>MEAN_DVARS</td>"
         print >> f_, "        <td>Mean_Relative_RMS_Displacement</td>"
         print >> f_, "        <td>Max_Relative_RMS_Displacement</td>"
+        print >> f_, "        <td>Mean Functional SNR</td>"   ###
 #         print >> f_, "        <td>Include in Group Analysis</td>"
 #         print >> f_, "        <td>Comments</td>"
         print >> f_, "    </tr>"
@@ -180,6 +182,8 @@ def populate_htmls(gp_html, sub_html, subj,
     print >> f_, "        <td>%s</td>" % (meanDVARS)
     print >> f_, "        <td>%s</td>" % (mean_rms)
     print >> f_, "        <td>%s</td>" % (max_rms)
+    print >> f_, "        <td>%s</td>" % (snr_val)
+
 #     print >> f_, "        <td><input type=\"checkbox\" name=\"gp_inc\" value=\"Y\">Y<br></td>"
 # #    print >> f_, "        <td><textarea name=\"comments\" cols=\"3\" rows=\"1\"><br></td>"
 #     print >> f_, "        <td>No Comments Yet!</td>"
@@ -212,7 +216,7 @@ def prep_resources(output_path, pipelines):
                 os.system('cp %s/*.txt %s/' % (path_files_here, path_copy))
                 first_pass_organizing_files(path_copy)
                 second_pass_organizing_files(path_copy)
-                os.system('ls %s' %(path_copy))
+                #os.system('ls %s' %(path_copy))
                 print 'mv %s/*.txt %s/' % (path_copy, qc_path)
                 os.system('mv %s/*.txt %s/' % (path_copy, qc_path))
                 os.system('rm -rf %s' %(path_copy))
@@ -409,6 +413,8 @@ def get_power_params(qc_path, file_):
 
             params_file = os.path.join(subj_dir, os.listdir(subj_dir)[0])
             csv_file = csv.DictReader(open(params_file, 'rb'), delimiter=',')
+            print 'params_file: ', params_file
+            print csv.list_dialects()
 
             line = None
 
@@ -416,7 +422,8 @@ def get_power_params(qc_path, file_):
 
                 meanFD = line['MeanFD']
                 meanDVARS = line['MeanDVARS']
-
+                print meanFD, meanDVARS
+                
                 return meanFD, meanDVARS
 
 
@@ -476,8 +483,12 @@ def make_group_htmls(output_path):
     files_ = []
     pipelines = os.listdir(output_path)
     pipelines = [pipeline for pipeline in pipelines if 'pipeline_' in pipeline]
+    print pipelines
+    pipelines = [pipeline for pipeline in pipelines if os.path.isdir(os.path.join(output_path, pipeline))]   ###
     prep_resources(output_path, pipelines)
 #    organize_resources(output_path, pipelines)
+    print output_path
+    print pipelines
 
     for pipeline in sorted(pipelines):
         pip_path = os.path.join(output_path, pipeline)
@@ -489,6 +500,14 @@ def make_group_htmls(output_path):
         for subj in sorted(subjects):
 
             subj_path = os.path.join(pip_path, subj)
+            
+            ### read average snr value from the file
+            snr_file = os.path.join(subj_path + '/qc/snr_val/_scan_rest_1_rest/average_snr_file.txt')
+            sval = open(snr_file, 'r').readline()
+            sval = '%.2f' % float(sval)
+            print 
+            print 'snr value: ', sval
+
 
             if os.path.isdir(subj_path):
                 qc_path = os.path.join(subj_path, 'qc_files_here')
@@ -498,21 +517,40 @@ def make_group_htmls(output_path):
                 os.system('cp %s/*.txt %s/' % (path_files_here, path_copy))
                 first_pass_organizing_files(path_copy)
                 second_pass_organizing_files(path_copy)
-                os.system('ls %s' %(path_copy))
+                ###os.system('ls %s' %(path_copy))
                 print 'mv %s/*.txt %s/' % (path_copy, qc_path)
                 os.system('mv %s/*.txt %s/' % (path_copy, qc_path))
                 os.system('rm -rf %s' %(path_copy))
                 html_files = os.listdir(qc_path)
                 html_files = [html for html in html_files if not (html.endswith('_0.html') or html.endswith('_1.html') or html.endswith('.txt'))]
 
-
                 for file_ in sorted(html_files):
 
                     html_ = os.path.join(pip_path, file_)
-                    meanFD, meanDvars = get_power_params(qc_path, file_)
-                    mean_rms, max_rms = get_motion_params(qc_path, file_)
+
+                    print 'qc_path: ', qc_path
+                    print 'file_: ', file_
+
+                    try:
+                        meanFD, meanDvars = get_power_params(qc_path, file_)
+                    except Exception as e:
+                        print "Error: some power params lost."
+                        print e
+                        print type(e)
+                        meanFD = 0.0
+                        meanDvars = 0.0
+
+                    try:
+                        mean_rms, max_rms = get_motion_params(qc_path, file_)
+                    except Exception as e:
+                        print "Error: some motion params lost."
+                        print e
+                        print type(e)
+                        mean_rms = 0.0
+                        max_rms = 0.0
+
                     populate_htmls(html_, os.path.join(qc_path, file_), subj, \
-                    subj_path, meanFD, meanDvars, mean_rms, max_rms)
+                    subj_path, meanFD, meanDvars, mean_rms, max_rms, sval)
                     if not html_ in files_:
                         files_.append(html_)
 
