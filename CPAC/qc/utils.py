@@ -521,8 +521,59 @@ def feed_line_nav(id_,
 
     """
 
+    ### add general user readable link names for QC navigation bar
+    image_readable = image_name
+    if image_name == 'skullstrip_vis':
+        image_readable = 'Visual Result of Skull Strip'
+    if image_name == 'csf_gm_wm':
+        image_readable = 'Grey Matter, White Matter & CSF'
+    if image_name == 'snr':
+        image_readable = 'Signal to Noise Ratio'
+    if image_name.find('snr_hist') > -1:
+        image_readable = 'Histogram of Signal to Noise Ratio'
+    if image_name.find('mni_normalized') > -1:
+        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
+    if image_name == 'mean_func_with_t1_edge':
+        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
+    if image_name == 'mean_func_with_mni_edge':
+        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
+    if image_name.find('movement_trans_plot') >-1:
+        image_readable = 'Head Displacement Plot'
+    if image_name.find('movement_rot_plot') >-1:
+        image_readable = 'Head Rotation Plot'
+    if image_name.find('fd_plot') > -1:
+        image_readable = 'Framewise Displacement Plot'
+    if image_name == 'sca_roi_smooth':
+        image_readable = 'Seed-based Correlation Analysis'
+    if image_name == 'sca_roi_smooth_hist':
+        image_readable = 'Histogram of Seed-based Correlation Analysis'
+    if image_name == 'centrality_smooth':
+        image_readable = 'Network Centrality'
+    if image_name == 'centrality_smooth_hist':
+        image_readable = 'Histogram of Network Centrality'
+    if image_name == 'temporal_dual_regression_smooth':
+        image_readable = 'Temporal Dual Regression'
+    if image_name == 'temporal_dual_regression_smooth_hist':
+        image_readable = 'Histogram of Temporal Dual Regression'
+    if image_name == 'vmhc_smooth':
+        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
+    if image_name == 'vmhc_smooth_hist':
+        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
+    if image_name == 'reho_smooth':
+        image_readable = 'Regional Homogeneity'
+    if image_name == 'reho_smooth_hist':
+        image_readable = 'Histogram of Regional Homogeneity'
+    if image_name == 'alff_smooth':
+        image_readable = 'Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'alff_smooth_hist':
+        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'falff_smooth':
+        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'falff_smooth_hist':
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+
     print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name, \
-        anchor, image_name)
+        anchor, image_readable)   ###
 
 
 
@@ -553,9 +604,64 @@ def feed_line_body(image_name, anchor, image, f_html_1):
 
     """
 
-    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_name)
-    data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
-    img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
+    ### add general user readable link names for QC body
+    image_readable = image_name
+    if image_name == 'skullstrip_vis':
+        image_readable = 'Visual Result of Skull Strip'
+    if image_name == 'csf_gm_wm':
+        image_readable = 'Grey Matter, White Matter & CSF'
+    if image_name == 'snr':
+        image_readable = 'Signal to Noise Ratio'
+    if image_name.find('snr_hist') > -1:
+        image_readable = 'Histogram of Signal to Noise Ratio'
+    if image_name.find('mni_normalized') > -1:
+        image_readable = 'MNI Edge Overlapped on Normalized Anatomical'
+    if image_name == 'mean_func_with_t1_edge':
+        image_readable = 'T1 Edge Overlapped on Mean Functional Image'
+    if image_name == 'mean_func_with_mni_edge':
+        image_readable = 'MNI Edge Overlapped on Mean Functional Image'
+    if image_name.find('movement_trans_plot') >-1:
+        image_readable = 'Head Displacement Plot'
+    if image_name.find('movement_rot_plot') >-1:
+        image_readable = 'Head Rotation Plot'
+    if image_name.find('fd_plot') > -1:
+        image_readable = 'Framewise Displacement Plot'
+    if image_name == 'sca_roi_smooth':
+        image_readable = 'Seed-based Correlation Analysis'
+    if image_name == 'sca_roi_smooth_hist':
+        image_readable = 'Histogram of Seed-based Correlation Analysis'
+    if image_name == 'centrality_smooth':
+        image_readable = 'Network Centrality'
+    if image_name == 'centrality_smooth_hist':
+        image_readable = 'Histogram of Network Centrality'
+    if image_name == 'temporal_dual_regression_smooth':
+        image_readable = 'Temporal Dual Regression'
+    if image_name == 'temporal_dual_regression_smooth_hist':
+        image_readable = 'Histogram of Temporal Dual Regression'
+    if image_name == 'vmhc_smooth':
+        image_readable = 'Voxel-Mirrored Homotopic Connectivity'
+    if image_name == 'vmhc_smooth_hist':
+        image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
+    if image_name == 'reho_smooth':
+        image_readable = 'Regional Homogeneity'
+    if image_name == 'reho_smooth_hist':
+        image_readable = 'Histogram of Regional Homogeneity'
+    if image_name == 'alff_smooth':
+        image_readable = 'Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'alff_smooth_hist':
+        image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'falff_smooth':
+        image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
+    if image_name == 'falff_smooth_hist':
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+
+
+    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)   ###
+
+    ###data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
+    ###img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
+    
+    img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)   ###
     print >>f_html_1, img_tag
 
 
@@ -723,7 +829,7 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
-    print 'id_ :', id_
+    #print 'id_ :', id_
     if id_ in dict_a:
 
         dict_a[id_] = sorted(dict_a[id_])
@@ -773,11 +879,61 @@ def feed_lines_html(id_,
                 id_a = '_'.join([id_a, str(idx), 'a'])
                 id_s = '_'.join([id_s, str(idx), 's'])
                 id_h = '_'.join([id_h, str(idx), 'h' ])
-
+            
 
             if idx == 0:
+
+                # add general user readable link names for QC navigation bar
+                if image_name_a_nav == 'skullstrip_vis':
+                    image_readable = 'Visual Result of Skull Strip'
+                if image_name_a_nav == 'csf_gm_wm':
+                    image_readable = 'Grey Matter, White Matter & CSF'
+                if image_name_a_nav == 'snr':
+                    image_readable = 'Signal to Noise Ratio'
+                if image_name_a_nav == 'snr_hist':
+                    image_readable = 'Histogram of Signal to Noise Ratio'
+                if image_name_a_nav == 'mean_func_with_t1_edge':
+                    image_readable = 'T1 Edge Overlapped on Mean Functional Image'
+                if image_name_a_nav == 'mean_func_with_mni_edge':
+                    image_readable = 'MNI Edge Overlapped on Mean Functional Image'
+                if image_name_a_nav == 'movement_trans_plot':
+                    image_readable = 'Head Displacement Plot'
+                if image_name_a_nav == 'movement_rot_plot':
+                    image_readable = 'Head Rotation Plot'
+                if image_name_a_nav == 'fd_plot':
+                    image_readable = 'Framewise Displacement Plot'
+                if image_name_a_nav == 'sca_roi_smooth':
+                    image_readable = 'Seed-based Correlation Analysis'
+                if image_name_a_nav == 'sca_roi_smooth_hist':
+                    image_readable = 'Histogram of Seed-based Correlation Analysis'
+                if image_name_a_nav == 'centrality_smooth':
+                    image_readable = 'Network Centrality'
+                if image_name_a_nav == 'centrality_smooth_hist':
+                    image_readable = 'Histogram of Network Centrality'
+                if image_name_a_nav == 'temporal_dual_regression_smooth':
+                    image_readable = 'Temporal Dual Regression'
+                if image_name_a_nav == 'temporal_dual_regression_smooth_hist':
+                    image_readable = 'Histogram of Temporal Dual Regression'
+                if image_name_a_nav == 'vmhc_smooth':
+                    image_readable = 'Voxel-Mirrored Homotopic Connectivity'
+                if image_name_a_nav == 'vmhc_smooth_hist':
+                    image_readable = 'Histogram of Voxel-Mirrored Homotopic Connectivity'
+                if image_name_a_nav == 'reho_smooth':
+                    image_readable = 'Regional Homogeneity'
+                if image_name_a_nav == 'reho_smooth_hist':
+                    image_readable = 'Histogram of Regional Homogeneity'
+                if image_name_a_nav == 'alff_smooth':
+                    image_readable = 'Amplitude of Low-Frequency Fluctuation'
+                if image_name_a_nav == 'alff_smooth_hist':
+                    image_readable = 'Histogram of Amplitude of Low-Frequency Fluctuation'
+                if image_name_a_nav == 'falff_smooth':
+                    image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
+                if image_name_a_nav == 'falff_smooth_hist':
+                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'      
+
                 feed_line_nav(id_, \
                             image_name_a_nav, \
+                            #image_readable, \
                             id_a, \
                             f_html_0, \
                             f_html_1)
@@ -874,6 +1030,9 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     f_.close()
 
     html_f_name = file_.replace('.txt', '')
+ 
+    html_f_name = html_f_name.replace("'", "")   ###fixed in front, don't have to now
+
     html_f_name_0 = html_f_name + '_0.html'
     html_f_name_1 = html_f_name + '_1.html'
     html_f_name = html_f_name + '.html'
@@ -886,8 +1045,8 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
                                         qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-    for k, v in dict_plot.items():
-            print '_a~~~> ', k, v
+    #for k, v in dict_plot.items():
+    #        print '_a~~~> ', k, v
 
     add_head(f_html_, f_html_0, f_html_1)
 
@@ -964,6 +1123,28 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 
 def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+
+    """
+    parafile = open('QC_input_para.txt', 'w')
+    parafile.write(qc_path)
+    parafile.write('qc_montage_id_a: ')
+    for key, value in qc_montage_id_a.iteritems()
+        parafile.write(key)
+        parafile.write(value)
+    parafile.write('qc_montage_id_s: ')
+    for key, value in qc_montage_id_s.iteritems()
+        parafile.write(key)
+        parafile.write(value)
+    parafile.write('qc_plot_id: ')
+    for key, value in qc_plot_id.iteritems()
+        parafile.write(key)
+        parafile.write(value)
+    parafile.write('qc_hist_id: ')
+    for key, value in qc_hist_id.iteritems()
+        parafile.write(key)
+        parafile.write(value)
+    parafile.close()
+    """
 
     """
     Calls make_qc_page and organizes qc path files
@@ -1123,6 +1304,52 @@ def gen_snr(std_dev, mean_func_anat):
     print commands.getoutput(cmd)
 
     return new_fname
+
+
+###
+def cal_snr_val(measure_file):
+
+    """
+    Calculate average snr value for snr image.
+
+    Parameters
+    ----------
+
+    measure_file : string
+
+        path to input nifti file
+
+
+    Returns
+    -------
+
+    avg_snr_file : string
+
+        a text file store average snr value
+
+    """
+
+    import numpy.ma as ma
+    import nibabel as nb
+    import os
+
+    data = nb.load(measure_file).get_data()
+    data_flat = data.flatten()
+    data_no0 = data_flat[data_flat > 0]
+    snr_val = ma.mean(data_no0)
+
+    avg_snr_file = os.path.join(os.getcwd(), 'average_snr_file.txt')
+    f = open(avg_snr_file, 'w')
+    f.write(str(snr_val) + '\n')
+
+    #f.write(str(measure_file) + '\n')
+    #f.write(str(avg_snr_file) + '\n')
+
+    f.close()
+
+    return avg_snr_file
+
+
 
 
 
@@ -1462,6 +1689,17 @@ def make_histogram(measure_file, measure):
 
     pyplot.close()
     hist_path = os.path.join(os.getcwd(), png_name)
+
+    """
+    ###
+    hist_file = os.path.join(os.getcwd(), '%s_hist_path_file.txt' % measure)
+    fl = open(hist_file, 'w')
+    fl.write(str(measure_file) + '\n')
+    fl.write(str(hist_path) + '\n')
+
+    fl.close()
+    """
+
     return hist_path
 
 
@@ -1743,7 +1981,11 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     import os
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    from mpl_toolkits.axes_grid1 import ImageGrid
+    ###
+    try:
+        from mpl_toolkits.axes_grid1 import ImageGrid   
+    except:
+        from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
     import matplotlib.colors as col
     import nibabel as nb
@@ -1797,11 +2039,11 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
             break
         if cbar_name is 'red_to_blue':
 
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=0, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)   ###
         elif cbar_name is 'green':
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=0, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
         else:
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=- max_, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=- max_, vmax=max_)   
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -1907,7 +2149,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     import os
     import numpy as np
     matplotlib.rcParams.update({'font.size': 5})
-    from mpl_toolkits.axes_grid1 import ImageGrid
+    ###
+    try:
+        from mpl_toolkits.axes_grid1 import ImageGrid   
+    except:
+        from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.cm as cm
     import matplotlib.pyplot as plt
     import matplotlib.colors as col
@@ -1961,11 +2207,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         im = None
         if cbar_name is 'red_to_blue':
 
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=0, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)   ###
         elif cbar_name is 'green':
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=0, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
         else:
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.71, vmin=- max_, vmax=max_)
+            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=- max_, vmax=max_)   
         xx += spacing
     cbar = grid.cbar_axes[0].colorbar(im)
 
@@ -2022,7 +2268,11 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
 #    matplotlib.use('Agg')
     from CPAC.qc.utils import determine_start_and_end, get_spacing
     import numpy as np
-    from mpl_toolkits.axes_grid1 import ImageGrid
+    ###
+    try:
+        from mpl_toolkits.axes_grid1 import ImageGrid   
+    except:
+        from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
     import matplotlib.colors as col
     import nibabel as nb
@@ -2074,9 +2324,9 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
         if zz >= z2:
             break
 
-        im = grid[i].imshow(np.rot90(X_csf[:, :, zz]), cmap=cm.get_cmap('green'), alpha=0.71, vmin=0, vmax=max_csf)
-        im = grid[i].imshow(np.rot90(X_wm[:, :, zz]), cmap=cm.get_cmap('blue'), alpha=0.71, vmin=0, vmax=max_wm)
-        im = grid[i].imshow(np.rot90(X_gm[:, :, zz]), cmap=cm.get_cmap('red'), alpha=0.71, vmin=0, vmax=max_gm)
+        im = grid[i].imshow(np.rot90(X_csf[:, :, zz]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)   ###
+        im = grid[i].imshow(np.rot90(X_wm[:, :, zz]), cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0, vmax=max_wm)
+        im = grid[i].imshow(np.rot90(X_gm[:, :, zz]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)   
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -2129,7 +2379,11 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
 #    matplotlib.use('Agg')
     from CPAC.qc.utils import determine_start_and_end, get_spacing
     import numpy as np
-    from mpl_toolkits.axes_grid1 import ImageGrid
+    ###
+    try:
+        from mpl_toolkits.axes_grid1 import ImageGrid   
+    except:
+        from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
     import matplotlib.colors as col
     import matplotlib.cm as cm
@@ -2181,9 +2435,9 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
         if zz >= x2:
             break
 
-        im = grid[i].imshow(np.rot90(X_csf[zz, :, :]), cmap=cm.get_cmap('green'), alpha=0.71, vmin=0, vmax=max_csf)
-        im = grid[i].imshow(np.rot90(X_wm[zz, :, :]), cmap=cm.get_cmap('blue'), alpha=0.71, vmin=0, vmax=max_wm)
-        im = grid[i].imshow(np.rot90(X_gm[zz, :, :]), cmap=cm.get_cmap('red'), alpha=0.71, vmin=0, vmax=max_gm)
+        im = grid[i].imshow(np.rot90(X_csf[zz, :, :]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)   ###
+        im = grid[i].imshow(np.rot90(X_wm[zz, :, :]), cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0, vmax=max_wm)
+        im = grid[i].imshow(np.rot90(X_gm[zz, :, :]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)   
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)

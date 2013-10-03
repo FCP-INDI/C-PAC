@@ -735,6 +735,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
 
     f = open(out_file, 'w')
+    #f.write(str(os.getcwd()))   ### work
     print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
         "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
         "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
