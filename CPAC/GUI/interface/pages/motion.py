@@ -76,7 +76,7 @@ class Scrubbing(wx.ScrolledWindow):
                       name='runScrubbing',
                       type=dtype.LSTR,
                       comment="Remove volumes exhibiting excessive motion.",
-                      values=["Off", "On", "On & Off"],
+                      values=["Off", "On"],
                       wkf_switch=True)
 
         self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",
