@@ -258,16 +258,16 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_timeseries',
                   check_timeseries, 'in_file')
 
-    temporalReg = pe.Node(interface=fsl.GLM(),
+    temporalReg = pe.Node(interface=fsl.FSLGLM(),
                           name='temporal_regression')
 
-    temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
+    temporalReg.inputs.output_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
     wflow.connect(inputNode, 'subject_rest',
                   temporalReg, 'in_file')
     wflow.connect(check_timeseries, 'out_file',
-                  temporalReg, 'design')
+                  temporalReg, 'design_file')
     wflow.connect(inputNode, 'demean',
                   temporalReg, 'demean')
     wflow.connect(inputNode, 'normalize',

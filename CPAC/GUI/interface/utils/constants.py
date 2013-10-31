@@ -25,6 +25,7 @@ dtype = enum(BOOL=0,
 
 substitution_map = {'On': 1,
                     'Off': 0,
+                    'On & Off': 10,
                     'Voxelwise SCA': 'sca_seed_Z_to_standard_smooth',
                     'ROI Average SCA':'sca_roi_Z_to_standard_smooth',
                     'Multiple Regression SCA':'sca_tempreg_maps_z_files_smooth',

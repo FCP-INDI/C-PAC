@@ -2,7 +2,6 @@ import threading
 global_lock = threading.Lock()
 
 
-
 files_folders_wf = {
     'anatomical_brain': 'anat',
     'qc': 'qc',
@@ -13,6 +12,7 @@ files_folders_wf = {
     'anatomical_gm_mask': 'anat',
     'anatomical_csf_mask': 'anat',
     'anatomical_wm_mask': 'anat',
+    'ants_affine_xfm': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
@@ -1242,7 +1242,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
     f.close()        
     
-    os.system("log_py2js.py %s %s"%(out_file, log_dir))
+    os.system("/home2/haipan/tmp/C-PAC/scripts/log_py2js.py %s %s"%(out_file, log_dir))   ###
     
     return out_file
 
