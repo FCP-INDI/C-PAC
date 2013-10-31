@@ -22,9 +22,11 @@ ID_CLEARALL = 11
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+
+        import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC)")
+        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.version)
     
         self.pipeline_map = {}
         self.sublist_map= {}
@@ -249,7 +251,7 @@ class ListBox(wx.Frame):
                             
                             thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
 
-                            
+                            '''
                             import time
                             time.sleep(20)
                             
@@ -271,6 +273,7 @@ class ListBox(wx.Frame):
                                 pid = None
                             
                             runCPAC(pipeline, sublist, p, pid).Show()
+                            '''
 
                             #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
@@ -389,7 +392,10 @@ class ListBox(wx.Frame):
                 print "Couldn't find the config file %s "%path
      
     def OnLoad(self, event):
-        
+
+        # Does this code do anything?? If you are looking for the code that gets called
+        # when you click Load, go to 'AddConfig'
+
         dlg = wx.FileDialog(
             self, message="Choose the config yaml file",
                 defaultDir=os.getcwd(), 
@@ -402,6 +408,8 @@ class ListBox(wx.Frame):
                 
             if len(path)>0 and os.path.exists(path):
                 MainFrame(self, option ="load", path=path)
+
+
             else:
                 dlg = wx.MessageDialog(self, 'Invalid Path',
                                    'Error!',
@@ -493,9 +501,16 @@ class ListBox(wx.Frame):
                             
                             
     def check_config(self, config):
-        
+
         ret_val = 1
         
+        def display(win, msg, changeBg=True):
+            wx.MessageBox(msg, "Error")
+            if changeBg:
+                win.SetBackgroundColour("pink")
+            win.SetFocus()
+            win.Refresh()
+
         try:
             import yaml
             c = yaml.load(open(config, 'r'))
@@ -517,16 +532,66 @@ class ListBox(wx.Frame):
                         dlg.ShowModal()
                         dlg.Destroy()
                         ret_val = -1
-            
+
+        
+        # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
+        # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
+        missingParams = []
+        paramList = []
+
+        try:
+            params_file = open(p.resource_filename('CPAC', 'GUI/resources/config_parameters.txt'), "r")
+        except:
+            print "Error: Could not open configuration parameter file.", "\n"
+            raise Exception            
+
+        paramInfo = params_file.read().split('\n')
+
+        for param in paramInfo:
+
+            if param != '':
+                paramList.append(param.split(','))
+
+
+        for param in paramList:
+
+            if str(param[0]) not in c:
+                missingParams.append(param)
+
+        
+        if missingParams:
+
+            message = 'The following parameters are missing from your pipeline configuration file:\n\n'
+
+            for param in missingParams:
+                message = message + "\"" + str(param[1]) + "\"" + "\n" + "which can be found in tab:" + "\n" +  "\"" + str(param[2]) + "\"\n\n"
+
+            message = message + "Click OK to review the defaults and accept or change the parameters."
+
+            dlg = wx.MessageDialog(self, message, 'Missing Parameters', wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+            if os.path.exists(config):
+                MainFrame(self, option ="edit", path=config)
+            else:
+                print "Couldn't find the config file %s "%config    
+
+            ret_val = -1    
+        
+
         return ret_val
+
     
                             
     def AddConfig(self, event):
         
+        # Gets called when you click 'Load' for pipeline config in the GUI
+
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
             defaultDir=os.getcwd(), 
-            defaultFile="CPAC_subject_list.yml",
+            defaultFile="",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
         
@@ -682,4 +747,3 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
-

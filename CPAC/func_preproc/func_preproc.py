@@ -5,6 +5,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import CPAC.interfaces.afni.preprocess as preprocess
 
+
 #functional preprocessing
 
 def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc'):
@@ -326,13 +327,27 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
     preproc.connect(func_deoblique, 'out_file',
                     outputNode, 'refit')
 
+    ### sleep between nodes
+    sleepNode = pe.Node(util.Function(input_names=['in_file'],
+                                    output_names=['out_file'],
+                                    function=sleepWhile),
+                                  name='sleep')
+
+    preproc.connect(func_deoblique, 'out_file',
+                    sleepNode, 'in_file')
+
+
     func_reorient = pe.Node(interface=preprocess.Threedresample(),
                                name='func_reorient')
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(func_deoblique, 'out_file',
+    ###
+    preproc.connect(sleepNode, 'out_file',
                     func_reorient, 'in_file')
+
+    #preproc.connect(func_deoblique, 'out_file',
+    #                func_reorient, 'in_file')
     
     preproc.connect(func_reorient, 'out_file',
                     outputNode, 'reorient')
@@ -497,3 +512,28 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
+
+### giving time for 3drefit to write data then 3dresample read data
+# make sure multiprocessing will not jump sleep
+def sleepWhile(in_file):
+    
+    import time
+
+    print 
+    print '==================Sleep'
+    print
+
+    duration = 5
+    steps = 0
+
+    for i in range(duration):
+        time.sleep(1)
+        steps += 1
+
+    if steps == duration:
+        out_file = in_file
+    
+    return out_file
+
+
+
