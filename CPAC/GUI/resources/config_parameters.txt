@@ -1,0 +1,116 @@
+runOnGrid,Run CPAC on a Cluster/Grid,Computer Settings
+FSLDIR,FSL Path,Computer Settings
+resourceManager,Job Scheduler / Resource Manager,Computer Settings
+parallelEnvironment,SGE Parallel Environment,Computer Settings
+queue,SGE Queue,Computer Settings
+numCoresPerSubject,Number of Cores Per Subject,Computer Settings
+numSubjectsAtOnce,Number of Subjects to Run Simultaneously,Computer Settings
+workingDirectory,Working Directory,Output Settings
+crashLogDirectory,Crash Log Directory,Output Settings
+outputDirectory,Output Directory,Output Settings
+runSymbolicLinks,Create Symbolic Links,Output Settings
+generateQualityControlImages,Enable Quality Control Interface,Output Settings
+removeWorkingDir,Remove Working Directory,Output Settings
+reGenerateOutputs,Regenerate Outputs,Output Settings
+runAnatomicalDataGathering,Gather Anatomical Data,Preprocessing Workflow Options
+runFunctionalDataGathering,Gather Functional Data,Preprocessing Workflow Options
+runAnatomicalPreprocessing,Run Anatomical Preprocessing,Preprocessing Workflow Options
+runFunctionalPreprocessing,Run Functional Preprocessing,Preprocessing Workflow Options
+runRegistrationPreprocessing,Run Anatomical Registration,Anatomical Registration
+standardResolutionAnat,Anatomical Template Resolution,Anatomical Registration
+standardResolutionBrainAnat,Anatomical Template (Brain Only),Anatomical Registration
+standardAnat,Anatomical Template (With Skull),Anatomical Registration
+regOption,Anatomical to Template Registration Method,Anatomical Registration
+fnirtConfig,FSL FNIRT Configuration File (FSL only),Anatomical Registration
+runSegmentationPreprocessing,Run Tissue Segmentation,Tissue Segmentation
+whiteMatterThreshold,White Matter Probability Threshold,Tissue Segmentation
+grayMatterThreshold,Gray Matter Probability Threshold,Tissue Segmentation
+cerebralSpinalFluidThreshold,CSF Probability Threshold,Tissue Segmentation
+prior_path,Priors Directory,Tissue Segmentation
+PRIOR_WHITE,White Matter Prior Probability Map,Tissue Segmentation
+PRIOR_GRAY,Gray Matter Prior Probability Map,Tissue Segmentation
+PRIOR_CSF,CSF Prior Probability Map,Tissue Segmentation
+startIdx,First Timepoint,Time Series Options
+stopIdx,Last Timepoint,Time Series Options
+TR,TR,Time Series Options
+runRegisterFuncToAnat,Run Functional to Anatomical Registration,Functional to Anatomical Registration
+runBBReg,Using BB Register,Functional to Anatomical Registration
+standardResolution,Functional Standard Resolution,Functional to Anatomical Registration
+standardResolutionBrain,Standard Brain only Template (functional resolution),Functional to Anatomical Registration
+standard,Standard Template with Skull (functional resolution),Functional to Anatomical Registration
+runRegisterFuncToMNI,Run Functional to MNI Registration,Functional to MNI Registration
+identityMatrix,Standard Identity Matrix,Functional to MNI Registration
+boundaryBasedRegistrationSchedule,Boundary Based Registration Scheduler,Functional to MNI Registration
+runNuisance,Run Nuisance Signal Correction,Nuisance Correction
+harvardOxfordMask,Standard Harvard Oxford Mask,Nuisance Correction
+Corrections,Corrections,Nuisance Correction
+nComponents,CompCor Components,Nuisance Correction
+runMedianAngleCorrection,Run Median Angle Correction,Nuisance Correction
+targetAngleDeg,Target Angle (degrees),Nuisance Correction
+runFrequencyFiltering,Run Temporal Filtering,Temporal Filtering Options
+nuisanceBandpassFreq,Band-Pass Filters,Temporal Filtering Options
+runFristonModel,Use Friston 24-Parameter Model,Motion Correction Options
+runGenerateMotionStatistics,Calculate Motion Statistics,Motion Correction Options
+runScrubbing,Run Scrubbing,Scrubbing Options
+scrubbingThreshold,Framewise Displacement (FD) Threshold (mm),Scrubbing Options
+numRemovePrecedingFrames,Number of Preceeding Volumes to Remove,Scrubbing Options
+numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Scrubbing Options
+seedSpecificationFile,Seed Specification File,Define New Seeds
+seedOutputLocation,Seed Output Directory,Define New Seeds
+useSeedInAnalysis,Use New Seeds In,Define New Seeds
+runROITimeseries,Extract ROI Average Time Series,ROI Average TSE
+roiSpecificationFile,ROI Specification File,ROI Average TSE
+roiTSOutputs,Output Options,ROI Average TSE
+runVoxelTimeseries,Extract ROI Voxelwise Time Series,ROI Voxelwise TSE
+maskSpecificationFile,ROI Specification File,ROI Voxelwise TSE
+voxelTSOutputs,Output Options,ROI Voxelwise TSE
+runSurfaceRegistraion,Run Surface Registration,Surface Vertices TSE
+reconSubjectsDirectory,Recon Subject Directory,Surface Vertices TSE
+runVerticesTimeSeries,Run Vertices Timeseries,Surface Vertices TSE
+verticesTSOutputs,Vertices Timeseries Output Formats,Surface Vertices TSE
+runSpatialRegression,Run Spatial Regression,Spatial Regression
+spatialPatternMaps,Spatial Map Specification File,Spatial Regression
+spatialDemean,Demean Spatial Maps,Spatial Regression
+runSCA,Run Seed-based Correlation Analysis (SCA),SCA Options
+runMultRegSCA,Run Multiple Regression SCA,SCA Options
+mrsDemean,Demean Time Series,SCA Options
+mrsNorm,Normalize Time Series,SCA Options
+runDualReg,Run Dual Regression,Dual Regression Options
+drNorm,Normalize Time Series,Dual Regression Options
+runVMHC,Calculate VMHC,VMHC Settings
+brainSymmetric,Symmetric Template (Brain Only),VMHC Settings
+symmStandard,Symmetric Template (With Skull),VMHC Settings
+twommBrainMaskDiluted,Dilated Symmetric Brain Mask,VMHC Settings
+configFileTwomm,FLIRT Configuration File,VMHC Settings
+runALFF,Calculate ALFF and f/ALFF,ALFF and f/ALFF Options
+highPassFreqALFF,f/ALFF High-Pass Cutoff,ALFF and f/ALFF Options
+lowPassFreqALFF,f/ALFF Low-Pass Cutoff,ALFF and f/ALFF Options
+runReHo,Calculate Regional Homogeneity (ReHo),ReHo Options
+clusterSize,Voxel Cluster Size,ReHo Options
+runNetworkCentrality,Calculate Network Centrality Measures,Network Centrality Options
+templateSpecificationFile,ROI / Mask Specification File,Network Centrality Options
+centralityMethodOptions,Measures to Calculate,Network Centrality Options
+centralityWeightOptions,Connection Weight Options,Network Centrality Options
+correlationThresholdOption,Threshold Type,Network Centrality Options
+correlationThreshold,Threshold Value,Network Centrality Options
+memoryAllocatedForDegreeCentrality,Maximum RAM Use (GB),Network Centrality Options
+fwhm,Kernel FWHM (in mm),Spatial Smoothing Options
+runBASC,Run BASC,BASC Settings
+bascROIFile,Mask File,BASC Settings
+bascTimeseriesBootstraps,Number of Time Series Bootstraps,BASC Settings
+bascDatasetBootstraps,Number of Dataset Bootstraps,BASC Settings
+bascAffinityThresholdFile,Correlation Threshold File,BASC Settings
+bascClusters,Number of Clusters,BASC Settings
+runCWAS,Run CWAS,CWAS Settings
+cwasROIFile,CWAS ROI File,CWAS Settings
+cwasRegressorFile,CWAS Regressor File,CWAS Settings
+cwasFSamples,CWAS FSamples,CWAS Settings
+cwasParallelNodes,CWAS Parallel Nodes,CWAS Settings
+cwasRegressorCols,Column Number with Regressor of Interest,CWAS Settings
+cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
+runGroupAnalysis,Run Group Analysis,Group Analysis Settings
+derivativeList,Select Derivatives,Group Analysis Settings
+modelConfigs,Models to Run,Group Analysis Settings
+fTest,Models Contain F-tests,Group Analysis Settings
+zThreshold,Z threshold,Group Analysis Settings
+pThreshold,P threshold,Group Analysis Settings
