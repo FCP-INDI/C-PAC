@@ -762,26 +762,26 @@ def create_fsl_to_itk_conversion(name='fsl_to_itk_conversion'):
     
     Workflow Inputs::
     
-        inputspec.anatomical_brain : string (nifti file)
-            File of brain to be normalized (registered)
-        inputspec.reference_brain : string (nifti file)
-            Target brain file to normalize to
+        inputspec.transform_file : string (nifti file)
+            Output matrix of FSL-based functional to anatomical registration
+        inputspec.reference_file : string (nifti file)
+            File of skull-stripped anatomical brain to be used in affine conversion
+        inputspec.source_file : string (nifti file)
+            Should match the input of the apply warp (in_file) unless you are
+            applying the warp to a 4-d file, in which case this file should
+            be a mean_functional file
 
             
     Workflow Outputs::
     
-        outputspec.warp_field : string (nifti file)
-            Output warp field of registration
-        outputspec.affine_transformation : text file
-            Affine matrix of nonlinear transformation of brain file
-        outputspec.inverse_warp : string (nifti file)
-            Inverse of the warp field of the registration
-        outputspec.output_brain : string (nifti file)
-            Template-registered version of input brain
+        outputspec.itk_transform : string (nifti file)
+            Converted affine transform in ITK format usable with ANTS
+
             
     Registration Procedure:
     
-    1. Performs a nonlinear anatomical-to-template registration.
+    1. Converts an FSL-format affine matrix into an ITK-format
+       affine matrix (for use with ANTS registration tools)
        
     Workflow Graph:
     
