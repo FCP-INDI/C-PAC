@@ -501,8 +501,12 @@ def make_group_htmls(output_path):
 
             subj_path = os.path.join(pip_path, subj)
             
+            print subj_path + '/qc/snr_val'
+
             ### read average snr value from the file
-            snr_file = os.path.join(subj_path + '/qc/snr_val/_scan_rest_1_rest/average_snr_file.txt')
+            for root, dirs, files in os.walk(subj_path + '/qc/snr_val'):
+                if 'average_snr_file.txt' in files:
+                    snr_file = os.path.join(root + '/average_snr_file.txt')
 
             if os.path.exists(snr_file):
                 sval = open(snr_file, 'r').readline()
@@ -567,3 +571,4 @@ def run(output_path):
     #from CPAC.utils.create_all_qc import make_group_htmls
 
     make_group_htmls(output_path)
+
