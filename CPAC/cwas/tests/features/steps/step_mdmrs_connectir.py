@@ -41,14 +41,14 @@ def step(context, rfile, cols):
 
 @when('we compute many mdmrs in python')
 def step(context):
-    context.voxs   = range(12)    
-    context.Fs, context.ps = calc_mdmrs(context.dmats[context.voxs], context.regressors, 
-                                        context.cols, context.perms)
+    context.voxs  = range(12)    
+    context.Fs, context.ps, context.F_perms = calc_mdmrs(context.dmats[context.voxs], context.regressors, 
+                                                         context.cols, context.perms)
 
 @when('we compute a single MDMR in python')
 def step(context):
     context.voxs = [0]
-    ps, Fs, F_perms, _ = mdmr(context.dmats[0].reshape(context.nobs**2,1), context.regressors,  
+    ps, Fs, F_perms, _ = mdmr(context.dmats[0][np.newaxis], context.regressors,  
                               context.cols, context.perms)
     context.ps = ps
     context.Fs = Fs
@@ -63,6 +63,11 @@ def step(context):
 def step(context):
     comp = np.allclose(context.F_perms, context.r_F_perms[:,context.voxs])
     assert_that(comp, "F permutations")
+
+@then('the many F permutations should be similar to R')
+def step(context):
+    comp = abs(context.F_perms - context.r_F_perms[:,context.voxs]).mean()
+    assert_that(comp<0.5, "F permutations")
 
 @then('the many p-values should be like R')
 def step(context):

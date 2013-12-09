@@ -8,6 +8,91 @@ def test_adhd40():
     rt = RegressionTester('adhd40', 'diagnosis', 'diagnosis + age + sex + meanFD')
     rt.run()
 
+def small_test_adhd04():
+    import os
+    from CPAC.cwas import create_cwas, nifti_cwas
+    import numpy as np
+    import time
+    from os import path as op
+    
+    base = "/home2/data/Projects/CPAC_Regression_Test/2013-05-30_cwas"
+    roi_file = op.join(base, 'rois/grey_matter_4mm.nii.gz')
+    sfile = op.join(base, "configs", "%s_funcpaths_4mm.txt" % "adhd04")
+    subjects_list = [ l.strip().strip('"') for l in open(sfile).readlines() ]
+    rfile = op.join(base, "configs", "%s_regressors.txt" % "adhd04")
+    regressors = np.loadtxt(rfile)
+    cols = [1]
+    nperms = 1000
+    dtype = 'float32'
+    
+    nifti_cwas(subjects_list, roi_file, regressors, cols, nperms, 
+               (0,100), memlimit=4, strata=None, dtype=dtype)
+    
+    
+    import nibabel as nb
+    import numpy as np
+    import os
+    from CPAC.cwas import calc_cwas
+    
+    memlimit = 4
+    voxel_range = (12297, 16397)
+    dtype = 'float32'
+    
+    # Check regressor is a column vector
+    if(len(regressors.shape) == 1):
+        regressors = regressors[:, np.newaxis]
+    elif(len(regressors.shape) != 2):
+        raise ValueError('Bad regressor shape: %s' % str(regressors.shape))
+    
+    if(len(subjects_list) != regressors.shape[0]):
+        raise ValueError('Number of subjects does not match regressor size')
+    
+    # Load the joint mask
+    mask_file       = op.join(base, 'results_adhd04.py/cwas/joint_mask/joint_mask.nii.gz')
+    mask            = nb.load(mask_file).get_data().astype('bool')
+    mask_indices    = np.where(mask)
+    
+    # Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
+    subjects_data = [ nb.load(subject_file).get_data().astype(dtype)[mask_indices].T 
+                        for subject_file in subjects_list ]
+    print '... subject data loaded', len(subjects_data), 'batch voxel range', voxel_range
+    
+    from CPAC.cwas.utils import calc_subdists
+    
+    voxel_block = voxel_blocks_for_subdists(memlimit, subjects_data, dtype)
+    tmp         = calc_subdists(subjects_data, voxel_range, voxel_block)
+    
+    
+    
+    from CPAC.cwas.utils import voxel_blocks_for_subdists
+    from CPAC.cwas.utils import split_list_into_groups    
+    from CPAC.cwas.subdist import *
+    
+    nSubjects   = len(subjects_data)
+    nVoxels     = len(range(*voxel_range))
+    
+    vox_inds    = split_list_into_groups(range(*voxel_range), voxel_block)
+    subvox_inds = split_list_into_groups(range(nVoxels), voxel_block)
+    nGroups     = len(vox_inds)
+    
+    # Norm the subject's functional data time-series
+    subjects_normed_data = norm_subjects(subjects_data)
+    
+    # Distance matrices for every voxel
+    D = np.zeros((nVoxels, nSubjects, nSubjects), dtype=dtype)
+    
+    for i in range(nGroups):
+        S    = ncor_subjects(subjects_normed_data, vox_inds[i])
+        S0   = replace_autocorrelations(S)
+        S0   = fischers_transform(S0)
+        for ij,j in enumerate(subvox_inds[i]):
+            D[j] = compute_distances(S0[:,ij,:])
+    
+    
+    
+    return
+
+
 class RegressionTester(object):
     """
     tmp = RegressionTester('adhd04', 'diagnosis', 'diagnosis')
@@ -15,12 +100,13 @@ class RegressionTester(object):
     """
     
     def __init__(self, name, factor, formula, 
-                 base="/home2/data/Projects/CPAC_Regression_Test/2013-05-30_cwas"):
+                 base="/home2/data/Projects/CPAC_Regression_Test/2013-05-30_cwas", nthreads=4):
         super(RegressionTester, self).__init__()
-        self.base    = base
-        self.name    = name
-        self.factor  = factor
-        self.formula = formula
+        self.base       = base
+        self.name       = name
+        self.factor     = factor
+        self.formula    = formula
+        self.nthreads   = nthreads
     
     def run(self):
         print "Python-Based CWAS"
@@ -35,12 +121,11 @@ class RegressionTester(object):
     def run_cwas(self):
         import os
         os.chdir("%s/C-PAC" % self.base)
-    
+        
         from CPAC.cwas import create_cwas
         import numpy as np
         import time
         from os import path as op
-        
         
         ###
         # Paths and Other Inputs
@@ -50,7 +135,7 @@ class RegressionTester(object):
         
         # File with initial grey matter mask
         roi_file = op.join(self.base, 'rois/grey_matter_4mm.nii.gz')
-    
+        
         # File with list of subject functionals
         sfile = op.join(self.base, "configs", "%s_funcpaths_4mm.txt" % self.name)
     
@@ -82,19 +167,22 @@ class RegressionTester(object):
         c.inputs.inputspec.regressor        = regressors
         c.inputs.inputspec.f_samples        = nperms
         c.inputs.inputspec.parallel_nodes   = 4
+        # ADD MEMORY LIMIT
+        c.inputs.inputspec.memory_limit     = 12
+        c.inputs.inputspec.dtype            = 'float32'
         #c.base_dir = op.join(obase, 'results_fs%i_pn%i' % \
         #                (c.inputs.inputspec.f_samples, c.inputs.inputspec.parallel_nodes))
         c.base_dir = op.join(self.base, "results_%s.py" % self.name)
-    
+                
         # export MKL_NUM_THREADS=X # in command line
         # import mkl
         # mkl.set_num_threads(X)
     
-        # try:
-        #     import mkl
-        #     mkl.set_num_threads(nthreads)
-        # except ImportError:
-        #     pass
+        try:
+            import mkl
+            mkl.set_num_threads(self.nthreads)
+        except ImportError:
+            pass
     
         # Run it!
         start = time.clock()
@@ -198,6 +286,7 @@ class RegressionTester(object):
         r_fs = np.array(robjects.r("attach.big.matrix('%s')[1,]" % r_fs_file))
         r_ps = np.array(robjects.r("as.matrix(attach.big.matrix('%s'))" % r_ps_file))
         
+        #code.interact(local=locals())
         
         ###
         # Compare
