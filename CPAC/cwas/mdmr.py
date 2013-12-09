@@ -36,13 +36,12 @@ def gower_center(yDis):
     return G
 
 def gower_center_many(dmats):
-    nobs    = np.sqrt(dmats.shape[0])
-    ntests  = dmats.shape[1]
-    Gs      = np.zeros_like(dmats)
+    ntests  = dmats.shape[0]
+    nobs    = dmats.shape[1]
+    Gs      = np.zeros((nobs**2, ntests))
     
     for i in range(ntests):
-        Dmat    = dmats[:,i].reshape(nobs,nobs)
-        Gs[:,i] = gower_center(Dmat).flatten()
+        Gs[:,i] = gower_center(dmats[i]).flatten()
     
     return Gs
 
@@ -105,7 +104,26 @@ def fperms_to_pvals(fstats, F_perms):
         pvals[i] = j/nperms
     return pvals
 
-def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
+def gen_perm_mats(x, cols, perms, strata=None):
+    """Will create a matrix with the permutation indices, another with the H2perms, and one with the IHperms."""
+    nobs    = x.shape[0]
+    check_rank(x)
+    
+    # Permutations
+    if type(perms) is int:
+        perms = gen_perms(perms, nobs, strata)
+    perms  = add_original_index(perms)
+    
+    # Permuted versions of H2 and IH
+    H2perms = gen_h2_perms(x, cols, perms)
+    IHperms = gen_ih_perms(x, cols, perms)
+    
+    return (perms, H2perms, IHperms)
+
+def mdmr_simple(y, *args, **kwrds):
+    return mdmr(y[np.newaxis], *args, **kwrds)
+
+def mdmr(ys, x, cols, perms, strata=None, H2perms=None, IHperms=None, debug_output=False):
     """
     Multivariate Distance Matrix Regression
     
@@ -113,6 +131,7 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     ----------
     ys : ndarray
     x : ndarray
+    cols : list
     perms : integer or ndarray
     strata : list or ndarray
     
@@ -133,9 +152,11 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     """
     check_rank(x)
     
-    ntests  = ys.shape[1]
+    ntests  = ys.shape[0]
     nobs    = x.shape[0]
-    if nobs != np.sqrt(ys.shape[0]):
+    if (len(ys.shape) != 3):
+        raise Exception("ys must be 3d: voxels x observations x observations")
+    if (nobs != ys.shape[1]) and (nobs != ys.shape[2]):
         raise Exception("# of observations incompatible between x and ys")
     
     ## Distance matrix => Gower's centered matrix
@@ -155,8 +176,10 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     nperms = perms.shape[0]
     
     # Permuted versions of H2 and IH
-    H2perms = gen_h2_perms(x, cols, perms)
-    IHperms = gen_ih_perms(x, cols, perms)
+    if H2perms is None:
+        H2perms = gen_h2_perms(x, cols, perms)
+    if IHperms is None:
+        IHperms = gen_ih_perms(x, cols, perms)
     
     # Permutations of Fstats
     F_perms = ftest_fast(H2perms, IHperms, Gs,

@@ -39,10 +39,15 @@ def ncor_subjects(subjects_normed_data, vox_inds):
     
     return S
 
+def replace_autocorrelations(mat, new_val=0.99):
+    """Values greater than your new_val in mat will be set to the new_val."""
+    mat[mat > new_val] = new_val
+    return mat
+
 def fischers_transform(S):
     return np.arctanh(S)
 
 def compute_distances(S0):
     S0   = norm_cols(S0.T).T
-    dmat = 1 - S0.dot(S0.T)
+    dmat = np.sqrt(2*(1 - S0.dot(S0.T)))
     return dmat
