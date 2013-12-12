@@ -3,13 +3,13 @@ import sys
 import commands
 import nipype.pipeline.engine as pe
 import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.alff.alff import *
 from CPAC.alff.utils import *
-from CPAC.interfaces.afni import preprocess
+#from CPAC.interfaces.afni import preprocess
+from nipype.interfaces.afni import preprocess
 
 def create_alff(wf_name = 'alff_workflow'):
 
@@ -169,14 +169,14 @@ def create_alff(wf_name = 'alff_workflow'):
                           name='outputspec')
     
     #filtering
-    bandpass = pe.Node(interface= preprocess.ThreedBandpass(),
+    bandpass = pe.Node(interface= preprocess.Bandpass(),
                        name = 'bandpass_filtering')
     bandpass.inputs.outputtype = 'NIFTI_GZ'
     bandpass.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered.nii.gz')
     wf.connect(inputnode_hp, 'hp',
-                 bandpass, 'fbot')
+                 bandpass, 'highpass')
     wf.connect(inputnode_lp, 'lp',
-                 bandpass, 'ftop')
+                 bandpass, 'lowpass')
     wf.connect(inputNode, 'rest_res',
                  bandpass, 'in_file') 
     
@@ -188,7 +188,7 @@ def create_alff(wf_name = 'alff_workflow'):
                  get_option_string, 'mask')
     
     #standard deviation over frequency
-    stddev_fltrd = pe.Node(interface = preprocess.ThreedTstat(),
+    stddev_fltrd = pe.Node(interface = preprocess.TStat(),
                             name = 'stddev_fltrd')
     stddev_fltrd.inputs.outputtype = 'NIFTI_GZ'
     stddev_fltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered_3dT.nii.gz')
@@ -201,7 +201,7 @@ def create_alff(wf_name = 'alff_workflow'):
                  outputNode, 'alff_img')
     
     #standard deviation of the unfiltered nuisance corrected image
-    stddev_unfltrd = pe.Node(interface = preprocess.ThreedTstat(),
+    stddev_unfltrd = pe.Node(interface = preprocess.TStat(),
                             name = 'stddev_unfltrd')
     stddev_unfltrd.inputs.outputtype = 'NIFTI_GZ'
     stddev_unfltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_3dT.nii.gz')
@@ -211,16 +211,16 @@ def create_alff(wf_name = 'alff_workflow'):
                  stddev_unfltrd, 'options') 
     
     #falff calculations
-    falff = pe.Node(interface = preprocess.Threedcalc(),
+    falff = pe.Node(interface = preprocess.Calc(),
                     name = 'falff')
-    falff.inputs.expr = '\'(1.0*bool(a))*((1.0*b)/(1.0*c))\' -float'
+    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c)) -float'
     falff.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(inputNode, 'rest_mask',
-               falff, 'infile_a')
+               falff, 'in_file_a')
     wf.connect(stddev_fltrd, 'out_file',
-               falff, 'infile_b')
+               falff, 'in_file_b')
     wf.connect(stddev_unfltrd, 'out_file',
-               falff, 'infile_c')
+               falff, 'in_file_c')
     
     wf.connect(falff, 'out_file',
                outputNode, 'falff_img') 

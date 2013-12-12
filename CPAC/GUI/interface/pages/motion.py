@@ -46,14 +46,14 @@ class MotionOptions(wx.ScrolledWindow):
                       name='runFristonModel',
                       type=dtype.LSTR,
                       comment="Use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
-                      values=["On", "Off"])
+                      values=["On", "Off","On/Off"])
 
         self.page.add(label="Calculate Motion Statistics ",
                       control=control.CHOICE_BOX,
                       name='runGenerateMotionStatistics',
                       type=dtype.LSTR,
                       comment="Calculate motion statistics including Framewise Displacement (FD) and DVARS.\n\nRequired to run Scrubbing.\n\nThese parameters will also be output as a spreadsheet.",
-                      values=["On", "Off"])
+                      values=["On", "Off","On/Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -76,7 +76,7 @@ class Scrubbing(wx.ScrolledWindow):
                       name='runScrubbing',
                       type=dtype.LSTR,
                       comment="Remove volumes exhibiting excessive motion.",
-                      values=["Off", "On"],
+                      values=["Off", "On", "On/Off"],
                       wkf_switch=True)
 
         self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",

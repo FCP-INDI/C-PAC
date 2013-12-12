@@ -91,7 +91,15 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                      name='runRegisterFuncToAnat', 
                      type=dtype.LSTR, 
                      comment="Run Functional to Anatomical Registration", 
-                     values=["On","Off"],
+                     values=["On","Off","On/Off"],
+                     wkf_switch = True)
+
+        self.page.add(label="Using BB Register:", 
+                     control=control.CHOICE_BOX,
+                     name='runBBReg', 
+                     type=dtype.LSTR, 
+                     comment="Run Functional to Anatomical Registration with BB Register", 
+                     values=["On","Off","On/Off"],
                      wkf_switch = True)
         
         self.page.add(label="Functional Standard Resolution:", 
@@ -138,7 +146,7 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      name='runRegisterFuncToMNI', 
                      type=dtype.LSTR, 
                      comment="Register functional images to a standard MNI152 template.\n\nThis option must be enabled if you wish to calculate any derivatives.", 
-                     values=["On","Off"],
+                     values=["On","Off","On/Off"],
                      wkf_switch = True)
         
         self.page.add(label="Standard Identity Matrix ", 

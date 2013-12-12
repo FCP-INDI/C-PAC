@@ -43,7 +43,7 @@ class FilteringSettings(wx.ScrolledWindow):
                  name='runFrequencyFiltering', 
                  type=dtype.LSTR, 
                  comment="Apply a temporal band-pass filter to functional data.", 
-                 values=["On","Off"],
+                 values=["On","Off","On/Off"],
                  wkf_switch = True)
         
         self.page.add(label = "Band-Pass Filters ",

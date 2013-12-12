@@ -1,9 +1,10 @@
 
 import nipype.pipeline.engine as pe
-import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-import CPAC.interfaces.afni.preprocess as preprocess
+#import CPAC.interfaces.afni.preprocess as preprocess
+from nipype.interfaces.afni import preprocess
+
 
 #functional preprocessing
 
@@ -253,7 +254,7 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                                                         'motion_correct_ref',
                                                         'movement_parameters',
                                                         'max_displacement',
-                                                        'xform_matrix',
+                                                        #'xform_matrix',
                                                         'mask',
                                                         'skullstrip',
                                                         'example_func',
@@ -278,13 +279,13 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     func_get_idx, 'stop_idx')
     
     
-    func_drop_trs = pe.Node(interface=preprocess.Threedcalc(),
+    func_drop_trs = pe.Node(interface=preprocess.Calc(),
                            name='func_drop_trs')
-    func_drop_trs.inputs.expr = '\'a\''
+    func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
     
     preproc.connect(inputNode, 'rest',
-                    func_drop_trs, 'infile_a')
+                    func_drop_trs, 'in_file_a')
     preproc.connect(func_get_idx, 'startidx',
                     func_drop_trs, 'start_idx')
     preproc.connect(func_get_idx, 'stopidx',
@@ -294,14 +295,13 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     outputNode, 'drop_tr')
     
     
-    func_slice_timing_correction = pe.Node(interface=preprocess.ThreedTshift(),
+    func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
                                            name = 'func_slice_timing_correction')
     func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
     
-    func_deoblique = pe.Node(interface=preprocess.Threedrefit(),
+    func_deoblique = pe.Node(interface=preprocess.Refit(),
                             name='func_deoblique')
     func_deoblique.inputs.deoblique = True
-    func_deoblique.inputs.outputtype = 'NIFTI_GZ'
     
     
     if slice_timing_correction:
@@ -326,7 +326,7 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
     preproc.connect(func_deoblique, 'out_file',
                     outputNode, 'refit')
 
-    func_reorient = pe.Node(interface=preprocess.Threedresample(),
+    func_reorient = pe.Node(interface=preprocess.Resample(),
                                name='func_reorient')
     func_reorient.inputs.orientation = 'RPI'
     func_reorient.inputs.outputtype = 'NIFTI_GZ'
@@ -337,7 +337,7 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
     preproc.connect(func_reorient, 'out_file',
                     outputNode, 'reorient')
     
-    func_get_mean_RPI = pe.Node(interface=preprocess.ThreedTstat(),
+    func_get_mean_RPI = pe.Node(interface=preprocess.TStat(),
                             name='func_get_mean_RPI')
     func_get_mean_RPI.inputs.options = '-mean'
     func_get_mean_RPI.inputs.outputtype = 'NIFTI_GZ'
@@ -346,10 +346,10 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     func_get_mean_RPI, 'in_file')
         
     #calculate motion parameters
-    func_motion_correct = pe.Node(interface=preprocess.Threedvolreg(),
+    func_motion_correct = pe.Node(interface=preprocess.Volreg(),
                              name='func_motion_correct')
-    func_motion_correct.inputs.other = '-Fourier -twopass'
-    func_motion_correct.inputs.zpad = '4'
+    func_motion_correct.inputs.args = '-Fourier -twopass'
+    func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
     
     preproc.connect(func_reorient, 'out_file',
@@ -367,6 +367,8 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
     
     
     func_motion_correct_A = func_motion_correct.clone('func_motion_correct_A')
+    func_motion_correct_A.inputs.md1d_file = 'max_displacement.1D'
+    
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct_A, 'in_file')
     preproc.connect(func_get_mean_motion, 'out_file',
@@ -378,11 +380,10 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     outputNode, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
                     outputNode, 'movement_parameters')
-    preproc.connect(func_motion_correct_A, 'mat1d_file',
-                    outputNode, 'xform_matrix')
+
 
     
-    func_get_brain_mask = pe.Node(interface=preprocess.ThreedAutomask(),
+    func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
                                name='func_get_brain_mask')
 #    func_get_brain_mask.inputs.dilate = 1
     func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
@@ -394,21 +395,21 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     outputNode, 'mask')
         
     
-    func_edge_detect = pe.Node(interface=preprocess.Threedcalc(),
+    func_edge_detect = pe.Node(interface=preprocess.Calc(),
                             name='func_edge_detect')
-    func_edge_detect.inputs.expr = '\'a*b\''
+    func_edge_detect.inputs.expr = 'a*b'
     func_edge_detect.inputs.outputtype = 'NIFTI_GZ'
 
     preproc.connect(func_motion_correct_A, 'out_file',
-                    func_edge_detect, 'infile_a')
+                    func_edge_detect, 'in_file_a')
     preproc.connect(func_get_brain_mask, 'out_file',
-                    func_edge_detect, 'infile_b')
+                    func_edge_detect, 'in_file_b')
 
     preproc.connect(func_edge_detect, 'out_file',
                     outputNode, 'skullstrip')
 
     
-    func_mean_skullstrip = pe.Node(interface=preprocess.ThreedTstat(),
+    func_mean_skullstrip = pe.Node(interface=preprocess.TStat(),
                            name='func_mean_skullstrip')
     func_mean_skullstrip.inputs.options = '-mean'
     func_mean_skullstrip.inputs.outputtype = 'NIFTI_GZ'
@@ -497,3 +498,6 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
+
+
+

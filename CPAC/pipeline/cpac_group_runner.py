@@ -2,12 +2,16 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 
+from multiprocessing import Process
+
 import re
 import os
 import sys
 import glob
 
 import time
+
+from nipype import logging
 
 from CPAC.utils import Configuration
 
@@ -163,26 +167,11 @@ def run(config_file, output_path_file):
     # Load the config file into 'c'
     c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
-    #diag = open(os.path.join('/home/data/Projects/CPAC_Regression_Test/2013-08-19-20_v0-3-1/fsl-model/2013-09-03', 'group_runner_diagnostic.txt'), 'wt')
-
-    #print >>diag, "Config file: ", c
-    #print >>diag, ""
-    #print >>diag, "Output path file: ", output_path_file
-    #print >>diag, ""
-
     subject_paths = []
 
     for file in glob.glob(os.path.abspath(output_path_file)):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
-
-    #print >>diag, "Subject paths list size: "
-    #print >>diag, len(subject_paths)
-    #print >>diag, ""
-
-    #print >>diag, "First subject path: "
-    #print >>diag, subject_paths[0]
-    #print >>diag, ""
 
 
     set_subject_paths = set(subject_paths)
@@ -219,17 +208,6 @@ def run(config_file, output_path_file):
         #    key = key.replace(scan_id, '*')
 
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
-
-
-    #print >>diag, ""
-    #print >>diag, "Analysis_map_gp dictionary size: "
-    #print >>diag, len(analysis_map_gp)
-    #print >>diag, ""
-
-
-    #print >>diag, "Derivative list: "
-    #print >>diag, c.derivativeList
-    #print >>diag, ""
 
 
     timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing.txt'), 'wt')
@@ -303,17 +281,6 @@ def run(config_file, output_path_file):
 
             wf_start_time = time.time()
 
-            #print >>diag, "Resource: "
-            #print >>diag, resource
-            #print >>diag, ""
-
-            #print >>diag, "glob key: "
-            #print >>diag, glob_key
-            #print >>diag, ""
-
-            #print >>diag, "Analysis map gp entry: "
-            #print >>diag, analysis_map_gp[(resource,glob_key)]
-            #print >>diag, ""
 
             if 1 in c.runGroupAnalysis:
               
@@ -332,11 +299,15 @@ def run(config_file, output_path_file):
                 if not c.runOnGrid:
 
                     from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-
+                    
+                    procss = Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)]))
+                    
+                    '''
+                    previous code:
+                    
                     #print c, "   ", resource, "   ", analysis_map_gp[(resource, glob_key)], "   ", glob_key
                     prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
-
-
+                    '''
 
                 else:
 
@@ -349,38 +320,95 @@ def run(config_file, output_path_file):
                         run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
 
 
-            print >>timing, "Group analysis workflow completed for resource: ", resource
-            print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
-            print >>timing, ""
-
-            # This can be implemented more sleekly using a dictionary, have to do this at some point
-            if resource == 'sca_roi_Z_to_standard_smooth':
-                sca_roi_runs += 1
-                sca_roi_time = sca_roi_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'sca_seed_Z_to_standard_smooth':
-                sca_seed_runs += 1
-                sca_seed_time = sca_seed_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'sca_tempreg_maps_z_files_smooth':
-                sca_tempreg_runs += 1
-                sca_tempreg_time = sca_tempreg_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'dr_tempreg_maps_z_files_smooth':
-                dr_tempreg_runs += 1
-                dr_tempreg_time = dr_tempreg_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'vmhc_z_score_stat_map':
-                vmhc_z_runs += 1
-                vmhc_z_time = vmhc_z_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'alff_Z_to_standard_smooth':
-                alff_Z_runs += 1
-                alff_Z_time = alff_Z_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'falff_Z_to_standard_smooth':
-                falff_Z_runs += 1
-                falff_Z_time = falff_Z_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'reho_Z_to_standard_smooth':
-                reho_Z_runs += 1
-                reho_Z_time = reho_Z_time + ((time.time() - wf_start_time)/60)
-            elif resource == 'centrality_outputs_smoothed':
-                centrality_outputs_runs += 1
-                centrality_outputs_time = centrality_outputs_time + ((time.time() - wf_start_time)/60)
+                    print >>timing, "Group analysis workflow completed for resource: ", resource
+                    print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
+                    print >>timing, ""
+        
+                    # This can be implemented more sleekly using a dictionary, have to do this at some point
+                    if resource == 'sca_roi_Z_to_standard_smooth':
+                        sca_roi_runs += 1
+                        sca_roi_time = sca_roi_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'sca_seed_Z_to_standard_smooth':
+                        sca_seed_runs += 1
+                        sca_seed_time = sca_seed_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'sca_tempreg_maps_z_files_smooth':
+                        sca_tempreg_runs += 1
+                        sca_tempreg_time = sca_tempreg_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'dr_tempreg_maps_z_files_smooth':
+                        dr_tempreg_runs += 1
+                        dr_tempreg_time = dr_tempreg_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'vmhc_z_score_stat_map':
+                        vmhc_z_runs += 1
+                        vmhc_z_time = vmhc_z_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'alff_Z_to_standard_smooth':
+                        alff_Z_runs += 1
+                        alff_Z_time = alff_Z_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'falff_Z_to_standard_smooth':
+                        falff_Z_runs += 1
+                        falff_Z_time = falff_Z_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'reho_Z_to_standard_smooth':
+                        reho_Z_runs += 1
+                        reho_Z_time = reho_Z_time + ((time.time() - wf_start_time)/60)
+                    elif resource == 'centrality_outputs_smoothed':
+                        centrality_outputs_runs += 1
+                        centrality_outputs_time = centrality_outputs_time + ((time.time() - wf_start_time)/60)
+          
+          
+    if (1 in c.runGroupAnalysis) and (not c.runOnGrid):
+          
+        pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
+                        
+        jobQueue = []
+        if len(c.derivativeList) <= c.numSubjectsAtOnce:
+            """
+            Stream all the subjects as sublist is
+            less than or equal to the number of 
+            subjects that need to run
+            """
+            for p in procss:
+                p.start()
+                print >>pid,p.pid
+                
+        else:
+                
+            """
+            Stream the subject workflows for preprocessing.
+            At Any time in the pipeline c.numSubjectsAtOnce
+            will run, unless the number remaining is less than
+            the value of the parameter stated above
+            """
+            idx = 0
+            while(idx < len(c.derivativeList)):
+                
+                if len(jobQueue) == 0 and idx == 0:
+                
+                    idc = idx
+                    for p in procss[idc: idc + c.numSubjectsAtOnce]:
+                
+                        p.start()
+                        print >>pid,p.pid
+                        jobQueue.append(p)
+                        idx += 1
+                
+                else:
+                
+                    for job in jobQueue:
+                
+                        if not job.is_alive():
+                            print 'found dead job ', job
+                            loc = jobQueue.index(job)
+                            del jobQueue[loc]
+                            procss[idx].start()
+                
+                            jobQueue.append(procss[idx])
+                            idx += 1
+                
+        pid.close()
+    
+    
+    
+            
+            
             
     print >>timing, "Entire group analysis run complete."
     print >>timing, "Elapsed run time (minutes): ", ((time.time() - gpa_start_time)/60)

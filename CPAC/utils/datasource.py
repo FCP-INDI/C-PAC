@@ -177,6 +177,7 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
     spatial_maps = open(dirPath, 'r').readlines()
 
     spatial_map_dict = {}
+    
     for spatial_map_file in spatial_maps:
 
         spatial_map_file = spatial_map_file.rstrip('\r\n')

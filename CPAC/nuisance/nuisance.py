@@ -1,6 +1,10 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.ants as ants
+
+#from nipype import logging
+#logger = logging.getLogger('workflow')
 
 def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
     """
@@ -84,7 +88,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         if sample_period > 20.0:
             sample_period /= 1000.0
 
-    print 'Frequency filtering using sample period:', sample_period, 'sec'
+    print 'Frequency filtering using sample period: ', sample_period, 'sec'
 
     Y_bp = np.zeros_like(Y)
     for j in range(Y.shape[1]):
@@ -182,7 +186,7 @@ def calc_residuals(subject,
     #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
     if(selector['compcor']):
-        print 'compcor_ncomponents', compcor_ncomponents
+        print 'compcor_ncomponents ', compcor_ncomponents
         regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_sigs, csf_sigs)
     
     if(selector['wm']):
@@ -212,7 +216,7 @@ def calc_residuals(subject,
     if(selector['quadratic']):
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
     
-    print 'Regressors include', regressor_map.keys()
+    print 'Regressors include: ', regressor_map.keys()
     
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
@@ -226,7 +230,7 @@ def calc_residuals(subject,
     csv_filename = os.path.join(os.getcwd(), csv_filename)
     np.savetxt(csv_filename, X, delimiter='\t')
     
-    print 'Regressors dim', X.shape, 'starting regression'
+    print 'Regressors dim: ', X.shape, ' starting regression'
     
     Y = data[global_mask].T
     B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
@@ -241,7 +245,13 @@ def calc_residuals(subject,
     
     #Easier to read for debugging purposes
     regressors_file = os.path.join(os.getcwd(), 'nuisance_regressors.mat')
-    scipy.io.savemat(regressors_file, regressor_map, oned_as='column')
+
+    if scipy.__version__ == '0.7.0':
+        scipy.io.savemat(regressors_file, regressor_map)                        ### for scipy v0.7.0
+    else:
+        scipy.io.savemat(regressors_file, regressor_map, oned_as='column')   ### for scipy v0.12: OK
+
+    
     
     return residual_file, csv_filename
 
@@ -335,7 +345,7 @@ def extract_tissue_data(data_file,
 
     return file_wm, file_csf, file_gm
 
-def create_nuisance(name='nuisance'):
+def create_nuisance(use_ants, name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise in resting state
     fMRI data.  The residual signals for linear regression denoising is performed in a single
@@ -412,54 +422,75 @@ def create_nuisance(name='nuisance'):
                                                        'harvard_oxford_mask',
                                                        'motion_components',
                                                        'selector',
-                                                       'compcor_ncomponents']),
+                                                       'compcor_ncomponents',
+                                                       'template_brain']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'regressors']),
                          name='outputspec')
-    
-    ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm')
-    ho_mni_to_2mm.inputs.args = '-applyisoxfm 2'
-    ho_mni_to_2mm.inputs.interp = 'nearestneighbour'
-    nuisance.connect(inputspec, 'mni_to_anat_linear_xfm',
-                     ho_mni_to_2mm, 'in_matrix_file')
-    nuisance.connect(inputspec, 'harvard_oxford_mask',
-                     ho_mni_to_2mm, 'in_file')
-    nuisance.connect(inputspec, 'csf_mask',
-                     ho_mni_to_2mm, 'reference')
 
-    wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm')
+
+    # Resampling the masks from 1mm to 2mm
+    wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm_flirt_applyxfm')
     wm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     wm_anat_to_2mm.inputs.interp = 'nearestneighbour'
-    nuisance.connect(inputspec, 'wm_mask',
-                     wm_anat_to_2mm, 'in_file')
-    nuisance.connect(inputspec, 'wm_mask',
-                     wm_anat_to_2mm, 'reference')    
-   
-    csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm')
+
+    nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'reference')
+ 
+
+    # Resampling the masks from 1mm to 2mm
+    csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm_flirt_applyxfm')
     csf_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     csf_anat_to_2mm.inputs.interp = 'nearestneighbour'
-    nuisance.connect(inputspec, 'csf_mask',
-                     csf_anat_to_2mm, 'in_file')
-    nuisance.connect(inputspec, 'csf_mask',
-                     csf_anat_to_2mm, 'reference')
+
+    nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'reference')
+
     
-    gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm')
+    # Resampling the masks from 1mm to 2mm
+    gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm_flirt_applyxfm')
     gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     gm_anat_to_2mm.inputs.interp = 'nearestneighbour'
-    nuisance.connect(inputspec, 'gm_mask',
-                     gm_anat_to_2mm, 'in_file')
-    nuisance.connect(inputspec, 'gm_mask',
-                     gm_anat_to_2mm, 'reference')
 
-    func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm')
+    nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'reference')
+
+
+    func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'
-    nuisance.connect(inputspec, 'subject',
-                     func_to_2mm, 'in_file')
-    nuisance.connect(inputspec, 'csf_mask',
-                     func_to_2mm, 'reference')
-    nuisance.connect(inputspec, 'func_to_anat_linear_xfm',
-                     func_to_2mm, 'in_matrix_file')
+
+    nuisance.connect(inputspec, 'subject', func_to_2mm, 'in_file')
+    nuisance.connect(inputspec, 'csf_mask', func_to_2mm, 'reference')
+    nuisance.connect(inputspec, 'func_to_anat_linear_xfm', func_to_2mm, 'in_matrix_file')
+
+
+    if use_ants == True:
+
+        ho_mni_to_2mm = pe.Node(interface=ants.WarpImageMultiTransform(), name='ho_mni_to_2mm_ants_applyxfm')
+
+        ho_mni_to_2mm.inputs.invert_affine = [1]
+        ho_mni_to_2mm.inputs.use_nearest = True
+        ho_mni_to_2mm.inputs.dimension = 3
+
+        nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transformation_series')
+        nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'input_image')
+        nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
+
+        #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
+        
+
+
+    else:
+
+        ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm_flirt_applyxfm')
+        ho_mni_to_2mm.inputs.args = '-applyisoxfm 2'
+        ho_mni_to_2mm.inputs.interp = 'nearestneighbour'
+
+        nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'in_matrix_file')
+        nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'in_file')
+        nuisance.connect(inputspec, 'csf_mask', ho_mni_to_2mm, 'reference')
+
 
     tissue_masks = pe.Node(util.Function(input_names=['data_file',
                                                       'ho_mask_file',
@@ -469,16 +500,20 @@ def create_nuisance(name='nuisance'):
                                          function=extract_tissue_data),
                            name='tissue_masks')
     
-    nuisance.connect(func_to_2mm, 'out_file',
-                     tissue_masks, 'data_file')
-    nuisance.connect(ho_mni_to_2mm, 'out_file',
-                     tissue_masks, 'ho_mask_file')
-    nuisance.connect(wm_anat_to_2mm, 'out_file',
-                     tissue_masks, 'wm_seg_file')
-    nuisance.connect(csf_anat_to_2mm, 'out_file',
-                     tissue_masks, 'csf_seg_file')
-    nuisance.connect(gm_anat_to_2mm, 'out_file',
-                     tissue_masks, 'gm_seg_file')
+
+
+    nuisance.connect(func_to_2mm, 'out_file', tissue_masks, 'data_file')
+    nuisance.connect(wm_anat_to_2mm, 'out_file', tissue_masks, 'wm_seg_file')
+    nuisance.connect(csf_anat_to_2mm, 'out_file', tissue_masks, 'csf_seg_file')
+    nuisance.connect(gm_anat_to_2mm, 'out_file', tissue_masks, 'gm_seg_file')
+
+    if use_ants == True:
+        nuisance.connect(ho_mni_to_2mm, 'output_image', tissue_masks, 'ho_mask_file')
+
+    else:
+        nuisance.connect(ho_mni_to_2mm, 'out_file', tissue_masks, 'ho_mask_file')
+
+
 
     calc_r = pe.Node(util.Function(input_names=['subject',
                                                 'selector',

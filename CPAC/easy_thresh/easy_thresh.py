@@ -1,7 +1,8 @@
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
+
+
 
 def easy_thresh(wf_name):
     """
@@ -343,7 +344,7 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
     else:
         out_name = filename
             
-    print ("out_name -->", out_name)
+    print "out_name --> " + out_name
     
     FSLDIR = parameters[0]
     
@@ -368,8 +369,8 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
     stdout_value, stderr_value = cmd.communicate()
     f.close()
     
-    print ("stdout_value", stdout_value)
-    print ("stderr_value", stderr_value)
+    print "stdout_value " + stdout_value
+    print "stderr_value " + stderr_value
     
     return index_file, threshold_file, localmax_txt_file
     
@@ -444,9 +445,9 @@ def get_standard_background_img(in_file, file_parameters):
         hdr = img.get_header()
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
-        print "group_mm -> ", group_mm
+        print "group_mm -> " + group_mm
         standard_path = os.path.join(FSLDIR, 'data/standard/', '%s_T1_%smm_brain.nii.gz'% (MNI, group_mm))
-        print "path ->", standard_path
+        print "path -> " + standard_path
         return os.path.abspath(standard_path)
 
     except Exception:

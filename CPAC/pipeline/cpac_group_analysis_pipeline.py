@@ -13,6 +13,7 @@ from CPAC.utils.utils import prepare_gp_links
 from CPAC.group_analysis import create_group_analysis
 
 
+
 def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
@@ -81,7 +82,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
             os.makedirs(mod_path)
         except:
-            print "%s already exist"%(mod_path)
+            print "%s already exists"%(mod_path)
             
         new_phenotypic_file = os.path.join(mod_path, os.path.basename(phenotypic_file))
                 
@@ -111,15 +112,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             threshold_val = c.scrubbingThreshold[0]
 
         else:
-            print ("Found Multiple threshold value ")
-    
+            print "Found Multiple threshold value "
+
 
         print "scrubbing threshold_val -->", threshold_val
 
     else:
 
         print "No scrubbing enabled."
-        print "\n"
 
 
     #pick the right parameter file from the pipeline folder
@@ -205,18 +205,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         # check to see if any derivatives of subjects are missing
         if len(list(set(subject_list) - set(exist_paths))) >0:
-            print "-------------------------------------------"
             print "List of outputs missing for subjects:"
             print list(set(subject_list) - set(exist_paths))
-            print "\n"
             print "..for derivatives:"
             print resource
-            print "\n"
             print "..at paths:"
             print os.path.dirname(s_paths[0]).replace(s_ids[0], '*')
-            print "-------------------------------------------"
-
-            print '\n'
 
             #import warnings
             #warnings.warn(msg)
@@ -237,13 +231,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             os.makedirs(mod_path)
             print "Creating directory:"
             print mod_path
-            print "\n"
 
         except:
 
             print "Attempted to create directory, but path already exists:"
             print mod_path
-            print '\n'
         
 
         new_sub_file = os.path.join(mod_path, os.path.basename(conf.subjectListFile))
@@ -266,7 +258,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         except:
 
             print "Error: Could not open subject list file: ", new_sub_file
-            print ""
             raise Exception
 
 
@@ -296,7 +287,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             
         print "Model config dictionary ->"
         print conf.__dict__
-        print '\n'
 
 
 
@@ -435,10 +425,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         '''
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
-        print ""
       
-        iflogger.info("input_subject_list -> %s"%input_subject_list)
-        print ""
+        print "input_subject_list -> %s"%input_subject_list
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
 
@@ -447,7 +435,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 strgy_path = strgy_path.replace(ch, '_')
 
         print "strgy_path: ", strgy_path
-        print ""
         
 
 
@@ -596,7 +583,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             wf.run()#(plugin='MultiProc',
-                     #            plugin_args={'n_procs': c.numCoresPerSubject})
+                    #            plugin_args={'n_procs': c.numCoresPerSubject})
 
         except:
 
@@ -604,7 +591,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             print "subcount: ", subcount
             print "pathcount: ", pathcount
             print "sublist: ", sublist_items
-            print "input subject list: ", input_subject_list
+            print "input subject list: "
             print "conf: ", conf.subjectListFile
             
             raise Exception

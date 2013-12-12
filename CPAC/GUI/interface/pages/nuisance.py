@@ -49,7 +49,7 @@ class NuisanceCorrection(wx.ScrolledWindow):
                  name='runNuisance', 
                  type=dtype.LSTR, 
                  comment="Run Nuisance Signal Correction", 
-                 values=["On","Off"],
+                 values=["On","Off","On/Off"],
                  wkf_switch = True)
         
         self.page.add(label="Standard Harvard Oxford Mask:", 
@@ -108,7 +108,7 @@ class MedianAngleCorrection(wx.ScrolledWindow):
                  name='runMedianAngleCorrection', 
                  type=dtype.LSTR, 
                  comment="Correct for the global signal using Median Angle Correction.", 
-                 values=["Off","On"],
+                 values=["Off","On","On/Off"],
                  wkf_switch = True)
         
         self.page.add(label= "Target Angle (degrees) ",

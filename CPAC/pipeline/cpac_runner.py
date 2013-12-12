@@ -1,12 +1,9 @@
-from multiprocessing import Pool
 from multiprocessing import Process
-import sys
 import os
-import argparse
-from CPAC.pipeline import cpac_pipeline
 from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
+
 
 
 def validate(config_obj):
@@ -15,8 +12,10 @@ def validate(config_obj):
     working_dir = config_obj.workingDirectory
     
     if len(working_dir) > 70:
-        raise Exception("Path to working directory- %s should NOT be more than 70 characters."\
-                        "Please update your configuration"%(working_dir))
+        print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
+        print "Please update your configuration. Working directory: ", working_dir, "\n\n"
+        raise Exception
+    
 
 def get_vectors(strat):
 
@@ -31,6 +30,13 @@ def get_vectors(strat):
             vals.append(val_list.pop())
             for val in vals:
             #for val in val_list:
+
+                ### check if val is float, correct it on some version of python or ipython
+                ### avoid auto change to double quote of the path
+                if isinstance(val[0], float):
+                    #val = '%.2f' % val[0]
+                    val = [str(val[0])]
+
                 if path == '':
                     dfs(list(val_list), str(val))
                 else:
@@ -44,17 +50,19 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
+    print 'Paths: '
     print paths
+    
     return paths
 
 
-def make_enteries(paths, path_iterables):
+def make_entries(paths, path_iterables):
 
-    enteries = []
+    entries = []
     idx = 1
     for path in sorted(paths):
 
-        sub_enteries = []
+        sub_entries = []
         values = path.split('#')
 
         indx = 0
@@ -69,13 +77,17 @@ def make_enteries(paths, path_iterables):
                 import re
                 value = re.sub(r',', '.', value)
                 value = re.sub(r' ', '', value)
-            sub_enteries.append(path_iterables[indx] + '_' + value)
+            sub_entries.append(path_iterables[indx] + '_' + value)
             indx += 1
 
+        ### remove single quote in the paths
+        sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
+        print "sub entries: "
+        print sub_entries
+      
+        entries.append(sub_entries)
 
-        enteries.append(sub_enteries)
-
-    return enteries
+    return entries
 
 
 
@@ -83,6 +95,20 @@ def build_strategies(configuration):
 
     import collections
 
+    ### make paths shorter
+    path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
+    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
+
+    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
+                    '_gm_threshold':'Gray Matter Threshold = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
+
+
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+
+
+    """
     path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
     non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
@@ -93,7 +119,7 @@ def build_strategies(configuration):
 
 
     config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
-
+    """
 
     ### This is really dirty code and ordering of corrections in 
     ### in output directory is dependant on the nuisance workflow
@@ -104,6 +130,7 @@ def build_strategies(configuration):
     corrections_dict_list = config_iterables['_compcor']
 
 
+    print "corrections dictionary list: "
     print corrections_dict_list
 
     main_all_options = []
@@ -134,11 +161,16 @@ def build_strategies(configuration):
 
     ############
 
-    paths = get_vectors(config_iterables)
+    try:
+        paths = get_vectors(config_iterables)
+    except:
+        print "\n\n" + "ERROR: There are no strategies to build." + "\n" + \
+        "Error name: cpac_runner_0003" + "\n\n"
+        raise Exception
 
-    strategy_enteries = make_enteries(paths, sorted(path_iterables))
+    strategy_entries = make_entries(paths, sorted(path_iterables))
 
-    return strategy_enteries
+    return strategy_entries
 
 
 
@@ -147,7 +179,6 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
-    import pickle
     from time import strftime
 
     try:
@@ -186,7 +217,6 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     if re.search("(?<=Your job-array )\d+", out) == None:
 
         print "Error: Running of 'qsub' command in terminal failed - is qsub installed?"
-        print ""
         raise Exception
 
     pid = re.search("(?<=Your job-array )\d+", out).group(0)
@@ -198,7 +228,6 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
-    import pickle
     from time import strftime
 
     try:
@@ -238,7 +267,6 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
-    import pickle
     from time import strftime
 
 
@@ -268,7 +296,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('qsub  %s ' % (subject_bash_file))
+    #logger.info(commands.getoutput('qsub  %s ' % (subject_bash_file)))
 
 
 def append_seeds_to_file(working_dir, seed_list, seed_file):
@@ -331,10 +359,11 @@ def run(config_file, subject_list_file, p_name = None):
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
     
     except IOError:
-        print "config file %s doesn't exist" %config_file
+        print "config file %s doesn't exist" % config_file
         raise
     except Exception:
-        raise Exception("Error reading config file - %s"%config_file)
+        print "Error reading config file - %s" % config_file
+        raise Exception
 
     #do some validation
     validate(c)
@@ -343,23 +372,37 @@ def run(config_file, subject_list_file, p_name = None):
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
-        raise Exception ("Subject list is not in proper YAML format. Please check your file")
+        print "Subject list is not in proper YAML format. Please check your file"
+        raise Exception
 
     strategies = sorted(build_strategies(c))
     
-    print "strategies ---> ", strategies
+    print "strategies ---> "
+    print strategies
     
     sub_scan_map ={}
-    for sub in sublist:
-        if sub['unique_id']:
-            s = sub['subject_id']+"_" + sub["unique_id"]
-        else:
-            s = sub['subject_id']
+    print "subject list: "
+    print sublist
+    
+    try:
+    
+        for sub in sublist:
+            if sub['unique_id']:
+                s = sub['subject_id']+"_" + sub["unique_id"]
+            else:
+                s = sub['subject_id']
         
-        scan_ids = ['scan_anat']
-        for id in sub['rest']:
-            scan_ids.append('scan_'+ str(id))
-        sub_scan_map[s] = scan_ids 
+            scan_ids = ['scan_anat']
+            for id in sub['rest']:
+                scan_ids.append('scan_'+ str(id))
+            sub_scan_map[s] = scan_ids
+            
+    except:
+        
+        print "\n\n" + "ERROR: Subject list file not in proper format - check if you loaded the correct file?" + "\n" + \
+              "Error name: cpac_runner_0001" + "\n\n"
+        raise Exception
+        
         
     create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
  
@@ -397,9 +440,8 @@ def run(config_file, subject_list_file, p_name = None):
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies, p_name)) for sub in sublist]
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies, 1, p_name)) for sub in sublist]
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
-        import subprocess
         
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
@@ -415,7 +457,7 @@ def run(config_file, subject_list_file, p_name = None):
         else:
 
             """
-            Stream the subject worlflows for preprocessing.
+            Stream the subject workflows for preprocessing.
             At Any time in the pipeline c.numSubjectsAtOnce
             will run, unless the number remaining is less than
             the value of the parameter stated above

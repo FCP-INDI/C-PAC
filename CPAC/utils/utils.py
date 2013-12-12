@@ -2,7 +2,6 @@ import threading
 global_lock = threading.Lock()
 
 
-
 files_folders_wf = {
     'anatomical_brain': 'anat',
     'qc': 'qc',
@@ -13,6 +12,7 @@ files_folders_wf = {
     'anatomical_gm_mask': 'anat',
     'anatomical_csf_mask': 'anat',
     'anatomical_wm_mask': 'anat',
+    'ants_affine_xfm': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
@@ -169,8 +169,6 @@ def extract_txt(list_timeseries):
 
 
 def set_gauss(fwhm):
-
-    op_string = ""
 
     fwhm = float(fwhm)
 
@@ -1124,10 +1122,10 @@ def get_tr (tr):
     """
     import re
     if tr != None:
-       tr = re.search("\d+.\d+", str(tr)).group(0)
-       tr = float(tr)
-       if tr > 10:
-           tr = tr / 1000.0
+        tr = re.search("\d+.\d+", str(tr)).group(0)
+        tr = float(tr)
+        if tr > 10:
+            tr = tr / 1000.0
     return tr
 
 
@@ -1195,6 +1193,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
                     scan_id = wf_path.strip('_')
         
             file_path = os.path.join(log_dir, scan_id, workflow)
+            
             try:
                 os.makedirs(file_path)
             except Exception:
@@ -1206,8 +1205,13 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
         print "ERROR in write log"
         raise
 
-               
+    try:
+        os.makedirs(file_path)
+    except Exception:
+        iflogger.info("filepath already exist, filepath- %s, curr_dir - %s"%(file_path, os.getcwd()))
+        
     out_file = os.path.join(file_path, 'log_%s.yaml'%strategy)
+    
     f = open(out_file, 'w')
     
     
@@ -1240,9 +1244,9 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     
         print>>f, "wf_status: ERROR"
     
-    f.close()        
+    f.close()
     
-    os.system("log_py2js.py %s %s"%(out_file, log_dir))
+    #os.system("/home2/haipan/tmp/C-PAC/scripts/log_py2js.py %s %s"%(out_file, log_dir))   ###
     
     return out_file
 
@@ -1305,13 +1309,14 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     from jinja2 import Template
     import pkg_resources as p
     import CPAC
-    import itertools
+    import itertools    
     
     now = datetime.datetime.now()
     
     chain = itertools.chain(*wf_list)
     wf_keys = list(chain)
     wf_keys = list(set(wf_keys))
+    
     
     tvars = {}
     tvars['subject_id']  = subject_id
@@ -1322,6 +1327,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     tvars['pipeline_indices'] = range(len(tvars['pipelines']))
     tvars['resources'] = os.path.join(CPAC.__path__[0], 'resources')
     tvars['gui_resources'] = os.path.join(CPAC.__path__[0], 'GUI', 'resources')
+    
     
     reportdir = op.join(log_dir, "reports")
     if not op.exists(reportdir):
@@ -1361,6 +1367,7 @@ def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
     html        = open(htmlfile, 'w')
     html.write(text)
     html.close()
+    
     
     return
 

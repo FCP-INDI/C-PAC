@@ -5,6 +5,7 @@ import nipype.interfaces.utility as util
 from CPAC.easy_thresh import easy_thresh
 
 
+
 def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     """
     FSL `FEAT <http://www.fmrib.ox.ac.uk/fsl/feat5/index.html>`_

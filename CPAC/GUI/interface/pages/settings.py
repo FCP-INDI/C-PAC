@@ -108,6 +108,13 @@ class DirectorySettings(wx.ScrolledWindow):
 
         self.page = GenericClass(self, "Output Settings")
         self.counter = counter
+        
+        self.page.add(label="Pipeline Name ",
+                      control=control.DIR_COMBO_BOX,
+                      name='pipelineName',
+                      type=dtype.STR,
+                      comment="Name for this pipeline configuration - useful for identification.",
+                      validation_req=False)
 
         self.page.add(label="Working Directory ",
                       control=control.DIR_COMBO_BOX,
@@ -156,7 +163,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='reGenerateOutputs',
                       type=dtype.BOOL,
-                      values=["True", "False"],
+                      values=["False", "True"],
                       comment="Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.\n\nRequires an intact Working Directory from a previous CPAC run.")
 
         self.page.set_sizer()

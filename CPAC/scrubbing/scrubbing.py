@@ -1,4 +1,5 @@
-import CPAC.interfaces.afni.preprocess as e_afni
+#import CPAC.interfaces.afni.preprocess as e_afni
+import nipype.interfaces.afni.preprocess as e_afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -91,12 +92,13 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
                                                  function=get_mov_parameters), 
                                    name='scrubbed_movement_parameters')
 
-    scrubbed_preprocessed = pe.Node(interface=e_afni.Threedcalc(), 
+    scrubbed_preprocessed = pe.Node(interface=e_afni.Calc(), 
                                name='scrubbed_preprocessed')
-    scrubbed_preprocessed.inputs.expr = '\'a\''
+    scrubbed_preprocessed.inputs.expr = 'a'
+    scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'
 
-    scrub.connect(inputNode, 'preprocessed', scrubbed_preprocessed, 'infile_a')
-    scrub.connect(inputNode, ('frames_in_1D', get_indx), scrubbed_preprocessed, 'list_idx')
+    scrub.connect(inputNode, 'preprocessed', scrubbed_preprocessed, 'in_file_a')
+    #scrub.connect(inputNode, ('frames_in_1D', get_indx), scrubbed_preprocessed, 'list_idx')
 
     scrub.connect(inputNode, 'movement_parameters', scrubbed_movement_parameters, 'infile_b')
     scrub.connect(inputNode, 'frames_in_1D', scrubbed_movement_parameters, 'infile_a' )
