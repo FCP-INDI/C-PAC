@@ -344,7 +344,7 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
     else:
         out_name = filename
             
-    print "out_name --> " + out_name
+    print "out_name --> ", out_name
     
     FSLDIR = parameters[0]
     
@@ -369,8 +369,8 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
     stdout_value, stderr_value = cmd.communicate()
     f.close()
     
-    print "stdout_value " + stdout_value
-    print "stderr_value " + stderr_value
+    print "stdout_value ", stdout_value
+    print "stderr_value ", stderr_value
     
     return index_file, threshold_file, localmax_txt_file
     
@@ -478,5 +478,6 @@ def get_tuple(infile_a, infile_b):
     """
     out_file = (infile_a, infile_b[1])
     return out_file
+
 
 
