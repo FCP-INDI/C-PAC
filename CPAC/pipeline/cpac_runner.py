@@ -11,11 +11,16 @@ def validate(config_obj):
     #check for path lengths
     working_dir = config_obj.workingDirectory
     
-    if len(working_dir) > 70:
-        print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
-        print "Please update your configuration. Working directory: ", working_dir, "\n\n"
+    try:
+        if len(working_dir) > 70:
+            print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
+            print "Please update your configuration. Working directory: ", working_dir, "\n\n"
+            raise Exception
+    except:
+        print "\n\n" + "ERROR: Your directories in Output Settings are empty." + "\n" + \
+        "Error name: cpac_runner_0002" + "\n\n"
         raise Exception
-    
+
 
 def get_vectors(strat):
 
