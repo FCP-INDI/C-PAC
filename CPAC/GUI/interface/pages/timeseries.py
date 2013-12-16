@@ -94,14 +94,14 @@ class ROITimeseries(wx.ScrolledWindow):
         
         self.page.add(label="ROI Specification File (TSE only) ",
                       control=control.COMBO_BOX,
-                      name="roiSpecificationFileNoSCA",
+                      name="roiSpecificationFile",
                       type=dtype.STR,
                       comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing one or more ROIs.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
                       values="None")
 
         self.page.add(label="ROI Specification File (for use in SCA)",
                       control=control.COMBO_BOX,
-                      name="roiSpecificationFile",
+                      name="roiSpecificationFileForSCA",
                       type=dtype.STR,
                       comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing one or more ROIs.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
                       values="None")
@@ -139,14 +139,14 @@ class VOXELTimeseries(wx.ScrolledWindow):
         
         self.page.add(label="ROI Specification File (TSE only)",
                       control=control.COMBO_BOX,
-                      name="maskSpecificationFileNoSCA",
+                      name="maskSpecificationFile",
                       type=dtype.STR,
                       comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing a single ROI.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
                       values="None")
 
         self.page.add(label="ROI Specification File (for use in SCA)",
                       control=control.COMBO_BOX,
-                      name="maskSpecificationFile",
+                      name="maskSpecificationFileForSCA",
                       type=dtype.STR,
                       comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing a single ROI.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
                       values="None")
