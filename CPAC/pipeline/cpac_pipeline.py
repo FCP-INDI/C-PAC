@@ -2078,18 +2078,18 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                 voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
                 voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
             
-            if c.maskSpecificationFileNoSCA != None:
+            if c.maskSpecificationFileForSCA != None:
             
-                resample_functional_to_mask_no_sca = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_mask_no_sca_%d' % num_strat)
-                resample_functional_to_mask_no_sca.inputs.interp = 'trilinear'
-                resample_functional_to_mask_no_sca.inputs.apply_xfm = True
-                resample_functional_to_mask_no_sca.inputs.in_matrix_file = c.identityMatrix
+                resample_functional_to_mask_for_sca = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_mask_for_sca_%d' % num_strat)
+                resample_functional_to_mask_for_sca.inputs.interp = 'trilinear'
+                resample_functional_to_mask_for_sca.inputs.apply_xfm = True
+                resample_functional_to_mask_for_sca.inputs.in_matrix_file = c.identityMatrix
     
-                mask_dataflow_no_sca = create_mask_dataflow(c.maskSpecificationFileNoSCA, 'mask_dataflow_no_sca_%d' % num_strat)
+                mask_dataflow_for_sca = create_mask_dataflow(c.maskSpecificationFileForSCA, 'mask_dataflow_for_sca_%d' % num_strat)
     
-                voxel_timeseries_no_sca = get_voxel_timeseries('voxel_timeseries_no_sca_%d' % num_strat)
-                voxel_timeseries_no_sca.inputs.inputspec.output_type = c.voxelTSOutputs
+                voxel_timeseries_for_sca = get_voxel_timeseries('voxel_timeseries_for_sca_%d' % num_strat)
+                voxel_timeseries_for_sca.inputs.inputspec.output_type = c.voxelTSOutputs
             
 
             try:
@@ -2110,21 +2110,21 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                     workflow.connect(resample_functional_to_mask, 'out_file',
                                      voxel_timeseries, 'inputspec.rest')
                 
-                if c.maskSpecificationFileNoSCA != None:
+                if c.maskSpecificationFileForSCA != None:
                     
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                     
                     # resample the input functional file to mask
                     workflow.connect(node, out_file,
-                                     resample_functional_to_mask_no_sca, 'in_file')
-                    workflow.connect(mask_dataflow_no_sca, 'select_mask.out_file',
-                                     resample_functional_to_mask_no_sca, 'reference')
+                                     resample_functional_to_mask_for_sca, 'in_file')
+                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
+                                     resample_functional_to_mask_for_sca, 'reference')
     
                     # connect it to the voxel_timeseries
-                    workflow.connect(mask_dataflow_no_sca, 'select_mask.out_file',
-                                     voxel_timeseries_no_sca, 'input_mask.mask')
-                    workflow.connect(resample_functional_to_mask_no_sca, 'out_file',
-                                     voxel_timeseries_no_sca, 'inputspec.rest')
+                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
+                                     voxel_timeseries_for_sca, 'input_mask.mask')
+                    workflow.connect(resample_functional_to_mask_for_sca, 'out_file',
+                                     voxel_timeseries_for_sca, 'inputspec.rest')
                 
 
             except:
@@ -2143,9 +2143,9 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             strat.append_name(voxel_timeseries.name)
 
             if c.maskSpecificationFile != None:
-                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries, 'outputspec.mask_outputs')})
+                strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
             if c.maskSpecificationFileNoSCA != None:
-                strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries_no_sca, 'outputspec.mask_outputs')})
+                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
             
             create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
 
@@ -2175,24 +2175,24 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     
                 roi_dataflow = create_roi_dataflow(c.roiSpecificationFile, 'roi_dataflow_%d' % num_strat)
     
-                roi_timeseries = get_roi_timeseries('roi_timeseries_no_sca_%d' % num_strat)
+                roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
                 roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
             
             
-            if c.roiSpecificationFileNoSCA != None:
+            if c.roiSpecificationFileForSCA != None:
             
                 # same workflow, except to run TSE and send it to the resource pool
                 # so that it will not get sent to SCA
-                resample_functional_to_roi_no_sca = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_roi_no_sca_%d' % num_strat)
-                resample_functional_to_roi_no_sca.inputs.interp = 'trilinear'
-                resample_functional_to_roi_no_sca.inputs.apply_xfm = True
-                resample_functional_to_roi_no_sca.inputs.in_matrix_file = c.identityMatrix
+                resample_functional_to_roi_for_sca = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_roi_for_sca_%d' % num_strat)
+                resample_functional_to_roi_for_sca.inputs.interp = 'trilinear'
+                resample_functional_to_roi_for_sca.inputs.apply_xfm = True
+                resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
                 
-                roi_dataflow_no_sca = create_roi_dataflow(c.roiSpecificationFileNoSCA, 'roi_dataflow_no_sca_%d' % num_strat)
+                roi_dataflow_for_sca = create_roi_dataflow(c.roiSpecificationFileForSCA, 'roi_dataflow_for_sca_%d' % num_strat)
     
-                roi_timeseries_no_sca = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-                roi_timeseries_no_sca.inputs.inputspec.output_type = c.roiTSOutputs
+                roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
+                roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
 
             try:
 
@@ -2213,22 +2213,22 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                      roi_timeseries, 'inputspec.rest')
                 
                 
-                if c.roiSpecificationFileNoSCA != None:
+                if c.roiSpecificationFileForSCA != None:
                 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
                     # TSE only, not meant for SCA
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
-                                     resample_functional_to_roi_no_sca, 'in_file')
-                    workflow.connect(roi_dataflow_no_sca, 'select_roi.out_file',
-                                     resample_functional_to_roi_no_sca, 'reference')
+                                     resample_functional_to_roi_for_sca, 'in_file')
+                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                                     resample_functional_to_roi_for_sca, 'reference')
     
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_no_sca, 'select_roi.out_file',
-                                     roi_timeseries_no_sca, 'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi_no_sca, 'out_file',
-                                     roi_timeseries_no_sca, 'inputspec.rest')
+                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                                     roi_timeseries_for_sca, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi_for_sca, 'out_file',
+                                     roi_timeseries_for_sca, 'inputspec.rest')
 
             except:
                 logConnectionError('ROI Timeseries analysis', num_strat, strat.get_resource_pool(), '0031')
@@ -2246,9 +2246,9 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             strat.append_name(roi_timeseries.name)
 
             if c.roiSpecificationFile != None:
-                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries, 'outputspec.roi_outputs')})
+                strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
             if c.roiSpecificationFileNoSCA != None:
-                strat.update_resource_pool({'roi_timeseries' : (roi_timeseries_no_sca, 'outputspec.roi_outputs')})
+                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
 
             create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
             num_strat += 1

@@ -60,12 +60,12 @@ seedSpecificationFile,Seed Specification File,Define New Seeds
 seedOutputLocation,Seed Output Directory,Define New Seeds
 useSeedInAnalysis,Use New Seeds In,Define New Seeds
 runROITimeseries,Extract ROI Average Time Series,ROI Average TSE
-roiSpecificationFileNoSCA,ROI Specification File (TSE only),ROI Average TSE
-roiSpecificationFile,ROI Specification File (for use in SCA),ROI Average TSE
+roiSpecificationFile,ROI Specification File (TSE only),ROI Average TSE
+roiSpecificationFileForSCA,ROI Specification File (for use in SCA),ROI Average TSE
 roiTSOutputs,Output Options,ROI Average TSE
 runVoxelTimeseries,Extract ROI Voxelwise Time Series,ROI Voxelwise TSE
-maskSpecificationFileNoSCA,ROI Specification File (TSE only),ROI Voxelwise TSE
-maskSpecificationFile,ROI Specification File (for use in SCA),ROI Voxelwise TSE
+maskSpecificationFile,ROI Specification File (TSE only),ROI Voxelwise TSE
+maskSpecificationFileForSCA,ROI Specification File (for use in SCA),ROI Voxelwise TSE
 voxelTSOutputs,Output Options,ROI Voxelwise TSE
 runSurfaceRegistraion,Run Surface Registration,Surface Vertices TSE
 reconSubjectsDirectory,Recon Subject Directory,Surface Vertices TSE
