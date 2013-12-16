@@ -597,9 +597,14 @@ class MainFrame(wx.Frame):
                     
                 config_list.append(ctrl)
 
+        # Get the user's CPAC pipeline name for use in this script
+        for config in config_list:
+            if config.get_name() == 'pipelineName':
+                pipelineName = config.get_selection()
+
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
-            defaultFile="pipeline_config", wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
+            defaultFile=("pipeline_config_%s" % pipelineName), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
         dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
