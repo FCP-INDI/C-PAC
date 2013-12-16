@@ -1,6 +1,8 @@
 import os
 import sys
- 
+
+# Nipype Nipy 0.9.0 Development
+sys.path.insert(0, '/home/likewise-open/CHILDMIND/steven.giavasis/nipype-nipy-0.9-dev/run/lib/python2.7/site-packages')
  
 DISTNAME = 'CPAC'
 DESCRIPTION = 'Configurable Pipeline for the Analysis of Connectomes'

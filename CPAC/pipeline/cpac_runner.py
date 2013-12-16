@@ -419,19 +419,19 @@ def run(config_file, subject_list_file, p_name = None):
 
     if 1 in c.runVoxelTimeseries:
 
-        if 2 in c.useSeedInAnalysis:
+        if 'roi_voxelwise' in c.useSeedInAnalysis:
 
             c.maskSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.maskSpecificationFile)
 
     if 1 in c.runROITimeseries:
 
-        if 1 in c.useSeedInAnalysis:
+        if 'roi_average' in c.useSeedInAnalysis:
 
             c.roiSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFile)
 
     if 1 in c.runNetworkCentrality:
 
-        if 3 in c.useSeedInAnalysis:
+        if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:
 
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
 

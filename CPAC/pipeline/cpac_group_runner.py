@@ -295,21 +295,22 @@ def run(config_file, output_path_file):
 
                     print "Extract parameters script did not run correctly"
 
-
+                '''
                 if not c.runOnGrid:
 
                     from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                     
                     procss = Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)]))
                     
-                    '''
+                    
                     previous code:
                     
                     #print c, "   ", resource, "   ", analysis_map_gp[(resource, glob_key)], "   ", glob_key
                     prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
-                    '''
+                    
+                '''
 
-                else:
+                if c.runOnGrid:
 
                     if 'sge' in c.resourceManager.lower():
                         
@@ -356,6 +357,17 @@ def run(config_file, output_path_file):
           
     if (1 in c.runGroupAnalysis) and (not c.runOnGrid):
           
+        from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+        
+        procss = []
+        
+        for resource, glob_key in analysis_map_gp.keys():
+        
+            if resource in c.derivativeList:
+        
+                procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
+          
+          
         pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
                         
         jobQueue = []
@@ -383,6 +395,7 @@ def run(config_file, output_path_file):
                 if len(jobQueue) == 0 and idx == 0:
                 
                     idc = idx
+                    
                     for p in procss[idc: idc + c.numSubjectsAtOnce]:
                 
                         p.start()
@@ -463,6 +476,7 @@ def run(config_file, output_path_file):
 
     timing.close()
     #diag.close()
+
 
 
 

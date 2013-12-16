@@ -76,8 +76,6 @@ def filter_phenotypic(c):
       
             pheno_dict_list.append(tempDict)
 
-  
-
 
     # Creates a dictionary sub_dict which stores the amount of
     # instances of each subject, per subject
@@ -124,7 +122,6 @@ def filter_phenotypic(c):
         print "Error processing phenotypic file data: ", ph
         print "\n"
         raise Exception
-
 
 
 
@@ -275,8 +272,14 @@ def organize_data(filter_data, c):
         filter_data[idx] = data
         idx += 1
 
-
-    zeroth = filter_data[0]
+    try:
+        zeroth = filter_data[0]
+    except:
+        print "\n\n" + "ERROR: Subject information did not match properly" \
+              " between the phenotypic file and group analysis subject list." \
+              "\n Tip: Double-check subject names." + "\n" + \
+        "Error name: create_fsl_model_0001" + "\n\n"
+        raise Exception
 
     field_names = [c.subjectColumn]
 
@@ -511,7 +514,7 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
     f.close()
 
-def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
+def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory):
 
     """
     Create the contrasts and fts file
@@ -549,52 +552,81 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
     length = len(list(lst[0]))
 
 
-    for tp in lst:
+    try:
 
-        contrast_names.append(tp[0])
-        contrasts.append(list(tp)[1:length-count_ftests])
+        for tp in lst:
 
-        ftst.append(list(tp[length-count_ftests: length]))
+            contrast_names.append(tp[0])
+            contrasts.append(list(tp)[1:length-count_ftests])
+
+            if fTest:
+                ftst.append(list(tp[length-count_ftests: length]))
+
+        contrasts = np.array(contrasts, dtype=np.float16)
+        
+        if fTest:
+            fts_n = np.array(ftst)
+
+    except:
+        print "\n\n" + "ERROR: Not enough contrasts for running f-tests." \
+              "\n Tip: Do you have only one contrast in your contrasts file?" \
+              " f-tests require more than one contrast." + "\n" + \
+              "Either turn off f-tests or include more contrasts." + "\n" + \
+              "Error name: create_fsl_model_0002" + "\n\n"
+        raise Exception
 
 
-    contrasts = np.array(contrasts, dtype=np.float16)
+    try:
 
-    fts_n = np.array(ftst)
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
+        f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
 
-    idx = 1
-    pp_str = '/PPheights'
-    re_str = '/RequiredEffect'
-    for name in contrast_names:
+        idx = 1
+        pp_str = '/PPheights'
+        re_str = '/RequiredEffect'
+        for name in contrast_names:
 
-        print >>f, '/ContrastName%d' %idx, '\t', name
-        pp_str += '\t%1.5e' %(1)
-        re_str += '\t%1.5e' %(1)
-        idx += 1
+            print >>f, '/ContrastName%d' %idx, '\t', name
+            pp_str += '\t%1.5e' %(1)
+            re_str += '\t%1.5e' %(1)
+            idx += 1
 
-
-    print >>f, '/NumWaves\t', (contrasts.shape)[1]
-    print >>f, '/NumContrasts\t', (contrasts.shape)[0]
-    print >>f, pp_str
-    print >>f, re_str + '\n'
-    print >>f, '/Matrix'
+        print >>f, '/NumWaves\t', (contrasts.shape)[1]
+        print >>f, '/NumContrasts\t', (contrasts.shape)[0]
+        print >>f, pp_str
+        print >>f, re_str + '\n'
+        print >>f, '/Matrix'
    
+        np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
-    np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
+        f.close()
 
-    f.close()
+    except:
+        print "Error: Could not create .con file."
+        print ""
+        raise Exception
 
-    fts_n = fts_n.T
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
-    print >>f, '/NumWaves\t%d' % (contrasts.shape)[0]
-    print >>f, '/NumContrasts\t%d\n' % count_ftests
 
-    print >>f, '/Matrix'
+    if fTest:
 
-    for i in range(fts_n.shape[0]):
-        print >>f, ' '.join(fts_n[i].astype('str'))
-    #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
-    f.close()
+        try:
+
+            fts_n = fts_n.T
+            f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
+            print >>f, '/NumWaves\t%d' % (contrasts.shape)[0]
+            print >>f, '/NumContrasts\t%d\n' % count_ftests
+
+            print >>f, '/Matrix'
+
+            for i in range(fts_n.shape[0]):
+                print >>f, ' '.join(fts_n[i].astype('str'))
+            #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
+            f.close()
+
+        except:
+            print "Error: Could not create .fts file."
+            print ""
+            raise Exception
+
 
 """
 Class to set dictionary keys as map attributes
@@ -800,7 +832,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, CPAC_run = False):
+def run(config, fTest, CPAC_run = False):
 
     if CPAC_run:
         c = config
@@ -892,10 +924,8 @@ def run(config, CPAC_run = False):
         print ""
         raise Exception
 
-    try:
-        create_con_ftst_file(con, model_name, c.outputModelFilesDirectory)
-    except:
-        print "Error: Could not create ftst file."
-        print ""
-        raise Exception
+
+    create_con_ftst_file(con, model_name, fTest, c.outputModelFilesDirectory)
+
+
 

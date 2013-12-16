@@ -296,7 +296,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, True)
+            create_fsl_model.run(conf, c.fTest, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
@@ -356,7 +356,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         #else:
 
-        wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+        wf = pe.Workflow(name = 'group_analysis__%s__grp_model_%s__%s'%(resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
@@ -436,13 +436,16 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         print "strgy_path: ", strgy_path
         
-
+        
+        # create nipype-workflow-name-friendly strgy_path
+        # (remove special characters)
+        strgy_path_name = strgy_path.replace('/', '__')
 
         # gp_flow
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
         # directory and sends them to the create_group_analysis workflow gpa_wf
 
-        gp_flow = create_grp_analysis_dataflow("gp_dataflow%s"%strgy_path)
+        gp_flow = create_grp_analysis_dataflow("gp_dataflow%s"%strgy_path_name)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
         
@@ -451,7 +454,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # gpa_wf
         # Creates the actual group analysis workflow
 
-        gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
+        gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path_name)
 
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
@@ -582,8 +585,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         try:
 
-            wf.run()#(plugin='MultiProc',
-                    #            plugin_args={'n_procs': c.numCoresPerSubject})
+            wf.run()(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
 
         except:
 
