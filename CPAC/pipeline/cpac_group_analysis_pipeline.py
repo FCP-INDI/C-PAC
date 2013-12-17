@@ -445,7 +445,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
         # directory and sends them to the create_group_analysis workflow gpa_wf
 
-        gp_flow = create_grp_analysis_dataflow("gp_dataflow%s"%strgy_path_name)
+        gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % strgy_path_name)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
         
@@ -454,7 +454,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # gpa_wf
         # Creates the actual group analysis workflow
 
-        gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path_name)
+        gpa_wf = create_group_analysis(c.fTest, "gp_analysis_%s" % strgy_path_name)
 
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold

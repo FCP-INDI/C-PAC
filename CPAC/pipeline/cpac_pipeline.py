@@ -1981,7 +1981,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             resample_functional_mask_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
             '''
             resample_spatial_map_to_native_space = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_spatial_map_to_native_space%d' % num_strat)
+                                                         name='resample_spatial_map_to_native_space_%d' % num_strat)
             resample_spatial_map_to_native_space.inputs.interp = 'nearestneighbour'
             resample_spatial_map_to_native_space.inputs.apply_xfm = True
             resample_spatial_map_to_native_space.inputs.in_matrix_file = c.identityMatrix

@@ -181,6 +181,15 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
     for spatial_map_file in spatial_maps:
 
         spatial_map_file = spatial_map_file.rstrip('\r\n')
+
+        if not os.path.exists(spatial_map_file):
+            print "\n\n" + "ERROR: One of your spatial map files (under Spatial" + \
+            " Regression options) does not have a correct path or does not exist." + \
+            "\n" + "Tip: If all the paths are okay, then ensure there are no" + \
+            " whitespaces or blank lines in your spatial map specification file." + \
+            "\n\n" + "Error name: datasource_0001" + "\n\n"
+            raise Exception
+
         base_file = os.path.basename(spatial_map_file)
         base_name = ''
         try:
