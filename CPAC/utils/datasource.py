@@ -77,6 +77,14 @@ def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
 
         mask_file = mask_file.rstrip('\r\n')
 
+        if not os.path.exists(mask_file):
+            print "\n\n" + "ERROR: One of your ROI specification files (under ROI" + \
+            " Voxelwise TSE options) does not have a correct path or does not exist." + \
+            "\n" + "Tip: If all the paths are okay, then ensure there are no" + \
+            " whitespaces or blank lines in your ROI specification file." + \
+            "\n\n" + "Error name: datasource_0003" + "\n\n"
+            raise Exception
+
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
 
@@ -131,6 +139,14 @@ def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
     for roi_file in rois:
 
         roi_file = roi_file.rstrip('\r\n')
+
+        if not os.path.exists(roi_file):
+            print "\n\n" + "ERROR: One of your ROI specification files (under ROI" + \
+            " Average TSE options) does not have a correct path or does not exist." + \
+            "\n" + "Tip: If all the paths are okay, then ensure there are no" + \
+            " whitespaces or blank lines in your ROI specification file." + \
+            "\n\n" + "Error name: datasource_0002" + "\n\n"
+            raise Exception
 
         if roi_file.strip() == '' or roi_file.startswith('#'):
             continue
