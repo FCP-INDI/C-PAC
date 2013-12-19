@@ -343,24 +343,24 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         model, subject_list = model_sub
         
-        print "running for model %s and resource %s..."%(os.path.basename(model), resource)
+        print "running for model %s and resource %s..." % (os.path.basename(model), resource)
         
 
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exit"%model)
         
         if not os.path.exists(subject_list):
-            raise Exception("path to input subject list %s is invalid"%subject_list)
+            raise Exception("path to input subject list %s is invalid" % subject_list)
         
         #if c.mixedScanAnalysis == True:
         #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         #else:
 
-        wf = pe.Workflow(name = 'group_analysis__%s__grp_model_%s__%s'%(resource, os.path.basename(model), scan_ids[0])) 
+        wf = pe.Workflow(name = 'group_analysis__%s__grp_model_%s__%s' % (resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s'%(os.path.basename(model)))
+        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (os.path.basename(model)))
         try:
             os.makedirs(log_dir)
         except:
@@ -426,7 +426,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
-        print "input_subject_list -> %s"%input_subject_list
+        print "input_subject_list -> %s" % input_subject_list
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
 
@@ -459,8 +459,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
         gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
-        gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
-                                                   'MNI152')
+        gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
     
         print "group model: ", model
         print "f test: ", c.fTest
@@ -500,7 +499,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 if name in os.path.basename(s_paths[0]):
                     out_dir = os.path.join(out_dir, name)
                     break
-
 
         if 'tempreg_maps_z_files' in resource:
             out_dir = os.path.join(out_dir, \

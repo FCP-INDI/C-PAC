@@ -2144,7 +2144,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             if c.maskSpecificationFile != None:
                 strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
-            if c.maskSpecificationFileNoSCA != None:
+            if c.maskSpecificationFileForSCA != None:
                 strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
             
             create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
@@ -2247,7 +2247,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             if c.roiSpecificationFile != None:
                 strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
-            if c.roiSpecificationFileNoSCA != None:
+            if c.roiSpecificationFileForSCA != None:
                 strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
 
             create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
@@ -4321,12 +4321,16 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 
 
+        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+        pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
+        pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
+
+
         # Timing code for cpac_timing_<pipeline>.txt in output directory
-        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s.txt' % c.pipelineName), 'a')
+        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
     
         # Start timing here
         pipeline_start_time = time.time()
-        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
         print >>timing, "Starting CPAC run at system time: ", strftime("%Y-%m-%d %H:%M:%S")
         print >>timing, "Pipeline configuration: ", c.pipelineName
         print >>timing, "Subject workflow: ", wfname
@@ -4342,7 +4346,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             
             crashString = "\n\n" + "ERROR: CPAC run stopped prematurely with an error - see above.\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
             ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time before crash (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-            ("Timing information saved in %s/cpac_timing_%s.txt \n" % (c.outputDirectory, c.pipelineName)) + \
+            ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
             ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of crash: %s" % strftime("%Y-%m-%d %H:%M:%S")) + "\n\n"
             
             logger.info(crashString)
@@ -4395,7 +4399,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-        ("Timing information saved in %s/cpac_timing_%s.txt \n" % (c.outputDirectory, c.pipelineName)) + \
+        ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
         ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of completion: %s" % strftime("%Y-%m-%d %H:%M:%S"))
     
         logger.info(endString)

@@ -210,7 +210,9 @@ def run(config_file, output_path_file):
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
 
-    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing.txt'), 'wt')
+    gpa_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+
+    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'wt')
     #timing = open(os.path.join('/home/data/Projects/CPAC_Regression_Test/2013-08-19-20_v0-3-1/fsl-model/2013-09-03', 'group_analysis_timing.txt'), 'wt')
 
     sca_roi_runs = 0
