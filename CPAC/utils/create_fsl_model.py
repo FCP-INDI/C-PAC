@@ -21,7 +21,7 @@ def filter_phenotypic(c):
     -------
 
     f_r: List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py    
+    in columnsInModel variable in the config_fsl.py
 
     """
 
@@ -43,6 +43,9 @@ def filter_phenotypic(c):
     
     pheno_dict_list = []
 
+    #
+    pheno_tuple_list_list = []
+
     # Read in the phenotypic CSV file into a dictionary named pheno_dict
     # while preserving the header fields as they correspond to the data
     with open(os.path.abspath(ph), 'rU') as pheno:
@@ -53,7 +56,6 @@ def filter_phenotypic(c):
 
         pheno_header_items = pheno_entire_header[0].split(",")
 
-
         for line in pheno:
 
             j = 0
@@ -62,7 +64,9 @@ def filter_phenotypic(c):
 
             items = line.split("\n")
             items = items[0].split(",")
-            
+
+            pheno_tuple_list_list.append(zip(pheno_header_items, items))           
+
 
             for fields in pheno_header_items:
      
@@ -72,9 +76,9 @@ def filter_phenotypic(c):
                 tempDict[key] = value
 
                 j += 1
-
       
             pheno_dict_list.append(tempDict)
+
 
 
     # Creates a dictionary sub_dict which stores the amount of
@@ -98,10 +102,36 @@ def filter_phenotypic(c):
     # in the columnsInModel parameter in the FSL config file, and then write the
     # remaining fields into record_dict dictionary
 
+    tempDict = {}
+
     try:
 
         record_dict = {}
 
+        for record in pheno_tuple_list_list:
+
+            for tuples in record:
+                if tuples[1] in sub_dict:
+                    tempDict[tuples[1]] = record
+            
+
+        for record in tempDict:
+
+            # is record the subID key or the value (list of tuples)?
+            if record in sub_dict:
+                
+                for tuples in tempDict[record]:
+                    
+                    if (not (tuples[0] in c.columnsInModel)) and not (c.subjectColumn == tuples[0]):
+
+                        tempDict[record].remove(tuples)
+
+                        # remove tuple from list? from within dict though?
+                            
+                # obsolete? since tempDict is already this form
+                #record_dict[record[c.subjectColumn]] = record
+
+        
         for record in pheno_dict_list:
             
             if record[c.subjectColumn] in sub_dict:
@@ -116,15 +146,28 @@ def filter_phenotypic(c):
                 record_dict[record[c.subjectColumn]] = record
 
 
-
     except:
     
         print "Error processing phenotypic file data: ", ph
         print "\n"
         raise Exception
 
+    '''
+    for subject in subjects:
 
+        subject = subject.rstrip('\r\n')
 
+        try:
+
+            if subject in tempDict.keys():
+                f_r.append(tempDict[subject])
+
+        except:
+
+            print "Exception: Could not read from record lookup table for subject #: ", subject
+            raise Exception
+
+    '''
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
@@ -138,6 +181,7 @@ def filter_phenotypic(c):
 
             print "Exception: Could not read from record lookup table for subject #: ", subject
             raise Exception
+    
 
     return f_r
 
@@ -190,9 +234,7 @@ def organize_data(filter_data, c):
         for col in mean_cols:
 
             try:
-
                 if not col in mean:
-
                     mean[col] = float(data[col])
                 else:
                     mean[col] += float(data[col])
@@ -225,8 +267,6 @@ def organize_data(filter_data, c):
     idx = 0
     for data in filter_data:
 
-        print "data: ", data
-        print "directional map keys: ", directional_map.keys()
 
         for col in directional_map.keys():
 
@@ -303,6 +343,7 @@ def organize_data(filter_data, c):
             field_names.append(f_n)
 
 
+
     return filter_data, field_names
 
 
@@ -351,10 +392,6 @@ def write_data(model_data, field_names, c):
     The populated Model File
 
     """
-    #print model_data
-    #print field_names
-
-    print "field names: ", field_names
 
     evs = open(c.contrastFile, 'r').readline()
     evs = evs.rstrip('\n')
@@ -365,13 +402,9 @@ def write_data(model_data, field_names, c):
     new_evs = []
 
 
-    print "EVS: ", evs
-
     for ev in evs:
         if (ev in field_names):
             new_evs.append(ev)
-
-    print "new EVS: ", new_evs
 
 
     evs = list(new_evs)
@@ -379,12 +412,11 @@ def write_data(model_data, field_names, c):
 
     new_field_names = [c.subjectColumn] + evs
 
-    #print model_data[0]
-    #print new_field_names
 
     try:
 
-        f = open(c.outputModelFile, 'wt')
+        csvPath = c.outputModelFilesDirectory + '/' + c.outputModelFile
+        f = open(csvPath, 'wt')
 
     except:
 
@@ -395,21 +427,19 @@ def write_data(model_data, field_names, c):
 
     try:
 
-        # CHANGED THE FIELDNAMES TO FIELD_NAMES FOR NOW, BUT HAVE TO FIGURE OUT WHY
-        # EVS IS NOT BEING WRITTEN PROPERLY AND MISSING THE LAST HEADER ITEM
+        writer = csv.DictWriter(f, fieldnames=new_field_names)
 
-        writer = csv.DictWriter(f, fieldnames=field_names) #new_field_names)
+        header = dict((n, n) for n in new_field_names)
 
-        header = dict((n, n) for n in field_names) #new_field_names)
 
         writer.writerow(header)
-
 
         dropped_columns_a = []
         dropped_columns_b = []
         dropped_columns_a = [name for name in field_names if not (name in list(set(field_names) & set(new_field_names))) ]
         dropped_columns_b = [name for name in new_field_names if not (name in list(set(field_names) & set(new_field_names))) ]
         dropped_columns = list(set(dropped_columns_a + dropped_columns_b))
+
 
         if not (len(dropped_columns) == 0):
             print 'dropping columns(not specified in contrasts) from the model ', dropped_columns
@@ -421,7 +451,7 @@ def write_data(model_data, field_names, c):
             data_row = []
             for name in field_names:
 
-                if not name in field_names: #new_field_names:
+                if not name in field_names:
                     del data[name]
                 else:
                     if not (c.subjectColumn in name):
@@ -429,7 +459,8 @@ def write_data(model_data, field_names, c):
             new_data.append(list(data_row))
 
             writer.writerow(data)
-
+            
+            
 
         detect = 0
 
@@ -884,10 +915,9 @@ def run(config, fTest, CPAC_run = False):
     write_data(model_ready_data, field_names, c)
 
 
-
     ###generate the final FSL .grp, .mat, .con, .fts files 
     import csv
-    model = c.outputModelFile
+    model = c.outputModelFilesDirectory + '/' + c.outputModelFile
 
     con = c.contrastFile
     model_name = c.modelName
@@ -895,11 +925,12 @@ def run(config, fTest, CPAC_run = False):
     rdr = csv.DictReader(open(model, "rb"))
     no_of_columns = len(rdr.fieldnames)
 
-
     tuple_columns = tuple([n for n in range(1, no_of_columns)])
     data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
+        
 
     data_lst = data.tolist()
+
 
     data = []
 
@@ -909,6 +940,8 @@ def run(config, fTest, CPAC_run = False):
     print "Length of data list: ", len(data[:])
     print ""
     data = np.array(data, dtype=np.float16)
+
+
 
     try:
         create_mat_file(data, model_name, c.outputModelFilesDirectory)
