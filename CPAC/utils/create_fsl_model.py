@@ -1,6 +1,5 @@
 import os
 import sys
-import argparse
 import numpy as np
 import csv
 import yaml
@@ -25,60 +24,31 @@ def filter_phenotypic(c):
 
     """
 
-
     ph = c.phenotypicFile
     sublist = c.subjectListFile
-
-    p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
-   
-
+ 
     f = open(sublist, 'r')
 
     subjects = f.readlines()
 
     sub_dict = {}
-    p_dict = {}
 
-
-    
-    pheno_dict_list = []
-
-    #
-    pheno_tuple_list_list = []
 
     # Read in the phenotypic CSV file into a dictionary named pheno_dict
     # while preserving the header fields as they correspond to the data
-    with open(os.path.abspath(ph), 'rU') as pheno:
+    p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
 
-        firstLine = pheno.readline()
-
-        pheno_entire_header = firstLine.split("\n")
-
-        pheno_header_items = pheno_entire_header[0].split(",")
-
-        for line in pheno:
-
-            j = 0
-
-            tempDict = {}
-
-            items = line.split("\n")
-            items = items[0].split(",")
-
-            pheno_tuple_list_list.append(zip(pheno_header_items, items))           
-
-
-            for fields in pheno_header_items:
-     
-                key = pheno_header_items[j]
-                value = items[j]
-
-                tempDict[key] = value
-
-                j += 1
-      
-            pheno_dict_list.append(tempDict)
-
+    pheno_dict_list = []
+    for line in p_reader:
+    
+        pheno_dict_list.append(line)
+        
+        # pheno_dict_list is a list of dictionaries of phenotype header items
+        # matched to their values, which also includes subject IDs
+            
+        # i.e. [{'header1': 'value', 'header2': 'value'}, {'header1': 'value', 'header2': 'value'}, ..]
+            
+        # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
 
 
     # Creates a dictionary sub_dict which stores the amount of
@@ -92,50 +62,30 @@ def filter_phenotypic(c):
         else:
             sub_dict[subject] += 1
 
-    final_reader = []
-    f_r = []
-
-    
 
 
     # Iterate over phenotypic CSV file removing any fields that are not listed
     # in the columnsInModel parameter in the FSL config file, and then write the
     # remaining fields into record_dict dictionary
 
-    tempDict = {}
+    f_r = []
 
     try:
 
         record_dict = {}
-
-        for record in pheno_tuple_list_list:
-
-            for tuples in record:
-                if tuples[1] in sub_dict:
-                    tempDict[tuples[1]] = record
-            
-
-        for record in tempDict:
-
-            # is record the subID key or the value (list of tuples)?
-            if record in sub_dict:
-                
-                for tuples in tempDict[record]:
-                    
-                    if (not (tuples[0] in c.columnsInModel)) and not (c.subjectColumn == tuples[0]):
-
-                        tempDict[record].remove(tuples)
-
-                        # remove tuple from list? from within dict though?
-                            
-                # obsolete? since tempDict is already this form
-                #record_dict[record[c.subjectColumn]] = record
-
-        
+      
         for record in pheno_dict_list:
             
+            # "record" is a dictionary of phenotype header items matched
+            # to their values and it is UNORDERED
+            
+            # if record[c.subjectColumn] (which is a subject ID number)
+            # is in sub_dict or not
             if record[c.subjectColumn] in sub_dict:
                 
+                # record.keys() is a list of phenotype header items.
+                # here, we remove any header items which are not included in the
+                # 'columnsInModel' field in the group analysis FSL config file
                 for rec in record.keys():
                     
                     if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
@@ -143,8 +93,11 @@ def filter_phenotypic(c):
                         del record[rec]
                             
 
+                # record_dict is a dictionary of dictionaries, where the key is the
+                # subject ID and the value is a dictionary of header items matched
+                # to their values (WARNING: header items unordered)
                 record_dict[record[c.subjectColumn]] = record
-
+                
 
     except:
     
@@ -152,38 +105,38 @@ def filter_phenotypic(c):
         print "\n"
         raise Exception
 
-    '''
+
+
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
 
         try:
 
-            if subject in tempDict.keys():
-                f_r.append(tempDict[subject])
-
-        except:
-
-            print "Exception: Could not read from record lookup table for subject #: ", subject
-            raise Exception
-
-    '''
-    for subject in subjects:
-
-        subject = subject.rstrip('\r\n')
-
-        try:
-
+            # record_dict.keys() is a list of subject IDs within
+            # the record_dict dictionary
             if subject in record_dict.keys():
+                
+                # f_r is a list of dictionaries of phenotype header items
+                # matched to their values - like record_dict above, except
+                # the dictionaries are not matched to a subject ID
+                
+                # HEADER ITEMS STILL UNORDERED
+                
+                # HOWEVER, the subject ID is present within each dictionary
+                # in the f_r list, matched with a key named after the subject
+                # column header item
+                
                 f_r.append(record_dict[subject])
 
         except:
 
             print "Exception: Could not read from record lookup table for subject #: ", subject
             raise Exception
-    
+
 
     return f_r
+
 
 
 def organize_data(filter_data, c):
@@ -227,7 +180,6 @@ def organize_data(filter_data, c):
             directional_cols.append(c.columnsInModel[i])
 
 
-    idx = 0
 
     for data in filter_data:
 
@@ -347,6 +299,7 @@ def organize_data(filter_data, c):
     return filter_data, field_names
 
 
+
 def check_multicollinearity(matrix):
 
     U, s, V = np.linalg.svd(matrix)
@@ -370,6 +323,7 @@ def check_multicollinearity(matrix):
 
 
     return 0
+
 
 
 def write_data(model_data, field_names, c):
@@ -398,18 +352,20 @@ def write_data(model_data, field_names, c):
     evs = evs.rstrip('\n')
     evs = evs.split(',')
     evs = [ev.replace("\"", '') for ev in evs]
-    idx = 0
-    new_evs = []
 
+    new_evs = []
+    
 
     for ev in evs:
         if (ev in field_names):
             new_evs.append(ev)
 
-
+    # evs is now a list of contrast file header items
     evs = list(new_evs)
     del new_evs
 
+    # new_field_names is a list of evs with the subjectID
+    # column added at the beginning
     new_field_names = [c.subjectColumn] + evs
 
 
@@ -420,17 +376,19 @@ def write_data(model_data, field_names, c):
 
     except:
 
-        print "Could not open the output model file: ", c.outputModelFile
+        print "Could not open the output model file: ", csvPath
         print ""
         raise Exception
 
 
     try:
 
+        # make fieldnames=new_field_names so that when the unordered
+        # phenotype data is written to the model file, the header items
+        # and their corresponding values will be in the correct order
         writer = csv.DictWriter(f, fieldnames=new_field_names)
 
         header = dict((n, n) for n in new_field_names)
-
 
         writer.writerow(header)
 
@@ -446,6 +404,9 @@ def write_data(model_data, field_names, c):
 
 
         new_data = []
+        
+        # model_data is a LIST of dictionaries of the phenotype
+        # header items matched to their values
         for data in model_data:
 
             data_row = []
@@ -457,6 +418,7 @@ def write_data(model_data, field_names, c):
                     if not (c.subjectColumn in name):
                         data_row.append(float(data[name]))
             new_data.append(list(data_row))
+            
 
             writer.writerow(data)
             
@@ -473,6 +435,7 @@ def write_data(model_data, field_names, c):
 
     finally:
         f.close()
+
 
 
 def create_mat_file(data, model_name, outputModelFilesDirectory):
@@ -511,6 +474,8 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     f.close()
 
+
+
 def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
     """
@@ -544,6 +509,8 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
     np.savetxt(f, data, fmt='%d', delimiter='\t')
 
     f.close()
+
+
 
 def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory):
 
@@ -659,6 +626,7 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory)
             raise Exception
 
 
+
 """
 Class to set dictionary keys as map attributes
 """
@@ -668,6 +636,7 @@ class Configuration(object):
             if config_map[key] == 'None':
                 config_map[key] = None
             setattr(self, key, config_map[key])
+
 
 
 def pandas_alternate_organize_data(data, c):
@@ -723,6 +692,7 @@ def pandas_alternate_organize_data(data, c):
     sys.exit()
 
 
+
 def split_directionals(gp, directional, data, c):
 
     for key in gp.keys():
@@ -740,6 +710,8 @@ def split_directionals(gp, directional, data, c):
                 else:
                     data[idx][new_col] = 0
 
+
+
 def split_gp_var(gp, data, c):
 
 
@@ -755,6 +727,7 @@ def split_gp_var(gp, data, c):
                 data[idx][new_col] = 1
             else:
                 data[idx][new_col] = 0
+
 
 
 def group_by_gp_categorical(categorical, data, c):
@@ -784,8 +757,6 @@ def group_by_gp_categorical(categorical, data, c):
                 data[idx][col] = 1
             else:
                 data[idx][col] = 0
-
-
 
 
 
@@ -897,12 +868,10 @@ def run(config, fTest, CPAC_run = False):
 
     filter_data = filter_phenotypic(c)
 
+
     model_ready_data = None
     field_names = None
     gp_var = None
-    order = None
-
-
 
     if c.modelGroupVariancesSeparately == 0:
 
@@ -912,11 +881,11 @@ def run(config, fTest, CPAC_run = False):
 
         model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
 
+
     write_data(model_ready_data, field_names, c)
 
 
     ###generate the final FSL .grp, .mat, .con, .fts files 
-    import csv
     model = c.outputModelFilesDirectory + '/' + c.outputModelFile
 
     con = c.contrastFile
