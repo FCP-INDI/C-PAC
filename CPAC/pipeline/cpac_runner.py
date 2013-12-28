@@ -493,13 +493,13 @@ def run(config_file, subject_list_file, p_name = None):
                             jobQueue.append(procss[idx])
                             idx += 1
 
-
         pid.close()
+        
+        
     else:
 
         import commands
         import pickle
-        from time import strftime
 
         temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
         print commands.getoutput("mkdir -p %s" % temp_files_dir)
@@ -525,3 +525,4 @@ def run(config_file, subject_list_file, p_name = None):
         elif 'condor' in c.resourceManager.lower():
 
             run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+
