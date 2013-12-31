@@ -581,10 +581,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Run the actual group analysis workflow with the amount
         # of processors determined in the pipeline_config file
 
-        try:
+        wf.run()#(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
 
-            wf.run()(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
-
+        '''
         except:
 
             print "Error: Group analysis workflow run command did not complete successfully."
@@ -595,6 +594,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             print "conf: ", conf.subjectListFile
             
             raise Exception
+        '''
     
         print "**Workflow finished for model %s and resource %s"%(os.path.basename(model), resource)
 
