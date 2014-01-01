@@ -5,6 +5,7 @@ parallelEnvironment,SGE Parallel Environment,Computer Settings
 queue,SGE Queue,Computer Settings
 numCoresPerSubject,Number of Cores Per Subject,Computer Settings
 numSubjectsAtOnce,Number of Subjects to Run Simultaneously,Computer Settings
+pipelineName,Pipeline Name,Output Settings
 workingDirectory,Working Directory,Output Settings
 crashLogDirectory,Crash Log Directory,Output Settings
 outputDirectory,Output Directory,Output Settings
@@ -59,10 +60,12 @@ seedSpecificationFile,Seed Specification File,Define New Seeds
 seedOutputLocation,Seed Output Directory,Define New Seeds
 useSeedInAnalysis,Use New Seeds In,Define New Seeds
 runROITimeseries,Extract ROI Average Time Series,ROI Average TSE
-roiSpecificationFile,ROI Specification File,ROI Average TSE
+roiSpecificationFile,ROI Specification File (TSE only),ROI Average TSE
+roiSpecificationFileForSCA,ROI Specification File (for use in SCA),ROI Average TSE
 roiTSOutputs,Output Options,ROI Average TSE
 runVoxelTimeseries,Extract ROI Voxelwise Time Series,ROI Voxelwise TSE
-maskSpecificationFile,ROI Specification File,ROI Voxelwise TSE
+maskSpecificationFile,ROI Specification File (TSE only),ROI Voxelwise TSE
+maskSpecificationFileForSCA,ROI Specification File (for use in SCA),ROI Voxelwise TSE
 voxelTSOutputs,Output Options,ROI Voxelwise TSE
 runSurfaceRegistraion,Run Surface Registration,Surface Vertices TSE
 reconSubjectsDirectory,Recon Subject Directory,Surface Vertices TSE

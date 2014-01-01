@@ -434,7 +434,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(inputNode, 'scan_id',
                calc_motion_parameters, 'scan_id')
     pm.connect(inputNode, 'movement_parameters',
-                calc_motion_parameters, 'movement_parameters')
+               calc_motion_parameters, 'movement_parameters')
     pm.connect(inputNode, 'max_displacement',
                calc_motion_parameters, 'max_displacement')
     
@@ -937,7 +937,6 @@ def calculate_DVARS(rest, mask):
     #square root and mean across all timepoints inside mask
     DVARS = np.sqrt(np.mean(data, axis=0))
     
-    print "PRINT TO CHECK IF THIS IN LOG FILE ****************"
     
     np.save(out_file, DVARS)
     

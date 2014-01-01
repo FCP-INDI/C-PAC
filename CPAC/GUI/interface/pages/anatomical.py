@@ -49,7 +49,7 @@ class Segmentation(wx.ScrolledWindow):
                  name='runSegmentationPreprocessing', 
                  type=dtype.LSTR, 
                  comment="Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.", 
-                 values=["On","Off"],
+                 values=["On","Off","On/Off"],
                  wkf_switch = True)
 
         self.page.add(label= "White Matter Probability Threshold ",
@@ -127,7 +127,7 @@ class Registration(wx.ScrolledWindow):
                      name='runRegistrationPreprocessing', 
                      type=dtype.LSTR, 
                      comment="Register anatomical images to a template.", 
-                     values=["On","Off"],
+                     values=["On","Off","On/Off"],
                      wkf_switch = True)
         
         self.page.add(label="Anatomical Template Resolution ", 
@@ -156,7 +156,7 @@ class Registration(wx.ScrolledWindow):
                      name='regOption', 
                      type=dtype.LSTR, 
                      comment="Use either ANTS or FSL (FLIRT and FNIRT) as your anatomical registration method.", 
-                     values=["ANTS","FSL"],
+                     values=["ANTS","FSL","ANTS & FSL"],
                      wkf_switch = True)
 
         self.page.add(label="FSL FNIRT Configuration File (FSL only) ", 

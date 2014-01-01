@@ -2,6 +2,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from CPAC.network_centrality import *
 
+
 def create_resting_state_graphs(allocated_memory = None,
                                 wf_name = 'resting_state_graph'):
     """
@@ -170,7 +171,7 @@ def create_resting_state_graphs(allocated_memory = None,
     wf.connect(read_data, 'scans', 
                calculate_centrality, 'scans')
     wf.connect(read_data, 'mask_data',
-                calculate_centrality, 'template_data')
+               calculate_centrality, 'template_data')
     wf.connect(read_data, 'affine',
                calculate_centrality, 'affine')
     wf.connect(read_data, 'mask_type',
@@ -247,7 +248,7 @@ def load(datafile, template):
     #check for parcellation
     nodes = np.unique(mask).tolist()
     nodes.sort()
-    print "sorted nodes", nodes
+    print "sorted nodes: ", nodes
     
     #extract timeseries
     if len(nodes)>2:
@@ -319,7 +320,6 @@ def get_centrality(timeseries_data,
     Exception
     """
     
-    import os
     import numpy as np
     from CPAC.network_centrality import load_mat,\
                                         calc_corrcoef,\
@@ -327,7 +327,6 @@ def get_centrality(timeseries_data,
                                         calc_threshold,\
                                         calc_eigenV
     
-    from scipy.sparse import csc_matrix
     
     out_list=[]
     
@@ -341,7 +340,7 @@ def get_centrality(timeseries_data,
         i = block_size
         
         while i <= timeseries.shape[0]:
-            print "block ->", i,j 
+            print "block -> ", i + j
             temp_matrix = np.nan_to_num(calc_corrcoef(timeseries[j:i].T, timeseries.T))
             corr_matrix[j:i] = temp_matrix
             j = i   
@@ -358,7 +357,7 @@ def get_centrality(timeseries_data,
                                  corr_matrix,
                                  full_matrix = True)
         
-        print "r_value ->", r_value
+        print "r_value -> ", r_value
                 
         if method_options[0]:
             
@@ -425,7 +424,6 @@ def get_centrality_opt(timeseries_data,
     
     
     import numpy as np
-    import os
     from CPAC.network_centrality import load_mat,\
                                         calc_corrcoef,\
                                         calc_blocksize,\
@@ -440,7 +438,7 @@ def get_centrality_opt(timeseries_data,
         try:
             block_size = calc_blocksize(shape, memory_allocated)
         except:
-           raise Exception("Error in calculating block size")
+            raise Exception("Error in calculating block size")
         
         r_matrix = None
         
@@ -461,31 +459,32 @@ def get_centrality_opt(timeseries_data,
         
         while i <= timeseries.shape[0]:
            
-           print "running block ->", i, j 
-           try:
-               corr_matrix = np.nan_to_num(calc_corrcoef(timeseries[j:i].T, timeseries.T))
-           except:
-               raise Exception("Error in calcuating block wise correlation for the block %,%"%(j,i))
+            print "running block -> ", i + j
+            
+            try:
+                corr_matrix = np.nan_to_num(calc_corrcoef(timeseries[j:i].T, timeseries.T))
+            except:
+                raise Exception("Error in calcuating block wise correlation for the block %,%"%(j,i))
            
-           if r_value == None:
+            if r_value == None:
                 r_value = calc_threshold(1, threshold, scans, corr_matrix, full_matrix = False)
-    
-           if method_options[1]:
-               r_matrix[j:i] = corr_matrix 
-    
-           if method_options[0]:
-               if weight_options[0]:
-                   degree_mat_binarize[j:i] = np.sum((corr_matrix > r_value).astype(np.float32), axis = 1) -1
-               if weight_options[1]:
-                   degree_mat_weighted[j:i] = np.sum(corr_matrix*(corr_matrix > r_value).astype(np.float32), axis = 1) -1
+                
+            if method_options[1]:
+                r_matrix[j:i] = corr_matrix 
+                
+            if method_options[0]:
+                if weight_options[0]:
+                    degree_mat_binarize[j:i] = np.sum((corr_matrix > r_value).astype(np.float32), axis = 1) -1
+                if weight_options[1]:
+                    degree_mat_weighted[j:i] = np.sum(corr_matrix*(corr_matrix > r_value).astype(np.float32), axis = 1) -1
         
-           j = i   
-           if i == timeseries.shape[0]:
-               break
-           elif (i+block_size) > timeseries.shape[0]: 
-               i = timeseries.shape[0] 
-           else:
-               i += block_size    
+            j = i   
+            if i == timeseries.shape[0]:
+                break
+            elif (i+block_size) > timeseries.shape[0]: 
+                i = timeseries.shape[0] 
+            else:
+                i += block_size    
         
         try:
             if method_options[1]:
@@ -647,7 +646,7 @@ def calc_centrality(method_options,
                                      threshold,
                                      scans)
         
-        print "inside optimized_centraltity, r_value ->", r_value
+        print "inside optimized_centrality, r_value -> ", r_value
         
         centrality_matrix = get_centrality_opt(timeseries_data,
                                                method_options, 
@@ -655,7 +654,7 @@ def calc_centrality(method_options,
                                                allocated_memory,
                                                threshold,
                                                scans,
-                                               r_value)     
+                                               r_value)
         
     def get_image(matrix, template_type):
         

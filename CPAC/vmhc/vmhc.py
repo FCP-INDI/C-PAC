@@ -8,7 +8,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from utils import *
 from CPAC.vmhc import *
-from CPAC.interfaces.afni import preprocess
+from nipype.interfaces.afni import preprocess
 from CPAC.registration import create_ants_nonlinear_xfm, create_apply_ants_xfm
 
 def create_vmhc(use_ants):
@@ -298,17 +298,18 @@ def create_vmhc(use_ants):
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
     ## caculate vmhc
-    pearson_correlation = pe.Node(interface=preprocess.ThreedTcorrelate(),
+    pearson_correlation = pe.Node(interface=preprocess.TCorrelate(),
                       name='pearson_correlation')
     pearson_correlation.inputs.pearson = True
     pearson_correlation.inputs.polort = -1
     pearson_correlation.inputs.outputtype = 'NIFTI_GZ'
 
-    z_trans = pe.Node(interface=preprocess.Threedcalc(),
+    z_trans = pe.Node(interface=preprocess.Calc(),
                          name='z_trans')
-    z_trans.inputs.expr = '\'log((1+a)/(1-a))/2\''
+    z_trans.inputs.expr = 'log((1+a)/(1-a))/2'
     z_trans.inputs.outputtype = 'NIFTI_GZ'
-    z_stat = pe.Node(interface=preprocess.Threedcalc(),
+
+    z_stat = pe.Node(interface=preprocess.Calc(),
                         name='z_stat')
     z_stat.inputs.outputtype = 'NIFTI_GZ'
 
@@ -407,13 +408,13 @@ def create_vmhc(use_ants):
     vmhc.connect(copy_and_L_R_swap, 'out_file',
                  pearson_correlation, 'yset')
     vmhc.connect(pearson_correlation, 'out_file',
-                 z_trans, 'infile_a')
+                 z_trans, 'in_file_a')
     vmhc.connect(copy_and_L_R_swap, 'out_file',
                  NVOLS, 'in_files')
     vmhc.connect(NVOLS, 'nvols',
                  generateEXP, 'nvols')
     vmhc.connect(z_trans, 'out_file',
-                 z_stat, 'infile_a')
+                 z_stat, 'in_file_a')
     vmhc.connect(generateEXP, 'expr',
                  z_stat, 'expr')
 

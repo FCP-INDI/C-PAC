@@ -7,6 +7,8 @@ import wx.lib.agw.aquabutton as AB
 import os
 import pkg_resources as p
 import sys
+from CPAC.utils import Configuration
+import yaml
 ID_NEW = 1
 ID_RENAME = 2
 ID_CLEAR = 3
@@ -512,7 +514,6 @@ class ListBox(wx.Frame):
             win.Refresh()
 
         try:
-            import yaml
             c = yaml.load(open(config, 'r'))
         except:
             dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
@@ -521,17 +522,7 @@ class ListBox(wx.Frame):
             ret_val = -1
             dlg.ShowModal()
             dlg.Destroy()
-        else:
-            for wf in multiple_value_wfs:
-                if c.get(wf):
-                    if len(c.get(wf))>1:
-                        dlg = wx.MessageDialog(self, "Configuration with multiple pipeline is not yet accepted by the gui. The multiple"\
-                                                      "pipeline is due to workflow - %s"%wf,
-                                           'Error!',
-                                       wx.OK | wx.ICON_ERROR)
-                        dlg.ShowModal()
-                        dlg.Destroy()
-                        ret_val = -1
+
 
         
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
@@ -599,30 +590,37 @@ class ListBox(wx.Frame):
             path = dlg.GetPath()
             if self.check_config(path) > 0:
                 while True:
-                    dlg2 = wx.TextEntryDialog(self, 'Please enter a unique pipeline id for the configuration',
-                                             'Pipeline Id', "")
-                    if dlg2.ShowModal() == wx.ID_OK:
-                        if len(dlg2.GetValue()) >0:
+                    
+                    try:
+                        c = Configuration(yaml.load(open(os.path.realpath(path), 'r')))
+                    except:
+                        print "\n\n" + "ERROR: Configuration file could not be loaded properly - the file " \
+                              "might be access-protected or you might have chosen the wrong file." + "\n"
+                        print "Error name: main_window_0001" + "\n\n"
+                        raise Exception
+                    
+                    
+                    if len(c.pipelineName) >0:
                             
-                                
-                            if self.pipeline_map.get(dlg2.GetValue()) == None:
-                                self.pipeline_map[dlg2.GetValue()] = path
-                                self.listbox.Append(dlg2.GetValue())
-                                dlg2.Destroy()
+                            if self.pipeline_map.get(c.pipelineName) == None:
+                                self.pipeline_map[c.pipelineName] = path
+                                self.listbox.Append(c.pipelineName)
                                 dlg.Destroy()
                                 break
+                            
                             else:        
                                        
-                                dlg3 = wx.MessageDialog(self, 'Pipeline already exist. Please enter a new name',
+                                dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
                                                'Error!',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()
                                 dlg3.Destroy()
+                                
                     else:
-                        dlg2.Destroy()
                         dlg.Destroy
                         break
-       
+                    
+                    
               
 class runCPAC(wx.Frame):
  

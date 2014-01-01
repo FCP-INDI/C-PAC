@@ -2,7 +2,6 @@ import os
 
 def first_pass_organizing_files(qc_path):
 
-    import os
     from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
@@ -63,14 +62,12 @@ def first_pass_organizing_files(qc_path):
 
 def second_pass_organizing_files(qc_path):
 
-    import os
     from CPAC.qc.utils import append_to_files_in_dict_way
 
     qc_files = os.listdir(qc_path)
 
     strat_dict = {}
-    got_hp_lp = 0
-    got_bp = 0
+
     for file_ in sorted(qc_files, reverse=True):
 
         if not ('.txt' in file_):
@@ -223,8 +220,6 @@ def prep_resources(output_path, pipelines):
 
 
 def get_path_files_in_dict(qc_path, html_files):
-
-    import os
 
     dict_ = {}
     files_ = os.listdir(qc_path)
@@ -383,7 +378,6 @@ def get_resources_for_strategy(files_, resources, special_res, dict_):
 
 def get_power_params(qc_path, file_):
 
-    import os
     import csv
 
     subj_dir = os.path.dirname(qc_path)
@@ -429,7 +423,6 @@ def get_power_params(qc_path, file_):
 
 def get_motion_params(qc_path, file_):
 
-    import os
     import csv
 
     subj_dir = os.path.dirname(qc_path)
@@ -475,11 +468,6 @@ def write_closing_tags(file_):
 
 def make_group_htmls(output_path):
 
-    import os
-    #from CPAC.utils.create_all_qc import populate_htmls, prep_resources, write_closing_tags
-    #from CPAC.utils.create_all_qc import first_pass_organizing_files
-    #from CPAC.utils.create_all_qc import second_pass_organizing_files
-
     files_ = []
     pipelines = os.listdir(output_path)
     pipelines = [pipeline for pipeline in pipelines if 'pipeline_' in pipeline]
@@ -501,12 +489,18 @@ def make_group_htmls(output_path):
 
             subj_path = os.path.join(pip_path, subj)
             
-            print subj_path + '/qc/snr_val'
 
+            print "subj_path: ", subj_path, '\n'
+            
+            snr_file = ''
+            sval = ''
+            
+            
             ### read average snr value from the file
             for root, dirs, files in os.walk(subj_path + '/qc/snr_val'):
                 if 'average_snr_file.txt' in files:
                     snr_file = os.path.join(root + '/average_snr_file.txt')
+
 
             if os.path.exists(snr_file):
                 sval = open(snr_file, 'r').readline()
@@ -538,21 +532,21 @@ def make_group_htmls(output_path):
 
                     try:
                         meanFD, meanDvars = get_power_params(qc_path, file_)
-                    except Exception as e:
+
+                    except:
                         print "Error: some power params lost."
-                        print e
-                        print type(e)
                         meanFD = 0.0
                         meanDvars = 0.0
+                        pass
 
                     try:
                         mean_rms, max_rms = get_motion_params(qc_path, file_)
-                    except Exception as e:
+                    except:
                         print "Error: some motion params lost."
-                        print e
-                        print type(e)
                         mean_rms = 0.0
                         max_rms = 0.0
+                        pass                        
+
 
                     populate_htmls(html_, os.path.join(qc_path, file_), subj, \
                     subj_path, meanFD, meanDvars, mean_rms, max_rms, sval)

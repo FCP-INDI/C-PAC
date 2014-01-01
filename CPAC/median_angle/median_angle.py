@@ -1,6 +1,8 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+
+
 def median_angle_correct(target_angle_deg, realigned_file):
     """
     Performs median angle correction on fMRI data.  Median angle correction algorithm
@@ -51,7 +53,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
 
     nii = nb.load(realigned_file)
     data = nii.get_data().astype(np.float64)
-    print realigned_file, "subject data dimensions:", data.shape
+    print "realigned file: " + realigned_file + ", subject data dimensions: " + data.shape
 
     mask = (data != 0).sum(-1) != 0
 
@@ -64,15 +66,15 @@ def median_angle_correct(target_angle_deg, realigned_file):
     G = Yc.mean(1)
     corr_gu = pearsonr(G, U[:, 0])
     PC1 = U[:, 0] if corr_gu[0] >= 0 else -U[:, 0]
-    print 'Correlation of Global and U:', corr_gu
+    print 'Correlation of Global and U: ' + corr_gu
 
     median_angle = np.median(np.arccos(np.dot(PC1.T, Yn)))
-    print 'Median Angle:', (180.0 / np.pi) * median_angle,\
-        'Target Angle:', target_angle_deg
+    print 'Median Angle: ' + (180.0 / np.pi) * median_angle,\
+        ', Target Angle: ' + target_angle_deg
     angle_shift = (np.pi / 180) * target_angle_deg - median_angle
     if(angle_shift > 0):
-        print 'Shifting all vectors by',\
-            (180.0 / np.pi) * angle_shift, 'degrees.'
+        print 'Shifting all vectors by ',\
+            (180.0 / np.pi) * angle_shift + ' degrees.'
         Ynf = shiftCols(PC1, Yn, angle_shift)
     else:
         print 'Median Angle >= Target Angle, skipping correction'
@@ -81,11 +83,11 @@ def median_angle_correct(target_angle_deg, realigned_file):
     corrected_file = os.path.join(os.getcwd(), 'median_angle_corrected.nii.gz')
     angles_file = os.path.join(os.getcwd(), 'angles_U5_Yn.npy')
 
-    print 'Writing U[:,0:5] angles to file...', angles_file
+    print 'Writing U[:,0:5] angles to file...' + angles_file
     angles_U5_Yn = np.arccos(np.dot(U[:, 0:5].T, Yn))
     np.save(angles_file, angles_U5_Yn)
 
-    print 'Writing correction to file...', corrected_file
+    print 'Writing correction to file...' + corrected_file
     data = np.zeros_like(data)
     data[mask] = Ynf.T
     writeToFile(data, nii, corrected_file)
@@ -113,11 +115,11 @@ def calc_median_angle_params(subject):
     
     data = nb.load(subject).get_data().astype('float64')
     mask = (data != 0).sum(-1) != 0
-    print 'Loaded', subject
-    print 'Volume size', data.shape
+    print 'Loaded ' + subject
+    print 'Volume size ' + data.shape
     
     Y = data[mask].T
-    print 'Data shape', Y.shape
+    print 'Data shape ' + Y.shape
     
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
     Yn = Yc/np.tile(np.sqrt((Yc*Yc).sum(0)), (Yc.shape[0], 1))
@@ -127,7 +129,7 @@ def calc_median_angle_params(subject):
 
     from scipy.stats.stats import pearsonr
     corr = pearsonr(U[:,0],glb) 
-    print "PC1_glb r:", corr
+    print "PC1_glb r: " + corr
 
     PC1 = U[:,0] if corr[0] >= 0 else -U[:,0]
     median_angle = np.median(np.arccos(np.dot(PC1.T, Yn)))
@@ -136,8 +138,8 @@ def calc_median_angle_params(subject):
     #/np.tile(Y.mean(0), (Y.shape[0], 1))
     mean_bold = Yp.std(0).mean()
 
-    print 'Median Angle', median_angle 
-    print 'Mean Bold', mean_bold 
+    print 'Median Angle ' + median_angle
+    print 'Mean Bold ' + mean_bold
     
     return mean_bold, median_angle
 
@@ -173,7 +175,7 @@ def calc_target_angle(mean_bolds, median_angles):
     target_bold = X[:,1].min()
     target_angle = target_bold*B[1] + B[0]
     
-    print 'target angle', target_angle
+    print 'target angle ' + target_angle
     
     return target_angle
 

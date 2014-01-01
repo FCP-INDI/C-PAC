@@ -4,6 +4,9 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.freesurfer as fs
 
+from nipype import logging
+
+
 def create_surface_registration(wf_name='surface_registration'):
     """
     Workflow to generate surface from anatomical data and register 
@@ -403,17 +406,17 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                          (fields=['subject_timeseries']),
                           name='outputspec')
 
-    spatialReg = pe.Node(interface=fsl.FSLGLM(),
+    spatialReg = pe.Node(interface=fsl.GLM(),
                          name='spatial_regression')
 
-    spatialReg.inputs.output_file = 'spatial_map_timeseries.txt'
+    spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
     wflow.connect(inputNode, 'subject_rest',
                 spatialReg, 'in_file')
     wflow.connect(inputNode, 'subject_mask',
                 spatialReg, 'mask')
     wflow.connect(inputNode, 'spatial_map',
-                spatialReg, 'design_file')
+                spatialReg, 'design')
     wflow.connect(inputNode, 'demean',
                 spatialReg, 'demean')
 
@@ -642,8 +645,8 @@ def gen_roi_timeseries(data_file,
         roi_number_str.append("#" + number)
 
 
-    print new_keys
-    print roi_number_str
+    print "new keys: ", new_keys
+    print "roi number str: ", roi_number_str
     for key in new_keys:
         value_list.append(node_dict['node_%s' % key])
 

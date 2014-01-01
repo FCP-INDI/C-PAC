@@ -13,6 +13,7 @@ from CPAC.utils.utils import prepare_gp_links
 from CPAC.group_analysis import create_group_analysis
 
 
+
 def prep_group_analysis_workflow(c, resource, subject_infos):
     
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
@@ -81,7 +82,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
             os.makedirs(mod_path)
         except:
-            print "%s already exist"%(mod_path)
+            print "%s already exists"%(mod_path)
             
         new_phenotypic_file = os.path.join(mod_path, os.path.basename(phenotypic_file))
                 
@@ -111,15 +112,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             threshold_val = c.scrubbingThreshold[0]
 
         else:
-            print ("Found Multiple threshold value ")
-    
+            print "Found Multiple threshold value "
+
 
         print "scrubbing threshold_val -->", threshold_val
 
     else:
 
         print "No scrubbing enabled."
-        print "\n"
 
 
     #pick the right parameter file from the pipeline folder
@@ -205,18 +205,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         # check to see if any derivatives of subjects are missing
         if len(list(set(subject_list) - set(exist_paths))) >0:
-            print "-------------------------------------------"
             print "List of outputs missing for subjects:"
             print list(set(subject_list) - set(exist_paths))
-            print "\n"
             print "..for derivatives:"
             print resource
-            print "\n"
             print "..at paths:"
             print os.path.dirname(s_paths[0]).replace(s_ids[0], '*')
-            print "-------------------------------------------"
-
-            print '\n'
 
             #import warnings
             #warnings.warn(msg)
@@ -237,13 +231,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             os.makedirs(mod_path)
             print "Creating directory:"
             print mod_path
-            print "\n"
 
         except:
 
             print "Attempted to create directory, but path already exists:"
             print mod_path
-            print '\n'
         
 
         new_sub_file = os.path.join(mod_path, os.path.basename(conf.subjectListFile))
@@ -266,7 +258,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         except:
 
             print "Error: Could not open subject list file: ", new_sub_file
-            print ""
             raise Exception
 
 
@@ -296,7 +287,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             
         print "Model config dictionary ->"
         print conf.__dict__
-        print '\n'
 
 
 
@@ -306,7 +296,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, True)
+            create_fsl_model.run(conf, c.fTest, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
@@ -353,24 +343,24 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         model, subject_list = model_sub
         
-        print "running for model %s and resource %s..."%(os.path.basename(model), resource)
+        print "running for model %s and resource %s..." % (os.path.basename(model), resource)
         
 
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exit"%model)
         
         if not os.path.exists(subject_list):
-            raise Exception("path to input subject list %s is invalid"%subject_list)
+            raise Exception("path to input subject list %s is invalid" % subject_list)
         
         #if c.mixedScanAnalysis == True:
         #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         #else:
 
-        wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s/%s'%(resource, os.path.basename(model), scan_ids[0])) 
+        wf = pe.Workflow(name = 'group_analysis__%s__grp_model_%s__%s' % (resource, os.path.basename(model), scan_ids[0])) 
 
         wf.base_dir = c.workingDirectory
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s'%(os.path.basename(model)))
+        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (os.path.basename(model)))
         try:
             os.makedirs(log_dir)
         except:
@@ -435,10 +425,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         '''
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
-        print ""
       
-        iflogger.info("input_subject_list -> %s"%input_subject_list)
-        print ""
+        print "input_subject_list -> %s" % input_subject_list
     
         strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
 
@@ -447,15 +435,17 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 strgy_path = strgy_path.replace(ch, '_')
 
         print "strgy_path: ", strgy_path
-        print ""
         
-
+        
+        # create nipype-workflow-name-friendly strgy_path
+        # (remove special characters)
+        strgy_path_name = strgy_path.replace('/', '__')
 
         # gp_flow
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
         # directory and sends them to the create_group_analysis workflow gpa_wf
 
-        gp_flow = create_grp_analysis_dataflow("gp_dataflow%s"%strgy_path)
+        gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % strgy_path_name)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
         
@@ -464,13 +454,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # gpa_wf
         # Creates the actual group analysis workflow
 
-        gpa_wf = create_group_analysis(c.fTest, "gp_analysis%s"%strgy_path)
+        gpa_wf = create_group_analysis(c.fTest, "gp_analysis_%s" % strgy_path_name)
 
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
         gpa_wf.inputs.inputspec.p_threshold = c.pThreshold
-        gpa_wf.inputs.inputspec.parameters = (c.FSLDIR,
-                                                   'MNI152')
+        gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
     
         print "group model: ", model
         print "f test: ", c.fTest
@@ -510,7 +499,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                 if name in os.path.basename(s_paths[0]):
                     out_dir = os.path.join(out_dir, name)
                     break
-
 
         if 'tempreg_maps_z_files' in resource:
             out_dir = os.path.join(out_dir, \
@@ -593,21 +581,20 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Run the actual group analysis workflow with the amount
         # of processors determined in the pipeline_config file
 
-        try:
+        wf.run()#(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
 
-            wf.run()#(plugin='MultiProc',
-                     #            plugin_args={'n_procs': c.numCoresPerSubject})
-
+        '''
         except:
 
             print "Error: Group analysis workflow run command did not complete successfully."
             print "subcount: ", subcount
             print "pathcount: ", pathcount
             print "sublist: ", sublist_items
-            print "input subject list: ", input_subject_list
+            print "input subject list: "
             print "conf: ", conf.subjectListFile
             
             raise Exception
+        '''
     
         print "**Workflow finished for model %s and resource %s"%(os.path.basename(model), resource)
 

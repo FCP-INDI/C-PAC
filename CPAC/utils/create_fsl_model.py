@@ -1,6 +1,5 @@
 import os
 import sys
-import argparse
 import numpy as np
 import csv
 import yaml
@@ -21,62 +20,35 @@ def filter_phenotypic(c):
     -------
 
     f_r: List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py    
+    in columnsInModel variable in the config_fsl.py
 
     """
 
-
     ph = c.phenotypicFile
     sublist = c.subjectListFile
-
-    p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
-   
-
+ 
     f = open(sublist, 'r')
 
     subjects = f.readlines()
 
     sub_dict = {}
-    p_dict = {}
 
-
-    
-    pheno_dict_list = []
 
     # Read in the phenotypic CSV file into a dictionary named pheno_dict
     # while preserving the header fields as they correspond to the data
-    with open(os.path.abspath(ph), 'rU') as pheno:
+    p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
 
-        firstLine = pheno.readline()
-
-        pheno_entire_header = firstLine.split("\n")
-
-        pheno_header_items = pheno_entire_header[0].split(",")
-
-
-        for line in pheno:
-
-            j = 0
-
-            tempDict = {}
-
-            items = line.split("\n")
-            items = items[0].split(",")
+    pheno_dict_list = []
+    for line in p_reader:
+    
+        pheno_dict_list.append(line)
+        
+        # pheno_dict_list is a list of dictionaries of phenotype header items
+        # matched to their values, which also includes subject IDs
             
-
-            for fields in pheno_header_items:
-     
-                key = pheno_header_items[j]
-                value = items[j]
-
-                tempDict[key] = value
-
-                j += 1
-
-      
-            pheno_dict_list.append(tempDict)
-
-  
+        # i.e. [{'header1': 'value', 'header2': 'value'}, {'header1': 'value', 'header2': 'value'}, ..]
+            
+        # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
 
 
     # Creates a dictionary sub_dict which stores the amount of
@@ -90,24 +62,30 @@ def filter_phenotypic(c):
         else:
             sub_dict[subject] += 1
 
-    final_reader = []
-    f_r = []
-
-    
 
 
     # Iterate over phenotypic CSV file removing any fields that are not listed
     # in the columnsInModel parameter in the FSL config file, and then write the
     # remaining fields into record_dict dictionary
 
+    f_r = []
+
     try:
 
         record_dict = {}
-
+      
         for record in pheno_dict_list:
             
+            # "record" is a dictionary of phenotype header items matched
+            # to their values and it is UNORDERED
+            
+            # if record[c.subjectColumn] (which is a subject ID number)
+            # is in sub_dict or not
             if record[c.subjectColumn] in sub_dict:
                 
+                # record.keys() is a list of phenotype header items.
+                # here, we remove any header items which are not included in the
+                # 'columnsInModel' field in the group analysis FSL config file
                 for rec in record.keys():
                     
                     if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
@@ -115,9 +93,11 @@ def filter_phenotypic(c):
                         del record[rec]
                             
 
+                # record_dict is a dictionary of dictionaries, where the key is the
+                # subject ID and the value is a dictionary of header items matched
+                # to their values (WARNING: header items unordered)
                 record_dict[record[c.subjectColumn]] = record
-
-
+                
 
     except:
     
@@ -127,14 +107,26 @@ def filter_phenotypic(c):
 
 
 
-
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
 
         try:
 
+            # record_dict.keys() is a list of subject IDs within
+            # the record_dict dictionary
             if subject in record_dict.keys():
+                
+                # f_r is a list of dictionaries of phenotype header items
+                # matched to their values - like record_dict above, except
+                # the dictionaries are not matched to a subject ID
+                
+                # HEADER ITEMS STILL UNORDERED
+                
+                # HOWEVER, the subject ID is present within each dictionary
+                # in the f_r list, matched with a key named after the subject
+                # column header item
+                
                 f_r.append(record_dict[subject])
 
         except:
@@ -142,7 +134,9 @@ def filter_phenotypic(c):
             print "Exception: Could not read from record lookup table for subject #: ", subject
             raise Exception
 
+
     return f_r
+
 
 
 def organize_data(filter_data, c):
@@ -186,16 +180,13 @@ def organize_data(filter_data, c):
             directional_cols.append(c.columnsInModel[i])
 
 
-    idx = 0
 
     for data in filter_data:
 
         for col in mean_cols:
 
             try:
-
                 if not col in mean:
-
                     mean[col] = float(data[col])
                 else:
                     mean[col] += float(data[col])
@@ -228,8 +219,6 @@ def organize_data(filter_data, c):
     idx = 0
     for data in filter_data:
 
-        print "data: ", data
-        print "directional map keys: ", directional_map.keys()
 
         for col in directional_map.keys():
 
@@ -275,8 +264,14 @@ def organize_data(filter_data, c):
         filter_data[idx] = data
         idx += 1
 
-
-    zeroth = filter_data[0]
+    try:
+        zeroth = filter_data[0]
+    except:
+        print "\n\n" + "ERROR: Subject information did not match properly" \
+              " between the phenotypic file and group analysis subject list." \
+              "\n Tip: Double-check subject names." + "\n" + \
+        "Error name: create_fsl_model_0001" + "\n\n"
+        raise Exception
 
     field_names = [c.subjectColumn]
 
@@ -300,7 +295,9 @@ def organize_data(filter_data, c):
             field_names.append(f_n)
 
 
+
     return filter_data, field_names
+
 
 
 def check_multicollinearity(matrix):
@@ -328,6 +325,7 @@ def check_multicollinearity(matrix):
     return 0
 
 
+
 def write_data(model_data, field_names, c):
 
     """
@@ -348,59 +346,51 @@ def write_data(model_data, field_names, c):
     The populated Model File
 
     """
-    #print model_data
-    #print field_names
-
-    print "field names: ", field_names
 
     evs = open(c.contrastFile, 'r').readline()
     evs = evs.rstrip('\n')
     evs = evs.rstrip('\n')
     evs = evs.split(',')
     evs = [ev.replace("\"", '') for ev in evs]
-    idx = 0
+
     new_evs = []
-
-
-    print "EVS: ", evs
+    
 
     for ev in evs:
         if (ev in field_names):
             new_evs.append(ev)
 
-    print "new EVS: ", new_evs
-
-
+    # evs is now a list of contrast file header items
     evs = list(new_evs)
     del new_evs
 
+    # new_field_names is a list of evs with the subjectID
+    # column added at the beginning
     new_field_names = [c.subjectColumn] + evs
 
-    #print model_data[0]
-    #print new_field_names
 
     try:
 
-        f = open(c.outputModelFile, 'wt')
+        csvPath = c.outputModelFilesDirectory + '/' + c.outputModelFile
+        f = open(csvPath, 'wt')
 
     except:
 
-        print "Could not open the output model file: ", c.outputModelFile
+        print "Could not open the output model file: ", csvPath
         print ""
         raise Exception
 
 
     try:
 
-        # CHANGED THE FIELDNAMES TO FIELD_NAMES FOR NOW, BUT HAVE TO FIGURE OUT WHY
-        # EVS IS NOT BEING WRITTEN PROPERLY AND MISSING THE LAST HEADER ITEM
+        # make fieldnames=new_field_names so that when the unordered
+        # phenotype data is written to the model file, the header items
+        # and their corresponding values will be in the correct order
+        writer = csv.DictWriter(f, fieldnames=new_field_names)
 
-        writer = csv.DictWriter(f, fieldnames=field_names) #new_field_names)
-
-        header = dict((n, n) for n in field_names) #new_field_names)
+        header = dict((n, n) for n in new_field_names)
 
         writer.writerow(header)
-
 
         dropped_columns_a = []
         dropped_columns_b = []
@@ -408,25 +398,31 @@ def write_data(model_data, field_names, c):
         dropped_columns_b = [name for name in new_field_names if not (name in list(set(field_names) & set(new_field_names))) ]
         dropped_columns = list(set(dropped_columns_a + dropped_columns_b))
 
+
         if not (len(dropped_columns) == 0):
             print 'dropping columns(not specified in contrasts) from the model ', dropped_columns
 
 
         new_data = []
+        
+        # model_data is a LIST of dictionaries of the phenotype
+        # header items matched to their values
         for data in model_data:
 
             data_row = []
             for name in field_names:
 
-                if not name in field_names: #new_field_names:
+                if not name in field_names:
                     del data[name]
                 else:
                     if not (c.subjectColumn in name):
                         data_row.append(float(data[name]))
             new_data.append(list(data_row))
+            
 
             writer.writerow(data)
-
+            
+            
 
         detect = 0
 
@@ -439,6 +435,7 @@ def write_data(model_data, field_names, c):
 
     finally:
         f.close()
+
 
 
 def create_mat_file(data, model_name, outputModelFilesDirectory):
@@ -477,6 +474,8 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     f.close()
 
+
+
 def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
     """
@@ -511,7 +510,9 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
     f.close()
 
-def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
+
+
+def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory):
 
     """
     Create the contrasts and fts file
@@ -549,52 +550,82 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory):
     length = len(list(lst[0]))
 
 
-    for tp in lst:
+    try:
 
-        contrast_names.append(tp[0])
-        contrasts.append(list(tp)[1:length-count_ftests])
+        for tp in lst:
 
-        ftst.append(list(tp[length-count_ftests: length]))
+            contrast_names.append(tp[0])
+            contrasts.append(list(tp)[1:length-count_ftests])
+
+            if fTest:
+                ftst.append(list(tp[length-count_ftests: length]))
+
+        contrasts = np.array(contrasts, dtype=np.float16)
+        
+        if fTest:
+            fts_n = np.array(ftst)
+
+    except:
+        print "\n\n" + "ERROR: Not enough contrasts for running f-tests." \
+              "\n Tip: Do you have only one contrast in your contrasts file?" \
+              " f-tests require more than one contrast." + "\n" + \
+              "Either turn off f-tests or include more contrasts." + "\n" + \
+              "Error name: create_fsl_model_0002" + "\n\n"
+        raise Exception
 
 
-    contrasts = np.array(contrasts, dtype=np.float16)
+    try:
 
-    fts_n = np.array(ftst)
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
+        f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
 
-    idx = 1
-    pp_str = '/PPheights'
-    re_str = '/RequiredEffect'
-    for name in contrast_names:
+        idx = 1
+        pp_str = '/PPheights'
+        re_str = '/RequiredEffect'
+        for name in contrast_names:
 
-        print >>f, '/ContrastName%d' %idx, '\t', name
-        pp_str += '\t%1.5e' %(1)
-        re_str += '\t%1.5e' %(1)
-        idx += 1
+            print >>f, '/ContrastName%d' %idx, '\t', name
+            pp_str += '\t%1.5e' %(1)
+            re_str += '\t%1.5e' %(1)
+            idx += 1
 
-
-    print >>f, '/NumWaves\t', (contrasts.shape)[1]
-    print >>f, '/NumContrasts\t', (contrasts.shape)[0]
-    print >>f, pp_str
-    print >>f, re_str + '\n'
-    print >>f, '/Matrix'
+        print >>f, '/NumWaves\t', (contrasts.shape)[1]
+        print >>f, '/NumContrasts\t', (contrasts.shape)[0]
+        print >>f, pp_str
+        print >>f, re_str + '\n'
+        print >>f, '/Matrix'
    
+        np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
-    np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
+        f.close()
 
-    f.close()
+    except:
+        print "Error: Could not create .con file."
+        print ""
+        raise Exception
 
-    fts_n = fts_n.T
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
-    print >>f, '/NumWaves\t%d' % (contrasts.shape)[0]
-    print >>f, '/NumContrasts\t%d\n' % count_ftests
 
-    print >>f, '/Matrix'
+    if fTest:
 
-    for i in range(fts_n.shape[0]):
-        print >>f, ' '.join(fts_n[i].astype('str'))
-    #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
-    f.close()
+        try:
+
+            fts_n = fts_n.T
+            f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
+            print >>f, '/NumWaves\t%d' % (contrasts.shape)[0]
+            print >>f, '/NumContrasts\t%d\n' % count_ftests
+
+            print >>f, '/Matrix'
+
+            for i in range(fts_n.shape[0]):
+                print >>f, ' '.join(fts_n[i].astype('str'))
+            #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
+            f.close()
+
+        except:
+            print "Error: Could not create .fts file."
+            print ""
+            raise Exception
+
+
 
 """
 Class to set dictionary keys as map attributes
@@ -605,6 +636,7 @@ class Configuration(object):
             if config_map[key] == 'None':
                 config_map[key] = None
             setattr(self, key, config_map[key])
+
 
 
 def pandas_alternate_organize_data(data, c):
@@ -660,6 +692,7 @@ def pandas_alternate_organize_data(data, c):
     sys.exit()
 
 
+
 def split_directionals(gp, directional, data, c):
 
     for key in gp.keys():
@@ -677,6 +710,8 @@ def split_directionals(gp, directional, data, c):
                 else:
                     data[idx][new_col] = 0
 
+
+
 def split_gp_var(gp, data, c):
 
 
@@ -692,6 +727,7 @@ def split_gp_var(gp, data, c):
                 data[idx][new_col] = 1
             else:
                 data[idx][new_col] = 0
+
 
 
 def group_by_gp_categorical(categorical, data, c):
@@ -721,8 +757,6 @@ def group_by_gp_categorical(categorical, data, c):
                 data[idx][col] = 1
             else:
                 data[idx][col] = 0
-
-
 
 
 
@@ -800,7 +834,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, CPAC_run = False):
+def run(config, fTest, CPAC_run = False):
 
     if CPAC_run:
         c = config
@@ -834,12 +868,10 @@ def run(config, CPAC_run = False):
 
     filter_data = filter_phenotypic(c)
 
+
     model_ready_data = None
     field_names = None
     gp_var = None
-    order = None
-
-
 
     if c.modelGroupVariancesSeparately == 0:
 
@@ -849,13 +881,12 @@ def run(config, CPAC_run = False):
 
         model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
 
+
     write_data(model_ready_data, field_names, c)
 
 
-
     ###generate the final FSL .grp, .mat, .con, .fts files 
-    import csv
-    model = c.outputModelFile
+    model = c.outputModelFilesDirectory + '/' + c.outputModelFile
 
     con = c.contrastFile
     model_name = c.modelName
@@ -863,11 +894,12 @@ def run(config, CPAC_run = False):
     rdr = csv.DictReader(open(model, "rb"))
     no_of_columns = len(rdr.fieldnames)
 
-
     tuple_columns = tuple([n for n in range(1, no_of_columns)])
     data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
+        
 
     data_lst = data.tolist()
+
 
     data = []
 
@@ -877,6 +909,8 @@ def run(config, CPAC_run = False):
     print "Length of data list: ", len(data[:])
     print ""
     data = np.array(data, dtype=np.float16)
+
+
 
     try:
         create_mat_file(data, model_name, c.outputModelFilesDirectory)
@@ -892,10 +926,9 @@ def run(config, CPAC_run = False):
         print ""
         raise Exception
 
-    try:
-        create_con_ftst_file(con, model_name, c.outputModelFilesDirectory)
-    except:
-        print "Error: Could not create ftst file."
-        print ""
-        raise Exception
+
+    create_con_ftst_file(con, model_name, fTest, c.outputModelFilesDirectory)
+
+
+
 

@@ -2,8 +2,9 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
-from nipype.interfaces.ants import WarpImageMultiTransform
-from CPAC.interfaces.afni import preprocess
+
+#from nipype import logging
+#logger = logging.getLogger('workflow')
 
 def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
     """
@@ -87,7 +88,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         if sample_period > 20.0:
             sample_period /= 1000.0
 
-    print 'Frequency filtering using sample period:', sample_period, 'sec'
+    print 'Frequency filtering using sample period: ', sample_period, 'sec'
 
     Y_bp = np.zeros_like(Y)
     for j in range(Y.shape[1]):
@@ -185,7 +186,7 @@ def calc_residuals(subject,
     #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
     if(selector['compcor']):
-        print 'compcor_ncomponents', compcor_ncomponents
+        print 'compcor_ncomponents ', compcor_ncomponents
         regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_sigs, csf_sigs)
     
     if(selector['wm']):
@@ -215,7 +216,7 @@ def calc_residuals(subject,
     if(selector['quadratic']):
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
     
-    print 'Regressors include', regressor_map.keys()
+    print 'Regressors include: ', regressor_map.keys()
     
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
@@ -229,7 +230,7 @@ def calc_residuals(subject,
     csv_filename = os.path.join(os.getcwd(), csv_filename)
     np.savetxt(csv_filename, X, delimiter='\t')
     
-    print 'Regressors dim', X.shape, 'starting regression'
+    print 'Regressors dim: ', X.shape, ' starting regression'
     
     Y = data[global_mask].T
     B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
@@ -436,7 +437,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'reference')
-	   
+ 
 
     # Resampling the masks from 1mm to 2mm
     csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm_flirt_applyxfm')
@@ -445,7 +446,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'reference')
-	
+
     
     # Resampling the masks from 1mm to 2mm
     gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm_flirt_applyxfm')
@@ -466,15 +467,15 @@ def create_nuisance(use_ants, name='nuisance'):
 
     if use_ants == True:
 
-	ho_mni_to_2mm = pe.Node(interface=ants.WarpImageMultiTransform(), name='ho_mni_to_2mm_ants_applyxfm')
-	#ho_mni_to_2mm.inputs.args = '-applyisoxfm 2'
+        ho_mni_to_2mm = pe.Node(interface=ants.WarpImageMultiTransform(), name='ho_mni_to_2mm_ants_applyxfm')
+
         ho_mni_to_2mm.inputs.invert_affine = [1]
-	ho_mni_to_2mm.inputs.use_nearest = True
+        ho_mni_to_2mm.inputs.use_nearest = True
         ho_mni_to_2mm.inputs.dimension = 3
-	
+
         nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transformation_series')
-	nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'input_image')
-	nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
+        nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'input_image')
+        nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 
         #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
         

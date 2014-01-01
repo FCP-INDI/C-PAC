@@ -205,14 +205,22 @@ class MainFrame(wx.Frame):
 
         btnPanel = wx.Panel(self.p, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
+        
         submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", (
             280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
+        
+        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration", (
+            350, 10), wx.DefaultSize, 0)
+        hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
+        
         cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", (
             220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+        
         btnPanel.SetSizer(hbox)
 
         # finally, put the notebook in a sizer for the panel to manage
@@ -236,6 +244,11 @@ class MainFrame(wx.Frame):
         except:
             raise Exception("Error importing file - %s , Make"
                       " sure it is in correct yaml format")
+
+
+        #for config in config_file_map:
+        #    print "\n\n config: ", config, " selection: ", config_file_map[config]
+
 
 
         for page in self.nb.get_page_list():
@@ -278,10 +291,17 @@ class MainFrame(wx.Frame):
 
                         elif ctrl.get_datatype() == 4:
 
+                            if 1 in val and 0 in val:
+                                val = [10]
+                                
+                            if 'ANTS' in val and 'FSL' in val:
+                                val = [11]
+                            
                             value = [s_map.get(item)
-                                     for item in val if s_map.get(item) != None]
+                                         for item in val if s_map.get(item) != None]
                             if not value:
                                 value = [ str(item) for item in val]
+                            
                                 
                         elif ctrl.get_datatype() == 5 and ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
@@ -305,6 +325,214 @@ class MainFrame(wx.Frame):
                 #print "setting value in ctrl -->", value
                 #print "type -->", type(value)
                 ctrl.set_value(value)
+
+
+
+    def testConfig(self, event):
+        
+        '''
+        This function runs when the user clicks the "Test Configuration" button in the
+        pipeline configuration window.
+        
+        It prompts the user for a sample subject list (i.e. one that they will be using
+        with the config they are building). Then it builds the pipeline but does not
+        run it. It then reports whether or not the config will run or not depending
+        on if the pipeline gets built successfully.
+        '''
+        
+        import os
+        import yaml
+        
+        from CPAC.utils import Configuration
+        
+        from CPAC.pipeline.cpac_pipeline import prep_workflow
+        from CPAC.pipeline.cpac_runner import build_strategies
+        
+        def display(win, msg, changeBg=True):
+            wx.MessageBox(msg, "Error")
+            if changeBg:
+                win.SetBackgroundColour("pink")
+            win.SetFocus()
+            win.Refresh()
+        
+        # Collect a sample subject list and parse it in
+        testDlg0 = wx.MessageDialog(
+            self, 'This tool will run a quick check on the current pipeline configuration.' \
+                  ' Click OK to provide a subject list you will be using with this setup.',
+            'Subject List',
+            wx.OK | wx.ICON_INFORMATION)
+        testDlg0.ShowModal()
+        testDlg0.Destroy()
+        
+        dlg = wx.FileDialog(
+            self, message="Choose the CPAC Subject list file",
+            defaultDir=os.getcwd(), 
+            defaultFile="CPAC_subject_list.yml",
+            wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+            style=wx.OPEN | wx.CHANGE_DIR)
+        
+        if dlg.ShowModal() == wx.ID_OK:
+            subListPath = dlg.GetPath()
+            
+        sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
+        
+        
+        # Check to ensure the user is providing an actual subject
+        # list and not some other kind of file
+        try:
+            subInfo = sublist[0]
+        except:
+            errDlg4 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0001',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg4.ShowModal()
+            errDlg4.Destroy()
+    
+            raise Exception  
+            
+        # Another check to ensure the actual subject list was generated
+        # properly and that it will work
+        if 'subject_id' not in subInfo:
+            errDlg3 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0002',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg3.ShowModal()
+            errDlg3.Destroy()
+    
+            raise Exception       
+            
+        
+        # Following code reads in the parameters and selections from the
+        # pipeline configuration window and populate the config_list
+        config_list = []
+        wf_counter = []
+
+        #print "self.nb.get_page_list()", self.nb.get_page_list()
+        for page in self.nb.get_page_list():
+            #print "page ----> ", page
+            switch = page.page.get_switch()
+            #print "switch ---->", switch
+            ctrl_list = page.page.get_ctrl_list()
+            validate = False
+
+            if switch:
+                switch_val = str(switch.get_selection()).lower()
+                #print "switch_val ---->", switch_val
+                if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
+                    validate = True
+                    wf_counter.append(page.get_counter())
+
+            for ctrl in ctrl_list:
+                
+                #validating
+                if (switch == None or validate) and ctrl.get_validation():
+
+
+                    win = ctrl.get_ctrl()
+                    #print "validating ctrl-->", ctrl.get_name()
+                    #print "ctrl.get_selection()", ctrl.get_selection()
+                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
+                    
+                    if isinstance(ctrl.get_selection(), list):
+                        value = ctrl.get_selection()
+                        if not value:
+                            display(
+                                win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
+                            return
+                    else:
+                        value = str(ctrl.get_selection())
+
+                    if len(value) == 0:
+                        display(win, "%s field is empty!" % ctrl.get_name())
+                        return
+                        
+                    if '/' in value and '$' not in value and not isinstance(value, list):
+
+                        if not os.path.exists(ctrl.get_selection()):
+                            display(
+                                win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
+                            return
+                    
+                config_list.append(ctrl)
+                
+        
+        # Get the user's CPAC output directory for use in this script
+        for config in config_list:
+            #print config.get_name(), "   ", config.get_selection()
+            if config.get_name() == 'outputDirectory':
+                outDir = config.get_selection()
+        
+        
+        # Write out a pipeline_config file, read it in and then delete it
+        # (Will revise the data structure of the config files later so this
+        # can just pass the data structure instead of doing it this way)
+        try:
+            
+            self.write(outDir + 'testConfig.yml', config_list)
+            c = Configuration(yaml.load(open(os.path.realpath(outDir + 'testConfig.yml'), 'r')))
+        
+            os.remove(outDir + 'testConfig.yml')
+        
+        except:
+        
+            errDlg2 = wx.MessageDialog(
+                self, 'A problem occurred with preparing the pipeline test run. \n\n' \
+                      'Please ensure you have rights access to the directories you' \
+                      ' have chosen for the CPAC working, crash, and output folders.',
+                'Test Configuration Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg2.ShowModal()
+            errDlg2.Destroy()
+
+        
+        if (1 in c.runNuisance) or (c.Corrections != None):
+            strategies = sorted(build_strategies(c))
+        else:
+            strategies = None
+        
+        
+        # Run the actual pipeline building prep and see if it works or not
+        try:
+            
+            testDlg1 = wx.MessageDialog(
+                self, 'Click OK to run the test. This should take only a few seconds.',
+                'Running Test',
+                wx.OK | wx.ICON_INFORMATION)
+            testDlg1.ShowModal()
+                       
+            prep_workflow(sublist[0], c, strategies, 0)
+            
+        except:
+            
+            testDlg1.Destroy()
+            
+            errDlg1 = wx.MessageDialog(
+                self, 'There are issues with the current configuration which need to be' \
+                      ' resolved - please check to make sure the options you are running' \
+                      ' have the proper pre-requisites selected.',
+                'Pipeline Not Ready',
+                wx.OK | wx.ICON_ERROR)
+            errDlg1.ShowModal()
+            errDlg1.Destroy()
+            
+        else:
+            
+            testDlg1.Destroy()
+            
+            okDlg1 = wx.MessageDialog(
+                self, 'The current configuration will run successfully. You can safely' \
+                      ' save and run this setup!',
+                'Pipeline Ready',
+                wx.OK | wx.ICON_INFORMATION)
+            okDlg1.ShowModal()
+            okDlg1.Destroy()
+
 
 
     def submit_item(self, event):
@@ -370,9 +598,14 @@ class MainFrame(wx.Frame):
                     
                 config_list.append(ctrl)
 
+        # Get the user's CPAC pipeline name for use in this script
+        for config in config_list:
+            if config.get_name() == 'pipelineName':
+                pipelineName = config.get_selection()
+
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
-            defaultFile="pipeline_config", wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
+            defaultFile=("pipeline_config_%s" % pipelineName), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
         dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
@@ -382,6 +615,7 @@ class MainFrame(wx.Frame):
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
+            
             dlg.Destroy()
             if self.option != 'edit':
                 for counter in wf_counter:
@@ -515,6 +749,11 @@ class MainFrame(wx.Frame):
                             values.append(sval)
                         else:
                             values.append(val)
+                            
+                    if values == [10]:
+                        values = [1,0]
+                    elif values == [11]:
+                        values = ['ANTS','FSL']
 
                     print>>f, label, ": ", values
                     print>>f,"\n"

@@ -87,7 +87,7 @@ def get_operand_expression(nvols):
 
     expr = None
     vol = int(nvols)
-    expr = ("'a*sqrt('%d'-3)'" % vol)
+    expr = ('a*sqrt(%d-3)' % vol)
 
     return expr
 

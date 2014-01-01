@@ -21,7 +21,7 @@ def convert_pvalue_to_r(scans, threshold):
     """
     
     #p_value =0.05
-    print "p_value ->", threshold
+    print "p_value -> ", threshold
     x = 1-threshold/2
     dof = scans-2
     #Inverse Survival Function (Inverse of SF)
@@ -54,7 +54,7 @@ def convert_sparsity_to_r(rmatrix, threshold, full_matrix):
     """
 
     #SparsityThreshold=0.0744
-    print "Sparsity threshold ->", threshold
+    print "Sparsity threshold -> ", threshold
     
     def get_upper_triangle(matrix):
         s = matrix.shape[0]
@@ -141,21 +141,21 @@ def calc_threshold(option,
     
     """
         
-    print "threshold_option -->", option
+    print "threshold_option --> ", option
      
     try:
-         if option == 0:
-             r_value = convert_pvalue_to_r(scans, threshold)
-         elif option == 1:
-             r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
-         else:
-             r_value = threshold
+        if option == 0:
+            r_value = convert_pvalue_to_r(scans, threshold)
+        elif option == 1:
+            r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
+        else:
+            r_value = threshold
     except:
-         print "Exception in calculating threshold value"
-         raise
+        print "Exception in calculating threshold value"
+        raise
      
     print "r_value --> ", r_value
-     
+         
     return r_value
  
 
@@ -198,7 +198,7 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
         out_file = os.path.join(os.getcwd(), out_file + ".nii.gz")
         sparse_m = np.zeros((mask.shape), dtype=float)
      
-        print "mapping centrality matrix to nifti image...", out_file
+        print "mapping centrality matrix to nifti image... ", out_file
             
         if int(template_type) == 0:
             cords = np.argwhere(mask)        
@@ -293,9 +293,7 @@ def calc_blocksize (shape, memory_allocated = None):
     block_size : an integer
       size of block for matrix calculation
     """
-    
-    import warnings
-    
+        
     block_size = 1000
     
     def get_size(num, unit):
@@ -337,12 +335,15 @@ def check_timeseries(data):
         indices of all where a
     data : numpy array
     """
+    
+    import numpy as np
+    
     index= np.where(np.all(data==0, axis=1))[0].tolist()
-    print "index where timeseries is zero ", index
+    print "index where timeseries is zero: ", index
     
     if index:
         data = data[~np.all(data == 0, axis=1)]
-        print "new shape", data.shape
+        print "new shape ", data.shape
         
     return index, data 
 

@@ -1,7 +1,6 @@
 import os
 import sys
- 
- 
+
 DISTNAME = 'CPAC'
 DESCRIPTION = 'Configurable Pipeline for the Analysis of Connectomes'
 LONG_DESCRIPTION = ''
