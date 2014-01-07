@@ -344,7 +344,7 @@ def run(config_file, output_path_file):
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
                         
     jobQueue = []
-    if len(c.derivativeList) <= c.numSubjectsAtOnce:
+    if len(c.derivativeList) <= c.numGPAModelsAtOnce:
         """
         Stream all the subjects as sublist is
         less than or equal to the number of 
@@ -368,7 +368,7 @@ def run(config_file, output_path_file):
                 
                 idc = idx
                     
-                for p in procss[idc: idc + c.numSubjectsAtOnce]:
+                for p in procss[idc: idc + c.numGPAModelsAtOnce]:
                 
                     p.start()
                     print >>pid,p.pid
