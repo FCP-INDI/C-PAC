@@ -4336,6 +4336,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n"
     
     
+        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        
+
+        """
         # Actually run the pipeline now
         try:
 
@@ -4360,7 +4364,8 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             timing.close()
             
             raise Exception
-    
+        """    
+
     
         """
         try:
