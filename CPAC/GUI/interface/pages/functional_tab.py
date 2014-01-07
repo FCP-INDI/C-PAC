@@ -168,3 +168,4 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
         
     def get_counter(self):
         return self.counter
+
