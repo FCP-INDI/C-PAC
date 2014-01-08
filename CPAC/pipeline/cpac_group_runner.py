@@ -270,7 +270,7 @@ def run(config_file, output_path_file):
             timing.close()
 
 
-
+    '''
     
     for resource, glob_key in analysis_map_gp.keys():
 
@@ -313,6 +313,8 @@ def run(config_file, output_path_file):
                     elif 'pbs' in c.resourceManager.lower():
                      
                         run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
+                        
+
         
     '''
 
@@ -339,12 +341,13 @@ def run(config_file, output_path_file):
                     from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                     procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
           
-          
+    
+    
           
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
                         
     jobQueue = []
-    if len(c.derivativeList) <= c.numGPAModelsAtOnce:
+    if len(procss) <= c.numGPAModelsAtOnce:
         """
         Stream all the subjects as sublist is
         less than or equal to the number of 
@@ -362,7 +365,7 @@ def run(config_file, output_path_file):
         the value of the parameter stated above
         """
         idx = 0
-        while(idx < len(c.derivativeList)):
+        while(idx < len(procss)):
                 
             if len(jobQueue) == 0 and idx == 0:
                 
@@ -389,8 +392,6 @@ def run(config_file, output_path_file):
                         idx += 1
                 
     pid.close()
-    
-    '''
     
     
     
@@ -440,5 +441,6 @@ def run(config_file, output_path_file):
 
     timing.close()
     #diag.close()
+
 
 
