@@ -270,54 +270,6 @@ def run(config_file, output_path_file):
             timing.close()
 
 
-    '''
-    
-    for resource, glob_key in analysis_map_gp.keys():
-
-        if resource in c.derivativeList:
-
-            wf_start_time = time.time()
-
-
-            if 1 in c.runGroupAnalysis:
-              
-                #get all the motion parameters across subjects
-
-                try:
-
-                    from CPAC.utils import extract_parameters
-                    extract_parameters.run(c.outputDirectory)
-
-                except Exception:
-
-                    print "Extract parameters script did not run correctly"
-
-                
-                if not c.runOnGrid:
-
-                    from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                    
-                    #procss = Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)]))
-                    
-                    #print c, "   ", resource, "   ", analysis_map_gp[(resource, glob_key)], "   ", glob_key
-                    prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
-                    
-                
-
-                if c.runOnGrid:
-
-                    if 'sge' in c.resourceManager.lower():
-                        
-                        run_sge_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
-                       
-                    elif 'pbs' in c.resourceManager.lower():
-                     
-                        run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
-                        
-
-        
-    '''
-
             
     procss = []
         
@@ -441,6 +393,9 @@ def run(config_file, output_path_file):
 
     timing.close()
     #diag.close()
+
+
+
 
 
 
