@@ -46,6 +46,13 @@ class GPASettings(wx.ScrolledWindow):
                       values=["Off","On"],
                       wkf_switch = True)
         
+        self.page.add(label="Number of Models to Run Simultaneously ",
+                      control=control.INT_CTRL,
+                      name='numGPAModelsAtOnce',
+                      type=dtype.NUM,
+                      comment="This number depends on computing resources.",
+                      values=1)
+        
         self.page.add(label = "Select Derivatives ",
                     control = control.CHECKLIST_BOX,
                     name = "derivativeList",

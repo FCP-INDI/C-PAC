@@ -602,6 +602,16 @@ class MainFrame(wx.Frame):
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipelineName = config.get_selection()
+                
+                if len(pipelineName) == 0:
+                    noNameDlg = wx.MessageDialog(
+                        self, 'Please enter a pipeline name.',
+                        'Error!',
+                        wx.OK | wx.ICON_ERROR)
+                    noNameDlg.ShowModal()
+                    noNameDlg.Destroy()
+                    return
+                    
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
@@ -877,3 +887,4 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise Exception
+
