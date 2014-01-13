@@ -93,8 +93,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
+    numAntsThreads = '1'
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
 
 
     logger.info('******************** %s' % c.standardResolutionBrain)
