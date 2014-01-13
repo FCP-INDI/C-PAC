@@ -93,8 +93,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
+    numAntsThreads = '1'
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
 
 
     logger.info('******************** %s' % c.standardResolutionBrain)
@@ -4325,7 +4327,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
 
-
         # Timing code for cpac_timing_<pipeline>.txt in output directory
         timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
     
@@ -4337,6 +4338,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n"
     
     
+        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        
+
+        """
         # Actually run the pipeline now
         try:
 
@@ -4360,8 +4365,9 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     
             timing.close()
             
-            raise Exception     
-    
+            raise Exception
+        """    
+
     
         """
         try:

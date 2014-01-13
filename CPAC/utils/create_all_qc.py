@@ -489,10 +489,12 @@ def make_group_htmls(output_path):
 
             subj_path = os.path.join(pip_path, subj)
             
+
             print "subj_path: ", subj_path, '\n'
             
             snr_file = ''
             sval = ''
+            
             
             ### read average snr value from the file
             for root, dirs, files in os.walk(subj_path + '/qc/snr_val'):
@@ -530,6 +532,7 @@ def make_group_htmls(output_path):
 
                     try:
                         meanFD, meanDvars = get_power_params(qc_path, file_)
+
                     except:
                         print "Error: some power params lost."
                         meanFD = 0.0
@@ -543,6 +546,7 @@ def make_group_htmls(output_path):
                         mean_rms = 0.0
                         max_rms = 0.0
                         pass                        
+
 
                     populate_htmls(html_, os.path.join(qc_path, file_), subj, \
                     subj_path, meanFD, meanDvars, mean_rms, max_rms, sval)
@@ -561,3 +565,4 @@ def run(output_path):
     #from CPAC.utils.create_all_qc import make_group_htmls
 
     make_group_htmls(output_path)
+

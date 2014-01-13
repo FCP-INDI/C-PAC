@@ -55,8 +55,10 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
+
     print 'Paths: '
     print paths
+
     
     return paths
 
@@ -93,6 +95,7 @@ def make_entries(paths, path_iterables):
         entries.append(sub_entries)
 
     return entries
+
 
 
 
@@ -386,6 +389,7 @@ def run(config_file, subject_list_file, p_name = None):
     print strategies
     
     sub_scan_map ={}
+
     print "subject list: "
     print sublist
     
@@ -407,6 +411,7 @@ def run(config_file, subject_list_file, p_name = None):
         print "\n\n" + "ERROR: Subject list file not in proper format - check if you loaded the correct file?" + "\n" + \
               "Error name: cpac_runner_0001" + "\n\n"
         raise Exception
+
         
         
     create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))

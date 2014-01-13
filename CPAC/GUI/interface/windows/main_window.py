@@ -601,12 +601,12 @@ class ListBox(wx.Frame):
                     
                     
                     try:
-                    
-                        if len(c.pipelineName) > 0:
+                        cfgPipelineNameStr = str(c.pipelineName)
+                        if len(cfgPipelineNameStr) > 0:
                                 
-                                if self.pipeline_map.get(c.pipelineName) == None:
-                                    self.pipeline_map[c.pipelineName] = path
-                                    self.listbox.Append(c.pipelineName)
+                                if self.pipeline_map.get(cfgPipelineNameStr) == None:
+                                    self.pipeline_map[cfgPipelineNameStr] = path
+                                    self.listbox.Append(cfgPipelineNameStr)
                                     dlg.Destroy()
                                     break
                                 
