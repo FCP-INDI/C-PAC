@@ -47,7 +47,7 @@ from subprocess import Popen, PIPE
 import re
 
 try:
-    version = '0.3.3'
+    version = '0.3.4'
 
 
 #    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
