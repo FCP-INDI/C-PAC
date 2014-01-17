@@ -1,4 +1,3 @@
-import wx
 import wx.combo
 import os
 from wx.lib.masked import NumCtrl
@@ -149,7 +148,7 @@ class ConfigFslFrame(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
         
-        button1 = wx.Button(panel, -1, 'Create New FSL Model', size= (160,50))
+        button1 = wx.Button(panel, -1, 'Create New FSL Model', size= (170,50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(button1, 0, wx.ALIGN_CENTER|wx.TOP, border = 15)
         
