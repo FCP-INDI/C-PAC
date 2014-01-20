@@ -1,3 +1,4 @@
+import numpy as np
 
 def convert_pvalue_to_r(scans, threshold):
         
@@ -21,7 +22,7 @@ def convert_pvalue_to_r(scans, threshold):
     """
     
     #p_value =0.05
-    print "p_value -> ", threshold
+    print "p_value ->", threshold
     x = 1-threshold/2
     dof = scans-2
     #Inverse Survival Function (Inverse of SF)
@@ -54,7 +55,7 @@ def convert_sparsity_to_r(rmatrix, threshold, full_matrix):
     """
 
     #SparsityThreshold=0.0744
-    print "Sparsity threshold -> ", threshold
+    print "Sparsity threshold ->", threshold
     
     def get_upper_triangle(matrix):
         s = matrix.shape[0]
@@ -111,8 +112,8 @@ def load_mat(mat_file):
 
 def calc_threshold(option, 
                    threshold,
-                   scans,
-                   corr_matrix= None,
+                   ntpts = None,
+                   corr_matrix = None,
                    full_matrix = True):  
     
     """
@@ -122,13 +123,16 @@ def calc_threshold(option,
     Parameters
     ----------
     option : an integer
-        threshold option
+        threshold option, can be:
+        * 0 = p-value threshold is converted to r-value
+        * 1 = sparsity threshold is converted to r-value
+        * else threshold is kept as the threshold
     threshold : a float
         thrshold value
-    scans : an integer
-        no of timepoints
+    ntpts : an integer
+        no of timepoints (only used with p->r aka option=0)
     corr_matrix : numpy array
-        correlation matrix
+        correlation matrix (only used with sparsity aka option=1)
     full_matrix : boolean
         True, if full matrix is considered.
         False, if only upper triangle is considered.
@@ -141,25 +145,25 @@ def calc_threshold(option,
     
     """
         
-    print "threshold_option --> ", option
+    print "threshold_option -->", option
      
     try:
-        if option == 0:
-            r_value = convert_pvalue_to_r(scans, threshold)
-        elif option == 1:
-            r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
-        else:
-            r_value = threshold
+         if option == 0:
+             r_value = convert_pvalue_to_r(ntpts, threshold)
+         elif option == 1:
+             r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
+         else:
+             r_value = threshold
     except:
-        print "Exception in calculating threshold value"
-        raise
+         print "Exception in calculating threshold value"
+         raise
      
     print "r_value --> ", r_value
-         
+     
     return r_value
  
 
-def map_centrality_matrix(centrality_matrix, affine, template_data, template_type):
+def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     """
     Method to map centrality matrix to a nifti image
     
@@ -167,10 +171,10 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     ----------
     centrality_matrix : tuple (string, array_like)
         tuple containing matrix name and degree/eigenvector centrality matrix
-    affine : string (numpy mat file)
-        path to file containing image affine matrix
-    template_data : string (numpy mat file)
-        path to file containing mask or roi data matrix
+    aff : ndarray
+        Affine matrix of the input data
+    mask : ndarray
+        Mask or roi data matrix
     template_type : int
         type of template: 0 for mask, 1 for roi
     
@@ -189,16 +193,13 @@ def map_centrality_matrix(centrality_matrix, affine, template_data, template_typ
     import os
     import numpy as np
     
-    try:
-        
-        mask = load_mat(template_data)   
-        aff = load_mat(affine)
+    try:        
         out_file, matrix = centrality_matrix
        
         out_file = os.path.join(os.getcwd(), out_file + ".nii.gz")
         sparse_m = np.zeros((mask.shape), dtype=float)
      
-        print "mapping centrality matrix to nifti image... ", out_file
+        print "mapping centrality matrix to nifti image...", out_file
             
         if int(template_type) == 0:
             cords = np.argwhere(mask)        
@@ -275,47 +276,68 @@ def calc_corrcoef(X, Y=None):
     return r
 
 
-def calc_blocksize (shape, memory_allocated = None):
+def calc_blocksize(timeseries, memory_allocated = None, include_full_matrix = False):
     """
     Method to calculate blocksize to calculate correlation matrix
     as per the memory allocated by the user. By default, the block
-    size is 1000. 
-
+    size is 1000 when no memory limit is specified.
+    
+    If memory allocated is specified, then block size is calculated
+    as memory allocated subtracted by the memory of the timeseries 
+    and centrality output, then divided by the size of one correlation 
+    map. That is how many correlation maps can we calculate simultaneously 
+    in memory?
+    
     Parameters
     ----------
-    shape : tuple
-       shape of array
+    timeseries : numpy array
+       timeseries data: `nvoxs` x `ntpts`
     memory_allocated : float
        memory allocated in GB for degree centrality
+    include_full_matrix : boolean
+        do you want to consider the full correlation matrix in this calculation?
+        default: False
     
     Returns
     -------
     block_size : an integer
       size of block for matrix calculation
     """
-        
-    block_size = 1000
     
-    def get_size(num, unit):
-        
-        for x in range(3):
-            if unit == 'GB':
-                num /= 1024.0
-            elif unit == 'bytes':
-                num *= 1024.0
-        return float(num)
+    import warnings
     
+    block_size = 1000   # default
+    
+    nvoxs   = timeseries.shape[0]
+    ntpts   = timeseries.shape[1]
+    nbytes  = timeseries.dtype.itemsize
+    
+    if include_full_matrix:
+        memory_for_full_matrix = nvoxs * nvoxs * nbytes
+    else:
+        memory_for_full_matrix = 0
+    
+    memory_for_timeseries   = nvoxs * ntpts * nbytes
+    memory_for_output       = 2 * nvoxs * nbytes            # binarize and weighted output
+    
+    # memory_allocated = memory_for_timeseries + memory_for_output + memory_for_block + memory_for_full_matrix
     if memory_allocated:
-        block_size =  int(0.8*(get_size(memory_allocated, 'bytes') - shape[0]*shape[1]*8 - shape[0]*8*2)/(shape[0]*8*4 + shape[1]*8))
-        
-    if block_size > shape[0]:
-        block_size = shape[0]
+        memory_in_bytes = memory_allocated * 1024.0**3  # assume it is in GB
+        ## memory_for_block = x # of voxels * nvoxs * nbytes
+        block_size      = int( (memory_in_bytes - memory_for_output - memory_for_timeseries - memory_for_full_matrix)/(nvoxs*nbytes) )
+    
+    # in gb
+    memory_usage = (memory_for_output + memory_for_timeseries + memory_for_full_matrix + block_size*nvoxs*nbytes)/1024.0**3
+    
+    if block_size > nvoxs:
+        block_size = nvoxs
     elif block_size < 1:
-        raise MemoryError(" Not enough memory available to perform degree centrality")
+        raise MemoryError(" Not enough memory available to perform degree centrality. Need a minimum of %.2fGB" % memory_usage)
             
-    print "block_size -> ", block_size
-    
-    
+    print "block_size -> %i voxels" % block_size
+    print "# of blocks -> %i" % np.ceil(float(nvoxs)/block_size)
+    print "expected usage -> %.2fGB" % memory_usage
+        
     return block_size
     
     
@@ -335,15 +357,12 @@ def check_timeseries(data):
         indices of all where a
     data : numpy array
     """
-    
-    import numpy as np
-    
     index= np.where(np.all(data==0, axis=1))[0].tolist()
-    print "index where timeseries is zero: ", index
+    print "index where timeseries is zero ", index
     
     if index:
         data = data[~np.all(data == 0, axis=1)]
-        print "new shape ", data.shape
+        print "new shape", data.shape
         
     return index, data 
 
