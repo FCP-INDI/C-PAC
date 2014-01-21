@@ -636,7 +636,11 @@ def calc_centrality(datafile,
         
     """
     
-    from CPAC.network_centrality import map_centrality_matrix
+    from CPAC.network_centrality import load,\
+                                        get_centrality_by_thresh,\
+                                        get_centrality_by_sparsity,\
+                                        get_centrality_fast,\
+                                        map_centrality_matrix
     
     out_list = []
     
