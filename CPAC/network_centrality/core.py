@@ -9,9 +9,9 @@ These are function nodes of sorts that compute a centrality measure.
 ####
 
 import numpy as np
-import pyximport
-pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-from thresh_and_sum import centrality_binarize_float, centrality_binarize_double, \
+#import pyximport
+#pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+from CPAC.network_centrality.thresh_and_sum import centrality_binarize_float, centrality_binarize_double, \
                            centrality_weighted_float, centrality_weighted_double, \
                            centrality_both_float, centrality_both_double    # these aren't currently used
 
