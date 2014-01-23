@@ -16,7 +16,6 @@ except ImportError:
 
 from build_helpers import INFO_VARS
 
-
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
  
@@ -59,12 +58,20 @@ package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
 
 ################################################################################
 
+
 def main(**extra_args):
-    from numpy.distutils.core import setup
-    from Cython.Distutils import build_ext
+    from numpy.distutils.core import setup    
     from glob import glob
     
-    cmdclass = {'build_ext': build_ext}
+    # monkey-patch numpy distutils to use Cython instead of Pyrex
+    from numpy.distutils.command.build_ext import build_ext
+    from numpy.distutils.command.build_src import build_src
+    from build_helpers import generate_a_pyrex_source
+    build_src.generate_a_pyrex_source = generate_a_pyrex_source
+    cmdclass = {
+        'build_src': build_src, 
+        'build_ext': build_ext
+    }
 
     setup(name=INFO_VARS['NAME'],
           maintainer=INFO_VARS['MAINTAINER'],
@@ -82,7 +89,8 @@ def main(**extra_args):
           requires=INFO_VARS['REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
-          scripts = glob('scripts/*'),
+          scripts = glob('scripts/*'), 
+          script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
 
