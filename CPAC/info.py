@@ -34,9 +34,14 @@ def get_cpac_gitversion():
         return None
     ver = None
     try:
-        o, _ = subprocess.Popen('git describe', shell=True, cwd=gitpath,
+        o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
                                 stdout=subprocess.PIPE).communicate()
     except Exception:
+        try:
+            o, _ = subprocess.Popen('git describe --always', shell=True, cwd=gitpath,
+                                    stdout=subprocess.PIPE).communicate()
+        except Exception:
+            pass
         pass
     else:
         ver = o.strip().split('-')[-1]
