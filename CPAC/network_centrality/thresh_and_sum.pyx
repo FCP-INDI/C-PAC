@@ -1,5 +1,58 @@
 cimport numpy as np
 
+
+###
+# Transformation -1 to 1 -> 0 to 1 (Pour Eigenvector Centrality)
+###
+
+def transform_float(np.ndarray[float, ndim=2] cmat):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = (1+cmat[i,j])/2.0
+
+def transform_double(np.ndarray[double, ndim=2] cmat):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = (1+cmat[i,j])/2.0
+
+
+###
+# Just Threshold (Pour Eigenvector Centrality)
+###
+
+# Un-Weighted
+def binarize_float(np.ndarray[float, ndim=2] cmat, float thresh):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = 1*(cmat[i,j] > thresh)
+
+def binarize_double(np.ndarray[double, ndim=2] cmat, double thresh):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = 1*(cmat[i,j] > thresh)
+
+# Weighted
+def weighted_float(np.ndarray[float, ndim=2] cmat, float thresh):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = cmat[i,j]*(cmat[i,j] > thresh)
+
+def weighted_double(np.ndarray[double, ndim=2] cmat, double thresh):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i] = cmat[i,j]*(cmat[i,j] > thresh)
+
+
+###
+# Threshold and Sum (Degree Centrality)
+###
+
 # Un-Weighted
 def centrality_binarize_float(np.ndarray[float, ndim=2] cmat, np.ndarray[float, ndim=1] cent, float thresh):
     cdef unsigned int i,j

@@ -72,7 +72,7 @@ def main(**extra_args):
         'build_src': build_src, 
         'build_ext': build_ext
     }
-
+    
     setup(name=INFO_VARS['NAME'],
           maintainer=INFO_VARS['MAINTAINER'],
           maintainer_email=INFO_VARS['MAINTAINER_EMAIL'],

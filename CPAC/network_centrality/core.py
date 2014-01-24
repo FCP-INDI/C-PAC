@@ -11,6 +11,20 @@ These are function nodes of sorts that compute a centrality measure.
 import numpy as np
 #import pyximport
 #pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+
+# For eigenvector centrality
+from CPAC.network_centrality.thresh_and_sum import \
+        transform_float, transform_double
+from CPAC.network_centrality.thresh_and_sum import \
+        binarize_float, binarize_double, \
+        weighted_float, weighted_double
+# For degree centrality
+from CPAC.network_centrality.thresh_and_sum import \
+        centrality_binarize_float, centrality_binarize_double, \
+        centrality_weighted_float, centrality_weighted_double, \
+        centrality_both_float, centrality_both_double    # these aren't currently used
+
+
 from CPAC.network_centrality.thresh_and_sum import centrality_binarize_float, centrality_binarize_double, \
                            centrality_weighted_float, centrality_weighted_double, \
                            centrality_both_float, centrality_both_double    # these aren't currently used
@@ -74,7 +88,7 @@ def fast_degree_centrality(m):
 # Eigenvector Centrality
 ####
 
-def eigenvector_centrality(corr_matrix, r_value=None, method=None, verbose=True, to_transform=True, ret_eigenvalue=False):
+def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=True, ret_eigenvalue=False):
     """
     Examples
     --------
@@ -90,25 +104,38 @@ def eigenvector_centrality(corr_matrix, r_value=None, method=None, verbose=True,
     from scipy.sparse import linalg as LA
     from scipy.sparse import csc_matrix
     
+    
+    if method not in ["binarize", "weighted"]:
+        raise Exception("Method must be one of binarize or weighted and not %s" % method)
+    
+    if corr_matrix.dtype.itemsize == 8:
+        dtype   = "double"
+        r_value = np.float64(r_value)
+    else:
+        dtype   = "float"
+        r_value = np.float32(r_value)
+    
+    if out is None:
+        out = np.zeros(corr_matrix.shape[0], dtype=corr_matrix.dtype)
+    
     # Transform correlations to be in the range 0-1 (non-zero)
     if to_transform:
-        corr_matrix = (1+corr_matrix)/2.0 # check that the memory usage isn't too high at this step
+        func_name   = "transform_%s" % dtype
+        func        = globals()[func_name]
+        func(corr_matrix)
     
     if r_value is None:
         corr_sparse = corr_matrix
     else:
         if to_transform:
-            r_value = (1+r_value)/2.0 # transform to be 0-1 range
-        if method == "binarize":
-            corr_sparse = csc_matrix(corr_matrix > r_value, dtype='float32')
-        elif method == "weighted":
-            corr_sparse = csc_matrix(corr_matrix * (corr_matrix > r_value), dtype='float32')
-        else:
-            raise Exception("Unrecognized method %s" % method)
+            r_value = (1+r_value)/2.0 # transform to be 0-1 range        
+        func_name   = "%s_%s" % (method, dtype)
+        func        = globals()[func_name]
+        func(corr_matrix)
     
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
-    eigenValue, eigenVector = LA.eigsh(corr_sparse, k=1, which='LM', maxiter=1000)
+    eigenValue, eigenVector = LA.eigsh(corr_matrix, k=1, which='LM', maxiter=1000)
     
     if ret_eigenvalue:
         return eigenValue, np.abs(eigenVector)
