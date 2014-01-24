@@ -109,10 +109,7 @@ def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=
     else:
         dtype   = "float"
         r_value = np.float32(r_value)
-    
-    if out is None:
-        out = np.zeros(corr_matrix.shape[0], dtype=corr_matrix.dtype)
-    
+        
     # Transform correlations to be in the range 0-1 (non-zero)
     if to_transform:
         func_name   = "transform_%s" % dtype
