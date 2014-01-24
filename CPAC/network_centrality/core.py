@@ -25,11 +25,6 @@ from CPAC.network_centrality.thresh_and_sum import \
         centrality_both_float, centrality_both_double    # these aren't currently used
 
 
-from CPAC.network_centrality.thresh_and_sum import centrality_binarize_float, centrality_binarize_double, \
-                           centrality_weighted_float, centrality_weighted_double, \
-                           centrality_both_float, centrality_both_double    # these aren't currently used
-
-
 def degree_centrality(corr_matrix, r_value, method, out=None):
     """
     Calculate centrality for the rows in the corr_matrix using
