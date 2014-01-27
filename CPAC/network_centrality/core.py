@@ -11,17 +11,7 @@ These are function nodes of sorts that compute a centrality measure.
 import numpy as np
 #import pyximport
 #pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-
-# For eigenvector centrality
-from CPAC.network_centrality.thresh_and_sum import \
-        thresh_binarize_float, thresh_binarize_double, \
-        thresh_weighted_float, thresh_weighted_double, \
-        thresh_transform_weighted_float, thresh_transform_weighted_double
-# For degree centrality
-from CPAC.network_centrality.thresh_and_sum import \
-        centrality_binarize_float, centrality_binarize_double, \
-        centrality_weighted_float, centrality_weighted_double, \
-        centrality_both_float, centrality_both_double    # these aren't currently used
+from CPAC.network_centrality.thresh_and_sum import *
 
 
 def degree_centrality(corr_matrix, r_value, method, out=None):
@@ -98,9 +88,12 @@ def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=
     from scipy.sparse import linalg as LA
     from scipy.sparse import csc_matrix
     
-    
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
+    
+    # Don't transform if binarize
+    if method == "binarize" and to_transform is True:
+        to_transform = False
     
     if corr_matrix.dtype.itemsize == 8:
         dtype   = "double"
@@ -109,14 +102,25 @@ def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=
         dtype   = "float"
         r_value = np.float32(r_value)
     
-    if to_transform:
-        # Transform correlations to be in the range 0-1 (non-zero)
-        func_name   = "thresh_transform_%s_%s" % (method, dtype)
-    else:
-        func_name   = "thresh_%s_%s" % (method, dtype)
-    # Threshold and binarize or keep thresholded weights
+    # Create function name by gathering it's parts
+    # Threshold? Transform? Method? Datatype?
+    func_args = []; func_args.append(corr_matrix)
+    func_elems = []
+    if r_value is not None:
+        func_args.append(r_value)
+        func_elems.append("thresh")
+
+    if to_transform is True:
+        func_elems.append("transform")
+
+    func_elems.append(method)
+    func_elems.append(dtype)
+    # Combine to create function name
+    func_name = "_".join(func_elems)
+    
+    # Execute function
     func        = globals()[func_name]
-    func(corr_matrix)
+    func(*func_args)
     
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html

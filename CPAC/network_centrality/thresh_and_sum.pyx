@@ -5,7 +5,7 @@ cimport numpy as np
 # Just Threshold (Pour Eigenvector Centrality)
 ###
 
-# Un-Weighted
+# Un-Weighted and Threshold
 def thresh_binarize_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
@@ -16,9 +16,9 @@ def thresh_binarize_double(np.ndarray[double, ndim=2] cmat, double thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
         for j in xrange(cmat.shape[1]):
-            cmat[i,j] = 1 * (cmat[i,j] > thresh)
+            cmat[i,j] = 1 * (cmat[i,j] > thresh) 
 
-# Weighted
+# Weighted and Threshold
 def thresh_weighted_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
@@ -31,7 +31,7 @@ def thresh_weighted_double(np.ndarray[double, ndim=2] cmat, double thresh):
         for j in xrange(cmat.shape[1]):
             cmat[i,j] = cmat[i,j] * (cmat[i,j] > thresh)
 
-# Weighted and Transform
+# Weighted and Transform and Threshold
 def thresh_transform_weighted_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
@@ -43,6 +43,19 @@ def thresh_transform_weighted_double(np.ndarray[double, ndim=2] cmat, double thr
     for i in xrange(cmat.shape[0]):
         for j in xrange(cmat.shape[1]):
             cmat[i,j] = (1.0+cmat[i,j])/2.0 * (cmat[i,j] > thresh)
+
+# Weighted and Transform and no Threshold
+def transform_weighted_float(np.ndarray[float, ndim=2] cmat):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = (1.0+cmat[i,j])/2.0
+
+def transform_weighted_double(np.ndarray[double, ndim=2] cmat):
+    cdef unsigned int i,j
+    for i in xrange(cmat.shape[0]):
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = (1.0+cmat[i,j])/2.0
 
 
 ###
