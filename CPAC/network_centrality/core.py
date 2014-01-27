@@ -14,10 +14,9 @@ import numpy as np
 
 # For eigenvector centrality
 from CPAC.network_centrality.thresh_and_sum import \
-        transform_float, transform_double
-from CPAC.network_centrality.thresh_and_sum import \
-        binarize_float, binarize_double, \
-        weighted_float, weighted_double
+        thresh_binarize_float, thresh_binarize_double, \
+        thresh_weighted_float, thresh_weighted_double, \
+        thresh_transform_weighted_float, thresh_transform_weighted_double
 # For degree centrality
 from CPAC.network_centrality.thresh_and_sum import \
         centrality_binarize_float, centrality_binarize_double, \
@@ -109,21 +108,15 @@ def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=
     else:
         dtype   = "float"
         r_value = np.float32(r_value)
-        
-    # Transform correlations to be in the range 0-1 (non-zero)
-    if to_transform:
-        func_name   = "transform_%s" % dtype
-        func        = globals()[func_name]
-        func(corr_matrix)
     
-    if r_value is None:
-        corr_sparse = corr_matrix
+    if to_transform:
+        # Transform correlations to be in the range 0-1 (non-zero)
+        func_name   = "thresh_transform_%s_%s" % (method, dtype)
     else:
-        if to_transform:
-            r_value = (1+r_value)/2.0 # transform to be 0-1 range        
-        func_name   = "%s_%s" % (method, dtype)
-        func        = globals()[func_name]
-        func(corr_matrix)
+        func_name   = "thresh_%s_%s" % (method, dtype)
+    # Threshold and binarize or keep thresholded weights
+    func        = globals()[func_name]
+    func(corr_matrix)
     
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
