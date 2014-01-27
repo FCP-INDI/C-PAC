@@ -9,40 +9,40 @@ cimport numpy as np
 def thresh_binarize_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = 1 * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = 1 * (cmat[i,j] > thresh)
 
 def thresh_binarize_double(np.ndarray[double, ndim=2] cmat, double thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = 1 * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = 1 * (cmat[i,j] > thresh)
 
 # Weighted
 def thresh_weighted_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = cmat[i,j] * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = cmat[i,j] * (cmat[i,j] > thresh)
 
 def thresh_weighted_double(np.ndarray[double, ndim=2] cmat, double thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = cmat[i,j] * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = cmat[i,j] * (cmat[i,j] > thresh)
 
 # Weighted and Transform
 def thresh_transform_weighted_float(np.ndarray[float, ndim=2] cmat, float thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = (1.0+cmat[i,j])/2.0 * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = (1.0+cmat[i,j])/2.0 * (cmat[i,j] > thresh)
 
 def thresh_transform_weighted_double(np.ndarray[double, ndim=2] cmat, double thresh):
     cdef unsigned int i,j
     for i in xrange(cmat.shape[0]):
-        for j in xrange(i,cmat.shape[1]):
-            cmat[i,j] = cmat[j,i] = (1.0+cmat[i,j])/2.0 * (cmat[i,j] > thresh)
+        for j in xrange(cmat.shape[1]):
+            cmat[i,j] = (1.0+cmat[i,j])/2.0 * (cmat[i,j] > thresh)
 
 
 ###
