@@ -303,6 +303,13 @@ def get_centrality_by_sparsity(timeseries,
     out_list=[]
     
     try:
+        # Calculate the block size (i.e., number of voxels) to compute part of the
+        # connectivity matrix at once.
+        # 
+        # We still use a block size to calculate the whole correlation matrix
+        # because of issues in numpy that lead to extra memory usage when
+        # computing the dot product.
+        # See https://cmi.hackpad.com/Numpy-Memory-Issues-BlV9Pg5nRDM.
         block_size  = calc_blocksize(timeseries, memory_allocated, include_full_matrix=True)
         
         nvoxs = timeseries.shape[0]
@@ -430,7 +437,13 @@ def get_centrality_by_thresh(timeseries,
         out_binarize = weight_options[0]
         out_weighted = weight_options[1]
         
+        # Calculate the block size (i.e., number of voxels) to compute part of the
+        # connectivity matrix at once.
         if calc_eigen:
+            # We still use a block size to calculate the whole correlation matrix
+            # because of issues in numpy that lead to extra memory usage when
+            # computing the dot product.
+            # See https://cmi.hackpad.com/Numpy-Memory-Issues-BlV9Pg5nRDM.
             block_size = calc_blocksize(timeseries, memory_allocated, include_full_matrix=True)
         else:
             block_size = calc_blocksize(timeseries, memory_allocated)
