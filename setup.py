@@ -7,7 +7,7 @@ LONG_DESCRIPTION = ''
 MAINTAINER = ''
 MAINTAINER_EMAIL = ''
 URL = ''
-LICENSE = ''
+LICENSE = 'BSD License'
 DOWNLOAD_URL = ''
 
 import CPAC
