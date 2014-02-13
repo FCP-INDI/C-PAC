@@ -1,5 +1,4 @@
-import wx
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -105,6 +104,9 @@ class GenericClass(wx.ScrolledWindow):
         elif control == 8 :
             self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
+        elif control == 9:
+            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
+            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0) 
 
 
     def EvtChoice(self, event, ctrl):
@@ -152,6 +154,20 @@ class GenericClass(wx.ScrolledWindow):
             #print "label to be removed -->", label
             ctrl.set_selection(label,index, True)
         print ctrl.get_selection()
+        
+        
+    '''
+    NEEDS DEV!
+    '''
+    def EvtCheckBoxGrid(self, event, ctrl):
+        index = event.GetSelection()
+        label = ctrl.get_ctrl().GetString(index)
+        if ctrl.get_ctrl().IsChecked(index):
+            #print "label selected -->", label, index
+            ctrl.set_selection(label, index)
+        else:
+            #print "label to be removed -->", label, index
+            ctrl.set_selection(label,index, True)
         
         
     
@@ -263,12 +279,24 @@ class Control(wx.Control):
             self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 
                                          size=size, style=style,
                                          validator = validator,
-                                         value = values)  
+                                         value = values)
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
+            
+            '''
+            NEEDS DEV!
+            '''            
+        elif type == 9:
+            self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
+                                     values = values,
+                                     size= wx.DefaultSize)
+            
+            self.selection = self.ctrl.GetGridSelection()
+            
                 
         self.set_id()
+        
         
     def set_id(self):
         if self.id==None:
