@@ -1990,6 +1990,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             spatial_map_dataflow = create_spatial_map_dataflow(c.spatialPatternMaps, 'spatial_map_dataflow_%d' % num_strat)
 
+            # from timeseries_analysis.py:
             spatial_map_timeseries = get_spatial_map_timeseries('spatial_map_timeseries_%d' % num_strat)
             spatial_map_timeseries.inputs.inputspec.demean = c.spatialDemean
 
@@ -2306,6 +2307,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if 1 in c.runDualReg and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
+            # from sca.py:
             dr_temp_reg = create_temporal_reg('temporal_dual_regression_%d' % num_strat)
             dr_temp_reg.inputs.inputspec.normalize = c.mrsNorm
             dr_temp_reg.inputs.inputspec.demean = c.mrsDemean
