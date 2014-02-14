@@ -599,7 +599,7 @@ class ListBox(wx.Frame):
                         raise Exception
                     
                     
-                    if len(c.pipelineName) >0:
+                    if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
                                 self.pipeline_map[c.pipelineName] = path
@@ -616,6 +616,15 @@ class ListBox(wx.Frame):
                                 dlg3.Destroy()
                                 
                     else:
+                        
+                        dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
+                                                ' the pipeline_config.yml file in a text editor and' \
+                                                ' restore the pipelineName field.',
+                                        'Warning',
+                                wx.OK | wx.ICON_ERROR)
+                        dlg4.ShowModal()
+                        dlg4.Destroy()
+                        
                         dlg.Destroy
                         break
                     
