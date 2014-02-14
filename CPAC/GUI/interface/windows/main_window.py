@@ -382,6 +382,7 @@ class ListBox(wx.Frame):
                 dlg.Destroy()
 
         
+        
     def OnEdit(self, event):
         
         # get 'sel' integer of listbox selection
