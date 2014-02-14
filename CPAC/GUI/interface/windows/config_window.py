@@ -575,6 +575,14 @@ class MainFrame(wx.Frame):
                     #print "ctrl.get_selection()", ctrl.get_selection()
                     #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                     
+                    if ctrl.get_name() == 'pipelineName':
+                        value = ctrl.get_selection()
+                        if value == None or value == '':
+                            display(
+                                win, 'Pipeline name is blank.')
+                            return
+                    
+                    
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
                         if not value:
@@ -599,8 +607,12 @@ class MainFrame(wx.Frame):
 
         # Get the user's CPAC pipeline name for use in this script
         for config in config_list:
-            if config.get_name() == 'pipelineName':
+            if config.get_name() == 'pipelineName':          
                 pipelineName = config.get_selection()
+                if pipelineName == None or len(pipelineName) < 1:
+                    display(
+                        win, "Pipeline Name field in the Output Settings tab is blank.")
+                    return
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
