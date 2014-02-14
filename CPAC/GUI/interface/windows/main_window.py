@@ -334,8 +334,8 @@ class ListBox(wx.Frame):
     def get_sublist_map(self):
         return self.sublist_map
     
-    def get_pipeline_path(self, id):
-        path = self.pipeline_map.get(id)
+    def get_pipeline_path(self, idx):
+        path = self.pipeline_map.get(idx)
         return path
 
     def NewItem(self, event):
@@ -386,7 +386,7 @@ class ListBox(wx.Frame):
         
         sel = self.listbox.GetSelection()
         if sel != -1:
-            text = self.listbox.GetString(sel)
+            text = str(self.listbox.GetString(sel))
             path = self.get_pipeline_path(text)
             if os.path.exists(path):
                 MainFrame(self, option ="edit", path=path, pipeline_id = text)
@@ -602,8 +602,8 @@ class ListBox(wx.Frame):
                     if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
-                                self.pipeline_map[c.pipelineName] = path
-                                self.listbox.Append(c.pipelineName)
+                                self.pipeline_map[str(c.pipelineName)] = path
+                                self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
                             
