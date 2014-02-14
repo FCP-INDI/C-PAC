@@ -384,14 +384,24 @@ class ListBox(wx.Frame):
         
     def OnEdit(self, event):
         
+        # get 'sel' integer of listbox selection
         sel = self.listbox.GetSelection()
+        
         if sel != -1:
+            
+            # 'text' - name of pipeline config displayed in listbox
             text = str(self.listbox.GetString(sel))
+            
+            # 'path' - path of pipeline_config.yml
             path = self.get_pipeline_path(text)
+            
             if os.path.exists(path):
+                # open the pipeline_config editor window
                 MainFrame(self, option ="edit", path=path, pipeline_id = text)
             else:
                 print "Couldn't find the config file %s "%path
+     
+     
      
     def OnLoad(self, event):
 
