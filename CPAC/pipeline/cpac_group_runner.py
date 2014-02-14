@@ -9,8 +9,8 @@ import re
 import os
 import sys
 import glob
-
 import time
+import csv
 
 from nipype import logging
 
@@ -208,34 +208,25 @@ def run(config_file, output_path_file):
         analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
 
-    gpa_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
-    gpa_starttime_string = gpa_start_datetime.replace(' ','_')
-    gpa_starttime_string = gpa_starttime_string.replace(':','-')
+    gpa_start_datetime = strftime("%Y-%m-%d")
 
-    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_starttime_string)), 'wt')
-
-
-    sca_roi_runs = 0
-    sca_roi_time = 0
-    sca_seed_runs = 0
-    sca_seed_time = 0
-    sca_tempreg_runs = 0
-    sca_tempreg_time = 0
-    dr_tempreg_runs = 0
-    dr_tempreg_time = 0
-    vmhc_z_runs = 0
-    vmhc_z_time = 0
-    alff_Z_runs = 0
-    alff_Z_time = 0
-    falff_Z_runs = 0
-    falff_Z_time = 0
-    reho_Z_runs = 0
-    reho_Z_time = 0
-    centrality_outputs_runs = 0
-    centrality_outputs_time = 0
-
+    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
+    
+    print >>timing, "Starting CPAC group-level analysis at system time: ", strftime("%Y-%m-%d %H:%M:%S")
+    print >>timing, "Pipeline configuration: ", c.pipelineName
+    print >>timing, "\n"
+        
+    timing.close()
+    
+    
     # Start timing here
     gpa_start_time = time.time()
+    
+    gpaTimeDict = {}
+    gpaTimeDict['Start_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+    
+    
+    
 
 
     for resource, glob_key in analysis_map.keys():
@@ -270,89 +261,14 @@ def run(config_file, output_path_file):
                     elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
 
+            timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
+
             print >>timing, "Group analysis workflow completed for resource: ", resource
             print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
             print >>timing, ""
+            
+            timing.close()
 
-
-
-    
-    for resource, glob_key in analysis_map_gp.keys():
-
-        if resource in c.derivativeList:
-
-            wf_start_time = time.time()
-
-
-            if 1 in c.runGroupAnalysis:
-              
-                #get all the motion parameters across subjects
-
-                try:
-
-                    from CPAC.utils import extract_parameters
-                    extract_parameters.run(c.outputDirectory)
-
-                except Exception:
-
-                    print "Extract parameters script did not run correctly"
-
-                
-                if not c.runOnGrid:
-
-                    from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                    
-                    #procss = Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)]))
-                    
-                    #print c, "   ", resource, "   ", analysis_map_gp[(resource, glob_key)], "   ", glob_key
-                    prep_group_analysis_workflow(c, resource, analysis_map_gp[(resource, glob_key)])
-                    
-                
-
-                if c.runOnGrid:
-
-                    if 'sge' in c.resourceManager.lower():
-                        
-                        run_sge_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
-                       
-                    elif 'pbs' in c.resourceManager.lower():
-                     
-                        run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, glob_key)])
-
-
-                print >>timing, "Group analysis workflow completed for resource: ", resource
-                print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
-                print >>timing, ""
-        
-                # This can be implemented more sleekly using a dictionary, have to do this at some point
-                if resource == 'sca_roi_Z_to_standard_smooth':
-                    sca_roi_runs += 1
-                    sca_roi_time = sca_roi_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'sca_seed_Z_to_standard_smooth':
-                    sca_seed_runs += 1
-                    sca_seed_time = sca_seed_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'sca_tempreg_maps_z_files_smooth':
-                    sca_tempreg_runs += 1
-                    sca_tempreg_time = sca_tempreg_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'dr_tempreg_maps_z_files_smooth':
-                    dr_tempreg_runs += 1
-                    dr_tempreg_time = dr_tempreg_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'vmhc_z_score_stat_map':
-                    vmhc_z_runs += 1
-                    vmhc_z_time = vmhc_z_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'alff_Z_to_standard_smooth':
-                    alff_Z_runs += 1
-                    alff_Z_time = alff_Z_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'falff_Z_to_standard_smooth':
-                    falff_Z_runs += 1
-                    falff_Z_time = falff_Z_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'reho_Z_to_standard_smooth':
-                    reho_Z_runs += 1
-                    reho_Z_time = reho_Z_time + ((time.time() - wf_start_time)/60)
-                elif resource == 'centrality_outputs_smoothed':
-                    centrality_outputs_runs += 1
-                    centrality_outputs_time = centrality_outputs_time + ((time.time() - wf_start_time)/60)
-    '''
 
             
     procss = []
@@ -377,12 +293,13 @@ def run(config_file, output_path_file):
                     from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
                     procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
           
-          
+    
+    
           
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
                         
     jobQueue = []
-    if len(c.derivativeList) <= c.numSubjectsAtOnce:
+    if len(procss) <= c.numGPAModelsAtOnce:
         """
         Stream all the subjects as sublist is
         less than or equal to the number of 
@@ -400,13 +317,13 @@ def run(config_file, output_path_file):
         the value of the parameter stated above
         """
         idx = 0
-        while(idx < len(c.derivativeList)):
+        while(idx < len(procss)):
                 
             if len(jobQueue) == 0 and idx == 0:
                 
                 idc = idx
                     
-                for p in procss[idc: idc + c.numSubjectsAtOnce]:
+                for p in procss[idc: idc + c.numGPAModelsAtOnce]:
                 
                     p.start()
                     print >>pid,p.pid
@@ -427,63 +344,56 @@ def run(config_file, output_path_file):
                         idx += 1
                 
     pid.close()
-    '''
+    
+    
+    
+    
+    gpaTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+    gpaTimeDict['Elapsed_Time_(minutes)'] = int(((time.time() - gpa_start_time)/60))
+    gpaTimeDict['Status'] = 'Complete'
             
+    gpaTimeFields= ['Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
+    timeHeader = dict((n, n) for n in gpaTimeFields)
+            
+    timeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, gpa_start_datetime)), 'a')
+    readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, gpa_start_datetime)), 'rb')
+    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+    timeReader = csv.DictReader(readTimeCSV)
+            
+    headerExists = False
+    for line in timeReader:
+        if 'Start_Time' in line:
+            headerExists = True
+            
+    if headerExists == False:
+        timeWriter.writerow(timeHeader)
+                
+            
+    timeWriter.writerow(gpaTimeDict)
+    timeCSV.close()
+    readTimeCSV.close()
+    
+    
+    
+    
+            
+    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
+
+    print >>timing, "Group analysis workflow completed for resource: ", resource
+    print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
+    print >>timing, ""
             
             
     print >>timing, "Entire group analysis run complete."
     print >>timing, "Elapsed run time (minutes): ", ((time.time() - gpa_start_time)/60)
     print >>timing, ""
 
-    print >>timing, "sca_roi_Z_to_standard_smooth"
-    print >>timing, "Number of runs: ", sca_roi_runs
-    print >>timing, "Total run time (minutes): ", sca_roi_time
-    print >>timing, ""
-
-    print >>timing, "sca_seed_Z_to_standard_smooth"
-    print >>timing, "Number of runs: ", sca_seed_runs
-    print >>timing, "Total run time (minutes): ", sca_seed_time
-    print >>timing, ""
-
-    print >>timing, "sca_tempreg_maps_z_files_smooth"
-    print >>timing, "Number of runs: ", sca_tempreg_runs
-    print >>timing, "Total run time (minutes): ", sca_tempreg_time
-    print >>timing, ""
-
-    print >>timing, "dr_tempreg_maps_z_files_smooth"
-    print >>timing, "Number of runs: ", dr_tempreg_runs
-    print >>timing, "Total run time (minutes): ", dr_tempreg_time
-    print >>timing, ""
-
-    print >>timing, "vmhc_z_score_stat_map"
-    print >>timing, "Number of runs: ", vmhc_z_runs
-    print >>timing, "Total run time (minutes): ", vmhc_z_time
-    print >>timing, ""
-
-    print >>timing, "alff_Z_to_standard_smooth"
-    print >>timing, "Number of runs: ", alff_Z_runs
-    print >>timing, "Total run time (minutes): ", alff_Z_time
-    print >>timing, ""
-
-    print >>timing, "falff_Z_to_standard_smooth"
-    print >>timing, "Number of runs: ", falff_Z_runs
-    print >>timing, "Total run time (minutes): ", falff_Z_time
-    print >>timing, ""
-
-    print >>timing, "reho_Z_to_standard_smooth"
-    print >>timing, "Number of runs: ", reho_Z_runs
-    print >>timing, "Total run time (minutes): ", reho_Z_time
-    print >>timing, ""
-
-    print >>timing, "centrality_outputs_smoothed"
-    print >>timing, "Number of runs: ", centrality_outputs_runs
-    print >>timing, "Total run time (minutes): ", centrality_outputs_time
-    print >>timing, ""
 
 
 
     timing.close()
     #diag.close()
+
 
 
 
