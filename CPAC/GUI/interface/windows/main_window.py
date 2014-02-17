@@ -600,25 +600,34 @@ class ListBox(wx.Frame):
                         raise Exception
                     
                     
-                    if len(c.pipelineName) >0:
-                            
-                            if self.pipeline_map.get(c.pipelineName) == None:
-                                self.pipeline_map[c.pipelineName] = path
-                                self.listbox.Append(c.pipelineName)
-                                dlg.Destroy()
-                                break
-                            
-                            else:        
-                                       
-                                dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
-                                               'Error!',
-                                           wx.OK | wx.ICON_ERROR)
-                                dlg3.ShowModal()
-                                dlg3.Destroy()
+                    try:
+                        cfgPipelineNameStr = str(c.pipelineName)
+                        if len(cfgPipelineNameStr) > 0:
                                 
-                    else:
-                        dlg.Destroy
-                        break
+                                if self.pipeline_map.get(cfgPipelineNameStr) == None:
+                                    self.pipeline_map[cfgPipelineNameStr] = path
+                                    self.listbox.Append(cfgPipelineNameStr)
+                                    dlg.Destroy()
+                                    break
+                                
+                                else:        
+                                           
+                                    dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
+                                                   'Error!',
+                                               wx.OK | wx.ICON_ERROR)
+                                    dlg3.ShowModal()
+                                    dlg3.Destroy()
+                                    
+                        else:
+                            dlg.Destroy
+                            break
+                        
+                    except:
+                        
+                        print "\n\n" + "ERROR: The pipeline configuration file is missing a pipeline " \
+                              "name. Please add a pipeline name and try again." + "\n"
+                        print "Error name: main_window_0002" + "\n\n"
+                        raise Exception
                     
                     
               
@@ -745,3 +754,4 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+
