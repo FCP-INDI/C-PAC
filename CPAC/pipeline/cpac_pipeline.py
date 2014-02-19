@@ -1,6 +1,11 @@
 import os
 import time
 from time import strftime
+import sys
+cpac_path = "/home2/aimiwat/code/cpac-install/lib/python2.7/site-packages/"
+nipype_path = "/home2/aimiwat/code/nipype-install/lib/python2.7/site-packages/"
+sys.path.insert(0,cpac_path)
+sys.path.insert(0,nipype_path)
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -4336,14 +4341,14 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n"
     
     
-        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        workflow.run(plugin='Linear', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
         """
         # Actually run the pipeline now
         try:
 
-            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+            workflow.run(plugin='Linear', plugin_args={'n_procs': c.numCoresPerSubject})
             
         except:
             
@@ -4370,7 +4375,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         """
         try:
     
-            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+            workflow.run(plugin='Linear', plugin_args={'n_procs': c.numCoresPerSubject})
     
         except Exception as e:
     
