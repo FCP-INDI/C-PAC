@@ -1,5 +1,103 @@
 import numpy as np
 
+# Function to actually do the list merging
+def merge_lists(deg_list=[],eig_list=[],lfcd_list=[]):
+    merged_list = []
+    merged_list.extend(deg_list)
+    merged_list.extend(eig_list)
+    merged_list.extend(lfcd_list)
+    
+    return merged_list
+
+# Borrowed from nipy.graph.graph
+# https://github.com/nipy/nipy/blob/master/nipy/algorithms/graph/graph.py
+def graph_3d_grid(xyz, k=18):
+    """ Utility that computes the six neighbors on a 3d grid
+
+    Parameters
+    ----------
+    xyz: array of shape (n_samples, 3); grid coordinates of the points
+    k: neighboring system, equal to 6, 18, or 26
+
+    Returns
+    -------
+    i, j, d 3 arrays of shape (E),
+            where E is the number of edges in the resulting graph
+            (i, j) represent the edges, d their weights
+    """
+    if np.size(xyz) == 0:
+        return None
+    lxyz = xyz - xyz.min(0)
+    m = 3 * lxyz.max(0).sum() + 2
+
+    # six neighbours
+    n6 = [np.array([1, m, m ** 2]), np.array([m ** 2, 1, m]),
+         np.array([m, m ** 2, 1])]
+
+    # eighteen neighbours
+    n18 = [np.array([1 + m, 1 - m, m ** 2]),
+           np.array([1 + m, m - 1, m ** 2]),
+           np.array([m ** 2, 1 + m, 1 - m]),
+           np.array([m ** 2, 1 + m, m - 1]),
+           np.array([1 - m, m ** 2, 1 + m]),
+           np.array([m - 1, m ** 2, 1 + m])]
+
+    # twenty-six neighbours
+    n26 = [np.array([1 + m + m ** 2, 1 - m, 1 - m ** 2]),
+           np.array([1 + m + m ** 2, m - 1, 1 - m ** 2]),
+           np.array([1 + m + m ** 2, 1 - m, m ** 2 - 1]),
+           np.array([1 + m + m ** 2, m - 1, m ** 2 - 1])]
+
+    # compute the edges in each possible direction
+    def create_edges(lxyz, nn, l1dist=1, left=np.array([]), right=np.array([]),
+                     weights=np.array([])):
+        q = 0
+        for nn_row in nn:
+            v1 = np.dot(lxyz, nn_row)
+            o1 = np.argsort(v1)
+            sv1 = v1[o1]
+            nz = np.squeeze(np.nonzero(sv1[: - 1] - sv1[1:] == - l1dist))
+            o1z, o1z1 = o1[nz], o1[nz + 1]
+            left = np.hstack((left, o1z, o1z1))
+            right = np.hstack((right, o1z1, o1z))
+            q += 2 * np.size(nz)
+        weights = np.hstack((weights, np.sqrt(l1dist) * np.ones(q)))
+        return left, right, weights
+
+    i, j, d = create_edges(lxyz, n6, 1.)
+    if k >= 18:
+        i, j, d = create_edges(lxyz, n18, 2, i, j, d)
+    if k == 26:
+        i, j, d = create_edges(lxyz, n26, 3, i, j, d)
+    i, j = i.astype(np.int), j.astype(np.int)
+
+    # reorder the edges to have a more standard order
+    order = np.argsort(i + j * (len(i) + 1))
+    i, j, d = i[order], j[order], d[order]
+    return i, j, d
+
+
+# Cluster the data - 
+def cluster_data(img, thr, xyz_a, k=26):
+    """docstring for cluster_data"""
+    from scipy.sparse import coo_matrix, cs_graph_components
+    # Threshold the entire correlation map and find connected components, store this in sparse matrix
+    val_idx = img > thr                 # store valid indices
+    xyz_th = xyz_a[val_idx]             # find the 3D indices corresponding to the above threshold voxels
+    i,j,d = graph_3d_grid(xyz_th, k=k)  # find the connected components for the above threshold voxels
+    nvoxs = xyz_th.shape[0]             # store the number of correlated voxels in entire network
+    adj = coo_matrix((d, (i,j)), shape=(nvoxs,nvoxs)) # and store the connected nodes and weights in sparse matrix
+    
+    # Identify the connected components (clusters) within the graph
+    nc, labels = cs_graph_components(adj)
+    
+    # Copy the node labels to their voxel equivalents
+    lbl_img = np.zeros(img.shape)           # init lbl_img - map to store label data
+    # add 2 so that labels corresponding to unconnected voxels (-2)
+    # will be zero in lbl_img, and label==0 will now equal 2
+    lbl_img[val_idx] = labels + 2 
+    return lbl_img
+
 def convert_pvalue_to_r(scans, threshold):
         
     import scipy.stats as s

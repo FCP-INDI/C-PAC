@@ -11,9 +11,11 @@ from utils import convert_pvalue_to_r,\
                   convert_sparsity_to_r,\
                   load_mat,\
                   map_centrality_matrix,\
-                  calc_blocksize, \
-                  calc_corrcoef, \
-                  check_timeseries
+                  calc_blocksize,\
+                  calc_corrcoef,\
+                  check_timeseries,\
+                  cluster_data,\
+                  merge_lists
 
 from core import degree_centrality, \
                  fast_degree_centrality, \

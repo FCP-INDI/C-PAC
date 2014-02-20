@@ -28,7 +28,7 @@ class ListBox(wx.Frame):
         import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.version)
+        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.__version__)
     
         self.pipeline_map = {}
         self.sublist_map= {}

@@ -10,6 +10,8 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
+from CPAC import network_centrality
+from CPAC.network_centrality.utils import merge_lists
 logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
@@ -3140,7 +3142,8 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if 1 in c.runNetworkCentrality:
 
         for strat in strat_list:
-
+            
+            
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
@@ -3149,13 +3152,58 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
 
-            network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d' % num_strat)
-            network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
-            network_centrality.inputs.inputspec.threshold = c.correlationThreshold
-            network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
-            network_centrality.inputs.centrality_options.method_options = c.centralityMethodOptions
+            # c.correlationThresholdOption: list of integers corresponding to the threshold type to calculate at each measure (defaults to 0)
+            # 0 - p-value threshold, 1 - sparsity threshold, 2- correlation threshold
+            # e.g. [0,0,2] means p-value thresholding for degree centrality,
+            #                    p-value thresholding for eigenvector centrality,
+            #                    correlation thresholding for lFCD
+            #
+            # c.correlationThreshold: list of floats corresponding to the threshold number
+            # e.g. [0.05,0.01,0.6]
+            #
+            # c.centralityWeightOptions: list of lists of bools corresponding to what type of weighting to
+            # perform for the centrality of each measure
+            # e.g. [[True,False],[False,False],[True,True]] means perform binary counts for degree centrality
+            #                                                     perform binary and weighted counts for lFCD
+            #
+            # c.centralityMethodOptions: list of booleans indicating which measure to calculate and perform a work
+            # flow over
+            # e.g. [True,False,True] means perform degree centrality and lFCD but not eigenvector centrality
+            
+            # Find what measures to calculate (indices of c.centralityMethodOptions == True)
+            trueMethodIndices = [i for i, x in enumerate(c.centralityMethodOptions) if x == True]
+            merge_node = pe.Node(util.Function(input_names=['deg_list',
+                                                            'eig_list',
+                                                            'lfcd_list'],
+                                          output_names = ['merged_list'],
+                                          function = merge_lists),
+                            name = 'merge_node')
+            for m in trueMethodIndices:
+                corrThresholdOption = c.correlationThresholdOption[m]           # store correlation threshold for that particular measure
+                centralityWeightOption = c.centralityWeightOptions[m]           # store the boolean array associated with that measure for weighted counts
+                corrThreshold = c.correlationThreshold[m]                       # store the correlation threshold itself for that measure
+                network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d-%d' %(num_strat,m))
+                workflow.connect(resample_functional_to_template, 'out_file',
+                                 network_centrality, 'inputspec.subject')
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 network_centrality, 'inputspec.template')
+                network_centrality.inputs.inputspec.method_option = m         # send method option as integer (0 - deg, 1 - eig, 2 - lFCD) to node
+                network_centrality.inputs.inputspec.threshold = corrThreshold
+                network_centrality.inputs.inputspec.threshold_option = corrThresholdOption
+                network_centrality.inputs.inputspec.weight_options = centralityWeightOption
 
-
+                if m == 0:
+                    workflow.connect(network_centrality,'outputspec.centrality_outputs',
+                                     merge_node,'deg_list')
+                if m == 1:
+                    workflow.connect(network_centrality,'outputspec.centrality_outputs',
+                                     merge_node,'eig_list')
+                if m == 2:
+                    workflow.connect(network_centrality,'outputspec.centrality_outputs',
+                                     merge_node,'lfcd_list')
+                
+                strat.append_name(network_centrality.name)
+                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
 
             try:
 
@@ -3166,18 +3214,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                  resample_functional_to_template, 'in_file')
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
-
-                workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.subject')
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 network_centrality, 'inputspec.template')
-
-
-                strat.append_name(network_centrality.name)
-
-                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
-                
-                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
+                strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
                 if c.fwhm != None :
@@ -3192,8 +3229,11 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
-                    workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                                      z_score, 'inputspec.input_file')
+                    workflow.connect(merge_node, 'merged_list',
                                      z_score, 'inputspec.input_file')
+
 
                     # connecting zscores to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',

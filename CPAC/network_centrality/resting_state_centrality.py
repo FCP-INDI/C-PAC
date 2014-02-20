@@ -37,11 +37,14 @@ def create_resting_state_graphs(allocated_memory = None,
         inputspec.template : string (existing nifti file)
             path to mask/parcellation unit 
         
-        inputspec.threshold_option: string (int)
-            threshold options:  0 for probability p_value, 1 for sparsity threshold, any other for threshold value
+        inputspec.method_option: string (int)
+            0 for degree centrality, 1 for eigenvector centrality, 2 for lFCD
         
         inputspec.threshold: string (float)
             pvalue/sparsity_threshold/threshold value
+        
+        inputspec.threshold_option: string (int)
+            threshold options:  0 for probability p_value, 1 for sparsity threshold, any other for threshold value
            
         centrality_options.weight_options : string (list of boolean)
             list of two booleans for binarize and weighted options respectively
@@ -107,60 +110,79 @@ def create_resting_state_graphs(allocated_memory = None,
     >>> wflow.run()
     
     """
+    
+    # Instantiate workflow with input name
     wf = pe.Workflow(name = wf_name)
     
+    # Instantiate inputspec node
     inputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                        'template',
+                                                       'method_option',
+                                                       'threshold_option',
                                                        'threshold',
-                                                       'threshold_option']),
+                                                       'weight_options']),
                         name='inputspec')
     
-    outputspec = pe.Node(util.IdentityInterface(fields=['centrality_outputs',
-                                                        'threshold_matrix',
-                                                        'correlation_matrix',
-                                                        'graph_outputs']),
-                         name = 'outputspec')
-    
-    centrality_options = pe.Node(util.IdentityInterface(fields = ['weight_options',
-                                                                  'method_options']),
-                                 name = 'centrality_options')
-            
-    
-    calculate_centrality = pe.Node(util.Function(input_names = ['datafile', 
-                                                                'template', 
-                                                                'method_options', 
-                                                                'weight_options',
-                                                                'option',
+    # Instantiate calculate_centrality main function node
+    calculate_centrality = pe.Node(util.Function(input_names = ['datafile',
+                                                                'template',
+                                                                'method_option',
+                                                                'threshold_option',
                                                                 'threshold',
+                                                                'weight_options',
                                                                 'allocated_memory'],
                                                  output_names = ['out_list'],
                                                  function = calc_centrality),
                                    name = 'calculate_centrality')
     
+    # Connect inputspec node to main function node
     wf.connect(inputspec, 'subject', 
                calculate_centrality, 'datafile')
     wf.connect(inputspec, 'template', 
                calculate_centrality, 'template')
-    
-    wf.connect(centrality_options, 'method_options',
-               calculate_centrality, 'method_options')
-    wf.connect(centrality_options, 'weight_options',
-               calculate_centrality, 'weight_options')
-    
+    wf.connect(inputspec, 'method_option',
+               calculate_centrality, 'method_option')
+    wf.connect(inputspec, 'threshold_option', 
+               calculate_centrality, 'threshold_option')
     wf.connect(inputspec, 'threshold', 
                calculate_centrality, 'threshold')
-    wf.connect(inputspec, 'threshold_option', 
-               calculate_centrality, 'option')
-    
+    wf.connect(inputspec,'weight_options',
+               calculate_centrality,'weight_options')
+    # Specify allocated memory from workflow input to function node
     calculate_centrality.inputs.allocated_memory = allocated_memory
-    
+    # Instantiate outputspec node
+    outputspec = pe.Node(util.IdentityInterface(fields=['centrality_outputs',
+                                                        'threshold_matrix',
+                                                        'correlation_matrix',
+                                                        'graph_outputs']),
+                         name = 'outputspec')
+    # Connect function node to outputspec node
     wf.connect(calculate_centrality, 'out_list',
                outputspec, 'centrality_outputs')
-    
+
     return wf
 
+# # Function to combine outputs for different centrality methods
+# def create_merging_graph(wf_name = 'merging_graph'):
+#     # Instantiate workflow
+#     wf = pe.Node(name = wf_name)
+#     inputspec = pe.Node(util.IdentityInterface(fields=['merge_list']),
+#                         name = 'inputspec')
+#     merge_node = pe.Node(util.Function(input_names=['deg_list',
+#                                                     'eig_list',
+#                                                     'lfcd_list'],
+#                                           output_names = ['out_list'],
+#                                           function = merge_lists),
+#                             name = 'merge_node')
+#     wf.connect(inputspec, 'merge_list',
+#                merge_node, 'in_list')
+#     outputspec = pe.Node(util.IdentityInterface(fields=['merged_list']),
+#                          name = 'outputspec')
+#     wf.connect(merge_node,'out_list',
+#                outputspec,'merged_list')
+#     return wf
 
-
+    
 def load(datafile, template=None):
     
     """
@@ -260,7 +282,7 @@ def load(datafile, template=None):
 
 
 def get_centrality_by_sparsity(timeseries, 
-                   method_options,
+                   method_option,
                    weight_options,
                    threshold,
                    memory_allocated):
@@ -315,8 +337,19 @@ def get_centrality_by_sparsity(timeseries,
         nvoxs = timeseries.shape[0]
         ntpts = timeseries.shape[1]
         
-        calc_degree  = method_options[0]
-        calc_eigen   = method_options[1]
+        calc_degree = False         # init degree measure flag to false
+        calc_eigen = False          # init eigen measure flag to false
+        calc_lfcd= False            # init lFCD measure flag to false
+        
+        # Select which method we're going to perform
+        if method_option == 0:
+            calc_degree = True
+        elif method_option == 1:
+            calc_eigen = True
+        elif method_option == 2:
+            calc_lfcd = True
+        
+        # Set weighting parameters
         out_binarize = weight_options[0]
         out_weighted = weight_options[1]
         
@@ -354,11 +387,11 @@ def get_centrality_by_sparsity(timeseries,
             if out_binarize:
                 print "...calculating binarize degree"
                 degree_binarize = degree_centrality(corr_matrix, r_value, method="binarize")
-                out_list.append(('degree_centrality_binarize', degree_matrix))
+                out_list.append(('degree_centrality_binarize', degree_binarize))
             if out_weighted:
                 print "...calculating weighted degree"
                 degree_weighted = degree_centrality(corr_matrix, r_value, method="weighted")
-                out_list.append(('degree_centrality_weighted', degree_matrix))
+                out_list.append(('degree_centrality_weighted', degree_weighted))
         
         
         if calc_eigen:
@@ -380,11 +413,12 @@ def get_centrality_by_sparsity(timeseries,
 
 
 def get_centrality_by_thresh(timeseries,
-                          method_options,
-                          weight_options,
-                          memory_allocated,
-                          threshold, 
-                          r_value = None):
+                             template,
+                             method_option,
+                             weight_options,
+                             threshold,
+                             r_value,
+                             memory_allocated):
     """
     Method to calculate degree and eigen vector centrality. 
     This method takes into consideration the amount of memory
@@ -394,17 +428,19 @@ def get_centrality_by_thresh(timeseries,
     ----------
     timeseries_data : numpy array
         timeseries of the input subject
-    method_options : string (list of boolean)
-        list of two booleans for degree and eigen options respectively
+    template : numpy array
+        Mask/ROI template for timeseries of subject
+    method_option : integer
+        0 - degree centrality calculation, 1 - eigenvector centrality calculation, 2 - lFCD calculation
     weight_options : string (list of boolean)
         list of two booleans for binarize and weighted options respectively
-    memory_allocated : a string
-        amount of memory allocated to degree centrality
     threshold : float
         p-value threshold for the correlation values (ignored if the r_value option is specified)
     r_value : float
         threshold value in terms of the correlation (this will override the threshold option)
-    
+    memory_allocated : a string
+        amount of memory allocated to degree centrality
+        
     Returns
     -------
     out_list : string (list of tuples)
@@ -420,20 +456,32 @@ def get_centrality_by_thresh(timeseries,
     import numpy as np
     import os
     from CPAC.network_centrality import calc_blocksize,\
+                                        cluster_data,\
                                         convert_pvalue_to_r,\
                                         degree_centrality,\
                                         eigenvector_centrality
     from CPAC.cwas.subdist import norm_cols
     
     try:                         
+        # Init variables for use
         out_list = []
         nvoxs = timeseries.shape[0]
         ntpts = timeseries.shape[1]
-                
-        r_matrix = None
         
-        calc_degree  = method_options[0]
-        calc_eigen   = method_options[1]
+        r_matrix = None             # init correlation matrix
+        calc_degree = False         # init degree measure flag to false
+        calc_eigen = False          # init eigen measure flag to false
+        calc_lfcd= False            # init lFCD measure flag to false
+        
+        # Select which method we're going to perform
+        if method_option == 0:
+            calc_degree = True
+        elif method_option == 1:
+            calc_eigen = True
+        elif method_option == 2:
+            calc_lfcd = True
+        
+        # Set weighting parameters
         out_binarize = weight_options[0]
         out_weighted = weight_options[1]
         
@@ -453,9 +501,8 @@ def get_centrality_by_thresh(timeseries,
             r_value = convert_pvalue_to_r(ntpts, threshold)
             print "...%s -> %s" % (threshold, r_value)
         
-        
         print "Setup Intermediates/Outputs"
-        
+        # Degree matrix init
         if calc_degree:
             print "...degree"
             if out_binarize:
@@ -464,7 +511,7 @@ def get_centrality_by_thresh(timeseries,
             if out_weighted:
                 degree_weighted = np.zeros(nvoxs, dtype=timeseries.dtype)
                 out_list.append(('degree_centrality_weighted', degree_weighted))
-        
+        # Eigen matrix init
         if calc_eigen:
             print "...eigen"
             r_matrix = np.zeros((nvoxs, nvoxs), dtype=timeseries.dtype)
@@ -474,46 +521,77 @@ def get_centrality_by_thresh(timeseries,
             if out_weighted:
                 eigen_weighted = np.zeros(nvoxs, dtype=timeseries.dtype)
                 out_list.append(('eigenvector_centrality_weighted', eigen_weighted))
-                
+        # lFCD matrix init
+        if calc_lfcd:
+            print "...degree"
+            if out_binarize:
+                lfcd_binarize = np.zeros(nvoxs, dtype=timeseries.dtype)
+                out_list.append(('lFCD_binarize', lfcd_binarize))
+            if out_weighted:
+                lfcd_weighted = np.zeros(nvoxs, dtype=timeseries.dtype)
+                out_list.append(('lFCD_weighted', lfcd_weighted))
         
+        # Normalize the timeseries columns for simple correlation calc via dot product later..
         print "Normalize TimeSeries"
         timeseries = norm_cols(timeseries.T)
         
-                
+        # Init blocking indices for correlation matrix calculation
         print "Computing centrality across %i voxels" % nvoxs
         i = block_size
         j = 0
+        # Calculate correlation matrix in blocks while loop
         while i <= nvoxs:
-           print "running block ->", i, j
+            print "running block ->", i, j
            
-           try:
-               print "...correlating"
-               corr_matrix = np.dot(timeseries[:,j:i].T, timeseries)
-           except:
-               raise Exception("Error in calcuating block wise correlation for the block %i,%i"%(j,i))
+            try:
+                print "...correlating"
+                corr_matrix = np.dot(timeseries[:,j:i].T, timeseries)
+            except:
+                raise Exception("Error in calcuating block wise correlation for the block %i,%i"%(j,i))
                       
-           if calc_eigen:
-               print "...storing correlation matrix"
-               r_matrix[j:i] = corr_matrix
-           
-           if calc_degree:
-               if out_binarize:
-                   print "...calculating binarize degree"
-                   degree_centrality(corr_matrix, r_value, method="binarize", out=degree_binarize[j:i])
-               if out_weighted:
-                   print "...calculating weighted degree"
-                   degree_centrality(corr_matrix, r_value, method="weighted", out=degree_weighted[j:i])
+            if calc_eigen:
+                print "...storing correlation matrix"
+                r_matrix[j:i] = corr_matrix
             
-           print "...removing temporary correlation matrix"
-           del corr_matrix
+            if calc_degree:
+                if out_binarize:
+                    print "...calculating binarize degree"
+                    degree_centrality(corr_matrix, r_value, method="binarize", out=degree_binarize[j:i])
+                if out_weighted:
+                    print "...calculating weighted degree"
+                    degree_centrality(corr_matrix, r_value, method="weighted", out=degree_weighted[j:i])
+            
+            if calc_lfcd:
+                xyz_a = np.argwhere(template)
+                krange = corr_matrix.shape[0]
+                print "...iterating through seeds in block - lfcd"
+                for k in range (0,krange):
+                    corr_seed = corr_matrix[k,:]
+                    labels = cluster_data(corr_seed,r_value,xyz_a)
+                    seed_label = labels[j+k]
+                    if out_binarize:
+                        if seed_label > 0:
+                            lfcd = np.sum(labels==seed_label)
+                        else:
+                            lfcd = 1
+                        lfcd_binarize[j+k] = np.max([lfcd,1])           # in case lfcd is 0, at least return 1
+                    if out_weighted:
+                        if seed_label > 0:
+                            lfcd = np.sum(corr_seed*(labels==seed_label))
+                        else:
+                            lfcd = 1
+                        lfcd_weighted[j+k] = np.max([lfcd,1])           # in case lfcd is 0, at least return 1
+                            
+            print "...removing temporary correlation matrix"
+            del corr_matrix
            
-           j = i
-           if i == nvoxs:
-               break
-           elif (i+block_size) > nvoxs:
-               i = nvoxs
-           else:
-               i += block_size
+            j = i
+            if i == nvoxs:
+                break
+            elif (i+block_size) > nvoxs:
+                i = nvoxs
+            else:
+                i += block_size
         
         try:
             if calc_eigen:
@@ -612,12 +690,12 @@ def get_centrality_fast(timeseries,
         raise
 
 
-def calc_centrality(datafile, 
-                    template, 
-                    method_options, 
-                    weight_options,
-                    option,
+def calc_centrality(datafile,
+                    template,
+                    method_option,
+                    threshold_option,
                     threshold,
+                    weight_options,
                     allocated_memory):
     
     """
@@ -629,15 +707,18 @@ def calc_centrality(datafile,
         path to subject data file
     template : string (nifti file)
         path to mask/parcellation unit
-    method_options : list (boolean)
-        list of two booleans for degree and eigen options respectively
+    method_option : integer
+        0 - degree centrality calculation, 1 - eigenvector centrality calculation, 2 - lFCD calculation
     weight_options : list (boolean)
         list of two booleans for binarize and weighted options respectively
-    option : an integer
+    threshold_option : an integer
         0 for probability p_value, 1 for sparsity threshold, 
         2 for actual threshold value, and 3 for no threshold and fast approach
     threshold : a float
         pvalue/sparsity_threshold/threshold value
+    weight_options : list (boolean)
+        list of booleans, where, weight_options[0] corresponds to binary counting 
+        and weight_options[1] corresponds to weighted counting (e.g. [True,False]) 
     allocated_memory : string
         amount of memory allocated to degree centrality
     
@@ -657,9 +738,9 @@ def calc_centrality(datafile,
     
     out_list = []
     
-    if method_options.count(True) == 0:  
-        raise Exception("Invalid values in method_options " \
-                        "At least one True value is required")
+#     if method_options.count(True) == 0:  
+#         raise Exception("Invalid values in method_options " \
+#                         "At least one True value is required")
    
     if weight_options.count(True) == 0:
         raise Exception("Invalid values in weight options" \
@@ -673,33 +754,36 @@ def calc_centrality(datafile,
     start = time.clock()
     
     #p-value threshold centrality
-    if option == 0:
+    if threshold_option == 0:
         centrality_matrix = get_centrality_by_thresh(ts,
-                                               method_options, 
-                                               weight_options,
-                                               allocated_memory,
-                                               threshold)
+                                                     mask,
+                                                     method_option, 
+                                                     weight_options,
+                                                     threshold,
+                                                     None,
+                                                     allocated_memory)
                                                
     #for sparsity threshold
-    elif option == 1: 
+    elif threshold_option == 1: 
         centrality_matrix = get_centrality_by_sparsity(ts, 
-                                           method_options,
+                                           method_option,
                                            weight_options,
                                            threshold,
                                            allocated_memory)
                                                
     #r-value threshold centrality
-    elif option == 2:
+    elif threshold_option == 2:
         centrality_matrix = get_centrality_by_thresh(ts, 
-                                           method_options,
-                                           weight_options,
-                                           allocated_memory, 
-                                           None,
-                                           threshold)
+                                                     mask,
+                                                     method_option,
+                                                     weight_options,
+                                                     threshold,
+                                                     threshold,
+                                                     allocated_memory)
     
     #for fast approach (no thresholding)
-    elif option == 3:
-        centrality_matrix = get_centrality_fast(ts, method_options)
+    elif threshold_option == 3:
+        centrality_matrix = get_centrality_fast(ts, method_option)
     
     else:
         raise Exception("option must be between 0-3 and not %s" % str(option))

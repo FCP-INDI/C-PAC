@@ -42,7 +42,7 @@ class CentralitySettings(wx.ScrolledWindow):
                  control=control.CHOICE_BOX, 
                  name='runNetworkCentrality', 
                  type=dtype.LSTR, 
-                 comment="Calculate Degree Centrality and/or Eigenvector Centrality.", 
+                 comment="Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.", 
                  values=["Off","On"],
                  wkf_switch = True)
 
@@ -57,7 +57,7 @@ class CentralitySettings(wx.ScrolledWindow):
                       control = control.CHECKLIST_BOX,
                       name = "centralityMethodOptions",
                       type = dtype.LBOOL,
-                      values = ['Degree Centrality', 'Eigenvector Centrality'],
+                      values = ['Degree Centrality', 'Eigenvector Centrality', 'Local Functional Connectivity Density'],
                       size = (250,90),
                       comment = "Calculating Eigenvector Centrality will take significantly longer and require significantly more computing power to calculate than Degree Centrality.")
         
