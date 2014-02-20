@@ -43,3 +43,21 @@ __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'registration', 's
 
 from subprocess import Popen, PIPE
 import re
+#__version__ = '0.1-git'
+
+try:
+    version = '0.3.3'
+
+
+#    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
+#    (stdout, stderr) = gitproc.communicate()
+#    rows = stdout.split("\n")
+#    v_num = re.search( r'(?<=(version_|release_))(.)*', rows[0])
+#    if v_num:
+#        version = v_num.group(0).strip("'")
+#    else:
+#        version = 'unknown_version'
+except OSError:
+    version = 'unknown_version'
+
+__version__ =  str(version)
