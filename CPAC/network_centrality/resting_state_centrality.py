@@ -574,13 +574,13 @@ def get_centrality_by_thresh(timeseries,
                             lfcd = np.sum(labels==seed_label)
                         else:
                             lfcd = 1
-                        lfcd_binarize[j+k] = np.max([lfcd,1])           # in case lfcd is 0, at least return 1
+                        lfcd_binarize[j+k] = lfcd
                     if out_weighted:
                         if seed_label > 0:
                             lfcd = np.sum(corr_seed*(labels==seed_label))
                         else:
                             lfcd = 1
-                        lfcd_weighted[j+k] = np.max([lfcd,1])           # in case lfcd is 0, at least return 1
+                        lfcd_weighted[j+k] = lfcd
                             
             print "...removing temporary correlation matrix"
             del corr_matrix
@@ -593,6 +593,14 @@ def get_centrality_by_thresh(timeseries,
             else:
                 i += block_size
         
+        # In case there are any zeros in lfcd matrix, set them to 1
+        if calc_lfcd:
+            if out_binarize:
+                lfcd_binarize[np.argwhere(lfcd_binarize == 0)] = 1
+            if out_weighted:
+                lfcd_weighted[np.argwhere(lfcd_weighted == 0)] = 1
+        
+        # Perform eigenvector measures if necessary
         try:
             if calc_eigen:
                 if out_binarize:

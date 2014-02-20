@@ -56,7 +56,7 @@ class CentralitySettings(wx.ScrolledWindow):
         # --- Add degree centrality ---
         self.page.add(label = "Degree Centrality Weight Options",
                       control = control.CHECKLIST_BOX,
-                      name = "degMethodOption",
+                      name = "degWeightOptions",
                       type = dtype.LBOOL,
                       values = ['Binarized','Weighted'],
                       comment = "Enable/Disable degree centrality by selecting the connectivity weights"
@@ -78,7 +78,7 @@ class CentralitySettings(wx.ScrolledWindow):
         # --- Add eigenvector centrality ---
         self.page.add(label = "Eigenvector Centrality Weight Options",
                       control = control.CHECKLIST_BOX,
-                      name = "eigMethodOption",
+                      name = "eigWeightOptions",
                       type = dtype.LBOOL,
                       values = ['Binarized','Weighted'],
                       comment = "Enable/Disable eigenvector centrality by selecting the connectivity weights"
@@ -100,7 +100,7 @@ class CentralitySettings(wx.ScrolledWindow):
         # --- Add lFCD ---
         self.page.add(label = "Local Functional Connectivity Density Weight Options",
                       control = control.CHECKLIST_BOX,
-                      name = "lfcdMethodOption",
+                      name = "lfcdWeightOptions",
                       type = dtype.LBOOL,
                       values = ['Binarized','Weighted'],
                       comment = "Enable/Disable lFCD by selecting the connectivity weights"

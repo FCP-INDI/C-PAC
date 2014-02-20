@@ -3164,10 +3164,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                 network_centrality.inputs.inputspec.threshold_option = thresholdOption  # connect type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
                 network_centrality.inputs.inputspec.threshold = threshold               # connect threshold value (float)
                 network_centrality.inputs.inputspec.weight_options = weightOptions      # list of two booleans, first for binary, second for weighted
-                workflow.connect(network_centrality,'outputspec.centrality_outputs',
-                                 merge_node,mList)
-                strat.append_name(network_centrality.name)
-                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
+                workflow.connect(network_centrality,'outputspec.centrality_outputs',    # merge output with others via merge_node connection
+                                 merge_node,mList)                                      # ...
+                strat.append_name(network_centrality.name)                              # append this as a strategy
+                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat) # create log node for strategy
                 
             # Init merge node for appending method output lists to one another
             merge_node = pe.Node(util.Function(input_names=['deg_list',
@@ -3177,7 +3177,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                           function = merge_lists),
                             name = 'merge_node')
             # If we're calculating degree centrality
-            if c.degMethodOption.count(True) > 0:
+            if c.degWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(0,
                                           c.degCorrelationThresholdOption,
                                           c.degCorrelationThreshold,
@@ -3185,17 +3185,17 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                           'deg_list')
 
             # If we're calculating eigenvector centrality
-            if c.eigMethodOption.count(True) > 0:
+            if c.eigWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(1,
                                           c.eigCorrelationThresholdOption,
                                           c.eigCorrelationThreshold,
                                           c.eigWeightOptions,
                                           'eig_list')
             
-            # If we're calculating eigenvector centrality
-            if c.lfcdMethodOption.count(True) > 0:
+            # If we're calculating lFCD
+            if c.lfcdWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(2,
-                                          c.lfcdCorrelationThresholdOption,
+                                          2,
                                           c.lfcdCorrelationThreshold,
                                           c.lfcdWeightOptions,
                                           'lfcd_list')
