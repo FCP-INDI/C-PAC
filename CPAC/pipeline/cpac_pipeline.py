@@ -1560,10 +1560,119 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
 
 
+
+    def output_to_standard(output_name, strat, num_strat):
+            
+        nodes = getNodeList(strat)
+            
+        if 'func_mni_fsl_warp' in nodes:
+
+            output_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                           name='%d_to_standard_%d' % (output_name, num_strat))
+
+            output_to_standard.inputs.ref_file = c.standard
+
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool(output_name)
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'field_file')
+
+
+
+            except:
+                logConnectionError('%d to MNI (FSL)' % (output_name), num_strat, strat.get_resource_pool(), '0021')
+                raise
+
+            strat.update_resource_pool({'%d_to_standard' % (output_name):(output_to_standard, 'out_file')})
+            strat.append_name(output_to_standard.name)
+            
+            num_strat += 1
+
+
+        else:
+
+            output_to_standard = create_apply_ants_xfm(3, 0, name='%d_to_standard_%d' % (output_name, num_strat))
+
+            output_to_standard.inputs.inputspec.warp_reference = c.standard
+
+
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool(output_name)
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.func_anat_affine')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.conversion_reference')
+
+                node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.conversion_source')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.nonlinear_field')
+
+                node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.ants_affine')
+
+            except:
+                logConnectionError('%d to MNI (ANTS)' % (output_name), num_strat, strat.get_resource_pool(), '0022')
+                raise
+
+            strat.update_resource_pool({'%d_to_standard' % (output_name):(output_to_standard, 'outputspec.out_file')})
+            strat.append_name(output_to_standard.name)
+            
+            num_strat += 1
+
+
+
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
+        for strat in strat_list:
+            output_to_standard('alff_Z_img', strat, num_strat)
+    
+    strat_list += new_strat_list
+    
+
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
+        for strat in strat_list:
+            output_to_standard('falff_Z_img', strat, num_strat)
+    
+    strat_list += new_strat_list
+
+
+
+
+
     """
     Transforming ALFF Z scores and fAlff Z scores to MNI
     """
-    
+    '''
     new_strat_list = []
     num_strat = 0
 
@@ -1699,7 +1808,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                 num_strat += 1
     
     strat_list += new_strat_list
-
+    '''
 
     inputnode_fwhm = None
     if c.fwhm != None:
@@ -2527,7 +2636,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                 strat.append_name(dr_tempreg_stack_to_standard.name)
             
                 num_strat += 1
-
 
 
     strat_list += new_strat_list
