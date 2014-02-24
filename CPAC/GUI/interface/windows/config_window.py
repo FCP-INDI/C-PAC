@@ -457,7 +457,7 @@ class MainFrame(wx.Frame):
                         
                     if '/' in value and '$' not in value and not isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()):
+                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
