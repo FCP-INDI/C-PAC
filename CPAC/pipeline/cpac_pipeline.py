@@ -2811,7 +2811,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                                             'lfcd_list'],
                                           output_names = ['merged_list'],
                                           function = merge_lists),
-                            name = 'merge_node')
+                            name = 'merge_node_%d' % num_strat)
             # If we're calculating degree centrality
             if c.degWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(0,
