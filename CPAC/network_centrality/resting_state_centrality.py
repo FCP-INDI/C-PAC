@@ -794,7 +794,7 @@ def calc_centrality(datafile,
         centrality_matrix = get_centrality_fast(ts, method_option)
     
     else:
-        raise Exception("option must be between 0-3 and not %s" % str(option))
+        raise Exception("option must be between 0-3 and not %s" % str(method_option))
     
     print "timing:", (time.clock() - start)
     
