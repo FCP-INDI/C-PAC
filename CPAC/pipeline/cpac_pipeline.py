@@ -10,6 +10,8 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
+from CPAC import network_centrality
+from CPAC.network_centrality.utils import merge_lists
 logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
@@ -44,7 +46,6 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 import zlib
 import linecache
-
 
 class strategy:
 
@@ -93,8 +94,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
+    numAntsThreads = '1'
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
 
 
     logger.info('******************** %s' % c.standardResolutionBrain)
@@ -2775,7 +2778,8 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if 1 in c.runNetworkCentrality:
 
         for strat in strat_list:
-
+            
+            
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
@@ -2784,13 +2788,53 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
 
-            network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d' % num_strat)
-            network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
-            network_centrality.inputs.inputspec.threshold = c.correlationThreshold
-            network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
-            network_centrality.inputs.centrality_options.method_options = c.centralityMethodOptions
+            # Function to perform the connections of the workflow for the centrality method of interest
+            def connectCentralityWorkflow(methodOption,thresholdOption,threshold,weightOptions,mList):
+                # Create centrality workflow
+                network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality,  'network_centrality_%d-%d' %(num_strat,methodOption))
+                workflow.connect(resample_functional_to_template, 'out_file',           # connect subject input file to workflow
+                                 network_centrality, 'inputspec.subject')               # ...
+                workflow.connect(template_dataflow, 'outputspec.out_file',              # connect subject mask file to workflow
+                                 network_centrality, 'inputspec.template')              # ...
+                network_centrality.inputs.inputspec.method_option = methodOption        # give which method we're performing (0 - deg, 1 - eig, 2 - lfcd)
+                network_centrality.inputs.inputspec.threshold_option = thresholdOption  # connect type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
+                network_centrality.inputs.inputspec.threshold = threshold               # connect threshold value (float)
+                network_centrality.inputs.inputspec.weight_options = weightOptions      # list of two booleans, first for binary, second for weighted
+                workflow.connect(network_centrality,'outputspec.centrality_outputs',    # merge output with others via merge_node connection
+                                 merge_node,mList)                                      # ...
+                strat.append_name(network_centrality.name)                              # append this as a strategy
+                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat) # create log node for strategy
+                
+            # Init merge node for appending method output lists to one another
+            merge_node = pe.Node(util.Function(input_names=['deg_list',
+                                                            'eig_list',
+                                                            'lfcd_list'],
+                                          output_names = ['merged_list'],
+                                          function = merge_lists),
+                            name = 'merge_node')
+            # If we're calculating degree centrality
+            if c.degWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(0,
+                                          c.degCorrelationThresholdOption,
+                                          c.degCorrelationThreshold,
+                                          c.degWeightOptions,
+                                          'deg_list')
 
-
+            # If we're calculating eigenvector centrality
+            if c.eigWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(1,
+                                          c.eigCorrelationThresholdOption,
+                                          c.eigCorrelationThreshold,
+                                          c.eigWeightOptions,
+                                          'eig_list')
+            
+            # If we're calculating lFCD
+            if c.lfcdWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(2,
+                                          2,
+                                          c.lfcdCorrelationThreshold,
+                                          c.lfcdWeightOptions,
+                                          'lfcd_list')
 
             try:
 
@@ -2801,18 +2845,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                  resample_functional_to_template, 'in_file')
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
-
-                workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.subject')
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 network_centrality, 'inputspec.template')
-
-
-                strat.append_name(network_centrality.name)
-
-                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
-                
-                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
+                strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
                 if c.fwhm != None :
@@ -2827,8 +2860,11 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
-                    workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                                      z_score, 'inputspec.input_file')
+                    workflow.connect(merge_node, 'merged_list',
                                      z_score, 'inputspec.input_file')
+
 
                     # connecting zscores to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',
@@ -3961,7 +3997,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
 
-
         # Timing code for cpac_timing_<pipeline>.txt in output directory
         timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
     
@@ -3973,6 +4008,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n"
     
     
+        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        
+
+        """
         # Actually run the pipeline now
         try:
 
@@ -3996,8 +4035,9 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     
             timing.close()
             
-            raise Exception     
-    
+            raise Exception
+        """    
+
     
         """
         try:

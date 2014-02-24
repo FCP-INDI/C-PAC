@@ -237,14 +237,14 @@ class CWASSettings(wx.ScrolledWindow):
                      control=control.COMBO_BOX, 
                      name='cwasROIFile', 
                      type=dtype.STR, 
-                     values = "/path/to/cwas_mask_file",
+                     values = "None",
                      comment="Path to a mask file. Voxels outside this mask will be excluded from CWAS.")
         
         self.page.add(label="CWAS Regressor File ", 
                      control=control.COMBO_BOX, 
                      name='cwasRegressorFile', 
                      type=dtype.STR, 
-                     values= '/path/to/cwas_regressor_file',
+                     values= "None",
                      comment = "Path to a text file containing phenotypic regressor.")
         
         self.page.add(label= "CWAS FSamples ",

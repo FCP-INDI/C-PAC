@@ -493,6 +493,7 @@ class MainFrame(wx.Frame):
             errDlg2.ShowModal()
             errDlg2.Destroy()
 
+
         
         if (1 in c.runNuisance) or (c.Corrections != None):
             strategies = sorted(build_strategies(c))
@@ -501,14 +502,89 @@ class MainFrame(wx.Frame):
         
         
         # Run the actual pipeline building prep and see if it works or not
+        testDlg1 = wx.MessageDialog(
+            self, 'Click OK to run the test. This should take only a few seconds.',
+            'Running Test',
+            wx.OK | wx.ICON_INFORMATION)
+        testDlg1.ShowModal()
+           
+
+            
+        # Check file paths first
+        
+        # Just getting proper names of config file parameters
+        try:
+            params_file = open(p.resource_filename('CPAC', 'GUI/resources/config_parameters.txt'), "r")
+        except:
+            print "Error: Could not open configuration parameter file.", "\n"
+            raise Exception            
+
+        paramInfo = params_file.read().split('\n')
+        
+        paramList = []
+
+        for param in paramInfo:
+
+            if param != '':
+                paramList.append(param.split(','))
+        
+        # function for file path checking
+        def testFile(filepath, paramName):
+            try:
+                if filepath != None:
+                    fileTest = open(filepath)
+                    fileTest.close()
+            except:
+                    
+                testDlg1.Destroy()
+                
+                for param in paramList:
+                    if param[0] == paramName:
+                        paramTitle = param[1]
+                        paramGroup = param[2]
+                        break
+                    
+                errDlgFileTest = wx.MessageDialog(
+                    self, 'Error reading file - either it does not exist or you' \
+                          ' do not have read access. \n\n' \
+                          'Parameter: %s \n' \
+                          'In tab: %s \n\n' \
+                          'Path: %s' % (paramTitle, paramGroup, filepath),
+                    'Pipeline Not Ready',
+                    wx.OK | wx.ICON_ERROR)
+                errDlgFileTest.ShowModal()
+                errDlgFileTest.Destroy()
+        
+        
+        testFile(c.standardResolutionBrainAnat,'standardResolutionBrainAnat')
+        testFile(c.standardAnat,'standardAnat')
+        testFile(c.PRIOR_WHITE,'PRIOR_WHITE')
+        testFile(c.PRIOR_GRAY,'PRIOR_GRAY')
+        testFile(c.PRIOR_CSF,'PRIOR_CSF')
+        testFile(c.standardResolutionBrain,'standardResolutionBrain')
+        testFile(c.standard,'standard')
+        testFile(c.identityMatrix,'identityMatrix')
+        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule')
+        testFile(c.harvardOxfordMask,'harvardOxfordMask')
+        testFile(c.seedSpecificationFile,'seedSpecificationFile')
+        testFile(c.roiSpecificationFile,'roiSpecificationFile')
+        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA')
+        testFile(c.maskSpecificationFile,'maskSpecificationFile')
+        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA')
+        testFile(c.spatialPatternMaps,'spatialPatternMaps')
+        testFile(c.brainSymmetric,'brainSymmetric')
+        testFile(c.symmStandard,'symmStandard')
+        testFile(c.twommBrainMaskDiluted,'twommBrainMaskDiluted')
+        testFile(c.configFileTwomm,'configFileTwomm')
+        testFile(c.templateSpecificationFile,'templateSpecificationFile')
+        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile')
+        testFile(c.cwasROIFile,'cwasROIFile')
+        testFile(c.cwasRegressorFile,'cwasRegressorFile')
+             
+            
         try:
             
-            testDlg1 = wx.MessageDialog(
-                self, 'Click OK to run the test. This should take only a few seconds.',
-                'Running Test',
-                wx.OK | wx.ICON_INFORMATION)
-            testDlg1.ShowModal()
-                       
+            # Run the pipeline building           
             prep_workflow(sublist[0], c, strategies, 0)
             
         except:
@@ -604,6 +680,16 @@ class MainFrame(wx.Frame):
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipelineName = config.get_selection()
+                
+                if len(pipelineName) == 0:
+                    noNameDlg = wx.MessageDialog(
+                        self, 'Please enter a pipeline name.',
+                        'Error!',
+                        wx.OK | wx.ICON_ERROR)
+                    noNameDlg.ShowModal()
+                    noNameDlg.Destroy()
+                    return
+                    
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),

@@ -28,7 +28,7 @@ class ListBox(wx.Frame):
         import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.version)
+        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.__version__)
     
         self.pipeline_map = {}
         self.sublist_map= {}
@@ -534,6 +534,7 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
+
         
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
@@ -609,7 +610,7 @@ class ListBox(wx.Frame):
                         print "Error name: main_window_0001" + "\n\n"
                         raise Exception
                     
-                    
+
                     if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
@@ -638,6 +639,7 @@ class ListBox(wx.Frame):
                         
                         dlg.Destroy
                         break
+
                     
                     
               
@@ -764,3 +766,4 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+
