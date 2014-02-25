@@ -46,6 +46,7 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 import zlib
 import linecache
+import csv
 
 class strategy:
 
@@ -4018,21 +4019,29 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 
 
+        pipeline_start_date = strftime("%Y-%m-%d")
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
-
-        # Timing code for cpac_timing_<pipeline>.txt in output directory
-        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
     
         # Start timing here
         pipeline_start_time = time.time()
+        
+        pipelineTimeDict = {}
+        pipelineTimeDict['Start_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+        
+        
+        '''
+        # Timing code for cpac_timing_<pipeline>.txt in output directory
+        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
         print >>timing, "Starting CPAC run at system time: ", strftime("%Y-%m-%d %H:%M:%S")
         print >>timing, "Pipeline configuration: ", c.pipelineName
         print >>timing, "Subject workflow: ", wfname
         print >>timing, "\n"
+        '''
     
     
+        
         workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
@@ -4098,6 +4107,35 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             ### Automatically generate QC index page
             create_all_qc.run(c.outputDirectory)       
         
+        
+        # Close out the timing .csv files
+        pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+        pipelineTimeDict['Elapsed_Time_(minutes)'] = int(((time.time() - pipeline_start_time)/60))
+        pipelineTimeDict['Status'] = 'Complete'
+                
+        gpaTimeFields= ['Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
+        timeHeader = dict((n, n) for n in gpaTimeFields)
+                
+        timeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'a')
+        readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'rb')
+        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+        timeReader = csv.DictReader(readTimeCSV)
+                
+        headerExists = False
+        for line in timeReader:
+            if 'Start_Time' in line:
+                headerExists = True
+                
+        if headerExists == False:
+            timeWriter.writerow(timeHeader)
+                    
+                
+        timeWriter.writerow(pipelineTimeDict)
+        timeCSV.close()
+        readTimeCSV.close()
+        
+        
+        
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
         ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
@@ -4105,6 +4143,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     
         logger.info(endString)
     
+        '''
         print >>timing, "CPAC run complete:"
         print >>timing, "pipeline configuration- %s" % c.pipelineName
         print >>timing, "subject workflow- %s" % wfname
@@ -4113,6 +4152,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n\n"
     
         timing.close()
+        '''
 
 
     return workflow

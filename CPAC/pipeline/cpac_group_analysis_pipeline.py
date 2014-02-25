@@ -593,10 +593,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         ######################################
 
-        # Run the actual group analysis workflow with the amount
-        # of processors determined in the pipeline_config file
-
-        wf.run()#(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        # Run the actual group analysis workflow
+        wf.run()
 
         '''
         except:
