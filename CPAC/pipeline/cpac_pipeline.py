@@ -3769,56 +3769,81 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             workflow.write_graph(graph2use='orig')
         except:
             pass
-    
-    
-    
+   
+   
+   
         ## this section creates names for the different branched strategies.
         ## it identifies where the pipeline has forked and then appends the name
         ## of the forked nodes to the branch name in the output directory
         renamedStrats = []
         forkPoints = []
         forkPointsDict = {}
-        
+
+        def is_number(s):
+            # function which returns boolean checking if a character
+            # is a number or not
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+
         for strat in strat_list:
-            
+           
             # load list of nodes in this one particular
             # strat into the list "nodeList"
             nodeList = strat.name
             renamedNodesList = []
-            
+           
             # strip the _n (n being the strat number) from
             # each node name and return to a list
             for node in nodeList:
-                
-                renamedNodesList.append(node[:-2])
-                
+
+                renamedNode = node
+                lastNodeChar = node[len(node)-1]
+
+                while lastNodeChar == '_' or lastNodeChar == '-' or is_number(lastNodeChar):
+                    # make 'renamedNode' the node name with the last character
+                    # stripped off, continue this until the _# at the end
+                    # of it is gone - does it this way instead of just cutting
+                    # off the last two characters in case of a large amount of
+                    # strats which can reach double digits
+                    renamedNode = renamedNode[:-1]
+                    lastNodeChar = renamedNode[len(renamedNode)-1]
+
+                   
+                renamedNodesList.append(renamedNode)
+               
             renamedStrats.append(renamedNodesList)
-            
-            
+           
+
         for strat in renamedStrats:
-            
+           
             tmpForkPoint = []
-        
+       
             for nodeName in strat:
-                
+               
+                # compare each strat against the first one in the strat list,
+                # and if any node names in the new strat are not present in
+                # the 'original' one, then append to a list of 'fork points'
                 if nodeName not in renamedStrats[0]:
                     tmpForkPoint.append(nodeName)
-                
+               
             forkPoints.append(tmpForkPoint)
-            
-        
+           
+
         forkNames = []
         for forkPoint in forkPoints:
-            
+           
             forkName = ''
-            
+           
             for fork in forkPoint:
                 forkName = forkName + '__' + fork
-                
+               
             forkNames.append(forkName)
-    
-        
-            
+   
+       
+           
         # match each strat_list with fork point list
         # this is for the datasink
         for x in range(len(strat_list)):
