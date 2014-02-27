@@ -4116,8 +4116,8 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         gpaTimeFields= ['Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
         timeHeader = dict((n, n) for n in gpaTimeFields)
                 
-        timeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'a')
-        readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'rb')
+        timeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'a')
+        readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'rb')
         timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
         timeReader = csv.DictReader(readTimeCSV)
                 
