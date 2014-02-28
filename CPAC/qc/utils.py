@@ -756,7 +756,15 @@ def get_map_and_measure(png_a):
 
     if 'centrality' in png_a:
 
-        map_name = get_map_id(str_, 'centrality_')
+        try:
+            map_name = get_map_id(str_, 'centrality_')
+        except:
+            pass
+
+        try:
+            map_name = get_map_id(str_, 'lFCD_')
+        except:
+            pass
 
 
     return map_name, measure_name
@@ -1625,9 +1633,17 @@ def gen_histogram(measure_file, measure):
             if 'centrality' in measure.lower():
 
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                type_, fname = fname.split('centrality_')
-                fname = type_ + 'centrality_' + fname.split('_')[0]
-                measure = fname
+
+                if 'centrality_' in fname:
+                    type_, fname = fname.split('centrality_')
+                    fname = type_ + 'centrality_' + fname.split('_')[0]
+                    measure = fname
+                elif 'lFCD_' in fname:
+                    fname = 'lFCD_' + fname.split('_')[1]
+                    measure = fname
+
+            print "file_: ", file_
+            print "measure: ", measure
 
             hist_path.append(make_histogram(file_, measure))
 
@@ -1635,6 +1651,7 @@ def gen_histogram(measure_file, measure):
         hist_path = make_histogram(measure_file, measure)
 
     return hist_path
+
 
 
 def make_histogram(measure_file, measure):
@@ -1906,7 +1923,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Axial Direction
-	calls make_montage_axial
+    calls make_montage_axial
 
     Parameters
     ----------
@@ -2075,7 +2092,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Sagittal Direction
-	calls make_montage_sagittal
+    calls make_montage_sagittal
 
     Parameters
     ----------
@@ -2564,4 +2581,3 @@ def make_resample_1mm(file_):
     commands.getoutput(cmd)
 
     return new_fname
-
