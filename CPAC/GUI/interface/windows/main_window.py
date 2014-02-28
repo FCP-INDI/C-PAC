@@ -253,31 +253,6 @@ class ListBox(wx.Frame):
                             
                             thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
 
-                            '''
-                            import time
-                            time.sleep(20)
-                            
-                            try:
-                                import yaml
-                                config = yaml.load(open(pipeline, 'r'))
-                            except:
-                                raise Exception("Error reading config file- %s", config)
-                            
-                            try:
-                                if config.get('outputDirectory'):
-                                    pid = [ int(id.strip()) for id in open(os.path.join(config.get('outputDirectory'),\
-                                       'pid.txt')).readlines()]
-                            except ImportError:
-                                print "unable to find the file %s"% os.path.join(config.outputDirectory, 'pid.txt')
-                                pid = None
-                            except Exception:
-                                print "Unable to retrieve process id"
-                                pid = None
-                            
-                            runCPAC(pipeline, sublist, p, pid).Show()
-                            '''
-
-                            #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
                 else:
                     print "no pipeline and subject list selected"

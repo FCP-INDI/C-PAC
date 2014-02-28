@@ -47,6 +47,8 @@ from CPAC.sca.sca import create_sca, create_temporal_reg
 import zlib
 import linecache
 import csv
+import pickle
+
 
 class strategy:
 
@@ -89,7 +91,14 @@ class strategy:
             self.resource_pool[key] = value
 
     
-def prep_workflow(sub_dict, c, strategies, run, p_name=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None):
+
+    # Start timing here
+    pipeline_start_time = time.time()
+    # at end of workflow, take timestamp again, take time elapsed and check tempfile
+    # add time to time data structure inside tempfile, and increment # of subjects
+
+
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
@@ -117,8 +126,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
-
-    unique_pipeline_id = str(subject_id) + strftime("%Y%m%d%H%M%S")
 
 
     wfname = 'resting_preproc_' + str(subject_id)
@@ -1958,7 +1965,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
 
 
-    def output_to_standard(output_name, output_resource, strat, num_strat):
+    def output_to_standard(output_name, output_resource, strat, num_strat, c3d_mapNode):
             
         nodes = getNodeList(strat)
             
@@ -1998,7 +2005,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
         else:
 
-            output_to_standard = create_apply_ants_xfm(3, 0, name='%s_to_standard_%d' % (output_name, num_strat))
+            output_to_standard = create_apply_ants_xfm(3, c3d_mapNode, name='%s_to_standard_%d' % (output_name, num_strat))
 
             output_to_standard.inputs.inputspec.warp_reference = c.standard
 
@@ -2510,13 +2517,13 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             if 0 in c.runZScoring:
 
-                output_to_standard('alff', 'alff_img', strat, num_strat)
-                output_to_standard('falff', 'falff_img', strat, num_strat)
+                output_to_standard('alff', 'alff_img', strat, num_strat, 0)
+                output_to_standard('falff', 'falff_img', strat, num_strat, 0)
 
             if 1 in c.runZScoring:
 
-                output_to_standard('alff_Z', 'alff_Z_img', strat, num_strat)
-                output_to_standard('falff_Z', 'falff_Z_img', strat, num_strat)
+                output_to_standard('alff_Z', 'alff_Z_img', strat, num_strat, 0)
+                output_to_standard('falff_Z', 'falff_Z_img', strat, num_strat, 0)
                 
             num_strat += 1
     
@@ -2536,10 +2543,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_to_standard('reho', 'raw_reho_map', strat, num_strat)
+                output_to_standard('reho', 'raw_reho_map', strat, num_strat, 0)
 
             if 1 in c.runZScoring:
-                output_to_standard('reho_Z', 'reho_Z_img', strat, num_strat)
+                output_to_standard('reho_Z', 'reho_Z_img', strat, num_strat, 0)
 
             num_strat += 1
 
@@ -2558,10 +2565,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat)
+                output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, 1)
             
             if 1 in c.runZScoring:
-                output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat)
+                output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
 
             num_strat += 1
 
@@ -2579,10 +2586,10 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat)
+                output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat, 1)
             
             if 1 in c.runZScoring:
-                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
+                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
             num_strat += 1
     
@@ -4023,12 +4030,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
-    
-        # Start timing here
-        pipeline_start_time = time.time()
-        
-        pipelineTimeDict = {}
-        pipelineTimeDict['Start_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
         
         
         '''
@@ -4107,38 +4108,103 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             ### Automatically generate QC index page
             create_all_qc.run(c.outputDirectory)       
         
+
+
+        # pipeline timing code starts here
+
+        # have this check in case the user runs cpac_runner from terminal and
+        # the timing parameter list is not supplied as usual by the GUI
+        if pipeline_timing_info != None:
+
+            # pipeline_timing_info list:
+            #  [0] - unique pipeline ID
+            #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+            #  [2] - number of subjects in subject list
+            unique_pipeline_id = pipeline_timing_info[0]
+            pipeline_start_stamp = pipeline_timing_info[1]
+            num_subjects = pipeline_timing_info[2]
         
-        # Close out the timing .csv files
-        pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-        pipelineTimeDict['Elapsed_Time_(minutes)'] = int(((time.time() - pipeline_start_time)/60))
-        pipelineTimeDict['Status'] = 'Complete'
+            # elapsed time data list:
+            #  [0] - elapsed time in minutes
+            elapsed_time_data = []
+
+            elapsed_time_data.append(int(((time.time() - pipeline_start_time)/60)))
+
+
+            # elapsedTimeBin list:
+            #  [0] - cumulative elapsed time (minutes) across all subjects
+            #  [1] - number of times the elapsed time has been appended
+            #        (effectively a measure of how many subjects have run)
+
+
+
+            # needs to happen:
+                 # write more doc for all this
+                 # warning in .csv that some runs may be partial
+                 # code to delete .tmp file
+
+
+            timing_temp_file_path = os.path.join(c.outputDirectory, '%s_pipeline_timing.tmp' % unique_pipeline_id)
+
+            if not os.path.isfile(timing_temp_file_path):
+                elapsedTimeBin = []
+                elapsedTimeBin.append(0)
+                elapsedTimeBin.append(0)
                 
-        gpaTimeFields= ['Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
-        timeHeader = dict((n, n) for n in gpaTimeFields)
+                with open(timing_temp_file_path, 'wb') as handle:
+                    pickle.dump(elapsedTimeBin, handle)
+
+
+            with open(timing_temp_file_path, 'rb') as handle:
+                elapsedTimeBin = pickle.loads(handle.read())
+
+            elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+            elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+
+            with open(timing_temp_file_path, 'wb') as handle:
+                pickle.dump(elapsedTimeBin, handle)
+
+            # this happens once the last subject has finished running!
+            if elapsedTimeBin[1] == num_subjects:
+
+                pipelineTimeDict = {}
+                pipelineTimeDict['Pipeline'] = c.pipelineName
+                pipelineTimeDict['Cores_Per_Subject'] = c.numCoresPerSubject
+                pipelineTimeDict['Simultaneous_Subjects'] = c.numSubjectsAtOnce
+                pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                pipelineTimeDict['Status'] = 'Complete'
                 
-        timeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'a')
-        readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s_%s.csv' % (c.pipelineName, pipeline_start_date)), 'rb')
-        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-        timeReader = csv.DictReader(readTimeCSV)
+                gpaTimeFields= ['Pipeline', 'Cores_Per_Subject', 'Simultaneous_Subjects', 'Number_of_Subjects', 'Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
+                timeHeader = dict((n, n) for n in gpaTimeFields)
                 
-        headerExists = False
-        for line in timeReader:
-            if 'Start_Time' in line:
-                headerExists = True
+                timeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'a')
+                readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'rb')
+                timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                timeReader = csv.DictReader(readTimeCSV)
                 
-        if headerExists == False:
-            timeWriter.writerow(timeHeader)
+                headerExists = False
+                for line in timeReader:
+                    if 'Start_Time' in line:
+                        headerExists = True
+                
+                if headerExists == False:
+                    timeWriter.writerow(timeHeader)
                     
-                
-        timeWriter.writerow(pipelineTimeDict)
-        timeCSV.close()
-        readTimeCSV.close()
+                timeWriter.writerow(pipelineTimeDict)
+                timeCSV.close()
+                readTimeCSV.close()
+
+                # remove the temp timing file now that it is no longer needed
+                os.remove(timing_temp_file_path)
         
         
         
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-        ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
+        ("Timing information saved in %s/cpac_individual_timing_%s.csv \n" % (c.outputDirectory, c.pipelineName)) + \
         ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of completion: %s" % strftime("%Y-%m-%d %H:%M:%S"))
     
         logger.info(endString)
@@ -4184,5 +4250,4 @@ def run(config, subject_list_file, indx, strategies, \
 
     
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
-
 
