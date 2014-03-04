@@ -2177,7 +2177,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
                     workflow.connect(node, out_file,
-                                     dr_tempreg_stack_to_standard, 'field_file')                
+                                     dr_tempreg_stack_to_standard, 'field_file')           
 
 
 
