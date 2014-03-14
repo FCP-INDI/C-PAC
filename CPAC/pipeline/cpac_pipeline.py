@@ -2048,12 +2048,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-    def output_smooth(output_name, output_resource, strat, num_strat):
+    def output_smooth(output_name, output_resource, strat, num_strat, mapNode):
  
         output_to_standard_smooth = None
 
-        output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                    name='%s_smooth_%d' % (output_name, num_strat))
+        if mapNode == 0:
+
+            output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='%s_smooth_%d' % (output_name, num_strat))
+
+        else:
+
+            output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                        name='%s_smooth_%d' % (output_name, num_strat), iterfield=['in_file'])
 
         try:
             node, out_file = strat.get_node_from_resource_pool(output_resource)
@@ -2607,12 +2614,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_smooth('alff', 'alff_img', strat, num_strat)
-                output_smooth('falff', 'falff_img', strat, num_strat)
+                output_smooth('alff', 'alff_img', strat, num_strat, 0)
+                output_smooth('falff', 'falff_img', strat, num_strat, 0)
 
             if 1 in c.runZScoring:
-                output_smooth('alff_Z', 'alff_Z_img', strat, num_strat)
-                output_smooth('falff_Z', 'falff_Z_img', strat, num_strat)
+                output_smooth('alff_Z', 'alff_Z_img', strat, num_strat, 0)
+                output_smooth('falff_Z', 'falff_Z_img', strat, num_strat, 0)
 
             num_strat += 1
 
@@ -2630,10 +2637,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_smooth('reho', 'raw_reho_map', strat, num_strat)
+                output_smooth('reho', 'raw_reho_map', strat, num_strat, 0)
 
             if 1 in c.runZScoring:
-                output_smooth('reho_Z', 'reho_Z_img', strat, num_strat)
+                output_smooth('reho_Z', 'reho_Z_img', strat, num_strat, 0)
 
             num_strat += 1
 
@@ -2648,10 +2655,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_smooth('sca_roi', 'sca_roi_correlations', strat, num_strat)
+                output_smooth('sca_roi', 'sca_roi_correlations', strat, num_strat, 0)
             
             if 1 in c.runZScoring:
-                output_smooth('sca_roi_Z', 'sca_roi_Z', strat, num_strat)
+                output_smooth('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
 
             num_strat += 1
 
@@ -2669,15 +2676,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_smooth('sca_seed', 'sca_seed_correlations', strat, num_strat)
+                output_smooth('sca_seed', 'sca_seed_correlations', strat, num_strat, 0)
             
             if 1 in c.runZScoring:
-                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
+                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
             num_strat += 1
 
     strat_list += new_strat_list
-
 
 
 
