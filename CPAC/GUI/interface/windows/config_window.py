@@ -2,7 +2,7 @@ import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
 from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreprocessing, \
-    Segmentation,  Registration, FunctionalPreProcessing,\
+    DerivativesConfig, Segmentation,  Registration, FunctionalPreProcessing,\
     MotionOptions, Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
     SCA, SCASettings, MultipleRegressionSCA,\
@@ -17,6 +17,7 @@ from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreproces
     GroupAnalysis, GPASettings, BASCSettings,\
     BASC, CWAS, CWASSettings,\
     DualRegression, DualRegressionOptions, TimeSeriesOptions
+
 
 ID_SUBMIT = 6
 
@@ -33,6 +34,7 @@ class Mybook(wx.Treebook):
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
         page4 = WorkflowConfig(self)
+        page47 = DerivativesConfig(self)
 
         page5 = AnatomicalPreprocessing(self)
         page6 = Registration(self, 1)
@@ -97,6 +99,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
         self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
+        self.AddSubPage(page47, "Derivatives Settings", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
@@ -454,7 +457,7 @@ class MainFrame(wx.Frame):
                         
                     if '/' in value and '$' not in value and not isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()):
+                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
@@ -646,7 +649,6 @@ class MainFrame(wx.Frame):
                 #validating
                 if (switch == None or validate) and ctrl.get_validation():
 
-
                     win = ctrl.get_ctrl()
                     #print "validating ctrl-->", ctrl.get_name()
                     #print "ctrl.get_selection()", ctrl.get_selection()
@@ -664,10 +666,10 @@ class MainFrame(wx.Frame):
                     if len(value) == 0:
                         display(win, "%s field is empty!" % ctrl.get_name())
                         return
-                        
+
                     if '/' in value and '$' not in value and not isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()):
+                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return

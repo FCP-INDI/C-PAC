@@ -90,7 +90,7 @@ def main(**extra_args):
           configuration = configuration,
           cmdclass = cmdclass,
           scripts = glob('scripts/*'), 
-          script_args = ['build_ext', '--inplace'], 
+          #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
 

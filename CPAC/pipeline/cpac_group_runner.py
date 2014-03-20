@@ -225,8 +225,6 @@ def run(config_file, output_path_file):
     gpaTimeDict = {}
     gpaTimeDict['Start_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
     
-    
-    
 
 
     for resource, glob_key in analysis_map.keys():
