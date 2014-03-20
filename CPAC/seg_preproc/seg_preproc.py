@@ -11,6 +11,42 @@ import nipype.interfaces.ants as ants
 from nipype.interfaces.ants import WarpImageMultiTransform
 from CPAC.seg_preproc.utils import *
 
+# Workflow for running FSL FIRST
+def create_subcort_seg(wf_name = 'subcort_seg'):
+    """
+    Run FIRST segmentation/registration tool workflow
+    """
+    
+    # Create the workflow
+    subcort_wf = pe.Workflow(name=wf_name)
+    
+    # Input node - load in the reoriented brain (original space, non-registered)
+    inputNode = pe.Node(interface=util.IdentityInterface(fields=['reor_brain']),
+                        name='inputspec')
+    
+    # FIRST Interface node
+    funcNode = pe.Node(interface=fsl.FIRST(),
+                        name='first_seg')
+    # Set '-d' flag to keep intermediate files
+    funcNode.inputs.no_cleanup = True
+
+    # Output node - four outputs in FIRST we must define in the node
+    outputNode = pe.Node(interface=util.IdentityInterface(fields=['vtk_out',
+                                                                  'bvars_out',
+                                                                  'orig_out',
+                                                                  'seg_out']),
+                         name='outputspec')
+    
+    # Connect the nodes together to form the workflow
+    subcort_wf.connect(inputNode,'reor_brain',funcNode,'in_file')
+    subcort_wf.connect(funcNode,'vtk_surfaces',outputNode,'vtk_out')
+    subcort_wf.connect(funcNode,'bvars',outputNode,'bvars_out')
+    subcort_wf.connect(funcNode,'original_segmentations',outputNode,'orig_out')
+    subcort_wf.connect(funcNode,'segmentation_file',outputNode,'seg_out')
+    
+    # Return the workflow
+    return subcort_wf
+
 def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
 
