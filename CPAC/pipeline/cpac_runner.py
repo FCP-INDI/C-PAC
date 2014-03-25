@@ -212,7 +212,8 @@ def make_sge(c, config_file, strategies_file, subject_list_file, p_name):
     print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
         subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
 
-    f.close()
+    f.close()    
+    commands.getoutput('chmod +x %s' % subject_bash_file )
     
     return subject_bash_file
 
@@ -220,8 +221,7 @@ def make_sge(c, config_file, strategies_file, subject_list_file, p_name):
 def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
     subject_bash_file = make_sge(c, config_file, strategies_file, subject_list_file, p_name)
-    
-    commands.getoutput('chmod +x %s' % subject_bash_file )
+
     p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w') 
     out = commands.getoutput('qsub  %s ' % (subject_bash_file))
 
