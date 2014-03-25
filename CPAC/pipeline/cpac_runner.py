@@ -181,9 +181,7 @@ def build_strategies(configuration):
     return strategy_entries
 
 
-
-
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+def make_sge(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
@@ -215,10 +213,16 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
         subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
 
     f.close()
+    
+    return subject_bash_file
 
+
+def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+
+    subject_bash_file = make_sge(c, config_file, strategies_file, subject_list_file, p_name)
+    
     commands.getoutput('chmod +x %s' % subject_bash_file )
     p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w') 
-
     out = commands.getoutput('qsub  %s ' % (subject_bash_file))
 
     import re
