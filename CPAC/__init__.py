@@ -36,10 +36,9 @@ import anat_preproc, \
        easy_thresh,\
        utils, \
        pipeline, \
-       cwas, \
-       GUI
+       cwas
 
-__all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
+__all__ = ['pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
 
 #__version__ = '0.1-git'
 

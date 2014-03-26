@@ -71,7 +71,7 @@ if __name__ == "__main__":
     sys.path.insert(0, local_path)
      
     setup(configuration=configuration,
-          scripts=['scripts/log_py2js.py', 'scripts/cpac_gui'],
+          scripts=['scripts/log_py2js.py'],# 'scripts/cpac_gui'],
           name=DISTNAME,
           maintainer=MAINTAINER,
           maintainer_email=MAINTAINER_EMAIL,
