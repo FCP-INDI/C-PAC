@@ -17,6 +17,7 @@ runAnatomicalDataGathering,Gather Anatomical Data,Preprocessing Workflow Options
 runFunctionalDataGathering,Gather Functional Data,Preprocessing Workflow Options
 runAnatomicalPreprocessing,Run Anatomical Preprocessing,Preprocessing Workflow Options
 runFunctionalPreprocessing,Run Functional Preprocessing,Preprocessing Workflow Options
+runZScoring,Output z-scored Derivatives,Derivatives Settings
 runRegistrationPreprocessing,Run Anatomical Registration,Anatomical Registration
 standardResolutionAnat,Anatomical Template Resolution,Anatomical Registration
 standardResolutionBrainAnat,Anatomical Template (Brain Only),Anatomical Registration
@@ -92,10 +93,15 @@ runReHo,Calculate Regional Homogeneity (ReHo),ReHo Options
 clusterSize,Voxel Cluster Size,ReHo Options
 runNetworkCentrality,Calculate Network Centrality Measures,Network Centrality Options
 templateSpecificationFile,ROI / Mask Specification File,Network Centrality Options
-centralityMethodOptions,Measures to Calculate,Network Centrality Options
-centralityWeightOptions,Connection Weight Options,Network Centrality Options
-correlationThresholdOption,Threshold Type,Network Centrality Options
-correlationThreshold,Threshold Value,Network Centrality Options
+degWeightOptions,Degree Centrality Weight Options,Network Centrality Options
+degCorrelationThresholdOption,Degree Centrality Threshold Type,Network Centrality Options
+degCorrelationThreshold,Degree Centrality Threshold Value,Network Centrality Options
+eigWeightOptions,Eigenvector Centrality Weight Options,Network Centrality Options
+eigCorrelationThresholdOption,Eigenvector Centrality Threshold Type,Network Centrality Options
+eigCorrelationThreshold,Eigenvector Centrality Threshold Value,Network Centrality Options
+lfcdWeightOptions,Local Functional Connectivity Density Weight Options,Network Centrality Options
+lfcdCorrelationThresholdOption,Local Functional Connectivity Density Threshold Type,Network Centrality Options
+lfcdCorrelationThreshold,Local Functional Connectivity Density Threshold Value,Network Centrality Options
 memoryAllocatedForDegreeCentrality,Maximum RAM Use (GB),Network Centrality Options
 fwhm,Kernel FWHM (in mm),Spatial Smoothing Options
 runBASC,Run BASC,BASC Settings
@@ -112,6 +118,7 @@ cwasParallelNodes,CWAS Parallel Nodes,CWAS Settings
 cwasRegressorCols,Column Number with Regressor of Interest,CWAS Settings
 cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
 runGroupAnalysis,Run Group Analysis,Group Analysis Settings
+numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
 derivativeList,Select Derivatives,Group Analysis Settings
 modelConfigs,Models to Run,Group Analysis Settings
 fTest,Models Contain F-tests,Group Analysis Settings

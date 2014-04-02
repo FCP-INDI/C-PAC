@@ -141,7 +141,6 @@ def filter_phenotypic(c):
 
 def organize_data(filter_data, c):
 
-
     """
 
     The main purpose of this function is to identify the categorical and directional columns in the model,

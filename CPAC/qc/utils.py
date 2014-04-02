@@ -756,7 +756,15 @@ def get_map_and_measure(png_a):
 
     if 'centrality' in png_a:
 
-        map_name = get_map_id(str_, 'centrality_')
+        try:
+            map_name = get_map_id(str_, 'centrality_')
+        except:
+            pass
+
+        try:
+            map_name = get_map_id(str_, 'lFCD_')
+        except:
+            pass
 
 
     return map_name, measure_name
@@ -1037,39 +1045,49 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     html_f_name_1 = html_f_name + '_1.html'
     html_f_name = html_f_name + '.html'
 
-    f_html_ = open(html_f_name, 'wb')
-    f_html_0 = open(html_f_name_0, 'wb')
-    f_html_1 = open(html_f_name_1, 'wb')
+    
+    try:
+
+        f_html_ = open(html_f_name, 'wb')
+        f_html_0 = open(html_f_name_0, 'wb')
+        f_html_1 = open(html_f_name_1, 'wb')
 
 
-    dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
-                                        qc_montage_id_s, qc_plot_id, qc_hist_id)
+        dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
+                                            qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-    #for k, v in dict_plot.items():
-    #        print '_a~~~> ', k, v
+        #for k, v in dict_plot.items():
+        #        print '_a~~~> ', k, v
 
-    add_head(f_html_, f_html_0, f_html_1)
-
-
-    for id_ in sorted(all_ids):
-        feed_lines_html(id_,
-                          dict_a,
-                          dict_s,
-                          dict_hist,
-                          dict_plot,
-                          qc_montage_id_a,
-                          qc_montage_id_s,
-                          qc_plot_id,
-                          qc_hist_id,
-                          f_html_0,
-                          f_html_1)
+        add_head(f_html_, f_html_0, f_html_1)
 
 
-    add_tail(f_html_, f_html_0, f_html_1)
+        for id_ in sorted(all_ids):
+            feed_lines_html(id_,
+                              dict_a,
+                              dict_s,
+                              dict_hist,
+                              dict_plot,
+                              qc_montage_id_a,
+                              qc_montage_id_s,
+                              qc_plot_id,
+                              qc_hist_id,
+                              f_html_0,
+                              f_html_1)
 
-    f_html_.close()
-    f_html_0.close()
-    f_html_1.close()
+        add_tail(f_html_, f_html_0, f_html_1)
+
+        f_html_.close()
+        f_html_0.close()
+        f_html_1.close()
+
+    except:
+
+        print '\n\nWarning: QC HTML pages could not be generated because' \
+              ' the file names have become too long. Clear out the .html' \
+              ' files present in the output directory and in the' \
+              ' qc_files_here folders within the subject directories.\n\n'
+        raise Exception
 
     
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
@@ -1625,16 +1643,26 @@ def gen_histogram(measure_file, measure):
             if 'centrality' in measure.lower():
 
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                type_, fname = fname.split('centrality_')
-                fname = type_ + 'centrality_' + fname.split('_')[0]
-                measure = fname
+
+                if 'centrality_' in fname:
+                    type_, fname = fname.split('centrality_')
+                    fname = type_ + 'centrality_' + fname.split('_')[0]
+                    measure = fname
+                elif 'lFCD_' in fname:
+                    fname = 'lFCD_' + fname.split('_')[1]
+                    measure = fname
 
             hist_path.append(make_histogram(file_, measure))
 
     else:
+
+        print "measure_file: ", measure_file
+        print "measure: ", measure
+
         hist_path = make_histogram(measure_file, measure)
 
     return hist_path
+
 
 
 def make_histogram(measure_file, measure):
@@ -1906,7 +1934,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Axial Direction
-	calls make_montage_axial
+    calls make_montage_axial
 
     Parameters
     ----------
@@ -2075,7 +2103,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Sagittal Direction
-	calls make_montage_sagittal
+    calls make_montage_sagittal
 
     Parameters
     ----------
@@ -2564,4 +2592,3 @@ def make_resample_1mm(file_):
     commands.getoutput(cmd)
 
     return new_fname
-

@@ -101,15 +101,7 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                      comment="Run Functional to Anatomical Registration with BB Register", 
                      values=["On","Off","On/Off"],
                      wkf_switch = True)
-
-        self.page.add(label="Using BB Register:", 
-                     control=control.CHOICE_BOX,
-                     name='runBBReg', 
-                     type=dtype.LSTR, 
-                     comment="Run Functional to Anatomical Registration with BB Register", 
-                     values=["On","Off"],
-                     wkf_switch = True)
-        
+       
         self.page.add(label="Functional Standard Resolution:", 
                      control=control.CHOICE_BOX, 
                      name='standardResolution', 
@@ -176,3 +168,4 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
         
     def get_counter(self):
         return self.counter
+

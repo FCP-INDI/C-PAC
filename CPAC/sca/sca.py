@@ -86,7 +86,7 @@ def create_sca(name_sca='sca'):
     --------
     
     >>> sca_w = create_sca("sca_wf")
-    >>> sca_w.inputs.inputspec.rest_res_filt = '/home/data/subject/func/rest_bandpassed.nii.gz'
+    >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'
     >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D' 
     >>> sca_w.run() # doctest: +SKIP
 

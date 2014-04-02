@@ -28,7 +28,7 @@ class ListBox(wx.Frame):
         import CPAC
         
         self.CreateStatusBar()
-        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.version)
+        self.SetStatusText("The Configurable Pipeline for the Analysis of Connectomes (C-PAC) v" + CPAC.__version__)
     
         self.pipeline_map = {}
         self.sublist_map= {}
@@ -253,31 +253,6 @@ class ListBox(wx.Frame):
                             
                             thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
 
-                            '''
-                            import time
-                            time.sleep(20)
-                            
-                            try:
-                                import yaml
-                                config = yaml.load(open(pipeline, 'r'))
-                            except:
-                                raise Exception("Error reading config file- %s", config)
-                            
-                            try:
-                                if config.get('outputDirectory'):
-                                    pid = [ int(id.strip()) for id in open(os.path.join(config.get('outputDirectory'),\
-                                       'pid.txt')).readlines()]
-                            except ImportError:
-                                print "unable to find the file %s"% os.path.join(config.outputDirectory, 'pid.txt')
-                                pid = None
-                            except Exception:
-                                print "Unable to retrieve process id"
-                                pid = None
-                            
-                            runCPAC(pipeline, sublist, p, pid).Show()
-                            '''
-
-                            #print "Pipeline %s successfully ran for subject list %s"%(p,s)
                     
                 else:
                     print "no pipeline and subject list selected"
@@ -334,8 +309,8 @@ class ListBox(wx.Frame):
     def get_sublist_map(self):
         return self.sublist_map
     
-    def get_pipeline_path(self, id):
-        path = self.pipeline_map.get(id)
+    def get_pipeline_path(self, idx):
+        path = self.pipeline_map.get(idx)
         return path
 
     def NewItem(self, event):
@@ -382,16 +357,27 @@ class ListBox(wx.Frame):
                 dlg.Destroy()
 
         
+        
     def OnEdit(self, event):
         
+        # get 'sel' integer of listbox selection
         sel = self.listbox.GetSelection()
+        
         if sel != -1:
-            text = self.listbox.GetString(sel)
+            
+            # 'text' - name of pipeline config displayed in listbox
+            text = str(self.listbox.GetString(sel))
+            
+            # 'path' - path of pipeline_config.yml
             path = self.get_pipeline_path(text)
+            
             if os.path.exists(path):
+                # open the pipeline_config editor window
                 MainFrame(self, option ="edit", path=path, pipeline_id = text)
             else:
                 print "Couldn't find the config file %s "%path
+     
+     
      
     def OnLoad(self, event):
 
@@ -599,12 +585,12 @@ class ListBox(wx.Frame):
                         print "Error name: main_window_0001" + "\n\n"
                         raise Exception
                     
-                    
-                    if len(c.pipelineName) >0:
+
+                    if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
-                                self.pipeline_map[c.pipelineName] = path
-                                self.listbox.Append(c.pipelineName)
+                                self.pipeline_map[str(c.pipelineName)] = path
+                                self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
                             
@@ -617,8 +603,18 @@ class ListBox(wx.Frame):
                                 dlg3.Destroy()
                                 
                     else:
+                        
+                        dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
+                                                ' the pipeline_config.yml file in a text editor and' \
+                                                ' restore the pipelineName field.',
+                                        'Warning',
+                                wx.OK | wx.ICON_ERROR)
+                        dlg4.ShowModal()
+                        dlg4.Destroy()
+                        
                         dlg.Destroy
                         break
+
                     
                     
               
@@ -745,3 +741,4 @@ class runGLA(wx.Frame):
             
     def OnShowDoc(self, event):
         wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+

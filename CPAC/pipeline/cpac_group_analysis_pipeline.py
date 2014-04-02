@@ -355,12 +355,40 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         #if c.mixedScanAnalysis == True:
         #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
         #else:
+        
+        
+        # s_paths is a list of paths to each subject's derivative (of the current
+        # derivative gpa is being run on) - s_paths_dirList is a list of each directory
+        # in this path separated into list elements
+        s_paths_dirList = s_paths[0].split('/')
+        
+        currentDerivativeFile = s_paths_dirList[-1]
+        
+        currentDerivative = currentDerivativeFile.split('.')[0]
+        
+        currentDerivative = currentDerivative.replace('#', '_')
+        
+        
+        strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
 
-        wf = pe.Workflow(name = 'group_analysis__%s__grp_model_%s__%s' % (resource, os.path.basename(model), scan_ids[0])) 
+        for ch in ['.']:
+            if ch in strgy_path:
+                strgy_path = strgy_path.replace(ch, '_')
+                
+        # create nipype-workflow-name-friendly strgy_path
+        # (remove special characters)
+        strgy_path_name = strgy_path.replace('/', '__')
+        
+        
 
-        wf.base_dir = c.workingDirectory
+        wf = pe.Workflow(name = currentDerivative) 
+
+        workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, conf.modelName, scan_ids[0])
+        workDir = workDir + '/' + strgy_path_name
+
+        wf.base_dir = workDir
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (os.path.basename(model)))
+        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (conf.modelName))
         try:
             os.makedirs(log_dir)
         except:
@@ -427,25 +455,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
         print "input_subject_list -> %s" % input_subject_list
-    
-        strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
-
-        for ch in ['.']:
-            if ch in strgy_path:
-                strgy_path = strgy_path.replace(ch, '_')
 
         print "strgy_path: ", strgy_path
-        
-        
-        # create nipype-workflow-name-friendly strgy_path
-        # (remove special characters)
-        strgy_path_name = strgy_path.replace('/', '__')
 
         # gp_flow
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
         # directory and sends them to the create_group_analysis workflow gpa_wf
 
-        gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % strgy_path_name)
+        gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % currentDerivative)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
         
@@ -454,7 +471,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # gpa_wf
         # Creates the actual group analysis workflow
 
-        gpa_wf = create_group_analysis(c.fTest, "gp_analysis_%s" % strgy_path_name)
+        gpa_wf = create_group_analysis(c.fTest, "gp_analysis_%s" % currentDerivative)
 
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
@@ -486,7 +503,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(os.path.basename(model)))
+        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName))
         
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
@@ -576,12 +593,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
         ######################################
 
-
-
-        # Run the actual group analysis workflow with the amount
-        # of processors determined in the pipeline_config file
-
-        wf.run()#(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        # Run the actual group analysis workflow
+        wf.run()
 
         '''
         except:
@@ -597,8 +610,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         '''
     
         print "**Workflow finished for model %s and resource %s"%(os.path.basename(model), resource)
-
-
+        
     #diag.close()
 
 
@@ -615,5 +627,6 @@ def run(config, subject_infos, resource):
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
     
     prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
+
 
 
