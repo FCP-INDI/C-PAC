@@ -15,6 +15,8 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
+from CPAC import network_centrality
+from CPAC.network_centrality.utils import merge_lists
 logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
@@ -49,6 +51,8 @@ from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 import zlib
 import linecache
+import csv
+import pickle
 
 
 class strategy:
@@ -92,14 +96,23 @@ class strategy:
             self.resource_pool[key] = value
 
     
-def prep_workflow(sub_dict, c, strategies, run, p_name=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None):
+
+    # Start timing here
+    pipeline_start_time = time.time()
+    # at end of workflow, take timestamp again, take time elapsed and check tempfile
+    # add time to time data structure inside tempfile, and increment # of subjects
+
+
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
+    numAntsThreads = '1'
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
 
 
     logger.info('******************** %s' % c.standardResolutionBrain)
@@ -117,6 +130,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
+
 
 
     wfname = 'resting_preproc_' + str(subject_id)
@@ -1565,401 +1579,6 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
 
 
-    """
-    Transforming ALFF Z scores and fAlff Z scores to MNI
-    """
-    
-    new_strat_list = []
-    num_strat = 0
-
-
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
-        for strat in strat_list:
-            
-            nodes = getNodeList(strat)
-            
-            if 'func_mni_fsl_warp' in nodes:
-
-                alff_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                               name='alff_Z_to_standard_%d' % num_strat)
-
-                alff_Z_to_standard.inputs.ref_file = c.standard
-
-                falff_Z_to_standard = alff_Z_to_standard.clone('falff_Z_to_standard_%d' % num_strat)
-                falff_Z_to_standard.inputs.ref_file = c.standard
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'premat')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'field_file')
-
-
-                    node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'premat')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'field_file')
-
-
-
-                except:
-                    logConnectionError('ALFF to MNI (FSL)', num_strat, strat.get_resource_pool(), '0021')
-                    raise
-
-                strat.update_resource_pool({'alff_Z_to_standard':(alff_Z_to_standard, 'out_file')})
-                strat.update_resource_pool({'falff_Z_to_standard':(falff_Z_to_standard, 'out_file')})
-                strat.append_name(alff_Z_to_standard.name)
-            
-                num_strat += 1
-
-
-            else:
-
-                alff_Z_to_standard = create_apply_ants_xfm(3, 0, name='alff_Z_to_standard_%d' % num_strat)
-
-                alff_Z_to_standard.inputs.inputspec.warp_reference = c.standard
-
-
-                falff_Z_to_standard = alff_Z_to_standard.clone('falff_Z_to_standard_%d' % num_strat)
-               
-                falff_Z_to_standard.inputs.inputspec.warp_reference = c.standard
-
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.func_anat_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.conversion_reference')
-
-                    node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.conversion_source')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.nonlinear_field')
-
-                    node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard, 'inputspec.ants_affine')
-
-
-                    node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.func_anat_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.conversion_reference')
-
-                    node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.conversion_source')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.nonlinear_field')
-
-                    node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard, 'inputspec.ants_affine')
-
-
-
-                except:
-                    logConnectionError('ALFF to MNI (ANTS)', num_strat, strat.get_resource_pool(), '0022')
-                    raise
-
-                strat.update_resource_pool({'alff_Z_to_standard':(alff_Z_to_standard, 'outputspec.out_file')})
-                strat.update_resource_pool({'falff_Z_to_standard':(falff_Z_to_standard, 'outputspec.out_file')})
-                strat.append_name(alff_Z_to_standard.name)
-            
-                num_strat += 1
-    
-    strat_list += new_strat_list
-
-
-    inputnode_fwhm = None
-    if c.fwhm != None:
-
-        inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
-                             name='fwhm_input')
-        inputnode_fwhm.iterables = ("fwhm", c.fwhm)
-
-
-
-    """    
-    Smoothing ALFF fALFF Z scores and or possibly Z scores in MNI 
-    """
-    
-    new_strat_list = []
-    num_strat = 0
-    if (1 in c.runALFF) and c.fwhm != None:
-        for strat in strat_list:
-
-
-            alff_Z_to_standard_smooth = None
-            falff_Z_to_standard_smooth = None
-
-            alff_Z_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                        name='alff_Z_smooth_%d' % num_strat)
-
-            falff_Z_smooth = alff_Z_smooth.clone('falff_Z_smooth_%d' % num_strat)
-
-
-            try:
-                node, out_file = strat.get_node_from_resource_pool('alff_Z_img')
-                workflow.connect(node, out_file,
-                                 alff_Z_smooth, 'in_file')
-                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                alff_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 alff_Z_smooth, 'operand_files')
-
-                node, out_file = strat.get_node_from_resource_pool('falff_Z_img')
-                workflow.connect(node, out_file,
-                                 falff_Z_smooth, 'in_file')
-                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                falff_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 falff_Z_smooth, 'operand_files')
-
-
-
-            except:
-                logConnectionError('ALFF smooth', num_strat, strat.get_resource_pool(), '0023')
-                raise
-            strat.append_name(alff_Z_smooth.name)
-            strat.update_resource_pool({'alff_Z_smooth':(alff_Z_smooth, 'out_file')})
-            strat.update_resource_pool({'falff_Z_smooth':(falff_Z_smooth, 'out_file')})
-            
-  
-            if c.runRegisterFuncToMNI:
-
-                alff_Z_to_standard_smooth = alff_Z_smooth.clone('alff_Z_to_standard_smooth_%d' % num_strat)
-                falff_Z_to_standard_smooth = alff_Z_smooth.clone('falff_Z_to_standard_smooth_%d' % num_strat)
-
-                try:
-
-
-                    node, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard_smooth, 'in_file')
-                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                    alff_Z_to_standard_smooth, 'op_string')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    workflow.connect(node, out_file,
-                                     alff_Z_to_standard_smooth, 'operand_files')
-
-                    node, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard_smooth, 'in_file')
-                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                    falff_Z_to_standard_smooth, 'op_string')
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    workflow.connect(node, out_file,
-                                     falff_Z_to_standard_smooth, 'operand_files')
-
-
-
-
-                except:
-                    logConnectionError('ALFF smooth in MNI', num_strat, strat.get_resource_pool(), '0024')
-                    raise
-
-                strat.append_name(alff_Z_to_standard_smooth.name)
-                strat.append_name(falff_Z_to_standard_smooth.name)
-                strat.update_resource_pool({'alff_Z_to_standard_smooth':(alff_Z_to_standard_smooth, 'out_file')})
-                strat.update_resource_pool({'falff_Z_to_standard_smooth':(falff_Z_to_standard_smooth, 'out_file')})
-
-                create_log_node(alff_Z_to_standard_smooth, 'out_file', num_strat)
-                create_log_node(falff_Z_to_standard_smooth, 'out_file', num_strat)
-
-            num_strat += 1
-    strat_list += new_strat_list
-
-
-
-    """
-    Transforming ReHo Z scores to MNI
-    """
-    
-    new_strat_list = []
-    num_strat = 0
-
-
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runReHo):
-        for strat in strat_list:
-            
-            nodes = getNodeList(strat)
-            
-            if 'func_mni_fsl_warp' in nodes:
-
-                reho_Z_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                               name='reho_Z_to_standard_%d' % num_strat)
-
-                reho_Z_to_standard.inputs.ref_file = c.standard
-
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'premat')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'field_file')
-
-                except:
-                    logConnectionError('ReHo to MNI (FSL)', num_strat, strat.get_resource_pool(), '0025')
-                    raise
-
-                strat.update_resource_pool({'reho_Z_to_standard':(reho_Z_to_standard, 'out_file')})
-                strat.append_name(reho_Z_to_standard.name)
-                num_strat += 1
-
-
-            else:
-                
-                reho_Z_to_standard = create_apply_ants_xfm(3, 0, name='reho_Z_to_standard_%d' % num_strat)
-
-                reho_Z_to_standard.inputs.inputspec.warp_reference = c.standard
-
-                try:
-                    
-                    node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.nonlinear_field')
-
-                    node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.ants_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.func_anat_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.conversion_reference')
-
-                    node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard, 'inputspec.conversion_source')
-                    
-
-                except:
-                    logConnectionError('ReHo to MNI (ANTS)', num_strat, strat.get_resource_pool(), '0026')
-                    raise
-
-                strat.update_resource_pool({'reho_Z_to_standard':(reho_Z_to_standard, 'outputspec.out_file')})#warp_images_reho, 'output_image')})#reho_Z_to_standard, 'outputspec.out_file')})
-                strat.append_name(reho_Z_to_standard.name)#warp_images_reho.name)#reho_Z_to_standard.name)
-                num_strat += 1
-
-
-    strat_list += new_strat_list
-
-
-
-    """
-    Smoothing ReHo Z scores and or possibly Z scores in MNI 
-    """
-    
-    new_strat_list = []
-    num_strat = 0
-
-    if (1 in c.runReHo) and c.fwhm != None:
-        for strat in strat_list:
-
-
-            reho_Z_to_standard_smooth = None
-
-            reho_Z_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                        name='reho_Z_smooth_%d' % num_strat)
-
-            try:
-                node, out_file = strat.get_node_from_resource_pool('reho_Z_img')
-                workflow.connect(node, out_file,
-                                 reho_Z_smooth, 'in_file')
-                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                reho_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 reho_Z_smooth, 'operand_files')
-
-            except:
-                logConnectionError('ReHo smooth', num_strat, strat.get_resource_pool(), '0027')
-                raise
-            strat.append_name(reho_Z_smooth.name)
-            strat.update_resource_pool({'reho_Z_smooth':(reho_Z_smooth, 'out_file')})
-
-            if 1 in c.runRegisterFuncToMNI:
-
-                reho_Z_to_standard_smooth = reho_Z_smooth.clone('reho_Z_to_standard_smooth_%d' % num_strat)
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard_smooth, 'in_file')
-                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                    reho_Z_to_standard_smooth, 'op_string')
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    workflow.connect(node, out_file,
-                                     reho_Z_to_standard_smooth, 'operand_files')
-
-
-
-                except:
-                    logConnectionError('ReHo smooth in MNI', num_strat, strat.get_resource_pool(), '0028')
-                    raise
-
-                strat.append_name(reho_Z_to_standard_smooth.name)
-                strat.update_resource_pool({'reho_Z_to_standard_smooth':(reho_Z_to_standard_smooth, 'out_file')})
-                create_log_node(reho_Z_to_standard_smooth, 'out_file', num_strat)
-            
-            num_strat += 1
-    strat_list += new_strat_list
-
 
 
     """
@@ -2347,6 +1966,161 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         logger.info("Spatial regression is required for dual regression." + "\n\n")
             
     strat_list += new_strat_list
+
+
+
+
+    def output_to_standard(output_name, output_resource, strat, num_strat, c3d_mapNode):
+            
+        nodes = getNodeList(strat)
+            
+        if 'func_mni_fsl_warp' in nodes:
+
+            output_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                           name='%s_to_standard_%d' % (output_name, num_strat))
+
+            output_to_standard.inputs.ref_file = c.standard
+
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool(output_resource)
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'premat')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'field_file')
+
+
+
+            except:
+                logConnectionError('%s to MNI (FSL)' % (output_name), num_strat, strat.get_resource_pool(), '0021')
+                raise
+
+            strat.update_resource_pool({'%s_to_standard' % (output_name):(output_to_standard, 'out_file')})
+            strat.append_name(output_to_standard.name)
+            
+            num_strat += 1
+
+
+        else:
+
+            output_to_standard = create_apply_ants_xfm(3, c3d_mapNode, name='%s_to_standard_%d' % (output_name, num_strat))
+
+            output_to_standard.inputs.inputspec.warp_reference = c.standard
+
+
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool(output_resource)
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.in_file')
+
+                node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.func_anat_affine')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.conversion_reference')
+
+                node, out_file = strat.get_node_from_resource_pool(output_resource)
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.conversion_source')
+
+                node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.nonlinear_field')
+
+                node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
+                workflow.connect(node, out_file,
+                                 output_to_standard, 'inputspec.ants_affine')
+
+            except:
+                logConnectionError('%s to MNI (ANTS)' % (output_name), num_strat, strat.get_resource_pool(), '0022')
+                raise
+
+            strat.update_resource_pool({'%s_to_standard' % (output_name):(output_to_standard, 'outputspec.out_file')})
+            strat.append_name(output_to_standard.name)
+            
+            num_strat += 1
+
+
+
+    def output_smooth(output_name, output_resource, strat, num_strat, mapNode):
+ 
+        output_to_standard_smooth = None
+
+        if mapNode == 0:
+
+            output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='%s_smooth_%d' % (output_name, num_strat))
+
+        else:
+
+            output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                        name='%s_smooth_%d' % (output_name, num_strat), iterfield=['in_file'])
+
+        try:
+            node, out_file = strat.get_node_from_resource_pool(output_resource)
+            workflow.connect(node, out_file,
+                             output_smooth, 'in_file')
+            workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                             output_smooth, 'op_string')
+            node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+            workflow.connect(node, out_file,
+                             output_smooth, 'operand_files')
+
+        except:
+            logConnectionError('%s smooth' % output_name, num_strat, strat.get_resource_pool(), '0027')
+            raise
+        strat.append_name(output_smooth.name)
+        strat.update_resource_pool({'%s_smooth' % (output_name):(output_smooth, 'out_file')})
+
+        if 1 in c.runRegisterFuncToMNI:
+
+            output_to_standard_smooth = output_smooth.clone('%s_to_standard_smooth_%d' % (output_name, num_strat))
+
+            try:
+
+                node, out_file = strat.get_node_from_resource_pool('%s_to_standard' % output_name)
+                workflow.connect(node, out_file,
+                                 output_to_standard_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 output_to_standard_smooth, 'op_string')
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
+                workflow.connect(node, out_file,
+                                 output_to_standard_smooth, 'operand_files')
+
+
+            except:
+                logConnectionError('%s smooth in MNI' % output_name, num_strat, strat.get_resource_pool(), '0028')
+                raise
+
+            strat.append_name(output_to_standard_smooth.name)
+            strat.update_resource_pool({'%s_to_standard_smooth' % (output_name):(output_to_standard_smooth, 'out_file')})
+            create_log_node(output_to_standard_smooth, 'out_file', num_strat)
+            
+        num_strat += 1
+
+
+
+
+
+    inputnode_fwhm = None
+    if c.fwhm != None:
+
+        inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
+                             name='fwhm_input')
+        inputnode_fwhm.iterables = ("fwhm", c.fwhm)
+
+
 
 
 
@@ -2742,93 +2516,51 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
 
 
+
     """
-    Transforming SCA Voxel Z scores to MNI
+    Transforming alff/falff Z scores to MNI
     """
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
+        for strat in strat_list:
+
+            if 0 in c.runZScoring:
+
+                output_to_standard('alff', 'alff_img', strat, num_strat, 0)
+                output_to_standard('falff', 'falff_img', strat, num_strat, 0)
+
+            if 1 in c.runZScoring:
+
+                output_to_standard('alff_Z', 'alff_Z_img', strat, num_strat, 0)
+                output_to_standard('falff_Z', 'falff_Z_img', strat, num_strat, 0)
+                
+            num_strat += 1
+    
+    strat_list += new_strat_list
+
+
+
+    """
+    Transforming ReHo Z scores to MNI
+    """
+    
     new_strat_list = []
     num_strat = 0
 
 
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runReHo):
         for strat in strat_list:
-            
-            nodes = getNodeList(strat)
-            
-            if 'func_mni_fsl_warp' in nodes:
 
-                sca_seed_Z_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
-                               name='sca_seed_Z_to_standard_%d' % num_strat, iterfield=['in_file'])
+            if 0 in c.runZScoring:
+                output_to_standard('reho', 'raw_reho_map', strat, num_strat, 0)
 
-                sca_seed_Z_to_standard.inputs.ref_file = c.standard
+            if 1 in c.runZScoring:
+                output_to_standard('reho_Z', 'reho_Z_img', strat, num_strat, 0)
 
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'premat')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'field_file')
-
-                except:
-                    logConnectionError('SCA Voxel Z scores to MNI (FSL)', num_strat, strat.get_resource_pool(), '0040')
-                    raise
-
-                strat.update_resource_pool({'sca_seed_Z_to_standard':(sca_seed_Z_to_standard, 'out_file')})
-                strat.append_name(sca_seed_Z_to_standard.name)
-                num_strat += 1
-
-
-            else:
-
-                sca_seed_Z_to_standard = create_apply_ants_xfm(3, 1,
-                               name='sca_seed_Z_to_standard_%d' % num_strat)
-
-                sca_seed_Z_to_standard.inputs.inputspec.warp_reference = c.standard
-
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.ants_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.func_anat_affine')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.conversion_reference')
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.conversion_source')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard, 'inputspec.nonlinear_field')
-
-
-                except:
-                    logConnectionError('SCA Voxel Z scores to MNI (ANTS)', num_strat, strat.get_resource_pool(), '0041')
-                    raise
-
-                strat.update_resource_pool({'sca_seed_Z_to_standard':(sca_seed_Z_to_standard, 'outputspec.out_file')})
-                strat.append_name(sca_seed_Z_to_standard.name)
-                num_strat += 1
-
-
+            num_strat += 1
 
     strat_list += new_strat_list
 
@@ -2843,82 +2575,97 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runROITimeseries):
         for strat in strat_list:
+
+            if 0 in c.runZScoring:
+                output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, 1)
             
-            nodes = getNodeList(strat)
+            if 1 in c.runZScoring:
+                output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
+
+    """
+    Transforming SCA Voxel Z scores to MNI
+    """
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+        for strat in strat_list:
+
+            if 0 in c.runZScoring:
+                output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat, 1)
             
-            if 'func_mni_fsl_warp' in nodes:
+            if 1 in c.runZScoring:
+                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
-                sca_roi_Z_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
-                               name='sca_roi_Z_to_standard_%d' % num_strat, iterfield=['in_file'])
-
-                sca_roi_Z_to_standard.inputs.ref_file = c.standard
-
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'in_file')
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'premat')
-
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'field_file')
-
-                except:
-                    logConnectionError('SCA ROI Z scores to MNI (FSL)', num_strat, strat.get_resource_pool(), '0042')
-                    raise
-
-                strat.update_resource_pool({'sca_roi_Z_to_standard':(sca_roi_Z_to_standard, 'out_file')})
-                strat.append_name(sca_roi_Z_to_standard.name)
-                num_strat += 1
+            num_strat += 1
+    
+    strat_list += new_strat_list
 
 
-            else:
 
-                sca_roi_Z_to_standard = create_apply_ants_xfm(3, 1,
-                               name='sca_roi_Z_to_standard_%d' % num_strat)
+    """    
+    Smoothing ALFF fALFF Z scores and or possibly Z scores in MNI 
+    """
+    
+    new_strat_list = []
+    num_strat = 0
+    if (1 in c.runALFF) and c.fwhm != None:
+        for strat in strat_list:
 
-                sca_roi_Z_to_standard.inputs.inputspec.warp_reference = c.standard
+            if 0 in c.runZScoring:
+                output_smooth('alff', 'alff_img', strat, num_strat, 0)
+                output_smooth('falff', 'falff_img', strat, num_strat, 0)
+
+            if 1 in c.runZScoring:
+                output_smooth('alff_Z', 'alff_Z_img', strat, num_strat, 0)
+                output_smooth('falff_Z', 'falff_Z_img', strat, num_strat, 0)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
 
 
-                try:
+    """
+    Smoothing ReHo Z scores and or possibly Z scores in MNI 
+    """
+    
+    new_strat_list = []
+    num_strat = 0
 
-                    node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.in_file')
+    if (1 in c.runReHo) and c.fwhm != None:
+        for strat in strat_list:
 
-                    node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.ants_affine')
+            if 0 in c.runZScoring:
+                output_smooth('reho', 'raw_reho_map', strat, num_strat, 0)
 
-                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.func_anat_affine')
+            if 1 in c.runZScoring:
+                output_smooth('reho_Z', 'reho_Z_img', strat, num_strat, 0)
 
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.nonlinear_field')
+            num_strat += 1
 
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.conversion_reference')
+    strat_list += new_strat_list
 
-                    node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard, 'inputspec.conversion_source')
 
-                except:
-                    logConnectionError('SCA ROI Z scores to MNI (ANTS)', num_strat, strat.get_resource_pool(), '0043')
-                    raise
 
-                strat.update_resource_pool({'sca_roi_Z_to_standard':(sca_roi_Z_to_standard, 'outputspec.out_file')})
-                strat.append_name(sca_roi_Z_to_standard.name)
-                num_strat += 1
+    """
+    Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
+    """
+    if (1 in c.runSCA) and (1 in c.runROITimeseries) and c.fwhm != None:
+        for strat in strat_list:
 
+            if 0 in c.runZScoring:
+                output_smooth('sca_roi', 'sca_roi_correlations', strat, num_strat, 0)
+            
+            if 1 in c.runZScoring:
+                output_smooth('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
+
+            num_strat += 1
 
     strat_list += new_strat_list
 
@@ -2933,111 +2680,17 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if (1 in c.runSCA) and (1 in c.runVoxelTimeseries) and c.fwhm != None:
         for strat in strat_list:
 
+            if 0 in c.runZScoring:
+                output_smooth('sca_seed', 'sca_seed_correlations', strat, num_strat, 0)
+            
+            if 1 in c.runZScoring:
+                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
-            sca_seed_Z_to_standard_smooth = None
-
-            sca_seed_Z_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                        name='sca_seed_Z_smooth_%d' % num_strat, iterfield=['in_file'])
-
-            try:
-                node, out_file = strat.get_node_from_resource_pool('sca_seed_Z')
-                workflow.connect(node, out_file,
-                                 sca_seed_Z_smooth, 'in_file')
-                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                sca_seed_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 sca_seed_Z_smooth, 'operand_files')
-
-            except:
-                logConnectionError('SCA seed Z scores smooth', num_strat, strat.get_resource_pool(), '0044')
-                raise
-            strat.append_name(sca_seed_Z_smooth.name)
-            strat.update_resource_pool({'sca_seed_Z_smooth':(sca_seed_Z_smooth, 'out_file')})
-
-            if 1 in c.runRegisterFuncToMNI:
-
-                sca_seed_Z_to_standard_smooth = sca_seed_Z_smooth.clone('sca_seed_Z_to_standard_smooth_%d' % num_strat)
-
-                try:
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_seed_Z_to_standard')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard_smooth, 'in_file')
-                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                    sca_seed_Z_to_standard_smooth, 'op_string')
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    workflow.connect(node, out_file,
-                                     sca_seed_Z_to_standard_smooth, 'operand_files')
-
-
-
-                except:
-                    logConnectionError('SCA seed Z scores smooth in MNI', num_strat, strat.get_resource_pool(), '0045')
-                    raise
-
-                strat.append_name(sca_seed_Z_to_standard_smooth.name)
-                strat.update_resource_pool({'sca_seed_Z_to_standard_smooth':(sca_seed_Z_to_standard_smooth, 'out_file')})
-                create_log_node(sca_seed_Z_to_standard_smooth, 'out_file', num_strat)
             num_strat += 1
+
     strat_list += new_strat_list
 
 
-
-    """
-    Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
-    """
-    if (1 in c.runSCA) and (1 in c.runROITimeseries) and c.fwhm != None:
-        for strat in strat_list:
-
-
-            sca_roi_Z_to_standard_smooth = None
-
-            sca_roi_Z_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                        name='sca_roi_Z_smooth_%d' % num_strat, iterfield=['in_file'])
-
-            try:
-                node, out_file = strat.get_node_from_resource_pool('sca_roi_Z')
-                workflow.connect(node, out_file,
-                                 sca_roi_Z_smooth, 'in_file')
-                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                sca_roi_Z_smooth, 'op_string')
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 sca_roi_Z_smooth, 'operand_files')
-
-            except:
-                logConnectionError('SCA ROI Z scores smooth', num_strat, strat.get_resource_pool(), '0046')
-                raise
-            strat.append_name(sca_roi_Z_smooth.name)
-            strat.update_resource_pool({'sca_roi_Z_smooth':(sca_roi_Z_smooth, 'out_file')})
-
-            if 1 in c.runRegisterFuncToMNI:
-
-                sca_roi_Z_to_standard_smooth = sca_roi_Z_smooth.clone('sca_roi_Z_to_standard_smooth_%d' % num_strat)
-
-                try:
-
-
-                    node, out_file = strat.get_node_from_resource_pool('sca_roi_Z_to_standard')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard_smooth, 'in_file')
-                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                    sca_roi_Z_to_standard_smooth, 'op_string')
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-                    workflow.connect(node, out_file,
-                                     sca_roi_Z_to_standard_smooth, 'operand_files')
-
-
-
-                except:
-                    logConnectionError('SCA ROI Z scores smooth in MNI', num_strat, strat.get_resource_pool(), '0047')
-                    raise
-
-                strat.append_name(sca_roi_Z_smooth.name)
-                strat.update_resource_pool({'sca_roi_Z_to_standard_smooth':(sca_roi_Z_to_standard_smooth, 'out_file')})
-            num_strat += 1
-    strat_list += new_strat_list
 
 
 
@@ -3144,7 +2797,8 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
     if 1 in c.runNetworkCentrality:
 
         for strat in strat_list:
-
+            
+            
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
@@ -3153,13 +2807,53 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
 
             template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
 
-            network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality, 'network_centrality_%d' % num_strat)
-            network_centrality.inputs.inputspec.threshold_option = c.correlationThresholdOption
-            network_centrality.inputs.inputspec.threshold = c.correlationThreshold
-            network_centrality.inputs.centrality_options.weight_options = c.centralityWeightOptions
-            network_centrality.inputs.centrality_options.method_options = c.centralityMethodOptions
+            # Function to perform the connections of the workflow for the centrality method of interest
+            def connectCentralityWorkflow(methodOption,thresholdOption,threshold,weightOptions,mList):
+                # Create centrality workflow
+                network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality,  'network_centrality_%d-%d' %(num_strat,methodOption))
+                workflow.connect(resample_functional_to_template, 'out_file',           # connect subject input file to workflow
+                                 network_centrality, 'inputspec.subject')               # ...
+                workflow.connect(template_dataflow, 'outputspec.out_file',              # connect subject mask file to workflow
+                                 network_centrality, 'inputspec.template')              # ...
+                network_centrality.inputs.inputspec.method_option = methodOption        # give which method we're performing (0 - deg, 1 - eig, 2 - lfcd)
+                network_centrality.inputs.inputspec.threshold_option = thresholdOption  # connect type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
+                network_centrality.inputs.inputspec.threshold = threshold               # connect threshold value (float)
+                network_centrality.inputs.inputspec.weight_options = weightOptions      # list of two booleans, first for binary, second for weighted
+                workflow.connect(network_centrality,'outputspec.centrality_outputs',    # merge output with others via merge_node connection
+                                 merge_node,mList)                                      # ...
+                strat.append_name(network_centrality.name)                              # append this as a strategy
+                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat) # create log node for strategy
+                
+            # Init merge node for appending method output lists to one another
+            merge_node = pe.Node(util.Function(input_names=['deg_list',
+                                                            'eig_list',
+                                                            'lfcd_list'],
+                                          output_names = ['merged_list'],
+                                          function = merge_lists),
+                            name = 'merge_node_%d' % num_strat)
+            # If we're calculating degree centrality
+            if c.degWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(0,
+                                          c.degCorrelationThresholdOption,
+                                          c.degCorrelationThreshold,
+                                          c.degWeightOptions,
+                                          'deg_list')
 
-
+            # If we're calculating eigenvector centrality
+            if c.eigWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(1,
+                                          c.eigCorrelationThresholdOption,
+                                          c.eigCorrelationThreshold,
+                                          c.eigWeightOptions,
+                                          'eig_list')
+            
+            # If we're calculating lFCD
+            if c.lfcdWeightOptions.count(True) > 0:
+                connectCentralityWorkflow(2,
+                                          2,
+                                          c.lfcdCorrelationThreshold,
+                                          c.lfcdWeightOptions,
+                                          'lfcd_list')
 
             try:
 
@@ -3170,18 +2864,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                                  resample_functional_to_template, 'in_file')
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
-
-                workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.subject')
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 network_centrality, 'inputspec.template')
-
-
-                strat.append_name(network_centrality.name)
-
-                strat.update_resource_pool({'centrality_outputs' : (network_centrality, 'outputspec.centrality_outputs')})
-                
-                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat)
+                strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
                 if c.fwhm != None :
@@ -3196,8 +2879,11 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
-                    workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                     workflow.connect(network_centrality, 'outputspec.centrality_outputs',
+#                                      z_score, 'inputspec.input_file')
+                    workflow.connect(merge_node, 'merged_list',
                                      z_score, 'inputspec.input_file')
+
 
                     # connecting zscores to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',
@@ -4102,56 +3788,81 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             workflow.write_graph(graph2use='orig')
         except:
             pass
-    
-    
-    
+   
+   
+   
         ## this section creates names for the different branched strategies.
         ## it identifies where the pipeline has forked and then appends the name
         ## of the forked nodes to the branch name in the output directory
         renamedStrats = []
         forkPoints = []
         forkPointsDict = {}
-        
+
+        def is_number(s):
+            # function which returns boolean checking if a character
+            # is a number or not
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+
         for strat in strat_list:
-            
+           
             # load list of nodes in this one particular
             # strat into the list "nodeList"
             nodeList = strat.name
             renamedNodesList = []
-            
+           
             # strip the _n (n being the strat number) from
             # each node name and return to a list
             for node in nodeList:
-                
-                renamedNodesList.append(node[:-2])
-                
+
+                renamedNode = node
+                lastNodeChar = node[len(node)-1]
+
+                while lastNodeChar == '_' or lastNodeChar == '-' or is_number(lastNodeChar):
+                    # make 'renamedNode' the node name with the last character
+                    # stripped off, continue this until the _# at the end
+                    # of it is gone - does it this way instead of just cutting
+                    # off the last two characters in case of a large amount of
+                    # strats which can reach double digits
+                    renamedNode = renamedNode[:-1]
+                    lastNodeChar = renamedNode[len(renamedNode)-1]
+
+                   
+                renamedNodesList.append(renamedNode)
+               
             renamedStrats.append(renamedNodesList)
-            
-            
+           
+
         for strat in renamedStrats:
-            
+           
             tmpForkPoint = []
-        
+       
             for nodeName in strat:
-                
+               
+                # compare each strat against the first one in the strat list,
+                # and if any node names in the new strat are not present in
+                # the 'original' one, then append to a list of 'fork points'
                 if nodeName not in renamedStrats[0]:
                     tmpForkPoint.append(nodeName)
-                
+               
             forkPoints.append(tmpForkPoint)
-            
-        
+           
+
         forkNames = []
         for forkPoint in forkPoints:
-            
+           
             forkName = ''
-            
+           
             for fork in forkPoint:
                 forkName = forkName + '__' + fork
-                
+               
             forkNames.append(forkName)
-    
-        
-            
+   
+       
+           
         # match each strat_list with fork point list
         # this is for the datasink
         for x in range(len(strat_list)):
@@ -4326,19 +4037,20 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 
 
+        pipeline_start_date = strftime("%Y-%m-%d")
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
-
+        
+        
+        '''
         # Timing code for cpac_timing_<pipeline>.txt in output directory
         timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
-    
-        # Start timing here
-        pipeline_start_time = time.time()
         print >>timing, "Starting CPAC run at system time: ", strftime("%Y-%m-%d %H:%M:%S")
         print >>timing, "Pipeline configuration: ", c.pipelineName
         print >>timing, "Subject workflow: ", wfname
         print >>timing, "\n"
+        '''
     
     
         workflow.run(plugin='Linear', plugin_args={'n_procs': c.numCoresPerSubject})
@@ -4406,13 +4118,108 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
             ### Automatically generate QC index page
             create_all_qc.run(c.outputDirectory)       
         
+
+
+        # pipeline timing code starts here
+
+        # have this check in case the user runs cpac_runner from terminal and
+        # the timing parameter list is not supplied as usual by the GUI
+        if pipeline_timing_info != None:
+
+            # pipeline_timing_info list:
+            #  [0] - unique pipeline ID
+            #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+            #  [2] - number of subjects in subject list
+            unique_pipeline_id = pipeline_timing_info[0]
+            pipeline_start_stamp = pipeline_timing_info[1]
+            num_subjects = pipeline_timing_info[2]
+        
+            # elapsed time data list:
+            #  [0] - elapsed time in minutes
+            elapsed_time_data = []
+
+            elapsed_time_data.append(int(((time.time() - pipeline_start_time)/60)))
+
+
+            # elapsedTimeBin list:
+            #  [0] - cumulative elapsed time (minutes) across all subjects
+            #  [1] - number of times the elapsed time has been appended
+            #        (effectively a measure of how many subjects have run)
+
+
+
+            # needs to happen:
+                 # write more doc for all this
+                 # warning in .csv that some runs may be partial
+                 # code to delete .tmp file
+
+
+            timing_temp_file_path = os.path.join(c.outputDirectory, '%s_pipeline_timing.tmp' % unique_pipeline_id)
+
+            if not os.path.isfile(timing_temp_file_path):
+                elapsedTimeBin = []
+                elapsedTimeBin.append(0)
+                elapsedTimeBin.append(0)
+                
+                with open(timing_temp_file_path, 'wb') as handle:
+                    pickle.dump(elapsedTimeBin, handle)
+
+
+            with open(timing_temp_file_path, 'rb') as handle:
+                elapsedTimeBin = pickle.loads(handle.read())
+
+            elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+            elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+
+            with open(timing_temp_file_path, 'wb') as handle:
+                pickle.dump(elapsedTimeBin, handle)
+
+            # this happens once the last subject has finished running!
+            if elapsedTimeBin[1] == num_subjects:
+
+                pipelineTimeDict = {}
+                pipelineTimeDict['Pipeline'] = c.pipelineName
+                pipelineTimeDict['Cores_Per_Subject'] = c.numCoresPerSubject
+                pipelineTimeDict['Simultaneous_Subjects'] = c.numSubjectsAtOnce
+                pipelineTimeDict['Number_of_Subjects'] = num_subjects
+                pipelineTimeDict['Start_Time'] = pipeline_start_stamp
+                pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
+                pipelineTimeDict['Elapsed_Time_(minutes)'] = elapsedTimeBin[0]
+                pipelineTimeDict['Status'] = 'Complete'
+                
+                gpaTimeFields= ['Pipeline', 'Cores_Per_Subject', 'Simultaneous_Subjects', 'Number_of_Subjects', 'Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
+                timeHeader = dict((n, n) for n in gpaTimeFields)
+                
+                timeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'a')
+                readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'rb')
+                timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                timeReader = csv.DictReader(readTimeCSV)
+                
+                headerExists = False
+                for line in timeReader:
+                    if 'Start_Time' in line:
+                        headerExists = True
+                
+                if headerExists == False:
+                    timeWriter.writerow(timeHeader)
+                    
+                timeWriter.writerow(pipelineTimeDict)
+                timeCSV.close()
+                readTimeCSV.close()
+
+                # remove the temp timing file now that it is no longer needed
+                os.remove(timing_temp_file_path)
+        
+        
+        
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-        ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
+        ("Timing information saved in %s/cpac_individual_timing_%s.csv \n" % (c.outputDirectory, c.pipelineName)) + \
         ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of completion: %s" % strftime("%Y-%m-%d %H:%M:%S"))
     
         logger.info(endString)
     
+        '''
         print >>timing, "CPAC run complete:"
         print >>timing, "pipeline configuration- %s" % c.pipelineName
         print >>timing, "subject workflow- %s" % wfname
@@ -4421,6 +4228,7 @@ def prep_workflow(sub_dict, c, strategies, run, p_name=None):
         print >>timing, "\n\n"
     
         timing.close()
+        '''
 
 
     return workflow
@@ -4452,5 +4260,4 @@ def run(config, subject_list_file, indx, strategies, \
 
     
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
-
 

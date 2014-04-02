@@ -58,12 +58,21 @@ files_folders_wf = {
     'vmhc_z_score_stat_map':'vmhc',
     'raw_reho_map':'reho',
     'reho_Z_img':'reho',
+    'alff_smooth':'alff',
+    'falff_smooth':'alff',
+    'alff_to_standard':'alff',
+    'falff_to_standard':'alff',
+    'alff_to_standard_smooth':'alff',
+    'falff_to_standard_smooth':'alff',
     'alff_Z_to_standard':'alff',
     'falff_Z_to_standard':'alff',
     'alff_Z_smooth':'alff',
     'falff_Z_smooth':'alff',
     'alff_Z_to_standard_smooth':'alff',
     'falff_Z_to_standard_smooth':'alff',
+    'reho_smooth':'reho',
+    'reho_to_standard':'reho',
+    'reho_to_standard_smooth':'reho',
     'reho_Z_to_standard':'reho',
     'reho_Z_smooth':'reho',
     'reho_Z_to_standard_smooth':'reho',
@@ -74,13 +83,19 @@ files_folders_wf = {
     'sca_roi_correlations':'sca_roi',
     'sca_roi_Z':'sca_roi',
     'sca_seed_correlations':'sca_mask',
+    'sca_seed_smooth':'sca_mask',
     'sca_seed_Z':'sca_mask',
     'sca_seed_Z_to_standard':'sca_mask',
+    'sca_seed_to_standard':'sca_mask',
+    'sca_seed_to_standard_smooth':'sca_mask',
     'sca_roi_Z_to_standard':'sca_roi',
     'sca_seed_Z_smooth':'sca_mask',
     'sca_seed_Z_to_standard_smooth':'sca_mask',
+    'sca_roi_smooth':'sca_roi',
     'sca_roi_Z_smooth':'sca_roi',
     'sca_roi_Z_to_standard_smooth':'sca_roi',
+    'sca_roi_to_standard':'sca_roi',
+    'sca_roi_to_standard_smooth':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
@@ -859,7 +874,7 @@ def clean_strategy(strategies, helper):
 
 def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
 
-    from  CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
+    from CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
        
     
     for path in in_file:

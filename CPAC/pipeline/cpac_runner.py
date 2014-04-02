@@ -7,6 +7,8 @@ from CPAC.pipeline import cpac_pipeline
 from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
+import time
+from time import strftime
 
 
 def validate(config_obj):
@@ -411,8 +413,11 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 def run(config_file, subject_list_file, p_name=None, other_opts=None):
     
+    # take date+time stamp for run identification purposes
+    unique_pipeline_id = strftime("%Y%m%d%H%M%S")
+    pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
+
     try:
-    
         if not os.path.exists(config_file):
             raise IOError
         else:
@@ -433,7 +438,9 @@ def run(config_file, subject_list_file, p_name=None, other_opts=None):
 #    except:
 #        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
+
     strategies = sorted(build_strategies(c))
+
     
     print "strategies ---> ", strategies
     
@@ -483,11 +490,18 @@ def run(config_file, subject_list_file, p_name=None, other_opts=None):
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
 
 
+    pipeline_timing_info = []
+    pipeline_timing_info.append(unique_pipeline_id)
+    pipeline_timing_info.append(pipeline_start_stamp)
+    pipeline_timing_info.append(len(sublist))
+
 
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies, p_name)) for sub in sublist]
+        
+        procss = [Process(target=prep_workflow, args=(sub, c, strategies, 1, pipeline_timing_info, p_name)) for sub in sublist]
+        
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
         import subprocess
         

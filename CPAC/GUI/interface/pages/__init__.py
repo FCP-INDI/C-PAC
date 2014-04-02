@@ -3,7 +3,7 @@ from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFu
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
 from .sca import SCA, SCASettings, MultipleRegressionSCA
-from .settings import Settings, ComputerSettings, WorkflowConfig, DirectorySettings
+from .settings import Settings, ComputerSettings, WorkflowConfig, DirectorySettings, DerivativesConfig
 from .nuisance import Nuisance, NuisanceCorrection, MedianAngleCorrection
 from .motion import Motion, MotionOptions, Scrubbing
 from .centrality import CentralitySettings, Centrality
@@ -15,7 +15,7 @@ from .group_analysis import GroupAnalysis, GPASettings, BASCSettings, BASC, CWAS
 from .dualreg import DualRegression, DualRegressionOptions
 
 
-__all__ = ['WorkflowConfig', 'AnatomicalPreprocessing', \
+__all__ = ['DerivativesConfig', 'WorkflowConfig', 'AnatomicalPreprocessing', \
            'Segmentation',  'Registration', 'FunctionalPreProcessing',\
            'MotionOptions', 'Scrubbing','AnatToFuncRegistration, FuncToMNIRegistration',\
            'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings','TimeSeriesOptions', \
