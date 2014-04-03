@@ -5,6 +5,15 @@
 CPAC
 """
 
+DISTNAME = 'CPAC'
+DESCRIPTION = 'Configurable Pipeline for the Analysis of Connectomes'
+LONG_DESCRIPTION = ''
+MAINTAINER = ''
+MAINTAINER_EMAIL = ''
+URL = ''
+LICENSE = 'BSD License'
+DOWNLOAD_URL = ''
+
 import os, sys
 
 # Import build helpers
