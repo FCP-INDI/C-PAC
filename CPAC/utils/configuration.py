@@ -11,6 +11,18 @@ class Configuration(object):
                 config_map[key] = None
             setattr(self, key, config_map[key])
         self.__update_attr()
+
+
+    def return_config_elements(self):
+
+        # this returns a list of tuples
+        # each tuple contains the name of the element in the yaml config file
+        # and its value
+
+        attributes = [(attr, getattr(self, attr)) for attr in dir(self) \
+                     if not callable(attr) and not attr.startswith("__")] 
+        return attributes
+
         
     #method to find any pattern ($) in the configuration
     #and update the attributes with its pattern value

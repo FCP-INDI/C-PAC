@@ -109,9 +109,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     os.environ['MKL_NUM_THREADS'] = numThreads
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
 
-
-    logger.info('******************** %s' % c.standardResolutionBrain)
-
     qc_montage_id_a = {}
     qc_montage_id_s = {}
     qc_plot_id = {}
@@ -127,6 +124,49 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         os.makedirs(os.path.join(log_dir))
 
 
+
+    '''
+    input filepaths check
+    '''
+
+    # this section checks all of the file paths provided in the pipeline
+    # config yaml file and ensures the files exist and are accessible
+
+    pipeline_config_map = c.return_config_elements()                  
+
+    wrong_filepath_list = []
+
+    for config_item in pipeline_config_map:
+
+        label = config_item[0]
+        val = config_item[1]
+
+        # ensures it is only checking file paths
+        if isinstance(val, str) and '/' in val:
+            if ('.txt' in val) or ('.nii' in val) or ('.nii.gz' in val) \
+                or ('.mat' in val) or ('.cnf' in val) or ('.sch' in val):
+                    
+                if not os.path.isfile(val):
+                    wrong_filepath_list.append((label, val))
+
+
+    if len(wrong_filepath_list) > 0:
+
+        print '\n\n'
+        print 'ERROR - Filepaths provided do not exist:\n'
+
+        for file_tuple in wrong_filepath_list:
+            print file_tuple[0], ' - ', file_tuple[1]
+
+        print '\nPlease double-check your pipeline configuration file.\n\n'
+
+        raise Exception
+                
+    
+
+    '''
+    workflow preliminary setup
+    '''
 
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
