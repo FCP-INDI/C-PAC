@@ -1971,8 +1971,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             
         if 'func_mni_fsl_warp' in nodes:
 
-            output_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                           name='%s_to_standard_%d' % (output_name, num_strat))
+            if c3d_mapNode == 0:
+
+                output_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                               name='%s_to_standard_%d' % (output_name, num_strat))
+
+            else:
+
+                output_to_standard = pe.MapNode(interface=fsl.ApplyWarp(),
+                               name='%s_to_standard_%d' % (output_name, num_strat), iterfield=['in_file'])              
+
 
             output_to_standard.inputs.ref_file = c.standard
 
@@ -2080,7 +2088,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         if 1 in c.runRegisterFuncToMNI:
 
-            output_to_standard_smooth = output_smooth.clone('%s_to_standard_smooth_%d' % (output_name, num_strat))
+            if mapNode == 0:
+
+                output_to_standard_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                            name='%s_to_standard_smooth_%d' % (output_name, num_strat))
+
+            else:
+
+                output_to_standard_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                            name='%s_to_standard_smooth_%d' % (output_name, num_strat), iterfield=['in_file'])          
+
 
             try:
 
@@ -2572,7 +2589,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, 1)
+                output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, 0)
             
             if 1 in c.runZScoring:
                 output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
@@ -2593,7 +2610,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 0 in c.runZScoring:
-                output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat, 1)
+                output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat, 0)
             
             if 1 in c.runZScoring:
                 output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
