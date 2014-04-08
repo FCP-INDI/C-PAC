@@ -1,5 +1,9 @@
+from multiprocessing import Pool
 from multiprocessing import Process
+import sys
 import os
+import argparse
+from CPAC.pipeline import cpac_pipeline
 from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
@@ -7,22 +11,14 @@ import time
 from time import strftime
 
 
-
 def validate(config_obj):
     
     #check for path lengths
     working_dir = config_obj.workingDirectory
     
-    try:
-        if len(working_dir) > 70:
-            print "\n\n" + "WARNING: Path to working directory should NOT be more than 70 characters."
-            print "Please update your configuration. Working directory: ", working_dir, "\n\n"
-            raise Exception
-    except:
-        print "\n\n" + "ERROR: Your directories in Output Settings are empty." + "\n" + \
-        "Error name: cpac_runner_0002" + "\n\n"
-        raise Exception
-
+    if len(working_dir) > 70:
+        raise Exception("Path to working directory- %s should NOT be more than 70 characters."\
+                        "Please update your configuration"%(working_dir))
 
 def get_vectors(strat):
 
@@ -57,21 +53,18 @@ def get_vectors(strat):
 
     dfs(val_list, '')
 
-
-    print 'Paths: '
-    print paths
-
+    print 'Paths: ', paths
     
     return paths
 
 
-def make_entries(paths, path_iterables):
+def make_enteries(paths, path_iterables):
 
-    entries = []
+    enteries = []
     idx = 1
     for path in sorted(paths):
 
-        sub_entries = []
+        sub_enteries = []
         values = path.split('#')
 
         indx = 0
@@ -86,18 +79,16 @@ def make_entries(paths, path_iterables):
                 import re
                 value = re.sub(r',', '.', value)
                 value = re.sub(r' ', '', value)
-            sub_entries.append(path_iterables[indx] + '_' + value)
+            sub_enteries.append(path_iterables[indx] + '_' + value)
             indx += 1
 
         ### remove single quote in the paths
-        sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
-        print "sub entries: "
-        print sub_entries
+        sub_enteries = map(lambda x: x.replace("'", ""), sub_enteries)
+        print sub_enteries
       
-        entries.append(sub_entries)
+        enteries.append(sub_enteries)
 
-    return entries
-
+    return enteries
 
 
 
@@ -112,7 +103,7 @@ def build_strategies(configuration):
     proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
                     '_gm_threshold':'Gray Matter Threshold = ',
                     'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
-                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
+                    '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
     config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
@@ -140,7 +131,6 @@ def build_strategies(configuration):
     corrections_dict_list = config_iterables['_compcor']
 
 
-    print "corrections dictionary list: "
     print corrections_dict_list
 
     main_all_options = []
@@ -171,25 +161,21 @@ def build_strategies(configuration):
 
     ############
 
-    try:
-        paths = get_vectors(config_iterables)
-    except:
-        print "\n\n" + "ERROR: There are no strategies to build." + "\n" + \
-        "Error name: cpac_runner_0003" + "\n\n"
-        raise Exception
+    paths = get_vectors(config_iterables)
 
-    strategy_entries = make_entries(paths, sorted(path_iterables))
+    strategy_enteries = make_enteries(paths, sorted(path_iterables))
 
-    return strategy_entries
+    return strategy_enteries
 
 
-
-
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
-
-
+def make_sge(c, config_file,  strategies_file, subject_list_file, p_name, other_opts=None):
     import commands
     from time import strftime
+    
+    def makedirs_if_not_exist(path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return
 
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
@@ -197,47 +183,112 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
     shell = commands.getoutput('echo $SHELL')
+    
+    # Put each subject's SGE output and scripts into the log directory
+    log_dir = os.path.join(c.outputDirectory, 'logs')
+    sge_dir = os.path.join(log_dir, "sge", "pipeline_%s" % p_name)
+    makedirs_if_not_exist(sge_dir)
+    
+    date_string = str(strftime("%Y-%m-%d_%H-%M-%S"))
+    subject_bash_file = os.path.join(sge_dir, "%s_sge.bash" % date_string)
+    stdout_file = os.path.join(sge_dir, '%s_out.txt' % date_string)
+    stderr_file = os.path.join(sge_dir, '%s_err.txt' % date_string)
+    
+    # Get a list of the subjects
+    subs = [ "%(subject_id)s_%(unique_id)s" % subdict for subdict in sublist ]
 
-    temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
-    subject_bash_file = os.path.join(temp_files_dir, 'submit_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
+    # Create log directories for each subject
+    for sub in subs:
+        subject_dir = os.path.join(log_dir, sub, "sge", "pipeline_%s" % p_name)
+        makedirs_if_not_exist(subject_dir)
+
+    # Save the subject ids (should be in the same order as job ids)
+    sub_file = os.path.join(sge_dir, '%s_subs.txt' % date_string)
+    s = open(sub_file, 'w')
+    for sub in subs:
+        print >> s, sub
+    s.close()
+
+    # Create the script that will execute everything
     f = open(subject_bash_file, 'w')
     print >>f, '#! %s' % shell
     print >>f, '#$ -cwd'
     print >>f, '#$ -S %s' % shell
+    print >>f, '#$ -N %s_%s' % (p_name, date_string)
     print >>f, '#$ -V'
-    print >>f, '#$ -t 1-%d' % len(sublist)
-    print >>f, '#$ -q %s' % c.queue
-    print >>f, '#$ -pe %s %d' % (c.parallelEnvironment, c.numCoresPerSubject)
-    print >>f, '#$ -e %s' % os.path.join(temp_files_dir, 'c-pac_%s.err' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, 'source ~/.bashrc'
 
-#    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
-        subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
+    print >>f, '#$ -t 1-%d' % len(sublist)
+
+    print >>f, '#$ -q %s' % c.queue
+
+    if c.parallelEnvironment:
+        print >>f, '#$ -pe %s %d' % (c.parallelEnvironment, c.numCoresPerSubject)
+
+    #print >>f, '#$ -e /dev/null'
+    #print >>f, '#$ -o /dev/null'
+    print >>f, '#$ -e %s' % stderr_file
+    print >>f, '#$ -o %s' % stdout_file
+    if other_opts:
+        for opt in other_opts:
+            print >>f, "#$ %s" % opt
+    print >>f, ''
+    
+    print >>f, 'echo Running $SGE_TASK_ID'
+    print >>f, ''
+    
+    print >>f, 'echo Setting up logs'
+    print >>f, 'subjs=( $(cat %s) )' % sub_file
+    print >>f, 'logdir=%s/${subjs[$SGE_TASK_ID]}/sge/pipeline_%s' % (log_dir, p_name)
+    print >>f, 'echo '
+    print >>f, 'exec >$logdir/sge_%s.out 2>$logdir/sge_%s.err' % (date_string, date_string)
+    print >>f, ''
+
+    print >>f, 'echo Sourcing bashrc'
+    print >>f, 'source ~/.bashrc'
+    print >>f, ''
+
+    print >>f, 'echo Running $SGE_TASK_ID'
+    print >>f, ''
+
+    print >>f, 'echo Running CPAC'
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\", \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
+    print >>f, ''
 
     f.close()
+    
+    cmd         = 'chmod +x %s' % subject_bash_file
+    print cmd
+    os.system(cmd)
+    return subject_bash_file
+    
 
-    commands.getoutput('chmod +x %s' % subject_bash_file )
-    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w') 
-
-    out = commands.getoutput('qsub  %s ' % (subject_bash_file))
-
+def run_sge_jobs(c, config_file,  strategies_file, subject_list_file, p_name, other_opts=None):
+    
+    subject_bash_file = make_sge(c, config_file,  strategies_file, subject_list_file, p_name, other_opts=None)
+    
+    cmd         = 'qsub %s' % subject_bash_file
+    print cmd
+    out         = commands.getoutput(cmd)
+    
     import re
     if re.search("(?<=Your job-array )\d+", out) == None:
-
         print "Error: Running of 'qsub' command in terminal failed - is qsub installed?"
+        print out
         raise Exception
-
-    pid = re.search("(?<=Your job-array )\d+", out).group(0)
-    print >> p, pid
     
+    pid_file    = os.path.join(sge_dir, '%s_pid.txt' % date_string)
+    p           = open(pid_file, 'w')
+    pid         = re.search("(?<=Your job-array )\d+", out).group(0)
+    print >> p, pid
     p.close()
+    
+    return
 
 def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
+    import pickle
     from time import strftime
 
     try:
@@ -277,6 +328,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
 
     import commands
+    import pickle
     from time import strftime
 
 
@@ -306,7 +358,7 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    #logger.info(commands.getoutput('qsub  %s ' % (subject_bash_file)))
+    print commands.getoutput('qsub  %s ' % (subject_bash_file))
 
 
 def append_seeds_to_file(working_dir, seed_list, seed_file):
@@ -359,7 +411,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 
-def run(config_file, subject_list_file, p_name = None):
+def run(config_file, subject_list_file, p_name=None, other_opts=None):
     
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -372,54 +424,39 @@ def run(config_file, subject_list_file, p_name = None):
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
     
     except IOError:
-        print "config file %s doesn't exist" % config_file
+        print "config file %s doesn't exist" %config_file
         raise
     except Exception:
-        print "Error reading config file - %s" % config_file
-        raise Exception
+        raise Exception("Error reading config file - %s"%config_file)
 
     #do some validation
     validate(c)
 
 
-    try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    except:
-        print "Subject list is not in proper YAML format. Please check your file"
-        raise Exception
+#    try:
+    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+#    except:
+#        raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
 
     strategies = sorted(build_strategies(c))
 
     
-    print "strategies ---> "
-    print strategies
+    print "strategies ---> ", strategies
     
     sub_scan_map ={}
-
-    print "subject list: "
-    print sublist
-    
-    try:
-    
-        for sub in sublist:
-            if sub['unique_id']:
-                s = sub['subject_id']+"_" + sub["unique_id"]
-            else:
-                s = sub['subject_id']
+    #print 
+    #print sublist
+    for sub in sublist:
+        if sub['unique_id']:
+            s = sub['subject_id']+"_" + sub["unique_id"]
+        else:
+            s = sub['subject_id']
         
-            scan_ids = ['scan_anat']
-            for id in sub['rest']:
-                scan_ids.append('scan_'+ str(id))
-            sub_scan_map[s] = scan_ids
-            
-    except:
-        
-        print "\n\n" + "ERROR: Subject list file not in proper format - check if you loaded the correct file?" + "\n" + \
-              "Error name: cpac_runner_0001" + "\n\n"
-        raise Exception
-
-        
+        scan_ids = ['scan_anat']
+        for id in sub['rest']:
+            scan_ids.append('scan_'+ str(id))
+        sub_scan_map[s] = scan_ids 
         
     create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
  
@@ -436,19 +473,19 @@ def run(config_file, subject_list_file, p_name = None):
 
     if 1 in c.runVoxelTimeseries:
 
-        if 'roi_voxelwise' in c.useSeedInAnalysis:
+        if 2 in c.useSeedInAnalysis:
 
             c.maskSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.maskSpecificationFile)
 
     if 1 in c.runROITimeseries:
 
-        if 'roi_average' in c.useSeedInAnalysis:
+        if 1 in c.useSeedInAnalysis:
 
             c.roiSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFile)
 
     if 1 in c.runNetworkCentrality:
 
-        if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:
+        if 3 in c.useSeedInAnalysis:
 
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
 
@@ -462,8 +499,11 @@ def run(config_file, subject_list_file, p_name = None):
     if not c.runOnGrid:
 
         from CPAC.pipeline.cpac_pipeline import prep_workflow
+        
         procss = [Process(target=prep_workflow, args=(sub, c, strategies, 1, pipeline_timing_info, p_name)) for sub in sublist]
+        
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+        import subprocess
         
         jobQueue = []
         if len(sublist) <= c.numSubjectsAtOnce:
@@ -479,7 +519,7 @@ def run(config_file, subject_list_file, p_name = None):
         else:
 
             """
-            Stream the subject workflows for preprocessing.
+            Stream the subject worlflows for preprocessing.
             At Any time in the pipeline c.numSubjectsAtOnce
             will run, unless the number remaining is less than
             the value of the parameter stated above
@@ -510,13 +550,13 @@ def run(config_file, subject_list_file, p_name = None):
                             jobQueue.append(procss[idx])
                             idx += 1
 
+
         pid.close()
-        
-        
     else:
 
         import commands
         import pickle
+        from time import strftime
 
         temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
         print commands.getoutput("mkdir -p %s" % temp_files_dir)
@@ -532,7 +572,7 @@ def run(config_file, subject_list_file, p_name = None):
 
         if 'sge' in c.resourceManager.lower():
 
-            run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+            run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name, other_opts)
 
 
         elif 'pbs' in c.resourceManager.lower():

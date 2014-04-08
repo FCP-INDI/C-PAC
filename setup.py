@@ -109,6 +109,28 @@ if __name__ == "__main__":
     
     # Temporary code to remove pre-existing CPAC directories
     # before re-installing - needs more elegant solution
+<<<<<<< HEAD
+
+#    for sitePath in site.getsitepackages():
+#
+#        for root,dirs,files in os.walk(sitePath):
+            
+#            if 'CPAC-backup' in root:
+#                shutil.rmtree(root)
+
+
+#    for sitePath in site.getsitepackages():
+
+#        for root,dirs,files in os.walk(sitePath):
+            
+#            if 'CPAC' in root:
+#                backupPath = sitePath + '/CPAC-backup'
+
+#                shutil.copytree(root,backupPath)
+#                shutil.rmtree(root)
+#                print "Backing up pre-existing CPAC directory into ", backupPath
+#                print "Removing directory ", root
+
     for sitePath in site.getsitepackages():
         for root,dirs,files in os.walk(sitePath):
             if 'CPAC-backup' in root:
@@ -122,11 +144,20 @@ if __name__ == "__main__":
                 shutil.rmtree(root)
                 print "Backing up pre-existing CPAC directory into ", backupPath
                 print "Removing directory ", root
-
-    # Get in the right directory
-    old_path = os.getcwd()
-    local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-    os.chdir(local_path)
-    sys.path.insert(0, local_path)
+     
+    setup(configuration=configuration,
+          scripts=['scripts/log_py2js.py'],# 'scripts/cpac_gui'],
+          name=DISTNAME,
+          maintainer=MAINTAINER,
+          maintainer_email=MAINTAINER_EMAIL,
+          description=DESCRIPTION,
+          license=LICENSE,
+          url=URL,
+          version=VERSION,
+          download_url=DOWNLOAD_URL,
+          long_description=LONG_DESCRIPTION,
+          classifiers=['Intended Audience :: Science/Research',
+                       'Programming Language :: Python'
+                      ])
     
     main(**extra_setuptools_args)

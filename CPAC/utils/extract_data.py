@@ -75,8 +75,8 @@ def extract_data(c, param_map):
     def checkTemplate(template):
 
         if template.count('%s') != 2:
-            msg = "Please provide '%s' in the template" \
-                  "where your site and subjects are present"\
+            msg = "Please provide '%s' in the template " \
+                  "where your site and subjects are present. "\
                   "Please see examples"
             logging.exception(msg)
             raise Exception(msg)
@@ -97,13 +97,13 @@ def extract_data(c, param_map):
     def check_length(scan_name, file_name):
         
         if len(file_name) > 30:
-            msg = "filename- %s is too long."\
+            msg = "filename- %s is too long. "\
                    "It should not be more than 30 characters."%(file_name)
             logging.exception(msg)
             raise Exception(msg)
         
         if len(scan_name) - len(os.path.splitext(os.path.splitext(file_name)[0])[0])>= 40:
-            msg = "scan name %s is too long."\
+            msg = "scan name %s is too long. "\
                   "It should not be more than 20 characters"\
                   %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
             logging.exception(msg)
@@ -171,8 +171,8 @@ def extract_data(c, param_map):
               , anat_base, "!=", func_base
         logging.exception(msg1)
         
-        msg2 = " Base length Unequal. Some sites are missing."\
-               "extract_data doesn't script support this.Please" \
+        msg2 = " Base length Unequal. Some sites are missing. "\
+               "extract_data doesn't script support this. Please " \
                "Provide your own subjects_list file"
         logging.exception(msg2)
         raise Exception(msg2)
@@ -197,8 +197,8 @@ def extract_data(c, param_map):
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
         elif path_length > 3:
-            msg = "extract_data script currently doesn't support this directory structure."\
-                  "Please provide the subjects_list file to run CPAC."\
+            msg = "extract_data script currently doesn't support this directory structure. "\
+                  "Please provide the subjects_list file to run CPAC. "\
                   "For more information refer to manual"
             logging.exception(msg)
             raise Exception(msg)
@@ -254,7 +254,7 @@ def extract_data(c, param_map):
                         print >> f, "        first_tr: '" + param_map.get(subject_map.get(sub))[1] + "'"
                         print >> f, "        last_tr: '" + param_map.get(subject_map.get(sub))[2] + "'"
                     except:
-                        msg = " No Parameter values for the %s site is defined in the scan"\
+                        msg = " No Parameter values for the %s site is defined in the scan "\
                               " parameters csv file" %subject_map.get(sub)
                         raise ValueError(msg)
 
@@ -464,7 +464,7 @@ def read_csv(csv_input):
                                                  if key != 'site' and key != 'scan']
 
         if len(dict_labels.keys()) < 1:
-            msg ="Scan Parameters File is either empty"\
+            msg ="Scan Parameters File is either empty "\
                  "or missing header"
             logging.exception(msg)
             raise Exception(msg)
@@ -512,8 +512,8 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        logging.debug("no scan parameters csv included"\
-              "make sure you turn off slice timing correction option"\
+        logging.debug("no scan parameters csv included "\
+              "make sure you turn off slice timing correction option "\
               "in CPAC configuration")
         s_param_map = None
 

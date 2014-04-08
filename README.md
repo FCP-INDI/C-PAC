@@ -11,13 +11,21 @@ Website
 
 CPAC website is located here:  http://fcp-indi.github.com/
 
+Installation
+------------
+
+If you are running ubuntu >=10.4:
+Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
+    `sudo ./ cpac_install_ubuntu.sh`
+
+Otherwise, follow the installation documentation here: http://fcp-indi.github.io/docs/user/install.html
 
 Documentation
 -------------
 
 User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
 
-Developer documention can ne found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documention can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
 
 Dicussion Forum

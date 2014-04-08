@@ -106,7 +106,7 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='standardResolution', 
                      type=dtype.STR, 
-                     values = ["3mm", "2mm", "1mm"],
+                     values = ["4mm","3mm", "2mm", "1mm"],
                      comment="The resolution (in mm) to which functional images are transformed during registration")
         
         self.page.add(label="Standard Brain only Template (functional resolution):", 
