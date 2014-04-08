@@ -15,8 +15,8 @@ Installation
 ------------
 
 If you are running ubuntu >=10.4:
-Download the install.sh file and run it from the terminal.
-    `sudo ./ install.sh`
+Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
+    `sudo ./ cpac_install_ubuntu.sh`
 
 Otherwise, follow the installation documentation here: http://fcp-indi.github.io/docs/user/install.html
 
