@@ -9,7 +9,8 @@ import nipype.interfaces.utility as util
 from utils import *
 from CPAC.vmhc import *
 from nipype.interfaces.afni import preprocess
-from CPAC.registration import create_ants_nonlinear_xfm, create_apply_ants_xfm
+from CPAC.registration import create_wf_calculate_ants_warp, \
+                              create_apply_ants_xfm
 
 def create_vmhc(use_ants):
 

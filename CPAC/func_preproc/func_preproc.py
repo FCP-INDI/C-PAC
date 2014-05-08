@@ -8,7 +8,7 @@ from nipype.interfaces.afni import preprocess
 
 #functional preprocessing
 
-def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc'):
+def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_name = 'func_preproc'):
     """
     
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented 
@@ -260,7 +260,8 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                                                         'example_func',
                                                         'preprocessed',
                                                         'preprocessed_mask',
-                                                        'slice_time_corrected']),
+                                                        'slice_time_corrected',
+                                                        'oned_matrix_save']),
 
                           name='outputspec')
 
@@ -380,6 +381,8 @@ def create_func_preproc(slice_timing_correction = False, wf_name = 'func_preproc
                     outputNode, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
                     outputNode, 'movement_parameters')
+    preproc.connect(func_motion_correct_A, 'oned_matrix_save',
+                    outputNode, 'oned_matrix_save')
 
 
     
