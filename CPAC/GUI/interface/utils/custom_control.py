@@ -376,4 +376,179 @@ class TextBoxCombo(wx.combo.ComboCtrl):
     # Overridden from ComboCtrl, called when the combo button is clicked
     def OnButtonClick(self):
         ParametersCheckBox(self)
+        
+        
+        
+class CheckBoxGrid(wx.Panel):
+    
+    def __init__(self, parent, idx, values, size):
+        wx.Panel.__init__(self, parent, id=idx, size=size)
+        
+        scrollWin = wx.Window(self, pos=(0,25), size=(575,200), style=wx.SUNKEN_BORDER | wx.VSCROLL)
+        scrollWin.SetBackgroundColour(wx.WHITE)
+        
+        self.values = []
+        self.values = values
+        self.maxIDNum = (len(self.values)*4)+99
+        
+        wx.StaticText(self, label="Include EV", pos=(200,0))
+        wx.StaticText(self, label="Categorical", pos=(300,0))
+        wx.StaticText(self, label="Demean", pos=(400,0))
+        wx.StaticText(self, label="Drop Level", pos=(500,0))
+        
+        j = 0
+        self.idx = 100
+        self.includeCBList = []
+        self.categoricalCBList = []
+        self.demeanCBList = []
+        self.dropLevelCBList = []
+        
+        self.includeCBValues = []
+        self.categoricalCBValues = []
+        self.demeanCBValues = []
+        
+        self.cbDict = {}
+        self.cbValuesDict = {}
+        
+        # this is for saving checkbox states during operation
+        # for returning previous values when boxes come out from
+        # being grayed out
+        self.tempChoiceDict = {}
+        
+        # dictionary of 3 lists, each list is a list of chars
+        # of either '1' or '0', a list for include, categorical,
+        # demean
+        self.choiceDict = {}
+        
+        # iterate over each phenotype header item
+        for name in self.values:
+            
+            # set up the label of each header item
+            wx.StaticText(scrollWin, label=name, pos=(5,j))
+        
+            # "Include EV" checkbox for header item
+            self.cb = wx.CheckBox(scrollWin, id=self.idx, pos=(200,j))
+            self.cb.SetValue(True)
+            self.includeCBList.append(self.cb)
+            
+            self.cbValuesDict[self.idx] = [name, 'include', True]
+            
+            #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_include())
+            
+
+            # Categorical checkbox for header item
+            self.cb = wx.CheckBox(scrollWin, id=self.idx+1, pos=(300,j))
+            self.cb.SetValue(False)
+            self.categoricalCBList.append(self.cb)
+            
+            self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
+            
+            #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_categorical())
+            
+            
+            # Demean checkbox for header item
+            self.cb = wx.CheckBox(scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
+            self.cb.SetValue(False)
+            self.demeanCBList.append(self.cb)
+            
+            self.cbValuesDict[self.idx+2] = [name, 'demean', False]
+            
+            #self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.demeanCBList, self.demeanCBList[0]))
+            
+            
+            # Drop Level checkbox for header item
+            self.cb = wx.CheckBox(scrollWin, id=self.idx+3, pos=(500,j))
+            self.cb.SetValue(False)
+            self.dropLevelCBList.append(self.cb)
+            
+            self.cbValuesDict[self.idx+3] = [name, 'dropLevel', False]
+            
+            
+                
+            # just a nice amount to space the checkboxes out by
+            j += 30
+            
+            # increment IDs
+            self.idx += 4
+            
+        
+            
+        self.cbDict['include'] = self.includeCBList
+        self.cbDict['categorical'] = self.categoricalCBList
+        self.cbDict['demean'] = self.demeanCBList
+
+
+        
+        for idNum in range(100,self.maxIDNum):
+        
+            self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
+
+        
+        
+    def onCheck_UpdateValue(self, event, idNum, checkBox):
+               
+        # somehow take in the self.cbValuesDict[idx] (name, column, value)
+        # and then GetValue from all idx, and update value for that idx
+        
+        # then have another function which returns this entire dict
+               
+        self.choiceIncludeList = []
+        self.choiceCategoricalList = []
+        self.choiceDemeanList = []
+        self.choiceDropLevelList = []
+               
+        for idNum in range(100,self.maxIDNum):
+               
+            self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()     
+        
+        for idNum in range(100,self.maxIDNum):
+            
+            if self.cbValuesDict[idNum][1] == 'include':
+                
+                if self.cbValuesDict[idNum][2] == True:
+                    self.choiceIncludeList.append('1')
+                else:
+                    self.choiceIncludeList.append('0')
+                    
+            elif self.cbValuesDict[idNum][1] == 'categorical':
+                
+                if self.cbValuesDict[idNum][2] == True:
+                    self.choiceCategoricalList.append('1')
+                    
+                    #self.tempChoiceDict[('demean',idNum+1)] = wx.FindWindowById(idNum+1).GetValue()
+                    #wx.FindWindowById(idNum+1).Set3StateValue(2)  # set demean to N/A
+                else:
+                    self.choiceCategoricalList.append('0')
+                    
+                    #wx.FindWindowById(idNum+1).Set3StateValue(0)  # undo demean as N/A
+                    #if ('demean',idNum+1) in self.tempChoiceDict.keys():
+                    #    wx.FindWindowById(idNum+1).Set3StateValue(0)  # undo demean as N/A
+                    #    wx.FindWindowById(idNum+1).SetValue(self.tempChoiceDict[('demean',idNum+1)])
+                    
+            elif self.cbValuesDict[idNum][1] == 'demean':
+                
+                if self.cbValuesDict[idNum][2] == True:
+                    self.choiceDemeanList.append('1')
+                else:
+                    self.choiceDemeanList.append('0') 
+                    
+            elif self.cbValuesDict[idNum][1] == 'dropLevel':
+                
+                if self.cbValuesDict[idNum][2] == True:
+                    self.choiceDropLevelList.append('1')
+                else:
+                    self.choiceDropLevelList.append('0')      
+        
+        
+                
+        self.choiceDict['include'] = self.choiceIncludeList                
+        self.choiceDict['categorical'] = self.choiceCategoricalList                
+        self.choiceDict['demean'] = self.choiceDemeanList
+        self.choiceDict['dropLevel'] = self.choiceDropLevelList  
+
+
+        
+    def GetGridSelection(self):           
+        return self.choiceDict
+
 

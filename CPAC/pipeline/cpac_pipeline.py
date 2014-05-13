@@ -2324,6 +2324,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             surface_reg.inputs.inputspec.recon_subjects = c.reconSubjectsDirectory
             surface_reg.inputs.inputspec.subject_id = subject_id
 
+
             try:
 
                 node, out_file = strat.get_leaf_properties()
