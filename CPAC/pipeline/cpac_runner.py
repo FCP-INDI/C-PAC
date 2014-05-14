@@ -35,17 +35,22 @@ def get_vectors(strat):
         else:
             vals = []
             vals.append(val_list.pop())
-            for val in vals:
-            #for val in val_list:
 
-                ### check if val is float, correct it on some version of python or ipython
-                ### avoid auto change to double quote of the path
-                if isinstance(val[0], float):
-                    #val = '%.2f' % val[0]
-                    val = [str(val[0])]
+            for val in vals:
+
+                # make this an if statement because it trips up when it gets a
+                # 'None' entry for one of the iterables
+                if val != None:
+                                    ### check if val is float, correct it on some version of python or ipython
+                    ### avoid auto change to double quote of the path
+                    if isinstance(val[0], float):
+                        #val = '%.2f' % val[0]
+                        val = [str(val[0])]
+
 
                 if path == '':
                     dfs(list(val_list), str(val))
+
                 else:
                     dfs(list(val_list), str(val) + '#' + path)
 
@@ -55,14 +60,12 @@ def get_vectors(strat):
     for key in sorted(strat.keys()):
         val_list.append(strat[key])
 
+
     dfs(val_list, '')
-
-
-    print 'Paths: '
-    print paths
-
     
+
     return paths
+
 
 
 def make_entries(paths, path_iterables):
@@ -180,13 +183,15 @@ def build_strategies(configuration):
 
     strategy_entries = make_entries(paths, sorted(path_iterables))
 
+    print 'strategy_entries: ', strategy_entries, '\n\n'
+
+
     return strategy_entries
 
 
 
 
 def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
-
 
     import commands
     from time import strftime
@@ -389,6 +394,8 @@ def run(config_file, subject_list_file, p_name = None):
         raise Exception
 
 
+    # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
+    # creating symlinks
     strategies = sorted(build_strategies(c))
 
     

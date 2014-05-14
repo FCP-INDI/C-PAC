@@ -589,18 +589,46 @@ class ListBox(wx.Frame):
                     if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
+
+                                # this runs if you click 'Load' on the main
+                                # CPAC window, enter a path, and the pipeline
+                                # name attribute of the pipeline config file
+                                # you are loading does NOT already exist in
+                                # the listbox, i.e., the proper condition
+
                                 self.pipeline_map[str(c.pipelineName)] = path
                                 self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
                             
-                            else:        
+                            else:
+
+                                # this runs if you click 'Load' on the main
+                                # CPAC window, enter a path, and the pipeline
+                                # name attribute of the pipeline config file
+                                # you are loading DOES already exist in
+                                # the listbox, which is a conflict
                                        
-                                dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
-                                               'Error!',
+                                dlg3 = wx.MessageDialog(self, 'The \'' \
+                                        'Pipeline Name\' attribute of the ' \
+                                        'configuration file you are loading' \
+                                        ' already exists in one of the' \
+                                        ' configuration files listed under' \
+                                        ' \'Pipelines\'.\n\nPlease change' \
+                                        ' the pipeline name attribute (not' \
+                                        ' the filename) from within the' \
+                                        ' pipeline editor (under the' \
+                                        ' \'Output Settings\' tab in' \
+                                        ' \'Environment Setup\'), or load a' \
+                                        ' new configuration file.\n\n' \
+                                        'Pipeline configuration with' \
+                                        ' conflicting name:\n%s' \
+                                         % c.pipelineName,
+                                               'Conflicting Pipeline Names',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()
                                 dlg3.Destroy()
+                                break
                                 
                     else:
                         
@@ -615,9 +643,56 @@ class ListBox(wx.Frame):
                         dlg.Destroy
                         break
 
+
+
+    '''
+    def AddConfigToList(self, config_path):
+
+        path = dlg.GetPath()
+        if self.check_config(path) > 0:
+            while True:
                     
+                try:
+                    c = Configuration(yaml.load(open(os.path.realpath(path), 'r')))
+                except:
+                    print "\n\n" + "ERROR: Configuration file could not be loaded properly - the file " \
+                          "might be access-protected or you might have chosen the wrong file." + "\n"
+                    print "Error name: main_window_0001" + "\n\n"
+                    raise Exception
                     
-              
+
+                if c.pipelineName != None:
+                            
+                        if self.pipeline_map.get(c.pipelineName) == None:
+                            self.pipeline_map[str(c.pipelineName)] = path
+                            self.listbox.Append(str(c.pipelineName))
+                            dlg.Destroy()
+                            break
+                            
+                        else:        
+                                       
+                            dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+                            dlg3.ShowModal()
+                            dlg3.Destroy()
+                                
+                else:
+                        
+                    dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
+                                            ' the pipeline_config.yml file in a text editor and' \
+                                            ' restore the pipelineName field.',
+                                    'Warning',
+                            wx.OK | wx.ICON_ERROR)
+                    dlg4.ShowModal()
+                    dlg4.Destroy()
+                        
+                    dlg.Destroy()
+                    break
+    '''
+
+                    
+                             
 class runCPAC(wx.Frame):
  
     def __init__(self, pipeline, sublist, p, pid):

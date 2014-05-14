@@ -978,7 +978,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
     workflow_counter += 1
     
-    if 1 in c.runBBReg:
+    if (1 in c.runRegisterFuncToAnat) and (1 in c.runBBReg):
 
         workflow_bit_id['func_to_anat_bbreg'] = workflow_counter
 
@@ -4525,6 +4525,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         
                         print name, ' ~~~ ', 2 ** workflow_bit_id[name]
                         hash_val += 2 ** workflow_bit_id[name]
+
     
             if p_name == None or p_name == 'None':
                 
