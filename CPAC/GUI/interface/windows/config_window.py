@@ -239,6 +239,7 @@ class MainFrame(wx.Frame):
         if option == 'edit' or option == 'load':
             self.load()
 
+
     def load(self):
 
         import yaml
@@ -337,13 +338,14 @@ class MainFrame(wx.Frame):
     def testConfig(self, event):
         
         '''
-        This function runs when the user clicks the "Test Configuration" button in the
-        pipeline configuration window.
+        This function runs when the user clicks the "Test Configuration"
+        button in the pipeline configuration window.
         
-        It prompts the user for a sample subject list (i.e. one that they will be using
-        with the config they are building). Then it builds the pipeline but does not
-        run it. It then reports whether or not the config will run or not depending
-        on if the pipeline gets built successfully.
+        It prompts the user for a sample subject list (i.e. one that they will
+        be using with the config they are building). Then it builds the
+        pipeline but does not run it. It then reports whether or not the
+        config will run or not depending on if the pipeline gets built
+        successfully.
         '''
         
         import os
@@ -702,7 +704,8 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
 
-            # Strips any user-input file extension and enforces .yml as the extension
+            # Strips any user-input file extension and enforces .yml as
+            # the extension
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
@@ -714,13 +717,18 @@ class MainFrame(wx.Frame):
                 # editor AND the editor was opened from the main window by
                 # clicking 'New' instead of 'Edit'
 
+                ### this is the old code for generating random city names
+                ### to name pipeline configs. remove at some point?
                 #for counter in wf_counter:
                 #    if counter != 0:
                 #        hash_val += 2 ** counter
                 #print "wf_counter -- ", wf_counter
                 #print "hashval --> ", hash_val
-                #pipeline_id = linecache.getline(p.resource_filename('CPAC', 'GUI/resources/pipeline_names.py'), hash_val)
+                #pipeline_id = linecache.getline(p.resource_filename('CPAC', \
+                #       'GUI/resources/pipeline_names.py'), hash_val)
+
                 print "pipeline_id ==", pipeline_name
+
                 if os.path.exists(self.path):
                     self.update_listbox(pipeline_name)
 
@@ -749,6 +757,7 @@ class MainFrame(wx.Frame):
             self.SetFocus()
             self.Close()
 
+
     def cancel(self, event):
         self.Close()
 
@@ -764,7 +773,7 @@ class MainFrame(wx.Frame):
 
             else:
                 dlg2 = wx.MessageDialog(
-                    self, 'Pipeline already exist. Please enter a new name',
+                    self, 'Pipeline already exists. Please enter a new name',
                     'Error!',
                     wx.OK | wx.ICON_ERROR)
                 dlg2.ShowModal()

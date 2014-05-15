@@ -1846,6 +1846,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Spatial Regression Based Time Series
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -1944,6 +1945,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Voxel Based Time Series 
     '''
+
     new_strat_list = []
     num_strat = 0
     if 1 in c.runVoxelTimeseries:
@@ -2044,6 +2046,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     ROI Based Time Series
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2147,6 +2150,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     Inserting SCA
     Workflow for ROI INPUT
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2185,6 +2189,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     Inserting SCA
     Workflow for Voxel INPUT
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2218,6 +2223,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Temporal Regression for Dual Regression
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2268,6 +2274,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Temporal Regression for SCA
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2312,6 +2319,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Inserting Surface Registration
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2363,6 +2371,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Inserting vertices based timeseries
     '''
+
     new_strat_list = []
     num_strat = 0
 
@@ -2407,6 +2416,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Inserting Network centrality
     '''
+
     new_strat_list = []
     num_strat = 0
 
