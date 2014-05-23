@@ -14,7 +14,7 @@ CPAC website is located here:  http://fcp-indi.github.com/
 Installation
 ------------
 
-If you are running ubuntu >=10.4:
+If you are running ubuntu >=12.04:
 Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
     `sudo ./ cpac_install.sh`
 
