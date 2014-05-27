@@ -99,6 +99,16 @@ class GPASettings(wx.ScrolledWindow):
                      comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
                      values=0.05)
 
+        self.page.add(label="Run Repeated Measures ", 
+                     control=control.CHOICE_BOX, 
+                     name='repeatedMeasures', 
+                     type=dtype.BOOL, 
+                     comment="Run repeated measures to compare different " \
+                             "scans (must use the group analysis subject " \
+                             "list and phenotypic file formatted for " \
+                             "repeated measures.", 
+                     values=["False","True"])
+
                 
         self.page.set_sizer()
         parent.get_page_list().append(self)
