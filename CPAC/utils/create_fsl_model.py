@@ -57,6 +57,8 @@ def filter_phenotypic(c):
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
+        subject = subject.replace(',','_')
+
         if not subject in sub_dict:
             sub_dict[subject] = 1
         else:
@@ -65,8 +67,8 @@ def filter_phenotypic(c):
 
 
     # Iterate over phenotypic CSV file removing any fields that are not listed
-    # in the columnsInModel parameter in the FSL config file, and then write the
-    # remaining fields into record_dict dictionary
+    # in the columnsInModel parameter in the FSL config file, and then write
+    # the remaining fields into record_dict dictionary
 
     f_r = []
 
@@ -110,6 +112,7 @@ def filter_phenotypic(c):
     for subject in subjects:
 
         subject = subject.rstrip('\r\n')
+        subject = subject.replace(',','_')
 
         try:
 
@@ -161,6 +164,7 @@ def organize_data(filter_data, c):
     in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
 
     field_names : The field names are the column names in the final model file
+
     """
 
 
@@ -175,19 +179,39 @@ def organize_data(filter_data, c):
         if c.deMean[i]:
             mean_cols.append(c.columnsInModel[i])
 
-        if c.categoricalVsDirectional[i]:
-            directional_cols.append(c.columnsInModel[i])
+        # UNCOMMENT THIS AFTER ITS ENABLED
+        #if c.categoricalVsDirectional[i]:
+        #    directional_cols.append(c.columnsInModel[i])
 
 
 
     for data in filter_data:
 
+        # filter_data is a LIST of dictionaries, one for each subject
+        # so 'data' is each dictionary - each one has the phenotypic header
+        # items (EVs) as its keys, and the values as its entries
+
+        # there is one dictionary ('data') per subject, and the subject ID
+        # is one of the entries in each dictionary
+
         for col in mean_cols:
 
+            # mean_cols is a LIST of pheno header items (EVs) which are marked
+            # to be demeaned (should only be continuous EVs)
+
             try:
+
                 if not col in mean:
+                    # if the current EV-to-be-demeaned does not already have
+                    # an entry in the dictionary 'mean', then ensure the
+                    # current subject's value for it is a float and put it in
                     mean[col] = float(data[col])
+
                 else:
+                    # otherwise, if an entry in 'mean' already exists for the
+                    # current EV in the iteration, then simply ensure the
+                    # current subject's value for it is a float and then ADD
+                    # it to the current sum of this continuous EV's summation
                     mean[col] += float(data[col])
 
             except ValueError, e:
@@ -197,51 +221,118 @@ def organize_data(filter_data, c):
 
         for col in directional_cols:
 
+            # directional_cols is a LIST of pheno header items (EVs) which are
+            # marked as categorical/non-continuous
+            # (i.e. are labels, like sex M/F)
+
+            # here, each 'col' is an EV that has been marked as categorical
+
+            # load the phenotype-file VALUE of the current subject's 'col'
+            # (categorical EV) into 'val'
             val = data[col]
 
+            # concatenate the name of the categorical EV with its value
             new_col = col + '__' + val
+
 
             if not col in directional_map:
 
+                # add this 'categoricalEV__value' into this categorical
+                # dictionary, if an entry for this categorical EV has not been
+                # created in this 'directional_map' dictionary yet
                 directional_map[col] = [new_col]
 
             else:
 
+                # if categorical values for this EV have already been loaded
+                # into 'directional_map', then load what is already in the
+                # dictionary into 'val'
                 val = directional_map[col]
 
+                # if the current subject's value for this particular
+                # categorical EV does not exist in what was already in
+                # 'directional_map', then append the current value (the
+                # 'categoricalEV__value') into 'val' (now a list?) and then
+                # load this list 'val' back into 'directional_map' under the
+                # key for this particular categorical EV
                 if not new_col in val:
 
                     val.append(new_col)
                     directional_map[col] = val
 
 
+    # the 'mean' dictionary now has a key for each EV (pheno header item),
+    # with each key corresponding to a value which is the sum of all the
+    # subjects' float values for that particular continuous EV
+
+    # the 'directional_map' dictionary now has a key for each EV, with each
+    # key corresponding to a LIST which contains all of the subjects'
+    # categorical/non-continuous values for that particular categorical EV,
+    # and these values are in the 'categoricalEV__value' format
+
+
+
     idx = 0
     for data in filter_data:
 
+        # once again, each 'data' is each subject's collection of EVs and
+        # their values
 
         for col in directional_map.keys():
 
+            # make 'val' the current subject's current categorical EV's value
             val = data[col]
 
+            # make 'vals' a list of all of the values of the current
+            # categorical EV
             vals = directional_map[col]
 
+            # remove the entry for the current subject's current categorical
+            # EV from the dictionary 'data' (which is all of the EVs of the
+            # current subject)
             del data[col]
 
 
             for value in vals:
 
-                column_name, v = value.split('__')
+                # 'value' is each categorical EV value (from directional_map)
+                # in the 'categoricalEV__value' format
 
+                column_name, v = value.rsplit('__',1)
+
+                # iterating over each categorical EV value from
+                # directional_map, check if the current subject's current
+                # categorical EV value ('val', which holds steady) matches:
                 if v == val:
-
+                    # if it does, add an entry into 'data', the dictionary
+                    # which has all of the current subject's EVs and their
+                    # values, where the entry's key is the
+                    # 'categoricalEV__value', and the value is '1'
                     data[value] = '1'
 
                 else:
+                    # if not, do the same as above, except make the value '0'
                     data[value] = '0'
+
+            # now that 'for value in vals:' is complete for the current
+            # subject's current categorical EV, the dictionary 'data' has been
+            # cleared of all of its original categorical EV entries and new
+            # entries have been added for each categorical EV found in
+            # 'directional_map' which contain a '1' if this particular subject
+            # had an EV with the same VALUE as the VALUE of any of the
+            # categorical EVs in 'directional_map'
 
         filter_data[idx] = data
 
         idx += 1
+
+
+    # by now, the dictionary 'filter_data' contains an entry for each subject,
+    # with all of the categorical EVs 'broken out' into separate columns -
+    # so if a categorical EV like sex can be either 'male' or 'female', it
+    # creates a column for both options and places a 1 in the column that
+    # corresponds for that subject
+
 
 
     for col in mean.keys():
@@ -252,7 +343,10 @@ def organize_data(filter_data, c):
     idx = 0
     for data in filter_data:
 
-        #print data
+        # this demeans the continuous EVs - only demeans the EVs that were
+        # marked to be demeaned (only they were added to the 'mean'
+        # dictionary)
+        
         for col in mean.keys():
 
             val = 0.0
@@ -263,14 +357,16 @@ def organize_data(filter_data, c):
         filter_data[idx] = data
         idx += 1
 
+
     try:
         zeroth = filter_data[0]
     except:
         print "\n\n" + "ERROR: Subject information did not match properly" \
-              " between the phenotypic file and group analysis subject list." \
-              "\n Tip: Double-check subject names." + "\n" + \
+              " between the phenotypic file and group analysis subject " \
+              "list.\n Tip: Double-check subject names." + "\n" + \
         "Error name: create_fsl_model_0001" + "\n\n"
         raise Exception
+
 
     field_names = [c.subjectColumn]
 
@@ -319,7 +415,6 @@ def check_multicollinearity(matrix):
         if condition_number > 30:
 
             return 1
-
 
     return 0
 
@@ -416,12 +511,11 @@ def write_data(model_data, field_names, c):
                 else:
                     if not (c.subjectColumn in name):
                         data_row.append(float(data[name]))
-            new_data.append(list(data_row))
-            
 
+            new_data.append(list(data_row))
+         
             writer.writerow(data)
-            
-            
+                
 
         detect = 0
 
@@ -867,14 +961,21 @@ def run(config, fTest, CPAC_run = False):
 
     filter_data = filter_phenotypic(c)
 
+    dumpFile = open(os.path.join(os.getcwd(), 'dumpFile.txt'), 'wt')
+    print >>dumpFile, 'filter_data:\n\n', filter_data
 
     model_ready_data = None
     field_names = None
     gp_var = None
 
+
     if c.modelGroupVariancesSeparately == 0:
 
         model_ready_data, field_names = organize_data(filter_data, c)
+
+        print >>dumpFile, '\n\nmodel_ready_data:\n\n', model_ready_data
+        print >>dumpFile, '\n\nfield_names:\n\n', field_names
+        dumpFile.close()
    
     else:
 

@@ -97,9 +97,8 @@ def run_sge_jobs(c, config_file, resource, subject_infos):
     print 'qsub  %s ' % (subject_bash_file)
 
 
+
 def run_pbs_jobs(c, config_file, resource, subject_infos):
-
-
 
     import commands
     import pickle
@@ -162,28 +161,50 @@ def run(config_file, output_path_file):
 
     import yaml
 
+    outDump = open('group_runner_outDump.txt', 'a')
+
     # Load the config file into 'c'
     c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
 
     subject_paths = []
 
+
+    # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
+    # File' provided in the dialog box when group analysis is first run
+
     for file in glob.glob(os.path.abspath(output_path_file)):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
 
+#
+    print >>outDump, 'path_list: ', path_list, '\n\n'
+    print >>outDump, 'subject_paths: ', subject_paths, '\n\n'
 
+    # 'subject_paths' is a list of every output from every subject included
+    # in the output folder of the run
+
+    # converts the subject_paths list into a set to enforce no duplicates
     set_subject_paths = set(subject_paths)
+
+    # converts the set back into a list
     subject_paths = list(set_subject_paths)
+
+
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
     base_path = c.outputDirectory
+
+#
+    print >>outDump, 'subject_paths, post list(): ', subject_paths, '\n\n'
+    outDump.close()
 
     from collections import defaultdict
     analysis_map = defaultdict(list)
     analysis_map_gp = defaultdict(list)
 
-    for subject_path in subject_paths:
-        #Remove the base bath offset
 
+    for subject_path in subject_paths:
+
+        #Remove the base bath offset
         rs_path = subject_path.replace(base_path, "", 1)
 
         rs_path = rs_path.lstrip('/')
@@ -195,42 +216,35 @@ def run(config_file, output_path_file):
         resource_id = folders[2]
         scan_id = folders[3]
 
-
-        #if scan_id == '_scan_rest_1_rest':
-
         key = subject_path.replace(subject_id, '*')
-        analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
-        # separate map for group analysis
-        #if c.mixedScanAnalysis == True:
-        #    key = key.replace(scan_id, '*')
-
-        analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+        # include all of the scans in one model if True
+        if c.repeatedMeasures == True:
+            key = key.replace(scan_id, '*')
 
 
-    gpa_start_datetime = strftime("%Y-%m-%d")
+        # 'resource_id' is each type of output
+        # 'key' is a path to each and every individual output file,
+        # except with the subject ID replaced with a wildcard (*)
 
-    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
-    
-    print >>timing, "Starting CPAC group-level analysis at system time: ", strftime("%Y-%m-%d %H:%M:%S")
-    print >>timing, "Pipeline configuration: ", c.pipelineName
-    print >>timing, "\n"
-        
-    timing.close()
-    
-    
-    # Start timing here
-    gpa_start_time = time.time()
-    
-    gpaTimeDict = {}
-    gpaTimeDict['Start_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-    
+        if resource_id in c.derivativeList:
+
+            analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+
+            analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+
+
+        # with this loop, 'analysis_map_gp' is a dictionary with a key for
+        # each individual output file - and each entry is a list of tuples,
+        # one tuple for each subject in the subject list, containing
+        # 'subject_path', which is a full path to that output file for that
+        # one particular subject
+
 
 
     for resource, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
 
-            wf_start_time = time.time()
 
             if 1 in c.runBASC:
 
@@ -259,19 +273,15 @@ def run(config_file, output_path_file):
                     elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
 
-            timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
-
-            print >>timing, "Group analysis workflow completed for resource: ", resource
-            print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
-            print >>timing, ""
-            
-            timing.close()
 
 
-            
     procss = []
         
     for resource, glob_key in analysis_map_gp.keys():
+
+        # 'resource' is each type of output
+        # 'glob_key' is a path to each and every individual output file,
+        # except with the subject ID replaced with a wildcard (*)
         
         if resource in c.derivativeList:
             
@@ -344,56 +354,4 @@ def run(config_file, output_path_file):
     pid.close()
     
     
-    
-    
-    gpaTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
-    gpaTimeDict['Elapsed_Time_(minutes)'] = int(((time.time() - gpa_start_time)/60))
-    gpaTimeDict['Status'] = 'Complete'
-            
-    gpaTimeFields= ['Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
-    timeHeader = dict((n, n) for n in gpaTimeFields)
-            
-    timeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, gpa_start_datetime)), 'a')
-    readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_group_timing_%s_%s.csv' % (c.pipelineName, gpa_start_datetime)), 'rb')
-    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-    timeReader = csv.DictReader(readTimeCSV)
-            
-    headerExists = False
-    for line in timeReader:
-        if 'Start_Time' in line:
-            headerExists = True
-            
-    if headerExists == False:
-        timeWriter.writerow(timeHeader)
-                
-            
-    timeWriter.writerow(gpaTimeDict)
-    timeCSV.close()
-    readTimeCSV.close()
-    
-    
-    
-    
-            
-    timing = open(os.path.join(c.outputDirectory, 'group_analysis_timing_%s_%s.txt' % (c.pipelineName, gpa_start_datetime)), 'a')
-
-    print >>timing, "Group analysis workflow completed for resource: ", resource
-    print >>timing, "Elapsed run time (minutes): ", ((time.time() - wf_start_time)/60)
-    print >>timing, ""
-            
-            
-    print >>timing, "Entire group analysis run complete."
-    print >>timing, "Elapsed run time (minutes): ", ((time.time() - gpa_start_time)/60)
-    print >>timing, ""
-
-
-
-
-    timing.close()
-    #diag.close()
-
-
-
-
-
 

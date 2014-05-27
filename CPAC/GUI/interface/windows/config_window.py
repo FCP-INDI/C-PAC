@@ -299,6 +299,9 @@ class MainFrame(wx.Frame):
                                 
                             if 'ANTS' in val and 'FSL' in val:
                                 val = [11]
+
+                            if '3dAutoMask' in val and 'BET' in val:
+                                val = [12]
                             
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
@@ -842,6 +845,8 @@ class MainFrame(wx.Frame):
                         values = [1,0]
                     elif values == [11]:
                         values = ['ANTS','FSL']
+                    elif values == [12]:
+                        values = ['3dAutoMask','BET']
 
                     print>>f, label, ": ", values
                     print>>f,"\n"
