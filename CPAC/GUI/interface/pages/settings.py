@@ -209,6 +209,13 @@ class WorkflowConfig(wx.ScrolledWindow):
                       comment="Runs the functional preprocessing workflow.\n\nMust be enabled to run any subsequent processing or analysis workflows.",
                       values=["On", "Off"])
 
+        self.page.add(label="Functional Masking ",
+                      control=control.CHOICE_BOX,
+                      name='functionalMasking',
+                      type=dtype.LSTR,
+                      comment="Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.",
+                      values=["3dAutoMask", "BET", "3dAutoMask & BET"])
+
         self.page.set_sizer()
         parent.get_page_list().append(self)
 

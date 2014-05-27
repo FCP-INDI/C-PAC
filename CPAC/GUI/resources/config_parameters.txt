@@ -17,6 +17,7 @@ runAnatomicalDataGathering,Gather Anatomical Data,Preprocessing Workflow Options
 runFunctionalDataGathering,Gather Functional Data,Preprocessing Workflow Options
 runAnatomicalPreprocessing,Run Anatomical Preprocessing,Preprocessing Workflow Options
 runFunctionalPreprocessing,Run Functional Preprocessing,Preprocessing Workflow Options
+functionalMasking,Functional Masking,Preprocessing Workflow Options
 runZScoring,Output z-scored Derivatives,Derivatives Settings
 runRegistrationPreprocessing,Run Anatomical Registration,Anatomical Registration
 standardResolutionAnat,Anatomical Template Resolution,Anatomical Registration
