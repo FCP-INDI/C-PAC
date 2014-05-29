@@ -411,36 +411,56 @@ def generate_suplimentary_files(output_path):
 
         data_list.append(list1)
 
-    #prepare data for phenotypic file
-    if len(scan_set) > 1:
-        list1 = ['subject_id/scan']
-        list1.extend(list(subject_set))
-        list1.extend(list(scan_set))
+
+    # generate the phenotypic file templates for group analysis
 
     file_name = os.path.join(output_path, 'phenotypic_template.csv')
     f = open(file_name, 'wb')
     writer = csv.writer(f)
 
-    if len(scan_set) > 1:
-        writer.writerow(list1)
-        writer.writerows(data_list)
-    else:
-        writer.writerow(['subject_id'])
-        for sub in subject_set:
-            writer.writerow([sub])
+    writer.writerow(['subject_id', 'EV1', '..'])
+    for sub in sorted(subject_set):
+        writer.writerow([sub, ''])
+
 
     f.close()
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
+    file_name = os.path.join(output_path, 'phenotypic_template_repeated_measures.csv')
+    f = open(file_name, 'wb')
+    writer = csv.writer(f)
+
+    writer.writerow(['subject_id', 'EV1', '..'])
+    for scan in sorted(scan_set):
+        for sub in sorted(subject_set):
+            writer.writerow([sub + '_' + scan, ''])
+
+
+    f.close()
+
+
+    # generate the group analysis subject lists
+
     file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
     f = open(file_name, 'w')
 
-    for sub in subject_set:
+    for sub in sorted(subject_set):
         print >> f, sub
+
 
     print "Subject list required later for group analysis - %s" % file_name
     f.close()
+
+    file_name = os.path.join(output_path, "subject_list_group_analysis_repeated_measures.txt")
+    f = open(file_name, 'w')
+
+    for scan in sorted(scan_set):
+        for sub in sorted(subject_set):
+            print >> f, sub + ',' + scan
+
+    f.close()
+
 
 
 def read_csv(csv_input):
