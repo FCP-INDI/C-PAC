@@ -111,16 +111,8 @@ if __name__ == "__main__":
     # before re-installing - needs more elegant solution
     for sitePath in site.getsitepackages():
         for root,dirs,files in os.walk(sitePath):
-            if 'CPAC-backup' in root:
-                shutil.rmtree(root)
-
-    for sitePath in site.getsitepackages():
-        for root,dirs,files in os.walk(sitePath):
             if 'CPAC' in root:
-                backupPath = sitePath + '/CPAC-backup'
-                shutil.copytree(root,backupPath)
                 shutil.rmtree(root)
-                print "Backing up pre-existing CPAC directory into ", backupPath
                 print "Removing directory ", root
 
     # Get in the right directory
