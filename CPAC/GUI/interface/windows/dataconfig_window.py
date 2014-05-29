@@ -94,6 +94,18 @@ class DataConfig(wx.Frame):
                       type = dtype.STR, 
                       comment = "Directory where CPAC should place subject list files.",
                       values = "")
+
+        self.page.add(label = "Subject List Name ", 
+                      control = control.TEXT_BOX, 
+                      name = "subjectListName", 
+                      type = dtype.STR, 
+                      comment = "A label to be appended to the generated " \
+                                "subject list files.",
+                      values = "",
+                      style= wx.EXPAND | wx.ALL,
+                      size = (300,-1))
+
+
         self.page.set_sizer()
          
         mainSizer.Add(self.window, 1, wx.EXPAND)
@@ -165,7 +177,7 @@ class DataConfig(wx.Frame):
                 config_map = yaml.load(open(config, 'r'))
                 out_location = os.path.join(\
                                os.path.realpath(config_map.get('outputSubjectListLocation')),\
-                               'CPAC_subject_list.yml')
+                               'CPAC_subject_list_%s.yml' % config_map.get('subjectListName')[0])
             except Exception, e:
                 print "Error loading data config file", e
                 raise 
@@ -184,7 +196,7 @@ class DataConfig(wx.Frame):
             while True:
                 
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a name for the Subject List',
-                                                 'Sublist Name', "CPAC_Sublist")
+                                                 'Sublist Name', 'CPAC_subject_list_%s.yml' % config_map.get('subjectListName')[0])
                 if dlg2.ShowModal() == wx.ID_OK:
                     if len(dlg2.GetValue()) >0:
                         parent = self.Parent
@@ -199,7 +211,10 @@ class DataConfig(wx.Frame):
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
+            
             return 1
+
+
         
         except ImportError, e:
             wx.MessageBox("Error importing CPAC. Unable to run extract data tool.", "Error") 
@@ -215,6 +230,7 @@ class DataConfig(wx.Frame):
             dlg2.Destroy()
             return -1
          
+
     def save(self, event, flag):
         
         config_list =[]
@@ -235,6 +251,9 @@ class DataConfig(wx.Frame):
                 value = str(ctrl.get_selection())
                 name = ctrl.get_name()
                 dtype= ctrl.get_datatype()
+
+                if name == 'subjectListName':
+                    subject_list_name = value
                       
                 if len(value) == 0:
                     display(win,"%s field must contain some text!"%ctrl.get_name())
@@ -262,7 +281,7 @@ class DataConfig(wx.Frame):
             dlg = wx.FileDialog(
                 self, message="Save file as ...", 
                 defaultDir=os.getcwd(), 
-                defaultFile="data_config.yaml", 
+                defaultFile="data_config_%s.yaml" % subject_list_name, 
                 wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", 
                 style=wx.SAVE)
             
