@@ -33,6 +33,33 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
         self.SetFocus()
 
 
+class FSLModelSelectorCombo(wx.combo.ComboCtrl):
+    def __init__(self, *args, **kw):
+        wx.combo.ComboCtrl.__init__(self, *args, **kw)
+        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder3.gif')))
+        self.SetButtonBitmaps(bmp, False)
+        
+    # Overridden from ComboCtrl, called when the combo button is clicked
+    def OnButtonClick(self):
+        path = ""
+        name = ""
+        wildcard = "YAML files (*.yml,*.yaml)|*.yml;*.yaml"
+        if self.GetValue():
+            path, name = os.path.split(self.GetValue())
+        
+        dlg = wx.FileDialog(self, "Choose File", path, name,
+                           wildcard= wildcard, style=wx.FD_OPEN|wx.CHANGE_DIR)
+        try:
+            if dlg.ShowModal() == wx.ID_OK:
+                self.SetValue(dlg.GetPath())
+                self.GetTextCtrl().SetValue(dlg.GetPath())
+                dlg.Destroy()
+        except:
+            pass
+        
+        self.SetFocus()
+
+
 class DirSelectorCombo(wx.combo.ComboCtrl):
     
     def __init__(self, *args, **kw):
@@ -149,7 +176,7 @@ class ConfigFslFrame(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
         
-        button1 = wx.Button(panel, -1, 'Create New FSL Model', size= (160,50))
+        button1 = wx.Button(panel, -1, 'Create New FSL Model', size= (170,50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(button1, 0, wx.ALIGN_CENTER|wx.TOP, border = 15)
         
@@ -171,7 +198,7 @@ class ConfigFslFrame(wx.Frame):
 #         flexsizer.Add(self.box1,flag = wx.EXPAND | wx.ALL)
         
         label2 = wx.StaticText(panel, -1, label = 'FSL Model Config')
-        self.box2 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
+        self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
         
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         help2 = wx.BitmapButton(panel, id=-1, bitmap=img,

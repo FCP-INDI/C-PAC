@@ -27,7 +27,7 @@ def filter_phenotypic(c):
     ph = c.phenotypicFile
     sublist = c.subjectListFile
  
-    f = open(sublist, 'r')
+    f = open(sublist, 'rU')
 
     subjects = f.readlines()
 
@@ -36,7 +36,7 @@ def filter_phenotypic(c):
 
     # Read in the phenotypic CSV file into a dictionary named pheno_dict
     # while preserving the header fields as they correspond to the data
-    p_reader = csv.DictReader(file(os.path.abspath(ph)), skipinitialspace=True)
+    p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
 
     pheno_dict_list = []
     for line in p_reader:
@@ -51,6 +51,7 @@ def filter_phenotypic(c):
         # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
 
 
+
     # Creates a dictionary sub_dict which stores the amount of
     # instances of each subject, per subject
   
@@ -58,6 +59,7 @@ def filter_phenotypic(c):
 
         subject = subject.rstrip('\r\n')
         subject = subject.replace(',','_')
+
 
         if not subject in sub_dict:
             sub_dict[subject] = 1
@@ -71,6 +73,7 @@ def filter_phenotypic(c):
     # the remaining fields into record_dict dictionary
 
     f_r = []
+
 
     try:
 
@@ -104,6 +107,8 @@ def filter_phenotypic(c):
     except:
     
         print "Error processing phenotypic file data: ", ph
+        print "Try checking your phenotype .csv file in a text editor " \
+                "and ensuring the fields are separated by commas.\n\n"
         print "\n"
         raise Exception
 

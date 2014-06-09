@@ -155,16 +155,25 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 
 
-def run(config_file, output_path_file):
+def run(config_file, subject_list_file, output_path_file):
     
     # Runs group analysis
 
     import yaml
 
-    outDump = open('group_runner_outDump.txt', 'a')
-
     # Load the config file into 'c'
     c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+
+
+    # load the subject list (in the main GUI window, not the group analysis
+    # one), and prase the yaml so that the subIDs and session IDs can be
+    # accessed for below
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        print "Subject list is not in proper YAML format. Please check your file"
+        raise Exception
+
 
     subject_paths = []
 
@@ -176,9 +185,6 @@ def run(config_file, output_path_file):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
 
-#
-    print >>outDump, 'path_list: ', path_list, '\n\n'
-    print >>outDump, 'subject_paths: ', subject_paths, '\n\n'
 
     # 'subject_paths' is a list of every output from every subject included
     # in the output folder of the run
@@ -193,9 +199,6 @@ def run(config_file, output_path_file):
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
     base_path = c.outputDirectory
 
-#
-    print >>outDump, 'subject_paths, post list(): ', subject_paths, '\n\n'
-    outDump.close()
 
     from collections import defaultdict
     analysis_map = defaultdict(list)
@@ -212,15 +215,27 @@ def run(config_file, output_path_file):
         folders = split_folders(rs_path)
         
         pipeline_id = folders[0]
-        subject_id = folders[1]
+        subject_unique_id = folders[1]
         resource_id = folders[2]
         scan_id = folders[3]
 
-        key = subject_path.replace(subject_id, '*')
+        # get list of all unique IDs (session IDs)
+        # loop through them and check subject_path for existence of any of the
+        # session IDs
+        # if it exists, load it into unique_id
+        for sub in sublist:
+            if sub['subject_id'] in subject_unique_id:
+                subject_id = sub['subject_id']
+              
 
-        # include all of the scans in one model if True
+        # include all of the scans and sessions in one model if True
         if c.repeatedMeasures == True:
+            key = subject_path.replace(subject_unique_id, '*')
             key = key.replace(scan_id, '*')
+        else:
+            # each group of subjects from each session go into their own
+            # separate model, instead of combining all sessions into one
+            key = subject_path.replace(subject_id, '*')
 
 
         # 'resource_id' is each type of output

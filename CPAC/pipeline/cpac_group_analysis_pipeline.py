@@ -218,14 +218,35 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             # if repeated measures is being run and the subject list
             # is a list of subject IDs and scan IDs concatenated
             if (c.repeatedMeasures == True):
-                sub_id = sub.split(',',1)[0]
-                scan_id = sub.split(',',1)[1]
+
+                # sub.count(',') equals 1 when there is either multiple scans
+                # or multiple sessions but not both, for repeated measures
+
+                # sub.count(',') equals 2 when there are multiple sessions
+                # AND scans, for repeated measures
+
+                if sub.count(',') == 1:
+                    sub_id = sub.split(',',1)[0]
+                    other_id = sub.split(',',1)[1]
+
+                elif sub.count(',') == 2:
+                    sub_id = sub.split(',',2)[0]
+                    scan_id = sub.split(',',2)[1]
+                    session_id = sub.split(',',2)[2]
+
 
             for path in s_paths:
 
                 if (c.repeatedMeasures == True):
-                    if (sub_id in path) and (scan_id in path):
-                        exist_paths.append(sub)
+
+                    if sub.count(',') == 1:
+                        if (sub_id in path) and (other_id in path):
+                            exist_paths.append(sub)
+                    elif sub.count(',') == 2:
+                        if (sub_id in path) and (scan_id in path) and \
+                                (session_id in path):
+                            exist_paths.append(sub)
+
                 else:
                     if sub in path:
                         exist_paths.append(sub)
@@ -421,15 +442,39 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             subcount += 1
 
             if (c.repeatedMeasures == True):
-                sub_id = sub.split(',',1)[0]
-                scan_id = sub.split(',',1)[1]
+
+                # sub.count(',') equals 1 when there is either multiple scans
+                # or multiple sessions but not both, for repeated measures
+
+                # sub.count(',') equals 2 when there are multiple sessions
+                # AND scans, for repeated measures
+
+                if sub.count(',') == 1:
+                    sub_id = sub.split(',',1)[0]
+                    other_id = sub.split(',',1)[1]
+
+                elif sub.count(',') == 2:
+                    sub_id = sub.split(',',2)[0]
+                    scan_id = sub.split(',',2)[1]
+                    session_id = sub.split(',',2)[2]
+
 
             for path in s_paths:
 
                 if (c.repeatedMeasures == True):
-                    if (sub_id in path) and (scan_id in path):
-                        pathcount += 1
-                        ordered_paths.append(path)
+
+                    if sub.count(',') == 1:
+                        if (sub_id in path) and (other_id in path):
+                            pathcount += 1
+                            ordered_paths.append(path)
+
+                    elif sub.count(',') == 2:
+                        if (sub_id in path) and (scan_id in path) and \
+                                (session_id in path):
+                            pathcount += 1
+                            ordered_paths.append(path)
+
+
                 else:
                     if sub in path:
                         pathcount += 1

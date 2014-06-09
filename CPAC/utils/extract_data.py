@@ -385,6 +385,8 @@ def generate_supplementary_files(output_path, subject_list_name):
         raise Exception
 
     subject_scan_set = Set()
+    subID_set = Set()
+    session_set = Set()
     subject_set = Set()
     scan_set = Set()
     data_list = []
@@ -398,6 +400,8 @@ def generate_supplementary_files(output_path, subject_list_name):
             
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
+            subID_set.add(sub['subject_id'])
+            session_set.add(sub['unique_id'])
             subject_set.add(subject_id)
             scan_set.add(scan)
 
@@ -419,6 +423,7 @@ def generate_supplementary_files(output_path, subject_list_name):
         data_list.append(list1)
 
 
+
     # generate the phenotypic file templates for group analysis
 
     file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' % subject_list_name)
@@ -426,7 +431,7 @@ def generate_supplementary_files(output_path, subject_list_name):
     writer = csv.writer(f)
 
     writer.writerow(['subject_id', 'EV1', '..'])
-    for sub in sorted(subject_set):
+    for sub in sorted(subID):
         writer.writerow([sub, ''])
 
 
@@ -439,9 +444,22 @@ def generate_supplementary_files(output_path, subject_list_name):
     writer = csv.writer(f)
 
     writer.writerow(['subject_id', 'EV1', '..'])
-    for scan in sorted(scan_set):
-        for sub in sorted(subject_set):
-            writer.writerow([sub + '_' + scan, ''])
+
+    if (len(session_set) > 1) and (len(scan_set) > 1):
+        for session in sorted(session_set):
+            for scan in sorted(scan_set):
+                for sub in sorted(subID_set):
+                    writer.writerow([sub + '_' + scan + '_' + session, ''])
+
+    elif (len(session_set) > 1):
+        for session in sorted(session_set):
+            for sub in sorted(subID_set):
+                writer.writerow([sub + '_' + session, ''])
+
+    elif (len(scan_set) > 1):
+        for scan in sorted(scan_set):
+            for sub in sorted(subID_set):
+                writer.writerow([sub + '_' + scan, ''])
 
 
     f.close()
@@ -452,7 +470,7 @@ def generate_supplementary_files(output_path, subject_list_name):
     file_name = os.path.join(output_path, "subject_list_group_analysis_%s.txt" % subject_list_name)
     f = open(file_name, 'w')
 
-    for sub in sorted(subject_set):
+    for sub in sorted(subID_set):
         print >> f, sub
 
 
@@ -462,9 +480,21 @@ def generate_supplementary_files(output_path, subject_list_name):
     file_name = os.path.join(output_path, "subject_list_group_analysis_repeated_measures_%s.txt" % subject_list_name)
     f = open(file_name, 'w')
 
-    for scan in sorted(scan_set):
-        for sub in sorted(subject_set):
-            print >> f, sub + ',' + scan
+    if (len(session_set) > 1) and (len(scan_set) > 1):
+        for session in sorted(session_set):
+            for scan in sorted(scan_set):
+                for sub in sorted(subID_set):
+                    print >> f, sub + ',' + scan + ',' + session
+
+    elif (len(session_set) > 1):
+        for session in sorted(session_set):
+            for sub in sorted(subID_set):
+                print >> f, sub + ',' + session
+
+    elif (len(scan_set) > 1):
+        for scan in sorted(scan_set):
+            for sub in sorted(subID_set):
+                print >> f, sub + ',' + scan
 
     f.close()
 

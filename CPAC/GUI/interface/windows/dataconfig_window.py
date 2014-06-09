@@ -261,7 +261,7 @@ class DataConfig(wx.Frame):
                 if 'Template' in name:
                     if value.count('%s') != 2:
                         display(win,"Incorrect template, two \'%s\' values are required. One for site and another for"\
-                                " subject location in the path. Please refere to example!")
+                                " subject location in the path. Please refer to example!")
                         
                     if value.startswith('%s'):
                         display(win, "Template cannot start with %s")
