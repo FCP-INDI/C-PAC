@@ -355,7 +355,7 @@ def create_vmhc(use_ants):
                      smooth, 'operand_files')
         vmhc.connect(smooth, 'out_file',
                      nonlinear_func_to_standard, 'in_file')
-        vmhc.connect(inputNode, 'symm_standard',
+        vmhc.connect(inputNode, 'standard',
                      nonlinear_func_to_standard, 'ref_file')
         vmhc.connect(nonlinear_highres_to_symmetric_standard, 'fieldcoeff_file',
                      nonlinear_func_to_standard, 'field_file')
@@ -390,7 +390,7 @@ def create_vmhc(use_ants):
                      apply_ants_xfm_vmhc, 'inputspec.conversion_reference')
         vmhc.connect(inputNode, 'mean_functional',
                      apply_ants_xfm_vmhc, 'inputspec.conversion_source')
-        vmhc.connect(inputNode, 'symm_standard',
+        vmhc.connect(inputNode, 'standard',
                      apply_ants_xfm_vmhc, 'inputspec.warp_reference')
         vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.affine_transformation',
                      apply_ants_xfm_vmhc, 'inputspec.ants_affine')
