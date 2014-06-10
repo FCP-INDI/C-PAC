@@ -736,6 +736,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         new_strat_list = []
             
+
+
         for strat in strat_list:
             
             nodes = getNodeList(strat)
@@ -846,6 +848,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     strat_list += new_strat_list
+
 
 
 

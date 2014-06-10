@@ -352,6 +352,7 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
     func_motion_correct.inputs.args = '-Fourier -twopass'
     func_motion_correct.inputs.zpad = 4
     func_motion_correct.inputs.outputtype = 'NIFTI_GZ'
+
     
     preproc.connect(func_reorient, 'out_file',
                     func_motion_correct, 'in_file')
@@ -385,17 +386,42 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
                     outputNode, 'oned_matrix_save')
 
 
+    if use_bet == False:
     
-    func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
-                               name='func_get_brain_mask')
-#    func_get_brain_mask.inputs.dilate = 1
-    func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+        func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
+                                   name='func_get_brain_mask')
 
-    preproc.connect(func_motion_correct_A, 'out_file',
-                    func_get_brain_mask, 'in_file')
+        func_get_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        func_get_brain_mask, 'in_file')
     
-    preproc.connect(func_get_brain_mask, 'out_file',
-                    outputNode, 'mask')
+        preproc.connect(func_get_brain_mask, 'out_file',
+                        outputNode, 'mask')
+
+    else:
+
+        func_get_brain_mask = pe.Node(interface=fsl.BET(),
+                                      name='func_get_brain_mask_BET')
+
+        func_get_brain_mask.inputs.mask = True
+        func_get_brain_mask.inputs.functional = True
+
+        erode_one_voxel = pe.Node(interface=fsl.ErodeImage(),
+                                  name='erode_one_voxel')
+
+        erode_one_voxel.inputs.kernel_shape = 'box'
+        erode_one_voxel.inputs.kernel_size = 1.0
+
+        preproc.connect(func_motion_correct_A, 'out_file',
+                        func_get_brain_mask, 'in_file')
+
+        preproc.connect(func_get_brain_mask, 'mask_file',
+                        erode_one_voxel, 'in_file')
+
+        preproc.connect(erode_one_voxel, 'out_file',
+                        outputNode, 'mask')
+
         
     
     func_edge_detect = pe.Node(interface=preprocess.Calc(),
@@ -405,8 +431,19 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
 
     preproc.connect(func_motion_correct_A, 'out_file',
                     func_edge_detect, 'in_file_a')
-    preproc.connect(func_get_brain_mask, 'out_file',
-                    func_edge_detect, 'in_file_b')
+
+
+    if use_bet == False:
+
+        preproc.connect(func_get_brain_mask, 'out_file',
+                        func_edge_detect, 'in_file_b')
+
+    else:
+
+        preproc.connect(erode_one_voxel, 'out_file',
+                        func_edge_detect, 'in_file_b')
+
+
 
     preproc.connect(func_edge_detect, 'out_file',
                     outputNode, 'skullstrip')

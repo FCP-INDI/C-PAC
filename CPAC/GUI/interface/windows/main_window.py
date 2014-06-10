@@ -275,33 +275,40 @@ class ListBox(wx.Frame):
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
+            sublists = self.listbox2.GetCheckedStrings()
 
-            for p in pipelines:
+            for s in sublists:
 
-                pipeline = self.pipeline_map.get(p)
+                sublist = self.sublist_map.get(s)
+
+                for p in pipelines:
+
+                    pipeline = self.pipeline_map.get(p)
                 
-                if os.path.exists(pipeline):
-                    try:
-                        import yaml
-                        config = yaml.load(open(pipeline, 'r'))
-                    except:
-                            raise Exception("Error reading config file- %s", config)
+                    if os.path.exists(pipeline):
+                        try:
+                            import yaml
+                            config = yaml.load(open(pipeline, 'r'))
+                        except:
+                                raise Exception("Error reading config file- %s", config)
                     
-                    if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                        if config.get('outputDirectory'):
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                        else:
+                            derv_path = ''
+                    
+                        # Opens the sub-window which prompts the user
+                        # for the derivative file paths
+                        runGLA(pipeline, sublist, derv_path, p)
+
                     else:
-                        derv_path = ''
-                    
-                    # Opens the sub-window which prompts the user
-                    # for the derivative file paths
-                    runGLA(pipeline, derv_path, p)
-
-                else:
-                    print "pipeline doesn't exist"
+                        print "pipeline doesn't exist"
                     
                 
-        else:
-            print "No pipeline selected"
+            else:
+                print "No pipeline selected"
+
+
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -520,7 +527,7 @@ class ListBox(wx.Frame):
             params_file = open(p.resource_filename('CPAC', 'GUI/resources/config_parameters.txt'), "r")
         except:
             print "Error: Could not open configuration parameter file.", "\n"
-            raise Exception            
+            raise Exception
 
         paramInfo = params_file.read().split('\n')
 
@@ -740,7 +747,7 @@ class runGLA(wx.Frame):
 
     # Once the user clicks "Run", group level analysis begins
 
-    def __init__(self, pipeline, path, name):
+    def __init__(self, pipeline, sublist, path, name):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -772,7 +779,7 @@ class runGLA(wx.Frame):
         
         button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
         button2.Bind(wx.EVT_BUTTON, lambda event: \
-                         self.onOK(event, pipeline) )
+                         self.onOK(event, sublist, pipeline) )
         
         hbox.Add(button3, 1, wx.EXPAND, border =5)
         hbox.Add(button2, 1, wx.EXPAND, border =5)
@@ -786,10 +793,10 @@ class runGLA(wx.Frame):
     def onCancel(self, event):
         self.Close()
         
-    def runAnalysis(self, pipeline, path):
+    def runAnalysis(self, pipeline, sublist, path):
         try:
             import CPAC
-            CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+            CPAC.pipeline.cpac_group_runner.run(pipeline, sublist, path)
         except AttributeError as e:
             print "Exception while running cpac_group_runner"
             #print "%d: %s" % (e.errno, e.strerror)
@@ -800,7 +807,7 @@ class runGLA(wx.Frame):
             raise Exception
             
         
-    def onOK(self, event, pipeline):
+    def onOK(self, event, sublist, pipeline):
 
         # Once the user clicks "Run" in the derivative path file window
         # (from runGLA function), get the filepath and run the
@@ -809,7 +816,7 @@ class runGLA(wx.Frame):
         import thread
 
         if self.box1.GetValue():
-            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
+            thread.start_new(self.runAnalysis, (pipeline, sublist, self.box1.GetValue()))
             self.Close()
         else:
             wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")

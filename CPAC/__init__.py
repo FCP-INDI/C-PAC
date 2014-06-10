@@ -49,7 +49,6 @@ try:
     version = '0.3.5 (dev)'
 
 
-
 #    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
 #    (stdout, stderr) = gitproc.communicate()
 #    rows = stdout.split("\n")

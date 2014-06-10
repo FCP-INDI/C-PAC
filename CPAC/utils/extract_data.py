@@ -210,7 +210,7 @@ def extract_data(c, param_map):
     anat_session_present, anat_session_path, anat_relative = \
         check_for_sessions(anat_relative, anat_relative_len)
 
-    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml"), 'wb')
+    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName[0]), 'wb')
 
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
@@ -367,7 +367,7 @@ def extract_data(c, param_map):
         f.close()
 
 
-def generate_suplimentary_files(output_path):
+def generate_supplementary_files(output_path, subject_list_name):
     """
     Method to generate phenotypic template file
     and subject list for group analysis
@@ -375,9 +375,18 @@ def generate_suplimentary_files(output_path):
     from sets import Set
     import csv
 
-    subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list.yml'), 'r'))
+    subject_list_name = subject_list_name[0]
+
+    try:
+        subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list_%s.yml' % subject_list_name), 'r'))
+    except:
+        print 'Subject list couldn\'t be read!'
+        print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' % subject_list_name)
+        raise Exception
 
     subject_scan_set = Set()
+    subID_set = Set()
+    session_set = Set()
     subject_set = Set()
     scan_set = Set()
     data_list = []
@@ -391,6 +400,8 @@ def generate_suplimentary_files(output_path):
             
         for scan in sub['rest'].keys():
             subject_scan_set.add((subject_id, scan))
+            subID_set.add(sub['subject_id'])
+            session_set.add(sub['unique_id'])
             subject_set.add(subject_id)
             scan_set.add(scan)
 
@@ -411,36 +422,82 @@ def generate_suplimentary_files(output_path):
 
         data_list.append(list1)
 
-    #prepare data for phenotypic file
-    if len(scan_set) > 1:
-        list1 = ['subject_id/scan']
-        list1.extend(list(subject_set))
-        list1.extend(list(scan_set))
 
-    file_name = os.path.join(output_path, 'phenotypic_template.csv')
+
+    # generate the phenotypic file templates for group analysis
+
+    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' % subject_list_name)
     f = open(file_name, 'wb')
     writer = csv.writer(f)
 
-    if len(scan_set) > 1:
-        writer.writerow(list1)
-        writer.writerows(data_list)
-    else:
-        writer.writerow(['subject_id'])
-        for sub in subject_set:
-            writer.writerow([sub])
+    writer.writerow(['subject_id', 'EV1', '..'])
+    for sub in sorted(subID_set):
+        writer.writerow([sub, ''])
+
 
     f.close()
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
-    file_name = os.path.join(output_path, "subject_list_group_analysis.txt")
+    file_name = os.path.join(output_path, 'phenotypic_template_repeated_measures_%s.csv' % subject_list_name)
+    f = open(file_name, 'wb')
+    writer = csv.writer(f)
+
+    writer.writerow(['subject_id', 'EV1', '..'])
+
+    if (len(session_set) > 1) and (len(scan_set) > 1):
+        for session in sorted(session_set):
+            for scan in sorted(scan_set):
+                for sub in sorted(subID_set):
+                    writer.writerow([sub + '_' + scan + '_' + session, ''])
+
+    elif (len(session_set) > 1):
+        for session in sorted(session_set):
+            for sub in sorted(subID_set):
+                writer.writerow([sub + '_' + session, ''])
+
+    elif (len(scan_set) > 1):
+        for scan in sorted(scan_set):
+            for sub in sorted(subID_set):
+                writer.writerow([sub + '_' + scan, ''])
+
+
+    f.close()
+
+
+    # generate the group analysis subject lists
+
+    file_name = os.path.join(output_path, "subject_list_group_analysis_%s.txt" % subject_list_name)
     f = open(file_name, 'w')
 
-    for sub in subject_set:
+    for sub in sorted(subID_set):
         print >> f, sub
+
 
     print "Subject list required later for group analysis - %s" % file_name
     f.close()
+
+    file_name = os.path.join(output_path, "subject_list_group_analysis_repeated_measures_%s.txt" % subject_list_name)
+    f = open(file_name, 'w')
+
+    if (len(session_set) > 1) and (len(scan_set) > 1):
+        for session in sorted(session_set):
+            for scan in sorted(scan_set):
+                for sub in sorted(subID_set):
+                    print >> f, sub + ',' + scan + ',' + session
+
+    elif (len(session_set) > 1):
+        for session in sorted(session_set):
+            for sub in sorted(subID_set):
+                print >> f, sub + ',' + session
+
+    elif (len(scan_set) > 1):
+        for scan in sorted(scan_set):
+            for sub in sorted(subID_set):
+                print >> f, sub + ',' + scan
+
+    f.close()
+
 
 
 def read_csv(csv_input):
@@ -518,7 +575,7 @@ def run(data_config):
         s_param_map = None
 
     extract_data(c, s_param_map)
-    generate_suplimentary_files(c.outputSubjectListLocation)
+    generate_supplementary_files(c.outputSubjectListLocation, c.subjectListName)
 
 
 if __name__ == "__main__":
