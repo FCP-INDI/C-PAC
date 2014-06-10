@@ -431,7 +431,7 @@ def generate_supplementary_files(output_path, subject_list_name):
     writer = csv.writer(f)
 
     writer.writerow(['subject_id', 'EV1', '..'])
-    for sub in sorted(subID):
+    for sub in sorted(subID_set):
         writer.writerow([sub, ''])
 
 
