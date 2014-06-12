@@ -257,6 +257,50 @@ class ConfigFslFrame(wx.Frame):
             #wx.TipWindow(self, "Full path to a subject list to be used with this model.\n\nThis should be a text file with one subject per line.", 500)
             wx.TipWindow(self, "Full path to a CPAC FSL model configuration file to be used.\n\nFor more information, please refer to the user guide.", 500)
 
+
+
+
+class ContrastsFrame(wx.Frame):
+
+    def __init__(self, parent, values):
+
+        wx.Frame.__init__(self, parent, title="Add Contrast Description", \
+                size = (300,140))
+        
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15) 
+        
+        label1 = wx.StaticText(panel, -1, label = 'Contrast')
+        self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, value=values)
+        
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)      
+        
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+    
+    def onButtonClick(self,event):
+        parent = self.Parent
+        
+        if self.box1.GetValue():
+            
+            val = self.box1.GetValue()
+            parent.listbox.Append(str(val))
+            self.Close()
+
+
+
+
+
 class ListBoxCombo(wx.Panel):
     
     def __init__(self, parent, size, validator, style, values, combo_type):
@@ -282,6 +326,8 @@ class ListBoxCombo(wx.Panel):
             TextBoxFrame(self, self.values)
         elif self.ctype == 1:
             CheckBox(self, self.values)
+        elif self.ctype == 4:
+            ContrastsFrame(self, self.values)
         
     def GetListBoxCtrl(self):
         return self.listbox
@@ -379,29 +425,29 @@ class TextBoxCombo(wx.combo.ComboCtrl):
         
         
         
-class CheckBoxGrid(wx.Panel):
+class CheckBoxGrid(wx.ScrolledWindow):
     
     def __init__(self, parent, idx, values, size):
-        wx.Panel.__init__(self, parent, id=idx, size=size)
+        wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
         
-        scrollWin = wx.Window(self, pos=(0,25), size=(575,200), style=wx.SUNKEN_BORDER | wx.VSCROLL)
-        scrollWin.SetBackgroundColour(wx.WHITE)
+        #mainSizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(525,200), style=wx.VSCROLL) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin.SetBackgroundColour(wx.WHITE)
         
         self.values = []
         self.values = values
-        self.maxIDNum = (len(self.values)*4)+99
+        self.maxIDNum = (len(self.values)*3)+99
         
-        wx.StaticText(self, label="Include EV", pos=(200,0))
-        wx.StaticText(self, label="Categorical", pos=(300,0))
-        wx.StaticText(self, label="Demean", pos=(400,0))
-        wx.StaticText(self, label="Drop Level", pos=(500,0))
+        wx.StaticText(self, label="Include EV", pos=(250,0))
+        wx.StaticText(self, label="Categorical", pos=(350,0))
+        wx.StaticText(self, label="Demean", pos=(450,0))
         
         j = 0
         self.idx = 100
         self.includeCBList = []
         self.categoricalCBList = []
         self.demeanCBList = []
-        self.dropLevelCBList = []
         
         self.includeCBValues = []
         self.categoricalCBValues = []
@@ -424,10 +470,10 @@ class CheckBoxGrid(wx.Panel):
         for name in self.values:
             
             # set up the label of each header item
-            wx.StaticText(scrollWin, label=name, pos=(5,j))
+            wx.StaticText(self.scrollWin, label=name, pos=(5,j))
         
             # "Include EV" checkbox for header item
-            self.cb = wx.CheckBox(scrollWin, id=self.idx, pos=(200,j))
+            self.cb = wx.CheckBox(self.scrollWin, id=self.idx, pos=(250,j))
             self.cb.SetValue(True)
             self.includeCBList.append(self.cb)
             
@@ -437,7 +483,7 @@ class CheckBoxGrid(wx.Panel):
             
 
             # Categorical checkbox for header item
-            self.cb = wx.CheckBox(scrollWin, id=self.idx+1, pos=(300,j))
+            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(350,j))
             self.cb.SetValue(False)
             self.categoricalCBList.append(self.cb)
             
@@ -447,31 +493,29 @@ class CheckBoxGrid(wx.Panel):
             
             
             # Demean checkbox for header item
-            self.cb = wx.CheckBox(scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
+            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(450,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
             #self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.demeanCBList, self.demeanCBList[0]))
-            
-            
-            # Drop Level checkbox for header item
-            self.cb = wx.CheckBox(scrollWin, id=self.idx+3, pos=(500,j))
-            self.cb.SetValue(False)
-            self.dropLevelCBList.append(self.cb)
-            
-            self.cbValuesDict[self.idx+3] = [name, 'dropLevel', False]
-            
-            
+                      
                 
             # just a nice amount to space the checkboxes out by
             j += 30
             
             # increment IDs
-            self.idx += 4
+            self.idx += 3
             
         
+        #mainSizer.Add(self.scrollWin, 1, wx.EXPAND)
+
+        #self.SetSizer(mainSizer)
+
+        #self.panel.SetSizer(mainSizer)
+
+
             
         self.cbDict['include'] = self.includeCBList
         self.cbDict['categorical'] = self.categoricalCBList
@@ -495,7 +539,7 @@ class CheckBoxGrid(wx.Panel):
         self.choiceIncludeList = []
         self.choiceCategoricalList = []
         self.choiceDemeanList = []
-        self.choiceDropLevelList = []
+
                
         for idNum in range(100,self.maxIDNum):
                
@@ -531,20 +575,12 @@ class CheckBoxGrid(wx.Panel):
                     self.choiceDemeanList.append('1')
                 else:
                     self.choiceDemeanList.append('0') 
-                    
-            elif self.cbValuesDict[idNum][1] == 'dropLevel':
-                
-                if self.cbValuesDict[idNum][2] == True:
-                    self.choiceDropLevelList.append('1')
-                else:
-                    self.choiceDropLevelList.append('0')      
-        
+                     
         
                 
         self.choiceDict['include'] = self.choiceIncludeList                
         self.choiceDict['categorical'] = self.choiceCategoricalList                
         self.choiceDict['demean'] = self.choiceDemeanList
-        self.choiceDict['dropLevel'] = self.choiceDropLevelList  
 
 
         

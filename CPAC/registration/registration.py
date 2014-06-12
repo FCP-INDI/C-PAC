@@ -932,7 +932,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
 
 
-def create_wf_apply_ants_warp(name='create_wf_apply_ants_warp'):
+def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
 
     """
     Applies previously calculated ANTS registration transforms to input
@@ -993,8 +993,14 @@ def create_wf_apply_ants_warp(name='create_wf_apply_ants_warp'):
             'reference_image', 'transforms', 'dimension', 'input_image_type', 
             'interpolation']), name='inputspec')
 
-    apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
-            name='apply_ants_warp')
+    if map_node == 0:
+        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
+                name='apply_ants_warp')
+
+    elif map_node == 1:
+        apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
+                name='apply_ants_warp_mapnode', iterfield=['input_image', \
+                'transforms'])
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
 
@@ -1032,7 +1038,7 @@ def create_wf_apply_ants_warp(name='create_wf_apply_ants_warp'):
 
 
 
-def create_wf_c3d_fsl_to_itk(name='create_wf_c3d_fsl_to_itk'):
+def create_wf_c3d_fsl_to_itk(map_node, name='create_wf_c3d_fsl_to_itk'):
 
     """
     Converts an FSL-format output matrix to an ITK-format (ANTS) matrix
@@ -1082,7 +1088,13 @@ def create_wf_c3d_fsl_to_itk(name='create_wf_c3d_fsl_to_itk'):
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
-    fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name='fsl_reg_2_itk')
+
+    if map_node == 0:
+        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name='fsl_reg_2_itk')
+
+    elif map_node == 1:
+        fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(),
+                name='fsl_reg_2_itk_mapnode', iterfield=['source_file'])
         
     fsl_reg_2_itk.inputs.itk_transform = True
     fsl_reg_2_itk.inputs.fsl2ras = True
@@ -1118,7 +1130,7 @@ def create_wf_c3d_fsl_to_itk(name='create_wf_c3d_fsl_to_itk'):
 
 
 
-def create_wf_collect_transforms(name='create_wf_collect_transforms'):
+def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     """
     DOCSTRINGS
@@ -1164,8 +1176,13 @@ def create_wf_collect_transforms(name='create_wf_collect_transforms'):
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
-    collect_transforms = pe.Node(util.Merge(4), name='collect_transforms')
 
+    if map_node == 0:
+        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms')
+
+    elif map_node == 1:
+        collect_transforms = pe.Node(util.Merge(4),
+                name='collect_transforms_mapnode', iterfield=['in4'])
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')

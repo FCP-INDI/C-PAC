@@ -13,7 +13,7 @@ class ModelDesign(wx.Frame):
     def __init__(self, parent, subjectList, phenoFilePath, subjectID):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 575))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 525))
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -49,16 +49,20 @@ class ModelDesign(wx.Frame):
                       values = self.phenoHeaderItems,
                       comment="glob",
                       size = (400, -1))
-        
+
+
+        self.page.add(label = 'Contrasts ',
+                      control = control.LISTBOX_COMBO,
+                      name = 'contrastStrings',
+                      type = dtype.LSTR,
+                      values = '',
+                      comment = '',
+                      size = (400,100),
+                      combo_type = 4)
+
         # end experimental code
 
 
-        self.page.add(label="Contrast File ",
-                      control=control.COMBO_BOX,
-                      name="contrastFile",
-                      type=dtype.STR,
-                      comment="Full path to a .csv file containing contrasts to be applied to this model.\n\nWhen specifying EVs in this file:\n\n- Continuous EVs should appear the same as their corresponding column name in the EV file.\n\n- Categorical EVs must be split into multiple columns (one for each category), with names of the format EVname__N (e.g. diagnosis__1, diagnosis__2, diagnosis__3)\n\nIf you wish to include F-tests in your model, create a column for each desired F-test, with names in the format f_test_1, f_test_2, etc.",
-                      values="")
 
         self.page.add(label="Model Group Variances Seperately ",
                       control=control.CHOICE_BOX,

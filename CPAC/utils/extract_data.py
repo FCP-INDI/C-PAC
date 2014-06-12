@@ -367,21 +367,26 @@ def extract_data(c, param_map):
         f.close()
 
 
+
 def generate_supplementary_files(output_path, subject_list_name):
+
     """
     Method to generate phenotypic template file
     and subject list for group analysis
     """
+
     from sets import Set
     import csv
 
     subject_list_name = subject_list_name[0]
 
     try:
-        subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_subject_list_%s.yml' % subject_list_name), 'r'))
+        subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_' \
+                'subject_list_%s.yml' % subject_list_name), 'r'))
     except:
         print 'Subject list couldn\'t be read!'
-        print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' % subject_list_name)
+        print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' \
+                % subject_list_name)
         raise Exception
 
     subject_scan_set = Set()
@@ -426,49 +431,124 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     # generate the phenotypic file templates for group analysis
 
-    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' % subject_list_name)
-    f = open(file_name, 'wb')
+    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' \
+            % subject_list_name)
+
+    try:
+        f = open(file_name, 'wb')
+    except:
+        print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+        print file_name, '\n\n'
+        print 'Make sure you have write access? Then come back. Don\'t ' \
+                'worry.. I\'ll wait.\n\n'
+        raise IOError
+
     writer = csv.writer(f)
 
     writer.writerow(['subject_id', 'EV1', '..'])
     for sub in sorted(subID_set):
         writer.writerow([sub, ''])
 
-
     f.close()
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
-    file_name = os.path.join(output_path, 'phenotypic_template_repeated_measures_%s.csv' % subject_list_name)
-    f = open(file_name, 'wb')
-    writer = csv.writer(f)
 
-    writer.writerow(['subject_id', 'EV1', '..'])
-
+    # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
+
+        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
+                '_measures_mult_sessions_and_scans_%s.csv' \
+                % subject_list_name)
+
+        try:
+            f = open(file_name, 'wb')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
+        writer = csv.writer(f)
+
+        writer.writerow(['subject_id', 'EV1', '..'])
+
         for session in sorted(session_set):
             for scan in sorted(scan_set):
                 for sub in sorted(subID_set):
                     writer.writerow([sub + '_' + scan + '_' + session, ''])
 
-    elif (len(session_set) > 1):
+        f.close()
+
+
+
+    if (len(session_set) > 1):
+
+        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
+                '_measures_multiple_sessions_%s.csv' % subject_list_name)
+
+        try:
+            f = open(file_name, 'wb')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
+        writer = csv.writer(f)
+
+        writer.writerow(['subject_id', 'EV1', '..'])
+
         for session in sorted(session_set):
             for sub in sorted(subID_set):
                 writer.writerow([sub + '_' + session, ''])
 
-    elif (len(scan_set) > 1):
+        f.close()
+
+
+
+    if (len(scan_set) > 1):
+
+        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
+                '_measures_multiple_scans_%s.csv' % subject_list_name)
+
+        try:
+            f = open(file_name, 'wb')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
+        writer = csv.writer(f)
+
+        writer.writerow(['subject_id', 'EV1', '..'])
+
         for scan in sorted(scan_set):
             for sub in sorted(subID_set):
                 writer.writerow([sub + '_' + scan, ''])
 
+        f.close()
 
-    f.close()
+
 
 
     # generate the group analysis subject lists
 
-    file_name = os.path.join(output_path, "subject_list_group_analysis_%s.txt" % subject_list_name)
-    f = open(file_name, 'w')
+    file_name = os.path.join(output_path, 'subject_list_group_analysis' \
+            '_%s.txt' % subject_list_name)
+
+    try:
+        f = open(file_name, 'w')
+    except:
+        print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+        print file_name, '\n\n'
+        print 'Make sure you have write access? Then come back. Don\'t ' \
+                'worry.. I\'ll wait.\n\n'
+        raise IOError
 
     for sub in sorted(subID_set):
         print >> f, sub
@@ -477,26 +557,76 @@ def generate_supplementary_files(output_path, subject_list_name):
     print "Subject list required later for group analysis - %s" % file_name
     f.close()
 
-    file_name = os.path.join(output_path, "subject_list_group_analysis_repeated_measures_%s.txt" % subject_list_name)
-    f = open(file_name, 'w')
 
+    # generate the group analysis subject lists for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
+
+        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+                'repeated_measures_mult_sessions_and_scans_%s.txt' \
+                % subject_list_name)
+
+        try:
+            f = open(file_name, 'w')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
         for session in sorted(session_set):
             for scan in sorted(scan_set):
                 for sub in sorted(subID_set):
                     print >> f, sub + ',' + scan + ',' + session
 
-    elif (len(session_set) > 1):
+        f.close()
+
+
+
+    if (len(session_set) > 1):
+
+        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+                'repeated_measures_multiple_sessions_%s.txt' \
+                % subject_list_name)
+
+        try:
+            f = open(file_name, 'w')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
         for session in sorted(session_set):
             for sub in sorted(subID_set):
                 print >> f, sub + ',' + session
 
-    elif (len(scan_set) > 1):
+        f.close()
+
+
+
+    if (len(scan_set) > 1):
+
+        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+                'repeated_measures_multiple_scans_%s.txt' \
+                % subject_list_name)
+
+        try:
+            f = open(file_name, 'w')
+        except:
+            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+            print file_name, '\n\n'
+            print 'Make sure you have write access? Then come back. Don\'t ' \
+                    'worry.. I\'ll wait.\n\n'
+            raise IOError
+
         for scan in sorted(scan_set):
             for sub in sorted(subID_set):
                 print >> f, sub + ',' + scan
 
-    f.close()
+        f.close()
+
 
 
 
