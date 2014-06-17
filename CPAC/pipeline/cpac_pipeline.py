@@ -1067,6 +1067,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     Inserting Generate Motion Statistics Workflow
     '''
+
     new_strat_list = []
     num_strat = 0
 

@@ -12,16 +12,21 @@ ID_RUN = 11
 
 class ModelConfig(wx.Frame):
 
+    # this creates the wx.Frame mentioned above in the class declaration
     def __init__(self, parent):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(700, 250))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 700))
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
+        vertSizer = wx.BoxSizer(wx.VERTICAL)
+
         self.panel = wx.Panel(self)
 
-        self.window = wx.ScrolledWindow(self.panel)
+        self.window = wx.ScrolledWindow(self.panel, size=(-1,300))
+        
+
 
         self.page = generic_class.GenericClass(self.window, " FSL Model Setup")
 
@@ -48,9 +53,76 @@ class ModelConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
 
+        
+        load_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File', (220,10), wx.DefaultSize, 0)
+        load_panel_sizer.Add(load_pheno_btn)
+
+        self.Bind(wx.EVT_BUTTON, self.populateEVs, id=2)
+
+
+        self.page.add_pheno_load_panel(load_panel_sizer)
+
+
+        # experimental checkbox row stuff
+        self.page.add(label = "Model Setup ",
+                      control = control.CHECKBOX_GRID,
+                      name = "modelSetup",
+                      type = 9,#dtype.LBOOL,
+                      values = '',
+                      comment="glob",
+                      size = (400, -1))
+
+        self.page.add(label = 'Contrasts ',
+                      control = control.LISTBOX_COMBO,
+                      name = 'contrastStrings',
+                      type = dtype.LSTR,
+                      values = '',
+                      comment = '',
+                      size = (400,100),
+                      combo_type = 4)
+
+        # end experimental code
+
+
+
+        self.page.add(label="Model Group Variances Separately ",
+                      control=control.CHOICE_BOX,
+                      name='modelGroupVariancesSeparately',
+                      type=dtype.NUM,
+                      comment="Specify whether FSL should model the variance for each group separately.\n\nIf this option is enabled, you must specify a grouping variable below.",
+                      values=["Off", "On"])
+
+        self.page.add(label="Grouping Variable ",
+                      control=control.TEXT_BOX,
+                      name="groupingVariable",
+                      type=dtype.STR,
+                      comment="The name of the EV that should be used to group subjects when modeling variances.\n\nIf you do not wish to model group variances separately, set this value to None.",
+                      values="None",
+                      size=(160, -1))
+        
+        self.page.add(label="Model Name ",
+                      control=control.TEXT_BOX,
+                      name="modelName",
+                      type=dtype.STR,
+                      comment="Specify a name for the new model.",
+                      values="",
+                      size=(200, -1))
+
+        self.page.add(label="Output Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name="outputModelFilesDirectory",
+                      type=dtype.STR,
+                      comment="Full path to the directory where CPAC should place model files.",
+                      values="")
+
         self.page.set_sizer()
 
+        
+
+
         mainSizer.Add(self.window, 1, wx.EXPAND)
+
 
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -74,7 +146,7 @@ class ModelConfig(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
         hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        populate = wx.Button(btnPanel, wx.ID_ANY, "Next >",
+        populate = wx.Button(btnPanel, wx.ID_ANY, "Save Model",
             (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.populateEVs, id=wx.ID_ANY)
         hbox.Add(populate, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
@@ -97,6 +169,11 @@ class ModelConfig(wx.Frame):
         win.SetFocus()
         win.Refresh()
         raise ValueError
+
+
+    def load_pheno(self,event):
+        pass
+
     
     def load(self, event):
 
@@ -146,13 +223,13 @@ class ModelConfig(wx.Frame):
             name = ctrl.get_name()
             
             if name == 'subjectListFile':
-                subjectList = str(ctrl.get_selection())
+                self.subjectList = str(ctrl.get_selection())
             
             if name == 'phenotypicFile':
-                phenoFilePath = str(ctrl.get_selection())
+                self.phenoFilePath = str(ctrl.get_selection())
                 
             if name == 'subjectColumn':
-                subjectID = str(ctrl.get_selection())
+                self.subjectID = str(ctrl.get_selection())
         
                 
         ### CHECK PHENOFILE if can open etc.
@@ -176,11 +253,37 @@ class ModelConfig(wx.Frame):
                 raise Exception
                 
         
-        testFile(subjectList, 'Subject List')
-        testFile(phenoFilePath, 'Phenotype/EV File')
-             
+        testFile(self.subjectList, 'Subject List')
+        testFile(self.phenoFilePath, 'Phenotype/EV File')
+
+     
+        phenoFile = open(os.path.abspath(self.phenoFilePath))
+        phenoHeaderString = phenoFile.readline().rstrip('\r\n')
+        self.phenoHeaderItems = phenoHeaderString.split(',')
         
-        modelDesign_window.ModelDesign(self,subjectList,phenoFilePath,subjectID)
+        if self.subjectID in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.subjectID)
+        else:
+            errSubID = wx.MessageDialog(
+                self, 'Please enter the name of the subject ID column' \
+                ' as it is labeled in the phenotype file.',
+                'Blank/Incorrect Subject Header Input',
+                wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+            raise Exception
+        
+
+
+        for ctrl in self.page.get_ctrl_list():
+
+            if ctrl.get_name() == 'modelSetup':
+                ctrl.set_value(self.phenoHeaderItems)
+
+
+
+
+
         
         
 

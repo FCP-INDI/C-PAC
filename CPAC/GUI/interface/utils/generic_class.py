@@ -7,16 +7,20 @@ import pkg_resources as p
 
 class GenericClass(wx.ScrolledWindow):
     
-    def __init__(self,parent,title=""):
+    def __init__(self,parent,title="",no_static=False):
         self.parent = parent
         self.title = title
-        self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)   
+        self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)
         self.flexSizer.AddGrowableCol(1)
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.ctrl_list = []
-        self.__add_static()
+
+        if no_static==False:
+            self.__add_static()
+
         self.__set_scroll()
         self.switch = None
+
     
     def __set_scroll(self):
         maxWidth = 1000
@@ -40,6 +44,16 @@ class GenericClass(wx.ScrolledWindow):
         self.mainSizer.Add(wx.StaticLine(self.parent), 0, wx.EXPAND|wx.TOP)
         
     __add_static = add_static
+
+
+
+    def add_pheno_load_panel(self, sizer):
+        
+        buffer = wx.StaticText(self.parent, label="\t\t\t\t\t\t")
+
+        self.flexSizer.Add(buffer)
+        self.flexSizer.Add(sizer)
+
         
         
     def add(self, label, control, name, type = 0, 
@@ -106,7 +120,7 @@ class GenericClass(wx.ScrolledWindow):
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
         elif control == 9:
             self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
-            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0) 
+            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
 
     def EvtChoice(self, event, ctrl):
@@ -369,6 +383,8 @@ class Control(wx.Control):
                 sample_list = self.get_values()
                 for s in strings:
                     self.set_selection(s, sample_list.index(s))
+            elif self.get_type() == 9:
+                self.ctrl.set_checkbox_grid_values(val)
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):

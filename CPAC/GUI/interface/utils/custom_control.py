@@ -6,6 +6,7 @@ import modelconfig_window
 import wx.lib.agw.balloontip as BT
 import pkg_resources as p
 
+
 class FileSelectorCombo(wx.combo.ComboCtrl):
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
@@ -271,11 +272,10 @@ class ContrastsFrame(wx.Frame):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15) 
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
         
         label1 = wx.StaticText(panel, -1, label = 'Contrast')
         self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, value=values)
-        
     
         flexsizer.Add(label1)
         flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)      
@@ -296,7 +296,6 @@ class ContrastsFrame(wx.Frame):
             val = self.box1.GetValue()
             parent.listbox.Append(str(val))
             self.Close()
-
 
 
 
@@ -432,7 +431,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
         
         #mainSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(525,200), style=wx.VSCROLL) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(525,200), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
         
         self.values = []
@@ -465,9 +464,37 @@ class CheckBoxGrid(wx.ScrolledWindow):
         # of either '1' or '0', a list for include, categorical,
         # demean
         self.choiceDict = {}
+
+     
+        #set_checkbox_grid_values(self.values)
+
+            
+        self.cbDict['include'] = self.includeCBList
+        self.cbDict['categorical'] = self.categoricalCBList
+        self.cbDict['demean'] = self.demeanCBList
+
+
         
+        for idNum in range(100,self.maxIDNum):
+        
+            self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
+
+
+        
+    def set_checkbox_grid_values(self, value_list):
+
+        j = 0
+        self.idx = 100
+        self.includeCBList = []
+        self.categoricalCBList = []
+        self.demeanCBList = []
+        
+        self.includeCBValues = []
+        self.categoricalCBValues = []
+        self.demeanCBValues = []
+
         # iterate over each phenotype header item
-        for name in self.values:
+        for name in value_list:
             
             # set up the label of each header item
             wx.StaticText(self.scrollWin, label=name, pos=(5,j))
@@ -507,27 +534,8 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             # increment IDs
             self.idx += 3
-            
-        
-        #mainSizer.Add(self.scrollWin, 1, wx.EXPAND)
-
-        #self.SetSizer(mainSizer)
-
-        #self.panel.SetSizer(mainSizer)
 
 
-            
-        self.cbDict['include'] = self.includeCBList
-        self.cbDict['categorical'] = self.categoricalCBList
-        self.cbDict['demean'] = self.demeanCBList
-
-
-        
-        for idNum in range(100,self.maxIDNum):
-        
-            self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
-
-        
         
     def onCheck_UpdateValue(self, event, idNum, checkBox):
                
@@ -586,5 +594,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
         
     def GetGridSelection(self):           
         return self.choiceDict
+
+
 
 
