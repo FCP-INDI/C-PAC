@@ -1986,7 +1986,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat = tmp
                 new_strat_list.append(strat)
 
-            strat.append_name(roi_timeseries.name)
+            if c.roiSpecificationFile != None:
+                strat.append_name(roi_timeseries.name)
+            elif c.roiSpecificationFileForSCA != None:
+                strat.append_name(roi_timeseries_for_sca.name)
 
             if c.roiSpecificationFile != None:
                 strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
