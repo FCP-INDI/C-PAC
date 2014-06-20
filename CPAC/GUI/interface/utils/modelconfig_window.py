@@ -16,7 +16,7 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 700))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 750))
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -71,8 +71,17 @@ class ModelConfig(wx.Frame):
                       type = 9,#dtype.LBOOL,
                       values = '',
                       comment="glob",
-                      size = (400, -1))
+                      size = (450, -1))
 
+        self.page.add(label="Design Matrix Formula ",
+                      control=control.TEXT_BOX,
+                      name="designMatrixFormula",
+                      type=dtype.STR,
+                      comment="Specify a descriptor for your model.",
+                      values="",
+                      size=(450, -1))
+
+        '''
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
                       name = 'contrastStrings',
@@ -115,6 +124,8 @@ class ModelConfig(wx.Frame):
                       type=dtype.STR,
                       comment="Full path to the directory where CPAC should place model files.",
                       values="")
+        '''
+
 
         self.page.set_sizer()
 
@@ -146,10 +157,20 @@ class ModelConfig(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
         hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
         
+        '''
         populate = wx.Button(btnPanel, wx.ID_ANY, "Save Model",
             (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.populateEVs, id=wx.ID_ANY)
         hbox.Add(populate, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
+        '''
+
+        next = wx.Button(btnPanel, 3, "Next >", (200, -1), wx.DefaultSize, 0)
+        self.Bind(wx.EVT_BUTTON, self.load_next_stage, id=3)
+        hbox.Add(next, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
+
+        # reminder: functions bound to buttons require arguments
+        #           (self, event)
+        
 
         btnPanel.SetSizer(hbox)
 
@@ -211,6 +232,50 @@ class ModelConfig(wx.Frame):
 
             dlg.Destroy()
 
+
+
+    def read_phenotypic(self, pheno_file):
+
+        import csv
+
+        ph = pheno_file
+
+        # Read in the phenotypic CSV file into a dictionary named pheno_dict
+        # while preserving the header fields as they correspond to the data
+        p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+
+        pheno_dict_list = []
+        
+        # dictionary to store the data in a format Patsy can use
+        # i.e. a dictionary where each header is a key, and the value is a
+        # list of all of that header's values
+        pheno_data_dict = {}
+
+        for line in p_reader:
+
+            for key in line.keys():
+
+                if key not in pheno_data_dict.keys():
+                    pheno_data_dict[key] = []
+
+                pheno_data_dict[key].append(line[key])
+
+                    
+
+    
+            pheno_dict_list.append(line)
+        
+            # pheno_dict_list is a list of dictionaries of phenotype header items
+            # matched to their values, which also includes subject IDs
+            
+            # i.e. [{'header1': 'value', 'header2': 'value'}, {'header1': 'value', 'header2': 'value'}, ..]
+            
+            # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
+
+
+        return pheno_data_dict
+
+
           
             
     def populateEVs(self, event):
@@ -258,6 +323,7 @@ class ModelConfig(wx.Frame):
 
      
         phenoFile = open(os.path.abspath(self.phenoFilePath))
+
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
         
@@ -274,12 +340,94 @@ class ModelConfig(wx.Frame):
             raise Exception
         
 
-
+        # update the 'Model Setup' box and populate it with the EVs and their
+        # associated checkboxes for include, categorical and demean
         for ctrl in self.page.get_ctrl_list():
 
             if ctrl.get_name() == 'modelSetup':
                 ctrl.set_value(self.phenoHeaderItems)
 
+
+
+
+    # by the time you click next, this should store the design formula, which
+    # EVs are categorical and which should be demeaned
+
+    # we should also have the subject list filepath and phenotype filepath,
+    # as well as the subject ID column name
+
+    # send this to the next stage, stored nicely, and then run patsy and also
+    # the categorical breaking-out
+
+
+
+
+    def load_next_stage(self, event):
+
+        import patsy
+
+
+        for ctrl in self.page.get_ctrl_list():
+            
+            name = ctrl.get_name()
+            
+            # get the design matrix formula
+            if name == 'designMatrixFormula':
+
+                self.dmatrix_formula = str(ctrl.get_selection())
+
+            # get the EV categorical + demean grid selections
+            if name == 'modelSetup':
+
+                '''
+                TO-DO:
+                GET_SELECTION() -> GETGRIDSELECTION() NOT WORKING YET!
+                '''
+
+                # basically, ctrl is checkbox_grid in this case, and
+                # get_selection goes to generic_class.py first, which links
+                # it to the custom GetGridSelection() function in the
+                # checkbox_grid class in custom_control.py
+                self.ev_selections = ctrl.get_selection()
+
+
+        '''
+        TO-DO:
+        NOTE ALSO HAVE TO PASS EV_SELECTIONS TO THIS TO CONSTRUCT THE
+        CATEGORICAL LIST WITHIN THE DICTIONARY CORRECTLY
+        i.e. { sex: [sex1, sex2] }
+        '''
+        self.pheno_data_dict = self.read_phenotypic(self.phenoFilePath)
+
+
+
+        try:
+            phenoFile = open(os.path.abspath(self.phenoFilePath))
+        except:
+            print '\n\n[!] CPAC says: The phenotype file path provided ' \
+                    'couldn\'t be opened - either it does not exist or ' \
+                    'there are access restrictions.\n'
+            print 'Phenotype file provided: '
+            print self.phenoFilePath, '\n\n'
+            raise IOError
+
+        print '\n\nselections: ', self.ev_selections, '\n\n'
+        print '\n\nformula: ', self.dmatrix_formula, '\n\n'
+        print '\n\ndata: ', self.pheno_data_dict, '\n\n'
+
+
+        try:
+            dmatrix = patsy.dmatrix(self.dmatrix_formula, self.pheno_data_dict)
+        except:
+            print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
+                    'successful - do the terms in your formula correctly ' \
+                    'correspond to the EVs listed in your phenotype file?\n'
+            print 'Phenotype file provided: '
+            print self.phenoFilePath, '\n\n'
+            raise Exception
+
+
+        print '\n\ndmatrix: ', dmatrix, '\n\n'
 
 
 

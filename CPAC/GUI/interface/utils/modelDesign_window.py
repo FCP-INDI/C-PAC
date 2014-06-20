@@ -41,15 +41,6 @@ class ModelDesign(wx.Frame):
         
         
         
-        # experimental checkbox row stuff
-        self.page.add(label = "Model Setup ",
-                      control = control.CHECKBOX_GRID,
-                      name = "modelSetup",
-                      type = dtype.LBOOL,
-                      values = self.phenoHeaderItems,
-                      comment="glob",
-                      size = (400, -1))
-
 
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
@@ -60,7 +51,6 @@ class ModelDesign(wx.Frame):
                       size = (400,100),
                       combo_type = 4)
 
-        # end experimental code
 
 
 

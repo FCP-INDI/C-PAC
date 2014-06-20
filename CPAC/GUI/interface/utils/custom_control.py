@@ -431,16 +431,16 @@ class CheckBoxGrid(wx.ScrolledWindow):
         
         #mainSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(525,200), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,200), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
         
         self.values = []
         self.values = values
         self.maxIDNum = (len(self.values)*3)+99
         
-        wx.StaticText(self, label="Include EV", pos=(250,0))
-        wx.StaticText(self, label="Categorical", pos=(350,0))
-        wx.StaticText(self, label="Demean", pos=(450,0))
+        #wx.StaticText(self, label="Include EV", pos=(250,0))
+        wx.StaticText(self, label="Categorical", pos=(300,0))
+        wx.StaticText(self, label="Demean", pos=(400,0))
         
         j = 0
         self.idx = 100
@@ -469,7 +469,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
         #set_checkbox_grid_values(self.values)
 
             
-        self.cbDict['include'] = self.includeCBList
+        #self.cbDict['include'] = self.includeCBList
         self.cbDict['categorical'] = self.categoricalCBList
         self.cbDict['demean'] = self.demeanCBList
 
@@ -500,17 +500,18 @@ class CheckBoxGrid(wx.ScrolledWindow):
             wx.StaticText(self.scrollWin, label=name, pos=(5,j))
         
             # "Include EV" checkbox for header item
+            '''
             self.cb = wx.CheckBox(self.scrollWin, id=self.idx, pos=(250,j))
             self.cb.SetValue(True)
             self.includeCBList.append(self.cb)
             
             self.cbValuesDict[self.idx] = [name, 'include', True]
-            
+            '''
             #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_include())
             
 
             # Categorical checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(350,j))
+            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(300,j))
             self.cb.SetValue(False)
             self.categoricalCBList.append(self.cb)
             
@@ -520,7 +521,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             
             # Demean checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(450,j))#, style=wx.CHK_3STATE)
+            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
             
@@ -551,7 +552,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
                
         for idNum in range(100,self.maxIDNum):
                
-            self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()     
+            self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()
         
         for idNum in range(100,self.maxIDNum):
             
@@ -582,7 +583,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
                 if self.cbValuesDict[idNum][2] == True:
                     self.choiceDemeanList.append('1')
                 else:
-                    self.choiceDemeanList.append('0') 
+                    self.choiceDemeanList.append('0')
                      
         
                 
