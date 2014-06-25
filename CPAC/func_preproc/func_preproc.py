@@ -382,8 +382,8 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
                     outputNode, 'max_displacement')
     preproc.connect(func_motion_correct_A, 'oned_file',
                     outputNode, 'movement_parameters')
-    preproc.connect(func_motion_correct_A, 'oned_matrix_save',
-                    outputNode, 'oned_matrix_save')
+#    preproc.connect(func_motion_correct_A, 'oned_matrix_save',
+#                    outputNode, 'oned_matrix_save')
 
 
     if use_bet == False:
