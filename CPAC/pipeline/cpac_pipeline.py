@@ -2934,10 +2934,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
 
     if 1 in c.runNetworkCentrality:
-
+        # For each desired strategy
         for strat in strat_list:
-            
-            
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
@@ -2946,22 +2944,45 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
 
-            # Function to perform the connections of the workflow for the centrality method of interest
-            def connectCentralityWorkflow(methodOption,thresholdOption,threshold,weightOptions,mList):
+            # Connect in each workflow for the centrality method of interest
+            def connectCentralityWorkflow(methodOption, 
+                                          thresholdOption, 
+                                          threshold, 
+                                          weightOptions, 
+                                          mList):
                 # Create centrality workflow
-                network_centrality = create_resting_state_graphs(c.memoryAllocatedForDegreeCentrality,  'network_centrality_%d-%d' %(num_strat,methodOption))
-                workflow.connect(resample_functional_to_template, 'out_file',           # connect subject input file to workflow
-                                 network_centrality, 'inputspec.subject')               # ...
-                workflow.connect(template_dataflow, 'outputspec.out_file',              # connect subject mask file to workflow
-                                 network_centrality, 'inputspec.template')              # ...
-                network_centrality.inputs.inputspec.method_option = methodOption        # give which method we're performing (0 - deg, 1 - eig, 2 - lfcd)
-                network_centrality.inputs.inputspec.threshold_option = thresholdOption  # connect type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
-                network_centrality.inputs.inputspec.threshold = threshold               # connect threshold value (float)
-                network_centrality.inputs.inputspec.weight_options = weightOptions      # list of two booleans, first for binary, second for weighted
-                workflow.connect(network_centrality,'outputspec.centrality_outputs',    # merge output with others via merge_node connection
-                                 merge_node,mList)                                      # ...
-                strat.append_name(network_centrality.name)                              # append this as a strategy
-                create_log_node(network_centrality, 'outputspec.centrality_outputs', num_strat) # create log node for strategy
+                network_centrality = create_resting_state_graphs(\
+                                     c.memoryAllocatedForDegreeCentrality, 
+                                     'network_centrality_%d-%d' \
+                                     %(num_strat,methodOption))
+                # Connect registered function input image to inputspec
+                workflow.connect(resample_functional_to_template, 'out_file',
+                                 network_centrality, 'inputspec.subject')
+                # Subject mask/parcellation image
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 network_centrality, 'inputspec.template')
+                # Give which method we're doing (0 - deg, 1 - eig, 2 - lfcd)
+                network_centrality.inputs.inputspec.method_option = \
+                methodOption
+                # Type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
+                network_centrality.inputs.inputspec.threshold_option = \
+                thresholdOption
+                # Connect threshold value (float)
+                network_centrality.inputs.inputspec.threshold = threshold
+                # List of two booleans, first for binary, second for weighted
+                network_centrality.inputs.inputspec.weight_options = \
+                weightOptions
+                # Merge output with others via merge_node connection
+                workflow.connect(network_centrality, 
+                                 'outputspec.centrality_outputs', 
+                                 merge_node, 
+                                 mList)
+                # Append this as a strategy
+                strat.append_name(network_centrality.name)
+                # Create log node for strategy
+                create_log_node(network_centrality, 
+                                'outputspec.centrality_outputs', 
+                                num_strat)
                 
             # Init merge node for appending method output lists to one another
             merge_node = pe.Node(util.Function(input_names=['deg_list',

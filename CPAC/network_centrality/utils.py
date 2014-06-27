@@ -422,12 +422,20 @@ def calc_blocksize(timeseries, memory_allocated = None, include_full_matrix = Fa
     if memory_allocated:
         memory_in_bytes = memory_allocated * 1024.0**3  # assume it is in GB
         ## memory_for_block = x # of voxels * nvoxs * nbytes
-        block_size      = int( (memory_in_bytes - memory_for_output - memory_for_timeseries - memory_for_full_matrix)/(nvoxs*nbytes) )
+        block_size = int( (memory_in_bytes - \
+                           memory_for_output - \
+                           memory_for_timeseries - \
+                           memory_for_full_matrix)\
+                         /(nvoxs*nbytes) )
     
     if block_size > nvoxs:
         block_size = nvoxs
     elif block_size < 1:
-        memory_usage = (memory_for_output + memory_for_timeseries + memory_for_full_matrix + 2.0*nvoxs*nbytes)/1024.0**3
+        memory_usage = (memory_for_output + \
+                        memory_for_timeseries + \
+                        memory_for_full_matrix + \
+                        2.0*nvoxs*nbytes)\
+                        /1024.0**3
         raise MemoryError(" Not enough memory available to perform degree centrality. Need a minimum of %.2fGB" % memory_usage)
     
     memory_usage = (memory_for_output + memory_for_timeseries + memory_for_full_matrix + block_size*nvoxs*nbytes)/1024.0**3
