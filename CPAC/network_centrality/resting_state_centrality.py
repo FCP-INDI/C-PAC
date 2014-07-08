@@ -616,8 +616,10 @@ def get_centrality_by_thresh(timeseries,
         
         if calc_degree:
             print "...removing effect of auto-correlation on degree"
-            degree_binarize[degree_binarize!=0] = degree_binarize[degree_binarize!=0] - 1
-            degree_weighted[degree_weighted!=0] = degree_weighted[degree_weighted!=0] - 1
+            if out_binarize:
+                degree_binarize[degree_binarize!=0] = degree_binarize[degree_binarize!=0] - 1
+            if out_weighted:
+                degree_weighted[degree_weighted!=0] = degree_weighted[degree_weighted!=0] - 1
         
         return out_list
     
