@@ -266,7 +266,7 @@ class ContrastsFrame(wx.Frame):
     def __init__(self, parent, values):
 
         wx.Frame.__init__(self, parent, title="Add Contrast Description", \
-                size = (300,140))
+                size = (300,80))
         
         panel = wx.Panel(self)
         
@@ -275,7 +275,7 @@ class ContrastsFrame(wx.Frame):
         flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
         
         label1 = wx.StaticText(panel, -1, label = 'Contrast')
-        self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, value=values)
+        self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, size=(200,-1), value=values)
     
         flexsizer.Add(label1)
         flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)      
@@ -436,7 +436,6 @@ class CheckBoxGrid(wx.ScrolledWindow):
         
         self.values = []
         self.values = values
-        self.maxIDNum = (len(self.values)*3)+99
         
         #wx.StaticText(self, label="Include EV", pos=(250,0))
         wx.StaticText(self, label="Categorical", pos=(300,0))
@@ -474,11 +473,11 @@ class CheckBoxGrid(wx.ScrolledWindow):
         self.cbDict['demean'] = self.demeanCBList
 
 
-        
+        '''
         for idNum in range(100,self.maxIDNum):
         
             self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
-
+        '''
 
         
     def set_checkbox_grid_values(self, value_list):
@@ -492,6 +491,9 @@ class CheckBoxGrid(wx.ScrolledWindow):
         self.includeCBValues = []
         self.categoricalCBValues = []
         self.demeanCBValues = []
+
+
+        self.maxIDNum = (len(value_list)*2)+101
 
         # iterate over each phenotype header item
         for name in value_list:
@@ -517,6 +519,8 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.idx+1))
+
             #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_categorical())
             
             
@@ -527,6 +531,8 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.idx+2))
+
             #self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.demeanCBList, self.demeanCBList[0]))
                       
                 
@@ -534,11 +540,11 @@ class CheckBoxGrid(wx.ScrolledWindow):
             j += 30
             
             # increment IDs
-            self.idx += 3
+            self.idx += 2
 
 
         
-    def onCheck_UpdateValue(self, event, idNum, checkBox):
+    def onCheck_UpdateValue(self, event, idNum):
                
         # somehow take in the self.cbValuesDict[idx] (name, column, value)
         # and then GetValue from all idx, and update value for that idx
@@ -549,29 +555,30 @@ class CheckBoxGrid(wx.ScrolledWindow):
         self.choiceCategoricalList = []
         self.choiceDemeanList = []
 
-               
-        for idNum in range(100,self.maxIDNum):
+        for idNum in range(101,self.maxIDNum):
                
             self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()
         
-        for idNum in range(100,self.maxIDNum):
+        for idNum in range(101,self.maxIDNum):
             
+            '''
             if self.cbValuesDict[idNum][1] == 'include':
                 
                 if self.cbValuesDict[idNum][2] == True:
                     self.choiceIncludeList.append('1')
                 else:
                     self.choiceIncludeList.append('0')
-                    
-            elif self.cbValuesDict[idNum][1] == 'categorical':
+            '''               
+     
+            if self.cbValuesDict[idNum][1] == 'categorical':
                 
                 if self.cbValuesDict[idNum][2] == True:
-                    self.choiceCategoricalList.append('1')
+                    self.choiceCategoricalList.append(self.cbValuesDict[idNum][0])
                     
                     #self.tempChoiceDict[('demean',idNum+1)] = wx.FindWindowById(idNum+1).GetValue()
                     #wx.FindWindowById(idNum+1).Set3StateValue(2)  # set demean to N/A
-                else:
-                    self.choiceCategoricalList.append('0')
+                #else:
+                    #self.choiceCategoricalList.append('0')
                     
                     #wx.FindWindowById(idNum+1).Set3StateValue(0)  # undo demean as N/A
                     #if ('demean',idNum+1) in self.tempChoiceDict.keys():
@@ -581,13 +588,13 @@ class CheckBoxGrid(wx.ScrolledWindow):
             elif self.cbValuesDict[idNum][1] == 'demean':
                 
                 if self.cbValuesDict[idNum][2] == True:
-                    self.choiceDemeanList.append('1')
-                else:
-                    self.choiceDemeanList.append('0')
+                    self.choiceDemeanList.append(self.cbValuesDict[idNum][0])
+                #else:
+                    #self.choiceDemeanList.append('0')
                      
         
                 
-        self.choiceDict['include'] = self.choiceIncludeList                
+        #self.choiceDict['include'] = self.choiceIncludeList                
         self.choiceDict['categorical'] = self.choiceCategoricalList                
         self.choiceDict['demean'] = self.choiceDemeanList
 

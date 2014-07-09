@@ -13,10 +13,12 @@ ID_RUN = 11
 class ModelConfig(wx.Frame):
 
     # this creates the wx.Frame mentioned above in the class declaration
-    def __init__(self, parent):
+    def __init__(self, parent, sublist='', pheno='', subID='', setup='', design=''):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 750))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
+
+        self.parent = parent
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -35,21 +37,21 @@ class ModelConfig(wx.Frame):
                       name="subjectListFile",
                       type=dtype.STR,
                       comment="Full path to a list of subjects to be included in the model.\n\nThis should be a text file with one subject per line.\n\nTip 1: A list in this format contaning all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt).\n\nTIp 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.",
-                      values="")
+                      values=sublist)
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
                       name="phenotypicFile",
                       type=dtype.STR,
                       comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
-                      values="")
+                      values=pheno)
 
         self.page.add(label="Subjects Column Name ",
                       control=control.TEXT_BOX,
                       name="subjectColumn",
                       type=dtype.STR,
                       comment="Name of the subjects column in your EV file.",
-                      values="",
+                      values=subID,
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
 
@@ -69,7 +71,7 @@ class ModelConfig(wx.Frame):
                       control = control.CHECKBOX_GRID,
                       name = "modelSetup",
                       type = 9,#dtype.LBOOL,
-                      values = '',
+                      values = setup,
                       comment="glob",
                       size = (450, -1))
 
@@ -78,53 +80,9 @@ class ModelConfig(wx.Frame):
                       name="designMatrixFormula",
                       type=dtype.STR,
                       comment="Specify a descriptor for your model.",
-                      values="",
+                      values= design,
                       size=(450, -1))
 
-        '''
-        self.page.add(label = 'Contrasts ',
-                      control = control.LISTBOX_COMBO,
-                      name = 'contrastStrings',
-                      type = dtype.LSTR,
-                      values = '',
-                      comment = '',
-                      size = (400,100),
-                      combo_type = 4)
-
-        # end experimental code
-
-
-
-        self.page.add(label="Model Group Variances Separately ",
-                      control=control.CHOICE_BOX,
-                      name='modelGroupVariancesSeparately',
-                      type=dtype.NUM,
-                      comment="Specify whether FSL should model the variance for each group separately.\n\nIf this option is enabled, you must specify a grouping variable below.",
-                      values=["Off", "On"])
-
-        self.page.add(label="Grouping Variable ",
-                      control=control.TEXT_BOX,
-                      name="groupingVariable",
-                      type=dtype.STR,
-                      comment="The name of the EV that should be used to group subjects when modeling variances.\n\nIf you do not wish to model group variances separately, set this value to None.",
-                      values="None",
-                      size=(160, -1))
-        
-        self.page.add(label="Model Name ",
-                      control=control.TEXT_BOX,
-                      name="modelName",
-                      type=dtype.STR,
-                      comment="Specify a name for the new model.",
-                      values="",
-                      size=(200, -1))
-
-        self.page.add(label="Output Directory ",
-                      control=control.DIR_COMBO_BOX,
-                      name="outputModelFilesDirectory",
-                      type=dtype.STR,
-                      comment="Full path to the directory where CPAC should place model files.",
-                      values="")
-        '''
 
 
         self.page.set_sizer()
@@ -234,7 +192,7 @@ class ModelConfig(wx.Frame):
 
 
 
-    def read_phenotypic(self, pheno_file):
+    def read_phenotypic(self, pheno_file, ev_selections):
 
         import csv
 
@@ -244,7 +202,7 @@ class ModelConfig(wx.Frame):
         # while preserving the header fields as they correspond to the data
         p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
 
-        pheno_dict_list = []
+        #pheno_dict_list = []
         
         # dictionary to store the data in a format Patsy can use
         # i.e. a dictionary where each header is a key, and the value is a
@@ -258,12 +216,19 @@ class ModelConfig(wx.Frame):
                 if key not in pheno_data_dict.keys():
                     pheno_data_dict[key] = []
 
-                pheno_data_dict[key].append(line[key])
+                # create a list within one of the dictionary values for that
+                # EV if it is categorical; formats this list into a form
+                # Patsy can understand regarding categoricals:
+                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd2', 'adhd1'] }
+                #                instead of just [1, 1, 2, 1], etc.
+                if key in ev_selections['categorical']:
+                    pheno_data_dict[key].append(key + str(line[key]))
 
-                    
+                else:
+                    pheno_data_dict[key].append(line[key])
 
-    
-            pheno_dict_list.append(line)
+   
+            #pheno_dict_list.append(line)
         
             # pheno_dict_list is a list of dictionaries of phenotype header items
             # matched to their values, which also includes subject IDs
@@ -379,11 +344,6 @@ class ModelConfig(wx.Frame):
             # get the EV categorical + demean grid selections
             if name == 'modelSetup':
 
-                '''
-                TO-DO:
-                GET_SELECTION() -> GETGRIDSELECTION() NOT WORKING YET!
-                '''
-
                 # basically, ctrl is checkbox_grid in this case, and
                 # get_selection goes to generic_class.py first, which links
                 # it to the custom GetGridSelection() function in the
@@ -391,13 +351,7 @@ class ModelConfig(wx.Frame):
                 self.ev_selections = ctrl.get_selection()
 
 
-        '''
-        TO-DO:
-        NOTE ALSO HAVE TO PASS EV_SELECTIONS TO THIS TO CONSTRUCT THE
-        CATEGORICAL LIST WITHIN THE DICTIONARY CORRECTLY
-        i.e. { sex: [sex1, sex2] }
-        '''
-        self.pheno_data_dict = self.read_phenotypic(self.phenoFilePath)
+        self.pheno_data_dict = self.read_phenotypic(self.phenoFilePath, self.ev_selections)
 
 
 
@@ -428,9 +382,37 @@ class ModelConfig(wx.Frame):
 
 
         print '\n\ndmatrix: ', dmatrix, '\n\n'
+        print dmatrix.design_info
 
 
 
+        # eat the pheno_data_dict, picking out the header items. remove the
+        # subject header, then identify which ones are categorical (by seeing
+        # what the user selected), and then providing the names of each
+        # categorical option
+
+        var_list_for_contrasts = []
+
+        for header in self.pheno_data_dict.keys():
+
+            if header in self.ev_selections['categorical']:
+                
+                for val in self.pheno_data_dict[header]:
+                    if val not in var_list_for_contrasts:
+                        var_list_for_contrasts.append(val)
+
+            else:
+
+                if header != self.subjectID:
+                    var_list_for_contrasts.append(header)
+
+        
+
+        # open the next window!
+        modelDesign_window.ModelDesign(self.parent, self.subjectList, self.phenoFilePath, self.subjectID, var_list_for_contrasts, self.ev_selections, self.dmatrix_formula)   # !!! may need to pass the actual dmatrix as well
+
+
+        self.Close()
 
         
         

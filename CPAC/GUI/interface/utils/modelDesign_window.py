@@ -10,10 +10,12 @@ ID_RUN = 11
 
 class ModelDesign(wx.Frame):
 
-    def __init__(self, parent, subjectList, phenoFilePath, subjectID):
+    def __init__(self, parent, subjectList, phenoFilePath, subjectID, varlist, ev_selections, design_formula):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 525))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(700, 550))
+
+        self.parent = parent
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -39,7 +41,15 @@ class ModelDesign(wx.Frame):
             errSubID.Destroy()
             raise Exception
         
+
+
         
+
+        varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        var_list_text = wx.StaticText(self.window, label=str(varlist))
+        varlist_sizer.Add(var_list_text)
+
+        self.page.add_pheno_load_panel(varlist_sizer)
         
 
         self.page.add(label = 'Contrasts ',
@@ -48,11 +58,8 @@ class ModelDesign(wx.Frame):
                       type = dtype.LSTR,
                       values = '',
                       comment = '',
-                      size = (400,100),
+                      size = (250,200),
                       combo_type = 4)
-
-
-
 
         self.page.add(label="Model Group Variances Seperately ",
                       control=control.CHOICE_BOX,
@@ -106,6 +113,12 @@ class ModelDesign(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
         
+        back = wx.Button(btnPanel, wx.ID_SAVE, "< Back", (
+            200, -1), wx.DefaultSize, 0)
+        self.Bind(wx.EVT_BUTTON, lambda event: self.save(
+            event, 'back'), id=wx.ID_SAVE)
+        hbox.Add(back, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
+
         save = wx.Button(btnPanel, wx.ID_SAVE, "Save Settings", (
             200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, lambda event: self.save(
@@ -184,6 +197,12 @@ class ModelDesign(wx.Frame):
 
         except Exception:
             return -1
+
+
+    def back(self, event):
+        modelconfig_window.ModelConfig(self.parent, subjectList, phenoFilePath, subjectID, ev_selections, design_formula)
+
+        self.Close()
 
 
 
