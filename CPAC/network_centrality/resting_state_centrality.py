@@ -501,7 +501,6 @@ def get_centrality_by_thresh(timeseries,
             r_value = convert_pvalue_to_r(ntpts, threshold)
             print "...%s -> %s" % (threshold, r_value)
         
-        # Initialize outputs
         print "Setup Intermediates/Outputs"
         # Degree matrix init
         if calc_degree:
@@ -746,101 +745,25 @@ def calc_centrality(datafile,
                                         get_centrality_by_thresh,\
                                         get_centrality_by_sparsity,\
                                         get_centrality_fast,\
-                                        map_centrality_matrix,\
-                                        convert_pvalue_to_r
+                                        map_centrality_matrix
     
-    from CPAC.cwas.subdist import norm_cols
+    out_list = []
     
-    # Check to see if there were no checkboxes indicated for weighting
+#     if method_options.count(True) == 0:  
+#         raise Exception("Invalid values in method_options " \
+#                         "At least one True value is required")
+   
     if weight_options.count(True) == 0:
-        raise Exception('Invalid values in weight options' \
-                        'At least one True value is required')
+        raise Exception("Invalid values in weight options" \
+                        "At least one True value is required")
+   
     
-    # Start timing
+    ts, aff, mask, t_type, scans = load(datafile, template)
+    
+    
     import time
     start = time.clock()
     
-    # Extract the timeseries, affine xform, mask, type of template, no of scans
-    timeseries, aff, mask, t_type, scans = load(datafile, template)
-    
-    # Init variables
-    out_list = []
-    nvoxs = timeseries.shape[0]
-    ntpts = timeseries.shape[1]
-    r_matrx = None
-    calc_degree = False
-    calc_eigen = False
-    calc_lfcd = False
-    
-    # Select which method we're going to perform
-    if method_option == 0:
-        calc_degree = True
-    elif method_option == 1:
-        calc_eigen = True
-    elif method_option == 2:
-        calc_lfcd = True
-    
-    # Set weighting parameters
-    out_binarize = weight_options[0]
-    out_weighted = weight_options[1]
-    
-    # Init global set of points to keep for centrality map
-    S0 = set()
-    
-    # If it's a p-value specified, first, calculate the r-value
-    if threshold_option == 0:
-        print 'Calculating r-value from p-value...'
-        r_thr = convert_pvalue_to_r(ntpts, threshold)
-        print '...%s > %s' % (threshold, r_thr)
-    # If it's a sparsity threshold, get no of voxels
-    if threshold_option == 1:
-        print 'Calculating no of voxels to map...'
-        s_vox = nvoxs*threshold
-    
-    # Normalize timseries columns for easy correlation calc via dot product
-    ts_normd = norm_cols(timeseries.T)
-    
-    # Calculate block_size
-    block_size = calc_blocksize(timeseries, allocated_memory)
-    
-    # Init loop variables
-    n = 0
-    K = block_size
-    nk = (n+1)*K
-    # Iterate through R-matrix by block and add to list S0
-    while nk <= nvoxs:
-        print 'running block %d: %d thru %d' %(n+1, n, nk)
-        rmat_block = np.dot(ts_normd[:,n:nk].T, ts_normd)
-        # Init (block) subset and indices for block
-        S1 = set()
-        r = 0
-        # Iterate through R block and populate the subset with (i,j,w) tuples
-        for r in range(K):
-            for c in range(nvoxs):
-                i = r + n*K
-                j = c
-                w = rmat_block[r,c]
-                if j > i:
-                    S1.add((i,j,w))
-                else:
-                    S1.add((j,i,w))
-        # Take out any elements we already have in the global set S0
-        S1 = S1 - S0
-        # If we're doing sparsity
-        if threshold_option == 1:
-            # Combine sets
-            combined = S0 or S1
-            sort_combined = sorted(list(combined),
-                                   key=lambda x: x[2])
-            # And trim list if it's greater than the number of voxels we want
-            if len(sort_combined) > s_vox:
-                S0 = set(sort_combined[:s_vox])
-        # Else we're doing p/r value pruning
-        else:
-            # Create set of values above threshold
-            # Add that set to S0
-    
-    # ------------------------------------------------------------
     #p-value threshold centrality
     if threshold_option == 0:
         centrality_matrix = get_centrality_by_thresh(ts,
@@ -889,3 +812,4 @@ def calc_centrality(datafile,
         get_image(mat, t_type)
                
     return out_list
+
