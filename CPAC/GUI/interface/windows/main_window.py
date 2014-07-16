@@ -281,6 +281,13 @@ class ListBox(wx.Frame):
 
                 sublist = self.sublist_map.get(s)
 
+                if not os.path.exists(sublist):
+                    print '\n\nCPAC says: Please select a subject list ' \
+                              'before running group-level analysis. ' \
+                              'Thanks!\n\n'
+                    raise Exception
+
+
                 for p in pipelines:
 
                     pipeline = self.pipeline_map.get(p)
@@ -305,8 +312,8 @@ class ListBox(wx.Frame):
                         print "pipeline doesn't exist"
                     
                 
-            else:
-                print "No pipeline selected"
+        else:
+            print "No pipeline selected"
 
 
 
