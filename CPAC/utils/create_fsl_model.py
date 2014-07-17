@@ -5,6 +5,116 @@ import csv
 import yaml
 
 
+# what this file now needs to do:
+
+# - demean the selected EVs
+# - create the pheno data dict like it does in the modelconfig
+
+# - take the formula and put that and the data into dmatrix, with Sum encoding
+# - parse the contrasts strings, use Aimi's code in that part
+# - write the .mat and .con files, and .grp as well
+# - figure out multicollinearity (if patsy doesn't do this)
+# - figure out modeling group variances separately
+
+
+
+
+
+
+def create_pheno_dict(gpa_fsl_yml):
+
+    # \/ \/ DUPLICATED CODE! PUT THIS FUNCTION IN ONE PLACE,
+    #       OR REMOVE THE ORIGINAL ONE
+    def read_phenotypic(pheno_file, ev_selections):
+
+        import csv
+        import numpy as np
+
+        ph = pheno_file
+
+        # Read in the phenotypic CSV file into a dictionary named pheno_dict
+        # while preserving the header fields as they correspond to the data
+        p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+
+        #pheno_dict_list = []
+        
+        # dictionary to store the data in a format Patsy can use
+        # i.e. a dictionary where each header is a key, and the value is a
+        # list of all of that header's values
+        pheno_data_dict = {}
+
+        for line in p_reader:
+
+            for key in line.keys():
+
+                if key not in pheno_data_dict.keys():
+                    pheno_data_dict[key] = []
+
+                # create a list within one of the dictionary values for that
+                # EV if it is categorical; formats this list into a form
+                # Patsy can understand regarding categoricals:
+                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                #                instead of just [1, 1, 0, 1], etc.
+                if key in ev_selections['categorical']:
+                    pheno_data_dict[key].append(key + str(line[key]))
+
+                else:
+                    pheno_data_dict[key].append(line[key])
+
+
+
+        # this needs to run after each list in each key has been fully
+        # populated above
+        for key in pheno_data_dict.keys():
+
+
+            # converts non-categorical EV lists into NumPy arrays
+            # so that Patsy may read them in properly
+            if key not in ev_selections['categorical']:
+            
+                pheno_data_dict[key] = np.array(pheno_data_dict[key])
+
+
+            # demean the EVs marked for demeaning
+            if key in ev_selections['demean']:
+
+                new_demeaned_evs = []
+
+                mean_evs = 0.0
+
+                # populate a dictionary, a key for each demeanable EV, with
+                # the value being the sum of all the values (which need to be
+                # converted to float first)
+                for val in pheno_data_dict[key]:
+                    mean_evs += float(val)
+
+                # calculate the mean of the current EV in this loop
+                mean_evs = mean_evs / len(pheno_data_dict[key])
+
+                # remove the EV's mean from each value of this EV
+                # (demean it!)
+                for val in pheno_data_dict[key]:
+                    new_demeaned_evs.append(float(val) - mean_evs)
+
+                # replace
+                pheno_data_dict[key] = new_demeaned_evs
+
+
+
+        return pheno_data_dict
+
+
+    # pheno_data_dict gets loaded with the phenotypic data, in a dictionary
+    # formatted for proper use with Patsy
+    pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections)
+
+    print pheno_data_dict
+    raise
+
+
+
+
+
 def filter_phenotypic(c):
 
     """
@@ -941,6 +1051,9 @@ def run(config, fTest, CPAC_run = False):
             c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
         except:
             raise Exception("Error in reading %s configuration file" % config)
+
+
+    create_pheno_dict(c)
 
     ###This generates the model file
 

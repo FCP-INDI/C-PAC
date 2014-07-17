@@ -13,10 +13,21 @@ ID_RUN = 11
 class ModelConfig(wx.Frame):
 
     # this creates the wx.Frame mentioned above in the class declaration
-    def __init__(self, parent, sublist='', pheno='', subID='', setup='', design=''):
+    def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 600))
+
+
+        if gpa_settings == None:
+            self.gpa_settings = {}
+            self.gpa_settings['subject_list'] = ''
+            self.gpa_settings['pheno_file'] = ''
+            self.gpa_settings['subject_id_label'] = ''
+            self.gpa_settings['design_formula'] = ''
+        else:
+            self.gpa_settings = gpa_settings
+        
 
         self.parent = parent
 
@@ -37,21 +48,21 @@ class ModelConfig(wx.Frame):
                       name="subjectListFile",
                       type=dtype.STR,
                       comment="Full path to a list of subjects to be included in the model.\n\nThis should be a text file with one subject per line.\n\nTip 1: A list in this format contaning all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt).\n\nTIp 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.",
-                      values=sublist)
+                      values=self.gpa_settings['subject_list'])
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
                       name="phenotypicFile",
                       type=dtype.STR,
                       comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
-                      values=pheno)
+                      values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Subjects Column Name ",
                       control=control.TEXT_BOX,
                       name="subjectColumn",
                       type=dtype.STR,
                       comment="Name of the subjects column in your EV file.",
-                      values=subID,
+                      values=self.gpa_settings['subject_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
 
@@ -66,12 +77,13 @@ class ModelConfig(wx.Frame):
         self.page.add_pheno_load_panel(load_panel_sizer)
 
 
+
         # experimental checkbox row stuff
         self.page.add(label = "Model Setup ",
                       control = control.CHECKBOX_GRID,
                       name = "modelSetup",
                       type = 9,#dtype.LBOOL,
-                      values = setup,
+                      values = '',
                       comment="glob",
                       size = (450, -1))
 
@@ -80,7 +92,7 @@ class ModelConfig(wx.Frame):
                       name="designMatrixFormula",
                       type=dtype.STR,
                       comment="Specify a descriptor for your model.",
-                      values= design,
+                      values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 
 
@@ -115,13 +127,6 @@ class ModelConfig(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
         hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        '''
-        populate = wx.Button(btnPanel, wx.ID_ANY, "Save Model",
-            (220, 10), wx.DefaultSize, 0)
-        self.Bind(wx.EVT_BUTTON, self.populateEVs, id=wx.ID_ANY)
-        hbox.Add(populate, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
-        '''
-
         next = wx.Button(btnPanel, 3, "Next >", (200, -1), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.load_next_stage, id=3)
         hbox.Add(next, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
@@ -138,6 +143,29 @@ class ModelConfig(wx.Frame):
         self.panel.SetSizer(mainSizer)
 
         self.Show()
+
+
+        # this fires only if we're coming BACK to this page from the second
+        # page, and these parameters are already pre-loaded. this is to
+        # automatically repopulate the 'Model Setup' checkbox grid
+        if 'pheno_file' in self.gpa_settings.keys():
+
+            phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
+
+            phenoHeaderString = phenoFile.readline().rstrip('\r\n')
+            phenoHeaderItems = phenoHeaderString.split(',')
+            phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+
+            # update the 'Model Setup' box and populate it with the EVs and
+            # their associated checkboxes for categorical and demean
+            for ctrl in self.page.get_ctrl_list():
+
+                if ctrl.get_name() == 'modelSetup':
+                    ctrl.set_value(phenoHeaderItems)
+                    ctrl.set_selection(self.gpa_settings['ev_selections'])
+
+
+
 
     def cancel(self, event):
         self.Close()
@@ -253,13 +281,13 @@ class ModelConfig(wx.Frame):
             name = ctrl.get_name()
             
             if name == 'subjectListFile':
-                self.subjectList = str(ctrl.get_selection())
+                self.gpa_settings['subject_list'] = str(ctrl.get_selection())
             
             if name == 'phenotypicFile':
-                self.phenoFilePath = str(ctrl.get_selection())
+                self.gpa_settings['pheno_file'] = str(ctrl.get_selection())
                 
             if name == 'subjectColumn':
-                self.subjectID = str(ctrl.get_selection())
+                self.gpa_settings['subject_id_label'] = str(ctrl.get_selection())
         
                 
         ### CHECK PHENOFILE if can open etc.
@@ -283,17 +311,17 @@ class ModelConfig(wx.Frame):
                 raise Exception
                 
         
-        testFile(self.subjectList, 'Subject List')
-        testFile(self.phenoFilePath, 'Phenotype/EV File')
+        testFile(self.gpa_settings['subject_list'], 'Subject List')
+        testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
      
-        phenoFile = open(os.path.abspath(self.phenoFilePath))
+        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
-        
-        if self.subjectID in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.subjectID)
+
+        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
         else:
             errSubID = wx.MessageDialog(
                 self, 'Please enter the name of the subject ID column' \
@@ -306,7 +334,7 @@ class ModelConfig(wx.Frame):
         
 
         # update the 'Model Setup' box and populate it with the EVs and their
-        # associated checkboxes for include, categorical and demean
+        # associated checkboxes for categorical and demean
         for ctrl in self.page.get_ctrl_list():
 
             if ctrl.get_name() == 'modelSetup':
@@ -336,10 +364,68 @@ class ModelConfig(wx.Frame):
             
             name = ctrl.get_name()
             
+            if name == 'subjectListFile':
+                self.gpa_settings['subject_list'] = str(ctrl.get_selection())
+            
+            if name == 'phenotypicFile':
+                self.gpa_settings['pheno_file'] = str(ctrl.get_selection())
+                
+            if name == 'subjectColumn':
+                self.gpa_settings['subject_id_label'] = str(ctrl.get_selection())
+        
+                
+        ### CHECK PHENOFILE if can open etc.
+        
+        # function for file path checking
+        def testFile(filepath, paramName):
+            try:
+                fileTest = open(filepath)
+                fileTest.close()
+                    
+            except:
+                    
+                errDlgFileTest = wx.MessageDialog(
+                    self, 'Error reading file - either it does not exist or you' \
+                          ' do not have read access. \n\n' \
+                          'Parameter: %s' % paramName,
+                    'File Access Error',
+                    wx.OK | wx.ICON_ERROR)
+                errDlgFileTest.ShowModal()
+                errDlgFileTest.Destroy()
+                raise Exception
+                
+        
+        testFile(self.gpa_settings['subject_list'], 'Subject List')
+        testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
+
+     
+        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
+
+        phenoHeaderString = phenoFile.readline().rstrip('\r\n')
+        self.phenoHeaderItems = phenoHeaderString.split(',')
+
+        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+        else:
+            errSubID = wx.MessageDialog(
+                self, 'Please enter the name of the subject ID column' \
+                ' as it is labeled in the phenotype file.',
+                'Blank/Incorrect Subject Header Input',
+                wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+            raise Exception
+
+
+
+        for ctrl in self.page.get_ctrl_list():
+            
+            name = ctrl.get_name()
+            
             # get the design matrix formula
             if name == 'designMatrixFormula':
 
-                self.dmatrix_formula = str(ctrl.get_selection())
+                self.gpa_settings['design_formula'] = str(ctrl.get_selection())
 
             # get the EV categorical + demean grid selections
             if name == 'modelSetup':
@@ -348,41 +434,34 @@ class ModelConfig(wx.Frame):
                 # get_selection goes to generic_class.py first, which links
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
-                self.ev_selections = ctrl.get_selection()
+                self.gpa_settings['ev_selections'] = ctrl.get_selection()
 
 
-        self.pheno_data_dict = self.read_phenotypic(self.phenoFilePath, self.ev_selections)
+        self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'])
 
 
 
         try:
-            phenoFile = open(os.path.abspath(self.phenoFilePath))
+            phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
         except:
             print '\n\n[!] CPAC says: The phenotype file path provided ' \
                     'couldn\'t be opened - either it does not exist or ' \
                     'there are access restrictions.\n'
             print 'Phenotype file provided: '
-            print self.phenoFilePath, '\n\n'
+            print self.gpa_settings['pheno_file'], '\n\n'
             raise IOError
-
-        print '\n\nselections: ', self.ev_selections, '\n\n'
-        print '\n\nformula: ', self.dmatrix_formula, '\n\n'
-        print '\n\ndata: ', self.pheno_data_dict, '\n\n'
 
 
         try:
-            dmatrix = patsy.dmatrix(self.dmatrix_formula, self.pheno_data_dict)
+            dmatrix = patsy.dmatrix(self.gpa_settings['design_formula'], self.pheno_data_dict)
         except:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
                     'correspond to the EVs listed in your phenotype file?\n'
             print 'Phenotype file provided: '
-            print self.phenoFilePath, '\n\n'
+            print self.gpa_settings['pheno_file'], '\n\n'
             raise Exception
 
-
-        print '\n\ndmatrix: ', dmatrix, '\n\n'
-        print dmatrix.design_info
 
 
 
@@ -395,7 +474,7 @@ class ModelConfig(wx.Frame):
 
         for header in self.pheno_data_dict.keys():
 
-            if header in self.ev_selections['categorical']:
+            if header in self.gpa_settings['ev_selections']['categorical']:
                 
                 for val in self.pheno_data_dict[header]:
                     if val not in var_list_for_contrasts:
@@ -403,13 +482,13 @@ class ModelConfig(wx.Frame):
 
             else:
 
-                if header != self.subjectID:
+                if header != self.gpa_settings['subject_id_label']:
                     var_list_for_contrasts.append(header)
 
         
 
         # open the next window!
-        modelDesign_window.ModelDesign(self.parent, self.subjectList, self.phenoFilePath, self.subjectID, var_list_for_contrasts, self.ev_selections, self.dmatrix_formula)   # !!! may need to pass the actual dmatrix as well
+        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
 
 
         self.Close()

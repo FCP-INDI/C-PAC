@@ -167,7 +167,6 @@ class GenericClass(wx.ScrolledWindow):
         else:
             #print "label to be removed -->", label
             ctrl.set_selection(label,index, True)
-        print ctrl.get_selection()
         
         
     '''
@@ -288,6 +287,26 @@ class Control(wx.Control):
             self.listbox_ctrl = self.ctrl.GetListBoxCtrl()
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
+
+            '''
+            if combo_type == 4:
+                if values:
+                    # values.keys() is a list of contrast options the user
+                    # typed into the contrasts box. this only exists if the
+                    # user entered contrasts, then saved them or went back to
+                    # the first model builder window, then returned
+                    for option in values.keys():
+
+                        # this re-checks the user's past contrast option
+                        # SELECTIONS (which ones were checked) in the listbox
+                        if values[option] == True:
+                            self.selection.append(option)
+            '''
+                
+           
+            self.options = self.ctrl.get_listbox_options()
+            self.listbox_selections = []
+
             
         elif type == 8:
             self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 
@@ -297,10 +316,7 @@ class Control(wx.Control):
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
-            
-            '''
-            NEEDS DEV!
-            '''            
+         
         elif type == 9:
             self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
                                      values = values,
@@ -310,6 +326,16 @@ class Control(wx.Control):
             
                 
         self.set_id()
+
+
+
+    def get_listbox_options(self):
+        if self.get_type() == 7:
+            return self.options
+
+    def get_listbox_selections(self):
+        if self.get_type() == 7:
+            return self.listbox_selections
         
         
     def set_id(self):
@@ -343,11 +369,19 @@ class Control(wx.Control):
             if convert_to_string:
                 value = str(value)
                 
+            # here, 'value' is the single element selected in the control by
+            # the user, and 'self.selection' is the list containing these
+            # selections
+
             if remove:
                 self.selection.remove(value)
             else:
                 self.selection.append(value)
+
                 
+        elif self.get_type()==9:
+            self.ctrl.onReload_set_selections(value)
+
         elif isinstance(self.selection, dict):
             if remove:
                 self.selection[value, index]= False
@@ -356,6 +390,10 @@ class Control(wx.Control):
             
         else:
             self.selection = value
+
+        if self.get_type()==7:
+            self.listbox_selections = self.selection
+
 
     def get_selection(self):
         return self.selection

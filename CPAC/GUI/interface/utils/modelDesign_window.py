@@ -4,18 +4,35 @@ from .constants import control, dtype, substitution_map
 import os
 import ast
 
+import modelconfig_window
+
 
 ID_RUN = 11
 
 
 class ModelDesign(wx.Frame):
 
-    def __init__(self, parent, subjectList, phenoFilePath, subjectID, varlist, ev_selections, design_formula):
+    def __init__(self, parent, gpa_settings, varlist):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(700, 550))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(750, 550))
 
         self.parent = parent
+
+        self.gpa_settings = gpa_settings
+
+        if 'contrasts' not in self.gpa_settings.keys():
+            self.gpa_settings['contrasts'] = {}
+
+        if 'grouping_var' not in self.gpa_settings.keys():
+            self.gpa_settings['grouping_var'] = 'None'
+
+        if 'model_name' not in self.gpa_settings.keys():
+            self.gpa_settings['model_name'] = ''
+
+        if 'output_dir' not in self.gpa_settings.keys():
+            self.gpa_settings['output_dir'] = ''
+
 
         mainSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -25,12 +42,12 @@ class ModelDesign(wx.Frame):
 
         self.page = generic_class.GenericClass(self.window, " FSL Model Design")
         
-        phenoFile = open(os.path.abspath(phenoFilePath))
+        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
         
-        if subjectID in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(subjectID)
+        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
         else:
             errSubID = wx.MessageDialog(
                 self, 'Please enter the name of the subject ID column' \
@@ -56,9 +73,9 @@ class ModelDesign(wx.Frame):
                       control = control.LISTBOX_COMBO,
                       name = 'contrastStrings',
                       type = dtype.LSTR,
-                      values = '',
+                      values = self.gpa_settings['contrasts'],
                       comment = '',
-                      size = (250,200),
+                      size = (300,200),
                       combo_type = 4)
 
         self.page.add(label="Model Group Variances Seperately ",
@@ -66,14 +83,14 @@ class ModelDesign(wx.Frame):
                       name='modelGroupVariancesSeparately',
                       type=dtype.NUM,
                       comment="Specify whether FSL should model the variance for each group separately.\n\nIf this option is enabled, you must specify a grouping variable below.",
-                      values=["Off", "On"])
+                      values=['Off', 'On'])
 
         self.page.add(label="Grouping Variable ",
                       control=control.TEXT_BOX,
                       name="groupingVariable",
                       type=dtype.STR,
                       comment="The name of the EV that should be used to group subjects when modeling variances.\n\nIf you do not wish to model group variances separately, set this value to None.",
-                      values="None",
+                      values=self.gpa_settings['grouping_var'],
                       size=(160, -1))
         
         self.page.add(label="Model Name ",
@@ -81,7 +98,7 @@ class ModelDesign(wx.Frame):
                       name="modelName",
                       type=dtype.STR,
                       comment="Specify a name for the new model.",
-                      values="",
+                      values=self.gpa_settings['model_name'],
                       size=(200, -1))
 
         self.page.add(label="Output Directory ",
@@ -89,8 +106,18 @@ class ModelDesign(wx.Frame):
                       name="outputModelFilesDirectory",
                       type=dtype.STR,
                       comment="Full path to the directory where CPAC should place model files.",
-                      values="")
+                      values=self.gpa_settings['output_dir'])
 
+
+        if 'group_sep' in self.gpa_settings.keys():
+
+            for ctrl in self.page.get_ctrl_list():
+
+                name = ctrl.get_name()
+
+                if name == 'modelGroupVariancesSeparately':
+                    ctrl.set_value(self.gpa_settings['group_sep'])
+            
 
         self.page.set_sizer()
 
@@ -113,10 +140,9 @@ class ModelDesign(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        back = wx.Button(btnPanel, wx.ID_SAVE, "< Back", (
+        back = wx.Button(btnPanel, 1, "< Back", (
             200, -1), wx.DefaultSize, 0)
-        self.Bind(wx.EVT_BUTTON, lambda event: self.save(
-            event, 'back'), id=wx.ID_SAVE)
+        self.Bind(wx.EVT_BUTTON, lambda event: self.back(event), id=1)
         hbox.Add(back, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
 
         save = wx.Button(btnPanel, wx.ID_SAVE, "Save Settings", (
@@ -147,7 +173,11 @@ class ModelDesign(wx.Frame):
         win.Refresh()
         raise ValueError
 
-    def validate(self, config_map):
+    def validate(self):
+
+        return True
+
+        '''
         try:
 
             columns = [v.strip()
@@ -197,120 +227,162 @@ class ModelDesign(wx.Frame):
 
         except Exception:
             return -1
+        '''
+
+
+
+    def collect_input(self):
+
+        for ctrl in self.page.get_ctrl_list():
+
+            name = ctrl.get_name()
+
+            if name == 'contrastStrings':
+
+                for option in ctrl.get_listbox_options():
+
+                    if option in ctrl.get_listbox_selections():
+                        self.gpa_settings['contrasts'][option] = True
+                    else:
+                        self.gpa_settings['contrasts'][option] = False
+
+
+            if name == 'modelGroupVariancesSeparately':
+
+                self.gpa_settings['group_sep'] = ctrl.get_selection()
+
+
+            if name == 'groupingVariable':
+
+                self.gpa_settings['grouping_var'] = ctrl.get_selection()
+
+
+            if name == 'modelName':
+
+                self.gpa_settings['model_name'] = ctrl.get_selection()
+
+
+            if name == 'outputModelFilesDirectory':
+
+                self.gpa_settings['output_dir'] = ctrl.get_selection()
+
+
 
 
     def back(self, event):
-        modelconfig_window.ModelConfig(self.parent, subjectList, phenoFilePath, subjectID, ev_selections, design_formula)
+
+        self.collect_input()
+
+        modelconfig_window.ModelConfig(self.parent, self.gpa_settings)
 
         self.Close()
+
+
+        '''
+        TO-DO:
+        also pass new selections from within this window
+        make it so that if modelconfig receives these, it stores them in case
+        the user hits next without changing anything
+
+        then it will restore them.
+        but if the user changes the pheno or something, you need to warn them
+        '''
+
+
+        '''
+        ALSO TO-DO:
+        have the contrasts box have a method for restoring the strings
+        AND their checked states
+        '''
 
 
 
     def save(self, event, flag):
 
+        # runs when user clicks 'Save Settings', saves a YAML (.yml/.yaml)
+        # file which contains all of the user input for the group analysis
+        # model setup
+
+        self.collect_input()
+
+        print self.gpa_settings
+
         config_list = []
         config_map = {}
-        
-        # temporary code to keep backwards-compatibility with old GPA model config
-        # files, to be loaded into the new model builder GUI
-        for ctrl in self.page.get_ctrl_list():
+
+        vals = self.gpa_settings
+
+        config_list.append(('subject_list', vals['subject_list'], 1, \
+                                'Full path to a list of subjects to be ' \
+                                'included in the model.\n\nThis should be ' \
+                                'a text file with one subject per line.\n' \
+                                '\nTip 1: A list in this format contaning ' \
+                                'all subjects run through CPAC was ' \
+                                'generated along with the main CPAC ' \
+                                'subject list (see subject_list_group_' \
+                                'analysis.txt)\n\n.Tip 2: An easy way to ' \
+                                'manually create this file is to copy the ' \
+                                'subjects column from your Regressor/EV ' \
+                                'spreadsheet.'))
+
+        config_list.append(('pheno_file', vals['pheno_file'], 1, \
+                                'Full path to a .csv file containing EV ' \
+                                'information for each subject.\n\nTip: A ' \
+                                'file in this format (containing a single ' \
+                                'column listing all subjects run through ' \
+                                'CPAC) was generated along with the main ' \
+                                'CPAC subject list (see template_' \
+                                'phenotypic.csv).'))
+
+        config_list.append(('subject_id_label', vals['subject_id_label'], 1, \
+                                'Name of the subjects column in your EV ' \
+                                'file.'))
+
+        config_list.append(('ev_selections', vals['ev_selections'], 8, \
+                                'Specify which EVs from your phenotype ' \
+                                'are categorical or numerical. Of those ' \
+                                'which are numerical, specify which are to ' \
+                                'be demeaned.'))
+
+        config_list.append(('design_formula', vals['design_formula'], 1, \
+                                'Formula for the design matrix. The EVs ' \
+                                'included in this formula will be included ' \
+                                'in the model. <MORE INFO>'))
+
+        config_list.append(('contrasts', vals['contrasts'], 8, \
+                                'A dictionary of contrast descriptions, ' \
+                                'including which ones to be included in ' \
+                                'the model (marked with either True or ' \
+                                'False).'))
+
+        config_list.append(('group_sep', vals['group_sep'], 0, \
+                                'Specify whether FSL should model the ' \
+                                'variance for each group separately.\n\n' \
+                                'If this option is enabled, you must ' \
+                                'specify a grouping variable below.'))
+
+        config_list.append(('grouping_var', vals['grouping_var'], 1, \
+                                'The name of the EV that should be used to ' \
+                                'group subjects when modeling variances.\n' \
+                                '\nIf you do not wish to model group ' \
+                                'variances separately, set this value to ' \
+                                'None.'))
+
+        config_list.append(('model_name', vals['model_name'], 1, \
+                                'Specify a name for the new model.'))
+
+        config_list.append(('output_dir', vals['output_dir'], 1, \
+                                'Full path to the directory where CPAC ' \
+                                'should place model files.'))
+
             
-            # this will take the input from the checkbox grid for the "Model Setup"
-            # and break it back down into the old "demean", etc. ctrls
-            win = ctrl.get_ctrl()
-            value = ctrl.get_selection()
-            name = ctrl.get_name()
-            
-            if name == 'modelSetup':
-                                
-                # in this case, 'value' should be the choiceDict from
-                # CheckBoxGrid in custom_control
-                
-                # turn the lists in 'value' (choiceDict) into strings
-                
-                columnsInModel = ', '.join(value['include'])
-                categoricalVsDirectional = ', '.join(value['categorical'])
-                deMean = ', '.join(value['demean'])
-                
-                print "columns: ", columnsInModel
-                print "categorical: ", categoricalVsDirectional
-                print "demean: ", deMean
-                
-                # add these strings into new "ctrls" named accordingly
-                config_list.append(('columnsInModel', columnsInModel, 4, 'Specify the names of ', \
-                                    'columns in your EV file that you would like to include in ', \
-                                    'this model.\n\nColumn names should be separated by commas ', \
-                                    'and appear exactly as they do in your EV file.\n\nBy ', \
-                                    'clicking the add button on the right, you can also add ', \
-                                    'measure generated by CPAC to the list of EVs'))
-                config_list.append(('categoricalVsDirectional', categoricalVsDirectional, 5, 'Specify ', \
-                                    'whether each of the EVs in this model should be treated as ', \
-                                    'categorical or continuous.\n\nTo do this, place a 1 (categorical) ', \
-                                    'or 0 (continuous) in the same list position as the corresponding ', \
-                                    'EV.\n\nFor example, if the EVs to include were:\nage, sex, ' \
-                                    'diagnosis, mean_fd\n\nOne might specify:\n0,1,1,0'))
-                config_list.append(('deMean', deMean, 5, 'Specify whether to demean each of the EVs in ', \
-                                    'this model.\n\nTo do this, place a 1 (demean) or 0 (don\'t demean) ', \
-                                    'in the same list position as the corresponding EV.\n\nFor example, ', \
-                                    'if the EVs to include were:\nage, sex, diagnosis, mean_fd\n\nOne ', \
-                                    'might specify:\n1,0,0,1\n\nNote that only continuous EV\'s should ', \
-                                    'be demeaned.'))
-        
-        
-
-        for ctrl in self.page.get_ctrl_list():
-
-            #print "validating ctrl-->", ctrl.get_name()
-            #print "ctrl.get_selection()", ctrl.get_selection()
-            #print "type(ctrl.get_selection())", type(ctrl.get_selection())
-
-            win = ctrl.get_ctrl()
-            value = str(ctrl.get_selection())
-            name = ctrl.get_name()
-            dtype = ctrl.get_datatype()
-            validation = ctrl.get_validation()
-            help = ctrl.get_help()
-
-            # this is here because modelSetup is added as one of the controls,
-            # but its output has to be processed specifically (for loop above
-            # this one)
-            if name != 'modelSetup':
-
-                config_list.append((name, value, dtype, help))
-                config_map[name] = [win, value, validation]
-
-
-
-            '''
-            if name == 'deMean':
-                
-                # take in a list of header items from the demean checklist input
-                # and convert them into 1's and 0's while retaining their indices
-                demeanList = []
-
-                for headerItem in self.phenoHeaderItems:
-                    demeanList.append(0)
-                        
-                for demeanItem in ast.literal_eval(value):
-                    demeanList[self.phenoHeaderItems.index(demeanItem)] = 1
-                    value = str(demeanList).strip('[]')
-                        
-                    # 'value' is now a list of 1's and 0's for demean
-
-                # TEMPORARY CODE FOR HARD-CODING OF EVTYPES AS ALL ZEROES
-                evTypes = value.replace("1", "0")
-                config_list.append((name, evTypes, dtype, help))
-            '''
-
-        # TEMPORARY CODE FOR HARD-CODING OF EVTYPES AS ALL ZEROES
-        #config_list.append(("categoricalVsDirectional", evTypes, 5, "Placeholder for EV types - should be all zeroes - do not modify."))
 
 
         try:
-            if self.validate(config_map) > 0:
+            if self.validate() == True:
                 dlg = wx.FileDialog(self, message="Save file as ...",
                                     defaultDir=os.getcwd(),
-                                    defaultFile="gpa_fsl_config_%s.yaml" % config_map['modelName'](1),
+                                    defaultFile="gpa_fsl_config_%s.yaml" % self.gpa_settings['model_name'],
                                     wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
                                     style=wx.SAVE)
 
@@ -319,25 +391,39 @@ class ModelDesign(wx.Frame):
                     path = dlg.GetPath()
                     f = open(path, 'w')
                     dlg.Destroy()
+
                     for item in config_list:
+
+                        # parse the different data types accordingly
+
+                        # file selector combo
                         if item[2] == 2:
                             value = substitution_map.get(str(item[1]))
                             if value is None:
                                 value = ast.literal_eval(item[1])
+
+                        # directory selector combo
                         elif item[2] == 5:
                             value = [v for v in ast.literal_eval(item[1])]
+
+                        # num ctrl
                         elif item[2] == 4:
                             value = [str(v.strip())
                                      for v in item[1].split(',')]
+
+                        # all other data types
                         else:
                             value = str(item[1])
 
+                        # print out 'help' (comments describing values)
                         for lines in item[3].split('\n'):
-                            print >> f, "#", lines
+                            print >> f, '#', lines
 
-                        print >> f, item[0], ": ", value, "\n"
+                        # print out 'label: value'
+                        print >> f, item[0], ': ', value, '\n\n'
 
-                    print "saving %s" % path
+                    print '\n\nCPAC says: Saving the group analysis model ' \
+                              'configuration file to: ', path, '\n\n'
                     f.close()
                     
                     self.Parent.box2.GetTextCtrl().SetValue(path)
@@ -345,7 +431,10 @@ class ModelDesign(wx.Frame):
 
 
         except Exception:
-            print "error writing temp file "
+            print '\n\n[!] CPAC says: I couldn\'t save the group analysis ' \
+                      'model configuration file! Maybe check if you have ' \
+                      'write permissions?\n\nPath you selected: ', path, \
+                      '\n\n'
             raise
 
             
