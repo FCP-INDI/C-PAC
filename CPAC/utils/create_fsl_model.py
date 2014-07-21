@@ -26,7 +26,7 @@ def filter_phenotypic(c):
 
     ph = c.phenotypicFile
     sublist = c.subjectListFile
- 
+
     f = open(sublist, 'rU')
 
     subjects = f.readlines()

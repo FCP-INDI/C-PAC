@@ -2936,6 +2936,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runNetworkCentrality:
         # For each desired strategy
         for strat in strat_list:
+            
+            # Resample the functional mni to the centrality mask resolution
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
@@ -2991,6 +2993,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           output_names = ['merged_list'],
                                           function = merge_lists),
                             name = 'merge_node_%d' % num_strat)
+            
             # If we're calculating degree centrality
             if c.degWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(0,

@@ -72,7 +72,11 @@ def fast_degree_centrality(m):
 # Eigenvector Centrality
 ####
 
-def eigenvector_centrality(corr_matrix, r_value=None, method=None, to_transform=True, ret_eigenvalue=False):
+def eigenvector_centrality(corr_matrix, 
+                           r_value=None, 
+                           method=None, 
+                           to_transform=True, 
+                           ret_eigenvalue=False):
     """
     Examples
     --------
