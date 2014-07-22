@@ -9,8 +9,8 @@ import yaml
 
 # - demean the selected EVs
 # - create the pheno data dict like it does in the modelconfig
-
 # - take the formula and put that and the data into dmatrix, with Sum encoding
+
 # - parse the contrasts strings, use Aimi's code in that part
 # - write the .mat and .con files, and .grp as well
 # - figure out multicollinearity (if patsy doesn't do this)
@@ -67,14 +67,6 @@ def create_pheno_dict(gpa_fsl_yml):
         # populated above
         for key in pheno_data_dict.keys():
 
-
-            # converts non-categorical EV lists into NumPy arrays
-            # so that Patsy may read them in properly
-            if key not in ev_selections['categorical']:
-            
-                pheno_data_dict[key] = np.array(pheno_data_dict[key])
-
-
             # demean the EVs marked for demeaning
             if key in ev_selections['demean']:
 
@@ -100,6 +92,13 @@ def create_pheno_dict(gpa_fsl_yml):
                 pheno_data_dict[key] = new_demeaned_evs
 
 
+            # converts non-categorical EV lists into NumPy arrays
+            # so that Patsy may read them in properly
+            if key not in ev_selections['categorical']:
+            
+                pheno_data_dict[key] = np.array(pheno_data_dict[key])
+
+
 
         return pheno_data_dict
 
@@ -108,152 +107,9 @@ def create_pheno_dict(gpa_fsl_yml):
     # formatted for proper use with Patsy
     pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections)
 
-    print pheno_data_dict
-    raise
+    return pheno_data_dict
 
 
-
-
-
-def filter_phenotypic(c):
-
-    """
-    The Main purpose of this function is to extract phenotypic data from the phenotypic file for the subjects in the subject list.
-    The phenotypic data corresponding to column names specified in columnsInModel variable in the config_fsl.py is extracted.
-
-    Parameters
-    ----------
-
-    c : The configuration file object containing all the variables specified in the configuration file. 
-
-    Returns
-    -------
-
-    f_r: List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py
-
-    """
-
-    ph = c.phenotypicFile
-    sublist = c.subjectListFile
- 
-    f = open(sublist, 'rU')
-
-    subjects = f.readlines()
-
-    sub_dict = {}
-
-
-    # Read in the phenotypic CSV file into a dictionary named pheno_dict
-    # while preserving the header fields as they correspond to the data
-    p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
-
-    pheno_dict_list = []
-    for line in p_reader:
-    
-        pheno_dict_list.append(line)
-        
-        # pheno_dict_list is a list of dictionaries of phenotype header items
-        # matched to their values, which also includes subject IDs
-            
-        # i.e. [{'header1': 'value', 'header2': 'value'}, {'header1': 'value', 'header2': 'value'}, ..]
-            
-        # these dictionaries are UNORDERED, i.e. header items ARE NOT ORDERED
-
-
-
-    # Creates a dictionary sub_dict which stores the amount of
-    # instances of each subject, per subject
-  
-    for subject in subjects:
-
-        subject = subject.rstrip('\r\n')
-        subject = subject.replace(',','_')
-
-
-        if not subject in sub_dict:
-            sub_dict[subject] = 1
-        else:
-            sub_dict[subject] += 1
-
-
-
-    # Iterate over phenotypic CSV file removing any fields that are not listed
-    # in the columnsInModel parameter in the FSL config file, and then write
-    # the remaining fields into record_dict dictionary
-
-    f_r = []
-
-
-    try:
-
-        record_dict = {}
-      
-        for record in pheno_dict_list:
-            
-            # "record" is a dictionary of phenotype header items matched
-            # to their values and it is UNORDERED
-            
-            # if record[c.subjectColumn] (which is a subject ID number)
-            # is in sub_dict or not
-            if record[c.subjectColumn] in sub_dict:
-                
-                # record.keys() is a list of phenotype header items.
-                # here, we remove any header items which are not included in the
-                # 'columnsInModel' field in the group analysis FSL config file
-                for rec in record.keys():
-                    
-                    if (not (rec in c.columnsInModel)) and not (c.subjectColumn == rec):
-                        
-                        del record[rec]
-                            
-
-                # record_dict is a dictionary of dictionaries, where the key is the
-                # subject ID and the value is a dictionary of header items matched
-                # to their values (WARNING: header items unordered)
-                record_dict[record[c.subjectColumn]] = record
-                
-
-    except:
-    
-        print "Error processing phenotypic file data: ", ph
-        print "Try checking your phenotype .csv file in a text editor " \
-                "and ensuring the fields are separated by commas.\n\n"
-        print "\n"
-        raise Exception
-
-
-
-    for subject in subjects:
-
-        subject = subject.rstrip('\r\n')
-        subject = subject.replace(',','_')
-
-        try:
-
-            # record_dict.keys() is a list of subject IDs within
-            # the record_dict dictionary
-            if subject in record_dict.keys():
-                
-                # f_r is a list of dictionaries of phenotype header items
-                # matched to their values - like record_dict above, except
-                # the dictionaries are not matched to a subject ID
-                
-                # HEADER ITEMS STILL UNORDERED
-                
-                # HOWEVER, the subject ID is present within each dictionary
-                # in the f_r list, matched with a key named after the subject
-                # column header item
-                
-                f_r.append(record_dict[subject])
-
-        except:
-
-            print "Exception: Could not read from record lookup table for subject #: ", subject
-            raise Exception
-
-
-    return f_r
 
 
 
@@ -655,11 +511,17 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
     dimx = None
     dimy = None
 
+    print 'data, bitches!: ', data
+
     if len(data.shape) == 1:
         dimy = 1
         dimx = data.shape[0]
     else:
         dimx, dimy = data.shape
+
+    print 'made it this far!'
+    print 'dimx: ', dimx
+    print 'dimy: ', dimy
 
     ppstring = '/PPheights'
 
@@ -669,13 +531,15 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     ppstring += '\n'
 
+    print 'here?'
+
     f = open(os.path.join(outputModelFilesDirectory, model_name + '.mat'), 'w')
 
     print >>f, '/NumWaves\t%d' %dimy
     print >>f, '/NumPoints\t%d' %dimx
     print >>f, ppstring
 
-
+    print 'not bad'
 
     print >>f, '/Matrix'
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
@@ -1042,8 +906,26 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, CPAC_run = False):
 
+def run(config, fTest, param_file, CPAC_run = False):
+
+    # create_fsl_model.run()
+    # this is called from cpac_group_analysis_pipeline.py
+
+    # it collects the information the user provided for the FSL gpa model
+    # which was saved in the group analysis FSL config .yaml file, and then
+    # puts it into Patsy to create a design matrix
+    #     it then also generates the contrast file from the contrasts the user
+    #     provided
+    #         ultimately this produces the .mat, .con and .grp files needed
+    #         for FLAMEO for group analysis
+
+    # see more info on Patsy:
+    #     http://patsy.readthedocs.org/en/latest/overview.html
+
+
+    # open the GROUP ANALYSIS FSL .YML CONFIG FILE, not the main pipeline
+    # config .yml file!
     if CPAC_run:
         c = config
     else:
@@ -1052,16 +934,113 @@ def run(config, fTest, CPAC_run = False):
         except:
             raise Exception("Error in reading %s configuration file" % config)
 
+    import numpy as np
 
-    create_pheno_dict(c)
+    # return the data from the phenotype file processed properly for Patsy
+    # and load it into 'pheno_data_dict'
+    #     format: dictionary, each key is the name of an EV, and its value is
+    #             a LIST of values in order of the subjects
+    #                 - categorical EVs are already renamed from '0,1,..' to
+    #                   'EV0,EV1,..' with EV being the EV name
+    #                 - EVs to be demeaned are already demeaned
+    #                 - numerical EVs (non-categorical) are in a list which
+    #                   have been converted into a NumPy array
+    pheno_data_dict = create_pheno_dict(c)
 
-    ###This generates the model file
-
-    ###parse the phenotypic file and pickup subjects and phenotypic
-    ###columns that user requires to be in the model file with demeaning
-    ###and splitting columns for categorical variables
 
 
+    # insert MeanFD or other measures into pheno_data_dict
+    #     first, pull the measure values from the all_params .csv file written
+    #     to the individual-level analysis output directory
+    #     then, ensure the values are in the same order as the subject ids
+
+    measures = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+
+    try:
+
+        import csv
+        measure_dict = {}
+        f = csv.DictReader(open(param_file,'rU'))
+
+        for line in f:
+            measure_map = {}
+            for m in measures:
+                if line.get(m):
+                    measure_map[m] = line[m]
+
+            measure_dict[line['Subject']] = measure_map
+
+        print measure_dict
+                
+    except:
+        print '\n\n[!] CPAC says: Could not extract required information ' \
+              'from the parameters file.\n'
+        print 'Path: ', param_file, '\n\n'
+        raise Exception
+
+
+
+    # function to demean measures the user included in the design formula
+    # and then insert them in the right location in the pheno_data_dict
+    def add_measure_to_pheno(measure_name):
+
+        measure_list = []
+
+        # create a blank list that is the proper length
+        for sub in pheno_data_dict[c.subject_id_label]:
+            measure_list.append(0)
+
+        for subID in measure_dict.keys():
+
+            # find matching subject IDs between the measure_dict and the
+            # pheno_data_dict so we can insert measure values into the
+            # pheno_data_dict
+            for subject in pheno_data_dict[c.subject_id_label]:
+
+                if subject == subID:
+
+                    # return the index (just an integer) of where in the
+                    # pheno_data_dict list structure a subject ID is
+                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+
+                    # insert Mean FD value in the proper point
+                    measure_list[idx] = float(measure_dict[subID][measure_name])
+
+
+        # time to demean the MeanFD values
+        measure_sum = 0.0
+
+        for measure in measure_list:
+
+            measure_sum = measure_sum + measure
+
+        measure_mean = measure_sum / len(measure_list)
+
+        idx = 0
+
+        for measure in measure_list:
+
+            measure_list[idx] = measure - measure_mean
+            idx += 1
+
+
+        # add this new list to the pheno_data_dict
+        pheno_data_dict[measure_name] = measure_list
+
+
+    # add measures selected in the design formula into pheno_data_dict
+    # they are also demeaned prior
+    for measure in measures:
+
+        if measure in c.design_formula:
+            add_measure_to_pheno(measure)
+
+
+
+
+    '''TO-DO: figure this out'''
+
+    '''
     if c.modelGroupVariancesSeparately == 1 and (c.groupingVariable == None or (not c.groupingVariable in c.columnsInModel)):
         raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
 
@@ -1075,25 +1054,21 @@ def run(config, fTest, CPAC_run = False):
 
         print 'Error: ', e, ' while trying to create outputModelFilesDirectory'
         raise
+    '''
 
 
-    filter_data = filter_phenotypic(c)
-
-    dumpFile = open(os.path.join(os.getcwd(), 'dumpFile.txt'), 'wt')
-    print >>dumpFile, 'filter_data:\n\n', filter_data
 
     model_ready_data = None
     field_names = None
     gp_var = None
 
 
+    '''FIGURE THIS OUT'''
+
+    '''
     if c.modelGroupVariancesSeparately == 0:
 
         model_ready_data, field_names = organize_data(filter_data, c)
-
-        print >>dumpFile, '\n\nmodel_ready_data:\n\n', model_ready_data
-        print >>dumpFile, '\n\nfield_names:\n\n', field_names
-        dumpFile.close()
    
     else:
 
@@ -1101,15 +1076,172 @@ def run(config, fTest, CPAC_run = False):
 
 
     write_data(model_ready_data, field_names, c)
+    '''
 
+
+
+    # parse through ev_selections, find the categorical names within the
+    # design formula and insert C(<name>, Sum) into the design formula
+    #     this is required for Patsy to process the categorical EVs properly
+    #     when generating the design matrix (this goes into the .mat file)
+    formula = c.design_formula
+
+    for EV_name in c.ev_selections['categorical']:
+        formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
+
+    # create the actual design matrix using Patsy
+    import patsy
+
+    try:
+        dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
+    except:
+        print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
+                'successful - do the terms in your formula correctly ' \
+                'correspond to the EVs listed in your phenotype file?\n'
+        print 'Phenotype file provided: '
+        print c.pheno_file, '\n\n'
+        raise Exception
+
+
+
+
+    ### CREATE CONTRAST FILE
+
+    # parse in user-input contrast strings that were selected, and generate
+    # the contrast file (.con)
+
+    ''' start Aimi's code '''
+    def greater_than(dmat, a, b):
+        c1 = positive(dmat, a)
+        c2 = positive(dmat, b)
+        return c1-c2
+
+    def positive(dmat, a):
+        evs = dmat.design_info.column_name_indexes
+        con = np.zeros(dmat.shape[1])
+        if a in evs:
+            con[evs[a]] = 1
+        else:
+            #it is a dropped term so make all other terms in that category at -1
+            term = a.split('[')[0]
+            for ev in evs:
+                if ev.startswith(term):
+                    con[evs[ev]]= -1
+        con[0] = 1
+        return con
+
+    def negative(dmat, a):
+        con = 0-positive(dmat, a)
+        return con
+
+    def create_dummy_string(length):
+        ppstring = ""
+        for i in range(0, length):
+            ppstring += '\t' + '%1.5e' %(1.0)
+        ppstring += '\n' 
+        return ppstring
+
+    def create_con_file(con_dict, file_name, out_dir):
+        with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
+            #write header
+            for key in con_dict:
+                f.write("/ContrastName1\t\"%s\"\n" %key)
+            f.write("/NumWaves\t%d\n" %len(con_dict[key]))
+            f.write("/NumContrasts\t%d\n" %len(con_dict))
+            f.write("/PPString%s" %create_dummy_string(len(con_dict[key])))
+            f.write("/RequiredEffect%s" %create_dummy_string(len(con_dict[key])))
+            f.write("\n\n")
+
+            #write data
+            f.write("/Matrix\n")
+            for key in con_dict:
+                for v in con_dict[key]:
+                    f.write("%1.5e\t" %v)
+                f.write("\n")
+
+    ''' end Aimi's code '''
+
+
+    contrasts = c.contrasts
+    contrasts_list = []
+    contrasts_dict = {}
+
+    # collect the user-selected contrast strings into a list of strings
+    for contrast in contrasts.keys():
+        if contrasts[contrast] == True:
+
+            contrasts_list.append(contrast)
+
+
+    # take the contrast strings and process them appropriately
+    #     extract the two separate contrasts (if there are two), and then
+    #     identify which are categorical - adapting the string if so
+    def process_contrast(operator):
+
+        EVs_in_contrast = parsed_contrast.split(operator)
+
+        if '' in EVs_in_contrast:
+            EVs_in_contrast.remove('')
+
+        for EV in EVs_in_contrast:
+            for cat_EV in c.ev_selections['categorical']:
+                if cat_EV in EV:
+                    cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
+                    parsed_EVs_in_contrast.append(cat_EV_contrast)
+                else:
+                    parsed_EVs_in_contrast.append(EV)
+
+
+
+    # parse the user-input contrast strings
+    for contrast in contrasts_list:
+        # each 'contrast' is a string the user input of the desired contrast
+
+        # remove all spaces
+        parsed_contrast = contrast.replace(' ', '')
+
+
+        EVs_in_contrast = []
+        parsed_EVs_in_contrast = []
+
+        if '>' in parsed_contrast:
+
+            process_contrast('>')
+
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1])
+
+
+        elif '<' in parsed_contrast:
+
+            process_contrast('<')
+
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0])
+
+
+        elif '+' in parsed_contrast:
+
+            process_contrast('+')
+
+            # check how many in list, if single, yeah
+
+
+        elif '-' in parsed_contrast:
+
+            process_contrast('-')
+
+            # check how many in list, if single, yeah
+        
+
+
+
+    '''
+    model_name = c.model_name
 
     ###generate the final FSL .grp, .mat, .con, .fts files 
-    model = c.outputModelFilesDirectory + '/' + c.outputModelFile
+    model = c.output_dir + '/' + model_name + '.csv'
 
-    con = c.contrastFile
-    model_name = c.modelName
-
-    rdr = csv.DictReader(open(model, "rb"))
+    rdr = csv.DictReader(open(model, 'rb'))
     no_of_columns = len(rdr.fieldnames)
 
     tuple_columns = tuple([n for n in range(1, no_of_columns)])
@@ -1127,25 +1259,37 @@ def run(config, fTest, CPAC_run = False):
     print "Length of data list: ", len(data[:])
     print ""
     data = np.array(data, dtype=np.float16)
+    '''
 
+    # convert the Patsy-generated design matrix into a NumPy array
+    data = np.asarray((dmatrix))
 
 
     try:
-        create_mat_file(data, model_name, c.outputModelFilesDirectory)
+        create_mat_file(data, c.model_name, c.output_dir)
     except:
-        print "Error: Could not create .mat file."
-        print ""
+        print '\n\n[!] CPAC says: Could not create .mat file during ' \
+                  'group-level analysis model file generation.\n'
+        print 'Attempted output directory: ', c.output_dir, '\n\n'
         raise Exception
 
     try:
-        create_grp_file(data, model_name, gp_var, c.outputModelFilesDirectory)
+        create_grp_file(data, c.model_name, gp_var, c.output_dir)
     except:
-        print "Error: Could not create .grp file."
-        print ""
+        print '\n\n[!] CPAC says: Could not create .grp file during ' \
+                  'group-level analysis model file generation.\n'
+        print 'Attempted output directory: ', c.output_dir, '\n\n'
         raise Exception
 
+    try:
+        create_con_file(contrasts_dict, c.model_name, c.output_dir)
+    except:
+        print '\n\n[!] CPAC says: Could not create .con file during ' \
+                  'group-level analysis model file generation.\n'
+        print 'Attempted output directory: ', c.output_dir, '\n\n'
+        raise Exception
 
-    create_con_ftst_file(con, model_name, fTest, c.outputModelFilesDirectory)
+    #create_con_ftst_file(con, model_name, fTest, c.output_dir)
 
 
 

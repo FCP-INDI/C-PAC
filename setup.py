@@ -107,14 +107,6 @@ if __name__ == "__main__":
     import site, shutil
     from shutil import rmtree, copytree
     
-    # Temporary code to remove pre-existing CPAC directories
-    # before re-installing - needs more elegant solution
-    for sitePath in site.getsitepackages():
-        for root,dirs,files in os.walk(sitePath):
-            if 'CPAC' in root:
-                shutil.rmtree(root)
-                print "Removing directory ", root
-
     # Get in the right directory
     old_path = os.getcwd()
     local_path = os.path.dirname(os.path.abspath(sys.argv[0]))

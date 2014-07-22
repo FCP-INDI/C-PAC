@@ -2691,7 +2691,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             except:
                 logConnectionError('%s to MNI (FSL)' % (output_name), \
                         num_strat, strat.get_resource_pool(), '0021')
-                raise
+                raise Exception
 
             strat.update_resource_pool({'%s_to_standard' % (output_name): \
                     (apply_fsl_warp, 'out_file')})
@@ -2713,9 +2713,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat))
 
+            output_average = pe.Node(interface=preprocess.Maskave(),
+                    name='%s_smooth_mean_%d' % (output_name, num_strat))
+
+
         elif map_node == 1:
             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat), \
+                    iterfield=['in_file'])
+
+            output_average = pe.MapNode(interface=preprocess.Maskave(),
+                    name='%s_smooth_mean_%d' % (output_name, num_strat), \
                     iterfield=['in_file'])
 
 
@@ -2733,6 +2741,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     get_node_from_resource_pool('functional_brain_mask')
             workflow.connect(node, out_file, output_smooth, 'operand_files')
 
+            workflow.connect(output_smooth, 'out_file', output_average, \
+                    'in_file')
+
 
         except:
             logConnectionError('%s smooth' % output_name, num_strat, \
@@ -2741,7 +2752,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         strat.append_name(output_smooth.name)
         strat.update_resource_pool({'%s_smooth' % (output_name): \
-                (output_smooth, 'out_file')})
+                (output_smooth, 'out_file'),
+                '%s_smooth_mean' % (output_name): \
+                (output_average, 'out_file')})
 
 
         if 1 in c.runRegisterFuncToMNI:
@@ -2751,10 +2764,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat))
 
+                output_to_standard_average = pe.Node(interface= \
+                        preprocess.Maskave(), name='%s_to_standard_smooth_' \
+                        'mean_%d' % (output_name, num_strat))
+
+
             elif map_node == 1:
                 output_to_standard_smooth = pe.Node(interface= \
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat), \
+                        iterfield=['in_file'])
+
+                output_to_standard_average = pe.MapNode(interface= \
+                        preprocess.Maskave(), name='%s_to_standard_smooth_' \
+                        'mean_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
 
 
@@ -2774,16 +2797,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(node, out_file, output_to_standard_smooth,
                         'operand_files')
 
+                workflow.connect(output_to_standard_smooth, 'out_file', \
+                        output_to_standard_average, 'in_file')
+
 
             except:
                 logConnectionError('%s smooth in MNI' % output_name, \
                         num_strat, strat.get_resource_pool(), '0028')
-                raise
+                raise Exception
 
 
             strat.append_name(output_to_standard_smooth.name)
             strat.update_resource_pool({'%s_to_standard_smooth' % \
-                    (output_name):(output_to_standard_smooth, 'out_file')})
+                    (output_name):(output_to_standard_smooth, 'out_file'),
+                    '%s_to_standard_smooth_mean' % (output_name): \
+                    (output_average, 'out_file')})
             create_log_node(output_to_standard_smooth, 'out_file', num_strat)
 
             
@@ -2798,6 +2826,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
+
 
 
 

@@ -103,7 +103,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
     model_sub_list = []
     
 
-    if c.runScrubbing == 1:
+    if 1 in c.runScrubbing:
 
         #get scrubbing threshold
     
@@ -125,31 +125,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         print "No scrubbing enabled."
 
+        if len(c.scrubbingThreshold) == 1:
+            threshold_val = c.scrubbingThreshold[0]
 
-    # pick the right parameter file from the pipeline folder
-    # create a dictionary of subject and measures in measure_list
-    if c.runScrubbing == 1:
-  
-        try:
-            parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
-
-            if os.path.exists(parameter_file):
-                import csv
-                measure_dict = {}
-                f = csv.DictReader(open(parameter_file,'r'))
-
-                for line in f:
-                    measure_map = {}
-                    for m in measure_list:
-                        if line.get(m):
-                            measure_map[m] = line[m]
-
-                    measure_dict[line['Subject']] = measure_map
-            else:
-                print "No file name %s found"%parameter_file
-                
-        except Exception:
-            print "Exception while extracting parameters from movement file - %s"%(parameter_file)
 
 
 
@@ -322,10 +300,22 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Run 'create_fsl_model' script to extract phenotypic data from
         # the phenotypic file for each of the subjects in the subject list
 
+        # get the parameter file so it can be passed to create_fsl_model.py
+        # so MeanFD or other measures can be included in the design matrix
+        parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+
+        if not os.path.exists(parameter_file):
+            print '\n\n[!] CPAC says: Could not open the parameter file. ' \
+                  'This can usually be found in the output directory of ' \
+                  'your individual-level analysis runs.\n'
+            print 'Path not found: ', parameter_file, '\n\n'
+            raise Exception
+
+
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, c.fTest, True)
+            create_fsl_model.run(conf, c.fTest, parameter_file, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
@@ -338,7 +328,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
             
-        model_sub_list.append((conf.outputModelFilesDirectory, conf.subjectListFile))
+        model_sub_list.append((conf.output_dir, conf.subject_list))
 
 
     
@@ -398,12 +388,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         wf = pe.Workflow(name = currentDerivative) 
 
-        workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, conf.modelName, scan_ids[0])
+        workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, conf.model_name, scan_ids[0])
         workDir = workDir + '/' + strgy_path_name
 
         wf.base_dir = workDir
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (conf.modelName))
+        log_dir = os.path.join(conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (conf.model_name))
         try:
             os.makedirs(log_dir)
         except:
@@ -424,15 +414,21 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         #logging.update_logging(config)
 
         iflogger = logging.getLogger('interface')
+
+
+
+        # create the 'ordered_paths' list, which is a list of all of the
+        # output paths of the output files being included in the current
+        # group-level analysis model
+        #     'ordered_paths' is later connected to the 'zmap_files' input
+        #     of the group analysis workflow - the files listed in this list
+        #     are merged into the merged 4D file that goes into group analysis
       
         group_sublist = open(subject_list, 'r')
-
         sublist_items = group_sublist.readlines()
 
         input_subject_list = [line.rstrip('\n') for line in sublist_items \
                               if not (line == '\n') and not line.startswith('#')]
-
-
 
         ordered_paths = []
         pathcount = 0
@@ -463,6 +459,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
                 if (c.repeatedMeasures == True):
 
+                    # if repeated measures is enabled, make sure all of the
+                    # relevant indicators are in the path before adding it
+                    # to 'ordered_paths', i.e. the session and/or scan IDs
+
                     if sub.count(',') == 1:
                         if (sub_id in path) and (other_id in path):
                             pathcount += 1
@@ -474,21 +474,13 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                             pathcount += 1
                             ordered_paths.append(path)
 
-
                 else:
                     if sub in path:
                         pathcount += 1
                         ordered_paths.append(path)
 
 
-        '''
-        print >>diag, "Ordered paths: ", ordered_paths
-        print >>diag, ""
 
-        print >>diag, "> The list ordered_paths is then fed into the group analysis"
-        print >>diag, "> workflow input 'zmap_files'."
-        print >>diag, ""
-        '''
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
@@ -541,7 +533,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName))
+        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name))
         
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
@@ -562,7 +554,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 #         if c.mixedScanAnalysis == True:
 #             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-        ds.inputs.base_directory = out_dir
+        ds.inputs.base_directory = conf.output_dir
         ds.inputs.container = ''
         
         ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),

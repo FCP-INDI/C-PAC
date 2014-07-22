@@ -166,7 +166,7 @@ def run(config_file, subject_list_file, output_path_file):
 
 
     # load the subject list (in the main GUI window, not the group analysis
-    # one), and prase the yaml so that the subIDs and session IDs can be
+    # one), and parse the yaml so that the subIDs and session IDs can be
     # accessed for below
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
@@ -180,7 +180,6 @@ def run(config_file, subject_list_file, output_path_file):
 
     # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
     # File' provided in the dialog box when group analysis is first run
-
     for file in glob.glob(os.path.abspath(output_path_file)):
         path_list = open(file, 'r').readlines()
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
@@ -291,7 +290,8 @@ def run(config_file, subject_list_file, output_path_file):
 
 
     procss = []
-        
+    
+
     for resource, glob_key in analysis_map_gp.keys():
 
         # 'resource' is each type of output
@@ -299,22 +299,22 @@ def run(config_file, subject_list_file, output_path_file):
         # except with the subject ID replaced with a wildcard (*)
         
         if resource in c.derivativeList:
-            
-            if 1 in c.runGroupAnalysis:
-            
-                #get all the motion parameters across subjects
-                try:
+                 
+            #get all the motion parameters across subjects
+            try:
 
-                    from CPAC.utils import extract_parameters
-                    extract_parameters.run(c.outputDirectory)
+                from CPAC.utils import extract_parameters
+                extract_parameters.run(c.outputDirectory)
 
-                except Exception:
-                    print "Extract parameters script did not run correctly"
+            except Exception:
+                print "Extract parameters script did not run correctly"
 
-                if not c.runOnGrid:
+            if not c.runOnGrid:
                     
-                    from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                    procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
+                from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+                procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
+
+       
           
     
     

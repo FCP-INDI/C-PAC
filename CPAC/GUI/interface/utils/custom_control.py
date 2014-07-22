@@ -447,7 +447,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
         
         #mainSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,200), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
         
         self.values = []
@@ -547,6 +547,15 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             # increment IDs
             self.idx += 2
+
+
+        # automatically include some of the pre-calculated measures from
+        # individual-level analysis as labels in the Model Setup checkbox
+        # to remind users that they can include these into the design formula
+        wx.StaticText(self.scrollWin, label='MeanFD', pos=(5,j))
+        wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
+        wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
+        wx.StaticText(self.scrollWin, label='Measure_Mean', pos=(5,j+90))
 
 
 

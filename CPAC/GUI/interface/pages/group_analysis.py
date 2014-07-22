@@ -37,15 +37,7 @@ class GPASettings(wx.ScrolledWindow):
         self.counter = counter
         
         self.page = GenericClass(self, "FSL/FEAT Group Analysis Options")
-        
-        self.page.add(label="Run Group Analysis ", 
-                      control=control.CHOICE_BOX, 
-                      name='runGroupAnalysis', 
-                      type=dtype.LSTR, 
-                      comment="Run group analysis using FSL/FEAT.", 
-                      values=["Off","On"],
-                      wkf_switch = True)
-        
+               
         self.page.add(label="Number of Models to Run Simultaneously ",
                       control=control.INT_CTRL,
                       name='numGPAModelsAtOnce',
@@ -57,15 +49,22 @@ class GPASettings(wx.ScrolledWindow):
                     control = control.CHECKLIST_BOX,
                     name = "derivativeList",
                     type = dtype.LSTR,
-                    values = ['ROI Average SCA', 
+                    values = ['ROI Average SCA',
+                              'ROI Average SCA (z-scored)', 
                               'Voxelwise SCA',
+                              'Voxelwise SCA (z-scored)',
                               'Multiple Regression SCA',
                               'Dual Regression',
                               'VMHC',
+                              'VMHC (z-scored)',
                               'ALFF', 
+                              'ALFF (z-scored)',
                               'f/ALFF', 
+                              'f/ALFF (z-scored)',
                               'ReHo',
-                              'Network Centrality'],
+                              'ReHo (z-scored)',
+                              'Network Centrality',
+                              'Network Centrality (z-scored)'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
                     size = (220,160))
  

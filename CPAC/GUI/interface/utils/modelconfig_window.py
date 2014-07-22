@@ -451,7 +451,7 @@ class ModelConfig(wx.Frame):
             print self.gpa_settings['pheno_file'], '\n\n'
             raise IOError
 
-
+        '''
         try:
             dmatrix = patsy.dmatrix(self.gpa_settings['design_formula'], self.pheno_data_dict)
         except:
@@ -461,7 +461,7 @@ class ModelConfig(wx.Frame):
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
             raise Exception
-
+        '''
 
 
 
