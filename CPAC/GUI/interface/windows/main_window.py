@@ -291,7 +291,7 @@ class ListBox(wx.Frame):
                 for p in pipelines:
 
                     pipeline = self.pipeline_map.get(p)
-                
+
                     if os.path.exists(pipeline):
                         try:
                             import yaml
@@ -300,7 +300,7 @@ class ListBox(wx.Frame):
                                 raise Exception("Error reading config file- %s", config)
                     
                         if config.get('outputDirectory'):
-                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'), '*', 'path_files_here' , '*.txt')
                         else:
                             derv_path = ''
                     

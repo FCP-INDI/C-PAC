@@ -116,7 +116,11 @@ class ModelDesign(wx.Frame):
                 name = ctrl.get_name()
 
                 if name == 'modelGroupVariancesSeparately':
-                    ctrl.set_value(self.gpa_settings['group_sep'])
+
+                    if self.gpa_settings['group_sep'] == True:
+                        ctrl.set_value('On')
+                    elif self.gpa_settings['group_sep'] == False:
+                        ctrl.set_value('Off')
             
 
         self.page.set_sizer()
@@ -320,7 +324,7 @@ class ModelDesign(wx.Frame):
                                 'all subjects run through CPAC was ' \
                                 'generated along with the main CPAC ' \
                                 'subject list (see subject_list_group_' \
-                                'analysis.txt)\n\n.Tip 2: An easy way to ' \
+                                'analysis.txt).\n\nTip 2: An easy way to ' \
                                 'manually create this file is to copy the ' \
                                 'subjects column from your Regressor/EV ' \
                                 'spreadsheet.'))

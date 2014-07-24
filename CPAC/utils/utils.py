@@ -23,6 +23,7 @@ files_folders_wf = {
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
     'xform_matrix' : 'parameters',
+    'output_means' : 'parameters',
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
@@ -1430,3 +1431,109 @@ def create_group_log_template(subject_scan_map, log_dir):
     html.close()
     
     return
+
+
+
+def extract_output_mean(in_file, output_name):
+
+    '''
+    function takes 'in_file', which should be an intermediary 1D file
+    from individual-level analysis, containing the mean of the output across
+    all voxels
+
+    it then parses this value and writes it to a .csv file named
+    output_means.csv located in the subject's output directory
+    '''
+
+    import os
+
+    if os.path.exists(in_file):
+
+        mean_oned_file = open(in_file, 'rU')
+        line = mean_oned_file.readline()
+        mean_oned_file.close()
+
+        line = line.split('[')[0].strip(' ')
+
+        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % output_name)
+        output_means = open(output_means_file, 'wb')
+
+        print >>output_means, line
+
+        output_means.close()
+
+
+    return output_means_file
+
+
+
+def create_output_mean_csv(subject_dir):
+
+    '''
+    this function finds all of the mean_{output}.txt files in the subject's
+    output directory, collects the data and organizes them into one .csv
+    file in the subject directory
+    '''
+
+    import os
+    import csv
+
+    output_vals = {}
+
+    subID = subject_dir.split('/')[len(subject_dir.split('/'))-1]
+    means_dir = os.path.join(subject_dir, 'output_means')
+
+    # extract the mean values
+    for root, dirs, files in os.walk(means_dir):
+
+        for filename in files:
+
+            if 'mean_' in filename:
+
+                output = filename.replace('mean_', '')
+                output = output.replace('.txt', '')
+
+                filepath = os.path.join(root, filename)
+
+                if os.path.exists(filepath):
+                    try:
+                        mean_file = open(filepath, 'rU')
+                        val = mean_file.readline()
+                        val = val.strip('\n')
+                    except:
+                        print '\n\n[!] CPAC says: Could not open the output ' \
+                              'mean text file.\n'
+                        print 'Path: ', filepath, '\n\n'
+                        raise Exception
+
+                else:
+                    print '\n\n[!] CPAC says: Could not find the output mean ' \
+                          'text file.\n'
+                    print 'Path not found: ', filepath, '\n\n'
+                    raise Exception
+
+                output_vals[output] = val
+
+    # now take the extracted mean values and write them into the .csv file!
+    csv_file_path = os.path.join(subject_dir, 'output_means_%s.csv' % subID)
+    csv_file = open(csv_file_path, 'wt')
+
+    deriv_string = ''
+    val_string = ''
+
+    for deriv in output_vals.keys():
+        if deriv_string == '':
+            deriv_string = deriv
+            val_string = output_vals[deriv]
+        else:
+            deriv_string = deriv_string + ',' + deriv
+            val_string = val_string + ',' + output_vals[deriv]
+
+    print >>csv_file, deriv_string
+    print >>csv_file, val_string
+
+
+    csv_file.close()
+
+
+    

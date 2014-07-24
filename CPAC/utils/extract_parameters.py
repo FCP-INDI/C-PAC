@@ -6,11 +6,19 @@ def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
     import os
     import re
 
-    filename = scan_name + threshold + "_all_params.csv"
-    filename = filename.lstrip("_")
-    outfile = os.path.join(output_dir, filename)
+    if threshold == None:
+        filename = scan_name + "_all_params.csv"
+        filename = filename.lstrip("_")
+        outfile = os.path.join(output_dir, filename)
 
-    threshold_val = float(re.sub(r"[a-zA-Z_]", '', threshold))
+        threshold_val = 0.0
+
+    else:
+        filename = scan_name + threshold + "_all_params.csv"
+        filename = filename.lstrip("_")
+        outfile = os.path.join(output_dir, filename)
+
+        threshold_val = float(re.sub(r"[a-zA-Z_]", '', threshold))
 
     if flag:
         f = open(outfile, 'w')
@@ -45,7 +53,7 @@ def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
     f.close()
 
 
-def grab(output_dir):
+def grab(output_dir, scrubbing):
     """
     Method to grab all the motion parameters
     and power parameters file from each subject
@@ -96,7 +104,7 @@ def grab(output_dir):
                 print "running for...", scan, threshold
                 Flag = 1
                 #merge files for each subject
-                for sub  in os.listdir(p):
+                for sub in os.listdir(p):
                     sub = os.path.join(p, sub)
                     motion_file = os.path.join(sub, 'motion_params', scan,
                                                'motion_parameters.txt')
@@ -109,10 +117,27 @@ def grab(output_dir):
                               motion_file, power_file, Flag)
                         Flag = 0
 
+
+            if 0 in scrubbing:
+                for sub in os.listdir(p):
+                    sub = os.path.join(p, sub)
+                    motion_file = os.path.join(sub, 'motion_params', scan,
+                                               'motion_parameters.txt')
+                    power_file = os.path.join(sub, 'power_params', scan,
+                                              'pow_params.txt')
+
+                    if os.path.exists(motion_file) and \
+                        os.path.exists(power_file):
+                        merge(p, scan, None,
+                              motion_file, power_file, Flag)
+                        Flag = 0
+                
+
+
     print "process finished..."
     
-def run(output_path):
-    grab(output_path)
+def run(output_path, scrubbing):
+    grab(output_path, scrubbing)
 
 if __name__ == "__main__":
     import sys

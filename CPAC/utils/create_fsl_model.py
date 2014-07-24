@@ -511,17 +511,12 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
     dimx = None
     dimy = None
 
-    print 'data, bitches!: ', data
-
     if len(data.shape) == 1:
         dimy = 1
         dimx = data.shape[0]
     else:
         dimx, dimy = data.shape
 
-    print 'made it this far!'
-    print 'dimx: ', dimx
-    print 'dimy: ', dimy
 
     ppstring = '/PPheights'
 
@@ -531,7 +526,6 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
     ppstring += '\n'
 
-    print 'here?'
 
     f = open(os.path.join(outputModelFilesDirectory, model_name + '.mat'), 'w')
 
@@ -539,7 +533,6 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
     print >>f, '/NumPoints\t%d' %dimx
     print >>f, ppstring
 
-    print 'not bad'
 
     print >>f, '/Matrix'
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
@@ -907,7 +900,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, param_file, CPAC_run = False):
+def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = False):
 
     # create_fsl_model.run()
     # this is called from cpac_group_analysis_pipeline.py
@@ -934,6 +927,7 @@ def run(config, fTest, param_file, CPAC_run = False):
         except:
             raise Exception("Error in reading %s configuration file" % config)
 
+    import csv
     import numpy as np
 
     # return the data from the phenotype file processed properly for Patsy
@@ -948,92 +942,190 @@ def run(config, fTest, param_file, CPAC_run = False):
     pheno_data_dict = create_pheno_dict(c)
 
 
+    if param_file != None:
 
-    # insert MeanFD or other measures into pheno_data_dict
-    #     first, pull the measure values from the all_params .csv file written
-    #     to the individual-level analysis output directory
-    #     then, ensure the values are in the same order as the subject ids
+        ''' extract motion measures for insertion as EVs if selected '''
+        # insert MeanFD or other measures into pheno_data_dict
+        #     first, pull the measure values from the all_params .csv file written
+        #     to the individual-level analysis output directory
+        #     then, ensure the values are in the same order as the subject ids
 
-    measures = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+        measures = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
 
-    try:
+        try:
 
-        import csv
-        measure_dict = {}
-        f = csv.DictReader(open(param_file,'rU'))
+            measure_dict = {}
+            f = csv.DictReader(open(param_file,'rU'))
 
-        for line in f:
-            measure_map = {}
-            for m in measures:
-                if line.get(m):
-                    measure_map[m] = line[m]
+            for line in f:
+                measure_map = {}
+                for m in measures:
+                    if line.get(m):
+                        measure_map[m] = line[m]
 
-            measure_dict[line['Subject']] = measure_map
+                measure_dict[line['Subject']] = measure_map
+           
+        except:
+            print '\n\n[!] CPAC says: Could not extract required information ' \
+                  'from the parameters file.\n'
+            print 'Path: ', param_file, '\n\n'
+            raise Exception
 
-        print measure_dict
+
+
+        # function to demean measures the user included in the design formula
+        # and then insert them in the right location in the pheno_data_dict
+        def add_measure_to_pheno(measure_name):
+
+            measure_list = []
+
+            # create a blank list that is the proper length
+            for sub in pheno_data_dict[c.subject_id_label]:
+                measure_list.append(0)
+
+            for subID in measure_dict.keys():
+
+                # find matching subject IDs between the measure_dict and the
+                # pheno_data_dict so we can insert measure values into the
+                # pheno_data_dict
+                for subject in pheno_data_dict[c.subject_id_label]:
+
+                    if subject == subID:
+
+                        # return the index (just an integer) of where in the
+                        # pheno_data_dict list structure a subject ID is
+                        idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+
+                        # insert Mean FD value in the proper point
+                        measure_list[idx] = float(measure_dict[subID][measure_name])
+
+
+            # time to demean the MeanFD values
+            measure_sum = 0.0
+
+            for measure in measure_list:
+                measure_sum = measure_sum + measure
+
+            measure_mean = measure_sum / len(measure_list)
+
+            idx = 0
+
+            for measure in measure_list:
+                measure_list[idx] = measure - measure_mean
+                idx += 1
+
+            # add this new list to the pheno_data_dict
+            pheno_data_dict[measure_name] = np.array(measure_list)
+
+
+        ''' insert measures into pheno data '''
+        # add measures selected in the design formula into pheno_data_dict
+        # they are also demeaned prior
+        for measure in measures:
+            if measure in c.design_formula:
+                add_measure_to_pheno(measure)
+
+
+
+    ''' extract the mean of derivative for each subject if selected '''
+    # if the user has selected it to be part of their model, insert the mean
+    # of the outputs included in group analysis (i.e. if running ReHo in
+    # group-level analysis, have the mean of each subject's ReHo output
+    # included as an EV in the phenotype - regress out the mean of measure
+    #     pull the mean value from the output_means.csv file in the subject
+    #     directory of the appropriate pipeline's output folder
+    sub_means_dict = {}
+    output_means_dict = {}
+
+    for sub in pheno_data_dict[c.subject_id_label]:
+
+        output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+
+        if os.path.exists(output_means_file):
+            
+            try:
+
+                output_means = csv.DictReader(open(output_means_file,'rU'))
                 
-    except:
-        print '\n\n[!] CPAC says: Could not extract required information ' \
-              'from the parameters file.\n'
-        print 'Path: ', param_file, '\n\n'
-        raise Exception
+            except:
+
+                print '\n\n[!] CPAC says: Could not open the output_means' \
+                      '.csv file usually located in each subject\'s output ' \
+                      'folder in the output directory.\n'
+                print 'Path: ', output_means_file, '\n\n'
+                raise Exception
+
+            # pull in the output_means .csv as a dictionary
+            for row in output_means:
+                sub_means_dict = row
+
+            output_means_dict[sub] = str(row[current_output])      
+
+
+        else:
+            print '\n\n[!] CPAC says: The output_means.csv file usually ' \
+                  'located in each subject\'s output folder in the output ' \
+                  'directory does not exist!\n'
+            print 'Path not found: ', output_means_file, '\n\n'
+            raise Exception
+
+    
+    # by the end of this for loop above, output_means_dict should look
+    # something like this:
+    #    {sub1: mean_val, sub2: mean_val, ..}
+    #        as this code runs once per output, this dictionary contains the
+    #        mean values of the one current output, right now
 
 
 
-    # function to demean measures the user included in the design formula
-    # and then insert them in the right location in the pheno_data_dict
-    def add_measure_to_pheno(measure_name):
 
-        measure_list = []
+    ''' insert mean of derivatives into pheno data '''
+    means_list = []
 
-        # create a blank list that is the proper length
-        for sub in pheno_data_dict[c.subject_id_label]:
-            measure_list.append(0)
+    # create a blank list that is the proper length
+    for sub in pheno_data_dict[c.subject_id_label]:
+        means_list.append(0)
 
-        for subID in measure_dict.keys():
+    for subID in output_means_dict.keys():
 
-            # find matching subject IDs between the measure_dict and the
-            # pheno_data_dict so we can insert measure values into the
-            # pheno_data_dict
-            for subject in pheno_data_dict[c.subject_id_label]:
+        # find matching subject IDs between the output_means_dict and the
+        # pheno_data_dict so we can insert mean values into the
+        # pheno_data_dict
+        for subject in pheno_data_dict[c.subject_id_label]:
 
-                if subject == subID:
+            if subject == subID:
 
-                    # return the index (just an integer) of where in the
-                    # pheno_data_dict list structure a subject ID is
-                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+                # return the index (just an integer) of where in the
+                # pheno_data_dict list structure a subject ID is
+                idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
 
-                    # insert Mean FD value in the proper point
-                    measure_list[idx] = float(measure_dict[subID][measure_name])
+                # insert Mean FD value in the proper point
+                means_list[idx] = float(output_means_dict[subID])
 
 
-        # time to demean the MeanFD values
-        measure_sum = 0.0
+    # time to demean the means!
+    means_sum = 0.0
 
-        for measure in measure_list:
+    for mean in means_list:
 
-            measure_sum = measure_sum + measure
+        means_sum = means_sum + mean
 
-        measure_mean = measure_sum / len(measure_list)
+    measure_mean = means_sum / len(means_list)
 
-        idx = 0
+    idx = 0
 
-        for measure in measure_list:
+    for mean in means_list:
 
-            measure_list[idx] = measure - measure_mean
-            idx += 1
+        means_list[idx] = mean - measure_mean
+        idx += 1
 
 
+    ''' insert means into pheno data if selected '''
+
+    if 'Measure_Mean' in c.design_formula:
         # add this new list to the pheno_data_dict
-        pheno_data_dict[measure_name] = measure_list
-
-
-    # add measures selected in the design formula into pheno_data_dict
-    # they are also demeaned prior
-    for measure in measures:
-
-        if measure in c.design_formula:
-            add_measure_to_pheno(measure)
+        pheno_data_dict['Measure_Mean'] = np.array(means_list)
+   
 
 
 
@@ -1080,6 +1172,7 @@ def run(config, fTest, param_file, CPAC_run = False):
 
 
 
+    ''' create the Patsy design matrix '''
     # parse through ev_selections, find the categorical names within the
     # design formula and insert C(<name>, Sum) into the design formula
     #     this is required for Patsy to process the categorical EVs properly

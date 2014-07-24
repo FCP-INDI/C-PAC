@@ -304,10 +304,12 @@ def run(config_file, subject_list_file, output_path_file):
             try:
 
                 from CPAC.utils import extract_parameters
-                extract_parameters.run(c.outputDirectory)
+                extract_parameters.run(c.outputDirectory, c.runScrubbing)
 
-            except Exception:
-                print "Extract parameters script did not run correctly"
+            except:
+                print '\n\n [!] CPAC says: Extract parameters script did ' \
+                      'not run correctly.\n\n'
+                raise Exception
 
             if not c.runOnGrid:
                     

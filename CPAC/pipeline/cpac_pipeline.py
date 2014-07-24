@@ -48,7 +48,8 @@ from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
 from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, get_scan_params, \
                              get_tr, extract_txt, create_log, \
-                             create_log_template
+                             create_log_template, extract_output_mean, \
+                             create_output_mean_csv
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -2716,6 +2717,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             output_average = pe.Node(interface=preprocess.Maskave(),
                     name='%s_smooth_mean_%d' % (output_name, num_strat))
 
+            mean_to_csv = pe.Node(util.Function(input_names=['in_file', 'output_name'],
+                        output_names=['output_mean'],
+                        function=extract_output_mean),
+                        name='%s_smooth_mean_to_txt_%d' % (output_name, \
+                        num_strat))
+
 
         elif map_node == 1:
             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
@@ -2725,6 +2732,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             output_average = pe.MapNode(interface=preprocess.Maskave(),
                     name='%s_smooth_mean_%d' % (output_name, num_strat), \
                     iterfield=['in_file'])
+
+            mean_to_csv = pe.MapNode(util.Function(input_names=['in_file', 'output_name'],
+                        output_names=['output_mean'],
+                        function=extract_output_mean),
+                        name='%s_smooth_mean_to_txt_%d' % (output_name, \
+                        num_strat), iterfield=['in_file'])
+
+
+        mean_to_csv.inputs.output_name = output_name + '_smooth'
 
 
         try:
@@ -2744,6 +2760,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             workflow.connect(output_smooth, 'out_file', output_average, \
                     'in_file')
 
+            workflow.connect(output_average, 'out_file', mean_to_csv, \
+                    'in_file')
+
 
         except:
             logConnectionError('%s smooth' % output_name, num_strat, \
@@ -2753,8 +2772,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         strat.append_name(output_smooth.name)
         strat.update_resource_pool({'%s_smooth' % (output_name): \
                 (output_smooth, 'out_file'),
-                '%s_smooth_mean' % (output_name): \
-                (output_average, 'out_file')})
+                'output_means.@%s' % (output_name): (mean_to_csv, 'output_mean')})
 
 
         if 1 in c.runRegisterFuncToMNI:
@@ -2768,6 +2786,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         preprocess.Maskave(), name='%s_to_standard_smooth_' \
                         'mean_%d' % (output_name, num_strat))
 
+                standard_mean_to_csv = pe.Node(util.Function( \
+                        input_names=['in_file', 'output_name'], output_names=['output_mean'],
+                        function=extract_output_mean),
+                        name='%s_to_standard_smooth_mean_to_txt_%d' % \
+                        (output_name, num_strat))
+
 
             elif map_node == 1:
                 output_to_standard_smooth = pe.Node(interface= \
@@ -2779,6 +2803,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         preprocess.Maskave(), name='%s_to_standard_smooth_' \
                         'mean_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
+
+                standard_mean_to_csv = pe.MapNode(util.Function( \
+                        input_names=['in_file', 'output_name'], output_names=['output_mean'],
+                        function=extract_output_mean),
+                        name='%s_to_standard_smooth_mean_to_txt_%d' % \
+                        (output_name, num_strat), iterfield=['in_file'])
+
+
+            standard_mean_to_csv.inputs.output_name = output_name + '_to_standard_smooth'
 
 
             try:
@@ -2800,6 +2833,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(output_to_standard_smooth, 'out_file', \
                         output_to_standard_average, 'in_file')
 
+                workflow.connect(output_to_standard_average, 'out_file', \
+                        standard_mean_to_csv, 'in_file')
+
 
             except:
                 logConnectionError('%s smooth in MNI' % output_name, \
@@ -2810,8 +2846,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(output_to_standard_smooth.name)
             strat.update_resource_pool({'%s_to_standard_smooth' % \
                     (output_name):(output_to_standard_smooth, 'out_file'),
-                    '%s_to_standard_smooth_mean' % (output_name): \
-                    (output_average, 'out_file')})
+                    'output_means.@%s_to_standard_smooth' % (output_name): (standard_mean_to_csv, 'output_mean')})
             create_log_node(output_to_standard_smooth, 'out_file', num_strat)
 
             
@@ -4397,6 +4432,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             ###raise Exception
         '''
     
+        subject_dir = os.path.join(c.outputDirectory, 'pipeline_' + pipeline_id, subject_id)
+
+        create_output_mean_csv(subject_dir)
+
+
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
@@ -4415,7 +4455,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
     
             ### Automatically generate QC index page
-            create_all_qc.run(c.outputDirectory)       
+            create_all_qc.run(os.path.join(c.outputDirectory, 'pipeline_' + pip_id))       
         
 
 

@@ -227,7 +227,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
                 else:
                     if sub in path:
-                        exist_paths.append(sub)
+                        exist_paths.append(sub)           
 
 
 
@@ -304,18 +304,61 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # so MeanFD or other measures can be included in the design matrix
         parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
 
-        if not os.path.exists(parameter_file):
-            print '\n\n[!] CPAC says: Could not open the parameter file. ' \
-                  'This can usually be found in the output directory of ' \
-                  'your individual-level analysis runs.\n'
-            print 'Path not found: ', parameter_file, '\n\n'
-            raise Exception
+        if 1 in c.runGenerateMotionStatistics:
+
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not open the parameter file. ' \
+                      'If Generate Motion Statistics is enabled, this can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
+
+        elif (1 not in c.runGenerateMotionStatistics) and (os.path.exists(parameter_file)):
+
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not open the parameter file. ' \
+                      'If Generate Motion Statistics is enabled, this can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
+
+        else:
+
+            def no_measures_error(measure):
+                print '\n\n[!] CPAC says: The measure %s was included in ' \
+                      'your group analysis design matrix formula, but ' \
+                      'Generate Motion Statistics was not run during ' \
+                      'individual-level analysis.\n' % measure
+                print 'Please run Generate Motion Statistics if you wish ' \
+                      'to include this measure in your model.\n'
+                print 'If you HAVE completed a run with this option ' \
+                      'enabled, then you are seeing this error because ' \
+                      'the motion parameter file normally created by this ' \
+                      'option is missing.\n\n'
+                raise Exception
+
+            for measure in measure_list:
+                if (measure in conf.design_formula):
+                    no_measures_error(measure)
+
+            parameter_file = None
+
+
+        # path to the pipeline folder to be passed to create_fsl_model.py
+        # so that certain files like output_means.csv can be accessed
+        pipeline_path = os.path.join(c.outputDirectory, p_id[0])
+
+        # the current output that cpac_group_analysis_pipeline.py and
+        # create_fsl_model.py is currently being run for
+        current_output = s_paths[0].replace(pipeline_path, '').split('/')[2]
 
 
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, c.fTest, parameter_file, True)
+            create_fsl_model.run(conf, c.fTest, parameter_file, pipeline_path, current_output, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""

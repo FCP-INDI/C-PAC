@@ -45,21 +45,21 @@ class ModelConfig(wx.Frame):
 
         self.page.add(label="Subject List ",
                       control=control.COMBO_BOX,
-                      name="subjectListFile",
+                      name="subject_list",
                       type=dtype.STR,
                       comment="Full path to a list of subjects to be included in the model.\n\nThis should be a text file with one subject per line.\n\nTip 1: A list in this format contaning all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt).\n\nTIp 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.",
                       values=self.gpa_settings['subject_list'])
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
-                      name="phenotypicFile",
+                      name="pheno_file",
                       type=dtype.STR,
                       comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
                       values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Subjects Column Name ",
                       control=control.TEXT_BOX,
-                      name="subjectColumn",
+                      name="subject_id_label",
                       type=dtype.STR,
                       comment="Name of the subjects column in your EV file.",
                       values=self.gpa_settings['subject_id_label'],
@@ -81,7 +81,7 @@ class ModelConfig(wx.Frame):
         # experimental checkbox row stuff
         self.page.add(label = "Model Setup ",
                       control = control.CHECKBOX_GRID,
-                      name = "modelSetup",
+                      name = "model_setup",
                       type = 9,#dtype.LBOOL,
                       values = '',
                       comment="glob",
@@ -89,7 +89,7 @@ class ModelConfig(wx.Frame):
 
         self.page.add(label="Design Matrix Formula ",
                       control=control.TEXT_BOX,
-                      name="designMatrixFormula",
+                      name="design_formula",
                       type=dtype.STR,
                       comment="Specify a descriptor for your model.",
                       values= self.gpa_settings['design_formula'],
@@ -160,7 +160,7 @@ class ModelConfig(wx.Frame):
             # their associated checkboxes for categorical and demean
             for ctrl in self.page.get_ctrl_list():
 
-                if ctrl.get_name() == 'modelSetup':
+                if ctrl.get_name() == 'model_setup':
                     ctrl.set_value(phenoHeaderItems)
                     ctrl.set_selection(self.gpa_settings['ev_selections'])
 
@@ -184,6 +184,10 @@ class ModelConfig(wx.Frame):
     
     def load(self, event):
 
+        # when the user clicks 'Load Settings', which loads the
+        # self.gpa_settings dictionary - it populates the values for both
+        # windows, so when they hit Next, the next window is also populated
+
         dlg = wx.FileDialog(
             self, message="Choose the config fsl yaml file",
             defaultDir=os.getcwd(),
@@ -197,10 +201,46 @@ class ModelConfig(wx.Frame):
             config_map = yaml.load(open(path, 'r'))
             s_map = dict((v, k) for k, v in substitution_map.iteritems())
 
+            # load the group analysis .yml config file (in dictionary form)
+            # into the self.gpa_settings dictionary which holds all settings
+            self.gpa_settings = config_map
+
+
+            # repopulate the model setup checkbox grid, since this has to be
+            # done specially
+            if 'pheno_file' in self.gpa_settings.keys():
+
+                phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
+
+                phenoHeaderString = phenoFile.readline().rstrip('\r\n')
+                phenoHeaderItems = phenoHeaderString.split(',')
+                phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+
+                # update the 'Model Setup' box and populate it with the EVs and
+                # their associated checkboxes for categorical and demean
+                for ctrl in self.page.get_ctrl_list():
+
+                    if ctrl.get_name() == 'model_setup':
+                        ctrl.set_value(phenoHeaderItems)
+                        ctrl.set_selection(self.gpa_settings['ev_selections'])
+
+
+            # populate the rest of the controls
             for ctrl in self.page.get_ctrl_list():
+                
                 name = ctrl.get_name()
                 value = config_map.get(name)
                 dtype = ctrl.get_datatype()
+
+                # the model setup checkbox grid is the only one that doesn't
+                # get repopulated the standard way. instead it is repopulated
+                # by the code directly above
+                if name != 'model_setup':
+                    ctrl.set_value(str(self.gpa_settings[name]))
+                
+
+
+                '''
                 if isinstance(value, list):
                     val = None
                     for v in value:
@@ -208,15 +248,19 @@ class ModelConfig(wx.Frame):
                             val = val + "," + str(v)
                         else:
                             val = str(v)
+                    print 'value1: ', val
                 else:
                     val = s_map.get(value)
                     if val == None:
                         val = value
+                    print 'value2: ', val
+                '''
 
-                # print "setting value in ctrl name, value -->", name, val
-                ctrl.set_value(str(val))
+
+                #ctrl.set_value(str(val))
 
             dlg.Destroy()
+
 
 
 
@@ -279,16 +323,9 @@ class ModelConfig(wx.Frame):
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()
+
+            self.gpa_settings[name] = str(ctrl.get_selection())
             
-            if name == 'subjectListFile':
-                self.gpa_settings['subject_list'] = str(ctrl.get_selection())
-            
-            if name == 'phenotypicFile':
-                self.gpa_settings['pheno_file'] = str(ctrl.get_selection())
-                
-            if name == 'subjectColumn':
-                self.gpa_settings['subject_id_label'] = str(ctrl.get_selection())
-        
                 
         ### CHECK PHENOFILE if can open etc.
         
@@ -337,7 +374,7 @@ class ModelConfig(wx.Frame):
         # associated checkboxes for categorical and demean
         for ctrl in self.page.get_ctrl_list():
 
-            if ctrl.get_name() == 'modelSetup':
+            if ctrl.get_name() == 'model_setup':
                 ctrl.set_value(self.phenoHeaderItems)
 
 
@@ -363,16 +400,9 @@ class ModelConfig(wx.Frame):
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()
+
+            self.gpa_settings[name] = str(ctrl.get_selection())
             
-            if name == 'subjectListFile':
-                self.gpa_settings['subject_list'] = str(ctrl.get_selection())
-            
-            if name == 'phenotypicFile':
-                self.gpa_settings['pheno_file'] = str(ctrl.get_selection())
-                
-            if name == 'subjectColumn':
-                self.gpa_settings['subject_id_label'] = str(ctrl.get_selection())
-        
                 
         ### CHECK PHENOFILE if can open etc.
         
@@ -423,12 +453,12 @@ class ModelConfig(wx.Frame):
             name = ctrl.get_name()
             
             # get the design matrix formula
-            if name == 'designMatrixFormula':
+            if name == 'design_formula':
 
                 self.gpa_settings['design_formula'] = str(ctrl.get_selection())
 
             # get the EV categorical + demean grid selections
-            if name == 'modelSetup':
+            if name == 'model_setup':
 
                 # basically, ctrl is checkbox_grid in this case, and
                 # get_selection goes to generic_class.py first, which links
