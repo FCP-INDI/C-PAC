@@ -90,6 +90,9 @@ def calc_blocksize(timeseries, memory_allocated=None,
         raise MemoryError('Not enough memory available to perform degree '\
                           'centrality. Need a minimum of %.2fGB' % memory_usage)
     
+    # Convert block_size to an integer before returning
+    block_size = int(block_size)
+    
     # Return memory usage and block size
     if block_sparsity:
         c = (block_size**2+block_size)/2
@@ -107,7 +110,7 @@ def calc_blocksize(timeseries, memory_allocated=None,
 
 
 def calc_corrcoef(X, Y=None):
-    """
+    '''
     Method to calculate correlation 
     Each of the columns in X will be correlated 
     with each of the columns in Y. Each column 
@@ -125,7 +128,7 @@ def calc_corrcoef(X, Y=None):
     r : numpy array
       array containing correlation values of shape x2, y2
     
-    """
+    '''
     import numpy as np
     
     if Y is None:
@@ -148,34 +151,7 @@ def calc_corrcoef(X, Y=None):
     return r
 
 
-
-def check_timeseries(data):
-    """
-    Method to check if the array contains
-    any zeros values. If it contains zeros
-    then return the indices of those points. 
-    
-    Parameters
-    ----------
-    data : numpy array
-    
-    Returns
-    -------
-    index : list
-        indices of all where a
-    data : numpy array
-    """
-    index= np.where(np.all(data==0, axis=1))[0].tolist()
-    print "index where timeseries is zero ", index
-    
-    if index:
-        data = data[~np.all(data == 0, axis=1)]
-        print "new shape", data.shape
-        
-    return index, data 
-
-
-# Cluster the data - 
+# Cluster the data
 def cluster_data(img, thr, xyz_a, k=26):
     """docstring for cluster_data"""
     from scipy.sparse import coo_matrix, cs_graph_components
@@ -225,58 +201,6 @@ def convert_pvalue_to_r(scans, threshold):
     #Inverse Survival Function (Inverse of SF)
     tvalue = s.t.isf(x, dof)
     rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
-    
-    return rvalue
-
-
-def convert_sparsity_to_r(rmatrix, threshold, full_matrix):
-    import numpy as np
-    '''
-    Method to calculate correlation threshold from sparsity threshold
-    
-    Parameters
-    ----------
-    rmatrix : array_like
-        correlation matrix
-    threshold : float
-        input sparsity threshold
-    full_matrix : boolean
-        True, if sparsity threshold is calculated on the entire matrix
-        False, if sparsity threshold is calculated only for the block 
-    
-    Returns
-    -------
-    rvalue : float
-        correlation threshold value 
-     
-    '''
-
-    print "Sparsity threshold ->", threshold
-    
-    def get_upper_triangle(matrix):
-        s = matrix.shape[0]
-        upperT = np.triu(np.ones([s,s]) - np.eye(s)).astype('bool')
-        #getting only the upper triangle, since it is an symmetric matrix
-        val = matrix[upperT]
-        return val
-    
-    
-    if full_matrix:
-        val = get_upper_triangle(rmatrix)
-        val.sort()
-        size = np.round(val.size*threshold)
-        rvalue= val[-size]
-    else:
-        #split the rmatrix into a square matrix and a rectangle block
-        val1= get_upper_triangle(rmatrix[:,:rmatrix.shape[0]])
-        val2 = rmatrix[:, rmatrix.shape[0]:].flatten()
-        #concatenate two arrays
-        val3 = np.concatenate([val1,val2])
-        #sort the array
-        val3.sort()
-        #calculating sparsity threshold for a block
-        size = np.round(val3.size*threshold)
-        rvalue = val3[-size]
     
     return rvalue
 
@@ -347,31 +271,6 @@ def graph_3d_grid(xyz, k=18):
     order = np.argsort(i + j * (len(i) + 1))
     i, j, d = i[order], j[order], d[order]
     return i, j, d
-
-
-def load_mat(mat_file):
-    """
-    Simple method to load a npy file
-    
-    Parameters
-    ----------
-    mat_file : string (numpy file or list of numpy file)
-        any numpy image
-    
-    Returns
-    -------
-    matrix : numpy matrix
-        
-    """
-    
-    import numpy as np
-        
-    if isinstance(mat_file, list):
-        matrix = np.load(mat_file[0])
-    else:
-        matrix = np.load(mat_file)
-    return matrix 
-    
 
 
 def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
@@ -454,51 +353,3 @@ def merge_lists(deg_list=[],eig_list=[],lfcd_list=[]):
     
     return merged_list
 
-
-# def calc_threshold(option,
-#                    threshold,
-#                    ntpts = None,
-#                    corr_matrix = None,
-#                    full_matrix = True):
-#     
-#     """
-#     Method to calculate threshold based
-#     on the threshold method chosen
-#     Parameters
-#     ----------
-#     option : an integer
-#     threshold option, can be:
-#     * 0 = p-value threshold is converted to r-value
-#     * 1 = sparsity threshold is converted to r-value
-#     * else threshold is kept as the threshold
-#     threshold : a float
-#     thrshold value
-#     ntpts : an integer
-#     no of timepoints (only used with p->r aka option=0)
-#     corr_matrix : numpy array
-#     correlation matrix (only used with sparsity aka option=1)
-#     full_matrix : boolean
-#     True, if full matrix is considered.
-#     False, if only upper triangle is considered.
-#     Return
-#     ------
-#     r_value : a float
-#     threshold value
-#     """
-#         
-#     print "threshold_option -->", option
-#      
-#     try:
-#         if option == 0:
-#             r_value = convert_pvalue_to_r(ntpts, threshold)
-#         elif option == 1:
-#             r_value = convert_sparsity_to_r(corr_matrix, threshold, full_matrix)
-#         else:
-#             r_value = threshold
-#     except:
-#         print "Exception in calculating threshold value"
-#         raise
-#      
-#     print "r_value --> ", r_value
-#     
-#     return r_value
