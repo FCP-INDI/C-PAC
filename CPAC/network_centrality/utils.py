@@ -1,6 +1,6 @@
-import numpy as np
+# Network centrality utilities
 
-
+# Method to return recommended block size based on memory restrictions 
 def calc_blocksize(timeseries, memory_allocated=None, 
                    include_full_matrix=False, block_sparsity=False):
     '''
@@ -32,6 +32,9 @@ def calc_blocksize(timeseries, memory_allocated=None,
     block_size : an integer
       size of block for matrix calculation
     '''
+    
+    # Import packages
+    import numpy as np
     
     # Init variables
     block_size = 1000   # default
@@ -109,6 +112,7 @@ def calc_blocksize(timeseries, memory_allocated=None,
     return block_size
 
 
+# Method to calculate correlation coefficient from (one or two) datasets
 def calc_corrcoef(X, Y=None):
     '''
     Method to calculate correlation 
@@ -127,8 +131,9 @@ def calc_corrcoef(X, Y=None):
     -------
     r : numpy array
       array containing correlation values of shape x2, y2
-    
     '''
+    
+    # Import packages
     import numpy as np
     
     if Y is None:
@@ -151,10 +156,14 @@ def calc_corrcoef(X, Y=None):
     return r
 
 
-# Cluster the data
+# Method to cluster the data (used in lFCD)
 def cluster_data(img, thr, xyz_a, k=26):
-    """docstring for cluster_data"""
+    '''docstring for cluster_data'''
+    
+    # Import packages
     from scipy.sparse import coo_matrix, cs_graph_components
+    import numpy as np
+    
     # Threshold the entire correlation map and find connected components, store this in sparse matrix
     val_idx = img > thr                 # store valid indices
     xyz_th = xyz_a[val_idx]             # find the 3D indices corresponding to the above threshold voxels
@@ -173,12 +182,9 @@ def cluster_data(img, thr, xyz_a, k=26):
     return lbl_img
 
 
+# Convert probability threshold value to correlation threshold
 def convert_pvalue_to_r(scans, threshold):
-        
-    import scipy.stats as s
-    import math
-    
-    """
+    '''
     Method to calculate correlation threshold from p_value
     
     Parameters
@@ -192,9 +198,12 @@ def convert_pvalue_to_r(scans, threshold):
     -------
     rvalue : float
         correlation threshold value 
-    """
+    '''
     
-    #p_value =0.05
+    # Import packages
+    import scipy.stats as s
+    import math
+    
     print "p_value ->", threshold
     x = 1-threshold/2
     dof = scans-2
@@ -208,7 +217,8 @@ def convert_pvalue_to_r(scans, threshold):
 # Borrowed from nipy.graph.graph
 # https://github.com/nipy/nipy/blob/master/nipy/algorithms/graph/graph.py
 def graph_3d_grid(xyz, k=18):
-    """ Utility that computes the six neighbors on a 3d grid
+    '''
+    Utility that computes the six neighbors on a 3d grid
 
     Parameters
     ----------
@@ -220,7 +230,11 @@ def graph_3d_grid(xyz, k=18):
     i, j, d 3 arrays of shape (E),
             where E is the number of edges in the resulting graph
             (i, j) represent the edges, d their weights
-    """
+    '''
+    
+    # Import packages
+    import numpy as np
+    
     if np.size(xyz) == 0:
         return None
     lxyz = xyz - xyz.min(0)
@@ -273,8 +287,9 @@ def graph_3d_grid(xyz, k=18):
     return i, j, d
 
 
+# Function to map a centrality matrix to a nifti image
 def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
-    """
+    '''
     Method to map centrality matrix to a nifti image
     
     Parameters
@@ -296,8 +311,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     Raises
     ------
     Exception
-    
-    """
+    '''
     
     import nibabel as nib
     import os
@@ -306,10 +320,10 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     try:        
         out_file, matrix = centrality_matrix
        
-        out_file = os.path.join(os.getcwd(), out_file + ".nii.gz")
+        out_file = os.path.join(os.getcwd(), out_file + '.nii.gz')
         sparse_m = np.zeros((mask.shape), dtype=float)
      
-        print "mapping centrality matrix to nifti image...", out_file
+        print 'mapping centrality matrix to nifti image...', out_file
             
         if int(template_type) == 0:
             cords = np.argwhere(mask)        
@@ -340,7 +354,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         
         return out_file
     except:
-        print "Error in mapping centrality matrix to nifti image"
+        print 'Error in mapping centrality matrix to nifti image'
         raise
 
 

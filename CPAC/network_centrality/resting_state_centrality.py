@@ -1,6 +1,7 @@
+# Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-
+# Import CPAC functions
 from CPAC.network_centrality import *
 from CPAC.network_centrality.core import *
 
@@ -165,10 +166,12 @@ def create_resting_state_graphs(allocated_memory = None,
     # Connect function node output list to outputspec node
     wf.connect(calculate_centrality, 'out_list',
                outputspec, 'centrality_outputs')
-
+    
+    # Return the connected workflow
     return wf
 
 
+# Function to load in nifti files and extract info for centrality calculation
 def load(datafile, template=None):
     '''
     Method to read data from datafile and mask/parcellation unit
@@ -210,7 +213,7 @@ def load(datafile, template=None):
     import numpy as np
 
     
-    try:    
+    try:
         if isinstance(datafile, list):
             img = nib.load(datafile[0])
         else:
@@ -266,6 +269,7 @@ def load(datafile, template=None):
     return timeseries, aff, final_mask, template_type, scans
 
 
+# Function to calculate centrality using a correlation threshold 
 def get_centrality_by_rvalue(ts_normd, 
                              template, 
                              method_option, 
@@ -450,6 +454,7 @@ def get_centrality_by_rvalue(ts_normd,
     return out_list
 
 
+# Function to calculate centrality with a sparsity threhold
 def get_centrality_by_sparsity(ts_normd, 
                                method_option, 
                                weight_options, 
@@ -648,6 +653,7 @@ def get_centrality_by_sparsity(ts_normd,
     return out_list
 
 
+# Function to calculated a quick centrality measure
 def get_centrality_fast(timeseries,
                         method_options):
     '''
@@ -682,8 +688,7 @@ def get_centrality_fast(timeseries,
     Exception
     '''
     
-    
-    import numpy as np
+    # Import packages
     from CPAC.network_centrality import fast_degree_centrality,\
                                         fast_eigenvector_centrality
     from CPAC.cwas.subdist import norm_cols
@@ -721,6 +726,7 @@ def get_centrality_fast(timeseries,
         raise
 
 
+# Main centrality function utilized by the centrality workflow
 def calc_centrality(datafile,
                     template,
                     method_option,
@@ -750,12 +756,10 @@ def calc_centrality(datafile,
     allocated_memory : string
         amount of memory allocated to degree centrality
     
-    
     Returns
     -------
     out_list : list
         list containing out mapped centrality images
-        
     '''
     
     # Import packages
@@ -826,12 +830,13 @@ def calc_centrality(datafile,
                         'pipeline config file' % str(threshold_option))
     
     # Print timing info
-    print 'Timing: %f minutes' % (time.clock() - start)/60.0
+    print 'Timing:', time.clock() - start
  
     # Map the arrays back to images
     for mat in centrality_matrix:
         centrality_image = map_centrality_matrix(mat, aff, mask, t_type)
         out_list.append(centrality_image)
     
+    # Finally return
     return out_list
 
