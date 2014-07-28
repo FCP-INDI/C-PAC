@@ -1,8 +1,8 @@
 from resting_state_centrality import create_resting_state_graphs,\
                                      load,\
                                      calc_centrality,\
+                                     get_centrality_by_rvalue,\
                                      get_centrality_by_sparsity,\
-                                     get_centrality_by_thresh,\
                                      get_centrality_fast
 
 from z_score import  get_zscore
@@ -25,7 +25,7 @@ from core import degree_centrality, \
 __all__ = ['create_resting_state_graphs',\
            'load',\
            'load_mat',\
-           'get_centrality_by_sparsity',\
+           'get_centrality_by_rvalue',\
            'get_centrality_by_thresh',\
            'get_centrality_fast',\
            'map_centrality_matrix',\
