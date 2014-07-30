@@ -16,35 +16,25 @@ from CPAC.group_analysis import create_group_analysis
 
 def prep_group_analysis_workflow(c, resource, subject_infos):
     
+    #
+    # this function runs once per output file during group analysis
+    #
+
+    # p_id = a list of pipeline IDs, i.e. the name of the output folder for
+    #        the strat
+    
+    # s_ids = a list of all the subject IDs
+
+    # scan_ids = a list of scan IDs
+
+    # s_paths = a list of all of the filepaths of this particular output
+    #           file that prep_group_analysis_workflow is being called for
+
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
-    #print "p_id -%s, s_ids -%s, scan_ids -%s, s_paths -%s" %(p_id, s_ids, scan_ids, s_paths) 
 
-    '''
-    #diag = open(os.path.join('/home/data/Projects/CPAC_Regression_Test/2013-08-19-20_v0-3-1/fsl-model/2013-09-03', 'group_analysis_diagnostic.txt'), 'wt')
-
-    #for tup in subject_infos:
-    #    print >>diag, list(tup)
-
-    #print >>diag, ""
-
-    #for tup in zip(*subject_infos):
-    #    print >>diag, list(tup)
-
-    #print >>diag, ""
-
-
-    print >>diag, "Working variables passed from cpac_group_runner: "
-    print >>diag, ""
-    print >>diag, "Pipeline ID (p_id): ", p_id
-    print >>diag, "Subject IDs (s_ids): ", s_ids
-    print >>diag, "Scan IDs (scan_ids): ", scan_ids
-    print >>diag, "(s_paths): ", s_paths
-    print >>diag, ""
-    '''
 
     def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path, sub_id):
         
-        #print "phenotypic_file, m_dict", phenotypic_file, m_dict
         import csv
         reader = csv.reader(open(phenotypic_file, 'rU'))
         columns = {}
@@ -64,10 +54,17 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         if m_dict:
             for measure in m_list:
+
+                print '\n\nMeasure: ', measure, '\n\n'
+
                 if measure in headers:
                     #check if 'MeanFD  is present'
                     if len(columns[measure]) < 1:
+
+                        print '\n\ncolumns[sub_id]: ', columns[sub_id], '\n\n'
+
                         for sub in columns[sub_id]:
+
                             if m_dict.get(sub):
                                 if m_dict.get(sub).get(measure):
                                     columns[measure].append(m_dict[sub][measure])
@@ -75,6 +72,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                                     raise Exception("Couldn't find %s value for subject %s"%(measure,sub))
                             else:
                                 raise Exception("Couldn't find subject %s in the parameter file"%sub)
+
+
+        print '\n\ncolumns[measure]: ', columns, '\n\n'
         
         b = zip(*([k] + columns[k] for k in sorted(columns, key=order.get)))
         
@@ -93,13 +93,17 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
           
         return new_phenotypic_file
 
+    # END get_phenotypic_file function
+
+
+
     threshold_val = None
     measure_dict = None
     measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
     model_sub_list = []
     
 
-    if c.runScrubbing == 1:
+    if 1 in c.runScrubbing:
 
         #get scrubbing threshold
     
@@ -121,85 +125,122 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         print "No scrubbing enabled."
 
-
-    #pick the right parameter file from the pipeline folder
-    #create a dictionary of subject and measures in measure_list
-    if c.runScrubbing == 1:
-  
-        try:
-            parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
-
-            if os.path.exists(parameter_file):
-                import csv
-                measure_dict = {}
-                f = csv.DictReader(open(parameter_file,'r'))
-
-                for line in f:
-                    measure_map = {}
-                    for m in measure_list:
-                        if line.get(m):
-                            measure_map[m] = line[m]
-
-                    measure_dict[line['Subject']] = measure_map
-            else:
-                print "No file name %s found"%parameter_file
-                
-        except Exception:
-            print "Exception while extracting parameters from movement file - %s"%(parameter_file)
+        if len(c.scrubbingThreshold) == 1:
+            threshold_val = c.scrubbingThreshold[0]
 
 
-    #print >>diag, "Begins to iterate over each config file listed here: ", c.modelConfigs
-    #print >>diag, ""
-    
+
+
+    import yaml    
+
     for config in c.modelConfigs:
-        
-        import yaml
+
+        print c.modelConfigs
+        print config
         
         try:
             conf = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
         except:
             raise Exception("Error in reading %s configuration file" % config)
 
-        #print >>diag, "Starting iteration for config: ", config
-        #print >>diag, ""
-
-
-        group_sublist = open(conf.subjectListFile, 'r')
+        
+        group_sublist = open(conf.subject_list, 'r')
 
         sublist_items = group_sublist.readlines()
 
         subject_list = [line.rstrip('\n') for line in sublist_items \
                               if not (line == '\n') and not line.startswith('#')]
 
-
-        #print >>diag, "Subject list run-through #1: ", subject_list
-        #print >>diag, ""
-
-    
-        #subject_list = [line.rstrip('\r\n') for line in open(conf.subjectListFile, 'r') \
-        #                      if not (line == '\n') and not line.startswith('#')]
-
         # list of subject paths which DO exist
         exist_paths = []
-        
-        # check for missing subject for the derivative
 
 
-        #print >>diag, "> Iterates over subject_list - for each subject in the subject list, it iterates over the paths in s_paths."
-        #print >>diag, "> For each path, it checks if the current subject exists in this path, and then appends this subject to 'exist_paths' list."
-        #print >>diag, ""
+        print 'subject_list: ', subject_list, '\n\n'
+        print 's_paths: ', s_paths, '\n\n'
 
-        for sub in subject_list :
 
+
+
+        ''' begin iteration through group subject list for processing '''
+
+        for sub in subject_list:
+
+            # let's check to make sure the subject list is formatted for
+            # repeated measures properly if repeated measures is enabled and
+            # vice versa
+            if (c.repeatedMeasures == True) and (',' not in sub):
+                print '\n\n'
+                print 'Whoops! The group analysis subject list is not in ' \
+                        'the appropriate format for repeated measures.\n'
+                print 'Please use the appropriate format as described in ' \
+                        'the CPAC User Guide or turn off Repeated Measures ' \
+                        'in the CPAC pipeline configuration editor, found ' \
+                        'in the \'Group Analysis Settings\' tab of the ' \
+                        'pipeline configuration editor.\n'
+                print 'NOTE: CPAC generates a properly-formatted group ' \
+                        'analysis subject list meant for running repeated ' \
+                        'measures when you create your original subject ' \
+                        'list. Look for \'subject_list_group_analysis_' \
+                        'repeated_measures.txt\' in the directory where ' \
+                        'you created your subject list.\n\n'
+                raise Exception
+
+            elif (c.repeatedMeasures == False) and (',' in sub):
+                print '\n\n'
+                print '[!] CPAC says: It looks like your group analysis ' \
+                        'subject list is formatted for running repeated ' \
+                        'measures, but \'Run Repeated Measures\' is not ' \
+                        'enabled in the pipeline configuration, found in ' \
+                        'the \'Group Analysis Settings\' tab of the ' \
+                        'pipeline configuration editor.\n'
+                print 'Double-check your pipeline configuration?\n\n'
+                raise Exception
+
+
+
+            ''' process subject ids for repeated measures, if it is on '''
+            # if repeated measures is being run and the subject list
+            # is a list of subject IDs and scan IDs concatenated
+            if (c.repeatedMeasures == True):
+
+                # sub.count(',') equals 1 when there is either multiple scans
+                # or multiple sessions but not both, for repeated measures
+
+                # sub.count(',') equals 2 when there are multiple sessions
+                # AND scans, for repeated measures
+
+                if sub.count(',') == 1:
+                    sub_id = sub.split(',',1)[0]
+                    other_id = sub.split(',',1)[1]
+
+                elif sub.count(',') == 2:
+                    sub_id = sub.split(',',2)[0]
+                    scan_id = sub.split(',',2)[1]
+                    session_id = sub.split(',',2)[2]
+
+
+
+            ''' drop subjects from the group subject list '''
+            # check the path files in path_files_here folder in the subject's
+            # output folder - and drop any subjects from the group analysis
+            # subject list which do not exist in the paths to the output files
             for path in s_paths:
 
-                if sub in path:
-                    exist_paths.append(sub)
+                if (c.repeatedMeasures == True):
 
+                    if sub.count(',') == 1:
+                        if (sub_id in path) and (other_id in path):
+                            exist_paths.append(sub)
 
-        #print >>diag, "Current status of exist_paths list: "
-        #print >>diag, exist_paths
-        #print >>diag, ""
+                    elif sub.count(',') == 2:
+                        if (sub_id in path) and (scan_id in path) and \
+                                (session_id in path):
+                            exist_paths.append(sub)
+
+                else:
+                    if sub in path:
+                        exist_paths.append(sub)           
+
 
 
 
@@ -212,33 +253,31 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             print "..at paths:"
             print os.path.dirname(s_paths[0]).replace(s_ids[0], '*')
 
-            #import warnings
-            #warnings.warn(msg)
         
 
-        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName)),
+        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name)),
                                 'model_files')
 
+        print "basename: ", os.path.basename(conf.subject_list)
 
-        #print >>diag, "> Created mod_path variable: ", mod_path
-        #print >>diag, ""
-
-                
-        print "basename: ", os.path.basename(conf.subjectListFile)
-
+        '''
         try:
-
             os.makedirs(mod_path)
             print "Creating directory:"
             print mod_path
-
         except:
-
             print "Attempted to create directory, but path already exists:"
             print mod_path
+        '''
+
+        if not os.path.isdir(mod_path):
+            os.makedirs(mod_path)
+
         
 
-        new_sub_file = os.path.join(mod_path, os.path.basename(conf.subjectListFile))
+
+        ''' write the new subject list '''
+        new_sub_file = os.path.join(mod_path, os.path.basename(conf.subject_list))
 
         try:
 
@@ -249,41 +288,23 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
             f.close()
 
-            #print >>diag, "> Created new subject list file: ", new_sub_file
-            #print >>diag, ""
-
-            #print >>diag, "> ..which is filled with the subjects from exist_paths"
-            #print >>diag, ""
-
         except:
 
             print "Error: Could not open subject list file: ", new_sub_file
             raise Exception
 
 
-        #print >>diag, "> Updates the FSL model config's subject list file parameter from: ", conf.subjectListFile
-
         conf.update('subjectListFile',new_sub_file)
 
-        #print >>diag, "> ..to new subject list file: ", conf.subjectListFile
-        #print >>diag, ""
+        sub_id = conf.subject_id_label
         
-        sub_id = conf.subjectColumn
-        
-        '''
-        print >>diag, "> If measure_dict is not empty, it updates the phenotypic file with these parameters: "
-        print >>diag, ""
 
-        print >>diag, "measure_dict: ", measure_dict
-        print >>diag, "measure_list: ", measure_list
-        print >>diag, "mod_path: ", mod_path
-        print >>diag, "sub_id: ", sub_id
-        print >>diag, ""
-        '''
 
         if measure_dict != None:
-            conf.update('phenotypicFile',get_phenotypic_file(conf.phenotypicFile, measure_dict, measure_list, mod_path, sub_id))
-            
+            conf.update('phenotypicFile',get_phenotypic_file(conf.pheno_file, measure_dict, measure_list, mod_path, sub_id))
+        
+        print 'conf updated pheno: ', conf.pheno_file, '\n\n'
+
             
         print "Model config dictionary ->"
         print conf.__dict__
@@ -293,10 +314,70 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Run 'create_fsl_model' script to extract phenotypic data from
         # the phenotypic file for each of the subjects in the subject list
 
+
+
+        ''' get the motion statistics parameter file, if present '''
+        # get the parameter file so it can be passed to create_fsl_model.py
+        # so MeanFD or other measures can be included in the design matrix
+        parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+
+        if 1 in c.runGenerateMotionStatistics:
+
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not open the parameter file. ' \
+                      'If Generate Motion Statistics is enabled, this can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
+
+        elif (1 not in c.runGenerateMotionStatistics) and (os.path.exists(parameter_file)):
+
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not open the parameter file. ' \
+                      'If Generate Motion Statistics is enabled, this can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
+
+        else:
+
+            def no_measures_error(measure):
+                print '\n\n[!] CPAC says: The measure %s was included in ' \
+                      'your group analysis design matrix formula, but ' \
+                      'Generate Motion Statistics was not run during ' \
+                      'individual-level analysis.\n' % measure
+                print 'Please run Generate Motion Statistics if you wish ' \
+                      'to include this measure in your model.\n'
+                print 'If you HAVE completed a run with this option ' \
+                      'enabled, then you are seeing this error because ' \
+                      'the motion parameter file normally created by this ' \
+                      'option is missing.\n\n'
+                raise Exception
+
+            for measure in measure_list:
+                if (measure in conf.design_formula):
+                    no_measures_error(measure)
+
+            parameter_file = None
+
+
+
+        ''' run create_fsl_model.py to generate the group analysis models '''
+        # path to the pipeline folder to be passed to create_fsl_model.py
+        # so that certain files like output_means.csv can be accessed
+        pipeline_path = os.path.join(c.outputDirectory, p_id[0])
+
+        # the current output that cpac_group_analysis_pipeline.py and
+        # create_fsl_model.py is currently being run for
+        current_output = s_paths[0].replace(pipeline_path, '').split('/')[2]
+
+
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, c.fTest, True)
+            create_fsl_model.run(conf, c.fTest, parameter_file, pipeline_path, current_output, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
@@ -309,20 +390,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
             
-        model_sub_list.append((conf.outputModelFilesDirectory, conf.subjectListFile))
-
-        print "model_sub_list ->", model_sub_list
-
-        '''
-        print >>diag, "> Appends FSL config's outputModelFilesDirectory: ", conf.outputModelFilesDirectory
-        print >>diag, "> and FSL config's subjectListFile: ", conf.subjectListFile
-        print >>diag, "> ..to model_sub_list, which is now: ", model_sub_list
-        print >>diag, ""
+        model_sub_list.append((conf.output_dir, conf.subject_list))
 
 
-    print >>diag, "> Ending modelConfigs iteration."
-    print >>diag, ""
-    '''
     
     if len(model_sub_list) == 0:
         raise Exception("no model found")
@@ -331,10 +401,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
 
-    #start group analysis
-
-    #print >>diag, "> Starting iteration over 'model_sub's in model_sub_list: ", model_sub_list
-    #print >>diag, ""
+    ''' start group analysis '''
 
     for model_sub in model_sub_list:
 
@@ -347,7 +414,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         
 
         if not os.path.exists(model):
-            raise Exception("path to model %s doesn't exit"%model)
+            raise Exception("path to model %s doesn't exist"%model)
         
         if not os.path.exists(subject_list):
             raise Exception("path to input subject list %s is invalid" % subject_list)
@@ -383,12 +450,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         wf = pe.Workflow(name = currentDerivative) 
 
-        workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, conf.modelName, scan_ids[0])
+        workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, conf.model_name, scan_ids[0])
         workDir = workDir + '/' + strgy_path_name
 
         wf.base_dir = workDir
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-        log_dir = os.path.join(c.outputDirectory, 'logs', 'group_analysis', resource, 'model_%s' % (conf.modelName))
+        log_dir = os.path.join(conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (conf.model_name))
         try:
             os.makedirs(log_dir)
         except:
@@ -409,48 +476,75 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         #logging.update_logging(config)
 
         iflogger = logging.getLogger('interface')
-    
-    
+
+
+
+
+        ''' create the list of paths to all output files to go to model '''
+        # create the 'ordered_paths' list, which is a list of all of the
+        # output paths of the output files being included in the current
+        # group-level analysis model
+        #     'ordered_paths' is later connected to the 'zmap_files' input
+        #     of the group analysis workflow - the files listed in this list
+        #     are merged into the merged 4D file that goes into group analysis
+      
         group_sublist = open(subject_list, 'r')
-
-        #print >>diag, "> Opened subject list: ", subject_list
-        #print >>diag, ""
-
         sublist_items = group_sublist.readlines()
 
         input_subject_list = [line.rstrip('\n') for line in sublist_items \
                               if not (line == '\n') and not line.startswith('#')]
 
-        '''
-        print >>diag, "Subject list run-through #2: ", input_subject_list
-        print >>diag, ""    
-
-
-        print >>diag, "> Now iterating over each subject in this subject list."
-        print >>diag, "> For each subject, for each path in s_paths, it checks if the current"
-        print >>diag, "> subject is in path, and then appends it into ordered_paths."
-        print >>diag, ""
-        '''
-
         ordered_paths = []
         pathcount = 0
         subcount = 0
-        for sub in input_subject_list :
+        for sub in input_subject_list:
+
             subcount += 1
+
+            if (c.repeatedMeasures == True):
+
+                # sub.count(',') equals 1 when there is either multiple scans
+                # or multiple sessions but not both, for repeated measures
+
+                # sub.count(',') equals 2 when there are multiple sessions
+                # AND scans, for repeated measures
+
+                if sub.count(',') == 1:
+                    sub_id = sub.split(',',1)[0]
+                    other_id = sub.split(',',1)[1]
+
+                elif sub.count(',') == 2:
+                    sub_id = sub.split(',',2)[0]
+                    scan_id = sub.split(',',2)[1]
+                    session_id = sub.split(',',2)[2]
+
+
             for path in s_paths:
 
-                if sub in path:
-                    pathcount += 1
-                    ordered_paths.append(path)
+                if (c.repeatedMeasures == True):
 
-        '''
-        print >>diag, "Ordered paths: ", ordered_paths
-        print >>diag, ""
+                    # if repeated measures is enabled, make sure all of the
+                    # relevant indicators are in the path before adding it
+                    # to 'ordered_paths', i.e. the session and/or scan IDs
 
-        print >>diag, "> The list ordered_paths is then fed into the group analysis"
-        print >>diag, "> workflow input 'zmap_files'."
-        print >>diag, ""
-        '''
+                    if sub.count(',') == 1:
+                        if (sub_id in path) and (other_id in path):
+                            pathcount += 1
+                            ordered_paths.append(path)
+
+                    elif sub.count(',') == 2:
+                        if (sub_id in path) and (scan_id in path) and \
+                                (session_id in path):
+                            pathcount += 1
+                            ordered_paths.append(path)
+
+                else:
+                    if sub in path:
+                        pathcount += 1
+                        ordered_paths.append(path)
+
+
+
 
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
@@ -503,7 +597,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.modelName))
+        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name))
         
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
@@ -524,7 +618,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 #         if c.mixedScanAnalysis == True:
 #             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-        ds.inputs.base_directory = out_dir
+        ds.inputs.base_directory = conf.output_dir
         ds.inputs.container = ''
         
         ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),

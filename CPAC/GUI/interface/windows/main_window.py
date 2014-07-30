@@ -275,33 +275,47 @@ class ListBox(wx.Frame):
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
+            sublists = self.listbox2.GetCheckedStrings()
 
-            for p in pipelines:
+            for s in sublists:
 
-                pipeline = self.pipeline_map.get(p)
-                
-                if os.path.exists(pipeline):
-                    try:
-                        import yaml
-                        config = yaml.load(open(pipeline, 'r'))
-                    except:
-                            raise Exception("Error reading config file- %s", config)
+                sublist = self.sublist_map.get(s)
+
+                if not os.path.exists(sublist):
+                    print '\n\nCPAC says: Please select a subject list ' \
+                              'before running group-level analysis. ' \
+                              'Thanks!\n\n'
+                    raise Exception
+
+
+                for p in pipelines:
+
+                    pipeline = self.pipeline_map.get(p)
+
+                    if os.path.exists(pipeline):
+                        try:
+                            import yaml
+                            config = yaml.load(open(pipeline, 'r'))
+                        except:
+                                raise Exception("Error reading config file- %s", config)
                     
-                    if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_*', '*', 'path_files_here' , '*.txt')
+                        if config.get('outputDirectory'):
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'), '*', 'path_files_here' , '*.txt')
+                        else:
+                            derv_path = ''
+                    
+                        # Opens the sub-window which prompts the user
+                        # for the derivative file paths
+                        runGLA(pipeline, sublist, derv_path, p)
+
                     else:
-                        derv_path = ''
-                    
-                    # Opens the sub-window which prompts the user
-                    # for the derivative file paths
-                    runGLA(pipeline, derv_path, p)
-
-                else:
-                    print "pipeline doesn't exist"
+                        print "pipeline doesn't exist"
                     
                 
-        else:
-            print "No pipeline selected"
+            else:
+                print "No pipeline selected"
+
+
 
     def get_pipeline_map(self):
         return self.pipeline_map
@@ -520,7 +534,7 @@ class ListBox(wx.Frame):
             params_file = open(p.resource_filename('CPAC', 'GUI/resources/config_parameters.txt'), "r")
         except:
             print "Error: Could not open configuration parameter file.", "\n"
-            raise Exception            
+            raise Exception
 
         paramInfo = params_file.read().split('\n')
 
@@ -589,18 +603,46 @@ class ListBox(wx.Frame):
                     if c.pipelineName != None:
                             
                             if self.pipeline_map.get(c.pipelineName) == None:
+
+                                # this runs if you click 'Load' on the main
+                                # CPAC window, enter a path, and the pipeline
+                                # name attribute of the pipeline config file
+                                # you are loading does NOT already exist in
+                                # the listbox, i.e., the proper condition
+
                                 self.pipeline_map[str(c.pipelineName)] = path
                                 self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
                             
-                            else:        
+                            else:
+
+                                # this runs if you click 'Load' on the main
+                                # CPAC window, enter a path, and the pipeline
+                                # name attribute of the pipeline config file
+                                # you are loading DOES already exist in
+                                # the listbox, which is a conflict
                                        
-                                dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
-                                               'Error!',
+                                dlg3 = wx.MessageDialog(self, 'The \'' \
+                                        'Pipeline Name\' attribute of the ' \
+                                        'configuration file you are loading' \
+                                        ' already exists in one of the' \
+                                        ' configuration files listed under' \
+                                        ' \'Pipelines\'.\n\nPlease change' \
+                                        ' the pipeline name attribute (not' \
+                                        ' the filename) from within the' \
+                                        ' pipeline editor (under the' \
+                                        ' \'Output Settings\' tab in' \
+                                        ' \'Environment Setup\'), or load a' \
+                                        ' new configuration file.\n\n' \
+                                        'Pipeline configuration with' \
+                                        ' conflicting name:\n%s' \
+                                         % c.pipelineName,
+                                               'Conflicting Pipeline Names',
                                            wx.OK | wx.ICON_ERROR)
                                 dlg3.ShowModal()
                                 dlg3.Destroy()
+                                break
                                 
                     else:
                         
@@ -615,9 +657,56 @@ class ListBox(wx.Frame):
                         dlg.Destroy
                         break
 
+
+
+    '''
+    def AddConfigToList(self, config_path):
+
+        path = dlg.GetPath()
+        if self.check_config(path) > 0:
+            while True:
                     
+                try:
+                    c = Configuration(yaml.load(open(os.path.realpath(path), 'r')))
+                except:
+                    print "\n\n" + "ERROR: Configuration file could not be loaded properly - the file " \
+                          "might be access-protected or you might have chosen the wrong file." + "\n"
+                    print "Error name: main_window_0001" + "\n\n"
+                    raise Exception
                     
-              
+
+                if c.pipelineName != None:
+                            
+                        if self.pipeline_map.get(c.pipelineName) == None:
+                            self.pipeline_map[str(c.pipelineName)] = path
+                            self.listbox.Append(str(c.pipelineName))
+                            dlg.Destroy()
+                            break
+                            
+                        else:        
+                                       
+                            dlg3 = wx.MessageDialog(self, 'Pipeline already exists. Please enter a new configuration file.',
+                                           'Error!',
+                                       wx.OK | wx.ICON_ERROR)
+                            dlg3.ShowModal()
+                            dlg3.Destroy()
+                                
+                else:
+                        
+                    dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
+                                            ' the pipeline_config.yml file in a text editor and' \
+                                            ' restore the pipelineName field.',
+                                    'Warning',
+                            wx.OK | wx.ICON_ERROR)
+                    dlg4.ShowModal()
+                    dlg4.Destroy()
+                        
+                    dlg.Destroy()
+                    break
+    '''
+
+                    
+                             
 class runCPAC(wx.Frame):
  
     def __init__(self, pipeline, sublist, p, pid):
@@ -665,7 +754,7 @@ class runGLA(wx.Frame):
 
     # Once the user clicks "Run", group level analysis begins
 
-    def __init__(self, pipeline, path, name):
+    def __init__(self, pipeline, sublist, path, name):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -697,7 +786,7 @@ class runGLA(wx.Frame):
         
         button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
         button2.Bind(wx.EVT_BUTTON, lambda event: \
-                         self.onOK(event, pipeline) )
+                         self.onOK(event, sublist, pipeline) )
         
         hbox.Add(button3, 1, wx.EXPAND, border =5)
         hbox.Add(button2, 1, wx.EXPAND, border =5)
@@ -711,10 +800,10 @@ class runGLA(wx.Frame):
     def onCancel(self, event):
         self.Close()
         
-    def runAnalysis(self, pipeline, path):
+    def runAnalysis(self, pipeline, sublist, path):
         try:
             import CPAC
-            CPAC.pipeline.cpac_group_runner.run(pipeline, path)
+            CPAC.pipeline.cpac_group_runner.run(pipeline, sublist, path)
         except AttributeError as e:
             print "Exception while running cpac_group_runner"
             #print "%d: %s" % (e.errno, e.strerror)
@@ -725,7 +814,7 @@ class runGLA(wx.Frame):
             raise Exception
             
         
-    def onOK(self, event, pipeline):
+    def onOK(self, event, sublist, pipeline):
 
         # Once the user clicks "Run" in the derivative path file window
         # (from runGLA function), get the filepath and run the
@@ -734,7 +823,7 @@ class runGLA(wx.Frame):
         import thread
 
         if self.box1.GetValue():
-            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
+            thread.start_new(self.runAnalysis, (pipeline, sublist, self.box1.GetValue()))
             self.Close()
         else:
             wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")

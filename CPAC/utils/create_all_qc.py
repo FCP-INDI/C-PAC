@@ -189,34 +189,37 @@ def populate_htmls(gp_html, sub_html, subj,
     f_.close()
 
 
-def prep_resources(output_path, pipelines):
+def prep_resources(pip_path):
 
-    for pipeline in sorted(pipelines):
+    #for pipeline in sorted(pipelines):
 
-        pip_path = os.path.join(output_path, pipeline)
-
-
-        subjects = os.listdir(pip_path)
-        subjects = [subj for subj in subjects if os.path.isdir(os.path.join(pip_path, subj))]
+    #    pip_path = os.path.join(output_path, pipeline)
 
 
-        for subj in sorted(subjects):
+    subjects = os.listdir(pip_path)
+    subjects = [subj for subj in subjects if os.path.isdir(os.path.join(pip_path, subj))]
 
-            subj_path = os.path.join(pip_path, subj)
+    for subj in sorted(subjects):
 
-            if os.path.isdir(subj_path):
-                qc_path = os.path.join(subj_path, 'qc_files_here')
-                path_files_here = os.path.join(subj_path, 'path_files_here')
-                path_copy = os.path.join(qc_path, 'path')
-                if not os.path.exists(path_copy):
-                    os.makedirs(path_copy)
-                os.system('cp %s/*.txt %s/' % (path_files_here, path_copy))
-                first_pass_organizing_files(path_copy)
-                second_pass_organizing_files(path_copy)
-                #os.system('ls %s' %(path_copy))
-                print 'mv %s/*.txt %s/' % (path_copy, qc_path)
-                os.system('mv %s/*.txt %s/' % (path_copy, qc_path))
-                os.system('rm -rf %s' %(path_copy))
+        subj_path = os.path.join(pip_path, subj)
+
+        if os.path.isdir(subj_path):
+            qc_path = os.path.join(subj_path, 'qc_files_here')
+            path_files_here = os.path.join(subj_path, 'path_files_here')
+            path_copy = os.path.join(qc_path, 'path')
+
+            if not os.path.exists(path_copy):
+                os.makedirs(path_copy)
+
+            os.system('cp %s/*.txt %s/' % (path_files_here, path_copy))
+            first_pass_organizing_files(path_copy)
+            second_pass_organizing_files(path_copy)
+
+            #os.system('ls %s' %(path_copy))
+
+            print 'mv %s/*.txt %s/' % (path_copy, qc_path)
+            os.system('mv %s/*.txt %s/' % (path_copy, qc_path))
+            os.system('rm -rf %s' %(path_copy))
 
 
 def get_path_files_in_dict(qc_path, html_files):
@@ -466,20 +469,22 @@ def write_closing_tags(file_):
     f_.close()
 
 
-def make_group_htmls(output_path):
+def make_group_htmls(pip_path):
+
+    import os
 
     files_ = []
-    pipelines = os.listdir(output_path)
-    pipelines = [pipeline for pipeline in pipelines if 'pipeline_' in pipeline]
-    print pipelines
-    pipelines = [pipeline for pipeline in pipelines if os.path.isdir(os.path.join(output_path, pipeline))]   ###
-    prep_resources(output_path, pipelines)
-#    organize_resources(output_path, pipelines)
-    print output_path
-    print pipelines
+    #pipelines = os.listdir(output_path)
+    #pipelines = [pipeline for pipeline in pipelines if 'pipeline_' in pipeline]
 
-    for pipeline in sorted(pipelines):
-        pip_path = os.path.join(output_path, pipeline)
+    #pipelines = [pipeline for pipeline in pipelines if os.path.isdir(os.path.join(output_path, pipeline))]   ###
+    prep_resources(pip_path)
+#    organize_resources(output_path, pipelines)
+
+
+    #for pipeline in sorted(pipelines):
+    if os.path.exists(pip_path):
+        #pip_path = os.path.join(output_path, pipeline)
 
         os.system('rm -f %s/qc_*.html'  % pip_path)
         subjects = os.listdir(pip_path)
@@ -560,9 +565,9 @@ def make_group_htmls(output_path):
 
 
 
-def run(output_path):
+def run(pipeline_path):
 
     #from CPAC.utils.create_all_qc import make_group_htmls
 
-    make_group_htmls(output_path)
+    make_group_htmls(pipeline_path)
 

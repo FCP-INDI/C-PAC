@@ -239,6 +239,7 @@ class MainFrame(wx.Frame):
         if option == 'edit' or option == 'load':
             self.load()
 
+
     def load(self):
 
         import yaml
@@ -299,6 +300,9 @@ class MainFrame(wx.Frame):
                                 
                             if 'ANTS' in val and 'FSL' in val:
                                 val = [11]
+
+                            if '3dAutoMask' in val and 'BET' in val:
+                                val = [12]
                             
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
@@ -334,13 +338,14 @@ class MainFrame(wx.Frame):
     def testConfig(self, event):
         
         '''
-        This function runs when the user clicks the "Test Configuration" button in the
-        pipeline configuration window.
+        This function runs when the user clicks the "Test Configuration"
+        button in the pipeline configuration window.
         
-        It prompts the user for a sample subject list (i.e. one that they will be using
-        with the config they are building). Then it builds the pipeline but does not
-        run it. It then reports whether or not the config will run or not depending
-        on if the pipeline gets built successfully.
+        It prompts the user for a sample subject list (i.e. one that they will
+        be using with the config they are building). Then it builds the
+        pipeline but does not run it. It then reports whether or not the
+        config will run or not depending on if the pipeline gets built
+        successfully.
         '''
         
         import os
@@ -679,9 +684,9 @@ class MainFrame(wx.Frame):
         # Get the user's CPAC pipeline name for use in this script
         for config in config_list:
             if config.get_name() == 'pipelineName':
-                pipelineName = config.get_selection()
+                pipeline_name = config.get_selection()
                 
-                if len(pipelineName) == 0:
+                if len(pipeline_name) == 0:
                     noNameDlg = wx.MessageDialog(
                         self, 'Please enter a pipeline name.',
                         'Error!',
@@ -693,37 +698,90 @@ class MainFrame(wx.Frame):
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
-            defaultFile=("pipeline_config_%s" % pipelineName), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
+            defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
         dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
 
-            # Strips any user-input file extension and enforces .yml as the extension
+            # Strips any user-input file extension and enforces .yml as
+            # the extension
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
             
             dlg.Destroy()
             if self.option != 'edit':
-                for counter in wf_counter:
-                    if counter != 0:
-                        hash_val += 2 ** counter
+
+                # this runs if you hit 'Save' from within the pipeline config
+                # editor AND the editor was opened from the main window by
+                # clicking 'New' instead of 'Edit'
+
+                ### this is the old code for generating random city names
+                ### to name pipeline configs. remove at some point?
+                #for counter in wf_counter:
+                #    if counter != 0:
+                #        hash_val += 2 ** counter
                 #print "wf_counter -- ", wf_counter
                 #print "hashval --> ", hash_val
-                pipeline_id = linecache.getline(p.resource_filename('CPAC', 'GUI/resources/pipeline_names.py'), hash_val)
-                print "pipeline_id ==", pipeline_id
+                #pipeline_id = linecache.getline(p.resource_filename('CPAC', \
+                #       'GUI/resources/pipeline_names.py'), hash_val)
+
+                print "pipeline_id ==", pipeline_name
+
                 if os.path.exists(self.path):
-                    self.update_listbox(pipeline_id)
+                    self.update_listbox(pipeline_name)
+
             else:
+
+                # this runs if you hit 'Save' from within the pipeline config
+                # editor AND the editor was opened from the main window by
+                # clicking 'Edit' instead of 'New'
+
                 pipeline_map = self.parent.get_pipeline_map()
-                pipeline_map[self.pipeline_id] = self.path
+
+                if pipeline_map.get(pipeline_name) != None:
+                    # this runs if you hit Edit, change your pipeline config
+                    # file BUT keep the Pipeline Name the same and save it
+                    pipeline_map[pipeline_name] = self.path
+
+                else:
+                    # this runs if you hit Edit, change your pipeline config
+                    # AND also change the Pipeline Name and save it with the
+                    # new path - this adds the new pipeline to the listbox on
+                    # the main CPAC window
+                    pipeline_map[pipeline_name] = self.path
+                    self.Parent.listbox.Append(pipeline_name)
+                
+
             self.SetFocus()
             self.Close()
+
 
     def cancel(self, event):
         self.Close()
 
+
+    def update_listbox(self, value):
+
+        if len(value) > 0:
+            self.pipeline_id = value
+            pipeline_map = self.parent.get_pipeline_map()
+            if pipeline_map.get(self.pipeline_id) == None:
+                pipeline_map[self.pipeline_id] = self.path
+                self.Parent.listbox.Append(self.pipeline_id)
+
+            else:
+                dlg2 = wx.MessageDialog(
+                    self, 'Pipeline already exists. Please enter a new name',
+                    'Error!',
+                    wx.OK | wx.ICON_ERROR)
+                dlg2.ShowModal()
+                dlg2.Destroy()
+
+
+
+    '''
     def update_listbox(self, value):
 
         while True:
@@ -749,6 +807,9 @@ class MainFrame(wx.Frame):
                             wx.OK | wx.ICON_ERROR)
                         dlg2.ShowModal()
                         dlg2.Destroy()
+    '''
+
+
 
     def write(self, path, config_list):
         import ast
@@ -842,6 +903,8 @@ class MainFrame(wx.Frame):
                         values = [1,0]
                     elif values == [11]:
                         values = ['ANTS','FSL']
+                    elif values == [12]:
+                        values = ['3dAutoMask','BET']
 
                     print>>f, label, ": ", values
                     print>>f,"\n"
