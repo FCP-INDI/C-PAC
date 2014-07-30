@@ -60,10 +60,13 @@ class ModelDesign(wx.Frame):
         
 
 
-        
+        contrasts_text = 'Available contrasts:\n'
+
+        for con in varlist:
+            contrasts_text = contrasts_text + '    ' + con
 
         varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        var_list_text = wx.StaticText(self.window, label=str(varlist))
+        var_list_text = wx.StaticText(self.window, label=str(contrasts_text))
         varlist_sizer.Add(var_list_text)
 
         self.page.add_pheno_load_panel(varlist_sizer)

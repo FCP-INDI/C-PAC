@@ -573,9 +573,9 @@ class CheckBoxGrid(wx.ScrolledWindow):
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
         wx.StaticText(self.scrollWin, label='MeanFD', pos=(5,j))
-        wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
-        wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
-        wx.StaticText(self.scrollWin, label='Measure_Mean', pos=(5,j+90))
+        #wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
+        #wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
+        wx.StaticText(self.scrollWin, label='Measure_Mean', pos=(5,j+30))
 
 
 
