@@ -17,10 +17,6 @@ import yaml
 # - figure out modeling group variances separately
 
 
-
-
-
-
 def create_pheno_dict(gpa_fsl_yml):
 
     # \/ \/ DUPLICATED CODE! PUT THIS FUNCTION IN ONE PLACE,

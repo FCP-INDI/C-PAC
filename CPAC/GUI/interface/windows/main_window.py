@@ -312,8 +312,8 @@ class ListBox(wx.Frame):
                         print "pipeline doesn't exist"
                     
                 
-            else:
-                print "No pipeline selected"
+        else:
+            print "No pipeline selected"
 
 
 
