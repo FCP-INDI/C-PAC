@@ -22,6 +22,7 @@ from core import degree_centrality, \
 __all__ = ['create_resting_state_graphs',\
            'load',\
            'get_centrality_by_rvalue',\
+           'get_centrality_by_sparsity',\
            'get_centrality_fast',\
            'map_centrality_matrix',\
            'get_zscore',\
