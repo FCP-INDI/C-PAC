@@ -10,7 +10,9 @@ from utils import *
 from CPAC.vmhc import *
 from nipype.interfaces.afni import preprocess
 from CPAC.registration import create_wf_calculate_ants_warp, \
-                              create_apply_ants_xfm
+                              create_wf_c3d_fsl_to_itk, \
+                              create_wf_collect_transforms, \
+                              create_wf_apply_ants_warp
 
 def create_vmhc(use_ants):
 
@@ -288,9 +290,65 @@ def create_vmhc(use_ants):
 
         # ANTS warp image etc.
 
-        calculate_ants_xfm_vmhc = create_ants_nonlinear_xfm(name='calculate_ants_xfm_vmhc')
+        calculate_ants_xfm_vmhc = create_wf_calculate_ants_warp(name='calculate_ants_xfm_vmhc')
 
-        apply_ants_xfm_vmhc = create_apply_ants_xfm(4,0,name='apply_ants_xfm_vmhc')
+        fsl_to_itk_vmhc = create_wf_c3d_fsl_to_itk(0, name='fsl_to_itk_vmhc')
+
+        collect_transforms_vmhc = create_wf_collect_transforms(0, name='collect_transforms_vmhc')
+
+        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(0,name='apply_ants_xfm_vmhc')
+
+
+        calculate_ants_xfm_vmhc.inputs.inputspec.dimension = 3
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            use_histogram_matching = True
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            winsorize_lower_quantile = 0.01
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            winsorize_upper_quantile = 0.99
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            metric = ['MI','MI','CC']
+
+        calculate_ants_xfm_vmhc.inputs.inputspec.metric_weight = [1,1,1]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            radius_or_number_of_bins = [32,32,4]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            sampling_strategy = ['Regular','Regular',None]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            sampling_percentage = [0.25,0.25,None]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            number_of_iterations = [[1000,500,250,100], \
+            [1000,500,250,100], [100,100,70,20]]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            convergence_threshold = [1e-8,1e-8,1e-9]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            convergence_window_size = [10,10,15]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            transforms = ['Rigid','Affine','SyN']
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            transform_parameters = [[0.1],[0.1],[0.1,3,0]]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            shrink_factors = [[8,4,2,1],[8,4,2,1],[6,4,2,1]]
+
+        calculate_ants_xfm_vmhc.inputs.inputspec. \
+            smoothing_sigmas = [[3,2,1,0],[3,2,1,0],[3,2,1,0]]
+
+
+        apply_ants_xfm_vmhc.inputs.inputspec.interpolation = 'Gaussian'
+        apply_ants_xfm_vmhc.inputs.inputspec.input_image_type = 3
 
 
     ## copy and L/R swap file
@@ -384,24 +442,50 @@ def create_vmhc(use_ants):
                      smooth, 'op_string')
         vmhc.connect(inputNode, 'rest_mask',
                      smooth, 'operand_files')
+
         vmhc.connect(smooth, 'out_file',
-                     apply_ants_xfm_vmhc, 'inputspec.in_file')
+                     apply_ants_xfm_vmhc, 'inputspec.input_image')
+
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_rigid_xfm',
+                     collect_transforms_vmhc, 'inputspec.linear_rigid')
+
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_affine_xfm',
+                     collect_transforms_vmhc, 'inputspec.linear_affine')
+
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.warp_field',
+                     collect_transforms_vmhc, 'inputspec.warp_file')
+
+        ## func->anat matrix (bbreg)
+        vmhc.connect(inputNode, 'example_func2highres_mat',
+                     fsl_to_itk_vmhc, 'inputspec.affine_file')
+
+        vmhc.connect(inputNode, 'brain', fsl_to_itk_vmhc,
+                     'inputspec.reference_file')
+
+        vmhc.connect(inputNode, 'mean_functional', fsl_to_itk_vmhc,
+                     'inputspec.source_file')
+
+        vmhc.connect(fsl_to_itk_vmhc, 'outputspec.itk_transform', 
+                     collect_transforms_vmhc, 'inputspec.fsl_to_itk_affine')
+
+        '''
         vmhc.connect(inputNode, 'brain',
                      apply_ants_xfm_vmhc, 'inputspec.conversion_reference')
         vmhc.connect(inputNode, 'mean_functional',
                      apply_ants_xfm_vmhc, 'inputspec.conversion_source')
-        vmhc.connect(inputNode, 'standard',
-                     apply_ants_xfm_vmhc, 'inputspec.warp_reference')
-        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.affine_transformation',
-                     apply_ants_xfm_vmhc, 'inputspec.ants_affine')
-        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.warp_field',
-                     apply_ants_xfm_vmhc, 'inputspec.nonlinear_field')
-        ## func->anat matrix (bbreg)
-        vmhc.connect(inputNode, 'example_func2highres_mat',
-                     apply_ants_xfm_vmhc, 'inputspec.func_anat_affine')
-        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.out_file',
+        '''
+
+        vmhc.connect(inputNode, 'brain_symmetric',
+                     apply_ants_xfm_vmhc, 'inputspec.reference_image')
+
+        vmhc.connect(collect_transforms_vmhc, \
+                     'outputspec.transformation_series', \
+                     apply_ants_xfm_vmhc, 'inputspec.transforms')
+
+        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
                      copy_and_L_R_swap, 'in_file')
-        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.out_file',
+
+        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
                      pearson_correlation, 'xset')
 
 
@@ -438,13 +522,13 @@ def create_vmhc(use_ants):
 
         # ANTS warp outputs to outputnode
 
-        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.affine_transformation',
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_affine_xfm',
                      outputNode, 'highres2symmstandard_mat')
         vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.warp_field',
                      outputNode, 'highres2symmstandard_warp')
-        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.output_brain',
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.normalized_output_brain',
                      outputNode, 'fnirt_highres2symmstandard')
-        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.out_file',
+        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
                      outputNode, 'rest_res_2symmstandard')
 
 

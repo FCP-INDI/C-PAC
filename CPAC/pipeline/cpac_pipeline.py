@@ -1530,7 +1530,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     # converts FSL-format .mat affine xfm into ANTS-format
                     # .txt; .mat affine comes from Func->Anat registration
-                    fsl_to_itk_func_mni = create_wf_c3d_fsl_to_itk(name=\
+                    fsl_to_itk_func_mni = create_wf_c3d_fsl_to_itk(0, name=\
                             'fsl_to_itk_%s_%d' % (func_name, \
                             num_strat))
 
@@ -1573,7 +1573,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     # collects series of warps to be applied
                     collect_transforms_func_mni = \
-                            create_wf_collect_transforms(name=\
+                            create_wf_collect_transforms(0, name=\
                             'collect_transforms_%s_%d' % \
                             (func_name, num_strat))
 
@@ -1629,7 +1629,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         reference, input_image_type, func_name):
 
                     # apply ants warps
-                    apply_ants_warp_func_mni = create_wf_apply_ants_warp(\
+                    apply_ants_warp_func_mni = create_wf_apply_ants_warp(0, \
                             name='apply_ants_warp_%s_%d' % \
                             (func_name, num_strat))
 
@@ -1701,10 +1701,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         '_functional')
                 ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 0, 'mean_functional_in_mni')
 
-
-
             
                 num_strat += 1
+
 
     strat_list += new_strat_list
     
@@ -2568,7 +2567,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         nodes = getNodeList(strat)
            
-        if 'func_mni_ants_warp' in nodes:
+        if 'apply_ants_warp_functional_mni' in nodes:
 
             # ANTS WARP APPLICATION
 

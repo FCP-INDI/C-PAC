@@ -287,10 +287,11 @@ class Control(wx.Control):
             self.listbox_ctrl = self.ctrl.GetListBoxCtrl()
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
-
-            '''
+            
             if combo_type == 4:
+
                 if values:
+
                     # values.keys() is a list of contrast options the user
                     # typed into the contrasts box. this only exists if the
                     # user entered contrasts, then saved them or went back to
@@ -301,8 +302,7 @@ class Control(wx.Control):
                         # SELECTIONS (which ones were checked) in the listbox
                         if values[option] == True:
                             self.selection.append(option)
-            '''
-                
+                            
            
             self.options = self.ctrl.get_listbox_options()
             self.listbox_selections = []
@@ -413,7 +413,7 @@ class Control(wx.Control):
                     if v:                       
                         listbox.Insert(v,0)
                         listbox.Check(0)
-                        self.set_selection(v)         
+                        self.set_selection(v)  
             elif self.get_type()==6:
                 #self.ctrl.SetChecked(val)
                 self.ctrl.SetCheckedStrings(val)

@@ -322,10 +322,30 @@ class ListBoxCombo(wx.Panel):
         self.options = []
         #self.listbox_selections = []
 
+        # if it is the Contrasts checklist box in the group analysis model
+        # builder GUI
         if self.ctype == 4:
+
+            # if this is a 'load' situation when the user loads their group
+            # analysis .yml file and they already have contrasts inserted into
+            # the list
             if values:
+
+                selected_contrasts = []
+
                 for val in values.keys():
+
+                    # insert the contrast strings into the GUI's checkbox list
                     self.listbox.Append(str(val))
+
+                    # find out which ones were selected
+                    if values[val] == True:
+                        selected_contrasts.append(val)
+
+                # select the contrast checkboxes that the user checked when
+                # they load their gpa config.yml file into the model builder
+                self.listbox.SetCheckedStrings(selected_contrasts)
+
                    
         
     def onButtonClick(self, event):

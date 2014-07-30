@@ -370,24 +370,31 @@ class ModelConfig(wx.Frame):
             raise Exception
         
 
-        # update the 'Model Setup' box and populate it with the EVs and their
-        # associated checkboxes for categorical and demean
+
         for ctrl in self.page.get_ctrl_list():
 
+            # update the 'Model Setup' box and populate it with the EVs and
+            # their associated checkboxes for categorical and demean
             if ctrl.get_name() == 'model_setup':
                 ctrl.set_value(self.phenoHeaderItems)
 
+            # populate the design formula text box with a formula which
+            # includes all of the EVs, and two of the measures (MeanFD and
+            # the measure/derivative mean) - the user can edit this if they
+            # need to, obviously
+            if ctrl.get_name() == 'design_formula':
 
+                formula_string = ''
 
+                for EV in self.phenoHeaderItems:
+                    if formula_string == '':
+                        formula_string = EV
+                    else:
+                        formula_string = formula_string + ' + ' + EV
 
-    # by the time you click next, this should store the design formula, which
-    # EVs are categorical and which should be demeaned
+                formula_string = formula_string + ' + MeanFD + Measure_Mean'
 
-    # we should also have the subject list filepath and phenotype filepath,
-    # as well as the subject ID column name
-
-    # send this to the next stage, stored nicely, and then run patsy and also
-    # the categorical breaking-out
+                ctrl.set_value(formula_string)
 
 
 

@@ -159,6 +159,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         print 's_paths: ', s_paths, '\n\n'
 
 
+
+
+        ''' begin iteration through group subject list for processing '''
+
         for sub in subject_list:
 
             # let's check to make sure the subject list is formatted for
@@ -183,16 +187,18 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
             elif (c.repeatedMeasures == False) and (',' in sub):
                 print '\n\n'
-                print 'It looks like your group analysis subject list is ' \
-                        'formatted for running repeated measures, but ' \
-                        '\'Run Repeated Measures\' is not enabled in the ' \
-                        'pipeline configuration, found in the \'Group ' \
-                        'Analysis Settings\' tab of the pipeline ' \
-                        'configuration editor.\n'
+                print '[!] CPAC says: It looks like your group analysis ' \
+                        'subject list is formatted for running repeated ' \
+                        'measures, but \'Run Repeated Measures\' is not ' \
+                        'enabled in the pipeline configuration, found in ' \
+                        'the \'Group Analysis Settings\' tab of the ' \
+                        'pipeline configuration editor.\n'
                 print 'Double-check your pipeline configuration?\n\n'
                 raise Exception
 
 
+
+            ''' process subject ids for repeated measures, if it is on '''
             # if repeated measures is being run and the subject list
             # is a list of subject IDs and scan IDs concatenated
             if (c.repeatedMeasures == True):
@@ -213,6 +219,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                     session_id = sub.split(',',2)[2]
 
 
+
+            ''' drop subjects from the group subject list '''
+            # check the path files in path_files_here folder in the subject's
+            # output folder - and drop any subjects from the group analysis
+            # subject list which do not exist in the paths to the output files
             for path in s_paths:
 
                 if (c.repeatedMeasures == True):
@@ -220,6 +231,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                     if sub.count(',') == 1:
                         if (sub_id in path) and (other_id in path):
                             exist_paths.append(sub)
+
                     elif sub.count(',') == 2:
                         if (sub_id in path) and (scan_id in path) and \
                                 (session_id in path):
@@ -263,6 +275,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         
 
+
+        ''' write the new subject list '''
         new_sub_file = os.path.join(mod_path, os.path.basename(conf.subject_list))
 
         try:
@@ -300,6 +314,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Run 'create_fsl_model' script to extract phenotypic data from
         # the phenotypic file for each of the subjects in the subject list
 
+
+
+        ''' get the motion statistics parameter file, if present '''
         # get the parameter file so it can be passed to create_fsl_model.py
         # so MeanFD or other measures can be included in the design matrix
         parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
@@ -346,6 +363,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             parameter_file = None
 
 
+
+        ''' run create_fsl_model.py to generate the group analysis models '''
         # path to the pipeline folder to be passed to create_fsl_model.py
         # so that certain files like output_means.csv can be accessed
         pipeline_path = os.path.join(c.outputDirectory, p_id[0])
@@ -382,7 +401,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
 
-    #start group analysis
+    ''' start group analysis '''
 
     for model_sub in model_sub_list:
 
@@ -460,6 +479,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
 
+
+        ''' create the list of paths to all output files to go to model '''
         # create the 'ordered_paths' list, which is a list of all of the
         # output paths of the output files being included in the current
         # group-level analysis model
