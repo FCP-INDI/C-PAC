@@ -185,12 +185,12 @@ def extract_data(c, param_map):
         session_path = 'session_1'
 
         #session present if path_length is equal to 3
-        if path_length == 2:
+        if path_length == 3:
             relative_path_list = relative_path.split('/')
             session_path = relative_path_list[0]
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
-        elif path_length > 2:
+        elif path_length > 3:
             raise Exception("extract_data script currently doesn't support"\
                              "this directory structure.Please provide the"\
                              "subjects_list file to run CPAC." \
@@ -247,7 +247,7 @@ def extract_data(c, param_map):
                         try:
                             for scan in scan_list:
                                 print>>f,  "            " + scan[1] + ": '" + \
-                                param_map.get((subject_map.get(sub), scan[1]))[index] + "'"
+                                param_map.get((subject_map.get(sub), scan[0]))[index] + "'"
                         
                         except:
                             raise Exception(" No Parameter values for the %s site and %s scan is defined in the scan"\
