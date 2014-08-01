@@ -21,6 +21,8 @@ class ModelDesign(wx.Frame):
 
         self.gpa_settings = gpa_settings
 
+        self.contrasts_list = varlist
+
         if 'contrasts' not in self.gpa_settings.keys():
             self.gpa_settings['contrasts'] = {}
 
@@ -238,6 +240,32 @@ class ModelDesign(wx.Frame):
 
 
 
+    def parse_contrast(self, contrast_string):
+
+        contrast_string = contrast_string.replace(' ', '')
+
+        if '>' in contrast_string:
+            split_contrast = contrast_string.split('>')
+        elif '<' in contrast_string:
+            split_contrast = contrast_string.split('<')
+        elif '+' in contrast_string:
+            split_contrast = contrast_string.split('+')
+        elif '-' in contrast_string:
+            split_contrast = contrast_string.split('-')
+        else:
+            print '[!] CPAC says: The contrast \' ', contrast_string, ' \' ' \
+                  'did not contain any valid operators ( > , < , + , - ).\n'
+
+        # in the case of the '+' or '-' contrast operators, which result in
+        # the split_contrast list containing a blank element ''
+        for item in split_contrast:
+            if item == '':
+                split_contrast.remove(item)
+
+        return split_contrast
+
+
+
     def collect_input(self):
 
         for ctrl in self.page.get_ctrl_list():
@@ -248,6 +276,20 @@ class ModelDesign(wx.Frame):
 
                 for option in ctrl.get_listbox_options():
 
+                    # first, make sure the contrasts are valid!
+                    contrasts = parse_contrast(option)
+       
+                    for contrast in contrasts:
+                        if contrast not in self.contrasts_list:
+                            
+                            print 'The contrast \' ', contrast, ' \' you ' \
+                                  'entered within the string \' ', option, \
+                                  ' \' is not one of the available ' \
+                                  'contrast selections.'
+                            print 'Please enter only the contrast labels ' \
+                                  ' listed under \'Available Contrasts\'.'
+
+                    # then, add them to gpa_settings appropriately
                     if option in ctrl.get_listbox_selections():
                         self.gpa_settings['contrasts'][option] = True
                     else:
