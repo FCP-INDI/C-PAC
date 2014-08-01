@@ -467,13 +467,13 @@ def create_nuisance(use_ants, name='nuisance'):
 
     if use_ants == True:
 
-        ho_mni_to_2mm = pe.Node(interface=ants.WarpImageMultiTransform(), name='ho_mni_to_2mm_ants_applyxfm')
+        ho_mni_to_2mm = pe.Node(interface=ants.ApplyTransforms(), name='ho_mni_to_2mm_ants_applyxfm')
 
-        ho_mni_to_2mm.inputs.invert_affine = [1]
-        ho_mni_to_2mm.inputs.use_nearest = True
+        ho_mni_to_2mm.inputs.invert_transform_flags = [True]
+        ho_mni_to_2mm.inputs.interpolation = 'NearestNeighbor'
         ho_mni_to_2mm.inputs.dimension = 3
 
-        nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transformation_series')
+        nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transforms')
         nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 

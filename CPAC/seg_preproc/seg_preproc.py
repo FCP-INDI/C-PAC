@@ -486,9 +486,9 @@ def process_segment_map(wf_name, use_ants):
 
     if use_ants == True:
 
-        tissueprior_mni_to_t1 = pe.Node(interface=ants.WarpImageMultiTransform(), name='%s_prior_mni_to_t1' % (wf_name))
-        tissueprior_mni_to_t1.inputs.invert_affine = [1]
-        tissueprior_mni_to_t1.inputs.use_nearest = True
+        tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(), name='%s_prior_mni_to_t1' % (wf_name))
+        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True]
+        tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(), name='overlap_%s_map_with_prior' % (wf_name))
         overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
@@ -504,7 +504,7 @@ def process_segment_map(wf_name, use_ants):
 
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
 
-        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'transformation_series')
+        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'transforms')
 
 
         #overlapping
