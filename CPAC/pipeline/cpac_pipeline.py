@@ -25,8 +25,7 @@ from CPAC.registration import create_nonlinear_register, \
                               create_wf_calculate_ants_warp, \
                               create_wf_apply_ants_warp, \
                               create_wf_c3d_fsl_to_itk, \
-                              create_wf_collect_transforms, \
-                              create_apply_ants_xfm
+                              create_wf_collect_transforms
 from CPAC.nuisance import create_nuisance, bandpass_voxels
 
 from CPAC.median_angle import create_median_angle_correction
@@ -1203,6 +1202,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         workflow.connect(node, out_file,
                                          nuisance, 'inputspec.mni_to_anat_linear_xfm')
                     else:
+                        # pass the ants_affine_xfm to the input for the
+                        # INVERSE transform, but ants_affine_xfm gets inverted
+                        # within the workflow
                         node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
                         workflow.connect(node, out_file,
                                          nuisance, 'inputspec.mni_to_anat_linear_xfm')
@@ -1640,6 +1642,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             interpolation = 'Linear'
+
+                    # input_image_type:
+                    # (0 or 1 or 2 or 3)
+                    # Option specifying the input image type of scalar
+                    # (default), vector, tensor, or time series.
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             input_image_type = input_image_type
 
@@ -2701,7 +2708,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             elif map_node == 1:
                 apply_fsl_warp = pe.MapNode(interface=fsl.ApplyWarp(),
                         name='%s_to_standard_%d' % (output_name, num_strat), \
-                        iterfield=['in_file'])  
+                        iterfield=['in_file'])
 
 
             apply_fsl_warp.inputs.ref_file = c.standard
@@ -2736,6 +2743,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(apply_fsl_warp.name)
             
             num_strat += 1
+
 
 
 
@@ -3006,7 +3014,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         strat, num_strat)
             
             if 1 in c.runZScoring:
-                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
+                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
 
             num_strat += 1
     
@@ -3220,7 +3228,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         num_strat)
             
             if 1 in c.runZScoring:
-                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
+                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
 
             num_strat += 1
 
