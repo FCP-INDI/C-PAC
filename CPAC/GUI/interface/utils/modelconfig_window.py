@@ -148,7 +148,7 @@ class ModelConfig(wx.Frame):
         # this fires only if we're coming BACK to this page from the second
         # page, and these parameters are already pre-loaded. this is to
         # automatically repopulate the 'Model Setup' checkbox grid
-        if 'pheno_file' in self.gpa_settings.keys():
+        if self.gpa_settings['pheno_file'] != '':
 
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
 

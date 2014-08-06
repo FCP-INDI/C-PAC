@@ -263,11 +263,13 @@ class ConfigFslFrame(wx.Frame):
 
 class ContrastsFrame(wx.Frame):
 
-    def __init__(self, parent, values):
+    def __init__(self, parent, values, avail_cons):
 
         wx.Frame.__init__(self, parent, title="Add Contrast Description", \
                 size = (300,80))
         
+        self.avail_cons = avail_cons
+
         panel = wx.Panel(self)
         
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -288,15 +290,75 @@ class ContrastsFrame(wx.Frame):
         
         self.Show()
     
-    def onButtonClick(self,event):
+
+    def onButtonClick(self, event):
+
         parent = self.Parent
         
         if self.box1.GetValue():
-            
+          
             val = self.box1.GetValue()
-            parent.listbox.Append(str(val))
-            parent.options.append(str(val))
-            self.Close()
+
+            # do validation first
+
+            contrasts_in_string = self.parse_contrast(val)
+
+            for contrast in contrasts_in_string:
+
+                if contrast not in self.avail_cons:
+
+                    errmsg = 'CPAC says: The contrast \'%s\' you ' \
+                        'entered within the string \'%s\' is not ' \
+                        'one of the available contrast selections.' \
+                        '\n\nPlease enter only the contrast labels ' \
+                        'listed under \'Available Contrasts\'.' \
+                        % (contrast, val)
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+
+                else:
+                    parent.listbox.Append(str(val))
+                    parent.options.append(str(val))
+                    self.Close()
+
+
+    def parse_contrast(self, contrast_string):
+
+        orig_string = contrast_string
+
+        contrast_string = contrast_string.replace(' ', '')
+
+        if '>' in contrast_string:
+            split_contrast = contrast_string.split('>')
+        elif '<' in contrast_string:
+            split_contrast = contrast_string.split('<')
+        elif '+' in contrast_string:
+            split_contrast = contrast_string.split('+')
+        elif '-' in contrast_string:
+            split_contrast = contrast_string.split('-')
+        else:
+
+            errmsg = 'CPAC says: The contrast \'%s\' did not contain any ' \
+                     'valid operators.\n\nValid operators: > , < , + , -' \
+                     % orig_string
+
+            errCon = wx.MessageDialog(self, errmsg, 'Invalid Operator',
+                         wx.OK | wx.ICON_ERROR)
+            errCon.ShowModal()
+            errCon.Destroy()
+
+
+
+        # in the case of the '+' or '-' contrast operators, which result in
+        # the split_contrast list containing a blank element ''
+        for item in split_contrast:
+            if item == '':
+                split_contrast.remove(item)
+
+        return split_contrast
 
 
 
@@ -356,7 +418,7 @@ class ListBoxCombo(wx.Panel):
         elif self.ctype == 1:
             CheckBox(self, self.values)
         elif self.ctype == 4:
-            ContrastsFrame(self, self.values)
+            ContrastsFrame(self, self.values, self.avail_cons)
         
     def GetListBoxCtrl(self):
         return self.listbox
@@ -380,6 +442,15 @@ class ListBoxCombo(wx.Panel):
 
     def get_listbox_options(self):
         return self.options
+
+
+    def set_available_contrasts(self, avail_cons):
+
+        # this is the list of contrast names available to the user to be
+        # placed into the contrast strings - this gets passed to
+        # ContrastsFrame so it can do string checking immediately
+        self.avail_cons = avail_cons
+
 
     #def get_listbox_selections(self):
     #    return self.listbox_selections

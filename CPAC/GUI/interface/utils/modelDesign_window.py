@@ -72,7 +72,7 @@ class ModelDesign(wx.Frame):
         varlist_sizer.Add(var_list_text)
 
         self.page.add_pheno_load_panel(varlist_sizer)
-        
+    
 
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
@@ -82,6 +82,15 @@ class ModelDesign(wx.Frame):
                       comment = '',
                       size = (300,200),
                       combo_type = 4)
+
+        # this sends the list of available contrast names to the 'Add
+        # Contrast' dialog box, so that it may do validation immediately when
+        # the user enters contrast strings
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
+            if name == 'contrastStrings':
+                ctrl.set_available_contrasts(varlist)
+
 
         self.page.add(label="Model Group Variances Seperately ",
                       control=control.CHOICE_BOX,
@@ -255,6 +264,7 @@ class ModelDesign(wx.Frame):
         else:
             print '[!] CPAC says: The contrast \' ', contrast_string, ' \' ' \
                   'did not contain any valid operators ( > , < , + , - ).\n'
+            raise Exception
 
         # in the case of the '+' or '-' contrast operators, which result in
         # the split_contrast list containing a blank element ''
@@ -277,17 +287,28 @@ class ModelDesign(wx.Frame):
                 for option in ctrl.get_listbox_options():
 
                     # first, make sure the contrasts are valid!
-                    contrasts = parse_contrast(option)
+                    contrasts = self.parse_contrast(option)
        
+                    # check to make sure the contrast names are contrasts that
+                    # are actually valid - this will only really ever happen
+                    # if the user hand-edits the config file, the GUI catches
+                    # invalid contrasts when entered
                     for contrast in contrasts:
                         if contrast not in self.contrasts_list:
+
+                            errmsg = 'CPAC says: The contrast \'%s\' you ' \
+                                'entered within the string \'%s\' is not ' \
+                                'one of the available contrast selections.' \
+                                '\n\nPlease enter only the contrast labels ' \
+                                'listed under \'Available Contrasts\'.' \
+                                % (contrast, option)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                            raise Exception
                             
-                            print 'The contrast \' ', contrast, ' \' you ' \
-                                  'entered within the string \' ', option, \
-                                  ' \' is not one of the available ' \
-                                  'contrast selections.'
-                            print 'Please enter only the contrast labels ' \
-                                  ' listed under \'Available Contrasts\'.'
 
                     # then, add them to gpa_settings appropriately
                     if option in ctrl.get_listbox_selections():

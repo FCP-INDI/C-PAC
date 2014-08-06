@@ -1312,14 +1312,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             process_contrast('+')
 
-            # check how many in list, if single, yeah
+            contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0])
+
 
 
         elif '-' in parsed_contrast:
 
             process_contrast('-')
 
-            # check how many in list, if single, yeah
+            contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0])
         
 
 
