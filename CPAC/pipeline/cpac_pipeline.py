@@ -2839,7 +2839,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             elif map_node == 1:
-                output_to_standard_smooth = pe.Node(interface= \
+                output_to_standard_smooth = pe.MapNode(interface= \
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
@@ -3014,7 +3014,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         strat, num_strat)
             
             if 1 in c.runZScoring:
-                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
+                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
             num_strat += 1
     
@@ -3228,7 +3228,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         num_strat)
             
             if 1 in c.runZScoring:
-                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat)
+                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
 
             num_strat += 1
 
