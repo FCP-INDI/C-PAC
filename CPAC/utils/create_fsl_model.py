@@ -1023,102 +1023,103 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
 
 
-    ''' extract the mean of derivative for each subject if selected '''
-    # if the user has selected it to be part of their model, insert the mean
-    # of the outputs included in group analysis (i.e. if running ReHo in
-    # group-level analysis, have the mean of each subject's ReHo output
-    # included as an EV in the phenotype - regress out the mean of measure
-    #     pull the mean value from the output_means.csv file in the subject
-    #     directory of the appropriate pipeline's output folder
-    sub_means_dict = {}
-    output_means_dict = {}
+    if 'Measure_Mean' in c.design_formula:
 
-    for sub in pheno_data_dict[c.subject_id_label]:
+        ''' extract the mean of derivative for each subject if selected '''
+        # if the user has selected it to be part of their model, insert the mean
+        # of the outputs included in group analysis (i.e. if running ReHo in
+        # group-level analysis, have the mean of each subject's ReHo output
+        # included as an EV in the phenotype - regress out the mean of measure
+        #     pull the mean value from the output_means.csv file in the subject
+        #     directory of the appropriate pipeline's output folder
+        sub_means_dict = {}
+        output_means_dict = {}
 
-        output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+        for sub in pheno_data_dict[c.subject_id_label]:
 
-        if os.path.exists(output_means_file):
+            output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+
+            if os.path.exists(output_means_file):
             
-            try:
+                try:
 
-                output_means = csv.DictReader(open(output_means_file,'rU'))
+                    output_means = csv.DictReader(open(output_means_file,'rU'))
                 
-            except:
+                except:
 
-                print '\n\n[!] CPAC says: Could not open the output_means' \
-                      '.csv file usually located in each subject\'s output ' \
-                      'folder in the output directory.\n'
-                print 'Path: ', output_means_file, '\n\n'
+                    print '\n\n[!] CPAC says: Could not open the output_means' \
+                          '.csv file usually located in each subject\'s output ' \
+                          'folder in the output directory.\n'
+                    print 'Path: ', output_means_file, '\n\n'
+                    raise Exception
+
+                # pull in the output_means .csv as a dictionary
+                for row in output_means:
+                    sub_means_dict = row
+
+                output_means_dict[sub] = str(row[current_output])      
+
+
+            else:
+                print '\n\n[!] CPAC says: The output_means.csv file usually ' \
+                      'located in each subject\'s output folder in the output ' \
+                      'directory does not exist!\n'
+                print 'Path not found: ', output_means_file, '\n\n'
                 raise Exception
 
-            # pull in the output_means .csv as a dictionary
-            for row in output_means:
-                sub_means_dict = row
-
-            output_means_dict[sub] = str(row[current_output])      
-
-
-        else:
-            print '\n\n[!] CPAC says: The output_means.csv file usually ' \
-                  'located in each subject\'s output folder in the output ' \
-                  'directory does not exist!\n'
-            print 'Path not found: ', output_means_file, '\n\n'
-            raise Exception
-
     
-    # by the end of this for loop above, output_means_dict should look
-    # something like this:
-    #    {sub1: mean_val, sub2: mean_val, ..}
-    #        as this code runs once per output, this dictionary contains the
-    #        mean values of the one current output, right now
+        # by the end of this for loop above, output_means_dict should look
+        # something like this:
+        #    {sub1: mean_val, sub2: mean_val, ..}
+        #        as this code runs once per output, this dictionary contains the
+        #        mean values of the one current output, right now
 
 
 
 
-    ''' insert mean of derivatives into pheno data '''
-    means_list = []
+        ''' insert mean of derivatives into pheno data '''
+        means_list = []
 
-    # create a blank list that is the proper length
-    for sub in pheno_data_dict[c.subject_id_label]:
-        means_list.append(0)
+        # create a blank list that is the proper length
+        for sub in pheno_data_dict[c.subject_id_label]:
+            means_list.append(0)
 
-    for subID in output_means_dict.keys():
+        for subID in output_means_dict.keys():
 
-        # find matching subject IDs between the output_means_dict and the
-        # pheno_data_dict so we can insert mean values into the
-        # pheno_data_dict
-        for subject in pheno_data_dict[c.subject_id_label]:
+            # find matching subject IDs between the output_means_dict and the
+            # pheno_data_dict so we can insert mean values into the
+            # pheno_data_dict
+            for subject in pheno_data_dict[c.subject_id_label]:
 
-            if subject == subID:
+                if subject == subID:
 
-                # return the index (just an integer) of where in the
-                # pheno_data_dict list structure a subject ID is
-                idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+                    # return the index (just an integer) of where in the
+                    # pheno_data_dict list structure a subject ID is
+                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
 
-                # insert Mean FD value in the proper point
-                means_list[idx] = float(output_means_dict[subID])
-
-
-    # time to demean the means!
-    means_sum = 0.0
-
-    for mean in means_list:
-
-        means_sum = means_sum + mean
-
-    measure_mean = means_sum / len(means_list)
-
-    idx = 0
-
-    for mean in means_list:
-
-        means_list[idx] = mean - measure_mean
-        idx += 1
+                    # insert Mean FD value in the proper point
+                    means_list[idx] = float(output_means_dict[subID])
 
 
-    ''' insert means into pheno data if selected '''
+        # time to demean the means!
+        means_sum = 0.0
 
-    if 'Measure_Mean' in c.design_formula:
+        for mean in means_list:
+
+            means_sum = means_sum + mean
+
+        measure_mean = means_sum / len(means_list)
+
+        idx = 0
+
+        for mean in means_list:
+
+            means_list[idx] = mean - measure_mean
+            idx += 1
+
+
+        ''' insert means into pheno data if selected '''
+
         # add this new list to the pheno_data_dict
         pheno_data_dict['Measure_Mean'] = np.array(means_list)
    
