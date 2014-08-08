@@ -2659,11 +2659,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(node, out_file, collect_transforms,
                         'inputspec.warp_file')
 
-                # nonlinear?? affine from anatomical->template ANTS registration
+                # linear affine from anatomical->template ANTS registration
                 node, out_file = strat.get_node_from_resource_pool('ants' \
                         '_affine_xfm')
                 workflow.connect(node, out_file, collect_transforms,
                         'inputspec.linear_affine')
+
+                # rigid affine from anatomical->template ANTS registration
+                node, out_file = strat.get_node_from_resource_pool('ants' \
+                        '_rigid_xfm')
+                workflow.connect(node, out_file, collect_transforms,
+                        'inputspec.linear_rigid')
 
                 # converted FLIRT func->anat affine, now in ITK (ANTS) format
                 workflow.connect(fsl_to_itk_convert,
