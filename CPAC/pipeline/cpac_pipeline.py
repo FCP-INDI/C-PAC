@@ -1641,7 +1641,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     apply_ants_warp_func_mni.inputs.inputspec.dimension = 3
 
                     apply_ants_warp_func_mni.inputs.inputspec. \
-                            interpolation = 'Linear'
+                            interpolation = 'NearestNeighbor'
 
                     # input_image_type:
                     # (0 or 1 or 2 or 3)
