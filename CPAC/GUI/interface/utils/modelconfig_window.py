@@ -522,6 +522,13 @@ class ModelConfig(wx.Frame):
                 if header != self.gpa_settings['subject_id_label']:
                     var_list_for_contrasts.append(header)
 
+
+        if 'MeanFD' in self.gpa_settings['design_formula']:
+            var_list_for_contrasts.append('MeanFD')
+
+        if 'Measure_Mean' in self.gpa_settings['design_formula']:
+            var_list_for_contrasts.append('Measure_Mean')
+
         
 
         # open the next window!

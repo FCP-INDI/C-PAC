@@ -1336,11 +1336,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     # convert the Patsy-generated design matrix into a NumPy array
     data = np.asarray((dmatrix))
 
-    print '\n\nthis be dmatrix: ', dmatrix.design_info, '\n\n'
-
-    print '\n\nthis be data: ', data, '\n\n'
-
-
 
     model_ready_data = None
     field_names = None
@@ -1394,9 +1389,16 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     '''
 
 
+    if check_multicollinearity(np.array(data)) == 1:
+
+        print '\n\n[!] CPAC warns: Detected multicollinearity in the ' \
+              'computed group-level analysis model. Please double-check ' \
+              'your model design.\n\nGroup analysis model configuration ' \
+              'file: ', config, '\n\n'
+
+
     data = np.array(data, dtype=np.float16)
 
-    print 'THIS BE POST NUMPIFY DATA: ', data, '\n\n'
 
 
     try:

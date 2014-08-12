@@ -456,9 +456,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         wf.base_dir = workDir
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
         log_dir = os.path.join(conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (conf.model_name))
-        try:
+        
+
+        if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        except:
+        else:
             print "log_dir already exist"
         
 
@@ -597,8 +599,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
+
+        # create the path string for the group analysis output
         out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name))
-        
+        out_dir = out_dir.split(p_id[0] + '/')
+        out_dir = os.path.join(conf.output_dir, out_dir[1])
+       
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
               re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
@@ -618,7 +624,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 #         if c.mixedScanAnalysis == True:
 #             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-        ds.inputs.base_directory = conf.output_dir
+        ds.inputs.base_directory = out_dir
         ds.inputs.container = ''
         
         ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
