@@ -1628,7 +1628,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                 def ants_apply_warps_func_mni(input_node, input_outfile, \
-                        reference, input_image_type, func_name):
+                        reference, interp, input_image_type, func_name):
 
                     # apply ants warps
                     apply_ants_warp_func_mni = create_wf_apply_ants_warp(0, \
@@ -1641,7 +1641,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     apply_ants_warp_func_mni.inputs.inputspec.dimension = 3
 
                     apply_ants_warp_func_mni.inputs.inputspec. \
-                            interpolation = 'NearestNeighbor'
+                            interpolation = interp
 
                     # input_image_type:
                     # (0 or 1 or 2 or 3)
@@ -1686,7 +1686,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 collect_transforms_func_mni('functional_mni')
 
                 node, out_file = strat.get_leaf_properties()
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 3, 'functional_mni')
+                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Gaussian', 3, 'functional_mni')
 
 
 
@@ -1696,7 +1696,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 node, out_file = strat.get_node_from_resource_pool('func' \
                         'tional_brain_mask')
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 0, 'functional_brain_mask_to_standard')
+                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'NearestNeighbor', 0, 'functional_brain_mask_to_standard')
 
 
 
@@ -1706,7 +1706,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 node, out_file = strat.get_node_from_resource_pool('mean' \
                         '_functional')
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 0, 'mean_functional_in_mni')
+                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Gaussian', 0, 'mean_functional_in_mni')
 
             
                 num_strat += 1

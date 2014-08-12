@@ -1053,11 +1053,30 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                     print 'Path: ', output_means_file, '\n\n'
                     raise Exception
 
+
                 # pull in the output_means .csv as a dictionary
                 for row in output_means:
                     sub_means_dict = row
 
-                output_means_dict[sub] = str(row[current_output])      
+
+                try:
+
+                    output_means_dict[sub] = str(row[current_output])
+
+                except:
+
+                    print '\n\n[!] CPAC says: There is no mean value ' \
+                          'stored for the output \'', current_output, \
+                          '\' for subject \'', sub, '\'.\n'
+                    print 'Path to means file: ', output_means_file, '\n'
+                    print 'Possible situations:\n1. The output \'', \
+                          current_output, '\' was not included in ' \
+                          'individual-level analysis, but was included to ' \
+                          'be run in group-level analysis.\n2. The means ' \
+                          'file for this subject was not created properly.' \
+                          '\n3. Individual-level analysis did not ' \
+                          'complete properly.\n\n'
+                    raise Exception
 
 
             else:
@@ -1065,6 +1084,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                       'located in each subject\'s output folder in the output ' \
                       'directory does not exist!\n'
                 print 'Path not found: ', output_means_file, '\n\n'
+                print 'Tip: Either check if individual-level analysis ' \
+                      'completed successfully, or remove the measure mean ' \
+                      'from your model design.\n\n'
                 raise Exception
 
     
@@ -1134,38 +1156,20 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
 
 
-    try:
-        if not os.path.exists(c.outputModelFilesDirectory):
+    '''
 
-            os.makedirs(c.outputModelFilesDirectory)
+
+    try:
+
+        if not os.path.exists(c.output_dir):
+
+            os.makedirs(c.output_dir)
 
     except OSError, e:
 
         print 'Error: ', e, ' while trying to create outputModelFilesDirectory'
         raise
-    '''
 
-
-
-    model_ready_data = None
-    field_names = None
-    gp_var = None
-
-
-    '''FIGURE THIS OUT'''
-
-    '''
-    if c.modelGroupVariancesSeparately == 0:
-
-        model_ready_data, field_names = organize_data(filter_data, c)
-   
-    else:
-
-        model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
-
-
-    write_data(model_ready_data, field_names, c)
-    '''
 
 
 
@@ -1326,6 +1330,44 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
 
 
+
+    ### CREATE the .mat, .con, and .grp files
+
+    # convert the Patsy-generated design matrix into a NumPy array
+    data = np.asarray((dmatrix))
+
+    print '\n\nthis be dmatrix: ', dmatrix.design_info, '\n\n'
+
+    print '\n\nthis be data: ', data, '\n\n'
+
+
+
+    model_ready_data = None
+    field_names = None
+    gp_var = None
+
+
+    '''FIGURE THIS OUT'''
+
+    '''
+    if c.modelGroupVariancesSeparately == 0:
+
+        model_ready_data, field_names = organize_data(filter_data, c)
+   
+    else:
+
+        model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
+
+    '''
+
+    # write_data function: ordinarily this would break out the categoricals
+    # and demean the continuous variables marked for demeaning, but it would
+    # also sort out 'field_names', which would often drop some EVs incorrectly
+
+    #write_data(data, field_names, c)
+
+
+
     '''
     model_name = c.model_name
 
@@ -1349,11 +1391,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     print "Length of data list: ", len(data[:])
     print ""
-    data = np.array(data, dtype=np.float16)
     '''
 
-    # convert the Patsy-generated design matrix into a NumPy array
-    data = np.asarray((dmatrix))
+
+    data = np.array(data, dtype=np.float16)
+
+    print 'THIS BE POST NUMPIFY DATA: ', data, '\n\n'
 
 
     try:
@@ -1381,6 +1424,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     #create_con_ftst_file(con, model_name, fTest, c.output_dir)
+
 
 
 
