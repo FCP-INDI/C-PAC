@@ -601,9 +601,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
 
         # create the path string for the group analysis output
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name))
-        out_dir = out_dir.split(p_id[0] + '/')
+        out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
         out_dir = os.path.join(conf.output_dir, out_dir[1])
+        out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name))
        
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
