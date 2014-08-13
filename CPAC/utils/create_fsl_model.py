@@ -21,7 +21,7 @@ def create_pheno_dict(gpa_fsl_yml):
 
     # \/ \/ DUPLICATED CODE! PUT THIS FUNCTION IN ONE PLACE,
     #       OR REMOVE THE ORIGINAL ONE
-    def read_phenotypic(pheno_file, ev_selections):
+    def read_phenotypic(pheno_file, ev_selections, subject_id_label):
 
         import csv
         import numpy as np
@@ -54,8 +54,11 @@ def create_pheno_dict(gpa_fsl_yml):
                 if key in ev_selections['categorical']:
                     pheno_data_dict[key].append(key + str(line[key]))
 
-                else:
+                elif key == subject_id_label:
                     pheno_data_dict[key].append(line[key])
+
+                else:
+                    pheno_data_dict[key].append(float(line[key]))
 
 
 
@@ -101,7 +104,7 @@ def create_pheno_dict(gpa_fsl_yml):
 
     # pheno_data_dict gets loaded with the phenotypic data, in a dictionary
     # formatted for proper use with Patsy
-    pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections)
+    pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections, gpa_fsl_yml.subject_id_label)
 
     return pheno_data_dict
 
@@ -1184,8 +1187,20 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
 
+    # remove the Patsy-introduced intercept!
+    formula = formula + ' - 1'
+
+
     # create the actual design matrix using Patsy
     import patsy
+
+
+    # drop pickles of the inputs meant for Patsy so you can manually test it
+    # later if needed
+    import pickle
+    pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
+    pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
+
 
     try:
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
@@ -1239,8 +1254,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     def create_con_file(con_dict, file_name, out_dir):
         with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
             #write header
+            num = 1
             for key in con_dict:
-                f.write("/ContrastName1\t\"%s\"\n" %key)
+                f.write("/ContrastName%s\t\"%s\"\n" %(num,key))
+                num += 1
             f.write("/NumWaves\t%d\n" %len(con_dict[key]))
             f.write("/NumContrasts\t%d\n" %len(con_dict))
             f.write("/PPString%s" %create_dummy_string(len(con_dict[key])))
@@ -1393,8 +1410,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
         print '\n\n[!] CPAC warns: Detected multicollinearity in the ' \
               'computed group-level analysis model. Please double-check ' \
-              'your model design.\n\nGroup analysis model configuration ' \
-              'file: ', config, '\n\n'
+              'your model design.\n\n'
 
 
     data = np.array(data, dtype=np.float16)
