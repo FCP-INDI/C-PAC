@@ -255,7 +255,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         
 
-        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name)),
+        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name)),
                                 'model_files')
 
         print "basename: ", os.path.basename(conf.subject_list)
