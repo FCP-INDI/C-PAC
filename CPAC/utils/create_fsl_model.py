@@ -5,22 +5,8 @@ import csv
 import yaml
 
 
-# what this file now needs to do:
-
-# - demean the selected EVs
-# - create the pheno data dict like it does in the modelconfig
-# - take the formula and put that and the data into dmatrix, with Sum encoding
-
-# - parse the contrasts strings, use Aimi's code in that part
-# - write the .mat and .con files, and .grp as well
-# - figure out multicollinearity (if patsy doesn't do this)
-# - figure out modeling group variances separately
-
-
 def create_pheno_dict(gpa_fsl_yml):
 
-    # \/ \/ DUPLICATED CODE! PUT THIS FUNCTION IN ONE PLACE,
-    #       OR REMOVE THE ORIGINAL ONE
     def read_phenotypic(pheno_file, ev_selections, subject_id_label):
 
         import csv
@@ -40,6 +26,11 @@ def create_pheno_dict(gpa_fsl_yml):
         pheno_data_dict = {}
 
         for line in p_reader:
+
+            # here, each instance of 'line' is really a dictionary where the
+            # keys are the pheno headers, and their values are the values of
+            # each EV for that one subject - each iteration of this loop is
+            # one subject
 
             for key in line.keys():
 
@@ -501,7 +492,7 @@ def write_data(model_data, field_names, c):
 
 
 
-def create_mat_file(data, model_name, outputModelFilesDirectory):
+def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
 
     """
     create the .mat file
@@ -534,6 +525,14 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
 
 
     print >>f, '/Matrix'
+
+    col_string = '\n'
+
+    for col in col_names:
+        col_string = col_string + col + '\t'
+
+    print >>f, col_string, '\n'
+
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
 
     f.close()
@@ -1251,7 +1250,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         ppstring += '\n' 
         return ppstring
 
-    def create_con_file(con_dict, file_name, out_dir):
+    def create_con_file(con_dict, col_names, file_name, out_dir):
         with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
             #write header
             num = 1
@@ -1266,6 +1265,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             #write data
             f.write("/Matrix\n")
+
+            col_string = '\n'
+            for col in col_names:
+                col_string = col_string + col + '\t'
+            print >>f, col_string, '\n'
+
             for key in con_dict:
                 for v in con_dict[key]:
                     f.write("%1.5e\t" %v)
@@ -1418,7 +1423,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
 
     try:
-        create_mat_file(data, c.model_name, c.output_dir)
+        create_mat_file(data, dmatrix.design_info.column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .mat file during ' \
                   'group-level analysis model file generation.\n'
@@ -1434,7 +1439,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     try:
-        create_con_file(contrasts_dict, c.model_name, c.output_dir)
+        create_con_file(contrasts_dict, dmatrix.design_info.column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .con file during ' \
                   'group-level analysis model file generation.\n'
