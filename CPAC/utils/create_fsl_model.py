@@ -1221,12 +1221,18 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     ''' start Aimi's code '''
     def greater_than(dmat, a, b):
+        print '\n\na: ', a
+        print '\n\nb: ', b
         c1 = positive(dmat, a)
         c2 = positive(dmat, b)
+        print '\n\nc1: ', c1
+        print '\n\nc2: ', c2
+        print '\n\nc1-c2: ', c1-c2, '\n\n'
         return c1-c2
 
     def positive(dmat, a):
         evs = dmat.design_info.column_name_indexes
+        print '\n\npositive, evs list: ', evs, '\n\n'
         con = np.zeros(dmat.shape[1])
         if a in evs:
             con[evs[a]] = 1
@@ -1237,6 +1243,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                 if ev.startswith(term):
                     con[evs[ev]]= -1
         con[0] = 1
+        print 'positive, con: ', a, '   ', con, '\n\n'
         return con
 
     def negative(dmat, a):
@@ -1300,13 +1307,25 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         if '' in EVs_in_contrast:
             EVs_in_contrast.remove('')
 
+
         for EV in EVs_in_contrast:
+
+            skip = 0
+
             for cat_EV in c.ev_selections['categorical']:
+
                 if cat_EV in EV:
+
                     cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
                     parsed_EVs_in_contrast.append(cat_EV_contrast)
-                else:
-                    parsed_EVs_in_contrast.append(EV)
+                    skip = 1
+                    
+            if skip == 0:
+
+                parsed_EVs_in_contrast.append(EV)
+
+
+        return parsed_EVs_in_contrast
 
 
 
@@ -1323,21 +1342,21 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
         if '>' in parsed_contrast:
 
-            process_contrast('>')
+            parsed_EVs_in_contrast = process_contrast('>')
 
             contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1])
 
 
         elif '<' in parsed_contrast:
 
-            process_contrast('<')
+            parsed_EVs_in_contrast = process_contrast('<')
 
             contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0])
 
 
         elif '+' in parsed_contrast:
 
-            process_contrast('+')
+            parsed_EVs_in_contrast = process_contrast('+')
 
             contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0])
 
@@ -1345,11 +1364,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
         elif '-' in parsed_contrast:
 
-            process_contrast('-')
+            parsed_EVs_in_contrast = process_contrast('-')
 
             contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0])
         
-
 
 
 
