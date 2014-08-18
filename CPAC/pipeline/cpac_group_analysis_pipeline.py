@@ -403,15 +403,15 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
     ''' start group analysis '''
 
+    print '\n\nPreparing the group analysis workflow..\n\n'
+
     for model_sub in model_sub_list:
 
         #print >>diag, "Current model_sub: ", model_sub
         #print >>diag, ""
         
         model, subject_list = model_sub
-        
-        print "running for model %s and resource %s..." % (os.path.basename(model), resource)
-        
+   
 
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exist"%model)

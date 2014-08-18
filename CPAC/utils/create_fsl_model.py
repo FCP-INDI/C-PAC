@@ -1221,18 +1221,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     ''' start Aimi's code '''
     def greater_than(dmat, a, b):
-        print '\n\na: ', a
-        print '\n\nb: ', b
         c1 = positive(dmat, a)
         c2 = positive(dmat, b)
-        print '\n\nc1: ', c1
-        print '\n\nc2: ', c2
-        print '\n\nc1-c2: ', c1-c2, '\n\n'
         return c1-c2
 
     def positive(dmat, a):
         evs = dmat.design_info.column_name_indexes
-        print '\n\npositive, evs list: ', evs, '\n\n'
         con = np.zeros(dmat.shape[1])
         if a in evs:
             con[evs[a]] = 1
@@ -1243,7 +1237,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                 if ev.startswith(term):
                     con[evs[ev]]= -1
         con[0] = 1
-        print 'positive, con: ', a, '   ', con, '\n\n'
         return con
 
     def negative(dmat, a):
