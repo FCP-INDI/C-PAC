@@ -524,7 +524,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  seg_preproc, 'inputspec.brain')
 
                 if 'anat_mni_fnirt_register' in nodes:
-                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_linear_xfm')
+                    node, out_file = strat.get_node_from_resource_pool('mni_to_anatomical_linear_xfm')
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
                 elif 'anat_mni_ants_register' in nodes:

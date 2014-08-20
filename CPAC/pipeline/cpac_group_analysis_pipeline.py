@@ -155,10 +155,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         exist_paths = []
 
 
-        print 'subject_list: ', subject_list, '\n\n'
-        print 's_paths: ', s_paths, '\n\n'
-
-
 
 
         ''' begin iteration through group subject list for processing '''
@@ -170,8 +166,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             # vice versa
             if (c.repeatedMeasures == True) and (',' not in sub):
                 print '\n\n'
-                print 'Whoops! The group analysis subject list is not in ' \
-                        'the appropriate format for repeated measures.\n'
+                print '[!] CPAC says: The group analysis subject list is ' \
+                        'not inthe appropriate format for repeated ' \
+                        'measures.\n'
                 print 'Please use the appropriate format as described in ' \
                         'the CPAC User Guide or turn off Repeated Measures ' \
                         'in the CPAC pipeline configuration editor, found ' \
@@ -224,6 +221,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             # check the path files in path_files_here folder in the subject's
             # output folder - and drop any subjects from the group analysis
             # subject list which do not exist in the paths to the output files
+
             for path in s_paths:
 
                 if (c.repeatedMeasures == True):
@@ -238,8 +236,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                             exist_paths.append(sub)
 
                 else:
+
                     if sub in path:
-                        exist_paths.append(sub)           
+                        exist_paths.append(sub)
+ 
 
 
 
@@ -258,17 +258,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name)),
                                 'model_files')
 
-        print "basename: ", os.path.basename(conf.subject_list)
-
-        '''
-        try:
-            os.makedirs(mod_path)
-            print "Creating directory:"
-            print mod_path
-        except:
-            print "Attempted to create directory, but path already exists:"
-            print mod_path
-        '''
 
         if not os.path.isdir(mod_path):
             os.makedirs(mod_path)
@@ -548,11 +537,26 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
 
+        print 'S_paths length: ', len(s_paths)
+
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
         print "input_subject_list -> %s" % input_subject_list
 
         print "strgy_path: ", strgy_path
+
+
+        if len(ordered_paths) == 0:
+            print '\n\n\n[!] CPAC says: None of the subjects listed in the ' \
+                  'group analysis subject list were found to have outputs ' \
+                  'produced by individual-level analysis.\n\nEnsure that ' \
+                  'the subjects listed in your group analysis subject list ' \
+                  'are the same as the ones included in the individual-' \
+                  'level analysis you are running group-level analysis for.' \
+                  '\n\n\n'
+            raise Exception
+
+
 
         # gp_flow
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
@@ -561,9 +565,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % currentDerivative)
         gp_flow.inputs.inputspec.grp_model = model
         gp_flow.inputs.inputspec.ftest = c.fTest
-        
-        
-        
+  
+
+
         # gpa_wf
         # Creates the actual group analysis workflow
 
