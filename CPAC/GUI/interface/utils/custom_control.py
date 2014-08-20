@@ -321,7 +321,7 @@ class ContrastsFrame(wx.Frame):
 
                 else:
                     parent.listbox.Append(str(val))
-                    parent.options.append(str(val))
+                    #parent.options.append(str(val))
                     self.Close()
 
 
