@@ -255,8 +255,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         
 
-        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name)),
-                                'model_files')
+        # create the path string for the group analysis output
+        out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
+        out_dir = os.path.join(conf.output_dir, out_dir[1])
+        out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name))
+
+        mod_path = os.path.join(out_dir, 'model_files')
 
 
         if not os.path.isdir(mod_path):
@@ -603,12 +607,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-
-        # create the path string for the group analysis output
-        out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
-        out_dir = os.path.join(conf.output_dir, out_dir[1])
-        out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name))
-       
+     
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
               re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))

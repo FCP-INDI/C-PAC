@@ -294,6 +294,8 @@ class ContrastsFrame(wx.Frame):
     def onButtonClick(self, event):
 
         parent = self.Parent
+
+        add_con = 0
         
         if self.box1.GetValue():
           
@@ -320,9 +322,15 @@ class ContrastsFrame(wx.Frame):
                     errSubID.Destroy()
 
                 else:
-                    parent.listbox.Append(str(val))
-                    #parent.options.append(str(val))
-                    self.Close()
+                    add_con = 1
+
+
+            if add_con == 1:
+
+                parent.listbox.Append(str(val))
+                parent.options.append(str(val))
+                self.Close()
+
 
 
     def parse_contrast(self, contrast_string):

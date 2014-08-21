@@ -185,6 +185,17 @@ def run(config_file, subject_list_file, output_path_file):
         subject_paths.extend([s.rstrip('\r\n') for s in path_list])
 
 
+    if len(subject_paths) == 0:
+        print '[!] CPAC says: No individual-level analysis outputs were ' \
+              'found given the path file you provided.\n\nDerivative ' \
+              'Path File provided: ', output_path_file, '\n\nEither make ' \
+              'sure your Derivative Path File is correctly formatted, or ' \
+              'that individual-level analysis completed successfully and ' \
+              'generated the \'path_files_here\' folder found in the ' \
+              'output directory, then try again.\n\n'
+        raise Exception
+
+
     # 'subject_paths' is a list of every output from every subject included
     # in the output folder of the run
 

@@ -62,10 +62,19 @@ class ModelDesign(wx.Frame):
         
 
 
+        # build 'Available contrasts' string
         contrasts_text = 'Available contrasts:\n'
+
+        con_length = 65
 
         for con in varlist:
             contrasts_text = contrasts_text + '    ' + con
+
+            if len(contrasts_text) > con_length:
+                contrasts_text = contrasts_text + '\n'
+                con_length += 50
+            
+
 
         varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
         var_list_text = wx.StaticText(self.window, label=str(contrasts_text))
