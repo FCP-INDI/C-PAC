@@ -293,8 +293,12 @@ class ModelConfig(wx.Frame):
                 # Patsy can understand regarding categoricals:
                 #     example: { ADHD: ['adhd1', 'adhd1', 'adhd2', 'adhd1'] }
                 #                instead of just [1, 1, 2, 1], etc.
-                if key in ev_selections['categorical']:
-                    pheno_data_dict[key].append(key + str(line[key]))
+                if 'categorical' in ev_selections.keys():
+                    if key in ev_selections['categorical']:
+                        pheno_data_dict[key].append(key + str(line[key]))
+
+                    else:
+                        pheno_data_dict[key].append(line[key])
 
                 else:
                     pheno_data_dict[key].append(line[key])
@@ -511,11 +515,17 @@ class ModelConfig(wx.Frame):
 
         for header in self.pheno_data_dict.keys():
 
-            if header in self.gpa_settings['ev_selections']['categorical']:
+            if 'categorical' in self.gpa_settings['ev_selections'].keys():
+                if header in self.gpa_settings['ev_selections']['categorical']:
                 
-                for val in self.pheno_data_dict[header]:
-                    if val not in var_list_for_contrasts:
-                        var_list_for_contrasts.append(val)
+                    for val in self.pheno_data_dict[header]:
+                        if val not in var_list_for_contrasts:
+                            var_list_for_contrasts.append(val)
+
+                else:
+
+                    if header != self.gpa_settings['subject_id_label']:
+                        var_list_for_contrasts.append(header)
 
             else:
 
