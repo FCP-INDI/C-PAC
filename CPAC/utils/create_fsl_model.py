@@ -171,15 +171,16 @@ def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
     print >>f, '/NumPoints\t%d' %dimx
     print >>f, ppstring
 
-
-    print >>f, '/Matrix'
-
+    # print labels for the columns - mainly for double-checking your model
     col_string = '\n'
 
     for col in col_names:
         col_string = col_string + col + '\t'
 
     print >>f, col_string, '\n'
+
+
+    print >>f, '/Matrix'
 
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
 
@@ -884,7 +885,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             for ev in evs:
                 if ev.startswith(term):
                     con[evs[ev]]= -1
-        con[0] = 1
+        #con[0] = 1
         return con
 
     def negative(dmat, a):
@@ -903,21 +904,23 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             #write header
             num = 1
             for key in con_dict:
-                f.write("/ContrastName%s\t\"%s\"\n" %(num,key))
+                f.write("/ContrastName%s\t%s\n" %(num,key))
                 num += 1
             f.write("/NumWaves\t%d\n" %len(con_dict[key]))
             f.write("/NumContrasts\t%d\n" %len(con_dict))
-            f.write("/PPString%s" %create_dummy_string(len(con_dict[key])))
+            f.write("/PPheights%s" %create_dummy_string(len(con_dict[key])))
             f.write("/RequiredEffect%s" %create_dummy_string(len(con_dict[key])))
             f.write("\n\n")
 
-            #write data
-            f.write("/Matrix\n")
-
+            # print labels for the columns - mainly for double-checking your
+            # model
             col_string = '\n'
             for col in col_names:
                 col_string = col_string + col + '\t'
             print >>f, col_string, '\n'
+
+            #write data
+            f.write("/Matrix\n")
 
             for key in con_dict:
                 for v in con_dict[key]:

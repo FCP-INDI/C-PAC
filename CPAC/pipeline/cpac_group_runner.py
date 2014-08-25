@@ -217,22 +217,29 @@ def run(config_file, subject_list_file, output_path_file):
 
     for subject_path in subject_paths:
 
-        #Remove the base bath offset
-        rs_path = subject_path.replace(base_path, "", 1)
+        # each 'subject_path' is a full filepath to one of the output files
 
+        # Remove the base bath offset
+        rs_path = subject_path.replace(base_path, "", 1)
         rs_path = rs_path.lstrip('/')
 
+        # rs_path is now the path to the output file, except everything before
+        # the pipeline folder (named with the pipeline ID) is stripped from
+        # the path
+
         folders = split_folders(rs_path)
-        
+ 
         pipeline_id = folders[0]
         subject_unique_id = folders[1]
         resource_id = folders[2]
         scan_id = folders[3]
 
+
         # get list of all unique IDs (session IDs)
         # loop through them and check subject_path for existence of any of the
         # session IDs
         # if it exists, load it into unique_id
+
         for sub in sublist:
             if sub['subject_id'] in subject_unique_id:
                 subject_id = sub['subject_id']
@@ -245,7 +252,17 @@ def run(config_file, subject_list_file, output_path_file):
         else:
             # each group of subjects from each session go into their own
             # separate model, instead of combining all sessions into one
-            key = subject_path.replace(subject_id, '*')
+            try:
+                key = subject_path.replace(subject_id, '*')
+            except:
+                # this fires if 'subject_id' was never given a value basically
+                print '\n\n[!] CPAC says: The derivative path file you ' \
+                      'provided does not contain the output directory ' \
+                      'given in the pipeline configuration file.\n'
+                print 'Derivative path file: ', output_path_file, '\n'
+                print 'Output directory: ', c.outputDirectory, '\n'
+                print 'Please correct this and try again.\n\n\n'
+                raise Exception
 
 
         # 'resource_id' is each type of output
