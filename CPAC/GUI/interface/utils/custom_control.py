@@ -668,24 +668,25 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             cb_name = self.cbValuesDict[cb_id][0]
 
-            '''
-            TO-DO: finish
-            '''
 
-            if (cb_name in ev_selections['categorical']) and (cb_id % 2 != 0):
+            if 'categorical' in ev_selections.keys():
 
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
+                if (cb_name in ev_selections['categorical']) and (cb_id % 2 != 0):
 
-                self.choiceCategoricalList.append(cb_name)
+                    cb = wx.FindWindowById(cb_id)
+                    cb.SetValue(True)
+
+                    self.choiceCategoricalList.append(cb_name)
 
 
-            if (cb_name in ev_selections['demean']) and (cb_id % 2 == 0):
+            if 'demean' in ev_selections.keys():
 
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
+                if (cb_name in ev_selections['demean']) and (cb_id % 2 == 0):
 
-                self.choiceDemeanList.append(cb_name)
+                    cb = wx.FindWindowById(cb_id)
+                    cb.SetValue(True)
+
+                    self.choiceDemeanList.append(cb_name)
 
 
 

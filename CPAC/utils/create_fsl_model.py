@@ -743,8 +743,8 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         # by the end of this for loop above, output_means_dict should look
         # something like this:
         #    {sub1: mean_val, sub2: mean_val, ..}
-        #        as this code runs once per output, this dictionary contains the
-        #        mean values of the one current output, right now
+        #        as this code runs once per output, this dictionary contains
+        #        the mean values of the one current output, right now
 
 
 
@@ -804,8 +804,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     '''
     if c.modelGroupVariancesSeparately == 1 and (c.groupingVariable == None or (not c.groupingVariable in c.columnsInModel)):
         raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
-
-
     '''
 
 
@@ -815,10 +813,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             os.makedirs(c.output_dir)
 
-    except OSError, e:
+    except:
 
-        print 'Error: ', e, ' while trying to create outputModelFilesDirectory'
-        raise
+        print '\n\n[!] CPAC says: Could not successfully create the group ' \
+              'analysis output directory:\n', c.output_dir, '\n\nMake sure ' \
+              'you have write access in this file structure.\n\n\n'
+        raise Exception
 
 
 
@@ -835,8 +835,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
 
-    # remove the Patsy-introduced intercept!
-    formula = formula + ' - 1'
 
 
     # create the actual design matrix using Patsy
@@ -845,9 +843,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     # drop pickles of the inputs meant for Patsy so you can manually test it
     # later if needed
-    import pickle
-    pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
-    pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
+    #import pickle
+    #pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
+    #pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
 
 
     try:
@@ -885,7 +883,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             for ev in evs:
                 if ev.startswith(term):
                     con[evs[ev]]= -1
-        #con[0] = 1
+        con[0] = 1
         return con
 
     def negative(dmat, a):
@@ -1040,38 +1038,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     '''
 
-    # write_data function: ordinarily this would break out the categoricals
-    # and demean the continuous variables marked for demeaning, but it would
-    # also sort out 'field_names', which would often drop some EVs incorrectly
 
-    #write_data(data, field_names, c)
-
-
-
-    '''
-    model_name = c.model_name
-
-    ###generate the final FSL .grp, .mat, .con, .fts files 
-    model = c.output_dir + '/' + model_name + '.csv'
-
-    rdr = csv.DictReader(open(model, 'rb'))
-    no_of_columns = len(rdr.fieldnames)
-
-    tuple_columns = tuple([n for n in range(1, no_of_columns)])
-    data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
-        
-
-    data_lst = data.tolist()
-
-
-    data = []
-
-    for tp in data_lst:
-        data.append(tp)
-
-    print "Length of data list: ", len(data[:])
-    print ""
-    '''
 
 
     if check_multicollinearity(np.array(data)) == 1:
