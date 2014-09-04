@@ -84,14 +84,14 @@ class ModelConfig(wx.Frame):
                       name = "model_setup",
                       type = 9,#dtype.LBOOL,
                       values = '',
-                      comment="glob",
+                      comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD' and 'Measure Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
                       size = (450, -1))
 
         self.page.add(label="Design Matrix Formula ",
                       control=control.TEXT_BOX,
                       name="design_formula",
                       type=dtype.STR,
-                      comment="Specify a descriptor for your model.",
+                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD and Measure_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 

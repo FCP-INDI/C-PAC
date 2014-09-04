@@ -88,7 +88,7 @@ class ModelDesign(wx.Frame):
                       name = 'contrastStrings',
                       type = dtype.LSTR,
                       values = self.gpa_settings['contrasts'],
-                      comment = '',
+                      comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ .',
                       size = (300,200),
                       combo_type = 4)
 
@@ -128,7 +128,7 @@ class ModelDesign(wx.Frame):
                       control=control.DIR_COMBO_BOX,
                       name="outputModelFilesDirectory",
                       type=dtype.STR,
-                      comment="Full path to the directory where CPAC should place model files.",
+                      comment="Full path to the directory where CPAC should place the model files (.mat, .con, .grp) and the outputs of group analysis.",
                       values=self.gpa_settings['output_dir'])
 
 

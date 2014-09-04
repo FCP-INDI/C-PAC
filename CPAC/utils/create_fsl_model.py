@@ -830,6 +830,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     when generating the design matrix (this goes into the .mat file)
     formula = c.design_formula
 
+    # remove intercept!
+    #formula = formula + '- 1'
+
     if 'categorical' in c.ev_selections.keys():
         for EV_name in c.ev_selections['categorical']:
             formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
