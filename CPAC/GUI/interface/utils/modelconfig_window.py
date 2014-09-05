@@ -108,11 +108,6 @@ class ModelConfig(wx.Frame):
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-#         run = wx.Button(btnPanel, ID_RUN, "Create Model", (
-#             280, -1), wx.DefaultSize, 0)
-#         self.Bind(wx.EVT_BUTTON, lambda event: self.save(
-#             event, 'run'), id=ID_RUN)
-#         hbox.Add(run, 0, flag=wx.LEFT | wx.ALIGN_LEFT, border=10)
 
         buffer = wx.StaticText(btnPanel, label="\t\t\t\t\t\t")
         hbox.Add(buffer)
@@ -136,6 +131,15 @@ class ModelConfig(wx.Frame):
         
 
         btnPanel.SetSizer(hbox)
+
+
+
+        text_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
+        text_sizer.Add(measure_text)
+
+
+        mainSizer.Add(text_sizer)
 
         mainSizer.Add(
             btnPanel, 0.5,  flag=wx.ALIGN_RIGHT | wx.RIGHT, border=20)

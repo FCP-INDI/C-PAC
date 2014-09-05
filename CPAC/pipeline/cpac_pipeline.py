@@ -4188,11 +4188,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         # forkPoints is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
 
-        '''
-        print '\n\n', forkPoints, '\n\n'
-        raise
-        '''
-
         forkNames = []
 
         # here 'forkPoint' is an individual strat with its unique nodes
