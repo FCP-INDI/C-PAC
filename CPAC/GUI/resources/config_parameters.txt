@@ -45,7 +45,7 @@ runRegisterFuncToMNI,Run Functional to MNI Registration,Functional to MNI Regist
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration
 boundaryBasedRegistrationSchedule,Boundary Based Registration Scheduler,Functional to MNI Registration
 runNuisance,Run Nuisance Signal Correction,Nuisance Correction
-harvardOxfordMask,Standard Harvard Oxford Mask,Nuisance Correction
+lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Correction
 Corrections,Corrections,Nuisance Correction
 nComponents,CompCor Components,Nuisance Correction
 runMedianAngleCorrection,Run Median Angle Correction,Nuisance Correction

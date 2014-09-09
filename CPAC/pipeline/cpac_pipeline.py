@@ -1170,7 +1170,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
                                                              ('compcor_ncomponents', c.nComponents)])
 
-                nuisance.inputs.inputspec.harvard_oxford_mask = c.harvardOxfordMask
+                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
 
                 try:
                     node, out_file = strat.get_leaf_properties()

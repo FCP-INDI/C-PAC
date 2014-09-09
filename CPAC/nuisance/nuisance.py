@@ -256,7 +256,7 @@ def calc_residuals(subject,
     return residual_file, csv_filename
 
 def extract_tissue_data(data_file,
-                        ho_mask_file,
+                        ventricles_mask_file,
                         wm_seg_file, csf_seg_file, gm_seg_file,
                         wm_threshold=0.0, csf_threshold=0.0, gm_threshold=0.0):
     import numpy as np
@@ -276,13 +276,13 @@ def extract_tissue_data(data_file,
 
 
     try:
-        ho_mask = nb.load(ho_mask_file).get_data().astype('float64')
+        lat_ventricles_mask = nb.load(ventricles_mask_file).get_data().astype('float64')
     except:
-        raise MemoryError('Unable to load %s' % ho_mask)
+        raise MemoryError('Unable to load %s' % lat_ventricles_mask)
 
 
-    if not safe_shape(data, ho_mask):
-        raise ValueError('Spatial dimensions for data and ho_mask do not match')
+    if not safe_shape(data, lat_ventricles_mask):
+        raise ValueError('Spatial dimensions for data and the lateral ventricles mask do not match')
 
     try:
         wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
@@ -308,9 +308,9 @@ def extract_tissue_data(data_file,
     if not safe_shape(data, csf_seg):
         raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
 
-    # Only take the CSF at the lateral ventricals as labled in the Harvard
+    # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
-    csf_mask = (csf_seg > csf_threshold)*((ho_mask==43) + (ho_mask == 4))
+    csf_mask = (csf_seg > csf_threshold)*(lat_ventricles_mask==1)
     csf_sigs = data[csf_mask]
     file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
     np.save(file_csf, csf_sigs)
@@ -419,7 +419,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'gm_mask',
                                                        'mni_to_anat_linear_xfm',
                                                        'func_to_anat_linear_xfm',
-                                                       'harvard_oxford_mask',
+                                                       'lat_ventricles_mask',
                                                        'motion_components',
                                                        'selector',
                                                        'compcor_ncomponents',
@@ -474,7 +474,7 @@ def create_nuisance(use_ants, name='nuisance'):
         ho_mni_to_2mm.inputs.dimension = 3
 
         nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transforms')
-        nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'input_image')
+        nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 
         #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
@@ -488,12 +488,12 @@ def create_nuisance(use_ants, name='nuisance'):
         ho_mni_to_2mm.inputs.interp = 'nearestneighbour'
 
         nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'in_matrix_file')
-        nuisance.connect(inputspec, 'harvard_oxford_mask', ho_mni_to_2mm, 'in_file')
+        nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'in_file')
         nuisance.connect(inputspec, 'csf_mask', ho_mni_to_2mm, 'reference')
 
 
     tissue_masks = pe.Node(util.Function(input_names=['data_file',
-                                                      'ho_mask_file',
+                                                      'ventricles_mask_file',
                                                       'wm_seg_file', 'csf_seg_file', 'gm_seg_file',
                                                       'wm_threshold', 'csf_threshold', 'gm_threshold'],
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
@@ -508,10 +508,10 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(gm_anat_to_2mm, 'out_file', tissue_masks, 'gm_seg_file')
 
     if use_ants == True:
-        nuisance.connect(ho_mni_to_2mm, 'output_image', tissue_masks, 'ho_mask_file')
+        nuisance.connect(ho_mni_to_2mm, 'output_image', tissue_masks, 'ventricles_mask_file')
 
     else:
-        nuisance.connect(ho_mni_to_2mm, 'out_file', tissue_masks, 'ho_mask_file')
+        nuisance.connect(ho_mni_to_2mm, 'out_file', tissue_masks, 'ventricles_mask_file')
 
 
 

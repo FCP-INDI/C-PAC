@@ -66,7 +66,7 @@ class GPASettings(wx.ScrolledWindow):
                               'Network Centrality',
                               'Network Centrality (z-scored)'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
-                    size = (220,160))
+                    size = (230,160))
  
         self.page.add(label = "Models to Run ",
                       control = control.LISTBOX_COMBO,
