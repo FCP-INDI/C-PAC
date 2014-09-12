@@ -531,6 +531,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
+                    node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
+                    workflow.connect(node, out_file,
+                                     seg_preproc, 'inputspec.standard2highres_rig')
 
 
                 seg_preproc.inputs.inputspec.PRIOR_CSF = c.PRIOR_CSF
