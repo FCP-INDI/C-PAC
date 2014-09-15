@@ -475,7 +475,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
         nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transforms')
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
-        nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
+        nuisance.connect(inputspec, 'csf_mask', ho_mni_to_2mm, 'reference_image')
 
         #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
         
