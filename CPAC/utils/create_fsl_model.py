@@ -797,16 +797,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
    
 
 
-
-
-    '''TO-DO: figure this out'''
-
-    '''
-    if c.modelGroupVariancesSeparately == 1 and (c.groupingVariable == None or (not c.groupingVariable in c.columnsInModel)):
-        raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
-    '''
-
-
+    # make sure the group analysis output directory exists
     try:
 
         if not os.path.exists(c.output_dir):
@@ -1023,25 +1014,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     data = np.asarray((dmatrix))
 
 
-    model_ready_data = None
-    field_names = None
-    gp_var = None
-
-
-    '''FIGURE THIS OUT'''
-
-    '''
-    if c.modelGroupVariancesSeparately == 0:
-
-        model_ready_data, field_names = organize_data(filter_data, c)
-   
-    else:
-
-        model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
-
-    '''
-
-
 
 
     if check_multicollinearity(np.array(data)) == 1:
@@ -1051,12 +1023,148 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
               'your model design.\n\n'
 
 
-    data = np.array(data, dtype=np.float16)
 
+    if c.group_sep == True and (c.grouping_var == None or (c.grouping_var not in c.design_formula)):
+        print '\n\n[!] CPAC says: Model group variances separately is ' \
+              'enabled, but the grouping variable set is either set to ' \
+              'None, or was not included in the model as one of the EVs.\n'
+        print 'Design formula: ', c.design_formula
+        print 'Grouping variable: ', c.grouping_var, '\n\n'
+        raise Exception
+
+
+
+    # prep data and column names if user decides to model group variances
+    # separately
+
+    if c.group_sep == True:
+
+        EV_options = []
+        grouping_options = []
+        new_options = []
+
+        # take in what the grouping variable is. get the names of the options.
+        for col_name in dmatrix.design_info.column_names:
+
+            if col_name != 'Intercept':
+                
+                skip = 0
+
+                if 'categorical' in c.ev_selections.keys():
+                    for cat_EV in c.ev_selections['categorical']:
+                        if cat_EV in col_name:
+                            cat_EV_stripped = col_name.replace('C(' + cat_EV + ', Sum)[S.', '')
+                            cat_EV_stripped = cat_EV_stripped.replace(']', '')
+                            EV_options.append(cat_EV_stripped)
+                            skip = 1
+
+                if skip == 0:
+                    EV_options.append(col_name)
+
+
+
+        idx = 1
+
+        for ev in EV_options:
+
+            if c.grouping_var in ev:
+
+                grouping_variable_info = []
+
+                grouping_variable_info.append(ev)
+                grouping_variable_info.append(idx)
+
+                grouping_options.append(grouping_variable_info)
+
+                # grouping_var_idx is the column numbers in the design matrix
+                # which holds the grouping variable (and its possible levels)
+
+
+            idx += 1
+
+
+        # all the categorical values/levels of the grouping variable
+        grouping_var_levels = []
+
+        for gv_idx in grouping_options:
+            for subject in dmatrix:
+
+                level_label = '__' + gv_idx[0] + '_' + str(subject[gv_idx[1]])
+
+                if level_label not in grouping_var_levels:
+                    grouping_var_levels.append(level_label)
+
+
+        # make the new header for the reorganized data
+        for ev in EV_options:
+            if c.grouping_var not in ev:
+                for level in grouping_var_levels:
+                    new_options.append(ev + level)
+            elif c.grouping_var in ev:
+                new_options.append(ev)
+
+
+
+        grouped_data = []
+
+        for subject in dmatrix:
+
+            new_row = []
+
+            # put in the Intercept first
+            new_row.append(subject[0])
+
+            for option in grouping_options:
+
+                grouping_var_id = option[1]
+                gp_var_value = subject[grouping_var_id]
+                gp_var_label = '_' + str(gp_var_value)
+
+
+                for orig_idx in range(1,len(subject)):
+
+                    # if the current ev_value in the current subject line is the
+                    # grouping variable
+                    if orig_idx == grouping_var_id:
+                        new_row.append(subject[orig_idx])
+
+                    else:
+
+                        for new_header in new_options:
+
+                            if EV_options[orig_idx-1] in new_header:
+                                if gp_var_label in new_header:
+                                    new_row.append(subject[orig_idx])
+                                else:
+                                    new_row.append(0)
+
+          
+
+            grouped_data.append(new_row)
+
+
+        data = np.array(grouped_data, dtype=np.float16)
+
+        new_options.insert(0, 'Intercept')
+
+        column_names = new_options
+
+    else:
+
+        data = np.array(data, dtype=np.float16)
+
+        column_names = dmatrix.design_info.column_names
+
+
+
+    '''
+    still need:
+        contrast handling?
+    '''
 
 
     try:
-        create_mat_file(data, dmatrix.design_info.column_names, c.model_name, c.output_dir)
+        create_mat_file(data, column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .mat file during ' \
                   'group-level analysis model file generation.\n'
@@ -1064,7 +1172,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     try:
-        create_grp_file(data, c.model_name, gp_var, c.output_dir)
+        create_grp_file(data, c.model_name, c.grouping_var, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .grp file during ' \
                   'group-level analysis model file generation.\n'
@@ -1072,14 +1180,14 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     try:
-        create_con_file(contrasts_dict, dmatrix.design_info.column_names, c.model_name, c.output_dir)
+        create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .con file during ' \
                   'group-level analysis model file generation.\n'
         print 'Attempted output directory: ', c.output_dir, '\n\n'
         raise Exception
 
-    #create_con_ftst_file(con, model_name, fTest, c.output_dir)
+
 
 
 
