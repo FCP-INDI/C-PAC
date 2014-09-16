@@ -418,6 +418,8 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'csf_mask',
                                                        'gm_mask',
                                                        'mni_to_anat_linear_xfm',
+                                                       'anat_to_mni_rigid_xfm',
+                                                       'anat_to_mni_affine_xfm',
                                                        'func_to_anat_linear_xfm',
                                                        'lat_ventricles_mask',
                                                        'motion_components',
@@ -430,7 +432,7 @@ def create_nuisance(use_ants, name='nuisance'):
                          name='outputspec')
 
 
-    # Resampling the masks from 1mm to 2mm
+    # Resampling the masks from 1mm to 2mm, but remaining in subject space
     wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm_flirt_applyxfm')
     wm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     wm_anat_to_2mm.inputs.interp = 'nearestneighbour'
@@ -439,7 +441,7 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'reference')
  
 
-    # Resampling the masks from 1mm to 2mm
+    # Resampling the masks from 1mm to 2mm, but remaining in subject space
     csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm_flirt_applyxfm')
     csf_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     csf_anat_to_2mm.inputs.interp = 'nearestneighbour'
@@ -448,7 +450,7 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'reference')
 
     
-    # Resampling the masks from 1mm to 2mm
+    # Resampling the masks from 1mm to 2mm, but remaining in subject space
     gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm_flirt_applyxfm')
     gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
     gm_anat_to_2mm.inputs.interp = 'nearestneighbour'
@@ -467,13 +469,19 @@ def create_nuisance(use_ants, name='nuisance'):
 
     if use_ants == True:
 
+        collect_linear_transforms = pe.Node(util.Merge(2), name='ho_mni_to_2mm_ants_collect_linear_transforms')
+
         ho_mni_to_2mm = pe.Node(interface=ants.ApplyTransforms(), name='ho_mni_to_2mm_ants_applyxfm')
 
-        ho_mni_to_2mm.inputs.invert_transform_flags = [True]
+        ho_mni_to_2mm.inputs.invert_transform_flags = [True, True]
         ho_mni_to_2mm.inputs.interpolation = 'NearestNeighbor'
         ho_mni_to_2mm.inputs.dimension = 3
 
-        nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'transforms')
+        nuisance.connect(inputspec, 'anat_to_mni_rigid_xfm', collect_linear_transforms, 'in1')
+        nuisance.connect(inputspec, 'anat_to_mni_affine_xfm', collect_linear_transforms, 'in2')
+
+        nuisance.connect(collect_linear_transforms, 'out', ho_mni_to_2mm, 'transforms')
+
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 

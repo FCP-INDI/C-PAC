@@ -1208,9 +1208,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
+
+                        node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance, 'inputspec.anat_to_mni_rigid_xfm')
+
                         node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
                         workflow.connect(node, out_file,
-                                         nuisance, 'inputspec.mni_to_anat_linear_xfm')
+                                         nuisance, 'inputspec.anat_to_mni_affine_xfm')
 
 
                 except:
