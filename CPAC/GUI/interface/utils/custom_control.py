@@ -539,23 +539,29 @@ class TextBoxCombo(wx.combo.ComboCtrl):
         
         
         
-class CheckBoxGrid(wx.ScrolledWindow):
+class CheckBoxGrid(wx.Panel):
     
     def __init__(self, parent, idx, values, size):
-        wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
+        wx.Panel.__init__(self, parent, id=idx, size=size)
+        #wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
         
-        #mainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.grid_sizer = wx.GridBagSizer()
 
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.VSCROLL)  #wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
-        
+  
+        '''
+        self.scrollWin.EnableScrolling(True,True)
+        self.scrollWin.SetScrollbars(10,10)
+        '''
         self.values = []
         self.values = values
         
         #wx.StaticText(self, label="Include EV", pos=(250,0))
-        wx.StaticText(self, label="Categorical", pos=(300,0))
-        wx.StaticText(self, label="Demean", pos=(400,0))
+        cat_label = wx.StaticText(self, label="Categorical", pos=(300,0))
+        demean_label = wx.StaticText(self, label="Demean", pos=(400,0))
         
+
         j = 0
         self.idx = 100
         self.includeCBList = []
@@ -594,6 +600,8 @@ class CheckBoxGrid(wx.ScrolledWindow):
             self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
         '''
 
+
+
         
     def set_checkbox_grid_values(self, value_list):
 
@@ -609,18 +617,23 @@ class CheckBoxGrid(wx.ScrolledWindow):
 
         self.maxIDNum = (len(value_list)*2)+101
 
+        # clear the checkbox grid panel in case its already populated
+        self.scrollWin.DestroyChildren()
+
 
         # iterate over each phenotype header item
         for name in value_list:
             
             # set up the label of each header item
-            wx.StaticText(self.scrollWin, label=name, pos=(5,j))
+            EV_label = wx.StaticText(self.scrollWin, label=name, pos=(5,j))
+            self.grid_sizer.Add(EV_label, pos=(5,j))
                   
 
             # Categorical checkbox for header item
             self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(300,j))
             self.cb.SetValue(False)
             self.categoricalCBList.append(self.cb)
+            self.grid_sizer.Add(self.cb, pos=(300,j))
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
@@ -633,6 +646,7 @@ class CheckBoxGrid(wx.ScrolledWindow):
             self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
+            self.grid_sizer.Add(self.cb, pos=(400,j))
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
@@ -651,11 +665,19 @@ class CheckBoxGrid(wx.ScrolledWindow):
         # automatically include some of the pre-calculated measures from
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
-        wx.StaticText(self.scrollWin, label='MeanFD', pos=(5,j))
+        meanFD_label = wx.StaticText(self.scrollWin, label='MeanFD (demeaned)', pos=(5,j))
+        self.grid_sizer.Add(meanFD_label, pos=(5,j))
         #wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
         #wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
-        wx.StaticText(self.scrollWin, label='Measure_Mean', pos=(5,j+30))
+        measure_mean_label = wx.StaticText(self.scrollWin, label='Measure_Mean (demeaned)', pos=(5,j+30))
+        self.grid_sizer.Add(measure_mean_label, pos=(5,j+30))
 
+        self.scrollWin.SetSizer(self.grid_sizer)
+        self.scrollWin.EnableScrolling(True,True)
+        #self.scrollWin.SetScrollbars(10,10)
+
+        w,h = self.grid_sizer.GetMinSize()
+        self.scrollWin.SetVirtualSize((w,h))
 
 
 

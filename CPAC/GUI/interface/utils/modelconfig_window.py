@@ -324,10 +324,9 @@ class ModelConfig(wx.Frame):
           
             
     def populateEVs(self, event):
-        
-        # somehow get in the header from the phenotype
-        # also get in the subject column
-        
+
+        # this runs when the user clicks 'Load Phenotype File'
+               
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()

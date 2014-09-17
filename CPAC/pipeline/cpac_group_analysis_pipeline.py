@@ -287,14 +287,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception
 
 
-        conf.update('subjectListFile',new_sub_file)
+        conf.update('subject_list',new_sub_file)
 
         sub_id = conf.subject_id_label
         
 
 
         if measure_dict != None:
-            conf.update('phenotypicFile',get_phenotypic_file(conf.pheno_file, measure_dict, measure_list, mod_path, sub_id))
+            conf.update('pheno_file',get_phenotypic_file(conf.pheno_file, measure_dict, measure_list, mod_path, sub_id))
         
         print 'conf updated pheno: ', conf.pheno_file, '\n\n'
 
