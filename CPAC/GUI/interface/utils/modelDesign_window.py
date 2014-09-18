@@ -368,13 +368,6 @@ class ModelDesign(wx.Frame):
         '''
 
 
-        '''
-        ALSO TO-DO:
-        have the contrasts box have a method for restoring the strings
-        AND their checked states
-        '''
-
-
 
     def save(self, event, flag):
 

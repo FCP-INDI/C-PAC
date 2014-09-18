@@ -155,7 +155,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # this section checks all of the file paths provided in the pipeline
     # config yaml file and ensures the files exist and are accessible
 
-    pipeline_config_map = c.return_config_elements()                  
+    pipeline_config_map = c.return_config_elements()    
 
     wrong_filepath_list = []
 

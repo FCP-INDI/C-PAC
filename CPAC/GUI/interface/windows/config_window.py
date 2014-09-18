@@ -418,34 +418,35 @@ class MainFrame(wx.Frame):
         
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
+
         config_list = []
         wf_counter = []
 
-        #print "self.nb.get_page_list()", self.nb.get_page_list()
         for page in self.nb.get_page_list():
-            #print "page ----> ", page
+
             switch = page.page.get_switch()
-            #print "switch ---->", switch
+
             ctrl_list = page.page.get_ctrl_list()
             validate = False
 
             if switch:
                 switch_val = str(switch.get_selection()).lower()
-                #print "switch_val ---->", switch_val
+
                 if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
                     validate = True
                     wf_counter.append(page.get_counter())
 
             for ctrl in ctrl_list:
+
+                # option_name will be the selection name as it is written
+                # as the dictionary key of the config.yml dictionary
+                option_name = ctrl.get_name()
                 
                 #validating
-                if (switch == None or validate) and ctrl.get_validation():
-
+                if (switch == None or validate) and ctrl.get_validation() \
+                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
 
                     win = ctrl.get_ctrl()
-                    #print "validating ctrl-->", ctrl.get_name()
-                    #print "ctrl.get_selection()", ctrl.get_selection()
-                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
@@ -470,9 +471,10 @@ class MainFrame(wx.Frame):
                 config_list.append(ctrl)
                 
         
+
         # Get the user's CPAC output directory for use in this script
         for config in config_list:
-            #print config.get_name(), "   ", config.get_selection()
+
             if config.get_name() == 'outputDirectory':
                 outDir = config.get_selection()
         
@@ -570,7 +572,7 @@ class MainFrame(wx.Frame):
         testFile(c.standard,'standard')
         testFile(c.identityMatrix,'identityMatrix')
         testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule')
-        testFile(c.harvardOxfordMask,'harvardOxfordMask')
+        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask')
         testFile(c.seedSpecificationFile,'seedSpecificationFile')
         testFile(c.roiSpecificationFile,'roiSpecificationFile')
         testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA')
@@ -650,14 +652,16 @@ class MainFrame(wx.Frame):
                     wf_counter.append(page.get_counter())
 
             for ctrl in ctrl_list:
+
+                # option_name will be the selection name as it is written
+                # as the dictionary key of the config.yml dictionary
+                option_name = ctrl.get_name()
                 
                 #validating
-                if (switch == None or validate) and ctrl.get_validation():
-
+                if (switch == None or validate) and ctrl.get_validation() \
+                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                
                     win = ctrl.get_ctrl()
-                    #print "validating ctrl-->", ctrl.get_name()
-                    #print "ctrl.get_selection()", ctrl.get_selection()
-                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
@@ -680,6 +684,7 @@ class MainFrame(wx.Frame):
                             return
                     
                 config_list.append(ctrl)
+
 
         # Get the user's CPAC pipeline name for use in this script
         for config in config_list:
@@ -781,34 +786,6 @@ class MainFrame(wx.Frame):
 
 
 
-    '''
-    def update_listbox(self, value):
-
-        while True:
-            dlg = wx.TextEntryDialog(
-                self, 'Please enter a unique pipeline id for the configuration',
-                'Pipeline Id', value.strip())
-            dlg.SetValue(str(value.strip()))
-            dlg.Restore()
-            if dlg.ShowModal() == wx.ID_OK:
-                if len(dlg.GetValue()) > 0:
-                    self.pipeline_id = dlg.GetValue()
-                    pipeline_map = self.parent.get_pipeline_map()
-                    if pipeline_map.get(self.pipeline_id) == None:
-                        pipeline_map[self.pipeline_id] = self.path
-                        self.Parent.listbox.Append(self.pipeline_id)
-                        dlg.Destroy()
-                        break
-                    else:
-
-                        dlg2 = wx.MessageDialog(
-                            self, 'Pipeline already exist. Please enter a new name',
-                            'Error!',
-                            wx.OK | wx.ICON_ERROR)
-                        dlg2.ShowModal()
-                        dlg2.Destroy()
-    '''
-
 
 
     def write(self, path, config_list):
@@ -824,13 +801,6 @@ class MainFrame(wx.Frame):
                 dtype = item.get_datatype()
                 type = item.get_type()
 
-                '''
-                print "LABEL: ", label
-                print "VALUE: ", value
-                print "DTYPE: ", dtype
-                print "TYPE: ", type
-                print ""
-                '''
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -913,33 +883,6 @@ class MainFrame(wx.Frame):
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
 
-                    '''
-                    print "1: ", ast.literal_eval(value)
-                    print "2: ", ast.literal_eval(str(value))
-                    print "3: ", value
-                    print "4: ", str(value)
-                    print "5: ", [value]
-                    print "6: ", list(value)
-                    print "7: ", [sample_list.index(val) for val in value]
-                    '''                  
-
-                    '''
-                    if isinstance(value, list):
-                        value = ast.literal_eval(str(value))
-                    else:
-                        value = str(value)
-                    '''                  
-
-                    '''
-                    if isinstance(value, tuple):
-                        value = list(value)
-                    elif isinstance(value, list):
-                        value = [sample_list.index(val) for val in value]
-                    else:
-                        value = [value]
-                    '''
-
-
                     ### parse user input   ### can't use internal function type() here???
                     if value.find(',') != -1:
                         lvalue = value.split(',')
@@ -950,7 +893,6 @@ class MainFrame(wx.Frame):
                     else:
                         lvalue = [value]
 
-                    #print 'split value: ', lvalue
 
                     if value.find('.') != -1:
                         lvalue = [float(item) for item in lvalue]
@@ -958,19 +900,7 @@ class MainFrame(wx.Frame):
                         lvalue = [int(item) for item in lvalue]
                     else:
                         lvalue = 0
-                    #print 'final value: ', lvalue
 
-                    """
-                    if len(value) > 1:
-                        value = float(value)
-                    elif len(value) == 1:
-                        value = int(value)
-                    else:
-                        value = 0
-                    
-                    valueList = []
-                    valueList.append(value)
-                    """
                     
                     print>>f, label, ":", lvalue   ###
                     print>>f, "\n"

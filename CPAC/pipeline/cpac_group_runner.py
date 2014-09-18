@@ -196,6 +196,21 @@ def run(config_file, subject_list_file, output_path_file):
         raise Exception
 
 
+    if len(c.derivativeList) == 0:
+        print '[!] CPAC says: You do not have any derivatives selected ' \
+              'to run for group-level analysis. Return to your pipeline ' \
+              'configuration file and select at least one.\n\n'
+        raise Exception
+
+
+    if len(c.modelConfigs) == 0:
+        print '[!] CPAC says: You do not have any models selected ' \
+              'to run for group-level analysis. Return to your pipeline ' \
+              'configuration file and create or select at least one.\n\n'
+        raise Exception
+
+
+
     # 'subject_paths' is a list of every output from every subject included
     # in the output folder of the run
 

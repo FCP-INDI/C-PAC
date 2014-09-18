@@ -321,11 +321,10 @@ class ContrastsFrame(wx.Frame):
                     errSubID.ShowModal()
                     errSubID.Destroy()
 
-                else:
-                    add_con = 1
+                    add_con += 1
 
 
-            if add_con == 1:
+            if add_con == 0:
 
                 parent.listbox.Append(str(val))
                 parent.options.append(str(val))
