@@ -631,7 +631,6 @@ class CheckBoxGrid(wx.Panel):
            
             # set up the label of each header item
             EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
-            #self.row_sizer.Add(EV_label, pos=(5,0))
                   
 
             # Categorical checkbox for header item
@@ -642,22 +641,19 @@ class CheckBoxGrid(wx.Panel):
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))#, self.idx+1))
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
 
-            #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_categorical())
             
             
             # Demean checkbox for header item
             self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
-            #self.row_sizer.Add(self.cb, pos=(400,0))
+
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))#, self.idx+2))
-
-            #self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.demeanCBList, self.demeanCBList[0]))
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
                       
                 
             # just a nice amount to space the checkboxes out by
@@ -666,30 +662,25 @@ class CheckBoxGrid(wx.Panel):
             # increment IDs
             self.idx += 2
 
-            #self.grid_sizer.Add(row_panel, pos=(0,j))
 
 
         # automatically include some of the pre-calculated measures from
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
 
-        #meanfd_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
-        #meanfd_panel.SetBackgroundColour(wx.WHITE)
+
 
         meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
-        #self.row_sizer.Add(meanFD_label, pos=(5,0))
-        #self.grid_sizer.Add(meanfd_panel, pos=(0,j))
 
-        #wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
+        #wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
 
-        #wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
-
-        #measure_mean_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
-        #measure_mean_panel.SetBackgroundColour(wx.WHITE)
+        #wx.StaticText(row_panel, label='MeanDVARS (demeaned)', pos=(5,j+60))
 
         measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+30))
-        #self.row_sizer.Add(measure_mean_label, pos=(5,0))
-        #self.grid_sizer.Add(measure_mean_panel, pos=(0,j+30))
+
+        # add the panel that contains all of the rows (labels and checkboxes)
+        # to the grid sizer. the grid sizer is necessary for wxPython to know
+        # when to provide a scrollbar in the scrollWin object
         self.grid_sizer.Add(row_panel, pos=(0,0))
 
         w,h = self.grid_sizer.GetMinSize()
