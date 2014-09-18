@@ -545,15 +545,10 @@ class CheckBoxGrid(wx.Panel):
         wx.Panel.__init__(self, parent, id=idx, size=size)
         #wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
         
-        self.grid_sizer = wx.GridBagSizer()
-
         self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.VSCROLL)  #wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
-  
-        '''
-        self.scrollWin.EnableScrolling(True,True)
-        self.scrollWin.SetScrollbars(10,10)
-        '''
+
+
         self.values = []
         self.values = values
         
@@ -621,19 +616,29 @@ class CheckBoxGrid(wx.Panel):
         self.scrollWin.DestroyChildren()
 
 
+        self.grid_sizer = wx.GridBagSizer(wx.VERTICAL)
+
+        self.scrollWin.SetSizer(self.grid_sizer)
+        self.scrollWin.SetScrollRate(10,10)
+        self.scrollWin.EnableScrolling(True,True)
+
+
+        row_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        row_panel.SetBackgroundColour(wx.WHITE)
+
         # iterate over each phenotype header item
         for name in value_list:
-            
+           
             # set up the label of each header item
-            EV_label = wx.StaticText(self.scrollWin, label=name, pos=(5,j))
-            self.grid_sizer.Add(EV_label, pos=(5,j))
+            EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
+            #self.row_sizer.Add(EV_label, pos=(5,0))
                   
 
             # Categorical checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(300,j))
+            self.cb = wx.CheckBox(row_panel, id=self.idx+1, pos=(300,j))
             self.cb.SetValue(False)
             self.categoricalCBList.append(self.cb)
-            self.grid_sizer.Add(self.cb, pos=(300,j))
+            #self.row_sizer.Add(self.cb, pos=(300,0))
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
@@ -643,10 +648,10 @@ class CheckBoxGrid(wx.Panel):
             
             
             # Demean checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
+            self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
-            self.grid_sizer.Add(self.cb, pos=(400,j))
+            #self.row_sizer.Add(self.cb, pos=(400,0))
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
@@ -661,23 +666,35 @@ class CheckBoxGrid(wx.Panel):
             # increment IDs
             self.idx += 2
 
+            #self.grid_sizer.Add(row_panel, pos=(0,j))
+
 
         # automatically include some of the pre-calculated measures from
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
-        meanFD_label = wx.StaticText(self.scrollWin, label='MeanFD (demeaned)', pos=(5,j))
-        self.grid_sizer.Add(meanFD_label, pos=(5,j))
-        #wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
-        #wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
-        measure_mean_label = wx.StaticText(self.scrollWin, label='Measure_Mean (demeaned)', pos=(5,j+30))
-        self.grid_sizer.Add(measure_mean_label, pos=(5,j+30))
 
-        self.scrollWin.SetSizer(self.grid_sizer)
-        self.scrollWin.EnableScrolling(True,True)
-        #self.scrollWin.SetScrollbars(10,10)
+        #meanfd_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        #meanfd_panel.SetBackgroundColour(wx.WHITE)
+
+        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        #self.row_sizer.Add(meanFD_label, pos=(5,0))
+        #self.grid_sizer.Add(meanfd_panel, pos=(0,j))
+
+        #wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
+
+        #wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
+
+        #measure_mean_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        #measure_mean_panel.SetBackgroundColour(wx.WHITE)
+
+        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+30))
+        #self.row_sizer.Add(measure_mean_label, pos=(5,0))
+        #self.grid_sizer.Add(measure_mean_panel, pos=(0,j+30))
+        self.grid_sizer.Add(row_panel, pos=(0,0))
 
         w,h = self.grid_sizer.GetMinSize()
         self.scrollWin.SetVirtualSize((w,h))
+
 
 
 
