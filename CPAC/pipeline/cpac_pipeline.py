@@ -1694,7 +1694,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 collect_transforms_func_mni('functional_mni')
 
                 node, out_file = strat.get_leaf_properties()
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Gaussian', 3, 'functional_mni')
+                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Linear', 3, 'functional_mni')
 
 
 
@@ -1714,7 +1714,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 node, out_file = strat.get_node_from_resource_pool('mean' \
                         '_functional')
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Gaussian', 0, 'mean_functional_in_mni')
+                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Linear', 0, 'mean_functional_in_mni')
 
             
                 num_strat += 1
@@ -2635,7 +2635,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     '%s_to_standard_%d' % (output_name, num_strat))
 
             apply_ants_warp.inputs.inputspec.dimension = 3
-            apply_ants_warp.inputs.inputspec.interpolation = 'Gaussian'
+            apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
             apply_ants_warp.inputs.inputspec. \
                     reference_image = c.standardResolutionBrainAnat
 

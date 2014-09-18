@@ -347,7 +347,7 @@ def create_vmhc(use_ants):
             smoothing_sigmas = [[3,2,1,0],[3,2,1,0],[3,2,1,0]]
 
 
-        apply_ants_xfm_vmhc.inputs.inputspec.interpolation = 'Gaussian'
+        apply_ants_xfm_vmhc.inputs.inputspec.interpolation = 'Linear'
         apply_ants_xfm_vmhc.inputs.inputspec.input_image_type = 3
 
 
