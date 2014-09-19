@@ -78,30 +78,30 @@ class Segmentation(wx.ScrolledWindow):
         
         self.page.add(label= "Priors Directory ",
                  control=control.DIR_COMBO_BOX, 
-                 name='prior_path', 
+                 name='priors_path', 
                  type=dtype.STR, 
-                 values= os.path.join(fsl, 'data/standard/tissuepriors/$standardResolution'),
+                 values= os.path.join(fsl, 'data/standard/tissuepriors/${resolution_for_anat}'),
                  comment="Full path to a directory containing binarized prior probability maps.\n\nThese maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
 
         self.page.add(label= "White Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
                  name='PRIOR_WHITE', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_white_bin.nii.gz',
+                 values = '$priors_path/avg152T1_white_bin.nii.gz',
                  comment="Full path to a binarized White Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "Gray Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
                  name='PRIOR_GRAY', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_gray_bin.nii.gz',
+                 values = '$priors_path/avg152T1_gray_bin.nii.gz',
                  comment="Full path to a binarized Gray Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "CSF Prior Probability Map ",
                  control=control.COMBO_BOX, 
                  name='PRIOR_CSF', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_csf_bin.nii.gz',
+                 values = '$priors_path/avg152T1_csf_bin.nii.gz',
                  comment="Full path to a binarized CSF prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")        
                 
         self.page.set_sizer()

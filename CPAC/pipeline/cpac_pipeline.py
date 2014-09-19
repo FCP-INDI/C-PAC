@@ -1761,11 +1761,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 preproc = create_vmhc(True)
 
             preproc.inputs.inputspec.brain_symmetric = \
-                                            c.brainSymmetric
+                                            c.template_symmetric_brain_only
             preproc.inputs.inputspec.symm_standard = \
-                                            c.symmStandard
+                                            c.template_symmetric_skull
             preproc.inputs.inputspec.twomm_brain_mask_dil = \
-                                            c.twommBrainMaskDiluted
+                                            c.dilated_symmetric_brain_mask
             preproc.inputs.inputspec.config_file_twomm = \
                                             c.configFileTwomm
             preproc.inputs.inputspec.standard = \
