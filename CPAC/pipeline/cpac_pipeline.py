@@ -155,7 +155,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # this section checks all of the file paths provided in the pipeline
     # config yaml file and ensures the files exist and are accessible
 
-    pipeline_config_map = c.return_config_elements()    
+    pipeline_config_map = c.return_config_elements()                  
 
     wrong_filepath_list = []
 
@@ -374,8 +374,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      fnirt_reg_anat_mni, 'inputspec.input_skull')
 
                     # pass the reference files                
-                    fnirt_reg_anat_mni.inputs.inputspec.reference_brain = c.standardResolutionBrainAnat
-                    fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.standardAnat
+                    fnirt_reg_anat_mni.inputs.inputspec.reference_brain = c.template_brain_only_for_anat
+                    fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.template_skull_for_anat
 
                     # assign the FSL FNIRT config file specified in pipeline config.yml
                     fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
@@ -432,7 +432,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     # pass the reference file           
                     ants_reg_anat_mni.inputs.inputspec. \
-                        reference_brain = c.standardResolutionBrainAnat
+                        reference_brain = c.template_brain_only_for_anat
 
                     ants_reg_anat_mni.inputs.inputspec.dimension = 3
                     ants_reg_anat_mni.inputs.inputspec. \
@@ -1467,15 +1467,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                         name='func_mni_fsl_warp_%d' % num_strat)
-                func_mni_warp.inputs.ref_file = c.standardResolutionBrain
+                func_mni_warp.inputs.ref_file = c.template_brain_only_for_func
     
                 functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
                                                             name='func_mni_fsl_warp_mask_%d' % num_strat)
                 functional_brain_mask_to_standard.inputs.interp = 'nn'
-                functional_brain_mask_to_standard.inputs.ref_file = c.standard
+                functional_brain_mask_to_standard.inputs.ref_file = c.template_skull_for_func
 
                 mean_functional_warp = pe.Node(interface=fsl.ApplyWarp(), name='mean_func_fsl_warp_%d' % num_strat)
-                mean_functional_warp.inputs.ref_file = c.standardResolutionBrain
+                mean_functional_warp.inputs.ref_file = c.template_brain_only_for_func
     
                 try:
 
@@ -1694,7 +1694,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 collect_transforms_func_mni('functional_mni')
 
                 node, out_file = strat.get_leaf_properties()
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Linear', 3, 'functional_mni')
+                ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 3, 'functional_mni')
 
 
 
@@ -1704,7 +1704,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 node, out_file = strat.get_node_from_resource_pool('func' \
                         'tional_brain_mask')
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'NearestNeighbor', 0, 'functional_brain_mask_to_standard')
+                ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'NearestNeighbor', 0, 'functional_brain_mask_to_standard')
 
 
 
@@ -1714,7 +1714,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 node, out_file = strat.get_node_from_resource_pool('mean' \
                         '_functional')
-                ants_apply_warps_func_mni(node, out_file, c.standardResolutionBrainAnat, 'Linear', 0, 'mean_functional_in_mni')
+                ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 0, 'mean_functional_in_mni')
 
             
                 num_strat += 1
@@ -1769,7 +1769,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             preproc.inputs.inputspec.config_file_twomm = \
                                             c.configFileTwomm
             preproc.inputs.inputspec.standard = \
-                                            c.standard
+                                            c.template_skull_for_func
             preproc.inputs.fwhm_input.fwhm = c.fwhm
             preproc.get_node('fwhm_input').iterables = ('fwhm',
                                                         c.fwhm)
@@ -2637,7 +2637,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             apply_ants_warp.inputs.inputspec.dimension = 3
             apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
             apply_ants_warp.inputs.inputspec. \
-                    reference_image = c.standardResolutionBrainAnat
+                    reference_image = c.template_brain_only_for_func
 
 
             try:
@@ -2725,7 +2725,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         iterfield=['in_file'])
 
 
-            apply_fsl_warp.inputs.ref_file = c.standard
+            apply_fsl_warp.inputs.ref_file = c.template_skull_for_func
 
 
             try:
@@ -3593,7 +3593,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 #                                                     output_names=['new_fname'],
 #                                                     function=make_edge),
 #                                       name='MNI_edge_%d' % num_strat)
-#                  #MNI_edge.inputs.file_ = c.standardResolutionBrain
+#                  #MNI_edge.inputs.file_ = c.template_brain_only_for_func
 #                 workflow.connect(MNI_edge, 'new_fname',
 #                                  montage_mfi, 'inputspec.overlay')
 
@@ -3634,7 +3634,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_sca_roi = create_montage('montage_sca_roi_standard_smooth_%d' % num_strat,
                                     'cyan_to_yellow', 'sca_roi_smooth')
 
-                    montage_sca_roi.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
 
                     workflow.connect(sca_overlay, out_file,
                                      drop_percent, 'measure_file')
@@ -3660,7 +3660,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_sca_roi = create_montage('montage_sca_roi_standard_%d' % num_strat,
                                     'cyan_to_yellow', 'sca_roi')
 
-                    montage_sca_roi.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(sca_overlay, out_file,
                                      drop_percent, 'measure_file')
 
@@ -3698,7 +3698,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_sca_seeds = create_montage('montage_seed_standard_smooth_%d' % num_strat,
                                     'cyan_to_yellow', 'sca_seed_smooth')
 
-                    montage_sca_seeds.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(sca_overlay, out_file,
                                      drop_percent, 'measure_file')
 
@@ -3723,7 +3723,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_sca_seeds = create_montage('montage_sca_seed_standard_%d' % num_strat,
                                     'cyan_to_yellow', 'sca_seed')
 
-                    montage_sca_seeds.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(sca_overlay, out_file,
                                      drop_percent, 'measure_file')
 
@@ -3762,7 +3762,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_centrality = create_montage('montage_centrality_%d' % num_strat,
                                     'cyan_to_yellow', 'centrality')
 
-                    montage_centrality.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_centrality.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(centrality_overlay, out_file,
                                      drop_percent, 'measure_file')
 
@@ -3787,7 +3787,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_centrality = create_montage('montage_centrality_standard_%d' % num_strat,
                                     'cyan_to_yellow', 'centrality')
 
-                    montage_centrality.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_centrality.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(centrality_overlay, out_file,
                                      drop_percent, 'measure_file')
 
@@ -3828,7 +3828,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_regression_sca_smooth')
 
-                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.template_brain_only_for_func
                     strat.update_resource_pool({'qc___temporal_regression_sca_smooth_a': (montage_temporal_regression_sca, 'outputspec.axial_png'),
                                             'qc___temporal_regression_sca_smooth_s': (montage_temporal_regression_sca, 'outputspec.sagittal_png'),
                                             'qc___temporal_regression_sca_smooth_hist': (hist_, 'hist_path')})
@@ -3843,7 +3843,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_regression_sca')
 
-                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_temporal_regression_sca.inputs.inputspec.underlay = c.template_brain_only_for_func
                     strat.update_resource_pool({'qc___temporal_regression_sca_a': (montage_temporal_regression_sca, 'outputspec.axial_png'),
                                             'qc___temporal_regression_sca_s': (montage_temporal_regression_sca, 'outputspec.sagittal_png'),
                                             'qc___temporal_regression_sca_hist': (hist_, 'hist_path')})
@@ -3884,7 +3884,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression_smooth')
 
-                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.template_brain_only_for_func
                     strat.update_resource_pool({'qc___temporal_dual_regression_smooth_a': (montage_temporal_dual_regression, 'outputspec.axial_png'),
                                             'qc___temporal_dual_regression_smooth_s': (montage_temporal_dual_regression, 'outputspec.sagittal_png'),
                                             'qc___temporal_dual_regression_smooth_hist': (hist_, 'hist_path')})
@@ -3899,7 +3899,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression')
 
-                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_temporal_dual_regression.inputs.inputspec.underlay = c.template_brain_only_for_func
                     strat.update_resource_pool({'qc___temporal_dual_regression_a': (montage_temporal_dual_regression, 'outputspec.axial_png'),
                                             'qc___temporal_dual_regression_s': (montage_temporal_dual_regression, 'outputspec.sagittal_png'),
                                             'qc___temporal_dual_regression_hist': (hist_, 'hist_path')})
@@ -3937,7 +3937,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 montage_vmhc = create_montage('montage_vmhc_%d' % num_strat,
                                   'cyan_to_yellow', 'vmhc_smooth')
 
-                montage_vmhc.inputs.inputspec.underlay = c.standardResolutionBrain
+                montage_vmhc.inputs.inputspec.underlay = c.template_brain_only_for_func
                 workflow.connect(vmhc_overlay, out_file,
                                  drop_percent, 'measure_file')
 
@@ -3971,7 +3971,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard_smooth')
                     montage_reho = create_montage('montage_reho_%d' % num_strat,
                                   'cyan_to_yellow', 'reho_standard_smooth')
-                    montage_reho.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(reho_overlay, out_file,
                                      hist_, 'measure_file')
                     strat.update_resource_pool({'qc___reho_smooth_a': (montage_reho, 'outputspec.axial_png'),
@@ -3988,7 +3988,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
                     montage_reho = create_montage('montage_reho_%d' % num_strat,
                                   'cyan_to_yellow', 'reho_standard')
-                    montage_reho.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(reho_overlay, out_file,
                                      hist_, 'measure_file')
                     strat.update_resource_pool({'qc___reho_a': (montage_reho, 'outputspec.axial_png'),
@@ -4031,10 +4031,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     falff_overlay, out_file_f = strat.get_node_from_resource_pool('falff_Z_to_standard_smooth')
                     montage_alff = create_montage('montage_alff_%d' % num_strat,
                                   'cyan_to_yellow', 'alff_standard_smooth')
-                    montage_alff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
                     montage_falff = create_montage('montage_falff_%d' % num_strat,
                                   'cyan_to_yellow', 'falff_standard_smooth')
-                    montage_falff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(alff_overlay, out_file,
                                      hist_alff, 'measure_file')
 
@@ -4064,10 +4064,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     falff_overlay, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
                     montage_alff = create_montage('montage_alff_%d' % num_strat,
                                   'cyan_to_yellow', 'alff_standard')
-                    montage_alff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
                     montage_falff = create_montage('montage_falff_%d' % num_strat,
                                   'cyan_to_yellow', 'falff_standard')
-                    montage_falff.inputs.inputspec.underlay = c.standardResolutionBrain
+                    montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
                     workflow.connect(alff_overlay, out_file,
                                      hist_alff, 'measure_file')
 

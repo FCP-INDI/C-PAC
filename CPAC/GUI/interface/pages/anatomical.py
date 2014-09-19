@@ -132,23 +132,23 @@ class Registration(wx.ScrolledWindow):
         
         self.page.add(label="Anatomical Template Resolution ", 
                       control=control.CHOICE_BOX, 
-                      name='standardResolutionAnat', 
+                      name='resolution_for_anat', 
                       type=dtype.STR, 
                       values = ["1mm", "2mm", "3mm"],
                       comment="The resolution to which anatomical images should be transformed during registration.\n\nThis is the resolution at which processed anatomical files will be output.")
         
         self.page.add(label="Anatomical Template (Brain Only) ", 
                      control=control.COMBO_BOX, 
-                     name='standardResolutionBrainAnat', 
+                     name='template_brain_only_for_anat', 
                      type=dtype.STR, 
-                     values = str(os.path.join(fsl, "data/standard/MNI152_T1_${standardResolutionAnat}_brain.nii.gz")),
+                     values = str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz")),
                      comment="Template to be used during registration.\n\nIt is not necessary to change this path unless you intend to use a non-standard template.")
 
         self.page.add(label="Anatomical Template (With Skull) ", 
                      control=control.COMBO_BOX, 
-                     name='standardAnat', 
+                     name='template_skull_for_anat', 
                      type=dtype.STR, 
-                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${standardResolutionAnat}.nii.gz")),
+                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}.nii.gz")),
                      comment="Template to be used during registration.\n\nIt is not necessary to change this path unless you intend to use a non-standard template.")
 
         self.page.add(label="Anatomical to Template Registration Method ", 
