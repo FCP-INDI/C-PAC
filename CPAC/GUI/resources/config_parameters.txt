@@ -30,9 +30,9 @@ whiteMatterThreshold,White Matter Probability Threshold,Tissue Segmentation
 grayMatterThreshold,Gray Matter Probability Threshold,Tissue Segmentation
 cerebralSpinalFluidThreshold,CSF Probability Threshold,Tissue Segmentation
 priors_path,Priors Directory,Tissue Segmentation
-PRIOR_WHITE,White Matter Prior Probability Map,Tissue Segmentation
-PRIOR_GRAY,Gray Matter Prior Probability Map,Tissue Segmentation
-PRIOR_CSF,CSF Prior Probability Map,Tissue Segmentation
+PRIORS_WHITE,White Matter Prior Probability Map,Tissue Segmentation
+PRIORS_GRAY,Gray Matter Prior Probability Map,Tissue Segmentation
+PRIORS_CSF,CSF Prior Probability Map,Tissue Segmentation
 startIdx,First Timepoint,Time Series Options
 stopIdx,Last Timepoint,Time Series Options
 TR,TR,Time Series Options

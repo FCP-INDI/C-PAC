@@ -536,9 +536,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      seg_preproc, 'inputspec.standard2highres_rig')
 
 
-                seg_preproc.inputs.inputspec.PRIOR_CSF = c.PRIOR_CSF
-                seg_preproc.inputs.inputspec.PRIOR_GRAY = c.PRIOR_GRAY
-                seg_preproc.inputs.inputspec.PRIOR_WHITE = c.PRIOR_WHITE
+                seg_preproc.inputs.inputspec.PRIOR_CSF = c.PRIORS_CSF
+                seg_preproc.inputs.inputspec.PRIOR_GRAY = c.PRIORS_GRAY
+                seg_preproc.inputs.inputspec.PRIOR_WHITE = c.PRIORS_WHITE
 
                 seg_preproc.inputs.csf_threshold.csf_threshold = \
                                         c.cerebralSpinalFluidThreshold

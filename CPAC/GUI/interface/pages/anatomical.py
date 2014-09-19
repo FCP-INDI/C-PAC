@@ -85,21 +85,21 @@ class Segmentation(wx.ScrolledWindow):
 
         self.page.add(label= "White Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_WHITE', 
+                 name='PRIORS_WHITE', 
                  type=dtype.STR, 
                  values = '$priors_path/avg152T1_white_bin.nii.gz',
                  comment="Full path to a binarized White Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "Gray Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_GRAY', 
+                 name='PRIORS_GRAY', 
                  type=dtype.STR, 
                  values = '$priors_path/avg152T1_gray_bin.nii.gz',
                  comment="Full path to a binarized Gray Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "CSF Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_CSF', 
+                 name='PRIORS_CSF', 
                  type=dtype.STR, 
                  values = '$priors_path/avg152T1_csf_bin.nii.gz',
                  comment="Full path to a binarized CSF prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")        
