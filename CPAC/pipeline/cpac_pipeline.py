@@ -1740,13 +1740,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     if 1 in c.runVMHC:
         
-        if not os.path.exists(c.brainSymmetric):
-            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.brainSymmetric) + "\n\n" + \
+        if not os.path.exists(c.template_symmetric_brain_only):
+            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_brain_only) + "\n\n" + \
                         "Error name: cpac_pipeline_0017" + "\n\n")
             raise Exception
         
-        if not os.path.exists(c.symmStandard):
-            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.symmStandard) + "\n\n" + \
+        if not os.path.exists(c.template_symmetric_skull):
+            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_skull) + "\n\n" + \
                         "Error name: cpac_pipeline_0018" + "\n\n")
             raise Exception
             
