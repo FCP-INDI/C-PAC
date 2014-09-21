@@ -104,23 +104,23 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
        
         self.page.add(label="Functional Standard Resolution:", 
                      control=control.CHOICE_BOX, 
-                     name='standardResolution', 
+                     name='resolution_for_func', 
                      type=dtype.STR, 
                      values = ["3mm", "2mm", "1mm"],
                      comment="The resolution (in mm) to which functional images are transformed during registration")
         
         self.page.add(label="Standard Brain only Template (functional resolution):", 
                       control=control.COMBO_BOX, 
-                      name='standardResolutionBrain', 
+                      name='template_brain_only_for_func', 
                       type=dtype.STR, 
-                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${standardResolution}_brain.nii.gz")),
+                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz")),
                       comment="Standard FSL Skull Stripped Template. Used as a reference image for functional registration")
         
         self.page.add(label="Standard Template with Skull (functional resolution):", 
                       control=control.COMBO_BOX, 
-                      name='standard', 
+                      name='template_skull_for_func', 
                       type=dtype.STR, 
-                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_$standardResolution.nii.gz")),
+                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}.nii.gz")),
                       comment="Standard FSL Anatomical Brain Image with Skull")
         
         self.page.set_sizer()

@@ -635,7 +635,7 @@ def gen_roi_timeseries(data_file,
 
     value_list = []
 
-    new_keys = sorted([int(key.split('node_')[1]) for key in node_dict.keys()])
+    new_keys = sorted([int(float(key.split('node_')[1])) for key in node_dict.keys()])
 
     roi_number_list = [str(n) for n in new_keys]
 

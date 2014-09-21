@@ -1,5 +1,4 @@
-import wx
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -8,16 +7,20 @@ import pkg_resources as p
 
 class GenericClass(wx.ScrolledWindow):
     
-    def __init__(self,parent,title=""):
+    def __init__(self,parent,title="",no_static=False):
         self.parent = parent
         self.title = title
-        self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)   
+        self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)
         self.flexSizer.AddGrowableCol(1)
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.ctrl_list = []
-        self.__add_static()
+
+        if no_static==False:
+            self.__add_static()
+
         self.__set_scroll()
         self.switch = None
+
     
     def __set_scroll(self):
         maxWidth = 1000
@@ -41,6 +44,16 @@ class GenericClass(wx.ScrolledWindow):
         self.mainSizer.Add(wx.StaticLine(self.parent), 0, wx.EXPAND|wx.TOP)
         
     __add_static = add_static
+
+
+
+    def add_pheno_load_panel(self, sizer):
+        
+        buffer = wx.StaticText(self.parent, label="\t\t\t\t\t\t")
+
+        self.flexSizer.Add(buffer)
+        self.flexSizer.Add(sizer)
+
         
         
     def add(self, label, control, name, type = 0, 
@@ -105,6 +118,9 @@ class GenericClass(wx.ScrolledWindow):
         elif control == 8 :
             self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
+        elif control == 9:
+            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
+            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
 
     def EvtChoice(self, event, ctrl):
@@ -151,7 +167,20 @@ class GenericClass(wx.ScrolledWindow):
         else:
             #print "label to be removed -->", label
             ctrl.set_selection(label,index, True)
-        print ctrl.get_selection()
+        
+        
+    '''
+    NEEDS DEV!
+    '''
+    def EvtCheckBoxGrid(self, event, ctrl):
+        index = event.GetSelection()
+        label = ctrl.get_ctrl().GetString(index)
+        if ctrl.get_ctrl().IsChecked(index):
+            #print "label selected -->", label, index
+            ctrl.set_selection(label, index)
+        else:
+            #print "label to be removed -->", label, index
+            ctrl.set_selection(label,index, True)
         
         
     
@@ -259,16 +288,62 @@ class Control(wx.Control):
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
             
+            if combo_type == 4:
+
+                if values:
+
+                    # values.keys() is a list of contrast options the user
+                    # typed into the contrasts box. this only exists if the
+                    # user entered contrasts, then saved them or went back to
+                    # the first model builder window, then returned
+                    for option in values.keys():
+
+                        # this re-checks the user's past contrast option
+                        # SELECTIONS (which ones were checked) in the listbox
+                        if values[option] == True:
+                            self.selection.append(option)
+                            
+           
+            self.options = self.ctrl.get_listbox_options()
+            self.listbox_selections = []
+
+            
         elif type == 8:
             self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 
                                          size=size, style=style,
                                          validator = validator,
-                                         value = values)  
+                                         value = values)
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
+         
+        elif type == 9:
+            self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
+                                     values = values,
+                                     size= wx.DefaultSize)
+            
+            self.selection = self.ctrl.GetGridSelection()
+            
                 
         self.set_id()
+
+
+
+    def get_listbox_options(self):
+        if self.get_type() == 7:
+            return self.options
+
+    def get_listbox_selections(self):
+        if self.get_type() == 7:
+            return self.listbox_selections
+
+    # this takes the list of available contrast names from modelDesign_window
+    # and sends it to the 'Add Contrast' dialog box, so that it may do
+    # validation immediately when the user enters contrast strings
+    def set_available_contrasts(self, avail_cons):
+        if self.get_type() == 7:
+            self.ctrl.set_available_contrasts(avail_cons)
+        
         
     def set_id(self):
         if self.id==None:
@@ -301,11 +376,19 @@ class Control(wx.Control):
             if convert_to_string:
                 value = str(value)
                 
+            # here, 'value' is the single element selected in the control by
+            # the user, and 'self.selection' is the list containing these
+            # selections
+
             if remove:
                 self.selection.remove(value)
             else:
                 self.selection.append(value)
+
                 
+        elif self.get_type()==9:
+            self.ctrl.onReload_set_selections(value)
+
         elif isinstance(self.selection, dict):
             if remove:
                 self.selection[value, index]= False
@@ -314,6 +397,10 @@ class Control(wx.Control):
             
         else:
             self.selection = value
+
+        if self.get_type()==7:
+            self.listbox_selections = self.selection
+
 
     def get_selection(self):
         return self.selection
@@ -333,7 +420,7 @@ class Control(wx.Control):
                     if v:                       
                         listbox.Insert(v,0)
                         listbox.Check(0)
-                        self.set_selection(v)         
+                        self.set_selection(v)  
             elif self.get_type()==6:
                 #self.ctrl.SetChecked(val)
                 self.ctrl.SetCheckedStrings(val)
@@ -341,6 +428,8 @@ class Control(wx.Control):
                 sample_list = self.get_values()
                 for s in strings:
                     self.set_selection(s, sample_list.index(s))
+            elif self.get_type() == 9:
+                self.ctrl.set_checkbox_grid_values(val)
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):

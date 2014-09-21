@@ -48,30 +48,30 @@ class VMHCSettings(wx.ScrolledWindow):
         
         self.page.add(label="Symmetric Template (Brain Only) ", 
          control=control.COMBO_BOX, 
-         name='brainSymmetric', 
+         name='template_symmetric_brain_only', 
          type=dtype.STR, 
-         values = "$FSLDIR/data/standard/MNI152_T1_${standardResolution}_brain_symmetric.nii.gz",
+         values = "$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz",
          comment="Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use a non-standard symmetric template.")
         
         self.page.add(label="Symmetric Template (With Skull) ", 
          control=control.COMBO_BOX, 
-         name='symmStandard', 
+         name='template_symmetric_skull', 
          type=dtype.STR, 
-         values = "$FSLDIR/data/standard/MNI152_T1_${standardResolution}_symmetric.nii.gz",
+         values = "$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_symmetric.nii.gz",
          comment="Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use a non-standard symmetric template.")
 
         self.page.add(label="Dilated Symmetric Brain Mask ", 
          control=control.COMBO_BOX, 
-         name='twommBrainMaskDiluted', 
+         name='dilated_symmetric_brain_mask', 
          type=dtype.STR, 
-         values = "$FSLDIR/data/standard/MNI152_T1_${standardResolution}_brain_mask_symmetric_dil.nii.gz",
+         values = "$FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz",
          comment="Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use a non-standard symmetric template.")
         
         self.page.add(label="FLIRT Configuration File ", 
          control=control.COMBO_BOX, 
          name='configFileTwomm', 
          type=dtype.STR, 
-         values = "$FSLDIR/etc/flirtsch/T1_2_MNI152_${standardResolution}.cnf",
+         values = "$FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf",
          comment="Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use a non-standard symmetric template.")
         
         

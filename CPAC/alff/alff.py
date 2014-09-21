@@ -213,7 +213,8 @@ def create_alff(wf_name = 'alff_workflow'):
     #falff calculations
     falff = pe.Node(interface = preprocess.Calc(),
                     name = 'falff')
-    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c)) -float'
+    falff.inputs.args = '-float'
+    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(inputNode, 'rest_mask',
                falff, 'in_file_a')
