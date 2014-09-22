@@ -508,15 +508,20 @@ class ModelConfig(wx.Frame):
         '''
 
 
-
-        # eat the pheno_data_dict, picking out the header items. remove the
-        # subject header, then identify which ones are categorical (by seeing
-        # what the user selected), and then providing the names of each
-        # categorical option
-
+        # build Available Contrasts list
         var_list_for_contrasts = []
+        EVs_to_include = []
 
-        for header in self.pheno_data_dict.keys():
+        # take the user-provided design formula and break down the included
+        # terms into a list, and use this to create the list of available
+        # contrasts
+        formula_strip = self.gpa_settings['design_formula'].replace('+',' ')
+        formula_strip = formula_strip.replace('-',' ')
+        EVs_to_include = formula_strip.split()
+
+        for header in EVs_to_include:
+
+            #if header in self.gpa_settings['design_formula']:
 
             if 'categorical' in self.gpa_settings['ev_selections'].keys():
                 if header in self.gpa_settings['ev_selections']['categorical']:
@@ -536,14 +541,57 @@ class ModelConfig(wx.Frame):
                     var_list_for_contrasts.append(header)
 
 
-        if 'MeanFD' in self.gpa_settings['design_formula']:
-            var_list_for_contrasts.append('MeanFD')
 
-        if 'Measure_Mean' in self.gpa_settings['design_formula']:
-            var_list_for_contrasts.append('Measure_Mean')
+        # ensure the design formula only has valid EVs in it
+        for EV in EVs_to_include:
+
+            if ':' in EV:
+
+                both_EVs_in_interaction = EV.split(':')
+
+                for interaction_EV in both_EVs_in_interaction:
+
+                    if (interaction_EV not in self.pheno_data_dict.keys()) and \
+                        interaction_EV != 'MeanFD' and interaction_EV != 'Measure_Mean':
+
+                        errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                 'entered within the design formula as ' \
+                                 'part of the interaction \'%s\' is not a ' \
+                                 'valid EV option.\n\nPlease enter only ' \
+                                 'the EVs in your phenotype file or the ' \
+                                 'MeanFD or Measure_Mean options.' \
+                                 % (interaction_EV,EV)
+
+                        errSubID = wx.MessageDialog(self, errmsg,
+                            'Invalid EV', wx.OK | wx.ICON_ERROR)
+                        errSubID.ShowModal()
+                        errSubID.Destroy()
+                
+                        raise Exception    
+
+            else:
+
+                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
+                    and EV != 'Measure_Mean':
+
+                    errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                             'entered within the design formula is not ' \
+                             'a valid EV option.' \
+                             '\n\nPlease enter only the EVs in your phenotype ' \
+                             'file or the MeanFD or Measure_Mean options.' \
+                             % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
 
         
-
+        print 'varlist: ', var_list_for_contrasts
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
 
