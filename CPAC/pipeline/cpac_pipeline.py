@@ -2924,10 +2924,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runRegisterFuncToMNI) and (1 in c.runDualReg) and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-
-                output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat)
-
+            output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat)
 
             output_to_standard('dr_tempreg_maps_z_stack', 'dr_tempreg_maps_z_stack', strat, num_strat)
 
