@@ -545,9 +545,17 @@ class ModelConfig(wx.Frame):
         # ensure the design formula only has valid EVs in it
         for EV in EVs_to_include:
 
-            if ':' in EV:
+            if (':' in EV) or ('/' in EV) or ('*' in EV):
 
-                both_EVs_in_interaction = EV.split(':')
+                if ':' in EV:
+                    both_EVs_in_interaction = EV.split(':')
+
+                if '/' in EV:
+                    both_EVs_in_interaction = EV.split('/')
+
+                if '*' in EV:
+                    both_EVs_in_interaction = EV.split('*')
+
 
                 for interaction_EV in both_EVs_in_interaction:
 
