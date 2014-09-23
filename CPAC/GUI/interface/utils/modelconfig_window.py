@@ -515,6 +515,8 @@ class ModelConfig(wx.Frame):
         # take the user-provided design formula and break down the included
         # terms into a list, and use this to create the list of available
         # contrasts
+        for char in self.gpa_settings['desi
+
         formula_strip = self.gpa_settings['design_formula'].replace('+',' ')
         formula_strip = formula_strip.replace('-',' ')
         EVs_to_include = formula_strip.split()
@@ -545,7 +547,58 @@ class ModelConfig(wx.Frame):
         # ensure the design formula only has valid EVs in it
         for EV in EVs_to_include:
 
-            if (':' in EV) or ('/' in EV) or ('*' in EV):
+            # ensure ** interactions have a valid EV on one side and a number
+            # on the other
+            if '**' in EV:
+
+                both_sides = EV.split('**')
+
+                int_check = 0
+
+                for side in both_sides:
+
+                    if side.isdigit():
+                        int_check = 1
+                    else:
+                        if (side not in self.pheno_data_dict.keys()) and \
+                            side != 'MeanFD' and side != 'Measure_Mean':
+
+                            errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                     'entered within the design formula as ' \
+                                     'part of the interaction \'%s\' is not a ' \
+                                     'valid EV option.\n\nPlease enter only ' \
+                                     'the EVs in your phenotype file or the ' \
+                                     'MeanFD or Measure_Mean options.' \
+                                     % (side,EV)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid EV', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                
+                            raise Exception
+
+
+                if int_check != 1:
+
+                    errmsg = 'CPAC says: The interaction \'%s\' you ' \
+                             'entered within the design formula requires ' \
+                             'a number on one side.\n\nExample: ' \
+                             '(EV1 + EV2 + EV3)**3\n\nNote: This would be ' \
+                             'equivalent to\n(EV1 + EV2 + EV3) * ' \
+                             '(EV1 + EV2 + EV3) * (EV1 + EV2 + EV3)' % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
+                    
+            # ensure these interactions are input correctly
+            elif (':' in EV) or ('/' in EV) or ('*' in EV):
 
                 if ':' in EV:
                     both_EVs_in_interaction = EV.split(':')
