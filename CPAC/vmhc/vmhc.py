@@ -45,7 +45,7 @@ def create_vmhc(use_ants):
         inputspec.brain : string (existing nifti file)
             Anatomical image(without skull)
 
-        inputspec.brain_symmetric : string (existing nifti file)
+        inputspec.symmetric_brain : string (existing nifti file)
             MNI152_T1_2mm_brain_symmetric.nii.gz
  
         inputspec.rest_res_filt : string (existing nifti file)
@@ -57,10 +57,10 @@ def create_vmhc(use_ants):
         inputspec.example_func2highres_mat : string (existing affine transformation .mat file)
             Specifies an affine transform that should be applied to the example_func before non linear warping
 
-        inputspec.standard : string (existing nifti file)
+        inputspec.standard_for_func : string (existing nifti file)
             MNI152_T1_standard_resolution_brain.nii.gz
 
-        inputspec.symm_standard : string (existing nifti file)
+        inputspec.symmetric_skull : string (existing nifti file)
             MNI152_T1_2mm_symmetric.nii.gz
 
         inputspec.twomm_brain_mask_dil : string (existing nifti file)
@@ -214,11 +214,11 @@ def create_vmhc(use_ants):
     --------
     
     >>> vmhc_w = create_vmhc()
-    >>> vmhc_w.inputs.inputspec.brain_symmetric = 'MNI152_T1_2mm_brain_symmetric.nii.gz'
-    >>> vmhc_w.inputs.inputspec.symm_standard = 'MNI152_T1_2mm_symmetric.nii.gz'
+    >>> vmhc_w.inputs.inputspec.symmetric_brain = 'MNI152_T1_2mm_brain_symmetric.nii.gz'
+    >>> vmhc_w.inputs.inputspec.symmetric_skull = 'MNI152_T1_2mm_symmetric.nii.gz'
     >>> vmhc_w.inputs.inputspec.twomm_brain_mask_dil = 'MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz'
     >>> vmhc_w.inputs.inputspec.config_file_twomm = 'T1_2_MNI152_2mm_symmetric.cnf'
-    >>> vmhc_w.inputs.inputspec.standard = 'MNI152_T1_2mm.nii.gz'
+    >>> vmhc_w.inputs.inputspec.standard_for_func = 'MNI152_T1_2mm.nii.gz'
     >>> vmhc_w.inputs.fwhm_input.fwhm = [4.5, 6]
     >>> vmhc_w.get_node('fwhm_input').iterables = ('fwhm', [4.5, 6])
     >>> vmhc_w.inputs.inputspec.rest_res = os.path.abspath('/home/data/Projects/Pipelines_testing/Dickstein/subjects/s1001/func/original/rest_res_filt.nii.gz')
@@ -232,15 +232,15 @@ def create_vmhc(use_ants):
 
     vmhc = pe.Workflow(name='vmhc_workflow')
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
-                                                'brain_symmetric',
+                                                'symmetric_brain',
                                                 'rest_res',
                                                 'reorient',
                                                 'example_func2highres_mat',
-                                                'symm_standard',
+                                                'symmetric_skull',
                                                 'twomm_brain_mask_dil',
                                                 'config_file_twomm',
                                                 'rest_mask',
-                                                'standard',
+                                                'standard_for_func',
                                                 'mean_functional']),
                         name='inputspec')
 
@@ -391,13 +391,13 @@ def create_vmhc(use_ants):
 
         vmhc.connect(inputNode, 'brain',
                      linear_T1_to_symmetric_standard, 'in_file')
-        vmhc.connect(inputNode, 'brain_symmetric',
+        vmhc.connect(inputNode, 'symmetric_brain',
                      linear_T1_to_symmetric_standard, 'reference')
         vmhc.connect(inputNode, 'reorient',
                      nonlinear_highres_to_symmetric_standard, 'in_file')
         vmhc.connect(linear_T1_to_symmetric_standard, 'out_matrix_file',
                      nonlinear_highres_to_symmetric_standard, 'affine_file')
-        vmhc.connect(inputNode, 'symm_standard',
+        vmhc.connect(inputNode, 'symmetric_skull',
                      nonlinear_highres_to_symmetric_standard, 'ref_file')
         vmhc.connect(inputNode, 'twomm_brain_mask_dil',
                      nonlinear_highres_to_symmetric_standard, 'refmask_file')
@@ -413,7 +413,7 @@ def create_vmhc(use_ants):
                      smooth, 'operand_files')
         vmhc.connect(smooth, 'out_file',
                      nonlinear_func_to_standard, 'in_file')
-        vmhc.connect(inputNode, 'standard',
+        vmhc.connect(inputNode, 'standard_for_func',
                      nonlinear_func_to_standard, 'ref_file')
         vmhc.connect(nonlinear_highres_to_symmetric_standard, 'fieldcoeff_file',
                      nonlinear_func_to_standard, 'field_file')
@@ -432,7 +432,7 @@ def create_vmhc(use_ants):
         # registration calculation stuff -- might go out the window
         vmhc.connect(inputNode, 'brain',
                      calculate_ants_xfm_vmhc, 'inputspec.anatomical_brain')
-        vmhc.connect(inputNode, 'brain_symmetric',
+        vmhc.connect(inputNode, 'symmetric_brain',
                      calculate_ants_xfm_vmhc, 'inputspec.reference_brain')
 
         # functional apply warp stuff
@@ -475,7 +475,7 @@ def create_vmhc(use_ants):
                      apply_ants_xfm_vmhc, 'inputspec.conversion_source')
         '''
 
-        vmhc.connect(inputNode, 'brain_symmetric',
+        vmhc.connect(inputNode, 'standard_for_func',
                      apply_ants_xfm_vmhc, 'inputspec.reference_image')
 
         vmhc.connect(collect_transforms_vmhc, \

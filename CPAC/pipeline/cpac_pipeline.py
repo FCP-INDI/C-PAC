@@ -1760,15 +1760,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             else:
                 preproc = create_vmhc(True)
 
-            preproc.inputs.inputspec.brain_symmetric = \
+            preproc.inputs.inputspec.symmetric_brain = \
                                             c.template_symmetric_brain_only
-            preproc.inputs.inputspec.symm_standard = \
+            preproc.inputs.inputspec.symmetric_skull = \
                                             c.template_symmetric_skull
             preproc.inputs.inputspec.twomm_brain_mask_dil = \
                                             c.dilated_symmetric_brain_mask
             preproc.inputs.inputspec.config_file_twomm = \
                                             c.configFileTwomm
-            preproc.inputs.inputspec.standard = \
+            preproc.inputs.inputspec.standard_for_func = \
                                             c.template_skull_for_func
             preproc.inputs.fwhm_input.fwhm = c.fwhm
             preproc.get_node('fwhm_input').iterables = ('fwhm',
