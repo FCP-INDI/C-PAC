@@ -821,14 +821,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     when generating the design matrix (this goes into the .mat file)
     formula = c.design_formula
 
-    # remove intercept!
-    #formula = formula + '- 1'
 
     if 'categorical' in c.ev_selections.keys():
         for EV_name in c.ev_selections['categorical']:
             formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
-
-
 
 
     # create the actual design matrix using Patsy
@@ -948,6 +944,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             skip = 0
 
+            # they need to be put back into Patsy formatted header titles
+            # because the dmatrix gets passed into the function that writes
+            # out the contrast matrix
             if 'categorical' in c.ev_selections.keys():
                 for cat_EV in c.ev_selections['categorical']:
 
