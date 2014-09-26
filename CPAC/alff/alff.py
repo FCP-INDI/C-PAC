@@ -163,9 +163,9 @@ def create_alff(wf_name = 'alff_workflow'):
                              name='lp_input')
     
     outputNode = pe.Node(util.IdentityInterface(fields=[ 'alff_img',
-                                                         'falff_img',
-                                                         'alff_Z_img',
-                                                         'falff_Z_img']),
+                                                         'falff_img']),
+                                                         #'alff_Z_img',
+                                                         #'falff_Z_img']),
                           name='outputspec')
     
     #filtering
@@ -226,6 +226,7 @@ def create_alff(wf_name = 'alff_workflow'):
     wf.connect(falff, 'out_file',
                outputNode, 'falff_img') 
     
+    '''
     #alff zscore
     alff_zscore = get_zscore("alff_zscore")
     wf.connect(stddev_fltrd, 'out_file', 
@@ -245,6 +246,7 @@ def create_alff(wf_name = 'alff_workflow'):
     
     wf.connect(falf_zscore, 'outputspec.z_score_img',
                outputNode, 'falff_Z_img')
+    '''
     
     return wf
 

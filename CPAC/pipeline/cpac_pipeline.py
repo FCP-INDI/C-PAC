@@ -305,7 +305,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
             # create a new node, Remember to change its name!
-            anat_preproc = create_anat_preproc().clone('anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(c.run_skullstrip).clone('anat_preproc_%d' % num_strat)
 
             try:
                 # connect the new node to the previous leaf
@@ -1324,8 +1324,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(alff.name)
             strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
             strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
-            strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
-            strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
+            #strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
+            #strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
             
             create_log_node(alff, 'outputspec.falff_img', num_strat)
 
@@ -1852,7 +1852,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'raw_reho_map':(reho, 'outputspec.raw_reho_map')})
-            strat.update_resource_pool({'reho_Z_img':(reho, 'outputspec.z_score')})
+            #strat.update_resource_pool({'reho_Z_img':(reho, 'outputspec.z_score')})
             strat.append_name(reho.name)
             
             create_log_node(reho, 'outputspec.raw_reho_map', num_strat)
@@ -2915,6 +2915,44 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
+    z-score standardization function
+    '''
+
+    def z_score_standardize(output_name, output_resource, strat, num_strat, map_node=0):
+
+        z_score_std = pe.Node(util.Function(input_names=['input_file',
+                                   'mask_file'], output_names=['z_score_img'],
+                                   function=get_zscore),
+                                   name='z_score_std_%s_%d' % (output_name, num_strat))
+
+        try:
+
+            node, out_file = strat. \
+                    get_node_from_resource_pool(output_resource)
+
+            workflow.connect(node, out_file, z_score_std, 'input_file')
+
+            # needs the template-space functional mask because we are z-score
+            # standardizing outputs that have already been warped to template
+            node, out_file = strat. \
+                    get_node_from_resource_pool('functional_brain_mask_to_standard')
+            workflow.connect(node, out_file, z_score_std, 'mask_file')
+
+
+        except:
+
+            logConnectionError('%s z-score standardize' % output_name, num_strat, \
+                    strat.get_resource_pool(), '0127')
+            raise
+
+        strat.append_name(output_smooth.name)
+        strat.update_resource_pool({'%s_zstd' % (output_name): \
+                (z_score_std, 'z_score_img')})
+
+
+
+
+    '''
     Transforming Dual Regression outputs to MNI
     '''
 
@@ -2946,21 +2984,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
 
     if 1 in c.runRegisterFuncToMNI and (1 in c.runALFF):
+
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-
-                output_to_standard('alff', 'alff_img', strat, num_strat)
-                output_to_standard('falff', 'falff_img', strat, num_strat)
-
-            if 1 in c.runZScoring:
-
-                output_to_standard('alff_Z', 'alff_Z_img', strat, num_strat)
-                output_to_standard('falff_Z', 'falff_Z_img', strat, num_strat)
-                
+            output_to_standard('alff', 'alff_img', strat, num_strat)
+            output_to_standard('falff', 'falff_img', strat, num_strat)
+               
             num_strat += 1
     
     strat_list += new_strat_list
+
 
 
 
@@ -3172,17 +3205,33 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runALFF) and c.fwhm != None:
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_smooth('alff', 'alff_img', strat, num_strat)
-                output_smooth('falff', 'falff_img', strat, num_strat)
-
-            if 1 in c.runZScoring:
-                output_smooth('alff_Z', 'alff_Z_img', strat, num_strat)
-                output_smooth('falff_Z', 'falff_Z_img', strat, num_strat)
+            output_smooth('alff', 'alff_img', strat, num_strat)
+            output_smooth('falff', 'falff_img', strat, num_strat)
 
             num_strat += 1
 
     strat_list += new_strat_list
+
+
+    '''
+    z-standardize alff/falff MNI-standardized outputs
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runZScoring and (1 in c.runALFF):
+
+        for strat in strat_list:
+
+            z_score_standardize('alff', 'alff_to_standard_smooth', strat, num_strat)
+            z_score_standardize('falff', 'falff_to_standard_smooth', strat, num_strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
 
 
     '''
@@ -3195,14 +3244,32 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runReHo) and c.fwhm != None:
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_smooth('reho', 'raw_reho_map', strat, num_strat)
-            if 1 in c.runZScoring:
-                output_smooth('reho_Z', 'reho_Z_img', strat, num_strat)
+            output_smooth('reho', 'raw_reho_map', strat, num_strat)
 
             num_strat += 1
 
     strat_list += new_strat_list
+
+
+
+    '''
+    z-standardize ReHo MNI-standardized outputs
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runZScoring and (1 in c.runReHo):
+
+        for strat in strat_list:
+
+            z_score_standardize('reho', 'reho_to_standard_smooth', strat, num_strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
     
 
     '''

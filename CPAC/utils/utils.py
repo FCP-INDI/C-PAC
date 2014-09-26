@@ -136,6 +136,123 @@ files_folders_wf = {
     'sca_tempreg_maps_z_files_smooth': 'sca_roi',
 }
 
+
+def get_zscore(wf_name = 'z_score'):
+    
+    """
+    Workflow to calculate z-scores
+    
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+        
+    Returns
+    -------
+    wf : workflow object
+    
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
+    
+    
+    Workflow Inputs::
+        
+        inputspec.input_file : string
+            path to input functional derivative file for which z score has to be calculated
+        inputspec.mask_file : string
+            path to whole brain functional mask file required to calculate zscore
+    
+    Workflow Outputs::
+        
+        outputspec.z_score_img : string
+             path to image containing Normalized Input Image Z scores across full brain.
+    
+    High Level Workflow Graph:
+    
+    .. image:: ../images/zscore.dot.png
+       :width: 500
+    
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/zscore_detailed.dot.png
+       :width: 500
+    
+    Example
+    -------
+    >>> import get_zscore as z
+    >>> wf = z.get_zscore()
+    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
+    >>> wf.run()
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['input_file',
+                                                       'mask_file']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
+                          name='outputspec')
+
+    mean = pe.Node(interface=fsl.ImageStats(),
+                   name='mean')
+    mean.inputs.op_string = '-k %s -m'    
+    wflow.connect(inputNode, 'input_file',
+                  mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  mean, 'mask_file')
+
+
+    standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                 name='standard_deviation')
+    standard_deviation.inputs.op_string = '-k %s -s'
+    wflow.connect(inputNode, 'input_file',
+                  standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  standard_deviation, 'mask_file')
+    
+    
+    op_string = pe.Node(util.Function(input_names=['mean','std_dev'],
+                                      output_names=['op_string'],
+                                      function=get_operand_string),
+                        name='op_string')
+    wflow.connect(mean, 'out_stat',
+                  op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat',
+                  op_string, 'std_dev')
+    
+    
+    z_score = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='z_score')
+    wflow.connect(op_string, 'op_string',
+                  z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file',
+                  z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  z_score, 'operand_files')
+
+
+    zstd_suffix = pe.Node(util.Rename(), name='zstd_suffix')
+
+    zstd_suffix.inputs.format_string = '%(in_file)_zstd.nii.gz'
+    
+    wflow.connect(z_score, 'out_file', zstd_suffix, 'in_file')
+    
+
+    wflow.connect(zstd_suffix, 'out_file', outputNode, 'z_score_img')
+    
+    return wflow
+
+
+
 def safe_shape(*vol_data):
     """
     Checks if the volume (first three dimensions) of multiple ndarrays

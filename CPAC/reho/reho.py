@@ -94,20 +94,23 @@ def create_reho():
 
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'raw_reho_map',
-                                                    'z_score']),
+                                                    'raw_reho_map']),
+                                                    #'z_score']),
                         name='outputspec')
 
+    '''
     op_string = pe.Node(util.Function(input_names=['mean', 'std_dev'],
                                          output_names=['op_string'],
                            function=getOpString),
                            name='op_string')
+    '''
 
     raw_reho_map = pe.Node(util.Function(input_names=['in_file', 'mask_file', 'cluster_size'],
                                    output_names=['out_file'],
                      function=compute_reho),
                      name='reho_map')
 
+    '''
     mean = pe.Node(interface=fsl.ImageStats(),
                       name='mean')
     mean.inputs.op_string = '-k %s -m'
@@ -120,6 +123,7 @@ def create_reho():
 
     z_score = pe.Node(interface=fsl.MultiImageMaths(),
                    name='z_score')
+    '''
 
 
 
@@ -130,6 +134,7 @@ def create_reho():
     reHo.connect(inputNode, 'cluster_size',
                     raw_reho_map, 'cluster_size')
 
+    '''
     reHo.connect(raw_reho_map, 'out_file',
                     mean, 'in_file')
     reHo.connect(inputNode, 'rest_mask',
@@ -152,6 +157,7 @@ def create_reho():
 
     reHo.connect(z_score, 'out_file',
                  outputNode, 'z_score')
+    '''
 
     reHo.connect(raw_reho_map, 'out_file',
                  outputNode, 'raw_reho_map')
