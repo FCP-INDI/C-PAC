@@ -35,7 +35,7 @@ from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import create_surface_registration, get_roi_timeseries, \
                             get_voxel_timeseries, get_vertices_timeseries, \
                             get_spatial_map_timeseries
-from CPAC.network_centrality import create_resting_state_graphs, get_zscore
+from CPAC.network_centrality import create_resting_state_graphs
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
 ### no create_log_template here, move in CPAC/utils/utils.py
@@ -48,7 +48,8 @@ from CPAC.utils.utils import extract_one_d, set_gauss, \
                              prepare_symbolic_links, get_scan_params, \
                              get_tr, extract_txt, create_log, \
                              create_log_template, extract_output_mean, \
-                             create_output_mean_csv
+                             create_output_mean_csv, get_zscore, \
+                             get_fisher_zscore
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -2915,28 +2916,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
-    z-score standardization function
+    z-score standardization functions
     '''
 
     def z_score_standardize(output_name, output_resource, strat, num_strat, map_node=0):
 
-        z_score_std = pe.Node(util.Function(input_names=['input_file',
-                                   'mask_file'], output_names=['z_score_img'],
-                                   function=get_zscore),
-                                   name='z_score_std_%s_%d' % (output_name, num_strat))
+        z_score_std = get_zscore(output_resource, 'z_score_std_%s_%d' % (output_name, num_strat))
 
         try:
 
-            node, out_file = strat. \
-                    get_node_from_resource_pool(output_resource)
+            node, out_file = strat.get_node_from_resource_pool(output_resource)
 
-            workflow.connect(node, out_file, z_score_std, 'input_file')
+            workflow.connect(node, out_file, z_score_std, 'inputspec.input_file')
 
             # needs the template-space functional mask because we are z-score
             # standardizing outputs that have already been warped to template
             node, out_file = strat. \
                     get_node_from_resource_pool('functional_brain_mask_to_standard')
-            workflow.connect(node, out_file, z_score_std, 'mask_file')
+            workflow.connect(node, out_file, z_score_std, 'inputspec.mask_file')
 
 
         except:
@@ -2945,9 +2942,38 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     strat.get_resource_pool(), '0127')
             raise
 
-        strat.append_name(output_smooth.name)
-        strat.update_resource_pool({'%s_zstd' % (output_name): \
-                (z_score_std, 'z_score_img')})
+        strat.append_name(z_score_std.name)
+        strat.update_resource_pool({'%s_zstd' % (output_resource): \
+                (z_score_std, 'outputspec.z_score_img')})
+
+
+
+    def fisher_z_score_standardize(output_name, output_resource, timeseries_oned_file, strat, num_strat, map_node=0):
+
+        fisher_z_score_std = get_fisher_zscore(output_resource, 'fisher_z_score_std_%s_%d' % (output_name, num_strat))
+
+        try:
+
+            node, out_file = strat. \
+                    get_node_from_resource_pool(output_resource)
+
+            workflow.connect(node, out_file, fisher_z_score_std, 'inputspec.correlation_file')
+
+
+            node, out_file = strat. \
+                    get_node_from_resource_pool(timeseries_oned_file)
+            workflow.connect(node, out_file, fisher_z_score_std, 'inputspec.timeseries_one_d')
+
+
+        except:
+
+            logConnectionError('%s fisher z-score standardize' % output_name, num_strat, \
+                    strat.get_resource_pool(), '0128')
+            raise
+
+        strat.append_name(fisher_z_score_std.name)
+        strat.update_resource_pool({'%s_fisher_zstd' % (output_resource): \
+                (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
 
 
 
@@ -3008,11 +3034,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runReHo):
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_to_standard('reho', 'raw_reho_map', strat, num_strat)
-
-            if 1 in c.runZScoring:
-                output_to_standard('reho_Z', 'reho_Z_img', strat, num_strat)
+            output_to_standard('reho', 'raw_reho_map', strat, num_strat)
 
             num_strat += 1
 
@@ -3030,9 +3052,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runROITimeseries):
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_to_standard('sca_roi', 'sca_roi_correlations', strat, \
-                        num_strat)
+            output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat)
             
             if 1 in c.runZScoring:
                 output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
@@ -3278,12 +3298,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runSCA) and (1 in c.runROITimeseries) and c.fwhm != None:
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_smooth('sca_roi', 'sca_roi_correlations', strat, \
-                        num_strat)
+            output_smooth('sca_roi', 'sca_roi_correlations', strat, num_strat)
             
-            if 1 in c.runZScoring:
-                output_smooth('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
+
+    '''
+    fisher-z-standardize SCA ROI MNI-standardized outputs
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runZScoring and (1 in c.runSCA) and (1 in c.runROITimeseries):
+
+        for strat in strat_list:
+
+            if c.fwhm != None:
+                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat)
+            else:
+                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard', 'roi_timeseries_for_SCA', strat, num_strat)
 
             num_strat += 1
 
@@ -4136,6 +4173,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
+
             if 1 in c.runReHo:
                 hist_ = hist.clone('hist_reho_%d' % num_strat)
                 hist_.inputs.measure = 'reho'
@@ -4144,79 +4182,96 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                                      'percent_'],
                                        output_names=['modified_measure_file'],
                                        function=drop_percent_),
-                                       name='dp_reho%d' % num_strat)
+                                       name='dp_reho_%d' % num_strat)
                 drop_percent.inputs.percent_ = 99.999
 
                 if 1 in c.runZScoring:
 
+                    hist_reho_zstd = hist.clone('hist_reho_zstd_%d' % num_strat)
+                    hist_reho_zstd.inputs.measure = 'reho_zstd'
+
+                    drop_percent_zstd = pe.Node(util.Function(input_names=['measure_file',
+                                                         'percent_'],
+                                           output_names=['modified_measure_file'],
+                                           function=drop_percent_),
+                                           name='dp_reho_zstd_%d' % num_strat)
+                    drop_percent_zstd.inputs.percent_ = 99.999
+
                     if c.fwhm != None:
-                        reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard_smooth')
-                        montage_reho = create_montage('montage_reho_%d' % num_strat,
-                                      'cyan_to_yellow', 'reho_standard_smooth')
-                        montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(reho_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___reho_smooth_a': (montage_reho, 'outputspec.axial_png'),
-                                                'qc___reho_smooth_s': (montage_reho, 'outputspec.sagittal_png'),
-                                                'qc___reho_smooth_hist': (hist_, 'hist_path')})
+                        reho_zstd_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard_smooth_zstd')
+                        montage_reho_zstd = create_montage('montage_reho_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'reho_standard_smooth_zstd')
+                        montage_reho_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(reho_zstd_overlay, out_file,
+                                         hist_reho_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___reho_zstd_smooth_a': (montage_reho_zstd, 'outputspec.axial_png'),
+                                                'qc___reho_zstd_smooth_s': (montage_reho_zstd, 'outputspec.sagittal_png'),
+                                                'qc___reho_zstd_smooth_hist': (hist_reho_zstd, 'hist_path')})
 
                         if not 15 in qc_montage_id_a:
-                            qc_montage_id_a[15] = 'reho_smooth_a'
-                            qc_montage_id_s[15] = 'reho_smooth_s'
-                            qc_hist_id[15] = 'reho_smooth_hist'
+                            qc_montage_id_a[15] = 'reho_zstd_smooth_a'
+                            qc_montage_id_s[15] = 'reho_zstd_smooth_s'
+                            qc_hist_id[15] = 'reho_zstd_smooth_hist'
 
 
                     else:
-                        reho_overlay, out_file = strat.get_node_from_resource_pool('reho_Z_to_standard')
-                        montage_reho = create_montage('montage_reho_%d' % num_strat,
-                                      'cyan_to_yellow', 'reho_standard')
-                        montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(reho_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___reho_a': (montage_reho, 'outputspec.axial_png'),
-                                                'qc___reho_s': (montage_reho, 'outputspec.sagittal_png'),
-                                                'qc___reho_hist': (hist_, 'hist_path')})
+                        reho_zstd_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard_zstd')
+                        montage_reho_zstd = create_montage('montage_reho_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'reho_standard_zstd')
+                        montage_reho_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(reho_zstd_overlay, out_file,
+                                         hist_reho_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___reho_zstd_a': (montage_reho_zstd, 'outputspec.axial_png'),
+                                                'qc___reho_zstd_s': (montage_reho_zstd, 'outputspec.sagittal_png'),
+                                                'qc___reho_zstd_hist': (hist_reho_zstd, 'hist_path')})
 
                         if not 15 in qc_montage_id_a:
-                            qc_montage_id_a[15] = 'reho_a'
-                            qc_montage_id_s[15] = 'reho_s'
-                            qc_hist_id[15] = 'reho_hist'
+                            qc_montage_id_a[15] = 'reho_zstd_a'
+                            qc_montage_id_s[15] = 'reho_zstd_s'
+                            qc_hist_id[15] = 'reho_zstd_hist'
 
 
-                if 0 in c.runZScoring:
+                    workflow.connect(reho_zstd_overlay, out_file,
+                                     drop_percent_zstd, 'measure_file')
 
-                    if c.fwhm != None:
-                        reho_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard_smooth')
-                        montage_reho = create_montage('montage_reho_%d' % num_strat,
-                                      'cyan_to_yellow', 'reho_standard_smooth')
-                        montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(reho_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___reho_smooth_a': (montage_reho, 'outputspec.axial_png'),
+                    workflow.connect(drop_percent_zstd, 'modified_measure_file',
+                                     montage_reho_zstd, 'inputspec.overlay')
+
+
+                
+
+                if c.fwhm != None:
+                    reho_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard_smooth')
+                    montage_reho = create_montage('montage_reho_%d' % num_strat,
+                                  'cyan_to_yellow', 'reho_standard_smooth')
+                    montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(reho_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___reho_smooth_a': (montage_reho, 'outputspec.axial_png'),
                                                 'qc___reho_smooth_s': (montage_reho, 'outputspec.sagittal_png'),
                                                 'qc___reho_smooth_hist': (hist_, 'hist_path')})
 
-                        if not 15 in qc_montage_id_a:
-                            qc_montage_id_a[15] = 'reho_smooth_a'
-                            qc_montage_id_s[15] = 'reho_smooth_s'
-                            qc_hist_id[15] = 'reho_smooth_hist'
+                    if not 15 in qc_montage_id_a:
+                        qc_montage_id_a[15] = 'reho_smooth_a'
+                        qc_montage_id_s[15] = 'reho_smooth_s'
+                        qc_hist_id[15] = 'reho_smooth_hist'
 
 
-                    else:
-                        reho_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard')
-                        montage_reho = create_montage('montage_reho_%d' % num_strat,
-                                      'cyan_to_yellow', 'reho_standard')
-                        montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(reho_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___reho_a': (montage_reho, 'outputspec.axial_png'),
+                else:
+                    reho_overlay, out_file = strat.get_node_from_resource_pool('reho_to_standard')
+                    montage_reho = create_montage('montage_reho_%d' % num_strat,
+                                  'cyan_to_yellow', 'reho_standard')
+                    montage_reho.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(reho_overlay, out_file,
+                                     hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___reho_a': (montage_reho, 'outputspec.axial_png'),
                                                 'qc___reho_s': (montage_reho, 'outputspec.sagittal_png'),
                                                 'qc___reho_hist': (hist_, 'hist_path')})
 
-                        if not 15 in qc_montage_id_a:
-                            qc_montage_id_a[15] = 'reho_a'
-                            qc_montage_id_s[15] = 'reho_s'
-                            qc_hist_id[15] = 'reho_hist'
+                    if not 15 in qc_montage_id_a:
+                        qc_montage_id_a[15] = 'reho_a'
+                        qc_montage_id_s[15] = 'reho_s'
+                        qc_hist_id[15] = 'reho_hist'
 
 
                 workflow.connect(reho_overlay, out_file,
@@ -4239,34 +4294,52 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                                      'percent_'],
                                        output_names=['modified_measure_file'],
                                        function=drop_percent_),
-                                       name='dp_alff%d' % num_strat)
+                                       name='dp_alff_%d' % num_strat)
                 drop_percent.inputs.percent_ = 99.7
 
-                drop_percent_falff = drop_percent.clone('dp_falff%d' % num_strat)
+                drop_percent_falff = drop_percent.clone('dp_falff_%d' % num_strat)
                 drop_percent_falff.inputs.percent_ = 99.999
 
                 if 1 in c.runZScoring:
 
-                    if c.fwhm != None:
-                        alff_overlay, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard_smooth')
-                        falff_overlay, out_file_f = strat.get_node_from_resource_pool('falff_Z_to_standard_smooth')
-                        montage_alff = create_montage('montage_alff_%d' % num_strat,
-                                      'cyan_to_yellow', 'alff_standard_smooth')
-                        montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        montage_falff = create_montage('montage_falff_%d' % num_strat,
-                                      'cyan_to_yellow', 'falff_standard_smooth')
-                        montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(alff_overlay, out_file,
-                                         hist_alff, 'measure_file')
+                    hist_alff_zstd = hist.clone('hist_alff_zstd_%d' % num_strat)
+                    hist_alff_zstd.inputs.measure = 'alff_zstd'
 
-                        workflow.connect(falff_overlay, out_file_f,
-                                         hist_falff, 'measure_file')
-                        strat.update_resource_pool({'qc___alff_smooth_a': (montage_alff, 'outputspec.axial_png'),
-                                                'qc___alff_smooth_s': (montage_alff, 'outputspec.sagittal_png'),
-                                                'qc___falff_smooth_a': (montage_falff, 'outputspec.axial_png'),
-                                                'qc___falff_smooth_s': (montage_falff, 'outputspec.sagittal_png'),
-                                                'qc___alff_smooth_hist': (hist_alff, 'hist_path'),
-                                                'qc___falff_smooth_hist': (hist_falff, 'hist_path')})
+                    hist_falff_zstd = hist.clone('hist_falff_zstd_%d' % num_strat)
+                    hist_falff_zstd.inputs.measure = 'falff_zstd'
+
+
+                    drop_percent_zstd = pe.Node(util.Function(input_names=['measure_file',
+                                                         'percent_'],
+                                           output_names=['modified_measure_file'],
+                                           function=drop_percent_),
+                                           name='dp_alff_zstd_%d' % num_strat)
+                    drop_percent_zstd.inputs.percent_ = 99.7
+
+                    drop_percent_falff_zstd = drop_percent.clone('dp_falff_zstd_%d' % num_strat)
+                    drop_percent_falff_zstd.inputs.percent_ = 99.999
+
+
+                    if c.fwhm != None:
+                        alff_zstd_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard_smooth_zstd')
+                        falff_zstd_overlay, out_file_f = strat.get_node_from_resource_pool('falff_to_standard_smooth_zstd')
+                        montage_alff_zstd = create_montage('montage_alff_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'alff_standard_smooth_zstd')
+                        montage_alff_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        montage_falff_zstd = create_montage('montage_falff_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'falff_standard_smooth_zstd')
+                        montage_falff_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(alff_zstd_overlay, out_file,
+                                         hist_alff_zstd, 'measure_file')
+
+                        workflow.connect(falff_zstd_overlay, out_file_f,
+                                         hist_falff_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___alff_smooth_a': (montage_alff_zstd, 'outputspec.axial_png'),
+                                                'qc___alff_smooth_s': (montage_alff_zstd, 'outputspec.sagittal_png'),
+                                                'qc___falff_smooth_a': (montage_falff_zstd, 'outputspec.axial_png'),
+                                                'qc___falff_smooth_s': (montage_falff_zstd, 'outputspec.sagittal_png'),
+                                                'qc___alff_smooth_hist': (hist_alff_zstd, 'hist_path'),
+                                                'qc___falff_smooth_hist': (hist_falff_zstd, 'hist_path')})
 
                         if not 16 in qc_montage_id_a:
                             qc_montage_id_a[16] = 'alff_smooth_a'
@@ -4281,93 +4354,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                     else:
-                        alff_overlay, out_file = strat.get_node_from_resource_pool('alff_Z_to_standard')
-                        falff_overlay, out_file = strat.get_node_from_resource_pool('falff_Z_to_standard')
-                        montage_alff = create_montage('montage_alff_%d' % num_strat,
-                                      'cyan_to_yellow', 'alff_standard')
-                        montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        montage_falff = create_montage('montage_falff_%d' % num_strat,
-                                      'cyan_to_yellow', 'falff_standard')
-                        montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(alff_overlay, out_file,
-                                         hist_alff, 'measure_file')
+                        alff_zstd_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard_zstd')
+                        falff_zstd_overlay, out_file = strat.get_node_from_resource_pool('falff_to_standard_zstd')
+                        montage_alff_zstd = create_montage('montage_alff_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'alff_standard_zstd')
+                        montage_alff_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        montage_falff_zstd = create_montage('montage_falff_zstd_%d' % num_strat,
+                                      'cyan_to_yellow', 'falff_standard_zstd')
+                        montage_falff_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(alff_zstd_overlay, out_file,
+                                         hist_alff_zstd, 'measure_file')
 
-                        workflow.connect(falff_overlay, out_file_f,
-                                         hist_falff, 'measure_file')
-                        strat.update_resource_pool({'qc___alff_a': (montage_alff, 'outputspec.axial_png'),
-                                                'qc___alff_s': (montage_alff, 'outputspec.sagittal_png'),
-                                                'qc___falff_a': (montage_falff, 'outputspec.axial_png'),
-                                                'qc___falff_s': (montage_falff, 'outputspec.sagittal_png'),
-                                                'qc___alff_hist': (hist_alff, 'hist_path'),
-                                                'qc___falff_hist': (hist_falff, 'hist_path')})
-
-                        if not 16 in qc_montage_id_a:
-                            qc_montage_id_a[16] = 'alff_a'
-                            qc_montage_id_s[16] = 'alff_smooth_s'
-                            qc_hist_id[16] = 'alff_smooth_hist'
-
-                        if not 16 in qc_montage_id_a:
-                            qc_montage_id_a[17] = 'falff_a'
-                            qc_montage_id_s[17] = 'falff_s'
-                            qc_hist_id[17] = 'falff_hist'
-
-
-
-                if 0 in c.runZScoring:
-
-                    if c.fwhm != None:
-                        alff_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard_smooth')
-                        falff_overlay, out_file_f = strat.get_node_from_resource_pool('falff_to_standard_smooth')
-                        montage_alff = create_montage('montage_alff_%d' % num_strat,
-                                      'cyan_to_yellow', 'alff_standard_smooth')
-                        montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        montage_falff = create_montage('montage_falff_%d' % num_strat,
-                                      'cyan_to_yellow', 'falff_standard_smooth')
-                        montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(alff_overlay, out_file,
-                                         hist_alff, 'measure_file')
-
-                        workflow.connect(falff_overlay, out_file_f,
-                                         hist_falff, 'measure_file')
-                        strat.update_resource_pool({'qc___alff_smooth_a': (montage_alff, 'outputspec.axial_png'),
-                                                'qc___alff_smooth_s': (montage_alff, 'outputspec.sagittal_png'),
-                                                'qc___falff_smooth_a': (montage_falff, 'outputspec.axial_png'),
-                                                'qc___falff_smooth_s': (montage_falff, 'outputspec.sagittal_png'),
-                                                'qc___alff_smooth_hist': (hist_alff, 'hist_path'),
-                                                'qc___falff_smooth_hist': (hist_falff, 'hist_path')})
-
-                        if not 16 in qc_montage_id_a:
-                            qc_montage_id_a[16] = 'alff_smooth_a'
-                            qc_montage_id_s[16] = 'alff_smooth_s'
-                            qc_hist_id[16] = 'alff_smooth_hist'
-
-                        if not 17 in qc_montage_id_a:
-                            qc_montage_id_a[17] = 'falff_smooth_a'
-                            qc_montage_id_s[17] = 'falff_smooth_s'
-                            qc_hist_id[17] = 'falff_smooth_hist'
-
-
-
-                    else:
-                        alff_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard')
-                        falff_overlay, out_file = strat.get_node_from_resource_pool('falff_to_standard')
-                        montage_alff = create_montage('montage_alff_%d' % num_strat,
-                                      'cyan_to_yellow', 'alff_standard')
-                        montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        montage_falff = create_montage('montage_falff_%d' % num_strat,
-                                      'cyan_to_yellow', 'falff_standard')
-                        montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(alff_overlay, out_file,
-                                         hist_alff, 'measure_file')
-
-                        workflow.connect(falff_overlay, out_file_f,
-                                         hist_falff, 'measure_file')
-                        strat.update_resource_pool({'qc___alff_a': (montage_alff, 'outputspec.axial_png'),
-                                                'qc___alff_s': (montage_alff, 'outputspec.sagittal_png'),
-                                                'qc___falff_a': (montage_falff, 'outputspec.axial_png'),
-                                                'qc___falff_s': (montage_falff, 'outputspec.sagittal_png'),
-                                                'qc___alff_hist': (hist_alff, 'hist_path'),
-                                                'qc___falff_hist': (hist_falff, 'hist_path')})
+                        workflow.connect(falff_zstd_overlay, out_file_f,
+                                         hist_falff_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___alff_zstd_a': (montage_alff_zstd, 'outputspec.axial_png'),
+                                                'qc___alff_zstd_s': (montage_alff_zstd, 'outputspec.sagittal_png'),
+                                                'qc___falff_zstd_a': (montage_falff_zstd, 'outputspec.axial_png'),
+                                                'qc___falff_zstd_s': (montage_falff_zstd, 'outputspec.sagittal_png'),
+                                                'qc___alff_zstd_hist': (hist_alff_zstd, 'hist_path'),
+                                                'qc___falff_zstd_hist': (hist_falff_zstd, 'hist_path')})
 
                         if not 16 in qc_montage_id_a:
                             qc_montage_id_a[16] = 'alff_a'
@@ -4378,6 +4383,85 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                             qc_montage_id_a[17] = 'falff_a'
                             qc_montage_id_s[17] = 'falff_s'
                             qc_hist_id[17] = 'falff_hist'
+
+
+                    workflow.connect(alff_zstd_overlay, out_file,
+                                     drop_percent_zstd, 'measure_file')
+
+                    workflow.connect(drop_percent_zstd, 'modified_measure_file',
+                                     montage_alff_zstd, 'inputspec.overlay')
+
+                    workflow.connect(falff_zstd_overlay, out_file,
+                                     drop_percent_falff_zstd, 'measure_file')
+
+                    workflow.connect(drop_percent_falff_zstd, 'modified_measure_file',
+                                     montage_falff_zstd, 'inputspec.overlay')
+
+
+
+
+                if c.fwhm != None:
+                    alff_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard_smooth')
+                    falff_overlay, out_file_f = strat.get_node_from_resource_pool('falff_to_standard_smooth')
+                    montage_alff = create_montage('montage_alff_%d' % num_strat,
+                                  'cyan_to_yellow', 'alff_standard_smooth')
+                    montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    montage_falff = create_montage('montage_falff_%d' % num_strat,
+                                  'cyan_to_yellow', 'falff_standard_smooth')
+                    montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(alff_overlay, out_file,
+                                     hist_alff, 'measure_file')
+
+                    workflow.connect(falff_overlay, out_file_f,
+                                     hist_falff, 'measure_file')
+                    strat.update_resource_pool({'qc___alff_smooth_a': (montage_alff, 'outputspec.axial_png'),
+                                            'qc___alff_smooth_s': (montage_alff, 'outputspec.sagittal_png'),
+                                            'qc___falff_smooth_a': (montage_falff, 'outputspec.axial_png'),
+                                            'qc___falff_smooth_s': (montage_falff, 'outputspec.sagittal_png'),
+                                            'qc___alff_smooth_hist': (hist_alff, 'hist_path'),
+                                            'qc___falff_smooth_hist': (hist_falff, 'hist_path')})
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[16] = 'alff_smooth_a'
+                        qc_montage_id_s[16] = 'alff_smooth_s'
+                        qc_hist_id[16] = 'alff_smooth_hist'
+
+                    if not 17 in qc_montage_id_a:
+                        qc_montage_id_a[17] = 'falff_smooth_a'
+                        qc_montage_id_s[17] = 'falff_smooth_s'
+                        qc_hist_id[17] = 'falff_smooth_hist'
+
+
+                else:
+                    alff_overlay, out_file = strat.get_node_from_resource_pool('alff_to_standard')
+                    falff_overlay, out_file = strat.get_node_from_resource_pool('falff_to_standard')
+                    montage_alff = create_montage('montage_alff_%d' % num_strat,
+                                  'cyan_to_yellow', 'alff_standard')
+                    montage_alff.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    montage_falff = create_montage('montage_falff_%d' % num_strat,
+                                  'cyan_to_yellow', 'falff_standard')
+                    montage_falff.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(alff_overlay, out_file,
+                                     hist_alff, 'measure_file')
+
+                    workflow.connect(falff_overlay, out_file_f,
+                                     hist_falff, 'measure_file')
+                    strat.update_resource_pool({'qc___alff_a': (montage_alff, 'outputspec.axial_png'),
+                                            'qc___alff_s': (montage_alff, 'outputspec.sagittal_png'),
+                                            'qc___falff_a': (montage_falff, 'outputspec.axial_png'),
+                                            'qc___falff_s': (montage_falff, 'outputspec.sagittal_png'),
+                                            'qc___alff_hist': (hist_alff, 'hist_path'),
+                                            'qc___falff_hist': (hist_falff, 'hist_path')})
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[16] = 'alff_a'
+                        qc_montage_id_s[16] = 'alff_smooth_s'
+                        qc_hist_id[16] = 'alff_smooth_hist'
+
+                    if not 16 in qc_montage_id_a:
+                        qc_montage_id_a[17] = 'falff_a'
+                        qc_montage_id_s[17] = 'falff_s'
+                        qc_hist_id[17] = 'falff_hist'
 
 
 

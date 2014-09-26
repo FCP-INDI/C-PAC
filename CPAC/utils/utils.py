@@ -137,7 +137,7 @@ files_folders_wf = {
 }
 
 
-def get_zscore(wf_name = 'z_score'):
+def get_zscore(input_name, wf_name = 'z_score'):
     
     """
     Workflow to calculate z-scores
@@ -232,24 +232,164 @@ def get_zscore(wf_name = 'z_score'):
     
     z_score = pe.Node(interface=fsl.MultiImageMaths(),
                         name='z_score')
+
+    z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+
     wflow.connect(op_string, 'op_string',
                   z_score, 'op_string')
     wflow.connect(inputNode, 'input_file',
                   z_score, 'in_file')
     wflow.connect(inputNode, 'mask_file',
                   z_score, 'operand_files')
-
-
-    zstd_suffix = pe.Node(util.Rename(), name='zstd_suffix')
-
-    zstd_suffix.inputs.format_string = '%(in_file)_zstd.nii.gz'
-    
-    wflow.connect(z_score, 'out_file', zstd_suffix, 'in_file')
-    
-
-    wflow.connect(zstd_suffix, 'out_file', outputNode, 'z_score_img')
+  
+    wflow.connect(z_score, 'out_file', outputNode, 'z_score_img')
     
     return wflow
+
+
+
+def get_operand_string(mean, std_dev):
+    """
+    Method to get operand string for Fsl Maths
+    
+    Parameters
+    ----------
+    mean : string
+        path to img containing mean
+    std_dev : string
+        path to img containing standard deviation
+    
+    Returns
+    ------
+    op_string : string
+        operand string
+    """
+    
+    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
+    op_string = str1 + " -mas %s"
+    return op_string
+
+
+
+
+def get_fisher_zscore(input_name, wf_name = 'fisher_z_score'):
+
+    """
+    Runs the compute_fisher_z_score function as part of a one-node workflow.
+    """
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['correlation_file',
+                                                       'timeseries_one_d']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['fisher_z_score_img']),
+                          name='outputspec')
+
+
+    fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                               output_names=['out_file'],
+                 function=compute_fisher_z_score), name='fisher_z_score')
+
+    fisher_z_score.inputs.inputspec.input_name = input_name
+
+    wflow.connect(inputNode, 'correlation_file',
+                fisher_z_score, 'correlation_file')
+    wflow.connect(inputNode, 'timeseries_one_d',
+                fisher_z_score, 'timeseries_one_d')
+
+
+    wflow.connect(fisher_z_score, 'out_file',
+                outputNode, 'fisher_z_score_img')
+
+
+    return wflow
+
+
+
+def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
+
+    """
+    Computes the fisher z transform of the input correlation map
+    If the correlation map contains data for multiple ROIs then 
+    the function returns z score for each ROI as a seperate nifti 
+    file
+
+
+    Parameters
+    ----------
+
+    correlation_file: string
+        Input correlations file
+    
+
+    Returns
+    -------
+
+    out_file : list (nifti files)
+        list of z_scores for mask or ROI
+    """
+
+    import nibabel as nb
+    import numpy as np
+    import os
+
+    roi_numbers = []
+    if '#' in open(timeseries_one_d, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+
+    corr_img = nb.load(correlation_file)
+    corr_data = corr_img.get_data()
+
+    hdr = corr_img.get_header()
+
+    corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
+
+    dims = corr_data.shape
+
+    out_file = []
+
+    if len(dims) == 5 or len(roi_numbers) > 0:
+
+        if len(dims) == 5:
+            x, y, z, one, roi_number = dims
+
+            corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
+
+
+        for i in range(0, len(roi_numbers)):
+
+            sub_data = corr_data
+            if len(dims) == 5:
+                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+
+            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+
+            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
+
+            sub_img.to_filename(sub_z_score_file)
+
+            out_file.append(sub_z_score_file)
+
+    else:
+
+        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
+
+        z_score_file = os.path.join(os.getcwd(), input_name + '_fisher_zstd.nii.gz')
+
+        z_score_img.to_filename(z_score_file)
+
+        out_file.append(z_score_file)
+
+
+    return out_file
+
+
 
 
 

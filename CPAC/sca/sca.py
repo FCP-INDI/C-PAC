@@ -113,27 +113,33 @@ def create_sca(name_sca='sca'):
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
-    # # 3. Z-transform correlations
-    z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d'],
-                               output_names=['out_file'],
-                 function=compute_fisher_z_score), name='z_score')
-
 
     sca.connect(inputNode, 'timeseries_one_d',
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
     sca.connect(corr, 'out_file',
+                outputNode, 'correlation_file')
+
+
+    '''
+    # # 3. Z-transform correlations
+    z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d'],
+                               output_names=['out_file'],
+                 function=compute_fisher_z_score), name='z_score')
+
+
+    sca.connect(corr, 'out_file',
                 z_score, 'correlation_file')
     sca.connect(inputNode, 'timeseries_one_d',
                 z_score, 'timeseries_one_d')
-    sca.connect(corr, 'out_file',
-                outputNode, 'correlation_file')
     sca.connect(z_score, 'out_file',
                 outputNode, 'Z_score')
+    '''
 
 
     return sca
+
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
