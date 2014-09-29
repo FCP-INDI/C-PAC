@@ -12,7 +12,16 @@ from nipype import config
 from nipype import logging
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
-logger = logging.getLogger('workflow')
+
+logger1 = logging.getLogger('workflow')
+logger2 = logging.getLogger('rltlogger')
+
+log_handler1 = logging.handlers.RotatingFileHandler("/home/rtungaraza/CPAC_0.3.5.1/originalLogs", *args)
+log_handler2 = logging.handlers.RotatingFileHandler("/home/rtungaraza/CPAC_0.3.5.1/rltLogs", *args)
+
+logger.addHandler(log_handler1)
+logger2.addHandler(log_handler2)
+
 import pkg_resources as p
 import CPAC
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
@@ -194,7 +203,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
-    workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
+    workflow.config['execution'] = {'hash_method': 'timestamp', \
+		'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
     config.update_config({'logging': {'log_directory': log_dir, 'log_to_file': True}})
     logging.update_logging(config)
 
@@ -202,13 +212,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if c.reGenerateOutputs is True:
 
         import commands
-        cmd = "find %s -name \'*sink*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        cmd = "find %s -name \'*sink*\' -exec rm -rf {} \\;" \
+			% os.path.join(c.workingDirectory, wfname)
         logger.info(cmd)
         commands.getoutput(cmd)
-        cmd = "find %s -name \'*link*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        cmd = "find %s -name \'*link*\' -exec rm -rf {} \\;" \
+			% os.path.join(c.workingDirectory, wfname)
         logger.info(cmd)
         commands.getoutput(cmd)
-        cmd = "find %s -name \'*log*\' -exec rm -rf {} \\;" % os.path.join(c.workingDirectory, wfname)
+        cmd = "find %s -name \'*log*\' -exec rm -rf {} \\;" \
+			% os.path.join(c.workingDirectory, wfname)
         logger.info(cmd)
         commands.getoutput(cmd)
 
@@ -4653,7 +4666,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
     
         
-        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        # workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
         '''
@@ -4865,4 +4878,5 @@ def run(config, subject_list_file, indx, strategies, \
 
     
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+    
 

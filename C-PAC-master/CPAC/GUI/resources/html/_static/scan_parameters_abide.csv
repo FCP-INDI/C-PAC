@@ -1,0 +1,22 @@
+Site,TR (seconds),Reference,Acquisition
+Caltech,2,17,alt+z2
+Pitt_2a,2,14,alt+z2
+Pitt_2b,2,14,alt+z2
+KKI,2.5,24,seq+z
+Leuven_1,1.67872,16,seq+z
+Leuven_2,1.67872,16,seq+z
+MaxMun,3,14,alt+z2
+NYU,2,17,alt+z
+OHSU,2.5,18,alt+z2
+Olin,1.5,15,alt+z
+Pitt_1,1.5,15,alt+z
+SBL,2.21172,19,seq-z
+SDSU,2,21,alt+z
+Stanford,2,15,alt+z
+Trinity,2.01172,19,seq+z
+UCLA_1,3,17,alt+z2
+UCLA_2,3,17,alt+z2
+UM_1,2,20,seq+z
+UM_2,2,20,seq+z
+USM,2,20,alt+z2
+Yale,2,17,alt+z2

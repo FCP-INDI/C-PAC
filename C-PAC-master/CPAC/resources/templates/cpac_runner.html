@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Log File for {{ subject_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="{{ resources }}/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+			h1 {
+				border-bottom: thin solid;
+				margin-bottom: 0.75em;
+			}
+
+      @media (max-width: 980px) {
+        /* Enable use of floated navbar text */
+        .navbar-text.pull-right {
+          float: none;
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+      }
+    </style>
+    <link href="{{ resources }}/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../assets/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+                    <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">
+                                   <link rel="shortcut icon" href="../assets/ico/favicon.png">
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="index.html">{{ subject_id }}</a>
+          <div class="nav-collapse collapse">
+			<!--
+			<p class="navbar-text pull-right">
+               <a href="#" class="navbar-link">Subject List</a>
+            </p>
+			-->
+            <ul class="nav">
+							{% for scan in scans %}
+								<li{% if scan is sameas cur_scan %} class="active"{% endif %}>
+									<a href="{{ scan }}.html">{{ scan }}</a>
+								</li>
+							{% endfor %}
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div><!--/.container-fluid -->
+      </div><!--/.navbar-inner-->
+		</div><!--/.navbar -->
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span3">
+					<div data-spy="affix" data-offset-top="200">
+	          <div id="sidenav" class="well sidebar-nav">
+	            <ul class="nav nav-list">              
+								{% for pipeline in pipelines %}
+									<li><a href="#{{ pipeline }}">Pipeline {{ pipeline }}</a></li>
+								{% endfor %}
+	            </ul>
+	          </div><!--/.well -->
+					</div>
+        </div><!--/span-->
+        <div class="span9">
+					<div id="global_status" class="alert alert-info">
+					  <button type="button" class="close" data-dismiss="alert">&times;</button>
+					  <strong>Running!</strong> CPAC started running at {{ timestamp }}.
+					</div>
+					{% for pipeline in pipelines %}
+						<div id="{{ pipeline }}" class="row-fluid pipeline" data-offset-top="200">
+							<a name="{{ pipeline }}"></a>
+							<h1>
+								Pipeline {{ pipeline }} 
+								<a href="#" class="pull-right btn btn-info disabled">RUNNING</a>
+							</h1>
+					
+						  <table class="table table-hover">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Name</th>
+										<th>Strategy</th>
+										<th>Timestamp</th>
+										<th>Status</th>
+									</tr>
+								<thead>
+							  <tbody>
+									<!--
+									<tr id="test" class="muted">
+										<td>1</td>
+										<td>testing</td>
+										<td>strat_test</td>
+										<td></td>
+										<td><span id="status" class="label">WAITING</span></td>
+									</tr>
+									-->
+							  </tbody>
+						  </table>							
+						</div><!--/pipeline-->
+						{% if loop.index is not sameas loop.length %}
+							<hr>
+						{% endif %}
+					{% endfor %}
+        </div><!--/span-->
+      </div><!--/row-->
+
+      <hr>
+
+      <footer>
+				<img src="{{ gui_resources }}/images/cpac_new_logo.png">
+        <p>&copy; CPAC 2013</p>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+		<script type="text/javascript" charset="utf-8">
+			var wf_info = [];
+			var pipe_names = [];
+			var pipe_inds  = [];
+			{% for pindex in pipeline_indices %}
+				pipe_inds.push({{ pindex }})
+				pipe_names[{{ pindex }}] = "{{ pipelines[pindex] }}";
+				wf_info[{{ pindex }}] = [];
+			{% endfor %}
+			
+			var wf_list = {{ wf_list }};			
+			var wf_keys = {{ wf_keys }};
+				
+			wf_pipes = {};
+			for (var i = 0; i < wf_keys.length; i++) {
+				var k = wf_keys[i];
+				wf_pipes[k] = [];
+			}
+			for (var pi = 0; pi < wf_list.length; pi++) {
+			    for (var wi = 0; wi < wf_list[pi].length; wi++) {
+			        var wf_name = wf_list[pi][wi];
+			        wf_pipes[wf_name].push(pi);
+			    }
+			}
+		</script>
+		
+		<script type="text/javascript" src="{{ logfile }}"></script>
+		
+
+	    <!-- Le javascript
+	    ================================================== -->
+	    <!-- Placed at the end of the document so the pages load faster -->
+		<!-- Replace with min files eventually -->
+	  <script src="{{ resources }}/bootstrap/js/jquery.js"></script>
+	  <script src="{{ resources }}/bootstrap/js/bootstrap.js"></script>
+	  <script src="{{ resources }}/bootstrap/js/kul-substitute.js"></script>
+		
+		<script type="text/javascript" charset="utf-8">
+			// Set the workflow pipeline rows to start
+			// this will shift as things are added
+			for (var pindex in pipe_inds) {
+				var pipeline = pipe_names[pindex];
+				$('#'+pipeline).data('row-start', 0);
+				$('#'+pipeline).data('row-id', 0);
+				$('#'+pipeline).data('done', 0);
+				$('#'+pipeline).data('errors', 0);
+			}
+			
+			// Fix the sidebar on the left
+			$('#sidenav').affix();
+		
+			// Go through the different javascript variables
+			// goal is to update the different status elements
+			// also would like to know the different pipelines and strategies to do a search
+		
+			// These are the possible values to expect from the .js files output from CPAC
+			var status_options	= ["WAITING", "RUNNING", "ERROR", "DONE"];
+		
+			// Mapping of status to the class of the table row
+			var row_classes			= {"WAITING": 'muted', "RUNNING": 'info', 
+												'ERROR': 'error', 'DONE': ''};
+		
+			// Mapping of status to the class of the span class label
+			var status_classes	= {"WAITING": '', "RUNNING": 'label-info', 
+												 	   'ERROR': 'label-important', 'DONE': 'label-success'};
+		</script>
+	
+	<script type="text/javascript">
+		// Reloads the page every minute
+				
+	  window.onload = setupRefresh;
+
+	  function setupRefresh() {
+			setInterval(function() {
+				location.reload(true);
+				//reload_logs();
+			}, 5000);
+	  }
+		
+	  //function refreshPage() {
+	  //  window.location = location.href;
+	  //}
+		
+    function reload_logs(src) {
+        $('script[src="' + src + '"]').remove();
+        $('<script>').attr('src', src).appendTo('head');
+				parse_logs('{{ logfile }}');
+    }
+		
+		function update_workflow_html(info) {
+			// Get element with id
+			var str  = $.substitute("#${ pipeline } table #${ wf_id }", info);
+			var node = $(str);
+			
+			// Get number of rows in table and put in row_id
+			info.row_id = $('#'+info.pipeline).data('row-id') + 1;
+			
+			// Add row only if the id is empty
+			if (node.length == 0) {
+			  var new_row = $.substitute('<tr id="${ wf_id }"> \
+						<td>${ row_id }</td> \
+						<td>${ wf_name }</td> \
+						<td>${ disp_strategy }</td> \
+						<td>${ timestamp }</td> \
+						<td><span id="status" class="label">WAITING</span></td> \
+					</tr>', info);
+			  str  = $.substitute("#${ pipeline } table tbody:last", info);
+				$(str).append(new_row);
+				
+				str  = $.substitute("#${ pipeline } table #${ wf_id }", info);
+				node = $(str);
+			}
+			
+			// Update table row color and row status
+			str = $.substitute("#${ pipeline } table #${ wf_id } #status", info);
+			var status_node = $(str);
+			if (status_node.text() != info.wf_status) {
+				node.removeClass();
+				node.addClass(row_classes[info.wf_status]);
+				
+				status_node.text(info.wf_status);
+				status_node.removeClass();
+				status_node.addClass("label");
+				status_node.addClass(status_classes[info.wf_status]);
+			}
+			
+			$('#'+info.pipeline).data('row-id', info.row_id);
+		}
+		
+		function parse_logs() {
+			var tot_done	 = 0;
+			var tot_errors = 0;
+			
+			console.log('call parse_logs');
+			
+			for (var pi=0; pi<pipe_inds.length; pi++) {
+				var pindex	 = pipe_inds[pi]
+				var pipeline = pipe_names[pindex];
+				var row_start = $('#'+pipeline).data('row-start');
+				
+				console.log('\tpipeline: ' + pipeline);
+				
+				for (var wi=row_start; wi<wf_info[pindex].length; wi++) {
+					// Setup workflow info object
+					// each info should have strategy, wf_name, wf_status as keys
+					var info = jQuery.extend(true, {}, wf_info[pindex][wi]);
+					info.disp_strategy = info.strategy.replace(/_/g, " ");
+					info.wf_status = info.wf_status.toUpperCase();
+					
+					info.wi = wi;
+					console.log($.substitute('\t\twi: ${wi}, workflow: ${wf_name}', info));
+					
+					// Is this a special all done entry?
+					if (info.wf_status == 'DONE' & info.wf_name == 'DONE') {
+						$('#'+pipeline).data('done', 1);
+						continue
+					}
+					
+					// Update error count
+					if (info.wf_status == 'ERROR') {
+						var nerrors = $('#'+pipeline).data('errors');
+						$('#'+pipeline).data('errors', nerrors+1);
+					}
+					
+					// Is the workflow even present in our master list?
+					if (wf_pipes[info.wf_name] == undefined) {
+						console.log($.substitute('Could not find workflow ${wf_name} in wf_pipes', info));
+						continue;
+					}
+					
+					// Is this workflow duplicated in other pipelines?
+					// duplicated nodes won't be run in other pipelines
+					// so copy and add them to the other pipelines here
+					for (var pi2=0; pi2<wf_pipes[info.wf_name].length; pi2++) {
+						var pindex2 = wf_pipes[info.wf_name][pi2]
+						var info2 = jQuery.extend(true, {}, info);
+						info2.pipeline = pipe_names[pindex2];
+						update_workflow_html(info2);
+					}
+					
+					// Update row offset
+					$('#'+pipeline).data('row-start', wi+1);					
+				}
+				
+				var isdone  = $('#'+pipeline).data('done');
+				if (isdone == 1) {
+					tot_done += 1;
+					btn_node = $('#'+pipeline+' h1 a.btn');
+					btn_node.text('DONE');
+					btn_node.removeClass('btn-info');
+					btn_node.addClass('btn-success');
+				}
+				
+				// Note if pipeline is both done and has errors, this will only show errors
+				var nerrors = $('#'+pipeline).data('errors');
+				if (nerrors > 0) {
+					tot_errors += nerrors;
+					btn_node = $('#'+pipeline+' h1 a.btn');
+					btn_node.text('ERROR');
+					btn_node.removeClass('btn-info');
+					btn_node.removeClass('btn-success');
+					btn_node.addClass('btn-danger');
+				}
+			}
+			
+			// Update alert message
+			alert_node	= $('#global_status');
+			strong_node = $('#global_status strong');
+			alert_node.removeClass('alert-info');
+			if (tot_done == wf_info.length && tot_errors > 0) {
+				alert_node.addClass('alert-error');
+				var msg = $.substitute('DONE with ${ errors } ERROR(s).', {errors: tot_errors});
+				strong_node.text(msg);
+			} else if (tot_errors > 0) {
+				alert_node.addClass('alert-error');
+				var msg = $.substitute('${ errors } ERROR(s).', {errors: tot_errors});
+				strong_node.text(msg);
+			} else if (tot_done == wf_info.length) {
+				alert_node.addClass('alert-success');
+				strong_node.text('DONE!');
+			} else {
+				alert_node.addClass('alert-info');
+			}
+		}
+	</script>
+	
+	<script type="text/javascript">
+		reload_logs('{{ logfile }}');
+	</script>
+
+  </body>
+</html>

@@ -1,0 +1,81 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <title>Spatial Smoothing &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Data Preprocessing" href="preproc.html" />
+    <link rel="next" title="Temporal Filtering" href="temporal.html" />
+    <link rel="prev" title="Slice Timing Correction" href="slice.html" /> 
+  </head>
+  <body>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="spatial-smoothing">
+<h1>Spatial Smoothing<a class="headerlink" href="#spatial-smoothing" title="Permalink to this headline"></a></h1>
+<div class="section" id="why-smooth">
+<h2>Why Smooth?<a class="headerlink" href="#why-smooth" title="Permalink to this headline"></a></h2>
+<p>The main goal of smoothing is to increase the signal-to-noise ratio of an image. This is done by removing high-frequency information (assumed to consist mostly of noise) while preserving signals on larger spatial scales (those which stretch across multiple voxels and are of most likely to reflect neuronal activity). Smoothing can also help reduce the effect of anatomical variability when comparing activations between subjects (Poldrack et al., 2011). Additionally, smoothing with a Gaussian kernel (described below) will result in the distribution of signals found in an image more closely match the assumptions of statistical tests often used on fMRI data.</p>
+</div>
+<div class="section" id="how-smoothing-works">
+<h2>How Smoothing Works<a class="headerlink" href="#how-smoothing-works" title="Permalink to this headline"></a></h2>
+<p>Smoothing is accomplished by applying a Gaussian filter (also known as a kernel) to the original image. This results in the signal of each voxel being replaced by the weighted average of its neighbors (Ashby, 2011). It is the shape of the kernel that defines the weights applied during smoothing. As a Gaussian kernel is essentially a normal distribution, weight is always strongest at the voxel being smoothed and decreases with distance at a rate that depends on the width of the distribution. Wider distributions result in greater smoothing, as more distant voxels recieve higher weights than they would with a thinner kernel. Unlike in statistics, where the width of a distribution is described by the standard devition, the shape of a smoothing kernel is usually described by the width of the distribution at half of its maximum value. This is known as the Full Width Half Maximum (FWHM). The figure below shows the smoothing effect of different FWHM values.</p>
+<div class="figure">
+<img alt="_images/smoothing.png" src="_images/smoothing.png" />
+</div>
+</div>
+<div class="section" id="smoothing-guidelines">
+<h2>Smoothing Guidelines<a class="headerlink" href="#smoothing-guidelines" title="Permalink to this headline"></a></h2>
+<p>The amount of smoothing applied should be the minimum necessary to achive the desired result. As a general rule, a FWHM of twice the voxel dimension is a good starting point (Poldrack et al., 2011). That being said, different situations will require adjustment of this value. In particular, the FWHM should never be larger than the smallest activation pattern you are interested in detecting; any larger value may result in signal loss, either by smoothing away very small signals, or smoothing two independent signals into one (Ashby, 2011).</p>
+<p>Care must be taken when utilizing methods such as Regional Homogeneity (ReHo) and Multi-voxel Pattern Analysis (MVPA) which are sensitive to the activation of individual voxels, as smoothing prior to analysis may bias results by introducing artificial spatial correlation. In these cases, if smoothing is desired, such as in order to correct for multiple comparisons using Gaussian Random Field Theory, it must be applied after the fact.</p>
+<p>It should be noted that C-PAC applies smoothing after calculating individual-level analyses (except for VMHC, for whichis is applied prior to analysis). This ensures data is not lost prior to computation of these measures.</p>
+</div>
+
+<div class="section" id="external-resources">
+<h2>External Resources<a class="headerlink" href="#external-resources" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><a class="reference external" href="http://mindhive.mit.edu/node/112">Smoothing FAQ - MIT Mindhive</a></li>
+<li><a class="reference external" href="http://imaging.mrc-cbu.cam.ac.uk/imaging/ProcessingSmoothing">Smoothing - CBU Imaging Wiki</a></li>
+</ul>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<p>Poldrack, R. A., Mumford, J., &amp; Nichols, T. (2011). Preprocessing fMRI data. In Handbook of Functional MRI Data Analysis. Cambridge: Cambridge University Press.</p>
+<p>Ashby, F.G., (2011). Preprocessing. Statistical Analysis of MRI Data. Cambridge, MA: MIT Press.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+
+
+  </body>
+</html>
