@@ -39,10 +39,6 @@ files_folders_wf = {
     'functional_nuisance_residuals':'func',
     'functional_median_angle_corrected':'func',
     'power_spectrum_distribution':'alff',
-    'alff_img':'alff',
-    'falff_img':'alff',
-    'alff_Z_img':'alff',
-    'falff_Z_img':'alff',
     'functional_freq_filtered':'func',
     'scrubbing_movement_parameters':'parameters',
     'scrubbing_frames_included':'parameters',
@@ -64,55 +60,49 @@ files_folders_wf = {
     'mni_to_functional_linear_xfm':'registration',
     'mni_normalized_anatomical':'anat',
     'vmhc_raw_score':'vmhc',
-    'vmhc_z_score':'vmhc',
-    'vmhc_z_score_stat_map':'vmhc',
-    'raw_reho_map':'reho',
-    'reho_Z_img':'reho',
+    'vmhc_fisher_z_std':'vmhc',
+    'vmhc_fisher_z_std_z_stat_map':'vmhc',
+    'alff_img':'alff',
+    'falff_img':'alff',
     'alff_smooth':'alff',
     'falff_smooth':'alff',
     'alff_to_standard':'alff',
     'falff_to_standard':'alff',
     'alff_to_standard_smooth':'alff',
     'falff_to_standard_smooth':'alff',
-    'alff_Z_to_standard':'alff',
-    'falff_Z_to_standard':'alff',
-    'alff_Z_smooth':'alff',
-    'falff_Z_smooth':'alff',
-    'alff_Z_to_standard_smooth':'alff',
-    'falff_Z_to_standard_smooth':'alff',
+    'alff_to_standard_zstd':'alff',
+    'falff_to_standard_zstd':'alff',
+    'alff_to_standard_smooth_zstd':'alff',
+    'falff_to_standard_smooth_zstd':'alff',
+    'raw_reho_map':'reho',
     'reho_smooth':'reho',
     'reho_to_standard':'reho',
     'reho_to_standard_smooth':'reho',
-    'reho_Z_to_standard':'reho',
-    'reho_Z_smooth':'reho',
-    'reho_Z_to_standard_smooth':'reho',
+    'reho_to_standard_zstd':'reho',
+    'reho_to_standard_smooth_zstd':'reho',
     'voxel_timeseries':'timeseries',
     'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_roi_correlations':'sca_roi',
-    'sca_roi_Z':'sca_roi',
     'sca_seed_correlations':'sca_mask',
     'sca_seed_smooth':'sca_mask',
-    'sca_seed_Z':'sca_mask',
-    'sca_seed_Z_to_standard':'sca_mask',
     'sca_seed_to_standard':'sca_mask',
     'sca_seed_to_standard_smooth':'sca_mask',
-    'sca_roi_Z_to_standard':'sca_roi',
-    'sca_seed_Z_smooth':'sca_mask',
-    'sca_seed_Z_to_standard_smooth':'sca_mask',
+    'sca_seed_to_standard_fisher_zstd':'sca_mask',
+    'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
+    'sca_roi_correlations':'sca_roi',
     'sca_roi_smooth':'sca_roi',
-    'sca_roi_Z_smooth':'sca_roi',
-    'sca_roi_Z_to_standard_smooth':'sca_roi',
     'sca_roi_to_standard':'sca_roi',
     'sca_roi_to_standard_smooth':'sca_roi',
+    'sca_roi_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_to_standard_smooth_fisher_zstd':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
-    'centrality_outputs_smoothed':'centrality',
-    'centrality_outputs_zscore':'centrality',
     'centrality_outputs':'centrality',
+    'centrality_outputs_smoothed':'centrality',
+    'centrality_outputs_zstd':'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -272,7 +262,7 @@ def get_operand_string(mean, std_dev):
 
 
 
-def get_fisher_zscore(input_name, wf_name = 'fisher_z_score'):
+def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
 
     """
     Runs the compute_fisher_z_score function as part of a one-node workflow.
@@ -292,11 +282,21 @@ def get_fisher_zscore(input_name, wf_name = 'fisher_z_score'):
                           name='outputspec')
 
 
-    fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
-                               output_names=['out_file'],
-                 function=compute_fisher_z_score), name='fisher_z_score')
+    if map_node == 0:
 
-    fisher_z_score.inputs.inputspec.input_name = input_name
+        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score')
+
+    else:
+
+        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score',
+                     iterfield=['timeseries_one_d'])
+
+
+    fisher_z_score.inputs.input_name = input_name
 
     wflow.connect(inputNode, 'correlation_file',
                 fisher_z_score, 'correlation_file')

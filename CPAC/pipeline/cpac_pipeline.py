@@ -306,7 +306,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
             # create a new node, Remember to change its name!
-            anat_preproc = create_anat_preproc(c.run_skullstrip).clone('anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(c.run_skullstrip[0]).clone('anat_preproc_%d' % num_strat)
 
             try:
                 # connect the new node to the previous leaf
@@ -1811,8 +1811,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'vmhc_raw_score':(vmhc, 'outputspec.VMHC_FWHM_img')})
-            strat.update_resource_pool({'vmhc_z_score':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
-            strat.update_resource_pool({'vmhc_z_score_stat_map':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
+            strat.update_resource_pool({'vmhc_fisher_z_std':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
+            strat.update_resource_pool({'vmhc_fisher_z_std_z_stat_map':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
             strat.append_name(vmhc.name)
             
             create_log_node(vmhc, 'outputspec.VMHC_FWHM_img', num_strat)
@@ -2197,7 +2197,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_roi_correlations':(sca_roi, 'outputspec.correlation_file')})
-            strat.update_resource_pool({'sca_roi_Z':(sca_roi, 'outputspec.Z_score')})
+            #strat.update_resource_pool({'sca_roi_Z':(sca_roi, 'outputspec.Z_score')})
             
             create_log_node(sca_roi, 'outputspec.correlation_file', num_strat)
             
@@ -2236,7 +2236,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_seed_correlations':(sca_seed, 'outputspec.correlation_file')})
-            strat.update_resource_pool({'sca_seed_Z':(sca_seed, 'outputspec.Z_score')})
+            #strat.update_resource_pool({'sca_seed_Z':(sca_seed, 'outputspec.Z_score')})
             strat.append_name(sca_seed.name)
             num_strat += 1
     strat_list += new_strat_list
@@ -2579,7 +2579,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     strat.append_name(smoothing.name)
                     strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
-                                                'centrality_outputs_zscore' : (z_score, 'outputspec.z_score_img')})
+                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img')})
                     
                     strat.append_name(smoothing.name)
                     create_log_node(smoothing, 'out_file', num_strat)
@@ -2950,7 +2950,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     def fisher_z_score_standardize(output_name, output_resource, timeseries_oned_file, strat, num_strat, map_node=0):
 
-        fisher_z_score_std = get_fisher_zscore(output_resource, 'fisher_z_score_std_%s_%d' % (output_name, num_strat))
+        fisher_z_score_std = get_fisher_zscore(output_resource, map_node, 'fisher_z_score_std_%s_%d' % (output_name, num_strat))
 
         try:
 
@@ -3054,9 +3054,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat)
             
-            if 1 in c.runZScoring:
-                output_to_standard('sca_roi_Z', 'sca_roi_Z', strat, num_strat, 1)
-
             num_strat += 1
 
     strat_list += new_strat_list
@@ -3072,13 +3069,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_to_standard('sca_seed', 'sca_seed_correlations', \
-                        strat, num_strat)
+            output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat)
             
-            if 1 in c.runZScoring:
-                output_to_standard('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
-
             num_strat += 1
     
     strat_list += new_strat_list
@@ -3233,6 +3225,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     strat_list += new_strat_list
 
 
+
     '''
     z-standardize alff/falff MNI-standardized outputs
     '''
@@ -3244,8 +3237,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
 
-            z_score_standardize('alff', 'alff_to_standard_smooth', strat, num_strat)
-            z_score_standardize('falff', 'falff_to_standard_smooth', strat, num_strat)
+            if c.fwhm != None:
+                z_score_standardize('alff', 'alff_to_standard_smooth', strat, num_strat)
+                z_score_standardize('falff', 'falff_to_standard_smooth', strat, num_strat)
+            else:
+                z_score_standardize('alff', 'alff_to_standard', strat, num_strat)
+                z_score_standardize('falff', 'falff_to_standard', strat, num_strat)
 
             num_strat += 1
 
@@ -3255,7 +3252,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
-    Smoothing ReHo Z scores and or possibly Z scores in MNI 
+    Smoothing ReHo outputs and or possibly ReHo outputs in MNI 
     '''
     
     new_strat_list = []
@@ -3283,7 +3280,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
 
-            z_score_standardize('reho', 'reho_to_standard_smooth', strat, num_strat)
+            if c.fwhm != None:
+                z_score_standardize('reho', 'reho_to_standard_smooth', strat, num_strat)
+            else:
+                z_score_standardize('reho', 'reho_to_standard', strat, num_strat)
 
             num_strat += 1
 
@@ -3318,9 +3318,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if c.fwhm != None:
-                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat)
+                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat, 1)
             else:
-                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard', 'roi_timeseries_for_SCA', strat, num_strat)
+                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard', 'roi_timeseries_for_SCA', strat, num_strat, 1)
 
             num_strat += 1
 
@@ -3337,12 +3337,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runSCA) and (1 in c.runVoxelTimeseries) and c.fwhm != None:
         for strat in strat_list:
 
-            if 0 in c.runZScoring:
-                output_smooth('sca_seed', 'sca_seed_correlations', strat, \
-                        num_strat)
-            
-            if 1 in c.runZScoring:
-                output_smooth('sca_seed_Z', 'sca_seed_Z', strat, num_strat, 1)
+            output_smooth('sca_seed', 'sca_seed_correlations', strat, num_strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
+
+    '''
+    fisher-z-standardize SCA seed MNI-standardized outputs
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runZScoring and (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+
+        for strat in strat_list:
+
+            if c.fwhm != None:
+                fisher_z_score_standardize('sca_seed', 'sca_seed_to_standard_smooth', 'voxel_timeseries_for_SCA', strat, num_strat, 1)
+            else:
+                fisher_z_score_standardize('sca_seed', 'sca_seed_to_standard', 'voxel_timeseries_for_SCA', strat, num_strat, 1)
 
             num_strat += 1
 
@@ -3719,37 +3736,47 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             # make QC montages for SCA ROI Smoothed Derivative
             if (1 in c.runSCA) and (1 in c.runROITimeseries):
 
-                hist_ = hist.clone('hist_sca_roi_%d' % num_strat)
-                hist_.inputs.measure = 'sca_roi'
+                hist_sca_roi = hist.clone('hist_sca_roi_%d' % num_strat)
+                hist_sca_roi.inputs.measure = 'sca_roi'
 
-                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                drop_percent_sca_roi = pe.MapNode(util.Function(input_names=['measure_file',
                                                      'percent_'],
                                        output_names=['modified_measure_file'],
                                        function=drop_percent_),
                                        name='dp_sca_roi_%d' % num_strat, iterfield=['measure_file'])
-                drop_percent.inputs.percent_ = 99.999
+                drop_percent_sca_roi.inputs.percent_ = 99.999
 
                 if 1 in c.runZScoring:
 
+                    hist_sca_roi_zstd = hist.clone('hist_sca_roi_zstd_%d' % num_strat)
+                    hist_sca_roi_zstd.inputs.measure = 'sca_roi'
+
+                    drop_percent_sca_roi_zstd = pe.MapNode(util.Function(input_names=['measure_file',
+                                                         'percent_'],
+                                           output_names=['modified_measure_file'],
+                                           function=drop_percent_),
+                                           name='dp_sca_roi_zstd_%d' % num_strat, iterfield=['measure_file'])
+                    drop_percent_sca_roi_zstd.inputs.percent_ = 99.999
+
                     if c.fwhm != None:
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_Z_to_standard_smooth')
-                        montage_sca_roi = create_montage('montage_sca_roi_standard_smooth_%d' % num_strat,
+                        sca_roi_smooth_zstd_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard_smooth_fisher_zstd')
+                        montage_sca_roi_smooth_zstd = create_montage('montage_sca_roi_standard_smooth_zstd_%d' % num_strat,
                                         'cyan_to_yellow', 'sca_roi_smooth')
 
-                        montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        montage_sca_roi_smooth_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
 
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                        workflow.connect(sca_roi_smooth_zstd_overlay, out_file,
+                                         drop_percent_sca_roi_zstd, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_roi, 'inputspec.overlay')
+                        workflow.connect(drop_percent_sca_roi_zstd, 'modified_measure_file',
+                                         montage_sca_roi_smooth_zstd, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___sca_roi_smooth_a': (montage_sca_roi, 'outputspec.axial_png'),
-                                                'qc___sca_roi_smooth_s': (montage_sca_roi, 'outputspec.sagittal_png'),
-                                                'qc___sca_roi_smooth_hist': (hist_, 'hist_path')})
+                        workflow.connect(sca_roi_smooth_zstd_overlay, out_file,
+                                         hist_sca_roi_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___sca_roi_smooth_a': (montage_sca_roi_smooth_zstd, 'outputspec.axial_png'),
+                                                'qc___sca_roi_smooth_s': (montage_sca_roi_smooth_zstd, 'outputspec.sagittal_png'),
+                                                'qc___sca_roi_smooth_hist': (hist_sca_roi_zstd, 'hist_path')})
 
                         if not 9 in qc_montage_id_a:
                             qc_montage_id_a[9] = 'sca_roi_smooth_a'
@@ -3759,23 +3786,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     else:
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_Z_to_standard')
-                        montage_sca_roi = create_montage('montage_sca_roi_standard_%d' % num_strat,
+                        sca_roi_zstd_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard_fisher_zstd')
+                        montage_sca_roi_zstd = create_montage('montage_sca_roi_zstd_standard_%d' % num_strat,
                                         'cyan_to_yellow', 'sca_roi')
 
-                        montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                        montage_sca_roi_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(sca_roi_zstd_overlay, out_file,
+                                         drop_percent_sca_roi_zstd, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_roi, 'inputspec.overlay')
+                        workflow.connect(drop_percent_sca_roi_zstd, 'modified_measure_file',
+                                         montage_sca_roi_zstd, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
+                        workflow.connect(sca_roi_zstd_overlay, out_file,
+                                         hist_sca_roi_zstd, 'measure_file')
 
-                        strat.update_resource_pool({'qc___sca_roi_a': (montage_sca_roi, 'outputspec.axial_png'),
-                                                'qc___sca_roi_s': (montage_sca_roi, 'outputspec.sagittal_png'),
-                                                'qc___sca_roi_hist': (hist_, 'hist_path')})
+                        strat.update_resource_pool({'qc___sca_roi_a': (montage_sca_roi_zstd, 'outputspec.axial_png'),
+                                                'qc___sca_roi_s': (montage_sca_roi_zstd, 'outputspec.sagittal_png'),
+                                                'qc___sca_roi_hist': (hist_sca_roi_zstd, 'hist_path')})
 
                         if not 9 in qc_montage_id_a:
                             qc_montage_id_a[9] = 'sca_roi_a'
@@ -3784,58 +3811,55 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-                if 0 in c.runZScoring:
+                if c.fwhm != None:
 
-                    if c.fwhm != None:
+                    sca_roi_smooth_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard_smooth')
+                    montage_sca_roi_smooth = create_montage('montage_sca_roi_standard_smooth_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_roi_smooth')
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard_smooth')
-                        montage_sca_roi = create_montage('montage_sca_roi_standard_smooth_%d' % num_strat,
-                                        'cyan_to_yellow', 'sca_roi_smooth')
+                    montage_sca_roi_smooth.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(sca_roi_smooth_overlay, out_file,
+                                     drop_percent_sca_roi, 'measure_file')
 
-                        montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(drop_percent_sca_roi, 'modified_measure_file',
+                                     montage_sca_roi_smooth, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                    workflow.connect(sca_roi_smooth_overlay, out_file,
+                                     hist_sca_roi, 'measure_file')
+                    strat.update_resource_pool({'qc___sca_roi_smooth_a': (montage_sca_roi_smooth, 'outputspec.axial_png'),
+                                            'qc___sca_roi_smooth_s': (montage_sca_roi_smooth, 'outputspec.sagittal_png'),
+                                            'qc___sca_roi_smooth_hist': (hist_sca_roi, 'hist_path')})
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_roi, 'inputspec.overlay')
-
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___sca_roi_smooth_a': (montage_sca_roi, 'outputspec.axial_png'),
-                                                'qc___sca_roi_smooth_s': (montage_sca_roi, 'outputspec.sagittal_png'),
-                                                'qc___sca_roi_smooth_hist': (hist_, 'hist_path')})
-
-                        if not 9 in qc_montage_id_a:
-                            qc_montage_id_a[9] = 'sca_roi_smooth_a'
-                            qc_montage_id_s[9] = 'sca_roi_smooth_s'
-                            qc_hist_id[9] = 'sca_roi_smooth_hist'
+                    if not 9 in qc_montage_id_a:
+                        qc_montage_id_a[9] = 'sca_roi_smooth_a'
+                        qc_montage_id_s[9] = 'sca_roi_smooth_s'
+                        qc_hist_id[9] = 'sca_roi_smooth_hist'
 
 
-                    else:
+                else:
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard')
-                        montage_sca_roi = create_montage('montage_sca_roi_standard_%d' % num_strat,
-                                        'cyan_to_yellow', 'sca_roi')
+                    sca_roi_overlay, out_file = strat.get_node_from_resource_pool('sca_roi_to_standard')
+                    montage_sca_roi = create_montage('montage_sca_roi_standard_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_roi')
 
-                        montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                    montage_sca_roi.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(sca_roi_overlay, out_file,
+                                     drop_percent_sca_roi, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_roi, 'inputspec.overlay')
+                    workflow.connect(drop_percent_sca_roi, 'modified_measure_file',
+                                     montage_sca_roi, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
+                    workflow.connect(sca_roi_overlay, out_file,
+                                     hist_sca_roi, 'measure_file')
 
-                        strat.update_resource_pool({'qc___sca_roi_a': (montage_sca_roi, 'outputspec.axial_png'),
-                                                'qc___sca_roi_s': (montage_sca_roi, 'outputspec.sagittal_png'),
-                                                'qc___sca_roi_hist': (hist_, 'hist_path')})
+                    strat.update_resource_pool({'qc___sca_roi_a': (montage_sca_roi, 'outputspec.axial_png'),
+                                            'qc___sca_roi_s': (montage_sca_roi, 'outputspec.sagittal_png'),
+                                            'qc___sca_roi_hist': (hist_sca_roi, 'hist_path')})
 
-                        if not 9 in qc_montage_id_a:
-                            qc_montage_id_a[9] = 'sca_roi_a'
-                            qc_montage_id_s[9] = 'sca_roi_s'
-                            qc_hist_id[9] = 'sca_roi_hist'
+                    if not 9 in qc_montage_id_a:
+                        qc_montage_id_a[9] = 'sca_roi_a'
+                        qc_montage_id_s[9] = 'sca_roi_s'
+                        qc_hist_id[9] = 'sca_roi_hist'
 
 
 
@@ -3843,38 +3867,49 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # make QC montages for SCA Smoothed Derivative
             if (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
-                hist_ = hist.clone('hist_sca_seeds_%d' % num_strat)
-                hist_.inputs.measure = 'sca_seeds'
 
-                drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                hist_sca_seed = hist.clone('hist_sca_seeds_%d' % num_strat)
+                hist_sca_seed.inputs.measure = 'sca_seeds'
+
+                drop_percent_sca_seed = pe.MapNode(util.Function(input_names=['measure_file',
                                                      'percent_'],
                                        output_names=['modified_measure_file'],
                                        function=drop_percent_),
                                        name='dp_sca_seed_%d' % num_strat, iterfield=['measure_file'])
-                drop_percent.inputs.percent_ = 99.999
+                drop_percent_sca_seed.inputs.percent_ = 99.999
 
 
                 if 1 in c.runZScoring:
 
+                    hist_sca_seed_zstd = hist.clone('hist_sca_seeds_zstd_%d' % num_strat)
+                    hist_sca_seed_zstd.inputs.measure = 'sca_seeds'
+
+                    drop_percent_sca_seed_zstd = pe.MapNode(util.Function(input_names=['measure_file',
+                                                         'percent_'],
+                                           output_names=['modified_measure_file'],
+                                           function=drop_percent_),
+                                           name='dp_sca_seed_zstd_%d' % num_strat, iterfield=['measure_file'])
+                    drop_percent_sca_seed_zstd.inputs.percent_ = 99.999
+
                     if c.fwhm != None:
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_Z_to_standard_smooth')
-                        montage_sca_seeds = create_montage('montage_seed_standard_smooth_%d' % num_strat,
+                        sca_seed_smooth_zstd_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard_smooth_fisher_zstd')
+                        montage_sca_seeds_smooth_zstd = create_montage('montage_seed_standard_smooth_zstd_%d' % num_strat,
                                         'cyan_to_yellow', 'sca_seed_smooth')
 
-                        montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                        montage_sca_seeds_smooth_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(sca_seed_smooth_zstd_overlay, out_file,
+                                         drop_percent_sca_seed_zstd, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_seeds, 'inputspec.overlay')
+                        workflow.connect(drop_percent_sca_seed_zstd, 'modified_measure_file',
+                                         montage_sca_seeds_smooth_zstd, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
+                        workflow.connect(sca_seed_smooth_zstd_overlay, out_file,
+                                         hist_sca_seed_zstd, 'measure_file')
 
-                        strat.update_resource_pool({'qc___sca_seeds_smooth_a': (montage_sca_seeds, 'outputspec.axial_png'),
-                                                'qc___sca_seeds_smooth_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
-                                                'qc___sca_seeds_smooth_hist': (hist_, 'hist_path')})
+                        strat.update_resource_pool({'qc___sca_seeds_smooth_a': (montage_sca_seeds_smooth_zstd, 'outputspec.axial_png'),
+                                                'qc___sca_seeds_smooth_s': (montage_sca_seeds_smooth_zstd, 'outputspec.sagittal_png'),
+                                                'qc___sca_seeds_smooth_hist': (hist_sca_seed_zstd, 'hist_path')})
 
                         if not 10 in qc_montage_id_a:
                             qc_montage_id_a[10] = 'sca_seeds_smooth_a'
@@ -3883,22 +3918,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     else:
                 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_Z_to_standard')
-                        montage_sca_seeds = create_montage('montage_sca_seed_standard_%d' % num_strat,
+                        sca_seed_zstd_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard_fisher_zstd')
+                        montage_sca_seeds_zstd = create_montage('montage_sca_seed_standard_zstd_%d' % num_strat,
                                         'cyan_to_yellow', 'sca_seed')
 
-                        montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                        montage_sca_seeds_zstd.inputs.inputspec.underlay = c.template_brain_only_for_func
+                        workflow.connect(sca_seed_zstd_overlay, out_file,
+                                         drop_percent_sca_seed_zstd, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_seeds, 'inputspec.overlay')
+                        workflow.connect(drop_percent_sca_seed_zstd, 'modified_measure_file',
+                                         montage_sca_seeds_zstd, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___sca_seeds_a': (montage_sca_seeds, 'outputspec.axial_png'),
-                                                'qc___sca_seeds_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
-                                                'qc___sca_seeds_hist': (hist_, 'hist_path')})
+                        workflow.connect(sca_seed_zstd_overlay, out_file,
+                                         hist_sca_seed_zstd, 'measure_file')
+                        strat.update_resource_pool({'qc___sca_seeds_a': (montage_sca_seeds_zstd, 'outputspec.axial_png'),
+                                                'qc___sca_seeds_s': (montage_sca_seeds_zstd, 'outputspec.sagittal_png'),
+                                                'qc___sca_seeds_hist': (hist_sca_seed_zstd, 'hist_path')})
 
                         if not 10 in qc_montage_id_a:
                             qc_montage_id_a[10] = 'sca_seeds_a'
@@ -3907,56 +3942,55 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-                if 0 in c.runZScoring:
+                if c.fwhm != None:
 
-                    if c.fwhm != None:
+                    sca_seed_smooth_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard_smooth')
+                    montage_sca_seeds_smooth = create_montage('montage_seed_standard_smooth_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_seed_smooth')
 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard_smooth')
-                        montage_sca_seeds = create_montage('montage_seed_standard_smooth_%d' % num_strat,
-                                        'cyan_to_yellow', 'sca_seed_smooth')
+                    montage_sca_seeds_smooth.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(sca_seed_smooth_overlay, out_file,
+                                     drop_percent_sca_seed, 'measure_file')
 
-                        montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                    workflow.connect(drop_percent_sca_seed, 'modified_measure_file',
+                                     montage_sca_seeds_smooth, 'inputspec.overlay')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_seeds, 'inputspec.overlay')
+                    workflow.connect(sca_seed_smooth_overlay, out_file,
+                                     hist_sca_seed, 'measure_file')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
+                    strat.update_resource_pool({'qc___sca_seeds_smooth_a': (montage_sca_seeds_smooth, 'outputspec.axial_png'),
+                                            'qc___sca_seeds_smooth_s': (montage_sca_seeds_smooth, 'outputspec.sagittal_png'),
+                                            'qc___sca_seeds_smooth_hist': (hist_sca_seed, 'hist_path')})
 
-                        strat.update_resource_pool({'qc___sca_seeds_smooth_a': (montage_sca_seeds, 'outputspec.axial_png'),
-                                                'qc___sca_seeds_smooth_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
-                                                'qc___sca_seeds_smooth_hist': (hist_, 'hist_path')})
+                    if not 10 in qc_montage_id_a:
+                        qc_montage_id_a[10] = 'sca_seeds_smooth_a'
+                        qc_montage_id_s[10] = 'sca_seeds_smooth_s'
+                        qc_hist_id[10] = 'sca_seeds_smooth_hist'
 
-                        if not 10 in qc_montage_id_a:
-                            qc_montage_id_a[10] = 'sca_seeds_smooth_a'
-                            qc_montage_id_s[10] = 'sca_seeds_smooth_s'
-                            qc_hist_id[10] = 'sca_seeds_smooth_hist'
 
-                    else:
+                else:
                 
-                        sca_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard')
-                        montage_sca_seeds = create_montage('montage_sca_seed_standard_%d' % num_strat,
-                                        'cyan_to_yellow', 'sca_seed')
+                    sca_seed_overlay, out_file = strat.get_node_from_resource_pool('sca_seed_to_standard')
+                    montage_sca_seeds = create_montage('montage_sca_seed_standard_%d' % num_strat,
+                                    'cyan_to_yellow', 'sca_seed')
 
-                        montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
-                        workflow.connect(sca_overlay, out_file,
-                                         drop_percent, 'measure_file')
+                    montage_sca_seeds.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    workflow.connect(sca_seed_overlay, out_file,
+                                     drop_percent_sca_seed, 'measure_file')
 
-                        workflow.connect(drop_percent, 'modified_measure_file',
-                                         montage_sca_seeds, 'inputspec.overlay')
+                    workflow.connect(drop_percent_sca_seed, 'modified_measure_file',
+                                     montage_sca_seeds, 'inputspec.overlay')
 
-                        workflow.connect(sca_overlay, out_file,
-                                         hist_, 'measure_file')
-                        strat.update_resource_pool({'qc___sca_seeds_a': (montage_sca_seeds, 'outputspec.axial_png'),
-                                                'qc___sca_seeds_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
-                                                'qc___sca_seeds_hist': (hist_, 'hist_path')})
+                    workflow.connect(sca_seed_overlay, out_file,
+                                     hist_sca_seed, 'measure_file')
+                    strat.update_resource_pool({'qc___sca_seeds_a': (montage_sca_seeds, 'outputspec.axial_png'),
+                                            'qc___sca_seeds_s': (montage_sca_seeds, 'outputspec.sagittal_png'),
+                                            'qc___sca_seeds_hist': (hist_sca_seed, 'hist_path')})
 
-                        if not 10 in qc_montage_id_a:
-                            qc_montage_id_a[10] = 'sca_seeds_a'
-                            qc_montage_id_s[10] = 'sca_seeds_s'
-                            qc_hist_id[10] = 'sca_seeds_hist'
+                    if not 10 in qc_montage_id_a:
+                        qc_montage_id_a[10] = 'sca_seeds_a'
+                        qc_montage_id_s[10] = 'sca_seeds_s'
+                        qc_hist_id[10] = 'sca_seeds_hist'
 
 
 
