@@ -166,6 +166,14 @@ class Registration(wx.ScrolledWindow):
                      values =  str(os.path.join("T1_2_MNI152_2mm")),
                      comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
 
+        self.page.add(label="Use skull-on image to calculate transform? (ANTS only) ", 
+                     control=control.CHOICE_BOX, 
+                     name='regWithSkull', 
+                     type=dtype.LSTR, 
+                     comment="Register skull-on anatomical image to a template.", 
+                     values=["Off","On"],
+                     wkf_switch = True)
+
         self.page.set_sizer()
         parent.get_page_list().append(self)
         
