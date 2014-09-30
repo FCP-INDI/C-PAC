@@ -1,3 +1,5 @@
+from inspect import currentframe, getframeinfo
+
 import threading
 global_lock = threading.Lock()
 
@@ -1295,7 +1297,7 @@ def select_model_files(model, ftest):
 
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
+def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr):
 
     """
     Method to extract slice timing correction parameters
@@ -1351,20 +1353,41 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     check2 = lambda val : val if val == None or val == '' else int(val)
 
-    TR = float(check('tr', True))
-    pattern = str(check('acquisition', True))
-    ref_slice = int(check('reference', True))
-    first_tr = check2(check('first_tr', False))
-    last_tr = check2(check('last_tr', False))
-    unit = 's'
-    # if empty override with config information
+
+    # initialize vars to empty
+    TR=''
+    pattern=''
+    ref_slice=''
+    first_tr=''
+    last_tr=''
+
+    if 'scan_parameters' in subject_map.keys():
+        # get details from the configuration
+        TR = float(check('tr', False))
+        pattern = str(check('acquisition', False))
+        ref_slice = int(check('reference', False))
+        first_tr = check2(check('first_tr', False))
+        last_tr = check2(check('last_tr', False))
+
+
+    # if values are still empty, override with GUI config
+    if TR == '':
+        if tr:
+            TR = float(tr)
+        else:
+            TR = None
+
     if first_tr == '':
         first_tr = start_indx
 
     if last_tr == '':
         last_tr = stop_indx
 
-    if pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+    unit = 's'
+
+    # pattern can be one of a few keywords, a filename, or blank which indicates that the 
+    # images header information should be used
+    if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
                    'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']:
         if not os.path.exists(pattern):
             raise Exception ("Invalid Pattern file path %s , Please provide the correct path" % pattern)
@@ -1380,7 +1403,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             max_slice_offset = slice_timings[-1]
             # checking if the unit of TR and slice timing match or not
             # if slice timing in ms convert TR to ms as well
-            if  max_slice_offset > TR:
+            if  TR and max_slice_offset > TR:
                 warnings.warn("TR is in seconds and slice timings are in milliseconds."\
                               "Converting TR into milliseconds")
                 TR = TR * 1000
@@ -1389,7 +1412,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     else:
         # check to see, if TR is in milliseconds, convert it into seconds
-        if TR > 10:
+        if TR and TR > 10:
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR / 1000.0
             print "New TR value %.2f s" % TR
@@ -1400,17 +1423,21 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
     return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
+
 def get_tr (tr):
     """
     Method to return TR in seconds
     """
     import re
-    if tr != None:
+    if 'None' in tr:
+        tr = None
+    if tr:
         tr = re.search("\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
             tr = tr / 1000.0
     return tr
+
 
 
 def check_tr(tr, in_file):
@@ -1792,5 +1819,10 @@ def create_output_mean_csv(subject_dir):
 
     csv_file.close()
 
+    return
 
+
+def dbg_file_lineno():
+    cf=currentframe()
+    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno 
     
