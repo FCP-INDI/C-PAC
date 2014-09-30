@@ -158,6 +158,8 @@ def create_wf_edit_func( wf_name = "edit_func" ):
   
     return preproc
     
+
+
 #functional preprocessing
 def create_func_preproc(use_bet = False, wf_name = 'func_preproc'):
     """
@@ -537,6 +539,7 @@ def create_func_preproc(use_bet = False, wf_name = 'func_preproc'):
                     outputNode, 'preprocessed_mask')
 
     return preproc
+
 
 
 def get_idx(in_files, stop_idx=None, start_idx=None):
