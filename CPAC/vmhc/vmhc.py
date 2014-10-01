@@ -487,6 +487,16 @@ def create_vmhc(use_ants=False, use_skull=False):
         vmhc.connect(inputNode, 'standard_for_func',
                      apply_ants_xfm_vmhc, 'inputspec.reference_image')
 
+        vmhc.connect(collect_transforms_vmhc, \
+                     'outputspec.transformation_series', \
+                     apply_ants_xfm_vmhc, 'inputspec.transforms')
+
+        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
+                     copy_and_L_R_swap, 'in_file')
+
+        vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
+                     pearson_correlation, 'xset')
+
 
     vmhc.connect(copy_and_L_R_swap, 'out_file',
                  pearson_correlation, 'yset')

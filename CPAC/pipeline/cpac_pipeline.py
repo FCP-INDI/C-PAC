@@ -16,7 +16,7 @@ logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
-from CPAC.func_preproc.func_preproc import create_func_preproc
+from CPAC.func_preproc.func_preproc import create_func_preproc, create_wf_edit_func
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.registration import create_nonlinear_register, \
@@ -49,7 +49,7 @@ from CPAC.utils.utils import extract_one_d, set_gauss, \
                              get_tr, extract_txt, create_log, \
                              create_log_template, extract_output_mean, \
                              create_output_mean_csv, get_zscore, \
-                             get_fisher_zscore
+                             get_fisher_zscore, dbg_file_lineno
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -121,7 +121,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # number of subjects
 
 
-    logger.info('VERSION: CPAC v0.3.5 (dev)')
+    logger.info('VERSION: CPAC v0.3.5.1')
 
 
     # perhaps in future allow user to set threads maximum
@@ -1865,15 +1865,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             else:
                 preproc = create_vmhc(True)
 
-            preproc.inputs.inputspec.brain_symmetric = \
+            preproc.inputs.inputspec.symmetric_brain = \
                                             c.template_symmetric_brain_only
-            preproc.inputs.inputspec.symm_standard = \
+            preproc.inputs.inputspec.symmetric_skull = \
                                             c.template_symmetric_skull
             preproc.inputs.inputspec.twomm_brain_mask_dil = \
                                             c.dilated_symmetric_brain_mask
             preproc.inputs.inputspec.config_file_twomm = \
                                             c.configFileTwomm
-            preproc.inputs.inputspec.standard = \
+            preproc.inputs.inputspec.standard_for_func = \
                                             c.template_skull_for_func
             preproc.inputs.fwhm_input.fwhm = c.fwhm
             preproc.get_node('fwhm_input').iterables = ('fwhm',
@@ -2152,16 +2152,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat = tmp
                 new_strat_list.append(strat)
 
-            strat.append_name(voxel_timeseries.name)
-
             if c.maskSpecificationFile != None:
+                strat.append_name(voxel_timeseries.name)
                 strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
-            if c.maskSpecificationFileForSCA != None:
-                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
-            
-            create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
+                create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
 
-            num_strat += 1
+            if c.maskSpecificationFileForSCA != None:
+                strat.append_name(voxel_timeseries_for_sca.name)
+                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
+                create_log_node(voxel_timeseries_for_sca, 'outputspec.mask_outputs', num_strat)
+
+            if (c.maskSpecificationFile != None) or (c.maskSpecificationFileForSCA != None):
+                num_strat += 1
+
 
     strat_list += new_strat_list
 
@@ -2258,16 +2261,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             if c.roiSpecificationFile != None:
                 strat.append_name(roi_timeseries.name)
-            elif c.roiSpecificationFileForSCA != None:
-                strat.append_name(roi_timeseries_for_sca.name)
-
-            if c.roiSpecificationFile != None:
                 strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
-            if c.roiSpecificationFileForSCA != None:
-                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
+                create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
 
-            create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
-            num_strat += 1
+            if c.roiSpecificationFileForSCA != None:
+                strat.append_name(roi_timeseries_for_sca.name)
+                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
+                create_log_node(roi_timeseries_for_sca, 'outputspec.roi_outputs', num_strat)
+
+            if (c.roiSpecificationFile != None) or (c.roiSpecificationFileForSCA != None):
+                num_strat += 1
+
 
     strat_list += new_strat_list
 
