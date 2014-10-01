@@ -3,10 +3,10 @@ import yaml
 from CPAC.utils import Configuration
 from CPAC.pipeline.cpac_pipeline import prep_workflow
 from CPAC.pipeline.cpac_runner import build_strategies
+from operator import itemgetter
 import unittest
-import networkx as nx
 import pickle
-from operator import itemgetter, attrgetter
+
 
         
 class GoldStandardGraph(object):
@@ -45,10 +45,16 @@ class GoldStandardGraph(object):
         # Run the pipeline building 
         self.workflow = prep_workflow(self.sublist[0], self.c, \
                                         self.strategies, 0)
-
+    def extract_name(self,node):
+        if isinstance(node, (list, tuple)):
+            return [node[0].name,node[1].name]            
+        else:
+            return node.name
+        
     def generate_edge_list(self):
         self.edges = self.workflow._graph.edges()
-        self.edges = sorted(self.edges, key=itemgetter(0))
+        self.edges = map(self.extract_name, self.edges)
+        self.edges = sorted(self.edges, key=itemgetter(0,1))
         try: 
             pickle.dump( self.edges, open( "pipeline_edge_list.p", "wb" ) )           
         except:
@@ -59,9 +65,9 @@ class GoldStandardGraph(object):
         for n,nbrs in self.workflow._graph.adjacency_iter():
             for nbr,eattr in nbrs.items():
                 data=eattr['connect']
-                self.edgeProperties.append([n,nbr,data])
+                self.edgeProperties.append([n.name,nbr.name,repr(data)])
         
-        self.edgeProperties = sorted(self.edgeProperties, key=itemgetter(0))
+        self.edgeProperties=sorted(self.edgeProperties, key=itemgetter(0,1,2))
         try: 
             pickle.dump(self.edgeProperties, \
                         open( "pipeline_edgeProperties_list.p", "wb" ) )           
@@ -70,9 +76,11 @@ class GoldStandardGraph(object):
         
     def generate_graph_overview(self):
         self.g_overview=dict()
-        self.g_overview["list_of_nodes"] = sorted(self.workflow._graph.nodes())
+        self.g_overview["list_of_nodes"] = \
+                    sorted(map(self.extract_name,self.workflow._graph.nodes()))
         self.g_overview["total_nodes"] = self.workflow._graph.number_of_nodes()
         self.g_overview["total_edges"] = self.workflow._graph.number_of_edges()
+        print self.g_overview["list_of_nodes"]
         try: 
             pickle.dump(self.g_overview, \
                         open( "pipeline_graph_overview.p", "wb" ) )           

@@ -3,8 +3,8 @@ import yaml
 from CPAC.utils import Configuration
 from CPAC.pipeline.cpac_pipeline import prep_workflow
 from CPAC.pipeline.cpac_runner import build_strategies
+from operator import itemgetter
 import unittest
-import networkx as nx
 import pickle
 
         
@@ -25,36 +25,21 @@ class TestPipelineGraph(unittest.TestCase):
 
     def setUp(self):
         
-        # load the gold standard graph
-        try: 
-            self.edge_list=pickle.load(open("pipeline_edge_list.p", "rb" ))           
-        except:
-            print "Couldn't open pickled edge list ...\n"
-            
-        try: 
-            self.edgeProperties = \
-                pickle.load(open("pipeline_edgeProperties_list.p","rb"))           
-        except:
-            print "Couldn't open pickled edgeProperties list ...\n"  
-        
-        try: 
-            self.g_overview=pickle.load(open("pipeline_graph_overview.p","rb"))           
-        except:
-            print "Couldn't open pickled graph overview dictionary ...\n"   
-              
-        # get the subject list
+        # load the gold standard graph  
+        edgelistFile = "pipeline_edge_list.p"
+        self.edge_list=pickle.load(open(edgelistFile, "rb" ))         
+
+        edgePropFile = "pipeline_edgeProperties_list.p"
+        self.edgeProperties = pickle.load(open(edgePropFile,"rb"))           
+
+        gOverFile = "pipeline_graph_overview.p"
+        self.g_overview=pickle.load(open(gOverFile,"rb"))           
+
         subFile = "subject_list_4_unittest.yml"
-        try:
-            self.sublist = yaml.load(open(subFile), 'r')  
-        except:
-            print "Couldn't open file with SUBJECT LIST ...\n"              
-        
-        # get pipeline configuration file
+        self.sublist = yaml.load(open(subFile, 'r'))  
+
         configFile = "pipeline_4_unittest.yml"
-        try:
-            self.c = Configuration(yaml.load(open(configFile),'r'))
-        except:
-            print  "Couldn't open file with PIPELINE CONFIGURATION ...\n" 
+        self.c = Configuration(yaml.load(open(configFile,'r')))
 
         # build strategies 
         self.strategies = None          
@@ -64,11 +49,18 @@ class TestPipelineGraph(unittest.TestCase):
         # Run the pipeline building 
         self.workflow = prep_workflow(self.sublist[0], self.c, \
                                         self.strategies, 0)
-                                        
+          
+    def extract_name(self,node):
+        if isinstance(node, (list, tuple)):
+            return [node[0].name,node[1].name]            
+        else:
+            return node.name 
+                                            
     def test_edge_list(self):
         new_edge_list = self.workflow._graph.edges()
-        new_edge_list = sorted(new_edge_list, key=itemgetter(0))
-        self.assertEqual(new_edge_list,self.edge_list,\
+        new_edge_list = map(self.extract_name, new_edge_list)
+        new_edge_list = sorted(new_edge_list, key=itemgetter(0,1))
+        self.assertSequenceEqual(new_edge_list,self.edge_list,\
                     msg="Edge list differ between the two graphs")
         
     def test_edge_properties(self):        
@@ -76,15 +68,15 @@ class TestPipelineGraph(unittest.TestCase):
         for n,nbrs in self.workflow._graph.adjacency_iter():
             for nbr,eattr in nbrs.items():
                 data=eattr['connect']
-                new_edgeProperties.append([n,nbr,data])        
-        new_edgeProperties = sorted(new_edgeProperties, key=itemgetter(0))        
-        self.assertEqual(new_edgeProperties,self.edgeProperties,\
+                new_edgeProperties.append([n.name,nbr.name,repr(data)])        
+        new_edgeProperties = sorted(new_edgeProperties, key=itemgetter(0,1,2))        
+        self.assertSequenceEqual(new_edgeProperties,self.edgeProperties,\
                     msg="Edge properties differ between the two graphs")
         
-    def test_list_of_nodes(self):        
-        self.assertEqual(self.g_overview["list_of_nodes"], \
-                    sorted(self.workflow._graph.nodes()),\
-                    msg="List of nodes differ between the two graphs")
+    def test_list_of_nodes(self): 
+        nodes=sorted(map(self.extract_name,self.workflow._graph.nodes()))        
+        self.assertSequenceEqual(nodes, self.g_overview["list_of_nodes"], \
+                        msg="List of nodes differ between the two graphs")
             
     def test_total_nodes(self):
         self.assertEqual(self.g_overview["total_nodes"],\
@@ -98,9 +90,10 @@ class TestPipelineGraph(unittest.TestCase):
             
 
 
-
-
-
+#------------------------------------------------------------------------------
+# run test
+if __name__ == '__main__':
+    unittest.main()
 
 
 
