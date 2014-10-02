@@ -597,7 +597,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
             name='calculate_ants_warp')
 
     calculate_ants_warp.inputs.output_warped_image = True
-    calculate_ants_warp.inputs.initial_moving_transform_com = 1
+    calculate_ants_warp.inputs.initial_moving_transform_com = 0
 
 
     select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',

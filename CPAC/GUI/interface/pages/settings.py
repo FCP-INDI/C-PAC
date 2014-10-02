@@ -202,12 +202,12 @@ class WorkflowConfig(wx.ScrolledWindow):
                       comment="Runs the anatomical preprocessing workflow.\n\nMust be enabled to run any subsequent processing or analysis workflows.",
                       values=["On", "Off"])
 
-        self.page.add(label="Run Skull Stripping ",
+        self.page.add(label="Inputs Already Skull-stripped? ",
                       control=control.CHOICE_BOX,
-                      name='run_skullstrip',
+                      name='already_skullstripped',
                       type=dtype.LSTR,
-                      comment="Runs skull-stripping on the anatomical inputs. Turn this off if your input images are already skull-stripped.",
-                      values=["On", "Off"])
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to yes if your input images are already skull-stripped.",
+                      values=["No", "Yes"])
 
         self.page.add(label="Run Functional Preprocessing ",
                       control=control.CHOICE_BOX,

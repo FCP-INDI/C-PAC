@@ -16,7 +16,7 @@ reGenerateOutputs,Regenerate Outputs,Output Settings
 runAnatomicalDataGathering,Gather Anatomical Data,Preprocessing Workflow Options
 runFunctionalDataGathering,Gather Functional Data,Preprocessing Workflow Options
 runAnatomicalPreprocessing,Run Anatomical Preprocessing,Preprocessing Workflow Options
-run_skullstrip,Run Skull Stripping,Preprocessing Workflow Options
+already_skullstripped,Inputs Already Skull-stripped?,Preprocessing Workflow Options
 runFunctionalPreprocessing,Run Functional Preprocessing,Preprocessing Workflow Options
 functionalMasking,Functional Masking,Preprocessing Workflow Options
 runZScoring,Z-score Standardize Derivatives,Derivatives Settings

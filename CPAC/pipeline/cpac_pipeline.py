@@ -121,7 +121,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # number of subjects
 
 
-    logger.info('VERSION: CPAC v0.3.5.1')
+    logger.info('VERSION: CPAC v0.3.6')
 
 
     # perhaps in future allow user to set threads maximum
@@ -306,7 +306,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
             # create a new node, Remember to change its name!
-            anat_preproc = create_anat_preproc(c.run_skullstrip[0]).clone('anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(c.already_skullstripped[0]).clone('anat_preproc_%d' % num_strat)
 
             try:
                 # connect the new node to the previous leaf
@@ -362,6 +362,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if 'FSL' in c.regOption:
+
+                # this is to prevent the user from running FNIRT if they are
+                # providing already-skullstripped inputs. this is because
+                # FNIRT requires an input with the skull still on
+                if c.already_skullstripped[0] == 1:
+
+                    err_msg = '\n\n[!] CPAC says: FNIRT (for anatomical ' \
+                              'registration) will not work properly if you ' \
+                              'are providing inputs that have already been ' \
+                              'skull-stripped.\n\nEither switch to using ' \
+                              'ANTS for registration or provide input ' \
+                              'images that have not been already ' \
+                              'skull-stripped.\n\n'
+
+                    logger.info(err_msg)
+                    raise Exception
 
                 fnirt_reg_anat_mni = create_nonlinear_register('anat_mni_fnirt_register_%d' % num_strat)
 
@@ -427,13 +443,36 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         '_ants_register_%d' % num_strat)
 
                 try:
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, ants_reg_anat_mni,
+
+                    # calculating the trasnform with the skullstripped is
+                    # reported to be better, but it requires very high
+                    # quality skullstripping. If skullstripping is imprecise
+                    # registration with skull is preferred
+                    if (1 in c.regWithSkull) and (c.already_skullstripped[0] == 0):
+
+                        # get the reorient skull-on anatomical from resource pool
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+
+                        # pass the anatomical to the workflow
+                        workflow.connect(node, out_file,
+                            ants_reg_anat_mni,'inputspec.anatomical_brain')
+
+                        # pass the reference file
+                        ants_reg_anat_mni.inputs.inputspec.reference_brain = \
+                            c.template_skull_for_anat
+
+
+                    else:
+
+                        node, out_file = strat.get_leaf_properties()
+
+                        workflow.connect(node, out_file, ants_reg_anat_mni,
                             'inputspec.anatomical_brain')
 
-                    # pass the reference file           
-                    ants_reg_anat_mni.inputs.inputspec. \
-                        reference_brain = c.template_brain_only_for_anat
+                        # pass the reference file           
+                        ants_reg_anat_mni.inputs.inputspec. \
+                            reference_brain = c.template_brain_only_for_anat
+
 
                     ants_reg_anat_mni.inputs.inputspec.dimension = 3
                     ants_reg_anat_mni.inputs.inputspec. \
@@ -4281,6 +4320,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      hist_, 'measure_file')
 
 
+
             if 1 in c.runVMHC:
                 hist_ = hist.clone('hist_vmhc_%d' % num_strat)
                 hist_.inputs.measure = 'vmhc'
@@ -4292,7 +4332,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                        name='dp_vmhc%d' % num_strat)
                 drop_percent.inputs.percent_ = 99.98
 
-                vmhc_overlay, out_file = strat.get_node_from_resource_pool('vmhc_z_score_stat_map')
+                vmhc_overlay, out_file = strat.get_node_from_resource_pool('vmhc_fisher_z_std_z_stat_map')
                 montage_vmhc = create_montage('montage_vmhc_%d' % num_strat,
                                   'cyan_to_yellow', 'vmhc_smooth')
 
