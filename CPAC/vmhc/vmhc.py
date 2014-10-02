@@ -477,13 +477,6 @@ def create_vmhc(use_ants=False, use_skull=False):
         vmhc.connect(fsl_to_itk_vmhc, 'outputspec.itk_transform', 
                      collect_transforms_vmhc, 'inputspec.fsl_to_itk_affine')
 
-        '''
-        vmhc.connect(inputNode, 'brain',
-                     apply_ants_xfm_vmhc, 'inputspec.conversion_reference')
-        vmhc.connect(inputNode, 'mean_functional',
-                     apply_ants_xfm_vmhc, 'inputspec.conversion_source')
-        '''
-
         vmhc.connect(inputNode, 'standard_for_func',
                      apply_ants_xfm_vmhc, 'inputspec.reference_image')
 

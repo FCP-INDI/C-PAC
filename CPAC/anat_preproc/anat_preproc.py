@@ -1,5 +1,4 @@
 import sys
-#from CPAC.interfaces.afni import preprocess
 from nipype.interfaces.afni import preprocess
 import os
 import commands
