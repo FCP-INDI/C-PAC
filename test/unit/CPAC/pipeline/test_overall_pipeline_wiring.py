@@ -6,6 +6,8 @@ from CPAC.pipeline.cpac_runner import build_strategies
 from operator import itemgetter
 import unittest
 import pickle
+import matplotlib.pyplot as plt
+import networkX as nx
 
         
 class TestPipelineGraph(unittest.TestCase):
@@ -32,8 +34,8 @@ class TestPipelineGraph(unittest.TestCase):
         edgePropFile = "pipeline_edgeProperties_list.p"
         self.edgeProperties = pickle.load(open(edgePropFile,"rb"))           
 
-        gOverFile = "pipeline_graph_overview.p"
-        self.g_overview=pickle.load(open(gOverFile,"rb"))           
+        graphOverviewFile = "pipeline_graph_overview.p"
+        self.g_overview=pickle.load(open(graphOverviewFile,"rb"))           
 
         subFile = "subject_list_4_unittest.yml"
         self.sublist = yaml.load(open(subFile, 'r'))  
@@ -88,7 +90,8 @@ class TestPipelineGraph(unittest.TestCase):
                     self.workflow._graph.number_of_edges(),\
                     msg="Total Number of edges differ between the two graphs")
             
-
+    def test_graph_draw(self):
+        
 
 #------------------------------------------------------------------------------
 # run test

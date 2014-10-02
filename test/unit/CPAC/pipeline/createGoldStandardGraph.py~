@@ -4,6 +4,8 @@ from CPAC.utils import Configuration
 from CPAC.pipeline.cpac_pipeline import prep_workflow
 from CPAC.pipeline.cpac_runner import build_strategies
 from operator import itemgetter
+import matplotlib.pyplot as plt
+import networkx as nx
 import unittest
 import pickle
 
@@ -80,14 +82,24 @@ class GoldStandardGraph(object):
                     sorted(map(self.extract_name,self.workflow._graph.nodes()))
         self.g_overview["total_nodes"] = self.workflow._graph.number_of_nodes()
         self.g_overview["total_edges"] = self.workflow._graph.number_of_edges()
-        print self.g_overview["list_of_nodes"]
         try: 
             pickle.dump(self.g_overview, \
                         open( "pipeline_graph_overview.p", "wb" ) )           
         except:
             print "Couldn't pickle graph overview dictionary ...\n" 
-        
     
+    def find_root_node(self,graph):  
+        roots=[node for node,degree in graph.in_degree().items() if degree==0]
+        return sorted(roots)
+                        
+          
+    def write_graph(self):
+        tgraph = nx.DiGraph()
+        tgraph.add_nodes_from(self.g_overview["list_of_nodes"])
+        tgraph.add_edges_from(self.edges)             
+        nx.write_graphml(tgraph, "test.graphml")  
+        # run "dot -Tpng test.dot >test.png" to create png image
+        nx.write_dot(tgraph,'test.dot')     
     
 #------------------------------------------------------------------------------
 # Testing the code
@@ -96,5 +108,42 @@ if __name__ == "__main__":
     g.generate_edge_list()
     g.generate_edge_properties()
     g.generate_graph_overview()
+    g.write_graph()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
