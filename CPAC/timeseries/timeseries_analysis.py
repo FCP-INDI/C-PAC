@@ -591,6 +591,8 @@ def gen_roi_timeseries(data_file,
     import shutil
 
     unit_data = nib.load(template).get_data()
+    # Cast as rounded-up integer
+    unit_data = np.int64(np.ceil(unit_data))
     datafile = nib.load(data_file)
     img_data = datafile.get_data()
     vol = img_data.shape[3]
