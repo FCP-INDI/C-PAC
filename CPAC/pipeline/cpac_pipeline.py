@@ -783,9 +783,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # create TShift AFNI node
             try:
+
                 func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
                     name = 'func_slice_timing_correction_%d'%(num_strat))
                 func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
+
             except Exception as xxx:
                 logger.info( "Error connecting input 'stop_idx' to trunc_wf."+\
                       " (%s:%d)" % dbg_file_lineno() )
@@ -793,8 +795,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # find the output data on the leaf node
             try:
+
                 node, out_file = strat.get_leaf_properties()
+
             except Exception as xxx:
+
                 logger.info( "Error  get_leaf_properties failed."+\
                       " (%s:%d)" % dbg_file_lineno() )
                 raise
@@ -802,32 +807,44 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
    
             # connect the output of the leaf node as the in_file
             try:
+
                 workflow.connect(node, out_file,
                     func_slice_timing_correction,'in_file')
+
             except Exception as xxx:
+
                 logger.info( "Error connecting input 'infile' to func_slice_timing_correction afni node."+\
                       " (%s:%d)" % dbg_file_lineno() )
                 raise
+
 
             logger.info("connected input to slc")
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
             logger.info( "TR %s" %c.TR)
+
             if c.TR:
+
                 try:
+
                     workflow.connect(scan_params, 'tr',
                         func_slice_timing_correction, 'tr')
+
                 except Exception as xxx:
+
                     logger.info( "Error connecting input 'tr' to func_slice_timing_correction afni node."+\
                          " (%s:%d)" % dbg_file_lineno() )
                     print xxx
-                raise
+                    raise
+
                 logger.info("connected TR")
 
             # we might prefer to use the slice timing information stored in the NIFTI header
             # if not, use the value in the scan_params node
             logger.info( "slice timing pattern %s"%c.slice_timing_pattern)
+
             try:
+
                 if not "Use NIFTI Header" in c.slice_timing_pattern:
                     try:
                         logger.info( "connecting slice timing pattern %s"%c.slice_timing_pattern)
@@ -839,12 +856,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                              " (%s:%d)" % dbg_file_lineno() )
                         print xxx
                         raise
+
                     logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern)
+
             except Exception as xxx:
                 logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
                              " (%s:%d)" % dbg_file_lineno() )
                 print xxx
                 raise
+
 
             if (0 in c.runFunctionalPreprocessing):
                 # we are forking so create a new node
