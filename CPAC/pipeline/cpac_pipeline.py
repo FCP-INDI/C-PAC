@@ -35,7 +35,8 @@ from CPAC.scrubbing import create_scrubbing_preproc
 from CPAC.timeseries import create_surface_registration, get_roi_timeseries, \
                             get_voxel_timeseries, get_vertices_timeseries, \
                             get_spatial_map_timeseries
-from CPAC.network_centrality import create_resting_state_graphs
+from CPAC.network_centrality import create_resting_state_graphs, \
+                                    get_cent_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
 ### no create_log_template here, move in CPAC/utils/utils.py
@@ -866,7 +867,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
 
-            if (0 in c.runFunctionalPreprocessing):
+            if (0 in c.slice_timing_correction):
                 # we are forking so create a new node
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -2720,7 +2721,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # if smoothing is required
                 if c.fwhm != None :
 
-                    z_score = get_zscore('centrality_zscore_%d' % num_strat)
+                    z_score = get_cent_zscore('centrality_zscore_%d' % num_strat)
 
                     smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
                                        name='network_centrality_smooth_%d' % num_strat,
@@ -4802,6 +4803,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     forklabel = 'motion'
                 if 'scrubbing' in fork:
                     forklabel = 'scrub'
+                if 'slice' in fork:
+                    forklabel = 'slice'
 
                 if forklabel not in forkName:
 

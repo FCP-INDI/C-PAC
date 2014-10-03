@@ -1,5 +1,5 @@
 
-def get_zscore(wf_name = 'z_score'):
+def get_cent_zscore(wf_name = 'z_score'):
     
     """
     Workflow to calculate z-scores
