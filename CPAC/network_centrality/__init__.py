@@ -5,7 +5,7 @@ from resting_state_centrality import create_resting_state_graphs,\
                                      get_centrality_by_sparsity,\
                                      get_centrality_fast
 
-from z_score import  get_zscore
+from z_score import get_cent_zscore
 
 from utils import convert_pvalue_to_r,\
                   map_centrality_matrix,\
@@ -25,7 +25,7 @@ __all__ = ['create_resting_state_graphs',\
            'get_centrality_by_sparsity',\
            'get_centrality_fast',\
            'map_centrality_matrix',\
-           'get_zscore',\
+           'get_cent_zscore',\
            'calc_corrcoef',\
            'calc_centrality', \
            'convert_pvalue_to_r',\
