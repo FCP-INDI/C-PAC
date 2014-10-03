@@ -846,23 +846,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # we might prefer to use the slice timing information stored in the NIFTI header
             # if not, use the value in the scan_params node
-            logger.info( "slice timing pattern %s"%c.slice_timing_pattern)
+            logger.info( "slice timing pattern %s"%c.slice_timing_pattern[0])
 
             try:
 
                 if not "Use NIFTI Header" in c.slice_timing_pattern:
                     try:
-                        logger.info( "connecting slice timing pattern %s"%c.slice_timing_pattern)
+                        logger.info( "connecting slice timing pattern %s"%c.slice_timing_pattern[0])
                         workflow.connect(scan_params, 'tpattern',
                             func_slice_timing_correction, 'tpattern')
-                        logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern)
+                        logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
                     except Exception as xxx:
                         logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
                              " (%s:%d)" % dbg_file_lineno() )
                         print xxx
                         raise
 
-                    logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern)
+                    logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
 
             except Exception as xxx:
                 logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
