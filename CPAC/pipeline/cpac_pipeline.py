@@ -524,7 +524,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat.append_name(ants_reg_anat_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_mni, 'outputspec.normalized_output_brain')
 
-                strat.update_resource_pool({'ants_rigid_xfm':(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
+                strat.update_resource_pool({'ants_initial_xfm':(ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
+                                            'ants_rigid_xfm':(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
                                             'ants_affine_xfm':(ants_reg_anat_mni, 'outputspec.ants_affine_xfm'),
                                             'anatomical_to_mni_nonlinear_xfm':(ants_reg_anat_mni, 'outputspec.warp_field'),
                                             'mni_to_anatomical_nonlinear_xfm':(ants_reg_anat_mni, 'outputspec.inverse_warp_field'),
@@ -569,6 +570,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
                 elif 'anat_mni_ants_register' in nodes:
+                    node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                    workflow.connect(node, out_file,
+                                     seg_preproc, 'inputspec.standard2highres_init')
                     node, out_file = strat.get_node_from_resource_pool('ants_affine_xfm')
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
@@ -1374,6 +1378,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
+                        node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance, 'inputspec.anat_to_mni_initial_xfm')
+
                         node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
                         workflow.connect(node, out_file,
                                          nuisance, 'inputspec.anat_to_mni_rigid_xfm')
@@ -1760,6 +1768,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         workflow.connect(node, out_file,
                                 collect_transforms_func_mni,
                                 'inputspec.warp_file')
+
+                        # initial transformation from anatomical registration
+                        node, out_file = strat.get_node_from_resource_pool(\
+                                'ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                collect_transforms_func_mni,
+                                'inputspec.linear_initial')
 
                         # affine transformation from anatomical registration
                         node, out_file = strat.get_node_from_resource_pool(\
@@ -2835,6 +2850,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'omical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file, collect_transforms,
                         'inputspec.warp_file')
+
+                # linear initial from anatomical->template ANTS registration
+                node, out_file = strat.get_node_from_resource_pool('ants' \
+                        '_initial_xfm')
+                workflow.connect(node, out_file, collect_transforms,
+                        'inputspec.linear_initial')
 
                 # linear affine from anatomical->template ANTS registration
                 node, out_file = strat.get_node_from_resource_pool('ants' \
