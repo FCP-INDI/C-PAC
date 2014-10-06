@@ -49,8 +49,8 @@ substitution_map = {'On': 1,
                     'ROI Average Time Series Extraction': 'roi_average',
                     'ROI Voxelwise Time Series Extraction': 'roi_voxelwise',
                     'Network Centrality': 'centrality_outputs_smoothed',
-                    'Yes': 1,
-                    'No': 0
+                    'No': 2,
+                    'Yes': 3
                    }
 
 
