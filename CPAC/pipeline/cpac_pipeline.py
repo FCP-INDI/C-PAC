@@ -122,7 +122,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # number of subjects
 
 
-    logger.info('VERSION: CPAC v0.3.6')
+    logger.info('VERSION: CPAC %s' % CPAC.__version__)
+    logger.info('Pipeline start time: %s' % pipeline_start_time)
 
 
     # perhaps in future allow user to set threads maximum
@@ -133,6 +134,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
+
+
+    logger.info('Setting OMP_NUM_THREADS to %s' % numThreads)
+    logger.info('Setting MKL_NUM_THREADS to %s' % numThreads)
+    logger.info('Setting ANTS/ITK thread usage to %s' % numAntsThreads)
+
+    # calculate maximum potential use of cores according to current pipeline
+    # configuration
+    max_core_usage = int(c.numCoresPerSubject) * int(c.numSubjectsAtOnce) * \
+                         int(numThreads) * int(numAntsThreads)
+
+    logger.info('Maximum potential number of cores that may be used ' \
+                'during this run: %d' % max_core_usage)
+
+    logger.info('If that\'s more cores than you have, better fix that ' \
+                'quick! Hint: This can be changed via the settings ' \
+                '\'Number of Cores Per Subject\' and \'Number of Subjects ' \
+                'to Run Simultaneously\' in the pipeline configuration ' \
+                'editor under the tab \'Computer Settings\'.')
 
     qc_montage_id_a = {}
     qc_montage_id_s = {}
