@@ -1971,8 +1971,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'vmhc_raw_score':(vmhc, 'outputspec.VMHC_FWHM_img')})
-            strat.update_resource_pool({'vmhc_fisher_z_std':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
-            strat.update_resource_pool({'vmhc_fisher_z_std_z_stat_map':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
+            strat.update_resource_pool({'vmhc_fisher_zstd':(vmhc, 'outputspec.VMHC_Z_FWHM_img')})
+            strat.update_resource_pool({'vmhc_fisher_zstd_zstat_map':(vmhc, 'outputspec.VMHC_Z_stat_FWHM_img')})
             strat.append_name(vmhc.name)
             
             create_log_node(vmhc, 'outputspec.VMHC_FWHM_img', num_strat)
@@ -2440,9 +2440,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 logConnectionError('Temporal multiple regression for dual regression', num_strat, strat.get_resource_pool(), '0033')
                 raise
 
-            strat.update_resource_pool({'dr_tempreg_maps_stack':(dr_temp_reg, 'outputspec.temp_reg_map')})
-            strat.update_resource_pool({'dr_tempreg_maps_z_stack':(dr_temp_reg, 'outputspec.temp_reg_map_z'),
-                                        'dr_tempreg_maps_z_files':(dr_temp_reg, 'outputspec.temp_reg_map_z_stack')})
+            strat.update_resource_pool({'dr_tempreg_maps_stack':(dr_temp_reg, 'outputspec.temp_reg_map'),
+                                        'dr_tempreg_maps_files':(dr_temp_reg, 'outputspec.temp_reg_map_files')})
+            strat.update_resource_pool({'dr_tempreg_maps_zstat_stack':(dr_temp_reg, 'outputspec.temp_reg_map_z'),
+                                        'dr_tempreg_maps_zstat_files':(dr_temp_reg, 'outputspec.temp_reg_map_z_files')})
             
             strat.append_name(dr_temp_reg.name)
             
@@ -2491,9 +2492,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
 
-            strat.update_resource_pool({'sca_tempreg_maps_stack':(sc_temp_reg, 'outputspec.temp_reg_map')})
-            strat.update_resource_pool({'sca_tempreg_maps_z_stack':(sc_temp_reg, 'outputspec.temp_reg_map_z'),
-                                        'sca_tempreg_maps_z_files':(sc_temp_reg, 'outputspec.temp_reg_map_z_stack')})
+            strat.update_resource_pool({'sca_tempreg_maps_stack':(sc_temp_reg, 'outputspec.temp_reg_map'),
+                                        'sca_tempreg_maps_files':(sc_temp_reg, 'outputspec.temp_reg_map_files')})
+            strat.update_resource_pool({'sca_tempreg_maps_zstat_stack':(sc_temp_reg, 'outputspec.temp_reg_map_z'),
+                                        'sca_tempreg_maps_zstat_files':(sc_temp_reg, 'outputspec.temp_reg_map_z_files')})
             
             create_log_node(sc_temp_reg, 'outputspec.temp_reg_map', num_strat)
             
@@ -2780,7 +2782,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     OUTPUT TO STANDARD
     '''
 
-    def output_to_standard(output_name, output_resource, strat, num_strat, map_node=0):
+    def output_to_standard(output_name, output_resource, strat, num_strat, map_node=0, input_image_type=0):
             
 
         nodes = getNodeList(strat)
@@ -2803,6 +2805,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
             apply_ants_warp.inputs.inputspec. \
                     reference_image = c.template_brain_only_for_func
+
+            apply_ants_warp.inputs.inputspec. \
+                    input_image_type = input_image_type
 
 
             try:
@@ -3158,12 +3163,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runRegisterFuncToMNI) and (1 in c.runDualReg) and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
-            output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat)
+            output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat, input_image_type=3)
 
-            output_to_standard('dr_tempreg_maps_z_stack', 'dr_tempreg_maps_z_stack', strat, num_strat)
+            output_to_standard('dr_tempreg_maps_zstat_stack', 'dr_tempreg_maps_zstat_stack', strat, num_strat, input_image_type=3)
 
-            # dual reg z 'files', too
-            output_to_standard('dr_tempreg_maps_z_files', 'dr_tempreg_maps_z_files', strat, num_strat, 1)
+            # dual reg 'files', too
+            output_to_standard('dr_tempreg_maps_files', 'dr_tempreg_maps_files', strat, num_strat, 1)
+            output_to_standard('dr_tempreg_maps_zstat_files', 'dr_tempreg_maps_zstat_files', strat, num_strat, 1)
 
                 
             num_strat += 1
@@ -3264,6 +3270,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             sc_temp_reg_maps_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='sca_tempreg_maps_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+            sc_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='sca_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='sca_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
@@ -3271,8 +3279,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_stack')
-                node2, out_file2 = strat.get_node_from_resource_pool('sca_tempreg_maps_z_stack')
-                node3, out_file3 = strat.get_node_from_resource_pool('sca_tempreg_maps_z_files')
+                node5, out_file5 = strat.get_node_from_resource_pool('sca_tempreg_maps_files')
+                node2, out_file2 = strat.get_node_from_resource_pool('sca_tempreg_maps_zstat_stack')
+                node3, out_file3 = strat.get_node_from_resource_pool('sca_tempreg_maps_zstat_files')
                 node4, out_file4 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
                 # non-normalized stack
@@ -3283,6 +3292,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 workflow.connect(node4, out_file4,
                                  sc_temp_reg_maps_smooth, 'operand_files')
+
+                # non-normalized files
+                workflow.connect(node5, out_file5,
+                                 sc_temp_reg_maps_files_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 sc_temp_reg_maps_files_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 sc_temp_reg_maps_files_smooth, 'operand_files')
 
                 # normalized stack
                 workflow.connect(node2, out_file2,
@@ -3307,8 +3325,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
             strat.append_name(sc_temp_reg_maps_smooth.name)
             strat.update_resource_pool({'sca_tempreg_maps_stack_smooth':(sc_temp_reg_maps_smooth, 'out_file'),
-                                       'sca_tempreg_maps_z_stack_smooth':(sc_temp_reg_maps_Z_stack_smooth, 'out_file'),
-                                       'sca_tempreg_maps_z_files_smooth':(sc_temp_reg_maps_Z_files_smooth, 'out_file')})
+                                        'sca_tempreg_maps_files_smooth':(sc_temp_reg_maps_files_smooth, 'out_file'),
+                                        'sca_tempreg_maps_zstat_stack_smooth':(sc_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                        'sca_tempreg_maps_zstat_files_smooth':(sc_temp_reg_maps_Z_files_smooth, 'out_file')})
 
             create_log_node(sc_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
@@ -3329,13 +3348,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                               name='dr_tempreg_maps_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_Z_stack_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat)
+            dr_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                              name='dr_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             dr_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack_to_standard')
-                node2, out_file2 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_stack_to_standard')
-                node3, out_file3 = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files_to_standard')
+                node2, out_file2 = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_stack_to_standard')
+                node5, out_file5 = strat.get_node_from_resource_pool('dr_tempreg_maps_files_to_standard')
+                node3, out_file3 = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_to_standard')
                 node4, out_file4 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
 
                 # non-normalized stack
@@ -3357,6 +3379,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  dr_temp_reg_maps_Z_stack_smooth, 'operand_files')
 
                 # normalized files
+                workflow.connect(node5, out_file5,
+                                 dr_temp_reg_maps_files_smooth, 'in_file')
+                workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                 dr_temp_reg_maps_files_smooth, 'op_string')
+
+                workflow.connect(node4, out_file4,
+                                 dr_temp_reg_maps_files_smooth, 'operand_files')
+
+                # normalized z-stat files
                 workflow.connect(node3, out_file3,
                                  dr_temp_reg_maps_Z_files_smooth, 'in_file')
                 workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -3370,8 +3401,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
             strat.append_name(dr_temp_reg_maps_smooth.name)
             strat.update_resource_pool({'dr_tempreg_maps_stack_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
-                                       'dr_tempreg_maps_z_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
-                                       'dr_tempreg_maps_z_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
+                                        'dr_tempreg_maps_zstat_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                        'dr_tempreg_maps_files_smooth':(dr_temp_reg_maps_files_smooth, 'out_file'),
+                                        'dr_tempreg_maps_zstat_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
     strat_list += new_strat_list
@@ -4247,7 +4279,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if c.fwhm != None:
 
-                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_z_files_smooth')
+                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_zstat_files_smooth')
                     montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_regression_sca_smooth')
 
@@ -4262,7 +4294,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         qc_hist_id[12] = 'temporal_regression_sca_smooth_hist'
 
                 else:
-                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_z_files')
+                    temporal_regression_sca_overlay, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_zstat_files')
                     montage_temporal_regression_sca = create_montage('montage_temporal_regression_sca_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_regression_sca')
 
@@ -4303,7 +4335,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if c.fwhm != None:
 
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files_smooth')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_smooth')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression_smooth')
 
@@ -4318,7 +4350,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                 else:
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_z_files')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression')
 
@@ -4357,7 +4389,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                        name='dp_vmhc%d' % num_strat)
                 drop_percent.inputs.percent_ = 99.98
 
-                vmhc_overlay, out_file = strat.get_node_from_resource_pool('vmhc_fisher_z_std_z_stat_map')
+                vmhc_overlay, out_file = strat.get_node_from_resource_pool('vmhc_fisher_zstd_zstat_map')
                 montage_vmhc = create_montage('montage_vmhc_%d' % num_strat,
                                   'cyan_to_yellow', 'vmhc_smooth')
 
