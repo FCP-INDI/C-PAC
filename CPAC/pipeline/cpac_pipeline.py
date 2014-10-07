@@ -629,6 +629,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
+
     '''
     Inserting Functional Data workflow
     '''
@@ -658,7 +659,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                                                  'subject_map',
                                                                  'start_indx',
                                                                  'stop_indx',
-                                                                 'tr'],
+                                                                 'tr',
+                                                                 'tpattern'],
                                                    output_names=['tr',
                                                                  'tpattern',
                                                                  'ref_slice',
@@ -695,6 +697,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             scan_params.inputs.start_indx = c.startIdx
             scan_params.inputs.stop_indx = c.stopIdx
             scan_params.inputs.tr = c.TR
+            scan_params.inputs.tpattern = c.slice_timing_pattern[0]
     
             # node to convert TR between seconds and milliseconds
             try:
@@ -720,9 +723,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             num_strat += 1
 
+        """
+        Truncate scan length based on configuration information
+        """
 
-        # Truncate scan length based on configuration information
-        
         num_strat = 0
 
         for strat in strat_list:
@@ -773,177 +777,83 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat = num_strat+1
 
 
-
-
-    """
-    Inserting slice timing correction
-    Workflow
-    """
-
-    new_strat_list = []
-    num_strat = 0
+        """
+        Inserting slice timing correction
+        Workflow
+        """
+        new_strat_list = []
+        num_strat = 0
     
-    if 1 in c.slice_timing_correction:
-  
-        for strat in strat_list:
+        if 1 in c.slice_timing_correction:
+    
+            for strat in strat_list:
 
-            # create TShift AFNI node
-            try:
+                # create TShift AFNI node
+                try:
+                    func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
+                        name = 'func_slice_timing_correction_%d'%(num_strat))
+                    func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
+                except Exception as xxx:
+                    logger.info( "Error connecting input 'stop_idx' to trunc_wf."+\
+                          " (%s:%d)" % dbg_file_lineno() )
+                    raise
 
-                func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
-                    name = 'func_slice_timing_correction_%d'%(num_strat))
-                func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
-
-            except Exception as xxx:
-                logger.info( "Error connecting input 'stop_idx' to trunc_wf."+\
-                      " (%s:%d)" % dbg_file_lineno() )
-                raise
-
-            # find the output data on the leaf node
-            try:
-
-                node, out_file = strat.get_leaf_properties()
-
-            except Exception as xxx:
-
-                logger.info( "Error  get_leaf_properties failed."+\
-                      " (%s:%d)" % dbg_file_lineno() )
-                raise
+                # find the output data on the leaf node
+                try:
+                    node, out_file = strat.get_leaf_properties()
+                except Exception as xxx:
+                    logger.info( "Error  get_leaf_properties failed."+\
+                          " (%s:%d)" % dbg_file_lineno() )
+                    raise
 
    
-            # connect the output of the leaf node as the in_file
-            try:
-
-                workflow.connect(node, out_file,
-                    func_slice_timing_correction,'in_file')
-
-            except Exception as xxx:
-
-                logger.info( "Error connecting input 'infile' to func_slice_timing_correction afni node."+\
-                      " (%s:%d)" % dbg_file_lineno() )
-                raise
-
-
-            logger.info("connected input to slc")
-            # we might prefer to use the TR stored in the NIFTI header
-            # if not, use the value in the scan_params node
-            logger.info( "TR %s" %c.TR)
-
-            if c.TR:
-
+                # connect the output of the leaf node as the in_file
                 try:
-
-                    workflow.connect(scan_params, 'tr',
-                        func_slice_timing_correction, 'tr')
-
+                    workflow.connect(node, out_file,
+                        func_slice_timing_correction,'in_file')
                 except Exception as xxx:
+                    logger.info( "Error connecting input 'infile' to func_slice_timing_correction afni node."+\
+                          " (%s:%d)" % dbg_file_lineno() )
+                    raise
 
-                    logger.info( "Error connecting input 'tr' to func_slice_timing_correction afni node."+\
-                         " (%s:%d)" % dbg_file_lineno() )
+                logger.info("connected input to slc")
+                # we might prefer to use the TR stored in the NIFTI header
+                # if not, use the value in the scan_params node
+                logger.info( "TR %s" %c.TR)
+                if c.TR:
+                    try:
+                        workflow.connect(scan_params, 'tr',
+                            func_slice_timing_correction, 'tr')
+                    except Exception as xxx:
+                        logger.info( "Error connecting input 'tr' to func_slice_timing_correction afni node."+\
+                             " (%s:%d)" % dbg_file_lineno() )
+                        print xxx
+                    raise
+                    logger.info("connected TR")
+
+                # we might prefer to use the slice timing information stored in the NIFTI header
+                # if not, use the value in the scan_params node
+                logger.info( "slice timing pattern %s"%c.slice_timing_pattern[0])
+                try:
+                    if not "Use NIFTI Header" in c.slice_timing_pattern[0]:
+                        try:
+                            logger.info( "connecting slice timing pattern %s"%c.slice_timing_pattern[0])
+                            workflow.connect(scan_params, 'tpattern',
+                                func_slice_timing_correction, 'tpattern')
+                            logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
+                        except Exception as xxx:
+                            logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
+                                 " (%s:%d)" % dbg_file_lineno() )
+                            print xxx
+                            raise
+                        logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
+                except Exception as xxx:
+                    logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
+                                 " (%s:%d)" % dbg_file_lineno() )
                     print xxx
                     raise
 
-                logger.info("connected TR")
-
-            # we might prefer to use the slice timing information stored in the NIFTI header
-            # if not, use the value in the scan_params node
-            logger.info( "slice timing pattern %s"%c.slice_timing_pattern[0])
-
-            try:
-
-                if not "Use NIFTI Header" in c.slice_timing_pattern:
-                    try:
-                        logger.info( "connecting slice timing pattern %s"%c.slice_timing_pattern[0])
-                        func_slice_timing_correction.inputs.tpattern = c.slice_timing_pattern[0]
-                        #workflow.connect(scan_params, 'tpattern',
-                        #    func_slice_timing_correction, 'tpattern')
-                        logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
-                    except Exception as xxx:
-                        logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
-                             " (%s:%d)" % dbg_file_lineno() )
-                        print xxx
-                        raise
-
-                    logger.info( "connected slice timing pattern %s"%c.slice_timing_pattern[0])
-
-            except Exception as xxx:
-                logger.info( "Error connecting input 'acquisition' to func_slice_timing_correction afni node."+\
-                             " (%s:%d)" % dbg_file_lineno() )
-                print xxx
-                raise
-
-
-            if (0 in c.slice_timing_correction):
-                # we are forking so create a new node
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-   
-            # add the name of the node to the strat name
-            strat.append_name(func_slice_timing_correction.name)
-  
-            # set the leaf node 
-            strat.set_leaf_properties(func_slice_timing_correction, 'out_file')
-
-            # add the outputs to the resource pool
-            strat.update_resource_pool({'slice_time_corrected':(func_slice_timing_correction, 'out_file')})
-            num_strat += 1
-   
-        # add new strats (if forked) 
-        strat_list += new_strat_list
-    
-        logger.info( " finished connected slice timing pattern")
-
-
-
-    """
-    Inserting Functional Image Preprocessing
-    Workflow
-    """
-
-    new_strat_list = []
-    num_strat = 0
-    
-    workflow_counter += 1
-    
-    if 1 in c.runFunctionalPreprocessing:
-    
-        workflow_bit_id['func_preproc'] = workflow_counter
-    
-        for strat in strat_list:
-    
-            if '3dAutoMask' in c.functionalMasking:
-    
-                try:
-                    func_preproc = create_func_preproc(use_bet=False, wf_name='func_preproc_automask_%d' % num_strat)
-                except Exception as xxx:
-                    logger.info( "Error allocating func_preproc."+\
-                         " (%s:%d)" % dbg_file_lineno() )
-                    raise
-
-                node = None
-                out_file = None
-                try:
-                    node, out_file = strat.get_leaf_properties()
-                    logger.info("%s::%s==>%s"%(node, out_file,func_preproc)) 
-                    try:
-                        workflow.connect(node, out_file, func_preproc, 'inputspec.func')
-                    except Exception as xxx:
-                        logger.info( "Error connecting leafnode to func, func_preproc."+\
-                             " (%s:%d)" % (dbg_file_lineno()) )
-                        print xxx
-                        raise
-                    logger.info("infile rest connected") 
-                except Exception as xxx:
-                    logConnectionError('Functional Preprocessing', num_strat, strat.get_resource_pool(), '0005_automask')
-                    num_strat += 1
-                    raise
-    
-                if (0 in c.runFunctionalPreprocessing) or ('BET' in c.functionalMasking):
+                if (0 in c.runFunctionalPreprocessing):
                     # we are forking so create a new node
                     tmp = strategy()
                     tmp.resource_pool = dict(strat.resource_pool)
@@ -952,50 +862,176 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     tmp.name = list(strat.name)
                     strat = tmp
                     new_strat_list.append(strat)
-    
-                strat.append_name(func_preproc.name)
-    
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-    
-                # add stuff to resource pool if we need it
-                strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
-                strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
-                strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
-                strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
-                strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
-                strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
-                strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
-                strat.update_resource_pool({'coordinate_transformation':(func_preproc, 'outputspec.oned_matrix_save')})
-      
-                create_log_node(func_preproc, 'outputspec.preprocessed', num_strat)
+   
+                # add the name of the node to the strat name
+                strat.append_name(func_slice_timing_correction.name)
+   
+                # set the leaf node 
+                strat.set_leaf_properties(func_slice_timing_correction, 'out_file')
+
+                # add the outputs to the resource pool
+                strat.update_resource_pool({'slice_time_corrected':(func_slice_timing_correction, 'out_file')})
                 num_strat += 1
+   
+            # add new strats (if forked) 
+            strat_list += new_strat_list
     
-        strat_list += new_strat_list
-    
+            logger.info( " finsihed connected slice timing pattern")
+
+        """
+        Inserting Functional Image Preprocessing
+        Workflow
+        """
         new_strat_list = []
-                
+        num_strat = 0
     
-        for strat in strat_list:
-                
-            nodes = getNodeList(strat)
-                
-            if ('BET' in c.functionalMasking) and ('func_preproc_automask' not in nodes):
+        workflow_counter += 1
     
-                func_preproc = create_func_preproc( use_bet=True, \
-                                                    wf_name='func_preproc_bet_%d' % num_strat)
-                node = None
-                out_file = None
-                try:
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file, func_preproc, 'inputspec.func')
-   
-                except Exception as xxx:
-                    logConnectionError('Functional Preprocessing', num_strat, strat.get_resource_pool(), '0005_bet')
+        if 1 in c.runFunctionalPreprocessing:
+    
+            workflow_bit_id['func_preproc'] = workflow_counter
+    
+            for strat in strat_list:
+    
+                if '3dAutoMask' in c.functionalMasking:
+    
+                    try:
+                        func_preproc = create_func_preproc(use_bet=False, wf_name='func_preproc_automask_%d' % num_strat)
+                    except Exception as xxx:
+                        logger.info( "Error allocating func_preproc."+\
+                             " (%s:%d)" % dbg_file_lineno() )
+                        raise
+
+                    node = None
+                    out_file = None
+                    try:
+                        node, out_file = strat.get_leaf_properties()
+                        logger.info("%s::%s==>%s"%(node, out_file,func_preproc)) 
+                        try:
+                            workflow.connect(node, out_file, func_preproc, 'inputspec.func')
+                        except Exception as xxx:
+                            logger.info( "Error connecting leafnode to func, func_preproc."+\
+                                 " (%s:%d)" % (dbg_file_lineno()) )
+                            print xxx
+                            raise
+                        logger.info("infile rest connected") 
+                    except Exception as xxx:
+                        logConnectionError('Functional Preprocessing', num_strat, strat.get_resource_pool(), '0005_automask')
+                        num_strat += 1
+                        raise
+    
+                    if (0 in c.runFunctionalPreprocessing) or ('BET' in c.functionalMasking):
+                        # we are forking so create a new node
+                        tmp = strategy()
+                        tmp.resource_pool = dict(strat.resource_pool)
+                        tmp.leaf_node = (strat.leaf_node)
+                        tmp.leaf_out_file = str(strat.leaf_out_file)
+                        tmp.name = list(strat.name)
+                        strat = tmp
+                        new_strat_list.append(strat)
+    
+                    strat.append_name(func_preproc.name)
+    
+                    strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+    
+                    # add stuff to resource pool if we need it
+                    strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
+                    strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
+                    strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
+                    strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
+                    strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
+                    strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
+                    strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
+                    strat.update_resource_pool({'coordinate_transformation':(func_preproc, 'outputspec.oned_matrix_save')})
+    
+    
+                    create_log_node(func_preproc, 'outputspec.preprocessed', num_strat)
                     num_strat += 1
+    
+            strat_list += new_strat_list
+    
+            new_strat_list = []
+                
+    
+            for strat in strat_list:
+                
+                nodes = getNodeList(strat)
+                
+                if ('BET' in c.functionalMasking) and ('func_preproc_automask' not in nodes):
+    
+                    func_preproc = create_func_preproc( use_bet=True, \
+                                                        wf_name='func_preproc_bet_%d' % num_strat)
+                    node = None
+                    out_file = None
+                    try:
+                        node, out_file = strat.get_leaf_properties()
+                        workflow.connect(node, out_file, func_preproc, 'inputspec.func')
+    
+                    except Exception as xxx:
+                        logConnectionError('Functional Preprocessing', num_strat, strat.get_resource_pool(), '0005_bet')
+                        num_strat += 1
+                        raise
+    
+                    if 0 in c.runFunctionalPreprocessing:
+                        # we are forking so create a new node
+                        tmp = strategy()
+                        tmp.resource_pool = dict(strat.resource_pool)
+                        tmp.leaf_node = (strat.leaf_node)
+                        tmp.leaf_out_file = str(strat.leaf_out_file)
+                        tmp.name = list(strat.name)
+                        strat = tmp
+                        new_strat_list.append(strat)
+    
+                    strat.append_name(func_preproc.name)
+    
+                    strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
+    
+                    # add stuff to resource pool if we need it
+                    strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
+                    strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
+                    strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
+                    strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
+                    strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
+                    strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
+                    strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
+                    strat.update_resource_pool({'coordinate_transformation':(func_preproc, 'outputspec.oned_matrix_save')})
+    
+    
+                    create_log_node(func_preproc, 'outputspec.preprocessed', num_strat)
+                    num_strat += 1
+    
+        strat_list += new_strat_list
+    
+        '''
+        Inserting Friston's 24 parameter Workflow
+        In case this workflow runs , it overwrites the movement_parameters file
+        So the file contains 24 parameters for motion and that gets wired to all the workflows
+        that depend on. The effect should be seen when regressing out nuisance signals and motion
+        is used as one of the regressors
+        '''
+        
+        new_strat_list = []
+        num_strat = 0
+   
+        print "made it to line 981" 
+        workflow_counter += 1
+        if 1 in c.runFristonModel:
+            workflow_bit_id['fristons_parameter_model'] = workflow_counter
+            for strat in strat_list:
+    
+                fristons_model = fristons_twenty_four(wf_name='fristons_parameter_model_%d' % num_strat)
+    
+                try:
+    
+                    node, out_file = strat.get_node_from_resource_pool('movement_parameters')
+                    workflow.connect(node, out_file,
+                                     fristons_model, 'inputspec.movement_file')
+    
+                except Exception as xxx:
+                    logConnectionError('Friston\'s Parameter Model', num_strat, strat.get_resource_pool(), '0006')
                     raise
     
-                if 0 in c.runFunctionalPreprocessing:
-                    # we are forking so create a new node
+                if 0 in c.runFristonModel:
                     tmp = strategy()
                     tmp.resource_pool = dict(strat.resource_pool)
                     tmp.leaf_node = (strat.leaf_node)
@@ -1003,75 +1039,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     tmp.name = list(strat.name)
                     strat = tmp
                     new_strat_list.append(strat)
+                strat.append_name(fristons_model.name)
     
-                strat.append_name(func_preproc.name)
+                strat.update_resource_pool({'movement_parameters':(fristons_model, 'outputspec.movement_file')})
     
-                strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
-    
-                # add stuff to resource pool if we need it
-                strat.update_resource_pool({'mean_functional':(func_preproc, 'outputspec.example_func')})
-                strat.update_resource_pool({'functional_preprocessed_mask':(func_preproc, 'outputspec.preprocessed_mask')})
-                strat.update_resource_pool({'movement_parameters':(func_preproc, 'outputspec.movement_parameters')})
-                strat.update_resource_pool({'max_displacement':(func_preproc, 'outputspec.max_displacement')})
-                strat.update_resource_pool({'preprocessed':(func_preproc, 'outputspec.preprocessed')})
-                strat.update_resource_pool({'functional_brain_mask':(func_preproc, 'outputspec.mask')})
-                strat.update_resource_pool({'motion_correct':(func_preproc, 'outputspec.motion_correct')})
-                strat.update_resource_pool({'coordinate_transformation':(func_preproc, 'outputspec.oned_matrix_save')})
-    
-    
-                create_log_node(func_preproc, 'outputspec.preprocessed', num_strat)
+        
+                create_log_node(fristons_model, 'outputspec.movement_file', num_strat)
+                
                 num_strat += 1
-    
-    strat_list += new_strat_list
+                
+        strat_list += new_strat_list
 
 
-
-    '''
-    Inserting Friston's 24 parameter Workflow
-    In case this workflow runs , it overwrites the movement_parameters file
-    So the file contains 24 parameters for motion and that gets wired to all the workflows
-    that depend on. The effect should be seen when regressing out nuisance signals and motion
-    is used as one of the regressors
-    '''
-    
-    new_strat_list = []
-    num_strat = 0
-
-    workflow_counter += 1
-    if 1 in c.runFristonModel:
-        workflow_bit_id['fristons_parameter_model'] = workflow_counter
-        for strat in strat_list:
-
-            fristons_model = fristons_twenty_four(wf_name='fristons_parameter_model_%d' % num_strat)
-
-            try:
-
-                node, out_file = strat.get_node_from_resource_pool('movement_parameters')
-                workflow.connect(node, out_file,
-                                 fristons_model, 'inputspec.movement_file')
-
-            except:
-                logConnectionError('Friston\'s Parameter Model', num_strat, strat.get_resource_pool(), '0006')
-                raise
-
-            if 0 in c.runFristonModel:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-            strat.append_name(fristons_model.name)
-
-            strat.update_resource_pool({'movement_parameters':(fristons_model, 'outputspec.movement_file')})
-
-    
-            create_log_node(fristons_model, 'outputspec.movement_file', num_strat)
-            
-            num_strat += 1
-            
-    strat_list += new_strat_list
 
 
 
