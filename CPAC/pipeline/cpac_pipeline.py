@@ -828,7 +828,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         logger.info( "Error connecting input 'tr' to func_slice_timing_correction afni node."+\
                              " (%s:%d)" % dbg_file_lineno() )
                         print xxx
-                    raise
+                        raise
                     logger.info("connected TR")
 
                 # we might prefer to use the slice timing information stored in the NIFTI header
