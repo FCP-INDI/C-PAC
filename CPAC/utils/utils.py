@@ -1298,7 +1298,7 @@ def select_model_files(model, ftest):
 
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr):
+def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr, tpattern):
 
     """
     Method to extract slice timing correction parameters
@@ -1386,6 +1386,16 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr):
 
     unit = 's'
 
+    # if the user has mandated that we the timining informaiton in the header,
+    # that takes precedence
+    if "Use NIFTI Header" in tpattern:
+        pattern = ''
+    else:
+    # otherwise he slice acquisition pattern in the subject file takes precedence, but if it 
+    # isn't set we use the value in the configuration file
+        if pattern == '':
+            pattern = tpattern
+
     # pattern can be one of a few keywords, a filename, or blank which indicates that the 
     # images header information should be used
     if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
@@ -1424,7 +1434,6 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr):
     return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
 
 
-
 def get_tr (tr):
     """
     Method to return TR in seconds
@@ -1438,7 +1447,6 @@ def get_tr (tr):
         if tr > 10:
             tr = tr / 1000.0
     return tr
-
 
 
 def check_tr(tr, in_file):
@@ -1467,6 +1475,8 @@ def check_tr(tr, in_file):
         warnings.warn('Warning: The TR information does not match between the config and subject list files.')
     
     return TR
+
+
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     """
