@@ -212,6 +212,8 @@ def extract_data(c, param_map):
 
     f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName[0]), 'wb')
 
+
+
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
         Method to extract anatomical and functional
@@ -287,12 +289,19 @@ def extract_data(c, param_map):
                 logging.debug("skipping subject %s"%anat_sub.split("/")[0])
         
         except ValueError:
+
             logging.exception(ValueError.message)
             raise
+
         except Exception, e:
-            msg = "Exception while fetching anatomical and functional paths. " + str(e)
-            logging.exception(msg)
-            raise Exception(msg)
+
+            err_msg = 'Exception while felching anatomical and functional ' \
+                      'paths: \n' + str(e)
+
+            logging.exception(err_msg)
+            raise Exception(err_msg)
+
+
 
     def walk(index, sub):
         """
@@ -338,12 +347,19 @@ def extract_data(c, param_map):
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
+
             logging.exception(Exception.message)
             raise
+
         except:
-            msg = "Please make sessions are consistent across all subjects"
-            logging.exception(msg)
-            raise Exception(msg)
+
+            err_msg = 'Please make sessions are consistent across all ' \
+                      'subjects.\n\n'
+
+            logging.exception(err_msg)
+            raise Exception(err_msg)
+
+
     try:
         for i in range(len(anat_base)):
             for sub in os.listdir(anat_base[i]):
@@ -360,11 +376,16 @@ def extract_data(c, param_map):
         
         name = os.path.join(c.outputSubjectListLocation, 'CPAC_subject_list.yml')
         print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" % name
+
     except Exception:
+
         logging.exception(Exception.message)
         raise
+
     finally:
+
         f.close()
+
 
 
 

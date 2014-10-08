@@ -387,7 +387,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # this is to prevent the user from running FNIRT if they are
                 # providing already-skullstripped inputs. this is because
                 # FNIRT requires an input with the skull still on
-                if c.already_skullstripped[0] == 1:
+                if c.already_skullstripped[0] == 3:
 
                     err_msg = '\n\n[!] CPAC says: FNIRT (for anatomical ' \
                               'registration) will not work properly if you ' \
@@ -465,11 +465,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 try:
 
-                    # calculating the trasnform with the skullstripped is
+                    # calculating the transform with the skullstripped is
                     # reported to be better, but it requires very high
                     # quality skullstripping. If skullstripping is imprecise
                     # registration with skull is preferred
-                    if (1 in c.regWithSkull) and (c.already_skullstripped[0] == 0):
+                    if (1 in c.regWithSkull):
+
+                        if c.already_skullstripped[0] == 3:
+
+                            err_msg = '\n\n[!] CPAC says: You selected ' \
+                                      'to run anatomical registration with ' \
+                                      'the skull, but you also selected to ' \
+                                      'use already-skullstripped images as ' \
+                                      'your inputs. This can be changed ' \
+                                      'in your pipeline configuration ' \
+                                      'editor.\n\n'
+
+                            logger.info(err_msg)
+                            raise Exception
 
                         # get the reorient skull-on anatomical from resource pool
                         node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
