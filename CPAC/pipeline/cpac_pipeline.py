@@ -2208,11 +2208,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
                                      resample_functional_to_roi, 'in_file')
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      resample_functional_to_roi, 'reference')
     
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      roi_timeseries, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi, 'out_file',
                                      roi_timeseries, 'inputspec.rest')
@@ -2226,11 +2226,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
                                      resample_functional_to_roi_for_sca, 'in_file')
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
                                      resample_functional_to_roi_for_sca, 'reference')
     
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
                                      roi_timeseries_for_sca, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi_for_sca, 'out_file',
                                      roi_timeseries_for_sca, 'inputspec.rest')
@@ -2313,11 +2313,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to mask
                     workflow.connect(node, out_file,
                                      resample_functional_to_mask, 'in_file')
-                    workflow.connect(mask_dataflow, 'select_mask.out_file',
+                    workflow.connect(mask_dataflow, 'outputspec.out_file',
                                      resample_functional_to_mask, 'reference')
     
                     # connect it to the voxel_timeseries
-                    workflow.connect(mask_dataflow, 'select_mask.out_file',
+                    workflow.connect(mask_dataflow, 'outputspec.out_file',
                                      voxel_timeseries, 'input_mask.mask')
                     workflow.connect(resample_functional_to_mask, 'out_file',
                                      voxel_timeseries, 'inputspec.rest')
@@ -2329,11 +2329,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to mask
                     workflow.connect(node, out_file,
                                      resample_functional_to_mask_for_sca, 'in_file')
-                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
+                    workflow.connect(mask_dataflow_for_sca, 'outputspec.out_file',
                                      resample_functional_to_mask_for_sca, 'reference')
     
                     # connect it to the voxel_timeseries
-                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
+                    workflow.connect(mask_dataflow_for_sca, 'outputspec.out_file',
                                      voxel_timeseries_for_sca, 'input_mask.mask')
                     workflow.connect(resample_functional_to_mask_for_sca, 'out_file',
                                      voxel_timeseries_for_sca, 'inputspec.rest')
