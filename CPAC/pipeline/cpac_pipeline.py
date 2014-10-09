@@ -122,37 +122,41 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # number of subjects
 
 
-    logger.info('VERSION: CPAC %s' % CPAC.__version__)
-    logger.info('Pipeline start time: %s' % pipeline_start_time)
+    cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
-    numAntsThreads = '1'
+
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
-    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
-
-
-    logger.info('Setting OMP_NUM_THREADS to %s' % numThreads)
-    logger.info('Setting MKL_NUM_THREADS to %s' % numThreads)
-    logger.info('Setting ANTS/ITK thread usage to %s' % numAntsThreads)
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(c.num_ants_threads)
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
     max_core_usage = int(c.numCoresPerSubject) * int(c.numSubjectsAtOnce) * \
-                         int(numThreads) * int(numAntsThreads)
+                         int(numThreads) * int(c.num_ants_threads)
 
-    logger.info('Maximum potential number of cores that may be used ' \
-                'during this run: %d' % max_core_usage)
+    cores_msg = cores_msg + '\n\nSetting OMP_NUM_THREADS to %s\n' % numThreads
+    cores_msg = cores_msg + 'Setting MKL_NUM_THREADS to %s\n' % numThreads
+    cores_msg = cores_msg + 'Setting ANTS/ITK thread usage to %d\n\n' \
+                % c.num_ants_threads
 
-    logger.info('If that\'s more cores than you have, better fix that ' \
-                'quick! Hint: This can be changed via the settings ' \
-                '\'Number of Cores Per Subject\' and \'Number of Subjects ' \
-                'to Run Simultaneously\' in the pipeline configuration ' \
-                'editor under the tab \'Computer Settings\'.')
+    cores_msg = cores_msg + 'Maximum potential number of cores that might ' \
+                'be used during this run: %d\n\n' % max_core_usage
+
+    cores_msg = cores_msg + 'If that\'s more cores than you have, better ' \
+                'fix that quick! Hint: This can be changed via the settings '\
+                '\'Number of Cores Per Subject\', \'Number of Subjects ' \
+                'to Run Simultaneously\', and \'Number of Cores for ' \
+                'Anatomical Registration (ANTS only)\' in the pipeline ' \
+                'configuration editor under the tab \'Computer Settings' \
+                '\'.\n\n'
+
+    logger.info(cores_msg)
+
 
     qc_montage_id_a = {}
     qc_montage_id_s = {}
@@ -557,7 +561,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat.append_name(ants_reg_anat_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_mni, 'outputspec.normalized_output_brain')
 
-                strat.update_resource_pool({#'ants_initial_xfm':(ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
+                strat.update_resource_pool({'ants_initial_xfm':(ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
                                             'ants_rigid_xfm':(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
                                             'ants_affine_xfm':(ants_reg_anat_mni, 'outputspec.ants_affine_xfm'),
                                             'anatomical_to_mni_nonlinear_xfm':(ants_reg_anat_mni, 'outputspec.warp_field'),
@@ -603,9 +607,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
                 elif 'anat_mni_ants_register' in nodes:
-                    #node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
-                    #workflow.connect(node, out_file,
-                    #                 seg_preproc, 'inputspec.standard2highres_init')
+                    node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                    workflow.connect(node, out_file,
+                                     seg_preproc, 'inputspec.standard2highres_init')
                     node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_rig')
@@ -1392,9 +1396,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
-                        #node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
-                        #workflow.connect(node, out_file,
-                        #                 nuisance, 'inputspec.anat_to_mni_initial_xfm')
+                        node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance, 'inputspec.anat_to_mni_initial_xfm')
 
                         node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
                         workflow.connect(node, out_file,
@@ -1784,11 +1788,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                 'inputspec.warp_file')
 
                         # initial transformation from anatomical registration
-                        #node, out_file = strat.get_node_from_resource_pool(\
-                        #        'ants_initial_xfm')
-                        #workflow.connect(node, out_file,
-                        #        collect_transforms_func_mni,
-                        #        'inputspec.linear_initial')
+                        node, out_file = strat.get_node_from_resource_pool(\
+                                'ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                collect_transforms_func_mni,
+                                'inputspec.linear_initial')
 
                         # affine transformation from anatomical registration
                         node, out_file = strat.get_node_from_resource_pool(\
@@ -2156,6 +2160,113 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
+    ROI Based Time Series
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runROITimeseries:
+
+        for strat in strat_list:
+
+            if c.roiSpecificationFile != None:
+
+                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_roi_%d' % num_strat)
+                resample_functional_to_roi.inputs.interp = 'trilinear'
+                resample_functional_to_roi.inputs.apply_xfm = True
+                resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
+    
+                roi_dataflow = create_roi_mask_dataflow(c.roiSpecificationFile, 'ROI Average TSE', 'roi_dataflow_%d' % num_strat)
+    
+                roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
+                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
+            
+            
+            if c.roiSpecificationFileForSCA != None:
+            
+                # same workflow, except to run TSE and send it to the resource pool
+                # so that it will not get sent to SCA
+                resample_functional_to_roi_for_sca = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_roi_for_sca_%d' % num_strat)
+                resample_functional_to_roi_for_sca.inputs.interp = 'trilinear'
+                resample_functional_to_roi_for_sca.inputs.apply_xfm = True
+                resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
+                
+                roi_dataflow_for_sca = create_roi_mask_dataflow(c.roiSpecificationFileForSCA, 'ROI Average TSE', 'roi_dataflow_for_sca_%d' % num_strat)
+    
+                roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
+                roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
+
+            try:
+
+                if c.roiSpecificationFile != None:
+
+                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
+    
+                    # resample the input functional file to roi
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_roi, 'in_file')
+                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                                     resample_functional_to_roi, 'reference')
+    
+                    # connect it to the roi_timeseries
+                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                                     roi_timeseries, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi, 'out_file',
+                                     roi_timeseries, 'inputspec.rest')
+                
+                
+                if c.roiSpecificationFileForSCA != None:
+                
+                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
+                
+                    # TSE only, not meant for SCA
+                    # resample the input functional file to roi
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_roi_for_sca, 'in_file')
+                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                                     resample_functional_to_roi_for_sca, 'reference')
+    
+                    # connect it to the roi_timeseries
+                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                                     roi_timeseries_for_sca, 'input_roi.roi')
+                    workflow.connect(resample_functional_to_roi_for_sca, 'out_file',
+                                     roi_timeseries_for_sca, 'inputspec.rest')
+
+            except:
+                logConnectionError('ROI Timeseries analysis', num_strat, strat.get_resource_pool(), '0031')
+                raise
+
+            if 0 in c.runROITimeseries:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            if c.roiSpecificationFile != None:
+                strat.append_name(roi_timeseries.name)
+                strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
+                create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
+
+            if c.roiSpecificationFileForSCA != None:
+                strat.append_name(roi_timeseries_for_sca.name)
+                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
+                create_log_node(roi_timeseries_for_sca, 'outputspec.roi_outputs', num_strat)
+
+            if (c.roiSpecificationFile != None) or (c.roiSpecificationFileForSCA != None):
+                num_strat += 1
+
+
+    strat_list += new_strat_list
+
+
+
+    '''
     Voxel Based Time Series 
     '''
 
@@ -2174,7 +2285,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_mask.inputs.apply_xfm = True
                 resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
     
-                mask_dataflow = create_mask_dataflow(c.maskSpecificationFile, 'mask_dataflow_%d' % num_strat)
+                mask_dataflow = create_roi_mask_dataflow(c.maskSpecificationFile, 'ROI Voxelwise TSE', 'mask_dataflow_%d' % num_strat)
     
                 voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
                 voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
@@ -2187,7 +2298,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_mask_for_sca.inputs.apply_xfm = True
                 resample_functional_to_mask_for_sca.inputs.in_matrix_file = c.identityMatrix
     
-                mask_dataflow_for_sca = create_mask_dataflow(c.maskSpecificationFileForSCA, 'mask_dataflow_for_sca_%d' % num_strat)
+                mask_dataflow_for_sca = create_roi_mask_dataflow(c.maskSpecificationFileForSCA, 'ROI Voxelwise TSE', 'mask_dataflow_for_sca_%d' % num_strat)
     
                 voxel_timeseries_for_sca = get_voxel_timeseries('voxel_timeseries_for_sca_%d' % num_strat)
                 voxel_timeseries_for_sca.inputs.inputspec.output_type = c.voxelTSOutputs
@@ -2257,112 +2368,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     strat_list += new_strat_list
 
-
-
-    '''
-    ROI Based Time Series
-    '''
-
-    new_strat_list = []
-    num_strat = 0
-
-    if 1 in c.runROITimeseries:
-
-        for strat in strat_list:
-
-            if c.roiSpecificationFile != None:
-
-                resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_roi_%d' % num_strat)
-                resample_functional_to_roi.inputs.interp = 'trilinear'
-                resample_functional_to_roi.inputs.apply_xfm = True
-                resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
-    
-                roi_dataflow = create_roi_dataflow(c.roiSpecificationFile, 'roi_dataflow_%d' % num_strat)
-    
-                roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
-            
-            
-            if c.roiSpecificationFileForSCA != None:
-            
-                # same workflow, except to run TSE and send it to the resource pool
-                # so that it will not get sent to SCA
-                resample_functional_to_roi_for_sca = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_roi_for_sca_%d' % num_strat)
-                resample_functional_to_roi_for_sca.inputs.interp = 'trilinear'
-                resample_functional_to_roi_for_sca.inputs.apply_xfm = True
-                resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
-                
-                roi_dataflow_for_sca = create_roi_dataflow(c.roiSpecificationFileForSCA, 'roi_dataflow_for_sca_%d' % num_strat)
-    
-                roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
-                roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
-
-            try:
-
-                if c.roiSpecificationFile != None:
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
-    
-                    # resample the input functional file to roi
-                    workflow.connect(node, out_file,
-                                     resample_functional_to_roi, 'in_file')
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
-                                     resample_functional_to_roi, 'reference')
-    
-                    # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
-                                     roi_timeseries, 'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi, 'out_file',
-                                     roi_timeseries, 'inputspec.rest')
-                
-                
-                if c.roiSpecificationFileForSCA != None:
-                
-                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                
-                    # TSE only, not meant for SCA
-                    # resample the input functional file to roi
-                    workflow.connect(node, out_file,
-                                     resample_functional_to_roi_for_sca, 'in_file')
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
-                                     resample_functional_to_roi_for_sca, 'reference')
-    
-                    # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
-                                     roi_timeseries_for_sca, 'input_roi.roi')
-                    workflow.connect(resample_functional_to_roi_for_sca, 'out_file',
-                                     roi_timeseries_for_sca, 'inputspec.rest')
-
-            except:
-                logConnectionError('ROI Timeseries analysis', num_strat, strat.get_resource_pool(), '0031')
-                raise
-
-            if 0 in c.runROITimeseries:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-
-            if c.roiSpecificationFile != None:
-                strat.append_name(roi_timeseries.name)
-                strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
-                create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
-
-            if c.roiSpecificationFileForSCA != None:
-                strat.append_name(roi_timeseries_for_sca.name)
-                strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
-                create_log_node(roi_timeseries_for_sca, 'outputspec.roi_outputs', num_strat)
-
-            if (c.roiSpecificationFile != None) or (c.roiSpecificationFileForSCA != None):
-                num_strat += 1
-
-
-    strat_list += new_strat_list
 
 
 
@@ -2664,7 +2669,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
-            template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
+            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile, 'Network Centrality', 'template_dataflow_%d' % num_strat)
 
             # Connect in each workflow for the centrality method of interest
             def connectCentralityWorkflow(methodOption,
@@ -2871,10 +2876,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'inputspec.warp_file')
 
                 # linear initial from anatomical->template ANTS registration
-                #node, out_file = strat.get_node_from_resource_pool('ants' \
-                #        '_initial_xfm')
-                #workflow.connect(node, out_file, collect_transforms,
-                #        'inputspec.linear_initial')
+                node, out_file = strat.get_node_from_resource_pool('ants' \
+                        '_initial_xfm')
+                workflow.connect(node, out_file, collect_transforms,
+                        'inputspec.linear_initial')
 
                 # linear affine from anatomical->template ANTS registration
                 node, out_file = strat.get_node_from_resource_pool('ants' \
