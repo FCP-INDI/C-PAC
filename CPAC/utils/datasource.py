@@ -79,7 +79,26 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         tab = 'Network Centrality'
 
 
-    def process_mask_file(mask_file, mask_type):
+    if '.nii' in dir_path:
+
+        masks = []
+        masks.append(dir_path)
+
+    elif '.txt' in dir_path:
+        
+        masks = open(dir_path, 'r').readlines()
+
+    else:
+
+        print '\n\n[!] CPAC says: Your ROI/mask specification file (under ' \
+              '%s options) either needs to be a NIFTI file (.nii or ' \
+              '.nii.gz) of an ROI/mask or a text file (.txt) containing a ' \
+              'list of NIFTI files of ROI/mask files.\nPlease change this ' \
+              'in your pipeline configuration file and try again.\n\n' % tab
+        raise Exception
+
+
+    for mask_file in masks:
 
         mask_dict = {}
 
@@ -109,28 +128,6 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
             mask_dict[base_name] = mask_file
         else:
             raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name]))
-
-
-
-    if '.nii' in dir_path:
-
-        process_mask_file(dir_path, tab)
-
-    elif '.txt' in dir_path:
-        
-        masks = open(dir_path, 'r').readlines()
-
-        for mask_file in masks:
-            process_mask_file(mask_file, tab)
-
-    else:
-
-        print '\n\n[!] CPAC says: Your ROI/mask specification file (under ' \
-              '%s options) either needs to be a NIFTI file (.nii or ' \
-              '.nii.gz) of an ROI/mask or a text file (.txt) containing a ' \
-              'list of NIFTI files of ROI/mask files.\nPlease change this ' \
-              'in your pipeline configuration file and try again.\n\n' % tab
-        raise Exception
 
 
 
