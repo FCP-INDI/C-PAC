@@ -429,7 +429,6 @@ def create_vmhc(use_ants=False, use_skull=False):
 
         # connections for ANTS stuff
 
-
         if use_skull == False:
             # registration calculation stuff -- might go out the window
             vmhc.connect(inputNode, 'brain',
