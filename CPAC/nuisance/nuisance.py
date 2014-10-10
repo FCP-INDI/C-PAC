@@ -255,6 +255,8 @@ def calc_residuals(subject,
     
     return residual_file, csv_filename
 
+
+
 def extract_tissue_data(data_file,
                         ventricles_mask_file,
                         wm_seg_file, csf_seg_file, gm_seg_file,
@@ -345,6 +347,8 @@ def extract_tissue_data(data_file,
 
     return file_wm, file_csf, file_gm
 
+
+
 def create_nuisance(use_ants, name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise in resting state
@@ -418,6 +422,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'csf_mask',
                                                        'gm_mask',
                                                        'mni_to_anat_linear_xfm',
+                                                       #'anat_to_mni_initial_xfm',
                                                        'anat_to_mni_rigid_xfm',
                                                        'anat_to_mni_affine_xfm',
                                                        'func_to_anat_linear_xfm',
@@ -477,6 +482,7 @@ def create_nuisance(use_ants, name='nuisance'):
         ho_mni_to_2mm.inputs.interpolation = 'NearestNeighbor'
         ho_mni_to_2mm.inputs.dimension = 3
 
+        #nuisance.connect(inputspec, 'anat_to_mni_initial_xfm', collect_linear_transforms, 'in1')
         nuisance.connect(inputspec, 'anat_to_mni_rigid_xfm', collect_linear_transforms, 'in1')
         nuisance.connect(inputspec, 'anat_to_mni_affine_xfm', collect_linear_transforms, 'in2')
 

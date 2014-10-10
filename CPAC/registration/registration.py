@@ -597,6 +597,14 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
             name='calculate_ants_warp')
 
     calculate_ants_warp.inputs.output_warped_image = True
+    #calculate_ants_warp.inputs.initial_moving_transform_com = 0
+
+
+    #select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
+    #        'selection'], output_names=['selected_warp'],
+    #        function=seperate_warps_list), name='select_forward_initial')
+
+    #select_forward_initial.inputs.selection = 0
 
 
     select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',
@@ -627,10 +635,10 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
     select_inverse_warp.inputs.selection = 0
 
 
-    outputspec = pe.Node(util.IdentityInterface(fields=['ants_rigid_xfm',
-            'ants_affine_xfm', 'warp_field', 'inverse_warp_field',
-            'composite_transform', 'normalized_output_brain']),
-            name='outputspec')
+    outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
+            'ants_rigid_xfm', 'ants_affine_xfm', 'warp_field',
+            'inverse_warp_field', 'composite_transform',
+            'normalized_output_brain']), name='outputspec')
 
 
     # connections from inputspec
@@ -694,6 +702,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
     # inter-workflow connections
 
+    #calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+    #        select_forward_initial, 'warp_list')
+
     calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
             select_forward_rigid, 'warp_list')
 
@@ -707,6 +718,9 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
             select_inverse_warp, 'warp_list')
 
     # connections to outputspec
+
+    #calc_ants_warp_wf.connect(select_forward_initial, 'selected_warp',
+    #        outputspec, 'ants_initial_xfm')
 
     calc_ants_warp_wf.connect(select_forward_rigid, 'selected_warp',
             outputspec, 'ants_rigid_xfm')
@@ -977,8 +991,8 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
 
     inputspec = pe.Node(util.IdentityInterface(fields=['warp_file',
-            'linear_affine', 'linear_rigid', 'fsl_to_itk_affine']),
-            name='inputspec')
+            'linear_initial', 'linear_affine', 'linear_rigid', \
+            'fsl_to_itk_affine']), name='inputspec')
 
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
@@ -998,6 +1012,10 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
     # Field file from anatomical nonlinear registration
     collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
             'in1')
+
+    # initial transformation from anatomical registration
+    #collect_transforms_wf.connect(inputspec, 'linear_initial',
+    #        collect_transforms, 'in2')
 
     # affine transformation from anatomical registration
     collect_transforms_wf.connect(inputspec, 'linear_affine',

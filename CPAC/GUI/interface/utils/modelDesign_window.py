@@ -15,7 +15,7 @@ class ModelDesign(wx.Frame):
     def __init__(self, parent, gpa_settings, varlist):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(750, 550))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
 
         self.parent = parent
 

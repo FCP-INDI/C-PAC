@@ -821,14 +821,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     when generating the design matrix (this goes into the .mat file)
     formula = c.design_formula
 
-    # remove intercept!
-    #formula = formula + '- 1'
 
     if 'categorical' in c.ev_selections.keys():
         for EV_name in c.ev_selections['categorical']:
             formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
-
-
 
 
     # create the actual design matrix using Patsy
@@ -948,6 +944,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             skip = 0
 
+            # they need to be put back into Patsy formatted header titles
+            # because the dmatrix gets passed into the function that writes
+            # out the contrast matrix
             if 'categorical' in c.ev_selections.keys():
                 for cat_EV in c.ev_selections['categorical']:
 
@@ -991,20 +990,81 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0])
 
 
-        elif '+' in parsed_contrast:
+        else:
 
-            parsed_EVs_in_contrast = process_contrast('+')
+            contrast_string = parsed_contrast.replace('+',',+,')
+            contrast_string = contrast_string.replace('-',',-,')
+            contrast_items = contrast_string.split(',')
 
-            contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0])
+            if '' in contrast_items:
+                contrast_items.remove('')
+
+            if '+' in contrast_items and len(contrast_items) == 2:
+
+                parsed_EVs_in_contrast = process_contrast('+')
+
+                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0])
 
 
+            elif '-' in contrast_items and len(contrast_items) == 2:
 
-        elif '-' in parsed_contrast:
+                parsed_EVs_in_contrast = process_contrast('-')
 
-            parsed_EVs_in_contrast = process_contrast('-')
+                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0])
 
-            contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0])
-        
+
+            if len(contrast_items) > 2:
+
+                idx = 0
+                for item in contrast_items:
+
+                    # they need to be put back into Patsy formatted header titles
+                    # because the dmatrix gets passed into the function that writes
+                    # out the contrast matrix
+                    if 'categorical' in c.ev_selections.keys():
+                        for cat_EV in c.ev_selections['categorical']:
+
+                            if cat_EV in item:
+
+                                item = item.replace(item, 'C(' + cat_EV + ', Sum)[S.' + item + ']')
+
+
+                    if idx == 0:
+
+                        if item != '+' and item != '-':
+
+                            contrast_vector = positive(dmatrix, item)
+
+                            if parsed_contrast not in contrasts_dict.keys():
+                                contrasts_dict[parsed_contrast] = contrast_vector
+                            else:
+                                contrasts_dict[parsed_contrast] += contrast_vector
+
+                    elif idx != 0:
+
+                        if item != '+' and item != '-':
+
+                            if contrast_items[idx-1] == '+':
+
+                                contrast_vector = positive(dmatrix, item)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+
+                            if contrast_items[idx-1] == '-':
+
+                                contrast_vector = negative(dmatrix, item)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+
+                    idx += 1        
 
 
 

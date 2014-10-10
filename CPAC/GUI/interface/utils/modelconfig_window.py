@@ -495,9 +495,332 @@ class ModelConfig(wx.Frame):
             print self.gpa_settings['pheno_file'], '\n\n'
             raise IOError
 
+
+
+        # validate design formula and build Available Contrasts list
+        var_list_for_contrasts = []
+        EVs_to_test = []
+        EVs_to_include = []
+
+        # take the user-provided design formula and break down the included
+        # terms into a list, and use this to create the list of available
+        # contrasts
+
         '''
+        open_par = 0
+        combined_EV = ''
+        wait = 0
+
+        padded_formula_string = self.gpa_settings['design_formula'] + '  '
+
+        for char in padded_formula_string:
+
+            if (open_par == 0) and combined_EV != '':
+
+                if wait == 3:
+                    if char.isdigit():
+                        combined_EV = combined_EV + '**' + digit + char
+                    else:
+                        combined_EV = combined_EV + '**' + digit
+                    wait = 0
+                
+                elif wait == 2 and char.isdigit():
+                    digit = char
+                    wait = 3
+                    
+                elif wait == 1 and char == '*':
+                    wait = 2
+
+                elif char == '*':
+                    wait = 1
+
+                else:
+                    EVs_to_include.append(combined_EV)
+                    combined_EV = ''
+
+            if char == '(':
+                open_par += 1
+
+            if open_par > 0:
+                combined_EV = combined_EV + char
+
+            if char == ')':
+                open_par = open_par - 1
+        '''
+
+                
+
+        formula = self.gpa_settings['design_formula']
+
+        '''
+        # remove the parentheses-nested EVs from the formula string
+        if len(EVs_to_include) > 0:
+
+            for par_EV in EVs_to_include:
+
+                formula_no_combined = formula.replace(par_EV,'')
+        '''
+
+            
+
+        # need to cycle through the EVs inside parentheses just to make
+        # sure they are valid
+
+        # THEN you have to treat the entire parentheses thing as one EV when
+        # it comes to including it in the list for contrasts
+
+        formula_strip = formula.replace('+',' ')
+        formula_strip = formula_strip.replace('-',' ')
+        formula_strip = formula_strip.replace('**(', '**')
+        formula_strip = formula_strip.replace(')**', '**')
+        formula_strip = formula_strip.replace('(',' ')
+        formula_strip = formula_strip.replace(')',' ')
+        EVs_to_test = formula_strip.split()
+
+        '''
+        formula_no_combined = formula_no_combined.replace('+',' ')
+        formula_no_combined = formula_no_combined.replace('-',' ')
+        EVs_to_include = EVs_to_include + formula_no_combined.split()
+        '''
+
+        # ensure the design formula only has valid EVs in it
+        for EV in EVs_to_test:
+
+            # ensure ** interactions have a valid EV on one side and a number
+            # on the other
+            if '**' in EV:
+
+                both_sides = EV.split('**')
+
+                int_check = 0
+
+                for side in both_sides:
+
+                    if side.isdigit():
+                        int_check = 1
+                    else:
+                        if (side not in self.pheno_data_dict.keys()) and \
+                            side != 'MeanFD' and side != 'Measure_Mean':
+
+                            errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                     'entered within the design formula as ' \
+                                     'part of the interaction \'%s\' is not a ' \
+                                     'valid EV option.\n\nPlease enter only ' \
+                                     'the EVs in your phenotype file or the ' \
+                                     'MeanFD or Measure_Mean options.' \
+                                     % (side,EV)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid EV', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                
+                            raise Exception
+
+
+                if int_check != 1:
+
+                    errmsg = 'CPAC says: The interaction \'%s\' you ' \
+                             'entered within the design formula requires ' \
+                             'a number on one side.\n\nExample: ' \
+                             '(EV1 + EV2 + EV3)**3\n\nNote: This would be ' \
+                             'equivalent to\n(EV1 + EV2 + EV3) * ' \
+                             '(EV1 + EV2 + EV3) * (EV1 + EV2 + EV3)' % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
+                    
+            # ensure these interactions are input correctly
+            elif (':' in EV) or ('/' in EV) or ('*' in EV):
+
+                if ':' in EV:
+                    both_EVs_in_interaction = EV.split(':')
+
+                if '/' in EV:
+                    both_EVs_in_interaction = EV.split('/')
+
+                if '*' in EV:
+                    both_EVs_in_interaction = EV.split('*')
+
+
+                for interaction_EV in both_EVs_in_interaction:
+
+                    if (interaction_EV not in self.pheno_data_dict.keys()) and \
+                        interaction_EV != 'MeanFD' and interaction_EV != 'Measure_Mean':
+
+                        errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                 'entered within the design formula as ' \
+                                 'part of the interaction \'%s\' is not a ' \
+                                 'valid EV option.\n\nPlease enter only ' \
+                                 'the EVs in your phenotype file or the ' \
+                                 'MeanFD or Measure_Mean options.' \
+                                 % (interaction_EV,EV)
+
+                        errSubID = wx.MessageDialog(self, errmsg,
+                            'Invalid EV', wx.OK | wx.ICON_ERROR)
+                        errSubID.ShowModal()
+                        errSubID.Destroy()
+                
+                        raise Exception    
+
+            else:
+
+                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
+                    and EV != 'Measure_Mean':
+
+                    errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                             'entered within the design formula is not ' \
+                             'a valid EV option.' \
+                             '\n\nPlease enter only the EVs in your phenotype ' \
+                             'file or the MeanFD or Measure_Mean options.' \
+                             % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
+
+
+
+
+        def read_phenotypic(pheno_file, ev_selections, subject_id_label):
+
+            import csv
+            import numpy as np
+
+            ph = pheno_file
+
+            # Read in the phenotypic CSV file into a dictionary named pheno_dict
+            # while preserving the header fields as they correspond to the data
+            p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+
+            # dictionary to store the data in a format Patsy can use
+            # i.e. a dictionary where each header is a key, and the value is a
+            # list of all of that header's values
+            pheno_data_dict = {}
+
+            for line in p_reader:
+
+                # here, each instance of 'line' is really a dictionary where the
+                # keys are the pheno headers, and their values are the values of
+                # each EV for that one subject - each iteration of this loop is
+                # one subject
+
+                for key in line.keys():
+
+                    if key not in pheno_data_dict.keys():
+                        pheno_data_dict[key] = []
+
+                    # create a list within one of the dictionary values for that
+                    # EV if it is categorical; formats this list into a form
+                    # Patsy can understand regarding categoricals:
+                    #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                    #                instead of just [1, 1, 0, 1], etc.
+                    if 'categorical' in ev_selections.keys():
+                        if key in ev_selections['categorical']:
+                            pheno_data_dict[key].append(key + str(line[key]))
+
+                        elif key == subject_id_label:
+                            pheno_data_dict[key].append(line[key])
+
+                        else:
+                            pheno_data_dict[key].append(float(line[key]))
+
+                    elif key == subject_id_label:
+                        pheno_data_dict[key].append(line[key])
+
+                    else:
+                        pheno_data_dict[key].append(float(line[key]))
+
+
+
+            # this needs to run after each list in each key has been fully
+            # populated above
+            for key in pheno_data_dict.keys():
+
+                # demean the EVs marked for demeaning
+                if 'demean' in ev_selections.keys():
+                    if key in ev_selections['demean']:
+
+                        new_demeaned_evs = []
+
+                        mean_evs = 0.0
+
+                        # populate a dictionary, a key for each demeanable EV, with
+                        # the value being the sum of all the values (which need to be
+                        # converted to float first)
+                        for val in pheno_data_dict[key]:
+                            mean_evs += float(val)
+
+                        # calculate the mean of the current EV in this loop
+                        mean_evs = mean_evs / len(pheno_data_dict[key])
+
+                        # remove the EV's mean from each value of this EV
+                        # (demean it!)
+                        for val in pheno_data_dict[key]:
+                            new_demeaned_evs.append(float(val) - mean_evs)
+
+                        # replace
+                        pheno_data_dict[key] = new_demeaned_evs
+
+
+                # converts non-categorical EV lists into NumPy arrays
+                # so that Patsy may read them in properly
+                if 'categorical' in ev_selections.keys():
+                    if key not in ev_selections['categorical']:
+            
+                        pheno_data_dict[key] = np.array(pheno_data_dict[key])
+
+
+            return pheno_data_dict
+
+
+
+        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
+
+        # let's create dummy columns for MeanFD and Measure_Mean just so we
+        # can get an accurate list of EVs Patsy will generate
+        if 'MeanFD' in formula or 'Measure_Mean' in formula:
+
+            import numpy as np
+
+            MeanFD = []
+            Measure_Mean = []
+
+            for key in patsy_formatted_pheno.keys():
+               for val in patsy_formatted_pheno[key]:
+                   MeanFD.append(0.0)
+                   Measure_Mean.append(0.0)
+               break
+
+            MeanFD = np.array(MeanFD)
+            Measure_Mean = np.array(Measure_Mean)
+
+            patsy_formatted_pheno['MeanFD'] = MeanFD
+            patsy_formatted_pheno['Measure_Mean'] = Measure_Mean
+
+        print patsy_formatted_pheno
+
+
+        if 'categorical' in self.gpa_settings['ev_selections']:
+            for EV_name in self.gpa_settings['ev_selections']['categorical']:
+                formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
+       
+        # create the dmatrix in Patsy just to see what the design matrix
+        # columns are going to be 
         try:
-            dmatrix = patsy.dmatrix(self.gpa_settings['design_formula'], self.pheno_data_dict)
+            dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
         except:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
@@ -505,18 +828,51 @@ class ModelConfig(wx.Frame):
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
             raise Exception
+
+
+        column_names = dmatrix.design_info.column_names
+        
+
+        # remove the header formatting Patsy creates for categorical variables
+        # because we are going to use var_list_for_contrasts as a label for
+        # users to know what contrasts are available to them
+        for column in column_names:
+
+            column_string = column
+
+            record = 0
+            string_for_removal = ''
+
+            for char in column_string:
+
+                if record == 2:
+                    string_for_removal = string_for_removal + char
+                elif record == 1 and char == '(':
+                    string_for_removal = 'C('
+                    record = 2
+                else:
+                    record = 0
+                
+                if char == 'C' and record == 0:
+                    record = 1
+
+                if char == '.':
+                    record = 0
+                    column_string = column_string.replace(string_for_removal, '')
+                    string_for_removal = ''
+
+            column_string = column_string.replace(']', '')
+
+            if column_string != 'Intercept':
+                var_list_for_contrasts.append(column_string)
+                
+
+
+
         '''
+        for header in EVs_to_include:
 
-
-
-        # eat the pheno_data_dict, picking out the header items. remove the
-        # subject header, then identify which ones are categorical (by seeing
-        # what the user selected), and then providing the names of each
-        # categorical option
-
-        var_list_for_contrasts = []
-
-        for header in self.pheno_data_dict.keys():
+            #if header in self.gpa_settings['design_formula']:
 
             if 'categorical' in self.gpa_settings['ev_selections'].keys():
                 if header in self.gpa_settings['ev_selections']['categorical']:
@@ -528,22 +884,20 @@ class ModelConfig(wx.Frame):
                 else:
 
                     if header != self.gpa_settings['subject_id_label']:
-                        var_list_for_contrasts.append(header)
+                        if header not in var_list_for_contrasts:
+                            var_list_for_contrasts.append(header)
 
             else:
 
                 if header != self.gpa_settings['subject_id_label']:
-                    var_list_for_contrasts.append(header)
+                    if header not in var_list_for_contrasts:
+                        var_list_for_contrasts.append(header)
+        '''
 
 
-        if 'MeanFD' in self.gpa_settings['design_formula']:
-            var_list_for_contrasts.append('MeanFD')
-
-        if 'Measure_Mean' in self.gpa_settings['design_formula']:
-            var_list_for_contrasts.append('Measure_Mean')
 
         
-
+        print 'varlist: ', var_list_for_contrasts
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
 

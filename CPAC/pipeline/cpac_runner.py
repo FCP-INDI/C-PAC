@@ -453,6 +453,12 @@ def run(config_file, subject_list_file, p_name = None):
 
             c.roiSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFile)
 
+    if 1 in c.runSCA:
+
+        if 'roi_average' in c.useSeedInAnalysis:
+
+            c.roiSpecificationFileForSCA = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFileForSCA)
+
     if 1 in c.runNetworkCentrality:
 
         if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:

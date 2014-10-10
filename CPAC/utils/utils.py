@@ -1,3 +1,5 @@
+from inspect import currentframe, getframeinfo
+
 import threading
 global_lock = threading.Lock()
 
@@ -19,6 +21,7 @@ files_folders_wf = {
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
     'functional_mask_to_spatial_map': 'func',
+    'slice_time_corrected': 'func',
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
@@ -39,10 +42,6 @@ files_folders_wf = {
     'functional_nuisance_residuals':'func',
     'functional_median_angle_corrected':'func',
     'power_spectrum_distribution':'alff',
-    'alff_img':'alff',
-    'falff_img':'alff',
-    'alff_Z_img':'alff',
-    'falff_Z_img':'alff',
     'functional_freq_filtered':'func',
     'scrubbing_movement_parameters':'parameters',
     'scrubbing_frames_included':'parameters',
@@ -64,55 +63,49 @@ files_folders_wf = {
     'mni_to_functional_linear_xfm':'registration',
     'mni_normalized_anatomical':'anat',
     'vmhc_raw_score':'vmhc',
-    'vmhc_z_score':'vmhc',
-    'vmhc_z_score_stat_map':'vmhc',
-    'raw_reho_map':'reho',
-    'reho_Z_img':'reho',
+    'vmhc_fisher_z_std':'vmhc',
+    'vmhc_fisher_z_std_z_stat_map':'vmhc',
+    'alff_img':'alff',
+    'falff_img':'alff',
     'alff_smooth':'alff',
     'falff_smooth':'alff',
     'alff_to_standard':'alff',
     'falff_to_standard':'alff',
     'alff_to_standard_smooth':'alff',
     'falff_to_standard_smooth':'alff',
-    'alff_Z_to_standard':'alff',
-    'falff_Z_to_standard':'alff',
-    'alff_Z_smooth':'alff',
-    'falff_Z_smooth':'alff',
-    'alff_Z_to_standard_smooth':'alff',
-    'falff_Z_to_standard_smooth':'alff',
+    'alff_to_standard_zstd':'alff',
+    'falff_to_standard_zstd':'alff',
+    'alff_to_standard_smooth_zstd':'alff',
+    'falff_to_standard_smooth_zstd':'alff',
+    'raw_reho_map':'reho',
     'reho_smooth':'reho',
     'reho_to_standard':'reho',
     'reho_to_standard_smooth':'reho',
-    'reho_Z_to_standard':'reho',
-    'reho_Z_smooth':'reho',
-    'reho_Z_to_standard_smooth':'reho',
+    'reho_to_standard_zstd':'reho',
+    'reho_to_standard_smooth_zstd':'reho',
     'voxel_timeseries':'timeseries',
     'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_roi_correlations':'sca_roi',
-    'sca_roi_Z':'sca_roi',
     'sca_seed_correlations':'sca_mask',
     'sca_seed_smooth':'sca_mask',
-    'sca_seed_Z':'sca_mask',
-    'sca_seed_Z_to_standard':'sca_mask',
     'sca_seed_to_standard':'sca_mask',
     'sca_seed_to_standard_smooth':'sca_mask',
-    'sca_roi_Z_to_standard':'sca_roi',
-    'sca_seed_Z_smooth':'sca_mask',
-    'sca_seed_Z_to_standard_smooth':'sca_mask',
+    'sca_seed_to_standard_fisher_zstd':'sca_mask',
+    'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
+    'sca_roi_correlations':'sca_roi',
     'sca_roi_smooth':'sca_roi',
-    'sca_roi_Z_smooth':'sca_roi',
-    'sca_roi_Z_to_standard_smooth':'sca_roi',
     'sca_roi_to_standard':'sca_roi',
     'sca_roi_to_standard_smooth':'sca_roi',
+    'sca_roi_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_to_standard_smooth_fisher_zstd':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
-    'centrality_outputs_smoothed':'centrality',
-    'centrality_outputs_zscore':'centrality',
     'centrality_outputs':'centrality',
+    'centrality_outputs_smoothed':'centrality',
+    'centrality_outputs_zstd':'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -135,6 +128,273 @@ files_folders_wf = {
     'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_z_files_smooth': 'sca_roi',
 }
+
+
+def get_zscore(input_name, wf_name = 'z_score'):
+    
+    """
+    Workflow to calculate z-scores
+    
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+        
+    Returns
+    -------
+    wf : workflow object
+    
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
+    
+    
+    Workflow Inputs::
+        
+        inputspec.input_file : string
+            path to input functional derivative file for which z score has to be calculated
+        inputspec.mask_file : string
+            path to whole brain functional mask file required to calculate zscore
+    
+    Workflow Outputs::
+        
+        outputspec.z_score_img : string
+             path to image containing Normalized Input Image Z scores across full brain.
+    
+    High Level Workflow Graph:
+    
+    .. image:: ../images/zscore.dot.png
+       :width: 500
+    
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/zscore_detailed.dot.png
+       :width: 500
+    
+    Example
+    -------
+    >>> import get_zscore as z
+    >>> wf = z.get_zscore()
+    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
+    >>> wf.run()
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['input_file',
+                                                       'mask_file']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
+                          name='outputspec')
+
+    mean = pe.Node(interface=fsl.ImageStats(),
+                   name='mean')
+    mean.inputs.op_string = '-k %s -m'    
+    wflow.connect(inputNode, 'input_file',
+                  mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  mean, 'mask_file')
+
+
+    standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                 name='standard_deviation')
+    standard_deviation.inputs.op_string = '-k %s -s'
+    wflow.connect(inputNode, 'input_file',
+                  standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  standard_deviation, 'mask_file')
+    
+    
+    op_string = pe.Node(util.Function(input_names=['mean','std_dev'],
+                                      output_names=['op_string'],
+                                      function=get_operand_string),
+                        name='op_string')
+    wflow.connect(mean, 'out_stat',
+                  op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat',
+                  op_string, 'std_dev')
+    
+    
+    z_score = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='z_score')
+
+    z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+
+    wflow.connect(op_string, 'op_string',
+                  z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file',
+                  z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  z_score, 'operand_files')
+  
+    wflow.connect(z_score, 'out_file', outputNode, 'z_score_img')
+    
+    return wflow
+
+
+
+def get_operand_string(mean, std_dev):
+    """
+    Method to get operand string for Fsl Maths
+    
+    Parameters
+    ----------
+    mean : string
+        path to img containing mean
+    std_dev : string
+        path to img containing standard deviation
+    
+    Returns
+    ------
+    op_string : string
+        operand string
+    """
+    
+    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
+    op_string = str1 + " -mas %s"
+    return op_string
+
+
+
+
+def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
+
+    """
+    Runs the compute_fisher_z_score function as part of a one-node workflow.
+    """
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['correlation_file',
+                                                       'timeseries_one_d']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['fisher_z_score_img']),
+                          name='outputspec')
+
+
+    if map_node == 0:
+
+        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score')
+
+    else:
+
+        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score',
+                     iterfield=['timeseries_one_d'])
+
+
+    fisher_z_score.inputs.input_name = input_name
+
+    wflow.connect(inputNode, 'correlation_file',
+                fisher_z_score, 'correlation_file')
+    wflow.connect(inputNode, 'timeseries_one_d',
+                fisher_z_score, 'timeseries_one_d')
+
+
+    wflow.connect(fisher_z_score, 'out_file',
+                outputNode, 'fisher_z_score_img')
+
+
+    return wflow
+
+
+
+def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
+
+    """
+    Computes the fisher z transform of the input correlation map
+    If the correlation map contains data for multiple ROIs then 
+    the function returns z score for each ROI as a seperate nifti 
+    file
+
+
+    Parameters
+    ----------
+
+    correlation_file: string
+        Input correlations file
+    
+
+    Returns
+    -------
+
+    out_file : list (nifti files)
+        list of z_scores for mask or ROI
+    """
+
+    import nibabel as nb
+    import numpy as np
+    import os
+
+    roi_numbers = []
+    if '#' in open(timeseries_one_d, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+
+    corr_img = nb.load(correlation_file)
+    corr_data = corr_img.get_data()
+
+    hdr = corr_img.get_header()
+
+    corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
+
+    dims = corr_data.shape
+
+    out_file = []
+
+    if len(dims) == 5 or len(roi_numbers) > 0:
+
+        if len(dims) == 5:
+            x, y, z, one, roi_number = dims
+
+            corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
+
+
+        for i in range(0, len(roi_numbers)):
+
+            sub_data = corr_data
+            if len(dims) == 5:
+                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+
+            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+
+            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
+
+            sub_img.to_filename(sub_z_score_file)
+
+            out_file.append(sub_z_score_file)
+
+    else:
+
+        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
+
+        z_score_file = os.path.join(os.getcwd(), input_name + '_fisher_zstd.nii.gz')
+
+        z_score_img.to_filename(z_score_file)
+
+        out_file.append(z_score_file)
+
+
+    return out_file
+
+
+
+
 
 def safe_shape(*vol_data):
     """
@@ -1038,7 +1298,7 @@ def select_model_files(model, ftest):
 
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
+def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr, tpattern):
 
     """
     Method to extract slice timing correction parameters
@@ -1094,20 +1354,51 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     check2 = lambda val : val if val == None or val == '' else int(val)
 
-    TR = float(check('tr', True))
-    pattern = str(check('acquisition', True))
-    ref_slice = int(check('reference', True))
-    first_tr = check2(check('first_tr', False))
-    last_tr = check2(check('last_tr', False))
-    unit = 's'
-    # if empty override with config information
+
+    # initialize vars to empty
+    TR=''
+    pattern=''
+    ref_slice=''
+    first_tr=''
+    last_tr=''
+
+    if 'scan_parameters' in subject_map.keys():
+        # get details from the configuration
+        TR = float(check('tr', False))
+        pattern = str(check('acquisition', False))
+        ref_slice = int(check('reference', False))
+        first_tr = check2(check('first_tr', False))
+        last_tr = check2(check('last_tr', False))
+
+
+    # if values are still empty, override with GUI config
+    if TR == '':
+        if tr:
+            TR = float(tr)
+        else:
+            TR = None
+
     if first_tr == '':
         first_tr = start_indx
 
     if last_tr == '':
         last_tr = stop_indx
 
-    if pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+    unit = 's'
+
+    # if the user has mandated that we the timining informaiton in the header,
+    # that takes precedence
+    if "Use NIFTI Header" in tpattern:
+        pattern = ''
+    else:
+    # otherwise he slice acquisition pattern in the subject file takes precedence, but if it 
+    # isn't set we use the value in the configuration file
+        if pattern == '':
+            pattern = tpattern
+
+    # pattern can be one of a few keywords, a filename, or blank which indicates that the 
+    # images header information should be used
+    if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
                    'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']:
         if not os.path.exists(pattern):
             raise Exception ("Invalid Pattern file path %s , Please provide the correct path" % pattern)
@@ -1123,7 +1414,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             max_slice_offset = slice_timings[-1]
             # checking if the unit of TR and slice timing match or not
             # if slice timing in ms convert TR to ms as well
-            if  max_slice_offset > TR:
+            if  TR and max_slice_offset > TR:
                 warnings.warn("TR is in seconds and slice timings are in milliseconds."\
                               "Converting TR into milliseconds")
                 TR = TR * 1000
@@ -1132,7 +1423,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     else:
         # check to see, if TR is in milliseconds, convert it into seconds
-        if TR > 10:
+        if TR and TR > 10:
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR / 1000.0
             print "New TR value %.2f s" % TR
@@ -1148,7 +1439,9 @@ def get_tr (tr):
     Method to return TR in seconds
     """
     import re
-    if tr != None:
+    if 'None' in tr:
+        tr = None
+    if tr:
         tr = re.search("\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
@@ -1182,6 +1475,8 @@ def check_tr(tr, in_file):
         warnings.warn('Warning: The TR information does not match between the config and subject list files.')
     
     return TR
+
+
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     """
@@ -1535,5 +1830,10 @@ def create_output_mean_csv(subject_dir):
 
     csv_file.close()
 
+    return
 
+
+def dbg_file_lineno():
+    cf=currentframe()
+    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno 
     

@@ -113,27 +113,18 @@ def create_sca(name_sca='sca'):
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
-    # # 3. Z-transform correlations
-    z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d'],
-                               output_names=['out_file'],
-                 function=compute_fisher_z_score), name='z_score')
-
 
     sca.connect(inputNode, 'timeseries_one_d',
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
     sca.connect(corr, 'out_file',
-                z_score, 'correlation_file')
-    sca.connect(inputNode, 'timeseries_one_d',
-                z_score, 'timeseries_one_d')
-    sca.connect(corr, 'out_file',
                 outputNode, 'correlation_file')
-    sca.connect(z_score, 'out_file',
-                outputNode, 'Z_score')
+
 
 
     return sca
+
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
@@ -198,7 +189,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
         outputspec.temp_reg_map : string (nifti file)
             GLM parameter estimate image for each timeseries in the input file
 
-        outputspec.temp_reg_map_z : string (nifti file)
+        outputspec.temp_reg_map_zstat : string (nifti file)
             Normalized version of the GLM parameter estimates
 
 
@@ -247,8 +238,9 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     outputNode = pe.Node(util.IdentityInterface
                          (fields=['temp_reg_map',
+                                  'temp_reg_map_files',
                                   'temp_reg_map_z',
-                                  'temp_reg_map_z_stack']),
+                                  'temp_reg_map_z_files']),
                           name='outputspec')
 
     check_timeseries = pe.Node(util.Function(input_names=['in_file'],
@@ -284,18 +276,31 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
 
     split = pe.Node(interface=fsl.Split(),
-                    name='split_volumes')
+                    name='split_raw_volumes')
     split.inputs.dimension = 't'
-    split.inputs.out_base_name = 'temp_reg_map_z_'
+    split.inputs.out_base_name = 'temp_reg_map_'
+
+    wflow.connect(temporalReg, 'out_file',
+                  split, 'in_file')
+
+
+    split_zstat = pe.Node(interface=fsl.Split(),
+                    name='split_zstat_volumes')
+    split_zstat.inputs.dimension = 't'
+    split_zstat.inputs.out_base_name = 'temp_reg_map_z_'
 
     wflow.connect(temporalReg, 'out_z',
-                  split, 'in_file')
+                  split_zstat, 'in_file')
 
     if which == 'SR':
         wflow.connect(split, 'out_files',
-                      outputNode, 'temp_reg_map_z_stack')
+                      outputNode, 'temp_reg_map_files')
+        wflow.connect(split_zstat, 'out_files',
+                      outputNode, 'temp_reg_map_z_files')
 
     elif which == 'RT':
+
+        # get roi order and send to output node for raw outputs
         get_roi_order = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
                                               output_names=['labels',
@@ -321,7 +326,36 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       rename_maps, 'in_file')
 
         wflow.connect(rename_maps, 'out_file',
-                      outputNode, 'temp_reg_map_z_stack')
+                      outputNode, 'temp_reg_map_files')
+
+
+        # get roi order and send to output node for z-stat outputs
+        get_roi_order_zstat = pe.Node(util.Function(input_names=['maps',
+                                                           'timeseries'],
+                                              output_names=['labels',
+                                                            'maps'],
+                                              function=map_to_roi),
+                                name='get_roi_order_zstat')
+
+        wflow.connect(split_zstat, 'out_files',
+                      get_roi_order_zstat, 'maps')
+
+        wflow.connect(inputNode, 'subject_timeseries',
+                      get_roi_order_zstat, 'timeseries')
+
+        rename_maps_zstat = pe.MapNode(interface=util.Rename(),
+                                 name='rename_maps_zstat',
+                                 iterfield=['in_file',
+                                              'format_string'])
+        rename_maps_zstat.inputs.keep_ext = True
+
+        wflow.connect(get_roi_order_zstat, 'labels',
+                      rename_maps_zstat, 'format_string')
+        wflow.connect(get_roi_order_zstat, 'maps',
+                      rename_maps_zstat, 'in_file')
+
+        wflow.connect(rename_maps_zstat, 'out_file',
+                      outputNode, 'temp_reg_map_z_files')
 
 
     return wflow

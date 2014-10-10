@@ -60,6 +60,22 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                  values= "None",
                  validator = CharValidator("no-alpha"),
                  comment="Specify the TR at which images were acquired.\n\nDefault is None (TR information is read from image file header)")
+
+        self.page.add(label="Perform Slice Time Correction:", 
+                     control=control.CHOICE_BOX, 
+                     name='slice_timing_correction', 
+                     type=dtype.LSTR, 
+                     comment="Interpolate voxel time courses so they are sampled at the same time points.", 
+                     values=["On","Off","On/Off"],
+                     wkf_switch = True)
+
+        self.page.add(label="Slice Acquisition Pattern:", 
+                     control=control.CHOICE_BOX, 
+                     name='slice_timing_pattern', 
+                     type=dtype.LSTR, 
+                     comment="Acquisition strategy for acquiring image slices.", 
+                     values=["Use NIFTI Header","alt+z","alt+z2","alt-z","alt-z2","seq+z","seq-z"],
+                     wkf_switch = True)
         
         
     
