@@ -1,0 +1,73 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Timeseries Extraction &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Group-Level Statistics" href="fsl_ga.html" />
+    <link rel="prev" title="Connectome-wide Association Studies (CWAS)" href="cwas.html" /> 
+  </head>
+  <body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="timeseries-extraction">
+<h1>Timeseries Extraction<a class="headerlink" href="#timeseries-extraction" title="Permalink to this headline"></a></h1>
+<p>C-PAC lets users easily export BOLD timeseries in a number of different ways. This can be useful for those wishing to undertake advanced analysis not include in C-PAC, but still take advantage of its robust pre-processing features. For instructions on how to configure C-PAC for this analysis, please see the <tt class="xref doc docutils literal"><span class="pre">Seed-based</span> <span class="pre">Correlation</span> <span class="pre">Analysis</span> <span class="pre">and</span> <span class="pre">Timeseries</span> <span class="pre">Extraction</span> <span class="pre">Configuration</span> <span class="pre">Page</span></tt>.</p>
+<div class="section" id="roi-timeseries-extraction">
+<h2>ROI Timeseries Extraction<a class="headerlink" href="#roi-timeseries-extraction" title="Permalink to this headline"></a></h2>
+<p>ROI Timeseries Extraction allows you export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by the user.</p>
+<div class="figure">
+<img alt="_images/roi_tse.png" src="_images/roi_tse.png" />
+</div>
+<p>When an ROI is placed within a functionally homogeneous area, averaging signals in this way can produce a timeseries which may more accurately reflect the overall activity pattern in the region than does the timeseries of any individual voxel.</p>
+</div>
+<div class="section" id="voxel-timeseries-extraction">
+<h2>Voxel Timeseries Extraction<a class="headerlink" href="#voxel-timeseries-extraction" title="Permalink to this headline"></a></h2>
+<p>Voxel Timeseries Extraction will export the individual timeseries of all voxels within one or more masks.</p>
+<div class="figure">
+<img alt="_images/voxel_tse.png" src="_images/voxel_tse.png" />
+</div>
+</div>
+<div class="section" id="vertex-timeseries-extraction">
+<h2>Vertex Timeseries Extraction<a class="headerlink" href="#vertex-timeseries-extraction" title="Permalink to this headline"></a></h2>
+<p>Voxel Timeseries Extraction uses FreeSurfer to generate a 2-dimensional model of the cortical surface. Activation data is transformed and registered to points (vertices) on the surface model, each with its own activation timeseries. These timeseries can then be extracted.</p>
+</div>
+<div class="section" id="output-options">
+<h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this headline"></a></h2>
+<p>Timeseries can be exported as either a standard .csv file or as a <a class="reference external" href="http://scipy-lectures.github.com/intro/numpy/array_object.html?">Numpy Array</a></p>
+</div>
+
+
+
+          </div>
+        </div>
+      </div>
+
+  </body>
+</html>

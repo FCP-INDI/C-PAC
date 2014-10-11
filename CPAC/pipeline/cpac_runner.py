@@ -398,15 +398,6 @@ def run(config_file, subject_list_file, p_name = None):
     # creating symlinks
     strategies = sorted(build_strategies(c))
 
-    
-    print "strategies ---> "
-    print strategies
-    
-    sub_scan_map ={}
-
-    print "subject list: "
-    print sublist
-    
     try:
     
         for sub in sublist:

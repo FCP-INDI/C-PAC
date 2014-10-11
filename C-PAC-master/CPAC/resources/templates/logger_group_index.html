@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Log File for {{ subject_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="{{ resources }}/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+			h1 {
+				border-bottom: thin solid;
+				margin-bottom: 0.75em;
+			}
+
+      @media (max-width: 980px) {
+        /* Enable use of floated navbar text */
+        .navbar-text.pull-right {
+          float: none;
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+      }
+    </style>
+    <link href="{{ resources }}/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../assets/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+      <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+                    <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">
+                                   <link rel="shortcut icon" href="../assets/ico/favicon.png">
+  </head>
+
+  <body>
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span12">
+					<h1>Subjects</h1>
+				  <table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Status</th>
+							</tr>
+						<thead>
+					  <tbody>
+							{% for subject_id in subject_ids %}
+								<tr id="{{ subject_id }}" class="muted">
+									<td>
+										<a href="file://localhost/{{ log_dir }}/{{ subject_id }}/reports/index.html">{{ subject_id }}</a>
+									</td>
+									<td><span id="status" class="label">WAITING</span></td>
+								</tr>							
+							{% endfor %}							
+					  </tbody>
+				  </table>				
+        </div><!--/span-->
+      </div><!--/row-->
+
+      <hr>
+
+      <footer>
+				<img src="{{ gui_resources }}/images/cpac_new_logo.png">
+        <p>&copy; CPAC 2013</p>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+	    <!-- Le javascript
+	    ================================================== -->
+	    <!-- Placed at the end of the document so the pages load faster -->
+		<!-- Replace with min files eventually -->
+	  <script src="{{ resources }}/bootstrap/js/jquery.js"></script>
+	  <script src="{{ resources }}/bootstrap/js/bootstrap.js"></script>
+	  <script src="{{ resources }}/bootstrap/js/kul-substitute.js"></script>
+		
+		<script type="text/javascript" charset="utf-8">
+		  window.onload = setupRefresh;
+
+		  function setupRefresh() {
+				setInterval(function() {
+					location.reload(true);
+					//reload_logs();
+				}, 10000);	// reload whole page every 10 seconds
+		  }			
+		</script>
+		
+		<script type="text/javascript" charset="utf-8">
+			var subject_ids = {{ subject_ids }};
+			var scan_ids		= {{ scan_ids }};
+			
+			var wf_info = [];
+			for (var i = 0; i < 24; i++) { // Need to replace 10 with number of pipelines
+				wf_info[i] = [];
+			}
+			
+			// These are the possible values to expect from the .js files output from CPAC
+			var status_options	= ["WAITING", "RUNNING", "ERROR", "DONE"];
+	
+			// Mapping of status to the class of the table row
+			var row_classes			= {"WAITING": 'muted', "RUNNING": 'info', 
+												'ERROR': 'error', 'DONE': ''};
+	
+			// Mapping of status to the class of the span class label
+			var status_classes	= {"WAITING": '', "RUNNING": 'label-info', 
+												 	   'ERROR': 'label-important', 'DONE': 'label-success'};
+			
+			// Status for each subject
+			var ref_summary	= {entries: 0, done: 0, error: 0};
+			var statuses = {};
+			for (var i = 0; i < subject_ids.length; i++) {
+				var subj = subject_ids[i];
+				
+				statuses[subj] = {};
+				statuses[subj].all = jQuery.extend(true, {}, ref_summary);
+				
+				for (var j = 0; j < scan_ids[subj].length; j++) {
+					var scan = scan_ids[subj][j];
+					statuses[subj][scan] = jQuery.extend(true, {}, ref_summary);
+				}
+			}
+		</script>
+			
+		
+		<!-- Load all the js files -->
+		{% for subject_id in subject_ids %}			
+			{% for scan_id in scan_ids[subject_id] %}
+				<script type="text/javascript" src="file://localhost/{{ log_dir }}/{{ subject_id }}/reports/{{ scan_id }}.js"></script>				
+			{% endfor %}
+		{% endfor %}
+		
+		<!-- Parse the js files -->
+		<script type="text/javascript" charset="utf-8">
+			function load_entry(wf_info, pindex, windex) {
+				var info = jQuery.extend(true, {}, wf_info[pindex][windex]);
+				info.disp_strategy = info.strategy.replace(/_/g, " ");
+				info.wf_status = info.wf_status.toUpperCase();
+				info.wi = windex;
+				return info;
+			}
+			
+			function check_done(log_entry) {
+				if (log_entry.wf_status == 'DONE' & log_entry.wf_name == 'DONE') {
+					return true;
+				} else {
+					return false;
+				}
+			}
+			
+			function check_error(log_entry) {
+				if (log_entry.wf_status == 'ERROR') {
+					return true;
+				} else {
+					return false;
+				}
+			}
+			
+			function update_subject_row(subject_id, new_status) {
+				var search = "#" + subject_id;
+				var node = $(search);				
+			
+				search = search + " #status";
+				var status_node = $(search);
+			
+				if (status_node.text() != new_status) {
+					// Sets the color of the subject's row
+					node.removeClass();
+					node.addClass(row_classes[new_status]);
+				
+					// Sets the status of the subject's processing
+					status_node.text(new_status);
+					status_node.removeClass();
+					status_node.addClass("label");
+					status_node.addClass(status_classes[new_status]);
+				
+					return true;
+				}
+			
+				return false;
+			}
+			
+			// Compile all the log entries by subject and scan
+			for (var i = 0; i < wf_info.length; i++) {
+				var pindex = i;
+				
+				// Loop through every entry
+				for (var j = 0; j < wf_info[pindex].length; j++) {
+					var log_entry = load_entry(wf_info, pindex, j);
+					
+					var is_done		= check_done(log_entry);
+					var is_error	= check_error(log_entry);
+					
+					var save_scan = statuses[log_entry.subject_id][log_entry.scan_id];	// copy by ref
+					save_scan.entries	+= 1;
+					save_scan.done		+= is_done;
+					save_scan.error		+= is_error;
+				}
+			}
+			
+			// Collapse scan summaries by subject
+			for (var i = 0; i < subject_ids.length; i++) {
+				var subj = subject_ids[i];
+				
+				// Get the total numbers across scans
+				for (var j = 0; j < scan_ids[subj].length; j++) {
+					var scan = scan_ids[subj][j];
+					statuses[subj].all.done  		+= (statuses[subj][scan].done > 0);
+					statuses[subj].all.error 	 	+= statuses[subj][scan].error;
+					statuses[subj].all.entries 	+= statuses[subj][scan].entries;
+				}
+			}
+			
+			// Update each subject's table row
+			for (var i = 0; i < subject_ids.length; i++) {
+				var subj = subject_ids[i];
+				if (statuses[subj].all.error > 0) {
+					update_subject_row(subj, "ERROR");
+				} else if (statuses[subj].all.done == (scan_ids[subj].length)) {
+					update_subject_row(subj, "DONE");
+				} else if (statuses[subj].all.entries > 0) {
+					update_subject_row(subj, "RUNNING");
+				} else {
+					update_subject_row(subj, "WAITING");
+				}
+			}
+		</script>		
+  </body>
+</html>

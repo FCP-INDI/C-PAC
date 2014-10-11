@@ -1,0 +1,665 @@
+#Computer Settings
+
+# True = Run on compute cluster
+# False = Run on non-cluster machine
+runOnGrid: False
+
+# Number of subjects to run simultaneously
+# This number depends on computing resources
+# Only applies when running on a non-cluster machine with multiple cores
+numSubjectsAtOnce: 2
+
+# Number of cores (non-cluster) or slots on a node (cluster) per subject
+# Slots are cores on a cluster node
+# This number depends on computing resources
+# Only applies when non-cluster machine has multiple cores or runOnGrid = True
+numCoresPerSubject: 2
+
+# Options are 'SGE' (Sun Grid Engine) or 'PBS' (Portable Batch System)
+# Only applies when runOnGrid : True
+resourceManager: SGE
+
+# Notes on setting up SGE for C-PAC
+#
+# SGE users must set up their parallel environment before running C-PAC.
+# A pipeline for each subject that needs preprocessing should be spawned
+# on single node of the cluster. To avoid I/O overhead, the pipeline should
+# only use the resources (cores) from that node. Users can enable this feature
+# on Sun Grid Engine by modifying their parallel environment.
+#
+# To create a new environment based on an existing one, follow these steps:
+# 1. List existing parallel environments
+#    $ qconf -spl
+# 2. View the settings for an existing environment
+#    $ qconf -sp environment_name
+#    
+#    Example output:
+#    pe_name            mpi
+#    slots              999
+#    user_lists         NONE
+#    xuser_lists        NONE
+#    start_proc_args    NONE
+#    stop_proc_args     NONE
+#    allocation_rule    $fill_up
+#    control_slaves     TRUE
+#    job_is_first_task  FALSE
+#    urgency_slots      min
+#    accounting_summary TRUE
+#
+# 3. Create a new environment based on an existing one
+#    $ qconf -sp environment_name > environment_name_cpac
+# 4. Edit the new environment and set allocation_rule to $pe_slots
+# 5. Add the new environment file to SGE
+#    $ qconf -Ap environment_name_cpac
+
+# Specify your SGE parallel environment
+parallelEnvironment: cpac
+
+# Queue to use when running on an SGE cluster
+queue: all.q
+
+#Data Directory Setup
+# NOTE: Users must manually create these directories before running C-PAC
+
+# Directory where C-PAC should store temporary and intermediate files
+workingDirectory: /path/to/working_directory
+
+# Directory where C-PAC should place crash logs
+crashLogDirectory: /path/to/crash_directory
+
+# Directory where C-PAC should put processed data
+outputDirectory: /path/to/output_directory
+
+#Truncate Working Directory after run
+removeWorkingDir: False
+
+#regenerates all the outputs for all the subjects and their symlinks
+reGenerateOutputs: True
+
+#generate QC info
+generateQualityControlImages : [1]
+
+#Resolution and Smoothing
+
+# The resolution (in mm) to which functional images are transformed during registration
+standardResolution: 3mm
+
+# The resolution (in mm) to which anatomical images are transformed during registration
+# The higher the resolution the more time it takes to register the files to target space
+standardResolutionAnat: 2mm
+# Width (FWHM, in mm) of the Gaussian kernel used for spatial smoothing
+# To skip smoothing, set to []
+fwhm: [4]
+
+# Directory where FSL is located
+# If you have added FSL to your .bashrc file, this will be set automatically
+FSLDIR: /usr/local/fsl
+
+# FSL config file name
+# T1_2_MNI152_2mm is default value, user may change this to alternate
+# FSL configuration file to run FNIRT registration with different parameters
+fnirtConfig :  'T1_2_MNI152_2mm'
+
+# The following options specify the path of various resources used by C-PAC
+# By default, C-PAC will automatically locate most files based on FSLDIR
+# Most users will not need to modify these values
+
+# For users wishing to use non-standard versions of these resources:
+## 1) Delete the string in parentheses beginning with FSLDIR
+## 2) Replace this value with the full path to the appropriate file
+## 3) Repalce the resolution (e.g. 2mm) with %s in the file names.
+##    This allows resources to be automatically selected based on the
+##    standardResolution set above.
+
+
+
+standardResolutionBrainAnat:  $FSLDIR/data/standard/MNI152_T1_${standardResolutionAnat}_brain.nii.gz
+
+standardAnat: $FSLDIR/data/standard/MNI152_T1_${standardResolutionAnat}.nii.gz
+
+standardResolutionBrain: $FSLDIR/data/standard/MNI152_T1_${standardResolution}_brain.nii.gz
+
+standard: $FSLDIR/data/standard/MNI152_T1_$standardResolution.nii.gz 
+
+standardBrainMaskDiluted: $FSLDIR/data/standard/MNI152_T1_${standardResolution}_brain_mask_dil.nii.gz
+
+configFile: $FSLDIR/etc/flirtsch/T1_2_MNI152_$standardResolution.cnf
+
+# MUST BE DOWNLOADED AS PART OF CPAC_Templates.tgz (see User Guide)
+brainSymmetric: $FSLDIR/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz
+
+# MUST BE DOWNLOADED AS PART OF CPAC_Templates.tgz (see User Guide)
+symmStandard: $FSLDIR/data/standard/MNI152_T1_2mm_symmetric.nii.gz
+
+twommBrainMaskDiluted: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz
+
+configFileTwomm: $FSLDIR/etc/flirtsch/T1_2_MNI152_2mm.cnf
+
+identityMatrix: $FSLDIR/etc/flirtsch/ident.mat
+
+harvardOxfordMask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz
+
+boundaryBasedRegistrationSchedule: $FSLDIR/etc/flirtsch/bbr.sch
+
+#################
+#==================
+#Timeseries Options
+#==================
+###################
+
+# Ignore volumes before this timepoint
+# Options are an integer or None (defaults to beginning of timeseries)
+startIdx: 0
+
+# Ignore volumes after this timepoint
+# Options are an integer or None (defaults to end of timeseries)
+stopIdx: None
+
+# Specify a TR other than what is listen in image headers
+# Options are an integer or None (defaults to header information)
+TR: None
+
+##################
+#==================
+#Workflow Selection
+#==================
+##################
+# Set which preprocessing workflows to run.
+
+# WARNING:
+# Many measures and outputs require that these workflows be run.
+# Please refer to the developer documentation before changing these settings.
+# Options (here and for most other settings) are: 1 = run, 0 = skip
+
+runAnatomicalDataGathering: [1]
+
+runFunctionalDataGathering: [1]
+
+runAnatomicalPreprocessing: [1]
+
+runFunctionalPreprocessing: [1]
+
+# 0 = off, 1 = FSL anatomical-to-MNI, 2 = ANTS anatomical-to-MNI
+runRegistrationPreprocessing: [1]
+
+runRegisterFuncToAnat: [1]
+
+runRegisterFuncToMNI: [1]
+
+# REDUNDANT REGISTRATION -- DOUBLE CHECK
+runAnatomicalToFunctionalRegistration: [0]
+
+runSymbolicLinks: [1]
+
+########
+#=========================================
+#Probabilistic Tissue Segmentation Options *** NEED TO FIX PRIOR PATH
+#=========================================
+########
+# Run automatic tissue segmentation
+runSegmentationPreprocessing: [1]
+
+# C-PAC uses FSL to automatically distinguish tissue types based on priors.
+# Each prior represents the probability that a given voxel will be 
+# of a particular tissue type (white matter, gray matter, or CSF).
+
+# Please specify the location of your prior files.
+# Make sure to include %s at the end of the path. This allows priors
+# to be selected based on the standardResolution set above.
+#
+# Priors distributed with FSL must be binarized to be used by C-PAC
+# For information about how to do this, please see the User Guide
+prior_path: /path/to/tissuepriors/$standardResolution
+
+# These values will be set automatically based on prior_path
+PRIOR_CSF: $prior_path/avg152T1_csf_bin.nii.gz
+PRIOR_GRAY: $prior_path/avg152T1_gray_bin.nii.gz
+PRIOR_WHITE: $prior_path/avg152T1_white_bin.nii.gz
+
+# Set thresholds for use during automatic tissue segmentation.
+# Values correspond to probability thresholds for a given tissue type.
+# For example, setting a value of 0.8 will result in areas with a 80 percent 
+# probability of being a particular tissue type to be classified as such
+
+cerebralSpinalFluidThreshold: [0.98]
+
+whiteMatterThreshold: [0.98]
+
+grayMatterThreshold: [0.7]
+
+####
+#==================================
+#Nusiance Signal Correction Options *** 
+#==================================
+####
+# Run nuisance signal correction
+
+runNuisance: [1]
+
+# Select which nuisance signal corrections to apply:
+## compcor = CompCor
+## wm = White Matter 
+## csf = CSF
+## gm = Gray Matter
+## global = Global Mean Signal
+## pc1 = First Principle Component
+## motion = Motion
+## linear = Linear Trend
+## quadratic = Quadratic Trend
+
+# Options are 1 (apply) or 0 (ignore)
+# To use multiple sets of nuisance corrections, simply copy the array
+# Example: [{set 1}, {set 2}]
+
+#multiple corrections example
+#strategy1 - compcor,motion,linear
+#strategy2 - wm, csf, gm, linear
+#Corrections:
+#  - compcor: 1
+#    wm: 0
+#    csf: 0
+#    gm: 0
+#    global: 0
+#    pc1: 0
+#    motion: 1
+#    linear: 1
+#    quadratic: 0
+#  - compcor: 0
+#    wm: 1
+#    csf: 1
+#    gm: 1
+#    global: 0
+#    pc1: 0
+#    motion: 0
+#    linear: 1
+#    quadratic: 0
+
+
+Corrections:
+  - compcor: 1
+    wm: 0
+    csf: 0
+    gm: 0
+    global: 0
+    pc1: 0
+    motion: 1
+    linear: 1
+    quadratic: 0
+
+# Number of Principle Components to calculate for CompCor (usually 5 or 6)
+# Only for use when 'compcor' is set to 1
+nComponents: [5]
+
+# Run median angle correction
+runMedianAngleCorrection: [0]
+
+# Target angle for median angle correction
+targetAngleDeg: [90]
+
+# Generate FD and DVARS motion statistics
+# Required to run scrubbing, but can also be used as regressors in a GLM
+runGenerateMotionStatistics: [1]
+
+# Run Scrubbing
+runScrubbing: [0]
+
+# Specify maximum acceptable Framewise Displacement (in mm)
+# Any volume with displacement greater than this value will be removed.
+scrubbingThreshold: [0.2]
+
+# Number of volumes to remove prior to a volume with excessive FD
+numRemovePrecedingFrames: 1
+
+# Number of volumes to remove following a volume with excessive FD
+numRemoveSubsequentFrames: 2
+
+# Generate motion statistics based on the 24 parameter Friston model.
+runFristonModel: [1]
+
+####
+#==========================
+#Temporal Filtering Options
+#==========================
+###
+
+# Apply Temporal Filtering
+runFrequencyFiltering: [1]
+
+# First value = Lower bound for a band-pass filter
+# Second value = Upper bound for a band-pass filter
+# To use a high-pass filter, set the second value to None
+# To use a low-pass filter, set the first value to None
+nuisanceBandpassFreq: [[0.01, 0.1]]
+
+###
+#==============================
+#Timeseries Extraction Options 
+#==============================
+###
+
+# If seedSpecificationFile is not None and
+# points to a valid File
+# Creates ROI file given user specifications
+# The ROI nifti file is saved in seedOutputLocation 
+# If seedOutputLocation does not exist, we create it for
+# as long as you specify it in the setting
+# If different Resolutions are specified then
+# the software will group the ROI's having the same
+# resolution and put each group in seperate nifti files
+# NOTE: We DO NOT detect for overlapping ROIS
+# The overlapping regions of the ROIS will have 
+# intensity which the sum of intensity of individual
+# regions. Please check and avoid this prior to running CPAC
+# Each line in the file contains
+# seed_label x y z radius resolution
+# example :
+# 10    -6   52  -2  4 2mm
+# 70    -8  -56  26  4 2mm
+# 60     0   52  6   4 1mm
+# 1     -54 -54  28  4 4mm
+# 7     -60 -24 -18  4 4mm
+
+seedSpecificationFile: /path/to/seedSpecificationFile.txt
+
+seedOutputLocation: /full/path/to/seed_store
+
+# use the seeds specified in seedSpecificationFile in the following analysis
+# 1 = use in roi timeseries extraction
+# 2 = use in voxel timeseries extraction
+# 3 = use in network centrality
+# users can specify a combination of these options
+useSeedInAnalysis: [1]
+
+
+# Extract an average timeseries for each ROI
+# Required if you wish to run ROI-based SCA
+runROITimeseries: [0]
+
+# Export ROI timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
+roiTSOutputs: [True, True]
+
+
+# Path to file containing ROI definitions
+# For best performance, all ROIs should be in a single file (see User Guide)
+roiSpecificationFile: /path/to/path_to_file_with_roi_definitions.txt
+
+
+# Extract timeseries data for all individual voxels within a mask
+# Required if you wish to run voxel-based SCA
+runVoxelTimeseries: [0]
+
+# Export voxel timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
+voxelTSOutputs: [False, False]
+
+# Directory contaning masks
+# For best performance, all masks should be in a single file (see User Guide)
+
+maskSpecificationFile: /path/to/mask_definitions_file
+
+# Extract timeseries from existing spatial maps
+# Required if you wish to run dual regression
+runSpatialRegression: [0]
+
+# Path to file containing the paths to Spatial Pattern maps
+# All spatial patterns for one analysis have to be volumes in one 4D file
+# (see User Guide)
+spatialPatternMaps: /path/to/path_to_file_with_spatial_patterns.txt
+
+# do you want to demean your spatial pattern maps and input data (True / False)
+spatialDemean: True
+
+
+# Register timeseries data to a surface model built by FreeSurfer
+# Required to run vertex timeseries extraction
+runSurfaceRegistraion: [0]
+
+# Directory where FreeSurfer outputs surface data
+# This should be the same as SUBJECTS_DIR in .bashrc
+reconSubjectsDirectory: /path/to/fs_output_directory
+
+# Extract timeseries data for surface vertices
+runVerticesTimeSeries: [0]
+
+# Export vertex timeseries data
+# First value = Output .csv
+# Second value = Output numPy array
+# Options are True/False
+verticesTSOutputs: [False, False]
+
+###
+#=======================================
+#Seed-based Correlation Analysis Options
+#=======================================
+###
+
+# Run Seed-based Correlation Analysis
+runSCA: [0]
+
+# IN ORDER TO RUN SCA, YOU MUST ALSO RUN TIMESERIES EXTRACTION.
+# SCA will be run on all ROI and voxel timeseries extracted above.
+# Seeds for SCA must be specified in roiDirectoryPath or maskDirectoryPath.
+
+
+# As an additional option, you can use multiple regression as implemented in
+# fsl_glm to generate sca maps for each extracted timeseries
+runMultRegSCA: [0]
+
+# do you want to demean your timeseries maps and input functional 
+# data (True / False)
+mrsDemean: True
+
+# Normalize the timeseries (True / False)
+mrsNorm: True
+
+###
+#=======================================
+#Dual Regression Analysis Options
+#=======================================
+###
+# Run Dual Regression
+runDualReg: [0]
+
+# IN ORDER TO RUN Dual Regression, YOU MUST ALSO RUN SPATIAL REGRESSION for the
+# Timeseries Extraction.
+
+# Normalize the timeseries (True / False)
+drNorm: True
+
+###
+#===================================
+#Regional Homogeneity (ReHo) Options
+#===================================
+###
+
+# Calculate Regional Homogeneity
+runReHo: [0]
+
+# Cluster size (number of neighboring voxels)
+# Options are 7, 19, and 27
+clusterSize: 27
+
+###
+#============================================
+#Voxel-mirrored Homotopic Connectivity (VMHC)
+#============================================
+###
+
+# Calculate VMHC for all gray matter voxels
+runVMHC: [0]
+
+# There are no options for VMHC
+
+###
+#==========================================================================
+#Amplitude of Low Frequency Oscillations (ALFF) and fractional ALFF Options
+#==========================================================================
+###
+
+# Calculate ALFF and fALFF
+runALFF: [0]
+
+# NOTE: Frequency filtering is not applied when calculating fALFF
+
+# Frequency cutoff (in Hz) for a high-pass filter
+highPassFreqALFF: [0.01]
+
+# Frequency cutoff (in Hz) for a low-pass filter
+lowPassFreqALFF: [0.1]
+
+###
+#==========================
+#Network Centrality Options
+#==========================
+###
+
+# Calculate network centrality measures
+runNetworkCentrality: [0]
+
+# Select which centrality measures to calculate
+# First value = Degree Centrality 
+# Second value = Eigenvector Centrality
+# Options are True/False
+centralityMethodOptions: [True, True]
+
+# Specify how connections are defined during graph construction
+# First value = Binarized (connection strenth is either 0 or 1)
+# Second value = Weighted (connection strength is a correlation value)
+# Options are True/False
+centralityWeightOptions: [True, True]
+
+# Select what type of threshold is applied to create an adjacency matrix
+# 0 = Significance threshold (P-value)
+# 1 = Sparsity threshold (Sparsity value)
+# 2 = Correlation threshold (Pearson's r)
+correlationThresholdOption: 0
+
+# Based on the type of threshold selected above, enter the appropriate value
+# Significance threshold = P-value
+# Sparsity threshold = sparsity value
+# Correlation threshold = Pearsons' r value
+# examples: 0.05, 0.0744, 0.6
+correlationThreshold: 0.001
+
+# File containing ROI definitions or masks
+# Using ROIs will result in node-based centrality measures
+# Using a mask will result in voxel-based centrality measures
+# Each line of file contains full path to ROI or mask files
+# Example:
+# /path/to/template_1.nii.gz
+# /path/to/template_2.nii.gz
+# /path/to/template_3.nii.gz
+templateSpecificationFile: /path/to/file_containing_templates.txt
+
+
+# Memory allocated for degree centrality in GB
+# Note:- If eigen vector is turned on, CPAC will take extra memory to calculate 
+# eigen vector centrality. This memory is based on size of mask/template used. 
+memoryAllocatedForDegreeCentrality: 2
+
+
+###
+#====================================================
+#Bootstrap Analysis of Stable Clusters (BASC) Options
+#====================================================
+#"""
+# Run BASC
+runBASC: [0]
+
+# Path to a mask file. Voxels outside this mask will be excluded from BASC.
+bascROIFile: /path/to/basc_mask_file
+
+# Number of clusters at both the individual and group level.
+bascClusters: 6
+
+# Number of bootstraps to apply to original timeseries data.
+bascTimeseriesBootstraps: 100
+
+# Number of bootstraps to apply to individual stability matrices.
+bascDatasetBootstraps: 100
+
+# Path to a text file containing Affinity Thresholds for each subject.
+# These are correlation thresholds applied prior to spectral clustering.
+# Can be subject specific when subjects have differing numbers of timepoints.
+# Subjects should be in the same order as in the main subject list.
+bascAffinityThresholdFile: /path/to/basc_affinity_threshold_file
+
+
+####
+#================================================
+#Connectome-wide Association Study (CWAS) Options
+#================================================
+###
+# Run CWAS
+runCWAS: [0]
+
+# Path to a mask file. Voxels outside this mask will be excluded from CWAS.
+cwasROIFile: /path/to/cwas_mask_file
+
+# Number of permutation tests to run on the Psuedo-F statistic
+cwasFSamples: 5000
+
+# Number of NiPype nodes to be created while computing CWAS.
+# This number depends on computing resources
+cwasParallelNodes: 4
+
+# Path to a text file containing phenotypic regressor.
+cwasRegressorFile: /path/to/cwas_regressor_file
+
+# Column Number with Regressor of Interest
+# remember this is 0 indexed so the 1st column is 0
+# assuming the 1st column is the intercept, I've chosen the second column here
+cwasRegressorCols: [1]
+
+# A list with length equal to the total number of rows in your regressor file
+# Each element of the list, indicates that elements group. Leave it as None
+# if you have a between-subject design and give it a value if not.
+# 
+# For instance, if you have multiple scans per subject, then you would want to
+# do a permutation within-subject between scans. For this to occur, the list 
+# below could be something like ['s1', 's1', 's2', 's2', 's3', 's3', ...], 
+# indicating what subject each element/scan is associated with and permutations
+# would only be done between scans within each subject.
+cwasRegressorStrata: None
+
+
+###
+#========================
+#Group Statistics Options
+#========================
+###
+# Calculate group statistics
+
+runGroupAnalysis: [0]
+
+# Select which measures should be included in group analysis:
+## sca_seed_Z_to_standard_smooth = voxel-based SCA
+## sca_roi_Z_to_standard_smooth = ROI based SCA
+## alff_Z_to_standard_smooth = ALFF
+## falff_Z_to_standard_smooth  = fALFF
+## vmhc_z_score_stat_map = VMHC
+## reho_Z_to_standard_smooth = ReHo
+derivativeList:   
+- sca_seed_Z_to_standard_smooth
+- sca_roi_Z_to_standard_smooth
+- alff_Z_to_standard_smooth
+- falff_Z_to_standard_smooth
+- vmhc_z_score_stat_map
+- reho_Z_to_standard_smooth
+
+#list of fsl model configuratiion file
+modelConfigs : ['/home2/data/Projects/configs/config_fsl.yml']
+
+zThreshold: 2.3
+
+pThreshold: 0.05
+
+# Run an F-test
+# Options are True/False
+fTest: True
+

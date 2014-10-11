@@ -390,6 +390,7 @@ class MainFrame(wx.Frame):
         # list and not some other kind of file
         try:
             subInfo = sublist[0]
+            print subInfo
         except:
             errDlg4 = wx.MessageDialog(
                 self, 'ERROR: Subject list file not in proper format - check if you' \

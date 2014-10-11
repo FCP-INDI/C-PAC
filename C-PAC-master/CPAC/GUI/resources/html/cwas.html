@@ -1,0 +1,87 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <title>Connectome-wide Association Studies (CWAS) &mdash; C-PAC 0.1 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Timeseries Extraction" href="tse.html" />
+    <link rel="prev" title="Network Centrality" href="centrality.html" /> 
+  </head>
+  <body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="connectome-wide-association-studies-cwas">
+<h1>Connectome-wide Association Studies (CWAS)<a class="headerlink" href="#connectome-wide-association-studies-cwas" title="Permalink to this headline"></a></h1>
+<div class="section" id="introduction-background">
+<h2>Introduction &amp; Background<a class="headerlink" href="#introduction-background" title="Permalink to this headline"></a></h2>
+<p>Connectome-wide Association Studies (CWAS) allow researchers to explore relationships between patterns of functional connectivity (the functional connectome), behavior, and phenotypic factors.The CWAS method implemented in C-PAC (Shehzad et al., in prep) examines the correlation among patterns of functional connectivity and phenotypes using a combination of Multivariate Pattern Analysis (MVPA) and Multivariate Distance Matrix Regression (MDMR; Reiss et al., 2010). Compared to traditional univariate techniques which require rigorous correction for multiple comparisons, a multivariate approach significantly reduces the number of connectivity-phenotype comparisons needed to run a CWAS (Shehzad et al., in prep).</p>
+</div>
+<div class="section" id="computation-and-analysis-considerations">
+<h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline"></a></h2>
+<p>Computation steps for CWAS are listed below as described by Shehzad and colleagues (2012). For more detailed information about how C-PAC makes these calculations, please see the CWAS section of the developer documentation.</p>
+<ol class="arabic simple">
+<li>For each subject, C-PAC computes the correlation of BOLD signals between every possible pair of gray matter voxels, resulting in a V x V correlation matrix for each subject (where V is the number of gray matter voxels).</li>
+<li>To determine individual differences, patterns of whole-brain connectivity for each voxel are compared to the connectivity pattern for the same voxel between all possible pairs of subjects. A distance matrix is then computed which represents the dissimilarity between whole-brain connectivity patterns for any pair of subjects.</li>
+<li>MDMR is then used to test whether, for each voxel, whole-brain connectivity patterns tend to be more similar for individuals with like phenotypes (within-group) than individuals with unlike phenotypes (between-group). This quantifies how well phenotypic variables explain the distances between participants in the distance matrix.</li>
+<li>The significance of these similarities and differences is assessed with a permutation test. This identifies brain regions whose whole-brain pattern of connectivity is significantly predicted by a particular phenotypic variable.</li>
+</ol>
+<p>The figure below (taken from Shehzad et al., 2010) outlines these steps. For more detail on how C-PAC handles these computations, please see the <a class="reference external" href="http://fcp-indi.github.com/docs/developer/workflows/cwas.html">CWAS section of the developer documentation</a>.</p>
+<div class="figure">
+<img alt="_images/cwas_shehzad_schematic.png" src="_images/cwas_shehzad_schematic.png" />
+</div>
+<p>It is important to note that the results of MDMR analysis do not contain information about the direction of connectivity-phenotype relationships, nor the specific connections underlying these connectome-wide associations. Follow-up analysis using seed-based correlation analysis (or similar methods) is required to discover this information (Shehzad et al., in prep). To avoid bias caused by &#8216;double-dipping&#8217; your data (Kriegeskorte et al., 2009), this analysis should always be performed on an independent sample (Shehzad et al., in prep). Further, the results of these follow-up analyses should take into account existing knowledge about brain anatomy and physiology before being considered definitive (Shehzad et al., in prep).</p>
+</div>
+<div class="section" id="applications-and-recommendations">
+<h2>Applications and Recommendations<a class="headerlink" href="#applications-and-recommendations" title="Permalink to this headline"></a></h2>
+<p>As C-PAC is one of the first public software packages to implement CWAS, it has yet to be utilized by more than a few researchers. The most notable use to date is the analysis performed by Shehzad and colleagues, who found robust associations between functional connectivity and a number of phenotypic characteristics including age, ADHD diagnosis, IQ, and <em>L-dopa</em> administration.</p>
+<div class="figure">
+<img alt="_images/cwas_shehzad_brains.png" src="_images/cwas_shehzad_brains.png" />
+</div>
+<p>As CWAS examines connectivity across the whole brain, it may have reduced sensitivity to highly-localized sets of connections related to a phenotype. This issue can be addressed by limiting analysis to connectivity between specific anatomical regions (Shehzad et al., in prep), which can be accomplished by defining an ROI mask during C-PAC setup.</p>
+</div>
+
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h2>
+<p>Reiss, P.T., Stevens, M.H.H., Shehzad, Z., Petkova, E. &amp; Milham, M.P. <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/19673867">On
+distance-based permutation tests for between-group comparisons</a>. Biometrics 66,
+636Ð643 (2010).</p>
+<p>Shehzad, Z., Kelly, C., Reiss, P.T., Emerson, J.W., McMahon, K., Copland, D.A., Castellanos, F.X., &amp; Milham, M.P. An Analytic Framework for Connectome-Wide Association Studies</p>
+<p>Kriegeskorte, N., Simmons, W.K., Bellgowan, P.S.F. &amp; Baker, C.I. <a class="reference external" href="http://www.mrc-cbu.cam.ac.uk/people/nikolaus.kriegeskorte/Kriegeskorte%20Simmons%20Bellgowan%20&amp;%20Baker_Circular%20analysis%20in%20systems%20neuroscience_incl%20supplement_author%20version.pdf">Circular analysis in systems neuroscience: the dangers of double dipping</a>. Nat Neurosci 12, 535Ð540 (2009)</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+
+  </body>
+</html>
