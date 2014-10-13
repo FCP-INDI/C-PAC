@@ -4995,8 +4995,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
                                                   (r"/_z_score(\d)+[/]", "/"),
-                                                  (r"/_dr_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
-                                                  (r"/_sca_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
+                                                  (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                                                  (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
                                                   (r"/qc___", '/qc/')]
                 node, out_file = rp[key]
                 workflow.connect(node, out_file,
@@ -5010,13 +5010,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                             output_names=[],
                                             function=prepare_symbolic_links),
                                             name='link_%d' % sink_idx)
-                   
+
                     link_node.inputs.strategies = strategies
                     link_node.inputs.subject_id = subject_id
                     link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
                     link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
     
                     workflow.connect(ds, 'out_file', link_node, 'in_file')
+
                 sink_idx += 1
                 logger.info('sink index: %s' % sink_idx)
     

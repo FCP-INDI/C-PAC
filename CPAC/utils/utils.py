@@ -517,6 +517,11 @@ def get_strategies_for_path(path, strategies):
 
 def get_workflow(remainder_path):
 
+    # this iterates over the hard-coded list at the top of this file
+    # (utils.py) and matches workflow output paths provided to the function to
+    # more user-friendly labels. for example, a path to the output of
+    # 'functional_preprocessed_mask' is matched with the label 'func'
+
     global files_folders_wf
     lst = remainder_path.split('/')
 
@@ -662,26 +667,36 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
     from CPAC.utils.utils import get_workflow, get_session, \
                      get_hplpfwhmseed_
 
-    # from sink import global_lock
+    create_sym_file = open('/home/likewise-open/CHILDMIND/steven.giavasis/run/037/w2/create_sym_file.txt', 'a')
 
-
+    # relevant_strategies is a list of lists, where each list contains all of
+    # the nuisance correction selections per strategy
     for strategy in relevant_strategies:
 
         base_path, remainder_path = path.split(subject_id, 1)
 
-
         sym_path = path.split(pipeline_id)[0]
 
+        # create 'file_path', the path to a subject's output folder
+        # example: {path}/{output folder}/{pipeline id}/{subject id}
+        # this is used later to generate the QC and path_files directory paths
         file_path = os.path.join(sym_path, pipeline_id)
         file_path = os.path.join(file_path, subject_id)
-        sym_path = os.path.join(sym_path, 'sym_links')
 
+        # create the sym-link directory paths
+        sym_path = os.path.join(sym_path, 'sym_links')
         sym_path = os.path.join(sym_path, pipeline_id)
 
         try:
             os.makedirs(sym_path)
         except:
-            print '.'
+            # don't raise an exception here because multiple runs of the same
+            # os.makedirs are expected
+            print '\n\n[?] CPAC says: Could not create the directory for ' \
+                  'generating symbolic links. It is possible the directory ' \
+                  'already exists.\nAttempted directory creation at: %s\n\n' \
+                  % sym_path
+
 
         strategy_identifier = None
 
@@ -694,35 +709,44 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             strategy_identifier = ''
 
+            # iterate over each attribute of the nuisance correction strategy,
+            # then process these into the strategy_identifier string which is
+            # is used to name the sym-link folders under the pipeline ID
+            # folder and above the subject ID folders in the sym-links
+            # directory
             for el in strategy:
+
                 key, value = el.rsplit('_', 1)
 
-                print key, ' ----------> ', value
+                print >>create_sym_file, 'key: ', key, '\n\n'
+                print >>create_sym_file, 'value', value, '\n\n'
 
                 if '_compcor_'in key:
 
                     if 'compcor0' in value:
                         strategy_identifier += (value + '_')
-
                         continue
                     else:
                         val1 = key.split('_selector')[0]
                         strategy_identifier += val1 + '_' + value + '_'
                         continue
 
+                # the pipeline name is included as one of the instances of
+                # 'el' in this iteration, but we don't want this as part of
+                # the strategy identifier, so exclude 'pipeline_{name}'
                 if not 'pipeline' in key:
                     strategy_identifier += short_names[key] + value + '_'
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
-
-
 
         except:
             print str(strategy), " not in labels_dict"
             raise
 
 
-        # remove unused corrections
+        # this removes unused corrections from the strategy_identifier string,
+        # keeping in mind that corrections with a 0 appended to the end of the
+        # name denotes they were not included
         strategy_identifier = strategy_identifier.replace('pc10.', '')
         strategy_identifier = strategy_identifier.replace('linear0.', '')
         strategy_identifier = strategy_identifier.replace('wm0.', '')
@@ -733,19 +757,32 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
 
-#        strategy_identifier = 'regressors.' + strategy_identifier
 
         # start making basic sym link directories
         sym_path = os.path.join(sym_path, strategy_identifier)
         new_sub_path = os.path.join(sym_path, subject_id)
+
+        # get_workflow iterates over the hard-coded list at the top of this
+        # file (utils.py) and matches workflow output paths provided to the
+        # function to more user-friendly labels. for example, a path to the
+        # output of 'functional_preprocessed_mask' is matched with the label
+        # 'func'
         file_name, wf, remainder_path = get_workflow(remainder_path)
+
         session = get_session(remainder_path)
+
         new_session_path = os.path.join(new_sub_path, session)
         new_wf_path = os.path.join(new_session_path, wf)
         new_path = new_wf_path
 
+        # new_path is now the full path to a workflow output's symlink folder
+        # for one subject and one nuisance correction strategy
+        # example: {path to output folder}/sym_links/{pipeline id}/
+        #              {correction selections}/{subject id}/{scan id}/
+        #                  {workflow label}
 
-        # bring into use the tier 2 iterables for recursive directory structure
+        # bring into use the tier 2 iterables for recursive directory
+        # structure
 
         scan_info = '~~~'
         if '/_scan_' in path:
@@ -804,10 +841,18 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             new_path = os.path.join(new_path, fwhm_str)
 
 
+        print >>create_sym_file, 'new_path: ', new_path, '\n\n'
+
+        # create the final symlink path for the output, if not created already
         try:
             os.makedirs(new_path)
         except:
-            print '.'
+            # don't raise an exception here because multiple runs of
+            # os.makedirs are expected
+            print '\n\n[?] CPAC says: Could not create the directory for ' \
+                  'generating symbolic links. It is possible the directory ' \
+                  'already exists.\nAttempted directory creation at: %s\n\n' \
+                  % new_path
 
 
         try:
@@ -818,14 +863,17 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
                 new_f_path = os.path.join(file_path, 'path_files_here')
                 os.makedirs(new_f_path)
         except:
+            # don't raise an exception here because multiple runs of
+            # os.makedirs are expected
             print '.'
 
 
         try:
 
-
             global global_lock
             global_lock.acquire()
+
+            print >>create_sym_file, 'scan_info: ', scan_info, '\n\n'
 
             scan_info = scan_info.replace('~~~', '')
             f_n = None
@@ -866,10 +914,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         'seg_mixeltype',
         'seg_partial_volume_map',
         'seg_partial_volume_files',
-        'dr_tempreg_maps_z_files',
-        'dr_tempreg_maps_z_files_smooth',
-        'sca_tempreg_maps_z_files',
-        'sca_tempreg_maps_z_files_smooth']
+        'dr_tempreg_maps_zstat_files',
+        'dr_tempreg_maps_zstat_files_smooth',
+        'sca_tempreg_maps_zstat_files',
+        'sca_tempreg_maps_zstat_files_smooth']
 
         if file_name in dont_change_fname or 'qc' == wf:
 
@@ -886,6 +934,9 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             except:
                 print cmd
                 commands.getoutput(cmd)
+
+
+    create_sym_file.close()
 
 
 def prepare_gp_links(in_file, resource):
