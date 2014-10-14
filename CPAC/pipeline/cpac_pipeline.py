@@ -46,7 +46,7 @@ from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
                           gen_std_dev, gen_func_anat_xfm, gen_snr, \
                           generateQCPages, cal_snr_val
 from CPAC.utils.utils import extract_one_d, set_gauss, \
-                             prepare_symbolic_links, get_scan_params, \
+                             process_outputs, get_scan_params, \
                              get_tr, extract_txt, create_log, \
                              create_log_template, extract_output_mean, \
                              create_output_mean_csv, get_zscore, \
@@ -5003,24 +5003,31 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  ds, key)
                 logger.info('node, out_file, key: %s, %s, %s' % (node, out_file, key))
     
-                if 1 in c.runSymbolicLinks:
     
-                    link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                            'subject_id', 'pipeline_id', 'helper'],
-                                            output_names=[],
-                                            function=prepare_symbolic_links),
-                                            name='link_%d' % sink_idx)
+                link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
+                                        'subject_id', 'pipeline_id', 'helper', 'create_sym_links'],
+                                        output_names=[],
+                                        function=process_outputs),
+                                        name='process_outputs_%d' % sink_idx)
 
-                    link_node.inputs.strategies = strategies
-                    link_node.inputs.subject_id = subject_id
-                    link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
-                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                link_node.inputs.strategies = strategies
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
+                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+
+
+                if 1 in c.runSymbolicLinks:             
+                    link_node.inputs.create_sym_links = True
+                else:
+                    link_node.inputs.create_sym_links = False
+
     
-                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+                workflow.connect(ds, 'out_file', link_node, 'in_file')
 
                 sink_idx += 1
                 logger.info('sink index: %s' % sink_idx)
     
+
             d_name = os.path.join(c.outputDirectory, ds.inputs.container)
             if not os.path.exists(d_name):
                 os.makedirs(d_name)

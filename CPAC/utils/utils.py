@@ -113,20 +113,22 @@ files_folders_wf = {
     'seg_partial_volume_files': 'anat',
     'spatial_map_timeseries': 'timeseries',
     'dr_tempreg_maps_stack': 'spatial_regression',
-    'dr_tempreg_maps_z_stack': 'spatial_regression',
-    'dr_tempreg_maps_z_files': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files': 'spatial_regression',
     'dr_tempreg_maps_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_z_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_z_files_smooth':'spatial_regression',
-    'dr_tempreg_maps_z_stack_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_z_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack_smooth': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_smooth':'spatial_regression',
+    'dr_tempreg_maps_zstat_stack_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_to_standard': 'spatial_regression',
     'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
     'sca_tempreg_maps_stack': 'sca_roi',
-    'sca_tempreg_maps_z_stack': 'sca_roi',
-    'sca_tempreg_maps_z_files': 'sca_roi',
+    'sca_tempreg_maps_files': 'sca_roi',
+    'sca_tempreg_maps_files_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_stack': 'sca_roi',
+    'sca_tempreg_maps_zstat_files': 'sca_roi',
     'sca_tempreg_maps_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_z_files_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_stack_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_files_smooth': 'sca_roi',
 }
 
 
@@ -555,16 +557,20 @@ def get_session(remainder_path):
     return session
 
 
+
 def get_hplpfwhmseed_(parameter, remainder_path):
 
+    # this function extracts the filtering and smoothing parameters info from
+    # a path leading to an output of individual level analysis, and then
+    # returns these parameter values so that descriptive sym-link directories
+    # can be generated 
 
     partial_parameter_value = remainder_path.split(parameter)[1]
-
-    # print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_') + value
+
 
 
 def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
@@ -660,14 +666,15 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
 
 
-def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
+def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, create_sym_links):
 
     import os
     import commands
     from CPAC.utils.utils import get_workflow, get_session, \
                      get_hplpfwhmseed_
 
-    create_sym_file = open('/home/likewise-open/CHILDMIND/steven.giavasis/run/037/w2/create_sym_file.txt', 'a')
+    # path (one of the inputs of this function) is a path to a file output by
+    # individual-level analysis, and this function runs once per output file
 
     # relevant_strategies is a list of lists, where each list contains all of
     # the nuisance correction selections per strategy
@@ -679,6 +686,7 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
         # create 'file_path', the path to a subject's output folder
         # example: {path}/{output folder}/{pipeline id}/{subject id}
+        #
         # this is used later to generate the QC and path_files directory paths
         file_path = os.path.join(sym_path, pipeline_id)
         file_path = os.path.join(file_path, subject_id)
@@ -687,18 +695,22 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         sym_path = os.path.join(sym_path, 'sym_links')
         sym_path = os.path.join(sym_path, pipeline_id)
 
-        try:
-            os.makedirs(sym_path)
-        except:
-            # don't raise an exception here because multiple runs of the same
-            # os.makedirs are expected
-            print '\n\n[?] CPAC says: Could not create the directory for ' \
-                  'generating symbolic links. It is possible the directory ' \
-                  'already exists.\nAttempted directory creation at: %s\n\n' \
-                  % sym_path
 
+        if create_sym_links == True:
+
+            try:
+                os.makedirs(sym_path)
+            except:
+                # don't raise an exception here because multiple runs of the
+                # same os.makedirs are expected
+                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
+                      '%s\nThe directory probably already exists, but if you ' \
+                      'are seeing this message and it\'s not there, the ' \
+                      'directory creation failed.\n\n' % sym_path
+        
 
         strategy_identifier = None
+
 
         try:
 
@@ -713,13 +725,10 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             # then process these into the strategy_identifier string which is
             # is used to name the sym-link folders under the pipeline ID
             # folder and above the subject ID folders in the sym-links
-            # directory
+            # directory, describing the user's correction selections
             for el in strategy:
 
                 key, value = el.rsplit('_', 1)
-
-                print >>create_sym_file, 'key: ', key, '\n\n'
-                print >>create_sym_file, 'value', value, '\n\n'
 
                 if '_compcor_'in key:
 
@@ -757,18 +766,16 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
 
-
         # start making basic sym link directories
         sym_path = os.path.join(sym_path, strategy_identifier)
         new_sub_path = os.path.join(sym_path, subject_id)
 
-        # get_workflow iterates over the hard-coded list at the top of this
+        # 'get_workflow' iterates over the hard-coded list at the top of this
         # file (utils.py) and matches workflow output paths provided to the
         # function to more user-friendly labels. for example, a path to the
         # output of 'functional_preprocessed_mask' is matched with the label
         # 'func'
         file_name, wf, remainder_path = get_workflow(remainder_path)
-
         session = get_session(remainder_path)
 
         new_session_path = os.path.join(new_sub_path, session)
@@ -779,93 +786,124 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         # for one subject and one nuisance correction strategy
         # example: {path to output folder}/sym_links/{pipeline id}/
         #              {correction selections}/{subject id}/{scan id}/
-        #                  {workflow label}
+        #                  {workflow label, such as alff}
 
-        # bring into use the tier 2 iterables for recursive directory
+
+
+        # now bring into use the tier 2 iterables for recursive directory
         # structure
 
-        scan_info = '~~~'
+        # the 'get_hplpfwhmseed_' function extracts the filtering and
+        # smoothing parameters info from a path leading to an output of
+        # individual level analysis, and then returns these parameter values
+        # so that descriptive sym-link directories can be generated
+
+        # example: /{path to output folder}/sym_links/{pipeline id}/
+        #              {correction selections}/{subject id}/{scan id}/
+        #                  alff/hp_0.01/lp_0.1
+        #
+        # with 'hp_0.01' and 'lp_0.1' being the outputs of the
+        # 'get_hplpfwhmseed_' function for the remainder_path that included
+        # the alff output 
+
+        scan_info = ''
         if '/_scan_' in path:
 
             scan_info = get_hplpfwhmseed_('/_scan_', path)
 
-        print scan_info, ' ~~~', remainder_path
 
         if '/_mask_' in remainder_path:
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_mask_', remainder_path))
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_mask_', remainder_path))
+
 
         if '/_roi_' in remainder_path:
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_roi_', remainder_path))
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_roi_', remainder_path))
 
-#        if '/_sca_roi_' in remainder_path:
 
-#            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_sca_roi_', remainder_path))
+        if '/_sca_roi_' in remainder_path:
+
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_sca_roi_', remainder_path))
+
 
         hp_str = ''
-
         if ('_hp_'  in remainder_path):
 
             hp_str = get_hplpfwhmseed_('/_hp_', remainder_path)
             new_path = os.path.join(new_path, hp_str)
 
-        lp_str = ''
 
+        lp_str = ''
         if ('_lp_' in remainder_path):
 
             lp_str = get_hplpfwhmseed_('/_lp_', remainder_path)
-
             new_path = os.path.join(new_path, lp_str)
 
-        bp_freq = ''
 
+        bp_freq = ''
         if ('_bandpass_freqs_' in remainder_path):
 
             bp_freq = get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path)
             new_path = os.path.join(new_path, bp_freq)
 
 
-        fwhm_str = ''
-
-
         spatial_map = ''
         if('_spatial_map_' in remainder_path):
+
             spatial_map = get_hplpfwhmseed_('/_spatial_map_', remainder_path)
             new_path = os.path.join(new_path, spatial_map)
 
-        if ('_fwhm_' in remainder_path):
 
+        fwhm_str = ''
+        if ('_fwhm_' in remainder_path):
 
             fwhm_str = get_hplpfwhmseed_('/_fwhm_', remainder_path)
             new_path = os.path.join(new_path, fwhm_str)
 
 
-        print >>create_sym_file, 'new_path: ', new_path, '\n\n'
+        if create_sym_links == True:
 
-        # create the final symlink path for the output, if not created already
+            # create the final symlink path for the output, if not created
+            # already
+            try:
+                os.makedirs(new_path)
+            except:
+                # don't raise an exception here because multiple runs of
+                # os.makedirs are expected
+                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
+                      '%s\nThe directory probably already exists, but if you ' \
+                      'are seeing this message and it\'s not there, the ' \
+                      'directory creation failed.\n\n' % new_path
+
+
+        # prepare paths and filenames for QC text files and output paths_file
+        # text files that are written to the output directory
+
         try:
-            os.makedirs(new_path)
-        except:
-            # don't raise an exception here because multiple runs of
-            # os.makedirs are expected
-            print '\n\n[?] CPAC says: Could not create the directory for ' \
-                  'generating symbolic links. It is possible the directory ' \
-                  'already exists.\nAttempted directory creation at: %s\n\n' \
-                  % new_path
 
-
-        try:
-            if 'qc' == wf:
+            if wf == 'qc':
+                # if the output file is QC related, send it over to
+                # 'qc_files_here'. these files are often the .png images for
+                # the QC dashboard
                 new_f_path = os.path.join(file_path, 'qc_files_here')
                 os.makedirs(new_f_path)
             else:
+                # if the output file is not QC related, send it over to
+                # 'path_files_here'
                 new_f_path = os.path.join(file_path, 'path_files_here')
                 os.makedirs(new_f_path)
+
         except:
             # don't raise an exception here because multiple runs of
             # os.makedirs are expected
-            print '.'
+            print '\n\n[...] CPAC says: Attempted directory creation at: ' \
+                  '%s\nThe directory probably already exists, but if you ' \
+                  'are seeing this message and it\'s not there, the ' \
+                  'directory creation failed.\n\n' % new_f_path
 
 
         try:
@@ -873,70 +911,91 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
             global global_lock
             global_lock.acquire()
 
-            print >>create_sym_file, 'scan_info: ', scan_info, '\n\n'
-
-            scan_info = scan_info.replace('~~~', '')
             f_n = None
+
+            # use the strategy identifier strings and the filtering and
+            # smoothing parameter values extracted above to name the qc and
+            # output paths_file text files descriptively
+
             if wf == 'qc':
                 f_n = os.path.join(new_f_path, 'qc_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
             else:
                 f_n = os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
-            f = open(f_n, 'a')
 
-            print >> f, path
+            f = open(f_n, 'a')
+            print >>f, path
+
             global_lock.release()
 
         except:
+
             print 'trouble acquiring locks or opening file skipping :', os.path.join(new_f_path, 'paths_file_%s.txt') % new_path.replace('/', '_')
             raise
 
-        fname = os.path.basename(path)
-
-        ext = fname.split('.', 1)[1]
-        ext = '.' + (ext)
-
-        # special case for ROI , need the ROI number
-
-        if '_ROI_' in fname and 'sca_' in path:
-            import re
-            roi_number = re.findall(r'\d+', fname)[0]
-            file_name += '_' + roi_number
 
 
-        dont_change_fname = ['vertices_timeseries',
-        'centrality_outputs_smoothed',
-        'centrality_outputs_zscore',
-        'centrality_outputs',
-        'centrality_graphs'
-        'voxel_timeseries',
-        'roi_timeseries',
-        'seg_probability_maps',
-        'seg_mixeltype',
-        'seg_partial_volume_map',
-        'seg_partial_volume_files',
-        'dr_tempreg_maps_zstat_files',
-        'dr_tempreg_maps_zstat_files_smooth',
-        'sca_tempreg_maps_zstat_files',
-        'sca_tempreg_maps_zstat_files_smooth']
+        if create_sym_links == True:
 
-        if file_name in dont_change_fname or 'qc' == wf:
+            # create the actual sym-links now
 
-            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
-            print cmd
-            commands.getoutput(cmd)
-        else:
+            # fname is the filename of the current individual level output
+            # file
+            fname = os.path.basename(path)
 
-            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name + ext))
-            try:
+            # ext is the extension of the current individual level output file
+            ext = fname.split('.', 1)[1]
+            ext = '.' + (ext)
 
-                f1 = open(os.path.join(new_path, file_name + ext))
 
-            except:
+            # special case for ROI , need the ROI number
+            if '_ROI_' in fname and 'sca_' in path:
+
+                # extracts the ROI number from the output file's path in the
+                # output folder and appends it to the symlink file's name
+                import re
+                roi_number = re.findall(r'\d+', fname)[0]
+                file_name += '_' + roi_number
+
+
+            dont_change_fname = ['vertices_timeseries',
+            'centrality_outputs_smoothed',
+            'centrality_outputs_zscore',
+            'centrality_outputs',
+            'centrality_graphs'
+            'voxel_timeseries',
+            'roi_timeseries',
+            'seg_probability_maps',
+            'seg_mixeltype',
+            'seg_partial_volume_map',
+            'seg_partial_volume_files',
+            'dr_tempreg_maps_zstat_files',
+            'dr_tempreg_maps_zstat_files_smooth',
+            'sca_tempreg_maps_zstat_files',
+            'sca_tempreg_maps_zstat_files_smooth']
+
+
+            # split up the files between QC or not, and also between the ones
+            # where the filename has changed for the symlink or not
+
+            # if wf == 'qc', those are files used in the QC pages, such as
+            # .png files and other images
+
+            if (file_name in dont_change_fname) or (wf == 'qc'):
+
+                cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
                 print cmd
                 commands.getoutput(cmd)
 
+            else:
 
-    create_sym_file.close()
+                cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name + ext))
+
+                try:
+                    f1 = open(os.path.join(new_path, file_name + ext))
+                except:
+                    print cmd
+                    commands.getoutput(cmd)
+
 
 
 def prepare_gp_links(in_file, resource):
@@ -1145,6 +1204,7 @@ def prepare_gp_links(in_file, resource):
     commands.getoutput(cmd)
 
 
+
 def clean_strategy(strategies, helper):
 
 # ##
@@ -1161,7 +1221,7 @@ def clean_strategy(strategies, helper):
 
             key = el.rsplit('_', 1)[0]
 
-            print '~~~~~~ ', key, ' ~~~ ', el
+            print key, ': ', el
             if not ('compcor' in key):
 
                 if 'pipeline' in key:
@@ -1193,11 +1253,11 @@ def clean_strategy(strategies, helper):
     return new_strat
 
 
-def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
 
-    from CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
-       
-    
+def process_outputs(in_file, strategies, subject_id, pipeline_id, helper, create_sym_links):
+
+    from CPAC.utils.utils import get_strategies_for_path, create_paths_and_links, clean_strategy
+        
     for path in in_file:
 
         for strategy in strategies:
@@ -1208,7 +1268,8 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper)
         
         cleaned_strategies = clean_strategy(relevant_strategies, helper)
         
-        create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
+        create_paths_and_links(pipeline_id, cleaned_strategies, path, subject_id, create_sym_links)
+
 
 
 def modify_model(input_sublist, output_sublist, mat_file, grp_file):
