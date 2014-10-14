@@ -558,7 +558,8 @@ def get_centrality_by_sparsity(ts_normd,
     while n <= nvoxs:
         # First, compute block of correlation matrix
         print 'running block %d: rows %d thru %d' % (block_no, n, m-1)
-        # If we're doing degree centrality, go in block
+        # Calculate wij over entire matrix by block
+        # Do this for both deg and eig, more efficient way to compute r_value
         rmat_block = np.dot(ts_normd[:,n:m].T, 
                             ts_normd[:,n:])
         # Shrink block_mask down on every iteration after the first block
@@ -594,7 +595,6 @@ def get_centrality_by_sparsity(ts_normd,
         
         # If we're doing eigen, store block into full matrix
         if calc_eigen:
-            print 'doin work'
             r_matrix[n:m] = np.dot(ts_normd[:,n:m].T, ts_normd)
         
         # Move next block start point up to last block finish point
@@ -638,17 +638,17 @@ def get_centrality_by_sparsity(ts_normd,
     
     # Eigenvector - compute the r value from entire matrix
     if calc_eigen:
+        del wij_global
         # Finally compute centrality using full matrix and r_value
         if out_binarize:
             print '...calculating binarize eigenvector'
-            eigen_binarize = eigenvector_centrality(r_matrix, r_value, 
-                                                    method='binarize')
+            eigen_binarize[:] = eigenvector_centrality(r_matrix, r_value, 
+                                                       method='binarize').squeeze()
         if out_weighted:
             print '...calculating weighted eigenvector'
-            eigen_weighted = eigenvector_centrality(r_matrix, r_value, 
-                                                    method='weighted')
+            eigen_weighted[:] = eigenvector_centrality(r_matrix, r_value, 
+                                                       method='weighted').squeeze()
         del r_matrix
-        
     
     # Return list of outputs
     return out_list
