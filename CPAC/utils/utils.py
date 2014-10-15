@@ -15,6 +15,7 @@ files_folders_wf = {
     'anatomical_gm_mask': 'anat',
     'anatomical_csf_mask': 'anat',
     'anatomical_wm_mask': 'anat',
+    'ants_initial_xfm': 'anat',
     'ants_rigid_xfm': 'anat',
     'ants_affine_xfm': 'anat',
     'mean_functional': 'func',
