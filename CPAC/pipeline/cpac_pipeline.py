@@ -1094,7 +1094,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-
     '''
     Func -> T1 Registration (Initial Linear reg)
     '''
@@ -1519,8 +1518,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(alff.name)
             strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
             strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
-            #strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
-            #strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
             
             create_log_node(alff, 'outputspec.falff_img', num_strat)
 
@@ -2074,20 +2071,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runSpatialRegression:
 
         for strat in strat_list:
-            
-            '''
-            resample_functional_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_functional_to_spatial_map_%d' % num_strat)
-            resample_functional_to_spatial_map.inputs.interp = 'trilinear'
-            resample_functional_to_spatial_map.inputs.apply_xfm = True
-            resample_functional_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
-            
-            resample_functional_mask_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_functional_mask_to_spatial_map_%d' % num_strat)
-            resample_functional_mask_to_spatial_map.inputs.interp = 'nearestneighbour'
-            resample_functional_mask_to_spatial_map.inputs.apply_xfm = True
-            resample_functional_mask_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
-            '''
+
             resample_spatial_map_to_native_space = pe.Node(interface=fsl.FLIRT(),
                                                          name='resample_spatial_map_to_native_space_%d' % num_strat)
             resample_spatial_map_to_native_space.inputs.interp = 'nearestneighbour'
@@ -2109,24 +2093,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  resample_spatial_map_to_native_space, 'reference')
                 workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
                                  resample_spatial_map_to_native_space, 'in_file')
-                
-                '''
-                workflow.connect(node2, out_file2,
-                                 resample_functional_mask_to_spatial_map, 'in_file')
-                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-                                 resample_functional_mask_to_spatial_map, 'reference')
-                
-
+                               
                 # connect it to the spatial_map_timeseries
-                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-                                 spatial_map_timeseries, 'inputspec.spatial_map')
-                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
-                                 spatial_map_timeseries, 'inputspec.subject_mask')
-                workflow.connect(resample_functional_to_spatial_map, 'out_file',
-                                 spatial_map_timeseries, 'inputspec.subject_rest')
-                '''
-                
-                                # connect it to the spatial_map_timeseries
                 workflow.connect(resample_spatial_map_to_native_space, 'out_file',
                                  spatial_map_timeseries, 'inputspec.spatial_map')
                 workflow.connect(node2, out_file2,
@@ -2403,7 +2371,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_roi_correlations':(sca_roi, 'outputspec.correlation_file')})
-            #strat.update_resource_pool({'sca_roi_Z':(sca_roi, 'outputspec.Z_score')})
             
             create_log_node(sca_roi, 'outputspec.correlation_file', num_strat)
             
@@ -2427,7 +2394,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             sca_seed = create_sca('sca_seed_%d' % num_strat)
 
-
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -2442,9 +2408,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_seed_correlations':(sca_seed, 'outputspec.correlation_file')})
-            #strat.update_resource_pool({'sca_seed_Z':(sca_seed, 'outputspec.Z_score')})
+
             strat.append_name(sca_seed.name)
             num_strat += 1
+
     strat_list += new_strat_list
 
 
@@ -3315,9 +3282,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             sc_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='sca_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='sca_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='sca_tempreg_maps_zstat_stack_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='sca_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='sca_tempreg_maps_zstat_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_stack')
@@ -3389,11 +3356,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             dr_temp_reg_maps_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_Z_stack_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat)
+                                              name='dr_tempreg_maps_zstat_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             dr_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='dr_tempreg_maps_zstat_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack_to_standard')
