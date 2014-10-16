@@ -2,7 +2,7 @@
 
 # Method to return recommended block size based on memory restrictions 
 def calc_blocksize(timeseries, memory_allocated=None, 
-                   include_full_matrix=False, block_sparsity=False):
+                   include_full_matrix=False, sparsity_thresh=0.0):
     '''
     Method to calculate blocksize to calculate correlation matrix
     as per the memory allocated by the user. By default, the block
@@ -21,11 +21,13 @@ def calc_blocksize(timeseries, memory_allocated=None,
     memory_allocated : float
        memory allocated in GB for degree centrality
     include_full_matrix : boolean
-        do you want to consider the full correlation matrix in this calculation?
-        default: False
-    block_sparsity : boolean
-        are we doing degree centrality with sparsity thresholding, if yes, we 
-        need about 8x the memory per blocksize based on how the algorithm works
+        Boolean indicating if we're using the entire correlation matrix
+        in RAM (needed during eigenvector centrality).
+        Default is False
+    sparsity_thresh : float
+        a number between 0 and 1 that represents the number of
+        connections to keep during sparsity thresholding.
+        Default is 0.0.
     
     Returns
     -------
@@ -62,13 +64,12 @@ def calc_blocksize(timeseries, memory_allocated=None,
         ## memory_for_block = # of seed voxels * nvoxs * nbytes
         block_size = int( (available_memory - needed_memory)/(nvoxs*nbytes) )
         # If we're doing degree/sparisty thresholding, calculate block_size
-        if block_sparsity:
+        if sparsity_thresh:
             # k - block_size, v - nvoxs, d - nbytes, m - memory_allocated
-            # Solve for k: m = kv + (d+32)(kv-c); c = (k^2+k)/2
-            # Polymomial form: (-d/2-16)k^2 + (33v+dv-d/2-16)k - m = 0
+            # Solve for k: (-d/2 - 20.5)*k^2 + (41*v + d*v -d/2 - 20.5)*k - m = 0
             coeffs = np.zeros(3)
-            coeffs[0] = -nbytes/2-16
-            coeffs[1] = 33*nvoxs + nbytes*nvoxs -nbytes/2 -16
+            coeffs[0] = -nbytes/2 - 20.5
+            coeffs[1] = 41*nvoxs + nbytes*nvoxs - nbytes/2 - 20.5
             coeffs[2] = -(available_memory - needed_memory)
             roots = np.roots(coeffs)
             # If roots are complex, then the block_size needed to occupy all of
@@ -97,9 +98,16 @@ def calc_blocksize(timeseries, memory_allocated=None,
     block_size = int(block_size)
     
     # Return memory usage and block size
-    if block_sparsity:
-        c = (block_size**2+block_size)/2
-        m = block_size*nvoxs + (nbytes+32)*(block_size*nvoxs-c)
+    if sparsity_thresh:
+        # Calculate RAM usage by blocking algorithm
+        m = (-nbytes/2 - 20.5)*block_size**2 + \
+            (41*nvoxs + nbytes*nvoxs - nbytes/2 - 20.5)*block_size
+        # Calculate RAM usage by sparse matrix at end
+        max_conns = nvoxs**2-nvoxs
+        # Max number of connections * i + j (32-bit ints) + w
+        m2 = np.round(max_conns*sparsity_thresh)*(4 + 4 + nbytes)
+        if m2 > m:
+            m = m2
         memory_usage = (needed_memory + m)/1024.0**3
     else:
         memory_usage = (needed_memory + block_size*nvoxs*nbytes)/1024.0**3

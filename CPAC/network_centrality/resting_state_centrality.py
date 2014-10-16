@@ -364,14 +364,14 @@ def get_centrality_by_rvalue(ts_normd,
     
     # Prepare to loop through and calculate correlation matrix
     n = 0
-    m = (n+1)*block_size
-    exit_flg = 0
+    m = block_size
+    block_no = 1
     
-    while not exit_flg:
-
+    # Run as long as our last row index is <= nvoxs
+    while m <= nvoxs:
         # First, compute block of correlation matrix
-        print 'running block %d: rows %d thru %d' % (n+1, n*block_size, m)
-        rmat_block = np.dot(ts_normd[:,n*block_size:m].T, ts_normd)
+        print 'running block %d: rows %d thru %d' % (block_no, n, m)
+        rmat_block = np.dot(ts_normd[:,n:m].T, ts_normd)
         
         # Degree centrality calculation
         if calc_degree:
@@ -411,17 +411,20 @@ def get_centrality_by_rvalue(ts_normd,
         # Delete block of corr matrix and increment indices
         del rmat_block
         
-        # Check if we just did the last block
-        if m >= nvoxs:
-            exit_flg = 1
-        # Otherwise, increment indices
+        # Move next block start point up to last block finish point
+        n = m
+        # If we finished at nvoxs last time, break the loop
+        if n == nvoxs:
+            break
+        # Else, if our next block runs over nvoxs, limit it to nvoxs
+        elif (m+block_size) > nvoxs:
+            m = nvoxs
+        # Else, just increment end of next block by block_size
         else:
-            n += 1
-            m = (n+1)*block_size
-            # and check limit m if necessary
-            if m > nvoxs:
-                m = nvoxs
-        
+            m += block_size
+        # Increment block number
+        block_no += 1
+    
     # Correct for self-correlation in degree centrality
     if calc_degree:
         if out_binarize:
@@ -533,12 +536,12 @@ def get_centrality_by_sparsity(ts_normd,
             out_list.append(('eigenvector_centrality_weighted', eigen_weighted))
     
     # Get the number of connections to keep
-    sparse_num = int((nvoxs**2-nvoxs)*threshold/2)
+    sparse_num = np.round((nvoxs**2-nvoxs)*threshold/2.0)
     
     # Prepare to loop through and calculate correlation matrix
     n = 0
-    m = (n+1)*block_size
-    exit_flg = 0
+    m = block_size
+    block_no = 1
     r_value = -1
     # Init wij list
     z = np.array([])
@@ -552,68 +555,76 @@ def get_centrality_by_sparsity(ts_normd,
     # Delete matrices to save memory
     del block_triu, block_rect
     # Calculate correlations step - prune connections for degree
-    while not exit_flg:
-        # If we're doing degree centrality, go in blocks
-        if calc_degree:
-            # First, compute block of correlation matrix
-            print 'running block %d: rows %d thru %d' % (n+1, n*block_size, m-1)
-            rmat_block = np.dot(ts_normd[:,n*block_size:m].T, 
-                                ts_normd[:,n*block_size:])
-            # Shrink block_mask down on every iteration after the first block
-            if n > 0:
-                block_mask = block_mask[:,:-block_size]
-            # Get elements as an array
-            rmat_block = rmat_block[block_mask]
-            thr_idx = np.where(rmat_block >= r_value)
-            rmat_block = rmat_block[thr_idx]
-            print 'number of passing correlations id %d' % len(rmat_block)
-            # Add global offset
-            idx = np.where(block_mask)
-            i = idx[0][thr_idx].astype('int32') + n*block_size
-            j = idx[1][thr_idx].astype('int32') + n*block_size
-            # Free some memory
-            del idx, thr_idx
-            w_global = np.concatenate([wij_global.f0,rmat_block])
-            i_global = np.concatenate([wij_global.f1,i])
-            j_global = np.concatenate([wij_global.f2,j])
-            # Free some memory
-            del i,j,rmat_block
-            # Grab indices and weights that pass and combine into list
-            wij_global = np.rec.fromarrays([w_global,i_global,j_global])
-            # Free some memory
-            del w_global, i_global, j_global
-            # Pass these into the global set and sort (ascending) by correlation
-            print 'sorting list...'
-            wij_global.sort()
-            # And trim list if it's greater than the number of connections we want
-            if len(wij_global) > sparse_num:
-                wij_global = wij_global[-sparse_num:]
-            r_value = wij_global[0][0]
+    while n <= nvoxs:
+        # First, compute block of correlation matrix
+        print 'running block %d: rows %d thru %d' % (block_no, n, m-1)
+        # Calculate wij over entire matrix by block
+        # Do this for both deg and eig, more efficient way to compute r_value
+        rmat_block = np.dot(ts_normd[:,n:m].T, 
+                            ts_normd[:,n:])
+        # Shrink block_mask down on every iteration after the first block
+        if n > 0:
+            block_mask = block_mask[:,:-block_size]
+        # Get elements as an array
+        rmat_block = rmat_block[block_mask]
+        thr_idx = np.where(rmat_block >= r_value)   
+        rmat_block = rmat_block[thr_idx]
+        print 'number of passing correlations id %d' % len(rmat_block)
+        # Add global offset
+        idx = np.where(block_mask)
+        i = idx[0][thr_idx].astype('int32') + n
+        j = idx[1][thr_idx].astype('int32') + n
+        # Free some memory
+        del idx, thr_idx
+        w_global = np.concatenate([wij_global.f0,rmat_block])
+        i_global = np.concatenate([wij_global.f1,i])
+        j_global = np.concatenate([wij_global.f2,j])
+        # Free some memory
+        del i,j,rmat_block
+        # Grab indices and weights that pass and combine into list
+        wij_global = np.rec.fromarrays([w_global,i_global,j_global])
+        # Free some memory
+        del w_global, i_global, j_global
+        # Pass these into the global set and sort (ascending) by correlation
+        print 'sorting list...'
+        wij_global.sort()
+        # And trim list if it's greater than the number of connections we want
+        if len(wij_global) > sparse_num:
+            wij_global = wij_global[-sparse_num:]
+        r_value = wij_global[0][0]
         
         # If we're doing eigen, store block into full matrix
         if calc_eigen:
-            r_matrix[n:m] = np.dot(ts_normd[:,n*block_size:m].T, ts_normd)
+            r_matrix[n:m] = np.dot(ts_normd[:,n:m].T, ts_normd)
         
-        # Check if we just did the last block
-        if m >= nvoxs:
-            exit_flg = 1
-        # Otherwise, increment indices
+        # Move next block start point up to last block finish point
+        n = m
+        # If we finished at nvoxs last time, break the loop
+        if n == nvoxs:
+            break
+        # Else, if our next block runs over nvoxs, limit it to nvoxs
+        elif (m+block_size) > nvoxs:
+            m = nvoxs
+        # Else, just increment end of next block by block_size
         else:
-            n += 1
-            m = (n+1)*block_size
-            # and check limit m if necessary
-            if m > nvoxs:
-                m = nvoxs
+            m += block_size
+        # Increment block number
+        block_no += 1
     
     # Calculate centrality step
     # Degree - use ijw list to create a sparse matrix
     if calc_degree:
         # Create sparse (symmetric) matrix of all correlations that survived
         print 'creating sparse matrix'
+        # Extract the weights and indices from the global list
         w = wij_global.f0
         i = wij_global.f1
         j = wij_global.f2
+        del wij_global
+        # Create the sparse correlation matrix (upper triangle) from wij's
         Rsp = sp.sparse.coo_matrix((w,(i,j)), shape=(nvoxs,nvoxs))
+        del w, i, j
+        # Make it symmetric
         Rsp = Rsp + Rsp.T
         
         # And compute degree centrality on sparse matrix
@@ -627,27 +638,17 @@ def get_centrality_by_sparsity(ts_normd,
     
     # Eigenvector - compute the r value from entire matrix
     if calc_eigen:
-        # Get upper triangle of matrix (similarity matrix is symmetric)
-        rmat_triu = np.triu(r_matrix,1)
-        rarr = rmat_triu[np.where(rmat_triu)]
-        # Sort correlations and grab the sparsity-matched r_value
-        print 'sorting correlations of full correlation matrix...'
-        rarr.sort()
-        r_value = rarr[-sparse_num]
-        # Free up some memory
-        del rarr
-        del rmat_triu
+        del wij_global
         # Finally compute centrality using full matrix and r_value
         if out_binarize:
             print '...calculating binarize eigenvector'
-            eigen_binarize = eigenvector_centrality(r_matrix, r_value, 
-                                                    method='binarize')
+            eigen_binarize[:] = eigenvector_centrality(r_matrix, r_value, 
+                                                       method='binarize').squeeze()
         if out_weighted:
             print '...calculating weighted eigenvector'
-            eigen_weighted = eigenvector_centrality(r_matrix, r_value, 
-                                                    method='weighted')
+            eigen_weighted[:] = eigenvector_centrality(r_matrix, r_value, 
+                                                       method='weighted').squeeze()
         del r_matrix
-        
     
     # Return list of outputs
     return out_list
@@ -772,10 +773,19 @@ def calc_centrality(datafile,
                                         convert_pvalue_to_r
     from CPAC.cwas.subdist import norm_cols
     
+    # Check for input errors
     if weight_options.count(True) == 0:
         raise Exception("Invalid values in weight options" \
                         "At least one True value is required")
-    
+    # If it's sparsity thresholding, check for (0,1]
+    if threshold_option == 1:
+        if threshold <= 0 or threshold > 1:
+            raise Exception('Threshold value must be a positive number'\
+                            'greater than 0 and less than or equal to 1.'\
+                            '\nCurrently it is set at %d' % threshold)
+    if method_option == 2 and threshold_option != 2:
+        raise Exception('lFCD must use correlation-type thresholding.'\
+                         'Check the pipline configuration has this setting')
     import time
     start = time.clock()
     
@@ -786,7 +796,7 @@ def calc_centrality(datafile,
     # If we're doing eigenvectory centrality, need entire correlation matrix
     if method_option == 0 and threshold_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
-                                    block_sparsity=True)
+                                    sparsity_thresh=threshold)
     elif method_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
                                     include_full_matrix=True)
