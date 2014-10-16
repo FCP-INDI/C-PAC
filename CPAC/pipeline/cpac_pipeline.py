@@ -814,6 +814,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat = num_strat+1
 
 
+
         """
         Inserting slice timing correction
         Workflow
@@ -913,7 +914,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             # add new strats (if forked) 
             strat_list += new_strat_list
     
-            logger.info( " finsihed connected slice timing pattern")
+            logger.info( " finished connecting slice timing pattern")
+
+
 
         """
         Inserting Functional Image Preprocessing
@@ -1039,6 +1042,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
         strat_list += new_strat_list
     
+
+
         '''
         Inserting Friston's 24 parameter Workflow
         In case this workflow runs , it overwrites the movement_parameters file
@@ -1050,7 +1055,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         new_strat_list = []
         num_strat = 0
    
-        print "made it to line 981" 
         workflow_counter += 1
         if 1 in c.runFristonModel:
             workflow_bit_id['fristons_parameter_model'] = workflow_counter

@@ -115,6 +115,7 @@ def first_pass_organizing_files(qc_path):
 
         str_ = str_.replace('scan_', '')
 
+#        str_ = str_.replace('_', '')
         str_ = str_.replace('.txt', '')
 
 
