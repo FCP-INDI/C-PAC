@@ -536,10 +536,11 @@ class MainFrame(wx.Frame):
             if param != '':
                 paramList.append(param.split(','))
         
+
         # function for file path checking
-        def testFile(filepath, paramName):
+        def testFile(filepath, paramName, switch):
             try:
-                if filepath != None:
+                if (1 in switch) and (filepath != None):
                     fileTest = open(filepath)
                     fileTest.close()
             except:
@@ -564,30 +565,30 @@ class MainFrame(wx.Frame):
                 errDlgFileTest.Destroy()
         
         
-        testFile(c.template_brain_only_for_anat,'template_brain_only_for_anat')
-        testFile(c.template_skull_for_anat,'template_skull_for_anat')
-        testFile(c.PRIORS_WHITE,'PRIORS_WHITE')
-        testFile(c.PRIORS_GRAY,'PRIORS_GRAY')
-        testFile(c.PRIORS_CSF,'PRIORS_CSF')
-        testFile(c.template_brain_only_for_func,'template_brain_only_for_func')
-        testFile(c.template_skull_for_func,'template_skull_for_func')
-        testFile(c.identityMatrix,'identityMatrix')
-        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule')
-        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask')
-        testFile(c.seedSpecificationFile,'seedSpecificationFile')
-        testFile(c.roiSpecificationFile,'roiSpecificationFile')
-        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA')
-        testFile(c.maskSpecificationFile,'maskSpecificationFile')
-        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA')
-        testFile(c.spatialPatternMaps,'spatialPatternMaps')
-        testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only')
-        testFile(c.template_symmetric_skull,'template_symmetric_skull')
-        testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask')
-        testFile(c.configFileTwomm,'configFileTwomm')
-        testFile(c.templateSpecificationFile,'templateSpecificationFile')
-        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile')
-        testFile(c.cwasROIFile,'cwasROIFile')
-        testFile(c.cwasRegressorFile,'cwasRegressorFile')
+        testFile(c.template_brain_only_for_anat,'template_brain_only_for_anat',c.runRegistrationPreprocessing)
+        testFile(c.template_skull_for_anat,'template_skull_for_anat',c.runRegistrationPreprocessing)
+        testFile(c.PRIORS_WHITE,'PRIORS_WHITE',c.runSegmentationPreprocessing)
+        testFile(c.PRIORS_GRAY,'PRIORS_GRAY',c.runSegmentationPreprocessing)
+        testFile(c.PRIORS_CSF,'PRIORS_CSF',c.runSegmentationPreprocessing)
+        testFile(c.template_brain_only_for_func,'template_brain_only_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_skull_for_func,'template_skull_for_func',c.runRegisterFuncToMNI)
+        testFile(c.identityMatrix,'identityMatrix',c.runRegisterFuncToMNI)
+        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule',c.runRegisterFuncToAnat)
+        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask',c.runNuisance)
+        testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
+        testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
+        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
+        testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
+        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
+        testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
+        testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only',c.runVMHC)
+        testFile(c.template_symmetric_skull,'template_symmetric_skull',c.runVMHC)
+        testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask',c.runVMHC)
+        testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
+        testFile(c.templateSpecificationFile,'templateSpecificationFile',c.runNetworkCentrality)
+        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
+        testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
+        testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
              
             
         try:
