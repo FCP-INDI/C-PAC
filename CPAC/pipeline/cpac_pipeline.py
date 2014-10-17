@@ -5040,17 +5040,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
     
     
-        sub_w_path = os.path.join(c.workingDirectory, wfname)
-    
-        if c.removeWorkingDir:
-            try:
-                if os.path.exists(sub_w_path):
-                    import shutil
-                    logger.info("removing dir -> %s" % sub_w_path)
-                    shutil.rmtree(sub_w_path)
-            except:
-                logStandardWarning('Datasink', ('Couldn\'t remove subjects %s working directory' % wfname))
-                pass
+
 
     
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
@@ -5225,7 +5215,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # remove the temp timing file now that it is no longer needed
                 os.remove(timing_temp_file_path)
         
-        
+        # Remove working directory when done
+        sub_w_path = os.path.join(c.workingDirectory, wfname)
+        if c.removeWorkingDir:
+            try:
+                if os.path.exists(sub_w_path):
+                    import shutil
+                    logger.info("removing dir -> %s" % sub_w_path)
+                    shutil.rmtree(sub_w_path)
+            except:
+                logStandardWarning('Datasink', ('Couldn\'t remove subjects %s working directory' % wfname))
+                pass
         
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
