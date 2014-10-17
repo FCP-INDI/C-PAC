@@ -2734,6 +2734,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                        name='network_centrality_smooth_%d' % num_strat,
                                        iterfield=['in_file'])
 
+                    zstd_smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='network_centrality_zstd_smooth_%d' % num_strat,
+                                       iterfield=['in_file'])
+
 
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
@@ -2744,17 +2748,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      z_score, 'inputspec.input_file')
 
 
-                    # connecting zscores to smoothing
+                    # connecting raw centrality outputs to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      smoothing, 'operand_files')
-                    workflow.connect(z_score, 'outputspec.z_score_img',
+                    workflow.connect(merge_node, 'merged_list',
                                     smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                      smoothing, 'op_string')
 
+
+                    # connecting zscores to smoothing
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     zstd_smoothing, 'operand_files')
+                    workflow.connect(z_score, 'outputspec.z_score_img',
+                                    zstd_smoothing, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                     zstd_smoothing, 'op_string')
+
                     strat.append_name(smoothing.name)
-                    strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
-                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img')})
+                    strat.update_resource_pool({'centrality_outputs_smoothed': (smoothing, 'out_file'),
+                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img'),
+                                                'centrality_outputs_zstd_smoothed' : (zstd_smoothing, 'out_file')})
                     
                     strat.append_name(smoothing.name)
                     create_log_node(smoothing, 'out_file', num_strat)
@@ -3409,10 +3423,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 logConnectionError('Dual regression temp reg smooth', num_strat, strat.get_resource_pool(), '0039')
                 raise
             strat.append_name(dr_temp_reg_maps_smooth.name)
-            strat.update_resource_pool({'dr_tempreg_maps_stack_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
-                                        'dr_tempreg_maps_zstat_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
-                                        'dr_tempreg_maps_files_smooth':(dr_temp_reg_maps_files_smooth, 'out_file'),
-                                        'dr_tempreg_maps_zstat_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
+            strat.update_resource_pool({'dr_tempreg_maps_stack_to_standard_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
+                                        'dr_tempreg_maps_zstat_stack_to_standard_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                        'dr_tempreg_maps_files_to_standard_smooth':(dr_temp_reg_maps_files_smooth, 'out_file'),
+                                        'dr_tempreg_maps_zstat_files_to_standard_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
     strat_list += new_strat_list
@@ -4344,7 +4358,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if c.fwhm != None:
 
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_smooth')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_to_standard_smooth')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression_smooth')
 
@@ -4359,7 +4373,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                 else:
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_to_standard')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression')
 
@@ -4828,7 +4842,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if 'ants' in fork:
                     forklabel = 'ANTS'
-                if 'fsl' in fork or 'fnirt' in fork:
+                if 'fnirt' in fork:
                     forklabel = 'FNIRT'
                 if 'automask' in fork:
                     forklabel = '3dAutoMask(func)'
@@ -5047,18 +5061,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
         
-        
-        '''
-        # Timing code for cpac_timing_<pipeline>.txt in output directory
-        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
-        print >>timing, "Starting CPAC run at system time: ", strftime("%Y-%m-%d %H:%M:%S")
-        print >>timing, "Pipeline configuration: ", c.pipelineName
-        print >>timing, "Subject workflow: ", wfname
-        print >>timing, "\n"
-        '''
-    
-    
-        
+   
+        # Actually run the pipeline now, for the current subject
         workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
@@ -5230,17 +5234,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
         logger.info(endString)
     
-        '''
-        print >>timing, "CPAC run complete:"
-        print >>timing, "pipeline configuration- %s" % c.pipelineName
-        print >>timing, "subject workflow- %s" % wfname
-        print >>timing, "\n" + "Elapsed run time (minutes): ", ((time.time() - pipeline_start_time)/60)
-        print >>timing, "System time of completion: ", strftime("%Y-%m-%d %H:%M:%S")
-        print >>timing, "\n\n"
-    
-        timing.close()
-        '''
-
 
     return workflow
 

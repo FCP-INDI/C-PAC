@@ -107,6 +107,7 @@ files_folders_wf = {
     'centrality_outputs':'centrality',
     'centrality_outputs_smoothed':'centrality',
     'centrality_outputs_zstd':'centrality',
+    'centrality_outputs_zstd_smoothed': 'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -117,14 +118,14 @@ files_folders_wf = {
     'dr_tempreg_maps_files': 'spatial_regression',
     'dr_tempreg_maps_zstat_stack': 'spatial_regression',
     'dr_tempreg_maps_zstat_files': 'spatial_regression',
-    'dr_tempreg_maps_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_files_smooth': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_zstat_files_smooth':'spatial_regression',
     'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
     'dr_tempreg_maps_files_to_standard': 'spatial_regression',
     'dr_tempreg_maps_zstat_stack_to_standard': 'spatial_regression',
     'dr_tempreg_maps_zstat_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_stack_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_files_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth':'spatial_regression',
     'sca_tempreg_maps_stack': 'sca_roi',
     'sca_tempreg_maps_files': 'sca_roi',
     'sca_tempreg_maps_files_smooth': 'sca_roi',
@@ -1119,25 +1120,25 @@ def prepare_gp_links(in_file, resource):
 
     fourth_tier = ''
 
-    if 'sca_roi_Z' in resource and '/_roi_' in in_file:
+    if 'sca_roi' in resource and '/_roi_' in in_file:
 
         third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
 
         roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
         third_tier = third_tier + '/' + roi_number
 
-    elif ('dr_tempreg_maps_z_files' in resource and '/temp_reg_map_z_' in in_file):
+    elif ('dr_tempreg_maps_zstat_files' in resource and '/temp_reg_map_z_' in in_file):
 
         third_tier = resource + '_' + get_param_val_('/_spatial_map_', in_file)
         third_tier = third_tier + '/' + get_param_val_('/temp_reg_map_z_', in_file)
 
-    elif ('sca_tempreg_maps_z_files' in resource and '/sca_tempreg_z_maps_roi_' in in_file):
+    elif ('sca_tempreg_maps_zstat_files' in resource and '/sca_tempreg_z_maps_roi_' in in_file):
         third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
         roi_number = ''.join(['ROI_', get_param_val_('/sca_tempreg_z_maps_roi_', in_file)])
         third_tier = third_tier + '/' + roi_number
 
 
-    elif ('sca_seed_Z' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
+    elif ('sca_seed' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
 
         third_tier = resource + '_' + get_param_val_('/_mask_', in_file)
 
