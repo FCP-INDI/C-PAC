@@ -2424,6 +2424,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
 
     if 1 in c.runDualReg and (1 in c.runSpatialRegression):
+
         for strat in strat_list:
 
             dr_temp_reg = create_temporal_reg('temporal_dual_regression_%d' % num_strat)
