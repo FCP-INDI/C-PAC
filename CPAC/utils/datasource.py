@@ -98,9 +98,9 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         raise Exception
 
 
-    for mask_file in masks:
+    mask_dict = {}
 
-        mask_dict = {}
+    for mask_file in masks:
 
         mask_file = mask_file.rstrip('\r\n')
 

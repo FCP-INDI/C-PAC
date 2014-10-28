@@ -136,13 +136,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
-    max_core_usage = int(c.numCoresPerSubject) * int(c.numSubjectsAtOnce) * \
-                         int(numThreads) * int(c.num_ants_threads)
+    if 'ANTS' in c.regOption:
+        max_core_usage = int(c.numCoresPerSubject) * \
+                             int(c.numSubjectsAtOnce) * int(numThreads) * \
+                             int(c.num_ants_threads)
+    else:
+        max_core_usage = int(c.numCoresPerSubject) * \
+                             int(c.numSubjectsAtOnce) * int(numThreads)
+
 
     cores_msg = cores_msg + '\n\nSetting OMP_NUM_THREADS to %s\n' % numThreads
     cores_msg = cores_msg + 'Setting MKL_NUM_THREADS to %s\n' % numThreads
-    cores_msg = cores_msg + 'Setting ANTS/ITK thread usage to %d\n\n' \
-                % c.num_ants_threads
+
+    if 'ANTS' in c.regOption:
+        cores_msg = cores_msg + 'Setting ANTS/ITK thread usage to %d\n\n' \
+                    % c.num_ants_threads
 
     cores_msg = cores_msg + 'Maximum potential number of cores that might ' \
                 'be used during this run: %d\n\n' % max_core_usage
