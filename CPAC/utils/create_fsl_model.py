@@ -824,7 +824,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
     if 'categorical' in c.ev_selections.keys():
         for EV_name in c.ev_selections['categorical']:
-            formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
+            if c.coding_scheme == 'Treatment':
+                formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+            elif c.coding_scheme == 'Sum':
+                formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
 
 
     # create the actual design matrix using Patsy
@@ -1113,7 +1118,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                 if 'categorical' in c.ev_selections.keys():
                     for cat_EV in c.ev_selections['categorical']:
                         if cat_EV in col_name:
-                            cat_EV_stripped = col_name.replace('C(' + cat_EV + ', Sum)[S.', '')
+
+                            if c.coding_scheme == 'Treatment':
+                                cat_EV_stripped = col_name.replace('C(' + cat_EV + ')[T.', '')
+                            elif c.coding_scheme == 'Sum':
+                                cat_EV_stripped = col_name.replace('C(' + cat_EV + ', Sum)[S.', '')
+
                             cat_EV_stripped = cat_EV_stripped.replace(']', '')
                             EV_options.append(cat_EV_stripped)
                             skip = 1

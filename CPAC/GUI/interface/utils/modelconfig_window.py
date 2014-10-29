@@ -16,7 +16,7 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 600))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
 
 
         if gpa_settings == None:
@@ -94,6 +94,13 @@ class ModelConfig(wx.Frame):
                       comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD and Measure_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
+
+        self.page.add(label="Coding Scheme ", 
+                     control=control.CHOICE_BOX, 
+                     name="coding_scheme", 
+                     type=dtype.LSTR, 
+                     comment="Choose the coding scheme to use when generating your model.", 
+                     values=["Treatment", "Sum"])
 
 
 
@@ -242,26 +249,6 @@ class ModelConfig(wx.Frame):
                 if name != 'model_setup':
                     ctrl.set_value(str(self.gpa_settings[name]))
                 
-
-
-                '''
-                if isinstance(value, list):
-                    val = None
-                    for v in value:
-                        if val:
-                            val = val + "," + str(v)
-                        else:
-                            val = str(v)
-                    print 'value1: ', val
-                else:
-                    val = s_map.get(value)
-                    if val == None:
-                        val = value
-                    print 'value2: ', val
-                '''
-
-
-                #ctrl.set_value(str(val))
 
             dlg.Destroy()
 
@@ -505,62 +492,9 @@ class ModelConfig(wx.Frame):
         # take the user-provided design formula and break down the included
         # terms into a list, and use this to create the list of available
         # contrasts
-
-        '''
-        open_par = 0
-        combined_EV = ''
-        wait = 0
-
-        padded_formula_string = self.gpa_settings['design_formula'] + '  '
-
-        for char in padded_formula_string:
-
-            if (open_par == 0) and combined_EV != '':
-
-                if wait == 3:
-                    if char.isdigit():
-                        combined_EV = combined_EV + '**' + digit + char
-                    else:
-                        combined_EV = combined_EV + '**' + digit
-                    wait = 0
-                
-                elif wait == 2 and char.isdigit():
-                    digit = char
-                    wait = 3
-                    
-                elif wait == 1 and char == '*':
-                    wait = 2
-
-                elif char == '*':
-                    wait = 1
-
-                else:
-                    EVs_to_include.append(combined_EV)
-                    combined_EV = ''
-
-            if char == '(':
-                open_par += 1
-
-            if open_par > 0:
-                combined_EV = combined_EV + char
-
-            if char == ')':
-                open_par = open_par - 1
-        '''
-
                 
 
         formula = self.gpa_settings['design_formula']
-
-        '''
-        # remove the parentheses-nested EVs from the formula string
-        if len(EVs_to_include) > 0:
-
-            for par_EV in EVs_to_include:
-
-                formula_no_combined = formula.replace(par_EV,'')
-        '''
-
             
 
         # need to cycle through the EVs inside parentheses just to make
@@ -577,11 +511,7 @@ class ModelConfig(wx.Frame):
         formula_strip = formula_strip.replace(')',' ')
         EVs_to_test = formula_strip.split()
 
-        '''
-        formula_no_combined = formula_no_combined.replace('+',' ')
-        formula_no_combined = formula_no_combined.replace('-',' ')
-        EVs_to_include = EVs_to_include + formula_no_combined.split()
-        '''
+
 
         # ensure the design formula only has valid EVs in it
         for EV in EVs_to_test:
@@ -687,9 +617,6 @@ class ModelConfig(wx.Frame):
                     errSubID.Destroy()
                 
                     raise Exception
-
-
-
 
 
 
@@ -814,7 +741,11 @@ class ModelConfig(wx.Frame):
 
         if 'categorical' in self.gpa_settings['ev_selections']:
             for EV_name in self.gpa_settings['ev_selections']['categorical']:
-                formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
+                if self.gpa_settings['coding_scheme'] == 'Treatment':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                elif self.gpa_settings['coding_scheme'] == 'Sum':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
        
         # create the dmatrix in Patsy just to see what the design matrix
@@ -865,39 +796,11 @@ class ModelConfig(wx.Frame):
 
             if column_string != 'Intercept':
                 var_list_for_contrasts.append(column_string)
-                
-
-
-
-        '''
-        for header in EVs_to_include:
-
-            #if header in self.gpa_settings['design_formula']:
-
-            if 'categorical' in self.gpa_settings['ev_selections'].keys():
-                if header in self.gpa_settings['ev_selections']['categorical']:
-                
-                    for val in self.pheno_data_dict[header]:
-                        if val not in var_list_for_contrasts:
-                            var_list_for_contrasts.append(val)
-
-                else:
-
-                    if header != self.gpa_settings['subject_id_label']:
-                        if header not in var_list_for_contrasts:
-                            var_list_for_contrasts.append(header)
-
-            else:
-
-                if header != self.gpa_settings['subject_id_label']:
-                    if header not in var_list_for_contrasts:
-                        var_list_for_contrasts.append(header)
-        '''
-
 
 
         
         print 'varlist: ', var_list_for_contrasts
+
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
 
