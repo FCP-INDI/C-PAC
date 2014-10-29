@@ -454,8 +454,8 @@ def create_vmhc(use_ants=False, use_skull=False):
         vmhc.connect(smooth, 'out_file',
                      apply_ants_xfm_vmhc, 'inputspec.input_image')
 
-        #vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_initial_xfm',
-        #             collect_transforms_vmhc, 'inputspec.linear_initial')
+        vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_initial_xfm',
+                     collect_transforms_vmhc, 'inputspec.linear_initial')
 
         vmhc.connect(calculate_ants_xfm_vmhc, 'outputspec.ants_rigid_xfm',
                      collect_transforms_vmhc, 'inputspec.linear_rigid')

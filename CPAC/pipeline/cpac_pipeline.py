@@ -46,7 +46,7 @@ from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
                           gen_std_dev, gen_func_anat_xfm, gen_snr, \
                           generateQCPages, cal_snr_val
 from CPAC.utils.utils import extract_one_d, set_gauss, \
-                             prepare_symbolic_links, get_scan_params, \
+                             process_outputs, get_scan_params, \
                              get_tr, extract_txt, create_log, \
                              create_log_template, extract_output_mean, \
                              create_output_mean_csv, get_zscore, \
@@ -122,37 +122,49 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     # number of subjects
 
 
-    logger.info('VERSION: CPAC %s' % CPAC.__version__)
-    logger.info('Pipeline start time: %s' % pipeline_start_time)
+    cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
-    numAntsThreads = '1'
+
     os.environ['OMP_NUM_THREADS'] = numThreads
     os.environ['MKL_NUM_THREADS'] = numThreads
-    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = numAntsThreads
-
-
-    logger.info('Setting OMP_NUM_THREADS to %s' % numThreads)
-    logger.info('Setting MKL_NUM_THREADS to %s' % numThreads)
-    logger.info('Setting ANTS/ITK thread usage to %s' % numAntsThreads)
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(c.num_ants_threads)
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
-    max_core_usage = int(c.numCoresPerSubject) * int(c.numSubjectsAtOnce) * \
-                         int(numThreads) * int(numAntsThreads)
+    if 'ANTS' in c.regOption:
+        max_core_usage = int(c.numCoresPerSubject) * \
+                             int(c.numSubjectsAtOnce) * int(numThreads) * \
+                             int(c.num_ants_threads)
+    else:
+        max_core_usage = int(c.numCoresPerSubject) * \
+                             int(c.numSubjectsAtOnce) * int(numThreads)
 
-    logger.info('Maximum potential number of cores that may be used ' \
-                'during this run: %d' % max_core_usage)
 
-    logger.info('If that\'s more cores than you have, better fix that ' \
-                'quick! Hint: This can be changed via the settings ' \
-                '\'Number of Cores Per Subject\' and \'Number of Subjects ' \
-                'to Run Simultaneously\' in the pipeline configuration ' \
-                'editor under the tab \'Computer Settings\'.')
+    cores_msg = cores_msg + '\n\nSetting OMP_NUM_THREADS to %s\n' % numThreads
+    cores_msg = cores_msg + 'Setting MKL_NUM_THREADS to %s\n' % numThreads
+
+    if 'ANTS' in c.regOption:
+        cores_msg = cores_msg + 'Setting ANTS/ITK thread usage to %d\n\n' \
+                    % c.num_ants_threads
+
+    cores_msg = cores_msg + 'Maximum potential number of cores that might ' \
+                'be used during this run: %d\n\n' % max_core_usage
+
+    cores_msg = cores_msg + 'If that\'s more cores than you have, better ' \
+                'fix that quick! Hint: This can be changed via the settings '\
+                '\'Number of Cores Per Subject\', \'Number of Subjects ' \
+                'to Run Simultaneously\', and \'Number of Cores for ' \
+                'Anatomical Registration (ANTS only)\' in the pipeline ' \
+                'configuration editor under the tab \'Computer Settings' \
+                '\'.\n\n'
+
+    logger.info(cores_msg)
+
 
     qc_montage_id_a = {}
     qc_montage_id_s = {}
@@ -557,7 +569,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat.append_name(ants_reg_anat_mni.name)
                 strat.set_leaf_properties(ants_reg_anat_mni, 'outputspec.normalized_output_brain')
 
-                strat.update_resource_pool({#'ants_initial_xfm':(ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
+                strat.update_resource_pool({'ants_initial_xfm':(ants_reg_anat_mni, 'outputspec.ants_initial_xfm'),
                                             'ants_rigid_xfm':(ants_reg_anat_mni, 'outputspec.ants_rigid_xfm'),
                                             'ants_affine_xfm':(ants_reg_anat_mni, 'outputspec.ants_affine_xfm'),
                                             'anatomical_to_mni_nonlinear_xfm':(ants_reg_anat_mni, 'outputspec.warp_field'),
@@ -603,9 +615,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_mat')
                 elif 'anat_mni_ants_register' in nodes:
-                    #node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
-                    #workflow.connect(node, out_file,
-                    #                 seg_preproc, 'inputspec.standard2highres_init')
+                    node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                    workflow.connect(node, out_file,
+                                     seg_preproc, 'inputspec.standard2highres_init')
                     node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
                     workflow.connect(node, out_file,
                                      seg_preproc, 'inputspec.standard2highres_rig')
@@ -810,6 +822,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat = num_strat+1
 
 
+
         """
         Inserting slice timing correction
         Workflow
@@ -909,7 +922,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             # add new strats (if forked) 
             strat_list += new_strat_list
     
-            logger.info( " finsihed connected slice timing pattern")
+            logger.info( " finished connecting slice timing pattern")
+
+
 
         """
         Inserting Functional Image Preprocessing
@@ -1035,6 +1050,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
         strat_list += new_strat_list
     
+
+
         '''
         Inserting Friston's 24 parameter Workflow
         In case this workflow runs , it overwrites the movement_parameters file
@@ -1046,7 +1063,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         new_strat_list = []
         num_strat = 0
    
-        print "made it to line 981" 
         workflow_counter += 1
         if 1 in c.runFristonModel:
             workflow_bit_id['fristons_parameter_model'] = workflow_counter
@@ -1082,7 +1098,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 num_strat += 1
                 
         strat_list += new_strat_list
-
 
 
 
@@ -1392,9 +1407,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         # INVERSE transform, but ants_affine_xfm gets inverted
                         # within the workflow
 
-                        #node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
-                        #workflow.connect(node, out_file,
-                        #                 nuisance, 'inputspec.anat_to_mni_initial_xfm')
+                        node, out_file = strat.get_node_from_resource_pool('ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance, 'inputspec.anat_to_mni_initial_xfm')
 
                         node, out_file = strat.get_node_from_resource_pool('ants_rigid_xfm')
                         workflow.connect(node, out_file,
@@ -1511,8 +1526,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(alff.name)
             strat.update_resource_pool({'alff_img':(alff, 'outputspec.alff_img')})
             strat.update_resource_pool({'falff_img':(alff, 'outputspec.falff_img')})
-            #strat.update_resource_pool({'alff_Z_img':(alff, 'outputspec.alff_Z_img')})
-            #strat.update_resource_pool({'falff_Z_img':(alff, 'outputspec.falff_Z_img')})
             
             create_log_node(alff, 'outputspec.falff_img', num_strat)
 
@@ -1784,11 +1797,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                 'inputspec.warp_file')
 
                         # initial transformation from anatomical registration
-                        #node, out_file = strat.get_node_from_resource_pool(\
-                        #        'ants_initial_xfm')
-                        #workflow.connect(node, out_file,
-                        #        collect_transforms_func_mni,
-                        #        'inputspec.linear_initial')
+                        node, out_file = strat.get_node_from_resource_pool(\
+                                'ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                collect_transforms_func_mni,
+                                'inputspec.linear_initial')
 
                         # affine transformation from anatomical registration
                         node, out_file = strat.get_node_from_resource_pool(\
@@ -2066,20 +2079,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runSpatialRegression:
 
         for strat in strat_list:
-            
-            '''
-            resample_functional_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_functional_to_spatial_map_%d' % num_strat)
-            resample_functional_to_spatial_map.inputs.interp = 'trilinear'
-            resample_functional_to_spatial_map.inputs.apply_xfm = True
-            resample_functional_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
-            
-            resample_functional_mask_to_spatial_map = pe.Node(interface=fsl.FLIRT(),
-                                                         name='resample_functional_mask_to_spatial_map_%d' % num_strat)
-            resample_functional_mask_to_spatial_map.inputs.interp = 'nearestneighbour'
-            resample_functional_mask_to_spatial_map.inputs.apply_xfm = True
-            resample_functional_mask_to_spatial_map.inputs.in_matrix_file = c.identityMatrix
-            '''
+
             resample_spatial_map_to_native_space = pe.Node(interface=fsl.FLIRT(),
                                                          name='resample_spatial_map_to_native_space_%d' % num_strat)
             resample_spatial_map_to_native_space.inputs.interp = 'nearestneighbour'
@@ -2101,24 +2101,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  resample_spatial_map_to_native_space, 'reference')
                 workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
                                  resample_spatial_map_to_native_space, 'in_file')
-                
-                '''
-                workflow.connect(node2, out_file2,
-                                 resample_functional_mask_to_spatial_map, 'in_file')
-                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-                                 resample_functional_mask_to_spatial_map, 'reference')
-                
-
+                               
                 # connect it to the spatial_map_timeseries
-                workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-                                 spatial_map_timeseries, 'inputspec.spatial_map')
-                workflow.connect(resample_functional_mask_to_spatial_map, 'out_file',
-                                 spatial_map_timeseries, 'inputspec.subject_mask')
-                workflow.connect(resample_functional_to_spatial_map, 'out_file',
-                                 spatial_map_timeseries, 'inputspec.subject_rest')
-                '''
-                
-                                # connect it to the spatial_map_timeseries
                 workflow.connect(resample_spatial_map_to_native_space, 'out_file',
                                  spatial_map_timeseries, 'inputspec.spatial_map')
                 workflow.connect(node2, out_file2,
@@ -2156,110 +2140,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
-    Voxel Based Time Series 
-    '''
-
-    new_strat_list = []
-    num_strat = 0
-    if 1 in c.runVoxelTimeseries:
-
-
-        for strat in strat_list:
-
-            if c.maskSpecificationFile != None:
-
-                resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_mask_%d' % num_strat)
-                resample_functional_to_mask.inputs.interp = 'trilinear'
-                resample_functional_to_mask.inputs.apply_xfm = True
-                resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
-    
-                mask_dataflow = create_mask_dataflow(c.maskSpecificationFile, 'mask_dataflow_%d' % num_strat)
-    
-                voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
-                voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
-            
-            if c.maskSpecificationFileForSCA != None:
-            
-                resample_functional_to_mask_for_sca = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_functional_to_mask_for_sca_%d' % num_strat)
-                resample_functional_to_mask_for_sca.inputs.interp = 'trilinear'
-                resample_functional_to_mask_for_sca.inputs.apply_xfm = True
-                resample_functional_to_mask_for_sca.inputs.in_matrix_file = c.identityMatrix
-    
-                mask_dataflow_for_sca = create_mask_dataflow(c.maskSpecificationFileForSCA, 'mask_dataflow_for_sca_%d' % num_strat)
-    
-                voxel_timeseries_for_sca = get_voxel_timeseries('voxel_timeseries_for_sca_%d' % num_strat)
-                voxel_timeseries_for_sca.inputs.inputspec.output_type = c.voxelTSOutputs
-            
-
-            try:
-
-                if c.maskSpecificationFile != None:
-
-                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
-    
-                    # resample the input functional file to mask
-                    workflow.connect(node, out_file,
-                                     resample_functional_to_mask, 'in_file')
-                    workflow.connect(mask_dataflow, 'select_mask.out_file',
-                                     resample_functional_to_mask, 'reference')
-    
-                    # connect it to the voxel_timeseries
-                    workflow.connect(mask_dataflow, 'select_mask.out_file',
-                                     voxel_timeseries, 'input_mask.mask')
-                    workflow.connect(resample_functional_to_mask, 'out_file',
-                                     voxel_timeseries, 'inputspec.rest')
-                
-                if c.maskSpecificationFileForSCA != None:
-                    
-                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                    
-                    # resample the input functional file to mask
-                    workflow.connect(node, out_file,
-                                     resample_functional_to_mask_for_sca, 'in_file')
-                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
-                                     resample_functional_to_mask_for_sca, 'reference')
-    
-                    # connect it to the voxel_timeseries
-                    workflow.connect(mask_dataflow_for_sca, 'select_mask.out_file',
-                                     voxel_timeseries_for_sca, 'input_mask.mask')
-                    workflow.connect(resample_functional_to_mask_for_sca, 'out_file',
-                                     voxel_timeseries_for_sca, 'inputspec.rest')
-                
-
-            except:
-                logConnectionError('Voxel timeseries analysis', num_strat, strat.get_resource_pool(), '0030')
-                raise
-
-            if 0 in c.runVoxelTimeseries:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-
-            if c.maskSpecificationFile != None:
-                strat.append_name(voxel_timeseries.name)
-                strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
-                create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
-
-            if c.maskSpecificationFileForSCA != None:
-                strat.append_name(voxel_timeseries_for_sca.name)
-                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
-                create_log_node(voxel_timeseries_for_sca, 'outputspec.mask_outputs', num_strat)
-
-            if (c.maskSpecificationFile != None) or (c.maskSpecificationFileForSCA != None):
-                num_strat += 1
-
-
-    strat_list += new_strat_list
-
-
-
-    '''
     ROI Based Time Series
     '''
 
@@ -2278,7 +2158,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_roi.inputs.apply_xfm = True
                 resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
     
-                roi_dataflow = create_roi_dataflow(c.roiSpecificationFile, 'roi_dataflow_%d' % num_strat)
+                roi_dataflow = create_roi_mask_dataflow(c.roiSpecificationFile, 'ROI Average TSE', 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
                 roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
@@ -2294,7 +2174,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_roi_for_sca.inputs.apply_xfm = True
                 resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
                 
-                roi_dataflow_for_sca = create_roi_dataflow(c.roiSpecificationFileForSCA, 'roi_dataflow_for_sca_%d' % num_strat)
+                roi_dataflow_for_sca = create_roi_mask_dataflow(c.roiSpecificationFileForSCA, 'ROI Average TSE', 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
                 roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
@@ -2308,11 +2188,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
                                      resample_functional_to_roi, 'in_file')
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      resample_functional_to_roi, 'reference')
     
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow, 'outputspec.out_file',
                                      roi_timeseries, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi, 'out_file',
                                      roi_timeseries, 'inputspec.rest')
@@ -2326,11 +2206,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # resample the input functional file to roi
                     workflow.connect(node, out_file,
                                      resample_functional_to_roi_for_sca, 'in_file')
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
                                      resample_functional_to_roi_for_sca, 'reference')
     
                     # connect it to the roi_timeseries
-                    workflow.connect(roi_dataflow_for_sca, 'select_roi.out_file',
+                    workflow.connect(roi_dataflow_for_sca, 'outputspec.out_file',
                                      roi_timeseries_for_sca, 'input_roi.roi')
                     workflow.connect(resample_functional_to_roi_for_sca, 'out_file',
                                      roi_timeseries_for_sca, 'inputspec.rest')
@@ -2367,6 +2247,111 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
+    Voxel Based Time Series 
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+    if 1 in c.runVoxelTimeseries:
+
+
+        for strat in strat_list:
+
+            if c.maskSpecificationFile != None:
+
+                resample_functional_to_mask = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_mask_%d' % num_strat)
+                resample_functional_to_mask.inputs.interp = 'trilinear'
+                resample_functional_to_mask.inputs.apply_xfm = True
+                resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
+    
+                mask_dataflow = create_roi_mask_dataflow(c.maskSpecificationFile, 'ROI Voxelwise TSE', 'mask_dataflow_%d' % num_strat)
+    
+                voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
+                voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
+            
+            if c.maskSpecificationFileForSCA != None:
+            
+                resample_functional_to_mask_for_sca = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_functional_to_mask_for_sca_%d' % num_strat)
+                resample_functional_to_mask_for_sca.inputs.interp = 'trilinear'
+                resample_functional_to_mask_for_sca.inputs.apply_xfm = True
+                resample_functional_to_mask_for_sca.inputs.in_matrix_file = c.identityMatrix
+    
+                mask_dataflow_for_sca = create_roi_mask_dataflow(c.maskSpecificationFileForSCA, 'ROI Voxelwise TSE', 'mask_dataflow_for_sca_%d' % num_strat)
+    
+                voxel_timeseries_for_sca = get_voxel_timeseries('voxel_timeseries_for_sca_%d' % num_strat)
+                voxel_timeseries_for_sca.inputs.inputspec.output_type = c.voxelTSOutputs
+            
+
+            try:
+
+                if c.maskSpecificationFile != None:
+
+                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
+    
+                    # resample the input functional file to mask
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_mask, 'in_file')
+                    workflow.connect(mask_dataflow, 'outputspec.out_file',
+                                     resample_functional_to_mask, 'reference')
+    
+                    # connect it to the voxel_timeseries
+                    workflow.connect(mask_dataflow, 'outputspec.out_file',
+                                     voxel_timeseries, 'input_mask.mask')
+                    workflow.connect(resample_functional_to_mask, 'out_file',
+                                     voxel_timeseries, 'inputspec.rest')
+                
+                if c.maskSpecificationFileForSCA != None:
+                    
+                    node, out_file = strat.get_node_from_resource_pool('functional_mni')
+                    
+                    # resample the input functional file to mask
+                    workflow.connect(node, out_file,
+                                     resample_functional_to_mask_for_sca, 'in_file')
+                    workflow.connect(mask_dataflow_for_sca, 'outputspec.out_file',
+                                     resample_functional_to_mask_for_sca, 'reference')
+    
+                    # connect it to the voxel_timeseries
+                    workflow.connect(mask_dataflow_for_sca, 'outputspec.out_file',
+                                     voxel_timeseries_for_sca, 'input_mask.mask')
+                    workflow.connect(resample_functional_to_mask_for_sca, 'out_file',
+                                     voxel_timeseries_for_sca, 'inputspec.rest')
+                
+
+            except:
+                logConnectionError('Voxel timeseries analysis', num_strat, strat.get_resource_pool(), '0030')
+                raise
+
+            if 0 in c.runVoxelTimeseries:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            if c.maskSpecificationFile != None:
+                strat.append_name(voxel_timeseries.name)
+                strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
+                create_log_node(voxel_timeseries, 'outputspec.mask_outputs', num_strat)
+
+            if c.maskSpecificationFileForSCA != None:
+                strat.append_name(voxel_timeseries_for_sca.name)
+                strat.update_resource_pool({'voxel_timeseries_for_SCA': (voxel_timeseries_for_sca, 'outputspec.mask_outputs')})
+                create_log_node(voxel_timeseries_for_sca, 'outputspec.mask_outputs', num_strat)
+
+            if (c.maskSpecificationFile != None) or (c.maskSpecificationFileForSCA != None):
+                num_strat += 1
+
+
+    strat_list += new_strat_list
+
+
+
+
+    '''
     Inserting SCA
     Workflow for ROI INPUT
     '''
@@ -2394,7 +2379,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_roi_correlations':(sca_roi, 'outputspec.correlation_file')})
-            #strat.update_resource_pool({'sca_roi_Z':(sca_roi, 'outputspec.Z_score')})
             
             create_log_node(sca_roi, 'outputspec.correlation_file', num_strat)
             
@@ -2418,7 +2402,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             sca_seed = create_sca('sca_seed_%d' % num_strat)
 
-
             try:
                 node, out_file = strat.get_leaf_properties()
                 workflow.connect(node, out_file,
@@ -2433,9 +2416,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'sca_seed_correlations':(sca_seed, 'outputspec.correlation_file')})
-            #strat.update_resource_pool({'sca_seed_Z':(sca_seed, 'outputspec.Z_score')})
+
             strat.append_name(sca_seed.name)
             num_strat += 1
+
     strat_list += new_strat_list
 
 
@@ -2448,6 +2432,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
 
     if 1 in c.runDualReg and (1 in c.runSpatialRegression):
+
         for strat in strat_list:
 
             dr_temp_reg = create_temporal_reg('temporal_dual_regression_%d' % num_strat)
@@ -2664,7 +2649,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
-            template_dataflow = create_mask_dataflow(c.templateSpecificationFile, 'template_dataflow_%d' % num_strat)
+            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile, 'Network Centrality', 'template_dataflow_%d' % num_strat)
 
             # Connect in each workflow for the centrality method of interest
             def connectCentralityWorkflow(methodOption,
@@ -2758,6 +2743,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                        name='network_centrality_smooth_%d' % num_strat,
                                        iterfield=['in_file'])
 
+                    zstd_smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
+                                       name='network_centrality_zstd_smooth_%d' % num_strat,
+                                       iterfield=['in_file'])
+
 
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
@@ -2768,17 +2757,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      z_score, 'inputspec.input_file')
 
 
-                    # connecting zscores to smoothing
+                    # connecting raw centrality outputs to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      smoothing, 'operand_files')
-                    workflow.connect(z_score, 'outputspec.z_score_img',
+                    workflow.connect(merge_node, 'merged_list',
                                     smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                      smoothing, 'op_string')
 
+
+                    # connecting zscores to smoothing
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     zstd_smoothing, 'operand_files')
+                    workflow.connect(z_score, 'outputspec.z_score_img',
+                                    zstd_smoothing, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                     zstd_smoothing, 'op_string')
+
                     strat.append_name(smoothing.name)
-                    strat.update_resource_pool({'centrality_outputs_smoothed' : (smoothing, 'out_file'),
-                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img')})
+                    strat.update_resource_pool({'centrality_outputs_smoothed': (smoothing, 'out_file'),
+                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img'),
+                                                'centrality_outputs_zstd_smoothed' : (zstd_smoothing, 'out_file')})
                     
                     strat.append_name(smoothing.name)
                     create_log_node(smoothing, 'out_file', num_strat)
@@ -2871,10 +2870,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'inputspec.warp_file')
 
                 # linear initial from anatomical->template ANTS registration
-                #node, out_file = strat.get_node_from_resource_pool('ants' \
-                #        '_initial_xfm')
-                #workflow.connect(node, out_file, collect_transforms,
-                #        'inputspec.linear_initial')
+                node, out_file = strat.get_node_from_resource_pool('ants' \
+                        '_initial_xfm')
+                workflow.connect(node, out_file, collect_transforms,
+                        'inputspec.linear_initial')
 
                 # linear affine from anatomical->template ANTS registration
                 node, out_file = strat.get_node_from_resource_pool('ants' \
@@ -3306,9 +3305,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             sc_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='sca_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_stack_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='sca_tempreg_maps_Z_stack_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='sca_tempreg_maps_zstat_stack_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='sca_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='sca_tempreg_maps_zstat_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_stack')
@@ -3380,11 +3379,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             dr_temp_reg_maps_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_Z_stack_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_Z_stack_smooth_%d' % num_strat)
+                                              name='dr_tempreg_maps_zstat_stack_smooth_%d' % num_strat)
             dr_temp_reg_maps_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='dr_tempreg_maps_files_smooth_%d' % num_strat, iterfield=['in_file'])
             dr_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
-                                              name='dr_tempreg_maps_Z_files_smooth_%d' % num_strat, iterfield=['in_file'])
+                                              name='dr_tempreg_maps_zstat_files_smooth_%d' % num_strat, iterfield=['in_file'])
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_stack_to_standard')
@@ -3433,10 +3432,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 logConnectionError('Dual regression temp reg smooth', num_strat, strat.get_resource_pool(), '0039')
                 raise
             strat.append_name(dr_temp_reg_maps_smooth.name)
-            strat.update_resource_pool({'dr_tempreg_maps_stack_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
-                                        'dr_tempreg_maps_zstat_stack_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
-                                        'dr_tempreg_maps_files_smooth':(dr_temp_reg_maps_files_smooth, 'out_file'),
-                                        'dr_tempreg_maps_zstat_files_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
+            strat.update_resource_pool({'dr_tempreg_maps_stack_to_standard_smooth':(dr_temp_reg_maps_smooth, 'out_file'),
+                                        'dr_tempreg_maps_zstat_stack_to_standard_smooth':(dr_temp_reg_maps_Z_stack_smooth, 'out_file'),
+                                        'dr_tempreg_maps_files_to_standard_smooth':(dr_temp_reg_maps_files_smooth, 'out_file'),
+                                        'dr_tempreg_maps_zstat_files_to_standard_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
     strat_list += new_strat_list
@@ -4368,7 +4367,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if c.fwhm != None:
 
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_smooth')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_to_standard_smooth')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression_smooth')
 
@@ -4383,7 +4382,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                 else:
-                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files')
+                    temporal_dual_regression_overlay, out_file = strat.get_node_from_resource_pool('dr_tempreg_maps_zstat_files_to_standard')
                     montage_temporal_dual_regression = create_montage('montage_temporal_dual_regression_%d' % num_strat,
                                       'cyan_to_yellow', 'temporal_dual_regression')
 
@@ -4852,7 +4851,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 if 'ants' in fork:
                     forklabel = 'ANTS'
-                if 'fsl' in fork or 'fnirt' in fork:
+                if 'fnirt' in fork:
                     forklabel = 'FNIRT'
                 if 'automask' in fork:
                     forklabel = '3dAutoMask(func)'
@@ -4990,31 +4989,39 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
                                                   (r"/_z_score(\d)+[/]", "/"),
-                                                  (r"/_dr_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
-                                                  (r"/_sca_tempreg_maps_Z_files_smooth_(\d)+[/]", "/"),
+                                                  (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                                                  (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
                                                   (r"/qc___", '/qc/')]
                 node, out_file = rp[key]
                 workflow.connect(node, out_file,
                                  ds, key)
                 logger.info('node, out_file, key: %s, %s, %s' % (node, out_file, key))
     
-                if 1 in c.runSymbolicLinks:
     
-                    link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
-                                            'subject_id', 'pipeline_id', 'helper'],
-                                            output_names=[],
-                                            function=prepare_symbolic_links),
-                                            name='link_%d' % sink_idx)
-                   
-                    link_node.inputs.strategies = strategies
-                    link_node.inputs.subject_id = subject_id
-                    link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
-                    link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+                link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
+                                        'subject_id', 'pipeline_id', 'helper', 'create_sym_links'],
+                                        output_names=[],
+                                        function=process_outputs),
+                                        name='process_outputs_%d' % sink_idx)
+
+                link_node.inputs.strategies = strategies
+                link_node.inputs.subject_id = subject_id
+                link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
+                link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
+
+
+                if 1 in c.runSymbolicLinks:             
+                    link_node.inputs.create_sym_links = True
+                else:
+                    link_node.inputs.create_sym_links = False
+
     
-                    workflow.connect(ds, 'out_file', link_node, 'in_file')
+                workflow.connect(ds, 'out_file', link_node, 'in_file')
+
                 sink_idx += 1
                 logger.info('sink index: %s' % sink_idx)
     
+
             d_name = os.path.join(c.outputDirectory, ds.inputs.container)
             if not os.path.exists(d_name):
                 os.makedirs(d_name)
@@ -5042,17 +5049,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
     
     
-        sub_w_path = os.path.join(c.workingDirectory, wfname)
-    
-        if c.removeWorkingDir:
-            try:
-                if os.path.exists(sub_w_path):
-                    import shutil
-                    logger.info("removing dir -> %s" % sub_w_path)
-                    shutil.rmtree(sub_w_path)
-            except:
-                logStandardWarning('Datasink', ('Couldn\'t remove subjects %s working directory' % wfname))
-                pass
+
 
     
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
@@ -5063,18 +5060,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
         
-        
-        '''
-        # Timing code for cpac_timing_<pipeline>.txt in output directory
-        timing = open(os.path.join(c.outputDirectory, 'cpac_timing_%s_%s.txt' % (c.pipelineName, pipeline_starttime_string)), 'a')
-        print >>timing, "Starting CPAC run at system time: ", strftime("%Y-%m-%d %H:%M:%S")
-        print >>timing, "Pipeline configuration: ", c.pipelineName
-        print >>timing, "Subject workflow: ", wfname
-        print >>timing, "\n"
-        '''
-    
-    
-        
+   
+        # Actually run the pipeline now, for the current subject
         workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
@@ -5237,7 +5224,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # remove the temp timing file now that it is no longer needed
                 os.remove(timing_temp_file_path)
         
-        
+        # Remove working directory when done
+        sub_w_path = os.path.join(c.workingDirectory, wfname)
+        if c.removeWorkingDir:
+            try:
+                if os.path.exists(sub_w_path):
+                    import shutil
+                    logger.info("removing dir -> %s" % sub_w_path)
+                    shutil.rmtree(sub_w_path)
+            except:
+                logStandardWarning('Datasink', ('Couldn\'t remove subjects %s working directory' % wfname))
+                pass
         
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
@@ -5246,17 +5243,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
         logger.info(endString)
     
-        '''
-        print >>timing, "CPAC run complete:"
-        print >>timing, "pipeline configuration- %s" % c.pipelineName
-        print >>timing, "subject workflow- %s" % wfname
-        print >>timing, "\n" + "Elapsed run time (minutes): ", ((time.time() - pipeline_start_time)/60)
-        print >>timing, "System time of completion: ", strftime("%Y-%m-%d %H:%M:%S")
-        print >>timing, "\n\n"
-    
-        timing.close()
-        '''
-
 
     return workflow
 

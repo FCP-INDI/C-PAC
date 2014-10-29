@@ -597,35 +597,35 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
             name='calculate_ants_warp')
 
     calculate_ants_warp.inputs.output_warped_image = True
-    #calculate_ants_warp.inputs.initial_moving_transform_com = 0
+    calculate_ants_warp.inputs.initial_moving_transform_com = 0
 
 
-    #select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
-    #        'selection'], output_names=['selected_warp'],
-    #        function=seperate_warps_list), name='select_forward_initial')
+    select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
+            'selection'], output_names=['selected_warp'],
+            function=seperate_warps_list), name='select_forward_initial')
 
-    #select_forward_initial.inputs.selection = 0
+    select_forward_initial.inputs.selection = 0
 
 
     select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_rigid')
 
-    select_forward_rigid.inputs.selection = 0
+    select_forward_rigid.inputs.selection = 1
 
 
     select_forward_affine = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_affine')
 
-    select_forward_affine.inputs.selection = 1
+    select_forward_affine.inputs.selection = 2
 
 
     select_forward_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_warp')
 
-    select_forward_warp.inputs.selection = 2
+    select_forward_warp.inputs.selection = 3
 
 
     select_inverse_warp = pe.Node(util.Function(input_names=['warp_list',
@@ -702,8 +702,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
     # inter-workflow connections
 
-    #calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
-    #        select_forward_initial, 'warp_list')
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+            select_forward_initial, 'warp_list')
 
     calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
             select_forward_rigid, 'warp_list')
@@ -719,8 +719,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
     # connections to outputspec
 
-    #calc_ants_warp_wf.connect(select_forward_initial, 'selected_warp',
-    #        outputspec, 'ants_initial_xfm')
+    calc_ants_warp_wf.connect(select_forward_initial, 'selected_warp',
+            outputspec, 'ants_initial_xfm')
 
     calc_ants_warp_wf.connect(select_forward_rigid, 'selected_warp',
             outputspec, 'ants_rigid_xfm')
@@ -999,35 +999,35 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
     # .mat affine comes from Func->Anat registration
 
     if map_node == 0:
-        collect_transforms = pe.Node(util.Merge(4), name='collect_transforms')
+        collect_transforms = pe.Node(util.Merge(5), name='collect_transforms')
 
     elif map_node == 1:
-        collect_transforms = pe.MapNode(util.Merge(4),
+        collect_transforms = pe.MapNode(util.Merge(5),
                 name='collect_transforms_mapnode', iterfield=['in4'])
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')
 
  
-    # Field file from anatomical nonlinear registration
-    collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
-            'in1')
-
     # initial transformation from anatomical registration
-    #collect_transforms_wf.connect(inputspec, 'linear_initial',
-    #        collect_transforms, 'in2')
+    collect_transforms_wf.connect(inputspec, 'linear_initial',
+            collect_transforms, 'in1')
 
-    # affine transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_affine',
+    # rigid transformation from anatomical registration
+    collect_transforms_wf.connect(inputspec, 'linear_rigid',
             collect_transforms, 'in2')
 
     # affine transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_rigid',
+    collect_transforms_wf.connect(inputspec, 'linear_affine',
             collect_transforms, 'in3')
+
+    # Field file from anatomical nonlinear registration
+    collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
+            'in4')
 
     # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
     collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
-            collect_transforms, 'in4')
+            collect_transforms, 'in5')
 
     collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
             'transformation_series')

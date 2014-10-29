@@ -84,15 +84,22 @@ class ComputerSettings(wx.ScrolledWindow):
                       control=control.INT_CTRL,
                       name='numCoresPerSubject',
                       type=dtype.NUM,
-                      comment="Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.\n\nIMPORTANT: Number of Cores Per Subject multiplied by Number of Subjects to Run Simultaneously must not be greater than the total number of cores.",
+                      comment="Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
                       values=1)
 
         self.page.add(label="Number of Subjects to Run Simultaneously ",
                       control=control.INT_CTRL,
                       name='numSubjectsAtOnce',
                       type=dtype.NUM,
-                      comment="This number depends on computing resources.",
-                      values=2)
+                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      values=1)
+
+        self.page.add(label="Number of Cores for Anatomical Registration (ANTS only) ",
+                      control=control.INT_CTRL,
+                      name='num_ants_threads',
+                      type=dtype.NUM,
+                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      values=1)
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
