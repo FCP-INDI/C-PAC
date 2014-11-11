@@ -957,7 +957,12 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                     if cat_EV in EV:
 
-                        cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
+                        if c.coding_scheme == 'Treatment':
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ')[T.' + EV + ']')
+
+                        elif c.coding_scheme == 'Sum':
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
+
                         parsed_EVs_in_contrast.append(cat_EV_contrast)
                         skip = 1
                     
@@ -1031,7 +1036,11 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                             if cat_EV in item:
 
-                                item = item.replace(item, 'C(' + cat_EV + ', Sum)[S.' + item + ']')
+                                if c.coding_scheme == 'Treatment':
+                                    item = item.replace(item, 'C(' + cat_EV + ')[T.' + item + ']')
+
+                                elif c.coding_scheme == 'Sum':
+                                    item = item.replace(item, 'C(' + cat_EV + ', Sum)[S.' + item + ']')
 
 
                     if idx == 0:

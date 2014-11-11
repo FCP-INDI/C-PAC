@@ -42,7 +42,7 @@ class ReHoSettings(wx.ScrolledWindow):
                  name='runReHo', 
                  type=dtype.LSTR, 
                  comment="Calculate Regional Homogeneity (ReHo) for all voxels.", 
-                 values=["On","Off"],
+                 values=["Off","On"],
                  wkf_switch = True)
         
         

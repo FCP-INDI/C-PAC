@@ -213,8 +213,8 @@ class WorkflowConfig(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='already_skullstripped',
                       type=dtype.LSTR,
-                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to yes if your input images are already skull-stripped.",
-                      values=["No", "Yes"])
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
+                      values=["Off", "On"])
 
         self.page.add(label="Run Functional Preprocessing ",
                       control=control.CHOICE_BOX,

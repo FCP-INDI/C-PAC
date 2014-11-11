@@ -397,7 +397,6 @@ class ModelConfig(wx.Frame):
 
         import patsy
 
-
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()

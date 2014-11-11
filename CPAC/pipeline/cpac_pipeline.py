@@ -180,6 +180,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
 
+    # temp
+    already_skullstripped = c.already_skullstripped[0]
+    if already_skullstripped == 2:
+        already_skullstripped = 0
+    elif already_skullstripped == 3:
+        already_skullstripped = 1
+
+
+    subject_info = {}
+    subject_info['subject_id'] = subject_id
+    subject_info['start_time'] = pipeline_start_time
+    subject_info['strategies'] = strategies
+
 
 
     '''
@@ -339,7 +352,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         for strat in strat_list:
             # create a new node, Remember to change its name!
-            anat_preproc = create_anat_preproc(c.already_skullstripped[0]).clone('anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(already_skullstripped).clone('anat_preproc_%d' % num_strat)
 
             try:
                 # connect the new node to the previous leaf
@@ -399,7 +412,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # this is to prevent the user from running FNIRT if they are
                 # providing already-skullstripped inputs. this is because
                 # FNIRT requires an input with the skull still on
-                if c.already_skullstripped[0] == 3:
+                if already_skullstripped == 1:
 
                     err_msg = '\n\n[!] CPAC says: FNIRT (for anatomical ' \
                               'registration) will not work properly if you ' \
@@ -483,7 +496,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # registration with skull is preferred
                     if (1 in c.regWithSkull):
 
-                        if c.already_skullstripped[0] == 3:
+                        if already_skullstripped == 1:
 
                             err_msg = '\n\n[!] CPAC says: You selected ' \
                                       'to run anatomical registration with ' \
@@ -4961,13 +4974,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 if forkPointsDict[strat]:
                     pipeline_id = c.pipelineName + forkPointsDict[strat]
                 else:
-                    pipeline_id = ''
-                    pipeline_id = linecache.getline(os.path.realpath(os.path.join(CPAC.__path__[0], 'utils', 'pipeline_names.py')), hash_val)
-                    pipeline_id = pipeline_id.rstrip('\r\n')
-                    if pipeline_id == '':
-                        logger.info('hash value %s is greater than the number of words' % hash_val)
-                        logger.info('resorting to crc32 value as pipeline_id')
-                        pipeline_id = zlib.crc32(strat_tag)
+                    pipeline_id = c.pipelineName
+                    #if running multiple pipelines with gui, need to change this in future
+                    p_name = None
+
             else:
 
                 if forkPointsDict[strat]:
@@ -5060,10 +5070,42 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
         
-   
+        strat_no = 0
+       
+        subject_info['resource_pool'] = []
+
+        for strat in strat_list:
+
+            strat_label = 'strat_%d' % strat_no
+
+            subject_info[strat_label] = strat.get_name()
+
+            subject_info['resource_pool'].append(strat.get_resource_pool())
+
+            strat_no += 1
+
+
+        subject_info['status'] = 'Running'
+
+        subject_info_pickle = open(os.getcwd() + '/subject_info.p', 'wb')
+
+        pickle.dump(subject_info, subject_info_pickle)
+
+        subject_info_pickle.close()
+        
+
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
+
+        subject_info['status'] = 'Completed'
+
+        subject_info_pickle = open(os.getcwd() + '/subject_info_%s.p' % subject_id , 'wb')
+
+        pickle.dump(subject_info, subject_info_pickle)
+
+        subject_info_pickle.close()
+
 
         '''
         # Actually run the pipeline now
