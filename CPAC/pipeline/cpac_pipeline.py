@@ -719,7 +719,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
 
-            if c.func_reg_input == 'Selected Functional Volume':
+            if "Selected Functional Volume" in c.func_reg_input:
                
                 try:
                     get_func_volume = pe.Node(interface=preprocess.Calc(),
@@ -790,7 +790,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.set_leaf_properties(funcFlow, 'outputspec.rest')
             strat.update_resource_pool({'raw_functional' : (funcFlow, 'outputspec.rest')})
 
-            if c.func_reg_input == "Selected Functional Volume":
+            if "Selected Functional Volume" in c.func_reg_input:
                 strat.update_resource_pool({'selected_func_volume': (get_func_volume, 'out_file')})
 
             num_strat += 1
@@ -1157,13 +1157,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     seg_prob_list.sort()
                     return seg_prob_list[-1]
 
-                if c.func_reg_input == 'Mean Functional':
+                if 'Mean Functional' in c.func_reg_input:
                     # Input functional image (mean functional)
                     node, out_file = strat.get_node_from_resource_pool('mean_functional')
                     workflow.connect(node, out_file,
                                      func_to_anat, 'inputspec.func')
 
-                elif c.func_reg_input == 'Selected Functional Volume':
+                elif 'Selected Functional Volume' in c.func_reg_input:
                     # Input functional image (specific volume)
                     node, out_file = strat.get_node_from_resource_pool('selected_func_volume')
                     workflow.connect(node, out_file,
@@ -1243,13 +1243,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         return seg_prob_list[-1]
 
 
-                    if c.func_reg_input == 'Mean Functional':
+                    if 'Mean Functional' in c.func_reg_input:
                         # Input functional image (mean functional)
                         node, out_file = strat.get_node_from_resource_pool('mean_functional')
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg, 'inputspec.func')
 
-                    elif c.func_reg_input == 'Selected Functional Volume':
+                    elif 'Selected Functional Volume' in c.func_reg_input:
                         # Input functional image (specific volume)
                         node, out_file = strat.get_node_from_resource_pool('selected_func_volume')
                         workflow.connect(node, out_file,
