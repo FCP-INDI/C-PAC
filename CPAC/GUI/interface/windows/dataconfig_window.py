@@ -249,6 +249,7 @@ class DataConfig(wx.Frame):
                 #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
+                value = value.strip()
                 name = ctrl.get_name()
                 dtype= ctrl.get_datatype()
 
@@ -267,7 +268,7 @@ class DataConfig(wx.Frame):
                         display(win, "Template cannot start with %s")
                         
                 if '/' in value and 'Template' not in name:
-                    if not os.path.exists(ctrl.get_selection()):
+                    if not os.path.exists(value):
                         display(win,"%s field contains incorrect path. Please update the path!"%ctrl.get_name())
          
                 config_list.append((name, value, dtype))

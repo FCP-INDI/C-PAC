@@ -1,3 +1,4 @@
+# Import packages
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
@@ -9,6 +10,8 @@ import pkg_resources as p
 import sys
 from CPAC.utils import Configuration
 import yaml
+
+# Init constants
 ID_NEW = 1
 ID_RENAME = 2
 ID_CLEAR = 3
@@ -21,10 +24,13 @@ ID_SHOW = 9
 ID_DISPLAY = 10
 ID_CLEARALL = 11
 
+
+# ListBox class definition
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
 
+        # Import packages
         import CPAC
         
         self.CreateStatusBar()
@@ -145,7 +151,8 @@ class ListBox(wx.Frame):
             btnSizer2.Add((-1,30))
         else:
             btnSizer2.Add((-1, 27))
-        
+
+        # Add buttons to button sizer
         btnSizer2.Add(create, 0, wx.TOP)
         btnSizer2.Add(add, 0, wx.TOP)
         btnSizer2.Add(show, 0, wx.TOP)
