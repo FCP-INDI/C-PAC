@@ -725,7 +725,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     get_func_volume = pe.Node(interface=preprocess.Calc(),
                         name = 'get_func_volume_%d' % num_strat)
          
-                    get_func_volume.single_idx = c.func_reg_input_volume
+                    get_func_volume.inputs.expr = 'a'
+                    get_func_volume.inputs.single_idx = c.func_reg_input_volume
+                    get_func_volume.inputs.outputtype = 'NIFTI_GZ' 
  
                 except Exception as xxx:
                     logger.info( "Error creating get_func_volume node."+\
