@@ -1952,5 +1952,6 @@ def create_output_mean_csv(subject_dir):
 
 def dbg_file_lineno():
     cf=currentframe()
-    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno 
-    
+    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno
+
+
