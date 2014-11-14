@@ -33,6 +33,8 @@ files_folders_wf = {
     'motion_correct':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
+    'raw_functional' : 'func',
+    'selected_func_volume' : 'func',
     'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',

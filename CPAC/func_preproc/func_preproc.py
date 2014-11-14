@@ -595,4 +595,3 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-

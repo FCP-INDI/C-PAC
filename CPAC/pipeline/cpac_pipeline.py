@@ -718,7 +718,30 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                       " (%s:%d)" % dbg_file_lineno() )
                 raise
 
-   
+
+            if c.func_reg_input == 'Selected Functional Volume':
+               
+                try:
+                    get_func_volume = pe.Node(interface=preprocess.Calc(),
+                        name = 'get_func_volume_%d' % num_strat)
+         
+                    get_func_volume.single_idx = c.func_reg_input_volume
+ 
+                except Exception as xxx:
+                    logger.info( "Error creating get_func_volume node."+\
+                          " (%s:%d)" % dbg_file_lineno() )
+                    raise
+
+                try:
+                    workflow.connect(funcFlow, 'outputspec.rest',
+                        get_func_volume, 'in_file_a')
+
+                except Exception as xxx:
+                    logger.info( "Error connecting get_func_volume node."+\
+                          " (%s:%d)" % dbg_file_lineno() )
+                    raise
+
+
             # wire in the scan parameter workflow
             try:
                 workflow.connect(funcFlow, 'outputspec.subject',
@@ -765,8 +788,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
 
             strat.set_leaf_properties(funcFlow, 'outputspec.rest')
+            strat.update_resource_pool({'raw_functional' : (funcFlow, 'outputspec.rest')})
+
+            if c.func_reg_input == "Selected Functional Volume":
+                strat.update_resource_pool({'selected_func_volume': (get_func_volume, 'out_file')})
 
             num_strat += 1
+
+
 
         """
         Truncate scan length based on configuration information
@@ -1123,16 +1152,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
 
-
             try:
                 def pick_wm(seg_prob_list):
                     seg_prob_list.sort()
                     return seg_prob_list[-1]
 
-                # Input functional image (func.nii.gz)
-                node, out_file = strat.get_node_from_resource_pool('mean_functional')
-                workflow.connect(node, out_file,
-                                 func_to_anat, 'inputspec.func')
+                if c.func_reg_input == 'Mean Functional':
+                    # Input functional image (mean functional)
+                    node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.func')
+
+                elif c.func_reg_input == 'Selected Functional Volume':
+                    # Input functional image (specific volume)
+                    node, out_file = strat.get_node_from_resource_pool('selected_func_volume')
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.func')
+
 
                 # Input skull-stripped anatomical (anat.nii.gz)
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
@@ -1206,10 +1242,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         seg_prob_list.sort()
                         return seg_prob_list[-1]
 
-                    # Input functional image (func.nii.gz)
-                    node, out_file = strat.get_node_from_resource_pool('mean_functional')
-                    workflow.connect(node, out_file,
-                                     func_to_anat_bbreg, 'inputspec.func')
+
+                    if c.func_reg_input == 'Mean Functional':
+                        # Input functional image (mean functional)
+                        node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg, 'inputspec.func')
+
+                    elif c.func_reg_input == 'Selected Functional Volume':
+                        # Input functional image (specific volume)
+                        node, out_file = strat.get_node_from_resource_pool('selected_func_volume')
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg, 'inputspec.func')
 
                     # Input segmentation probability maps for white matter segmentation
                     node, out_file = strat.get_node_from_resource_pool('seg_probability_maps')
