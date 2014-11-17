@@ -711,7 +711,6 @@ class ModelConfig(wx.Frame):
             return pheno_data_dict
 
 
-
         patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
 
         # let's create dummy columns for MeanFD and Measure_Mean just so we
@@ -735,7 +734,9 @@ class ModelConfig(wx.Frame):
             patsy_formatted_pheno['MeanFD'] = MeanFD
             patsy_formatted_pheno['Measure_Mean'] = Measure_Mean
 
+        print "\n\npatsy_formatted_pheno:"
         print patsy_formatted_pheno
+        print "\n\n"
 
 
         if 'categorical' in self.gpa_settings['ev_selections']:
@@ -762,6 +763,10 @@ class ModelConfig(wx.Frame):
 
         column_names = dmatrix.design_info.column_names
         
+        print "\n\n"
+        print dmatrix.design_info
+        print "\n\n"
+
 
         # remove the header formatting Patsy creates for categorical variables
         # because we are going to use var_list_for_contrasts as a label for

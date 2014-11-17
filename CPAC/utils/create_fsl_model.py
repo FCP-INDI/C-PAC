@@ -821,13 +821,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     when generating the design matrix (this goes into the .mat file)
     formula = c.design_formula
 
+    coding_scheme = c.coding_scheme[0]
+
 
     if 'categorical' in c.ev_selections.keys():
         for EV_name in c.ev_selections['categorical']:
 
-            if c.coding_scheme == 'Treatment':
+            if coding_scheme == 'Treatment':
                 formula = formula.replace(EV_name, 'C(' + EV_name + ')')
-            elif c.coding_scheme == 'Sum':
+            elif coding_scheme == 'Sum':
                 formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
 
@@ -861,25 +863,42 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     # parse in user-input contrast strings that were selected, and generate
     # the contrast file (.con)
 
-    ''' start Aimi's code '''
-    def greater_than(dmat, a, b):
-        c1 = positive(dmat, a)
-        c2 = positive(dmat, b)
+    def greater_than(dmat, a, b, coding):
+        c1 = positive(dmat, a, coding)
+        c2 = positive(dmat, b, coding)
         return c1-c2
 
-    def positive(dmat, a):
-        evs = dmat.design_info.column_name_indexes
-        con = np.zeros(dmat.shape[1])
-        if a in evs:
-            con[evs[a]] = 1
-        else:
-            #it is a dropped term so make all other terms in that category at -1
-            term = a.split('[')[0]
-            for ev in evs:
-                if ev.startswith(term):
-                    con[evs[ev]]= -1
-        con[0] = 1
-        return con
+    def positive(dmat, a, coding):
+
+        if coding == "Treatment":
+
+            evs = dmat.design_info.column_name_indexes
+            con = np.zeros(dmat.shape[1])
+            if a in evs:
+                con[evs[a]] = 1
+            else:
+                #it is a dropped term so make all other terms in that category at -1
+                term = a.split('[')[0]
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+            con[0] = 0
+            return con
+
+        elif coding == "Sum":
+
+            evs = dmat.design_info.column_name_indexes
+            con = np.zeros(dmat.shape[1])
+            if a in evs:
+                con[evs[a]] = 1
+            else:
+                #it is a dropped term so make all other terms in that category at -1
+                term = a.split('[')[0]
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+            con[0] = 1
+            return con
 
     def negative(dmat, a):
         con = 0-positive(dmat, a)
@@ -920,8 +939,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
-    ''' end Aimi's code '''
 
+
+    
 
     contrasts = c.contrasts
     contrasts_list = []
@@ -957,10 +977,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                     if cat_EV in EV:
 
-                        if c.coding_scheme == 'Treatment':
+                        if coding_scheme == 'Treatment':
                             cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ')[T.' + EV + ']')
 
-                        elif c.coding_scheme == 'Sum':
+                        elif coding_scheme == 'Sum':
                             cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
 
                         parsed_EVs_in_contrast.append(cat_EV_contrast)
@@ -990,14 +1010,14 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             parsed_EVs_in_contrast = process_contrast('>')
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1])
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme)
 
 
         elif '<' in parsed_contrast:
 
             parsed_EVs_in_contrast = process_contrast('<')
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0])
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0], coding_scheme)
 
 
         else:
@@ -1013,14 +1033,14 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                 parsed_EVs_in_contrast = process_contrast('+')
 
-                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0])
+                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
 
 
             elif '-' in contrast_items and len(contrast_items) == 2:
 
                 parsed_EVs_in_contrast = process_contrast('-')
 
-                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0])
+                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
 
 
             if len(contrast_items) > 2:
@@ -1036,10 +1056,10 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                             if cat_EV in item:
 
-                                if c.coding_scheme == 'Treatment':
+                                if coding_scheme == 'Treatment':
                                     item = item.replace(item, 'C(' + cat_EV + ')[T.' + item + ']')
 
-                                elif c.coding_scheme == 'Sum':
+                                elif coding_scheme == 'Sum':
                                     item = item.replace(item, 'C(' + cat_EV + ', Sum)[S.' + item + ']')
 
 
@@ -1128,9 +1148,9 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                     for cat_EV in c.ev_selections['categorical']:
                         if cat_EV in col_name:
 
-                            if c.coding_scheme == 'Treatment':
+                            if coding_scheme == 'Treatment':
                                 cat_EV_stripped = col_name.replace('C(' + cat_EV + ')[T.', '')
-                            elif c.coding_scheme == 'Sum':
+                            elif coding_scheme == 'Sum':
                                 cat_EV_stripped = col_name.replace('C(' + cat_EV + ', Sum)[S.', '')
 
                             cat_EV_stripped = cat_EV_stripped.replace(']', '')
