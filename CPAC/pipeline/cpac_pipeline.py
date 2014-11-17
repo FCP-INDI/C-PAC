@@ -473,7 +473,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     ('anat_mni_fnirt_register' not in nodes):
 
                 ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                        '_ants_register_%d' % num_strat)
+                        '_ants_register_%d' % num_strat, c.regWithSkull[0])
 
                 try:
 
@@ -497,7 +497,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                             raise Exception
 
                         # get the reorient skull-on anatomical from resource pool
-                        node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
 
                         # pass the anatomical to the workflow
                         workflow.connect(node, out_file,
@@ -505,6 +505,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                         # pass the reference file
                         ants_reg_anat_mni.inputs.inputspec.reference_brain = \
+                            c.template_brain_only_for_anat
+
+                        # get the reorient skull-on anatomical from resource pool
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+
+                        # pass the anatomical to the workflow
+                        workflow.connect(node, out_file,
+                            ants_reg_anat_mni,'inputspec.anatomical_skull')
+
+                        # pass the reference file
+                        ants_reg_anat_mni.inputs.inputspec.reference_skull = \
                             c.template_skull_for_anat
 
 

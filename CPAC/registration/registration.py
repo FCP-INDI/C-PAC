@@ -458,7 +458,7 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     
 
 
-def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
+def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_input=0):
 
     '''
     Calculates the nonlinear ANTS registration transform. This workflow
@@ -576,7 +576,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
     import nipype.interfaces.ants as ants
     from nipype.interfaces.utility import Function
-    from CPAC.registration.utils import seperate_warps_list
+    from CPAC.registration.utils import seperate_warps_list, \
+                                        combine_inputs_into_list
 
 
     calc_ants_warp_wf = pe.Workflow(name=name)
@@ -589,7 +590,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
             'sampling_percentage', 'number_of_iterations', 
             'convergence_threshold', 'convergence_window_size', 'transforms',
             'transform_parameters', 'shrink_factors', 'smoothing_sigmas',
-            'write_composite_transform']), name='inputspec')
+            'write_composite_transform', 'anatomical_skull', 'reference_skull',
+            ]), name='inputspec')
 
 
     # use ANTS to warp the masked anatomical image to a template image
@@ -643,11 +645,47 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp'):
 
     # connections from inputspec
 
-    calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
-            calculate_ants_warp, 'moving_image')
+    if mult_input == 1:
 
-    calc_ants_warp_wf.connect(inputspec, 'reference_brain',
-            calculate_ants_warp, 'fixed_image')
+        combine_inputs = pe.Node(util.Function(input_names=['input1', 'input2', 'input3'],
+                output_names=['inputs_list'], function=combine_inputs_into_list),
+                name='ants_reg_combine_inputs')
+
+        combine_refs = pe.Node(util.Function(input_names=['input1', 'input2', 'input3'],
+                output_names=['inputs_list'], function=combine_inputs_into_list),
+                name='ants_reg_combine_refs')
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                combine_inputs, 'input1')
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                combine_inputs, 'input2')
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_skull',
+                combine_inputs, 'input3')
+
+        calc_ants_warp_wf.connect(combine_inputs, 'inputs_list',
+                calculate_ants_warp, 'moving_image')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                combine_refs, 'input1')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                combine_refs, 'input2')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_skull',
+                combine_refs, 'input3')
+
+        calc_ants_warp_wf.connect(combine_refs, 'inputs_list',
+                calculate_ants_warp, 'fixed_image') 
+
+    else:
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                calculate_ants_warp, 'moving_image')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                calculate_ants_warp, 'fixed_image')
 
     calc_ants_warp_wf.connect(inputspec, 'dimension', calculate_ants_warp,
             'dimension')
