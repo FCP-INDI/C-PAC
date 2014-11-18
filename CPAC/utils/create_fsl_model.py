@@ -874,15 +874,25 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
             evs = dmat.design_info.column_name_indexes
             con = np.zeros(dmat.shape[1])
+
+            print "a: ", a
+            print "evs: ", evs
+
             if a in evs:
+                print "a is in evs."
                 con[evs[a]] = 1
             else:
+                print "a is not in evs."
                 #it is a dropped term so make all other terms in that category at -1
                 term = a.split('[')[0]
+                print "term: ", term
                 for ev in evs:
                     if ev.startswith(term):
                         con[evs[ev]]= -1
+
+            # make Intercept 0
             con[0] = 0
+
             return con
 
         elif coding == "Sum":
@@ -897,11 +907,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                 for ev in evs:
                     if ev.startswith(term):
                         con[evs[ev]]= -1
+
+            # make Intercept 1
             con[0] = 1
+
             return con
 
-    def negative(dmat, a):
-        con = 0-positive(dmat, a)
+
+    def negative(dmat, a, coding):
+        con = 0-positive(dmat, a, coding)
         return con
 
     def create_dummy_string(length):
@@ -939,9 +953,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
-
-
-    
+   
 
     contrasts = c.contrasts
     contrasts_list = []
@@ -958,6 +970,8 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     extract the two separate contrasts (if there are two), and then
     #     identify which are categorical - adapting the string if so
     def process_contrast(operator):
+
+        parsed_EVs_in_contrast = []
 
         EVs_in_contrast = parsed_contrast.split(operator)
 
@@ -977,11 +991,20 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
                     if cat_EV in EV:
 
+                        # handle interactions
+                        if ":" in EV:
+                            temp_split_EV = EV.split(":")
+                            for interaction_EV in temp_split_EV:
+                                if cat_EV in interaction_EV:
+                                    current_EV = interaction_EV
+                        else:
+                            current_EV = EV
+
                         if coding_scheme == 'Treatment':
-                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ')[T.' + EV + ']')
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ')[T.' + current_EV + ']')
 
                         elif coding_scheme == 'Sum':
-                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + current_EV + ']')
 
                         parsed_EVs_in_contrast.append(cat_EV_contrast)
                         skip = 1
@@ -989,6 +1012,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             if skip == 0:
 
                 parsed_EVs_in_contrast.append(EV)
+
+            # handle interactions
+            if ":" in EV and len(parsed_EVs_in_contrast) == 2:
+
+                parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0] + ":" + parsed_EVs_in_contrast[1]]
+
+            if ":" in EV and len(parsed_EVs_in_contrast) == 3:
+
+                parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1] + ":" + parsed_EVs_in_contrast[2]]
 
 
         return parsed_EVs_in_contrast
@@ -1008,9 +1040,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
         if '>' in parsed_contrast:
 
+            print "parsed contrast: ", parsed_contrast
+
             parsed_EVs_in_contrast = process_contrast('>')
 
+            print "parsed EVs in contrast: ", parsed_EVs_in_contrast
+
             contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme)
+
+            print "contrasts_dict[parsed_contrast]: ", contrasts_dict[parsed_contrast]
 
 
         elif '<' in parsed_contrast:
@@ -1034,7 +1072,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
                 parsed_EVs_in_contrast = process_contrast('+')
 
                 contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
-
 
             elif '-' in contrast_items and len(contrast_items) == 2:
 
