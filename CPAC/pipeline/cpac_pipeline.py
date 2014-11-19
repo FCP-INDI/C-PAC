@@ -3273,7 +3273,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runROITimeseries):
         for strat in strat_list:
 
-            output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat)
+            output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, input_image_type=3)
             
             num_strat += 1
 
