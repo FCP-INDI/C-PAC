@@ -56,8 +56,6 @@ substitution_map = {'On': 1,
                     'End': 'None',
                     'ROI Average Time Series Extraction': 'roi_average',
                     'ROI Voxelwise Time Series Extraction': 'roi_voxelwise',
-                    'No': 2,
-                    'Yes': 3
                    }
 
 

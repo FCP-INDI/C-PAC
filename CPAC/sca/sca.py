@@ -114,11 +114,21 @@ def create_sca(name_sca='sca'):
     corr.inputs.outputtype = 'NIFTI_GZ'
 
 
+    # Transform the sub-bricks into volumes
+    concat = pe.Node(interface=preprocess.TCat(),
+                      name='3dTCat')
+    concat.inputs.outputtype = 'NIFTI_GZ'
+
+
     sca.connect(inputNode, 'timeseries_one_d',
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
+
     sca.connect(corr, 'out_file',
+                concat, 'in_files')
+
+    sca.connect(concat, 'out_file',
                 outputNode, 'correlation_file')
 
 

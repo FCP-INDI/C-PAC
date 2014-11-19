@@ -49,7 +49,7 @@ class NuisanceCorrection(wx.ScrolledWindow):
                  name='runNuisance', 
                  type=dtype.LSTR, 
                  comment="Run Nuisance Signal Correction", 
-                 values=["On","Off","On/Off"],
+                 values=["Off","On","On/Off"],
                  wkf_switch = True)
         
         self.page.add(label="Lateral Ventricles Mask (Standard Space) ", 

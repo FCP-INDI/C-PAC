@@ -386,6 +386,9 @@ def run(config_file, subject_list_file, p_name = None):
     #do some validation
     validate(c)
 
+    # get the pipeline name
+    p_name = c.pipelineName
+
 
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))

@@ -10,7 +10,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 
 
-def create_anat_preproc(already_skullstripped=2):
+def create_anat_preproc(already_skullstripped=0):
     """ 
     
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented 
@@ -102,7 +102,7 @@ def create_anat_preproc(already_skullstripped=2):
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
     # if not already skullstripped
-    if already_skullstripped == 2:
+    if already_skullstripped != 1:
 
         anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
                                   name='anat_skullstrip')
@@ -121,7 +121,7 @@ def create_anat_preproc(already_skullstripped=2):
                     anat_reorient, 'in_file')
 
     # if not already skullstripped
-    if already_skullstripped == 2:
+    if already_skullstripped != 1:
 
         preproc.connect(anat_reorient, 'out_file',
                         anat_skullstrip, 'in_file')
@@ -143,7 +143,7 @@ def create_anat_preproc(already_skullstripped=2):
                     outputNode, 'reorient')
 
     # if not already skullstripped
-    if already_skullstripped == 2:
+    if already_skullstripped != 1:
 
         preproc.connect(anat_skullstrip, 'out_file',
                         outputNode, 'skullstrip')

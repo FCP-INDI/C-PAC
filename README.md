@@ -31,7 +31,7 @@ Developer documention can ne found here: http://fcp-indi.github.com/docs/develop
 Dicussion Forum
 ---------------
 
-CPAC Discussion forum is located here: http://www.nitrc.org/forum/forum.php?forum_id=3567
+CPAC Discussion forum is located here: https://groups.google.com/forum/#!forum/cpax_forum
 
 Troubleshooting and Help
 ------------------------

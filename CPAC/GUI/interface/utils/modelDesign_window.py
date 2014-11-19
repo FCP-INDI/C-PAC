@@ -421,6 +421,10 @@ class ModelDesign(wx.Frame):
                                 'included in this formula will be included ' \
                                 'in the model. <MORE INFO>'))
 
+        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
+                                'Choose the coding scheme to use when ' \
+                                'generating your model. '))
+
         config_list.append(('contrasts', vals['contrasts'], 8, \
                                 'A dictionary of contrast descriptions, ' \
                                 'including which ones to be included in ' \
