@@ -2893,7 +2893,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # ANTS WARP APPLICATION
 
-            fsl_to_itk_convert = create_wf_c3d_fsl_to_itk(map_node, name= \
+            fsl_to_itk_convert = create_wf_c3d_fsl_to_itk(map_node, input_image_type, name= \
                     '%s_fsl_to_itk_%d' % (output_name, num_strat))
 
             collect_transforms = create_wf_collect_transforms(map_node, \
@@ -3265,9 +3265,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runRegisterFuncToMNI) and (1 in c.runDualReg) and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
-            output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat)
+            output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat, input_image_type=3)
 
-            output_to_standard('dr_tempreg_maps_zstat_stack', 'dr_tempreg_maps_zstat_stack', strat, num_strat)
+            output_to_standard('dr_tempreg_maps_zstat_stack', 'dr_tempreg_maps_zstat_stack', strat, num_strat, input_image_type=3)
 
             # dual reg 'files', too
             output_to_standard('dr_tempreg_maps_files', 'dr_tempreg_maps_files', strat, num_strat, 1)
