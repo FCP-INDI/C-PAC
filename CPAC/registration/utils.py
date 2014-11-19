@@ -1,3 +1,10 @@
+def combine_inputs_into_list(input1, input2, input3):
+
+    inputs_list = [input1, input2, input3]
+
+    return inputs_list
+
+
 def seperate_warps_list(warp_list, selection):
 
      return warp_list[selection]
