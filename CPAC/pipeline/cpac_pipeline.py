@@ -144,8 +144,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         max_core_usage = int(c.numCoresPerSubject) * \
                              int(c.numSubjectsAtOnce) * int(numThreads)
 
+    cores_msg = cores_msg + '\n\nSetting number of cores per subject to %s\n' \
+                            % c.numCoresPerSubject
 
-    cores_msg = cores_msg + '\n\nSetting OMP_NUM_THREADS to %s\n' % numThreads
+    cores_msg = cores_msg + 'Setting number of subjects at once to %s\n' \
+                            % c.numSubjectsAtOnce
+
+    cores_msg = cores_msg + 'Setting OMP_NUM_THREADS to %s\n' % numThreads
     cores_msg = cores_msg + 'Setting MKL_NUM_THREADS to %s\n' % numThreads
 
     if 'ANTS' in c.regOption:
@@ -3272,8 +3277,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             # dual reg 'files', too
             output_to_standard('dr_tempreg_maps_files', 'dr_tempreg_maps_files', strat, num_strat, 1)
             output_to_standard('dr_tempreg_maps_zstat_files', 'dr_tempreg_maps_zstat_files', strat, num_strat, 1)
-
-                
+             
             num_strat += 1
     
     strat_list += new_strat_list
@@ -4038,6 +4042,183 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
+
+
+            # QA pages function
+            def QA_montages(measure, idx):
+
+                try:
+
+                    histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
+                    histogram.inputs.measure = measure
+
+                    drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                         'percent_'],
+                                           output_names=['modified_measure_file'],
+                                           function=drop_percent_),
+                                           name='dp_%s_%d' % (measure, num_strat), iterfield=['measure_file'])
+                    drop_percent.inputs.percent_ = 99.999
+
+                    overlay, out_file = strat.get_node_from_resource_pool(measure)
+
+                    montage = create_montage('montage_%s_%d' % (measure, num_strat),
+                                    'cyan_to_yellow', measure)
+                    montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+
+                    workflow.connect(overlay, out_file,
+                                     drop_percent, 'measure_file')
+
+                    workflow.connect(drop_percent, 'modified_measure_file',
+                                     montage, 'inputspec.overlay')
+
+                    workflow.connect(overlay, out_file,
+                                     histogram, 'measure_file')
+
+                    strat.update_resource_pool({'qc___%s_a' % measure: (montage, 'outputspec.axial_png'),
+                                                'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
+                                                'qc___%s_hist' % measure: (histogram, 'hist_path')})
+
+                    if not idx in qc_montage_id_a:
+                        qc_montage_id_a[idx] = '%s_a' % measure
+                        qc_montage_id_s[idx] = '%s_s' % measure
+                        qc_hist_id[idx] = '%s_hist' % measure
+
+                except Exception as e:
+                    print "[!] Creation of QA montages for %s has failed.\n" % measure
+                    print "Error: %s" % e
+                    pass                    
+
+
+
+            # ALFF and f/ALFF QA montages
+            if 1 in c.runALFF:
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('alff_to_standard', 7)
+                    QA_montages('falff_to_standard', 8)
+
+                    if c.fwhm != None:
+                        QA_montages('alff_to_standard_smooth', 9)
+                        QA_montages('falff_to_standard_smooth', 10)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('alff_to_standard_smooth_zstd', 11)
+                            QA_montages('falff_to_standard_smooth_zstd', 12)
+
+                        else:
+                            QA_montages('alff_to_standard_zstd', 13)
+                            QA_montages('falff_to_standard_zstd', 14)
+ 
+
+            # ReHo QA montages
+            if 1 in c.runReHo:
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('reho_to_standard', 15)
+
+                    if c.fwhm != None:
+                        QA_montages('reho_to_standard_smooth', 16)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
+
+                        else:
+                            QA_montages('reho_to_standard_fisher_zstd', 18)
+
+
+            '''
+            # SCA ROI QA montages
+            if (1 in c.runSCA) and (1 in c.runROITimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_roi_to_standard', 19)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_roi_to_standard_smooth', 20)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_roi_to_standard_smooth_fisher_zstd', 22)
+
+                        else:
+                            QA_montages('sca_roi_to_standard_fisher_zstd', 21)
+            '''
+
+
+            # SCA Seed QA montages
+            if (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_seed_to_standard', 23)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_seed_to_standard_smooth', 24)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_seed_to_standard_smooth_fisher_zstd', 26)
+
+                        else:
+                            QA_montages('sca_seed_to_standard_fisher_zstd', 25)
+
+
+            # SCA Multiple Regression
+            if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_tempreg_maps_files', 27)
+                    QA_montages('sca_tempreg_maps_zstat_files', 28)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_tempreg_maps_files_smooth', 29)
+                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
+
+
+            '''
+            # Dual Regression QA montages
+            if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
+
+                QA_montages('dr_tempreg_maps_files', 31)
+                QA_montages('dr_tempreg_maps_zstat_files', 32)
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('dr_tempreg_maps_files_to_standard', 33)
+                    QA_montages('dr_tempreg_maps_zstat_files_to_standard', 34)
+
+                    if c.fwhm != None:
+                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 35)
+                        QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 36)
+            '''
+
+
+            # VMHC QA montages
+            if 1 in c.runVMHC:
+
+                QA_montages('vmhc_raw_score', 37)
+                QA_montages('vmhc_fisher_zstd', 38)
+                QA_montages('vmhc_fisher_zstd_zstat_map', 39)
+
+
+            # Network Centrality QA montages
+            if 1 in c.runNetworkCentrality:
+
+                QA_montages('centrality_outputs', 40)
+                QA_montages('centrality_outputs_zstd', 41)
+
+                if c.fwhm != None:
+                    QA_montages('centrality_outputs_smoothed', 42)
+                    QA_montages('centrality_outputs_smoothed_zstd', 43)
+
+
+
+
+
             '''
             # make QC montages for SCA ROI Smoothed Derivative
             if (1 in c.runSCA) and (1 in c.runROITimeseries):
@@ -4298,7 +4479,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         qc_montage_id_s[10] = 'sca_seeds_s'
                         qc_hist_id[10] = 'sca_seeds_hist'
 
-            '''
+            
 
 
             # make QC montages for Network Centrality
@@ -4360,9 +4541,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         qc_montage_id_a[11] = 'centrality_a'
                         qc_montage_id_s[11] = 'centrality_s'
                         qc_hist_id[11] = 'centrality_hist'
-
-
-
 
 
             #QC Montages for MultiReg SCA
@@ -4478,6 +4656,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(temporal_dual_regression_overlay, out_file,
                                      hist_, 'measure_file')
 
+            
 
 
             if 1 in c.runVMHC:
@@ -4818,7 +4997,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(drop_percent_falff, 'modified_measure_file',
                                  montage_falff, 'inputspec.overlay')
 
-
+            '''
 
 
             num_strat += 1
