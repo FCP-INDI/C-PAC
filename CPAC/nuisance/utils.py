@@ -8,6 +8,7 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     print 'Detrending and centering data'
     Y = scipy.signal.detrend(wmcsf_sigs, axis=1, type='linear').T
     Yc = Y - np.tile(Y.mean(0), (Y.shape[0], 1))
+    Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
     
     print 'Calculating SVD decomposition of Y*Y\''
     U, S, Vh = np.linalg.svd(np.dot(Yc, Yc.T))
