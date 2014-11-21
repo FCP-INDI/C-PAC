@@ -1,3 +1,4 @@
+# Import packages
 import os
 import sys
 import re
@@ -17,14 +18,11 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
     Parameters
     ----------
-
     correlation_file: string
         Input correlations file
-    
 
     Returns
     -------
-
     out_file : list (nifti files)
         list of z_scores for mask or ROI
     """

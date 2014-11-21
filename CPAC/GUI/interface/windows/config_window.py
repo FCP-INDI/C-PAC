@@ -688,7 +688,6 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
-                    
                 config_list.append(ctrl)
 
 
@@ -696,7 +695,6 @@ class MainFrame(wx.Frame):
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipeline_name = config.get_selection()
-                
                 if len(pipeline_name) == 0:
                     noNameDlg = wx.MessageDialog(
                         self, 'Please enter a pipeline name.',
@@ -705,12 +703,11 @@ class MainFrame(wx.Frame):
                     noNameDlg.ShowModal()
                     noNameDlg.Destroy()
                     return
-                    
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-        dlg.SetFilterIndex(2)
+        #dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -720,7 +717,6 @@ class MainFrame(wx.Frame):
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
-            
             dlg.Destroy()
             if self.option == 'save':
 
