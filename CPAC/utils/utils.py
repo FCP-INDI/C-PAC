@@ -710,10 +710,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
             except:
                 # don't raise an exception here because multiple runs of the
                 # same os.makedirs are expected
-                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                      '%s\nThe directory probably already exists, but if you ' \
-                      'are seeing this message and it\'s not there, the ' \
-                      'directory creation failed.\n\n' % sym_path
+                pass
         
 
         strategy_identifier = None
@@ -881,10 +878,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
             except:
                 # don't raise an exception here because multiple runs of
                 # os.makedirs are expected
-                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                      '%s\nThe directory probably already exists, but if you ' \
-                      'are seeing this message and it\'s not there, the ' \
-                      'directory creation failed.\n\n' % new_path
+                pass
 
 
         # prepare paths and filenames for QC text files and output paths_file
@@ -907,10 +901,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
         except:
             # don't raise an exception here because multiple runs of
             # os.makedirs are expected
-            print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                  '%s\nThe directory probably already exists, but if you ' \
-                  'are seeing this message and it\'s not there, the ' \
-                  'directory creation failed.\n\n' % new_f_path
+            pass
 
 
         try:

@@ -1065,22 +1065,22 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')
 
- 
-    # initial transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_initial',
-            collect_transforms, 'in1')
-
-    # rigid transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_rigid',
-            collect_transforms, 'in2')
-
-    # affine transformation from anatomical registration
-    collect_transforms_wf.connect(inputspec, 'linear_affine',
-            collect_transforms, 'in3')
 
     # Field file from anatomical nonlinear registration
     collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
-            'in4')
+            'in1')
+
+    # affine transformation from anatomical registration
+    collect_transforms_wf.connect(inputspec, 'linear_affine',
+            collect_transforms, 'in2')
+
+    # rigid transformation from anatomical registration
+    collect_transforms_wf.connect(inputspec, 'linear_rigid',
+            collect_transforms, 'in3')
+
+    # initial transformation from anatomical registration
+    collect_transforms_wf.connect(inputspec, 'linear_initial',
+            collect_transforms, 'in4')
 
     # Premat from Func->Anat linear reg and bbreg (if bbreg is enabled)
     collect_transforms_wf.connect(inputspec, 'fsl_to_itk_affine',
