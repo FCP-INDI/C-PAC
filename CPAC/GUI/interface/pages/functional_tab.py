@@ -288,15 +288,15 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
             fsl = "$FSLDIR"
         
         
-        self.page.add(label="Run Functional to Anatomical Registration:", 
+        self.page.add(label="Run Functional to Anatomical Registration ", 
                      control=control.CHOICE_BOX, 
                      name='runRegisterFuncToAnat', 
                      type=dtype.LSTR, 
                      comment="Run Functional to Anatomical Registration", 
-                     values=["On","Off","On/Off"],
+                     values=["On","Off"],
                      wkf_switch = True)
 
-        self.page.add(label="Using BB Register:", 
+        self.page.add(label="Using BB Register ", 
                      control=control.CHOICE_BOX,
                      name='runBBReg', 
                      type=dtype.LSTR, 
@@ -304,35 +304,21 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                      values=["On","Off","On/Off"],
                      wkf_switch = True)
        
-        self.page.add(label="Functional Standard Resolution:", 
-                     control=control.CHOICE_BOX, 
-                     name='resolution_for_func', 
+        self.page.add(label="Boundary Based Registration Scheduler ", 
+                     control=control.COMBO_BOX, 
+                     name='boundaryBasedRegistrationSchedule', 
                      type=dtype.STR, 
-                     values = ["3mm", "2mm", "1mm"],
-                     comment="The resolution (in mm) to which functional images are transformed during registration")
-        
-        self.page.add(label="Standard Brain only Template (functional resolution):", 
-                      control=control.COMBO_BOX, 
-                      name='template_brain_only_for_func', 
-                      type=dtype.STR, 
-                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz")),
-                      comment="Standard FSL Skull Stripped Template. Used as a reference image for functional registration")
-        
-        self.page.add(label="Standard Template with Skull (functional resolution):", 
-                      control=control.COMBO_BOX, 
-                      name='template_skull_for_func', 
-                      type=dtype.STR, 
-                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}.nii.gz")),
-                      comment="Standard FSL Anatomical Brain Image with Skull")
+                     values = str(os.path.join(fsl,"etc/flirtsch/bbr.sch")),
+                     comment="Standard FSL 5.0 Scheduler used for Boundary Based Registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
 
-        self.page.add(label="Use as Functional-to-Anatomical Registration Input:", 
+        self.page.add(label="Use as Functional-to-Anatomical Registration Input ", 
                       control=control.CHOICE_BOX, 
                       name='func_reg_input', 
                       type=dtype.LSTR, 
                       values =["Mean Functional","Selected Functional Volume"],
                       comment="Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.")
      
-        self.page.add(label="Functional Volume to Use as Input (Selected Functional Volume only):", 
+        self.page.add(label="Functional Volume to Use as Input (Selected Functional Volume only) ", 
                       control=control.INT_CTRL, 
                       name='func_reg_input_volume', 
                       type=dtype.NUM, 
@@ -362,8 +348,29 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      name='runRegisterFuncToMNI', 
                      type=dtype.LSTR, 
                      comment="Register functional images to a standard MNI152 template.\n\nThis option must be enabled if you wish to calculate any derivatives.", 
-                     values=["On","Off","On/Off"],
+                     values=["On","Off"],
                      wkf_switch = True)
+
+        self.page.add(label="Functional Standard Resolution ", 
+                     control=control.CHOICE_BOX, 
+                     name='resolution_for_func', 
+                     type=dtype.STR, 
+                     values = ["3mm", "2mm", "1mm"],
+                     comment="The resolution (in mm) to which functional images are transformed during registration")
+        
+        self.page.add(label="Standard Brain only Template (functional resolution) ", 
+                      control=control.COMBO_BOX, 
+                      name='template_brain_only_for_func', 
+                      type=dtype.STR, 
+                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz")),
+                      comment="Standard FSL Skull Stripped Template. Used as a reference image for functional registration")
+        
+        self.page.add(label="Standard Template with Skull (functional resolution) ", 
+                      control=control.COMBO_BOX, 
+                      name='template_skull_for_func', 
+                      type=dtype.STR, 
+                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}.nii.gz")),
+                      comment="Standard FSL Anatomical Brain Image with Skull")
         
         self.page.add(label="Standard Identity Matrix ", 
                      control=control.COMBO_BOX, 
@@ -372,12 +379,6 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      values = str(os.path.join(fsl,"etc/flirtsch/ident.mat")),
                     comment="Matrix containing all 1's. Used as an identity matrix during registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
                     
-        self.page.add(label="Boundary Based Registration Scheduler ", 
-                     control=control.COMBO_BOX, 
-                     name='boundaryBasedRegistrationSchedule', 
-                     type=dtype.STR, 
-                     values = str(os.path.join(fsl,"etc/flirtsch/bbr.sch")),
-                     comment="Standard FSL 5.0 Scheduler used for Boundary Based Registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
      
         self.page.set_sizer()
         parent.get_page_list().append(self)
