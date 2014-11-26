@@ -482,9 +482,9 @@ def create_nuisance(use_ants, name='nuisance'):
         ho_mni_to_2mm.inputs.interpolation = 'NearestNeighbor'
         ho_mni_to_2mm.inputs.dimension = 3
 
-        nuisance.connect(inputspec, 'anat_to_mni_initial_xfm', collect_linear_transforms, 'in1')
+        nuisance.connect(inputspec, 'anat_to_mni_initial_xfm', collect_linear_transforms, 'in3')
         nuisance.connect(inputspec, 'anat_to_mni_rigid_xfm', collect_linear_transforms, 'in2')
-        nuisance.connect(inputspec, 'anat_to_mni_affine_xfm', collect_linear_transforms, 'in3')
+        nuisance.connect(inputspec, 'anat_to_mni_affine_xfm', collect_linear_transforms, 'in1')
 
         nuisance.connect(collect_linear_transforms, 'out', ho_mni_to_2mm, 'transforms')
 

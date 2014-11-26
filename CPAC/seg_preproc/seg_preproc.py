@@ -532,9 +532,9 @@ def process_segment_map(wf_name, use_ants):
 
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
 
-        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in3')
         preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
-        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in1')
 
         preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
 
