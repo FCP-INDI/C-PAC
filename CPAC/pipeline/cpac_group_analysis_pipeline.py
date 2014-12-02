@@ -640,6 +640,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                                           (r'_slicer(.)*[/]',''),
                                           (r'_overlay(.)*[/]','')]
     
+        '''
         if 1 in c.runSymbolicLinks:
     
     
@@ -651,6 +652,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                                     name='link_gp_', iterfield=['in_file'])
             link_node.inputs.resource = resource
             wf.connect(ds, 'out_file', link_node, 'in_file')
+        '''
     
 
 
