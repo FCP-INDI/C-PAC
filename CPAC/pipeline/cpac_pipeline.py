@@ -2038,9 +2038,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             nodes = getNodeList(strat)
             
             if 'func_mni_fsl_warp' in nodes:
-                preproc = create_vmhc(False)
+                preproc = create_vmhc(False,c.regWithSkull[0])
             else:
-                preproc = create_vmhc(True)
+                preproc = create_vmhc(True,c.regWithSkull[0])
 
             preproc.inputs.inputspec.symmetric_brain = \
                                             c.template_symmetric_brain_only
