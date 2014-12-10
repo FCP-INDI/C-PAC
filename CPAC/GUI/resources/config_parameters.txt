@@ -128,6 +128,5 @@ cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
 numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
 derivativeList,Select Derivatives,Group Analysis Settings
 modelConfigs,Models to Run,Group Analysis Settings
-fTest,Models Contain F-tests,Group Analysis Settings
 zThreshold,Z threshold,Group Analysis Settings
 pThreshold,P threshold,Group Analysis Settings
