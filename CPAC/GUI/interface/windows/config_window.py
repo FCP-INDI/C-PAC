@@ -604,9 +604,10 @@ class MainFrame(wx.Frame):
             testDlg1.Destroy()
             
             errDlg1 = wx.MessageDialog(
-                self, 'There are issues with the current configuration which need to be' \
-                      ' resolved - please check to make sure the options you are running' \
-                      ' have the proper pre-requisites selected.',
+                self, 'There are issues with the current configuration ' \
+                      'which need to be resolved - please check to make ' \
+                      'sure the options you are running have the proper ' \
+                      'pre-requisites selected.\n\nIssue Info:\n%s' % xxx,
                 'Pipeline Not Ready',
                 wx.OK | wx.ICON_ERROR)
             errDlg1.ShowModal()
@@ -687,7 +688,6 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
-                    
                 config_list.append(ctrl)
 
 
@@ -695,7 +695,6 @@ class MainFrame(wx.Frame):
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipeline_name = config.get_selection()
-                
                 if len(pipeline_name) == 0:
                     noNameDlg = wx.MessageDialog(
                         self, 'Please enter a pipeline name.',
@@ -704,12 +703,11 @@ class MainFrame(wx.Frame):
                     noNameDlg.ShowModal()
                     noNameDlg.Destroy()
                     return
-                    
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-        dlg.SetFilterIndex(2)
+        #dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -719,9 +717,8 @@ class MainFrame(wx.Frame):
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
-            
             dlg.Destroy()
-            if self.option != 'edit':
+            if self.option == 'save':
 
                 # this runs if you hit 'Save' from within the pipeline config
                 # editor AND the editor was opened from the main window by
@@ -750,7 +747,12 @@ class MainFrame(wx.Frame):
 
                 pipeline_map = self.parent.get_pipeline_map()
 
-                if pipeline_map.get(pipeline_name) != None:
+                if self.option == 'load':
+                    # this runs if your pipeline config is being updated
+                    pipeline_map[pipeline_name] = self.path
+                    self.Parent.listbox.Append(pipeline_name)
+
+                elif pipeline_map.get(pipeline_name) != None:
                     # this runs if you hit Edit, change your pipeline config
                     # file BUT keep the Pipeline Name the same and save it
                     pipeline_map[pipeline_name] = self.path

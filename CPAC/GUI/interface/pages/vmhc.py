@@ -43,7 +43,7 @@ class VMHCSettings(wx.ScrolledWindow):
                  name='runVMHC', 
                  type=dtype.LSTR, 
                  comment="Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.", 
-                 values=["On","Off"],
+                 values=["Off","On"],
                  wkf_switch = True)
         
         self.page.add(label="Symmetric Template (Brain Only) ", 
