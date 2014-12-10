@@ -302,10 +302,12 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
 
     else:
 
+        # node to separate out 
+
         fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
                                    output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score',
-                     iterfield=['timeseries_one_d'])
+                     iterfield=['correlation_file'])
 
 
     fisher_z_score.inputs.input_name = input_name
@@ -351,9 +353,13 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
+    for timeseries_file_string in timeseries_one_d:
+        if ".1D" in timeseries_file_string:
+            timeseries_file = timeseries_file_string
+
     roi_numbers = []
-    if '#' in open(timeseries_one_d, 'r').readline().rstrip('\r\n'):
-        roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+    if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()

@@ -614,7 +614,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             
         if 'centrality' in resource:
             names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
-                      'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
+                     'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted', \
+                     'lfcd_binarize', 'lfcd_weighted']
             for name in names:
                 if name in os.path.basename(s_paths[0]):
                     out_dir = os.path.join(out_dir, name)

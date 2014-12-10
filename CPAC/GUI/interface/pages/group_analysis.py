@@ -84,14 +84,14 @@ class GPASettings(wx.ScrolledWindow):
                       comment="Use the + to add FSL model configuration to be run.",
                       size = (400,100),
                       combo_type = 3)
-
+        '''
         self.page.add(label="Models Contain F-tests ", 
                  control=control.CHOICE_BOX, 
                  name='fTest', 
                  type=dtype.BOOL, 
                  comment = "Set this option to True if any of the models specified above contain F-tests.", 
                  values=["False","True"])
-        
+        '''
         self.page.add(label="Z threshold ", 
                      control=control.FLOAT_CTRL, 
                      name='zThreshold', 
