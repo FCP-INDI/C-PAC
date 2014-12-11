@@ -271,11 +271,14 @@ def run(config_file, subject_list_file, output_path_file):
                 key = subject_path.replace(subject_id, '*')
             except:
                 # this fires if 'subject_id' was never given a value basically
-                print '\n\n[!] CPAC says: The derivative path file you ' \
-                      'provided does not contain the output directory ' \
+                print '\n\n[!] CPAC says: Either the derivative path file ' \
+                      'you provided does not contain the output directory ' \
                       'given in the pipeline configuration file.\n'
                 print 'Derivative path file: ', output_path_file, '\n'
                 print 'Output directory: ', c.outputDirectory, '\n'
+                print '- OR -\n'
+                print 'Your subject list does not contain all of the ' \
+                      'subjects you wish to run group-level analysis on.\n'
                 print 'Please correct this and try again.\n\n\n'
                 raise Exception
 

@@ -43,7 +43,7 @@ class ALFFSettings(wx.ScrolledWindow):
                  name='runALFF', 
                  type=dtype.LSTR, 
                  comment="Calculate Amplitude of Low Frequency Fluctuations (ALFF) and and fractional ALFF (f/ALFF) for all voxels.", 
-                 values=["On","Off"],
+                 values=["Off","On"],
                  wkf_switch = True)
         
         self.page.add(label= "f/ALFF High-Pass Cutoff ",

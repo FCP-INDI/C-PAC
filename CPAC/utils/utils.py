@@ -33,6 +33,8 @@ files_folders_wf = {
     'motion_correct':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
+    'raw_functional' : 'func',
+    'selected_func_volume' : 'func',
     'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',
@@ -300,10 +302,12 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
 
     else:
 
+        # node to separate out 
+
         fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
                                    output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score',
-                     iterfield=['timeseries_one_d'])
+                     iterfield=['correlation_file'])
 
 
     fisher_z_score.inputs.input_name = input_name
@@ -349,9 +353,13 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
+    for timeseries_file_string in timeseries_one_d:
+        if ".1D" in timeseries_file_string:
+            timeseries_file = timeseries_file_string
+
     roi_numbers = []
-    if '#' in open(timeseries_one_d, 'r').readline().rstrip('\r\n'):
-        roi_numbers = open(timeseries_one_d, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+    if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
@@ -708,10 +716,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
             except:
                 # don't raise an exception here because multiple runs of the
                 # same os.makedirs are expected
-                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                      '%s\nThe directory probably already exists, but if you ' \
-                      'are seeing this message and it\'s not there, the ' \
-                      'directory creation failed.\n\n' % sym_path
+                pass
         
 
         strategy_identifier = None
@@ -879,10 +884,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
             except:
                 # don't raise an exception here because multiple runs of
                 # os.makedirs are expected
-                print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                      '%s\nThe directory probably already exists, but if you ' \
-                      'are seeing this message and it\'s not there, the ' \
-                      'directory creation failed.\n\n' % new_path
+                pass
 
 
         # prepare paths and filenames for QC text files and output paths_file
@@ -905,10 +907,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
         except:
             # don't raise an exception here because multiple runs of
             # os.makedirs are expected
-            print '\n\n[...] CPAC says: Attempted directory creation at: ' \
-                  '%s\nThe directory probably already exists, but if you ' \
-                  'are seeing this message and it\'s not there, the ' \
-                  'directory creation failed.\n\n' % new_f_path
+            pass
 
 
         try:
@@ -1952,5 +1951,6 @@ def create_output_mean_csv(subject_dir):
 
 def dbg_file_lineno():
     cf=currentframe()
-    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno 
-    
+    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno
+
+

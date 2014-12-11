@@ -604,9 +604,10 @@ class MainFrame(wx.Frame):
             testDlg1.Destroy()
             
             errDlg1 = wx.MessageDialog(
-                self, 'There are issues with the current configuration which need to be' \
-                      ' resolved - please check to make sure the options you are running' \
-                      ' have the proper pre-requisites selected.',
+                self, 'There are issues with the current configuration ' \
+                      'which need to be resolved - please check to make ' \
+                      'sure the options you are running have the proper ' \
+                      'pre-requisites selected.\n\nIssue Info:\n%s' % xxx,
                 'Pipeline Not Ready',
                 wx.OK | wx.ICON_ERROR)
             errDlg1.ShowModal()
@@ -717,7 +718,7 @@ class MainFrame(wx.Frame):
 
             self.write(self.path, config_list)
             dlg.Destroy()
-            if self.option != 'edit':
+            if self.option == 'save':
 
                 # this runs if you hit 'Save' from within the pipeline config
                 # editor AND the editor was opened from the main window by
@@ -746,7 +747,12 @@ class MainFrame(wx.Frame):
 
                 pipeline_map = self.parent.get_pipeline_map()
 
-                if pipeline_map.get(pipeline_name) != None:
+                if self.option == 'load':
+                    # this runs if your pipeline config is being updated
+                    pipeline_map[pipeline_name] = self.path
+                    self.Parent.listbox.Append(pipeline_name)
+
+                elif pipeline_map.get(pipeline_name) != None:
                     # this runs if you hit Edit, change your pipeline config
                     # file BUT keep the Pipeline Name the same and save it
                     pipeline_map[pipeline_name] = self.path

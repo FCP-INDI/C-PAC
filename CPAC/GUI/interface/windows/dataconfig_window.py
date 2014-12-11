@@ -274,6 +274,14 @@ class DataConfig(wx.Frame):
                 config_list.append((name, value, dtype))
                 
         except Exception, e:
+
+            errdlg = wx.MessageDialog(self, "Could not save your subject " \
+                               "list information.\n\n%s" % e,
+                               'Error!',
+                           wx.OK | wx.ICON_ERROR)
+            errdlg.ShowModal()
+            errdlg.Destroy()
+
             print e
             return
             
@@ -318,30 +326,40 @@ class DataConfig(wx.Frame):
                 style=wx.OPEN | wx.CHANGE_DIR)
         
             if dlg.ShowModal() == wx.ID_OK:
-                path = dlg.GetPath()
+
+                try:
+
+                    path = dlg.GetPath()
                     
-                config_map = yaml.load(open(path, 'r'))
-                for ctrl in self.page.get_ctrl_list():
-                    name = ctrl.get_name()
-                    value = config_map.get(name)
-                    dtype = ctrl.get_datatype()
-                    if isinstance(value, list):
-                        val = None
-                        for v in value:
-                            if val:
-                                val = val + "," + str(v)
-                            else:
-                                val = str(v)
-                    else:
-                        val = value
+                    config_map = yaml.load(open(path, 'r'))
+                    for ctrl in self.page.get_ctrl_list():
+                        name = ctrl.get_name()
+                        value = config_map.get(name)
+                        dtype = ctrl.get_datatype()
+                        if isinstance(value, list):
+                            val = None
+                            for v in value:
+                                if val:
+                                    val = val + "," + str(v)
+                                else:
+                                    val = str(v)
+                        else:
+                            val = value
                 
-                    #print "setting value in ctrl name, value -->", name, val             
-                    ctrl.set_value(str(val))
+                        ctrl.set_value(str(val))
+
+                except Exception as e:
+
+                    errdlg = wx.MessageDialog(self, "CPAC could not load " \
+                               "your subject list information. Double-" \
+                               "check the formatting of your data_config " \
+                               "YAML file.\n\nIssue info:\n%s" % e,
+                               'Error!',
+                           wx.OK | wx.ICON_ERROR)
+                    errdlg.ShowModal()
+                    errdlg.Destroy()
                 
                         
                 dlg.Destroy()
         
         
-#app = wx.App()
-#DataConfig(None).Show()
-#app.MainLoop()
