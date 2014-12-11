@@ -370,7 +370,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, c.fTest, parameter_file, pipeline_path, current_output, True)
+            create_fsl_model.run(conf, False, parameter_file, pipeline_path, current_output, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
