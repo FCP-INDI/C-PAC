@@ -69,6 +69,7 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
+                                                       'ref_mask',
                                                        'fnirt_config']),
                         name='inputspec')
   
@@ -106,6 +107,9 @@ def create_nonlinear_register(name='nonlinear_register'):
 
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
+
+    nonlinear_register.connect(inputspec, 'ref_mask',
+                               nonlinear_reg, 'refmask_file')
     
     # FNIRT parameters are specified by FSL config file
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)

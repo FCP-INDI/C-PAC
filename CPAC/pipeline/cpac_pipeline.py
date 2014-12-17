@@ -235,7 +235,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         print '\nPlease double-check your pipeline configuration file.\n\n'
 
-        raise Exception
+        # VERY TEMPORARY
+        if (len(wrong_filepath_list) == 1) and (wrong_filepath_list[0][0] == "dilated_symmetric_brain_mask"):
+            pass
+        else:
+            raise Exception
                 
     
 
@@ -444,6 +448,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # pass the reference files                
                     fnirt_reg_anat_mni.inputs.inputspec.reference_brain = c.template_brain_only_for_anat
                     fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.template_skull_for_anat
+                    fnirt_reg_anat_mni.inputs.inputspec.ref_mask = c.ref_mask
 
                     # assign the FSL FNIRT config file specified in pipeline config.yml
                     fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
