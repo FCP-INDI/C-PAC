@@ -547,7 +547,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = False):
+def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, CPAC_run = False):
 
     # create_fsl_model.run()
     # this is called from cpac_group_analysis_pipeline.py
@@ -680,71 +680,87 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         # of the outputs included in group analysis (i.e. if running ReHo in
         # group-level analysis, have the mean of each subject's ReHo output
         # included as an EV in the phenotype - regress out the mean of measure
+
+        # IF user selects to use derivative means generated using a group mask:
+        #     use the dictionary generated in cpac_ga_model_generator.py
+
+        # IF user selects to use derivative means generated at the subject
+        # level:
         #     pull the mean value from the output_means.csv file in the subject
         #     directory of the appropriate pipeline's output folder
-        sub_means_dict = {}
-        output_means_dict = {}
 
-        for sub in pheno_data_dict[c.subject_id_label]:
+        if c.group_mean == 1:
 
-            output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+            ''' use output means calculated using group mask '''
 
-            if os.path.exists(output_means_file):
+            output_means_dict = derivative_means_dict
+
+
+        elif c.group_mean == 0:
+
+            ''' pull output means from subject-level (from .csv in output) '''
+
+            sub_means_dict = {}
+            output_means_dict = {}
+
+            for sub in pheno_data_dict[c.subject_id_label]:
+
+                output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+
+                if os.path.exists(output_means_file):
             
-                try:
+                    try:
 
-                    output_means = csv.DictReader(open(output_means_file,'rU'))
+                        output_means = csv.DictReader(open(output_means_file,'rU'))
                 
-                except:
+                    except:
 
-                    print '\n\n[!] CPAC says: Could not open the output_means' \
-                          '.csv file usually located in each subject\'s output ' \
-                          'folder in the output directory.\n'
-                    print 'Path: ', output_means_file, '\n\n'
+                        print '\n\n[!] CPAC says: Could not open the output_means' \
+                              '.csv file usually located in each subject\'s output ' \
+                              'folder in the output directory.\n'
+                        print 'Path: ', output_means_file, '\n\n'
+                        raise Exception
+
+
+                    # pull in the output_means .csv as a dictionary
+                    for row in output_means:
+                        sub_means_dict = row
+
+
+                    try:
+
+                        output_means_dict[sub] = str(row[current_output])
+
+                    except:
+
+                        print '\n\n[!] CPAC says: There is no mean value ' \
+                              'stored for the output \'', current_output, \
+                              '\' for subject \'', sub, '\'.\n'
+                        print 'Path to means file: ', output_means_file, '\n'
+                        print 'Possible situations:\n1. The output \'', \
+                               current_output, '\' was not included in ' \
+                              'individual-level analysis, but was included to ' \
+                              'be run in group-level analysis.\n2. The means ' \
+                              'file for this subject was not created properly.' \
+                              '\n3. Individual-level analysis did not ' \
+                              'complete properly.\n\n'
+                        raise Exception
+
+                else:
+                    print '\n\n[!] CPAC says: The output_means.csv file usually ' \
+                          'located in each subject\'s output folder in the output ' \
+                          'directory does not exist!\n'
+                    print 'Path not found: ', output_means_file, '\n\n'
+                    print 'Tip: Either check if individual-level analysis ' \
+                          'completed successfully, or remove the measure mean ' \
+                          'from your model design.\n\n'
                     raise Exception
-
-
-                # pull in the output_means .csv as a dictionary
-                for row in output_means:
-                    sub_means_dict = row
-
-
-                try:
-
-                    output_means_dict[sub] = str(row[current_output])
-
-                except:
-
-                    print '\n\n[!] CPAC says: There is no mean value ' \
-                          'stored for the output \'', current_output, \
-                          '\' for subject \'', sub, '\'.\n'
-                    print 'Path to means file: ', output_means_file, '\n'
-                    print 'Possible situations:\n1. The output \'', \
-                          current_output, '\' was not included in ' \
-                          'individual-level analysis, but was included to ' \
-                          'be run in group-level analysis.\n2. The means ' \
-                          'file for this subject was not created properly.' \
-                          '\n3. Individual-level analysis did not ' \
-                          'complete properly.\n\n'
-                    raise Exception
-
-
-            else:
-                print '\n\n[!] CPAC says: The output_means.csv file usually ' \
-                      'located in each subject\'s output folder in the output ' \
-                      'directory does not exist!\n'
-                print 'Path not found: ', output_means_file, '\n\n'
-                print 'Tip: Either check if individual-level analysis ' \
-                      'completed successfully, or remove the measure mean ' \
-                      'from your model design.\n\n'
-                raise Exception
-
     
-        # by the end of this for loop above, output_means_dict should look
-        # something like this:
-        #    {sub1: mean_val, sub2: mean_val, ..}
-        #        as this code runs once per output, this dictionary contains
-        #        the mean values of the one current output, right now
+            # by the end of this for loop above, output_means_dict should look
+            # something like this:
+            #    {sub1: mean_val, sub2: mean_val, ..}
+            #        as this code runs once per output, this dictionary contains
+            #        the mean values of the one current output, right now
 
 
 
