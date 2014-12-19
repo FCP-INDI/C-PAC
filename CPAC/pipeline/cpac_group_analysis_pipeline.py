@@ -570,7 +570,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % currentDerivative)
         gp_flow.inputs.inputspec.grp_model = model
-        gp_flow.inputs.inputspefTest = fTest
+        gp_flow.inputs.inputspec.fTest = fTest
   
 
 
