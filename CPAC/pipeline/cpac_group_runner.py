@@ -287,11 +287,22 @@ def run(config_file, subject_list_file, output_path_file):
         # 'key' is a path to each and every individual output file,
         # except with the subject ID replaced with a wildcard (*)
 
-        if resource_id in c.derivativeList:
+        # loop here to replace the one below it:
+        #     go through model configs, make a list of all ders included
+        #     enumerate list of selected derivatives and the models they are in
+        #     like: (resource_id, group_model, key)
+        for group_config_file in c.modelConfigs:
 
-            analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+            try:
+                ga_config = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
+            except:
+                raise Exception("Error in reading %s configuration file" % group_config_file)
 
-            analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+            if resource_id in ga_config.derivative_list:
+
+                analysis_map[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+
+                analysis_map_gp[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
 
         # with this loop, 'analysis_map_gp' is a dictionary with a key for
@@ -338,29 +349,27 @@ def run(config_file, subject_list_file, output_path_file):
     procss = []
     
 
-    for resource, glob_key in analysis_map_gp.keys():
+    for resource, group_model, glob_key in analysis_map_gp.keys():
 
         # 'resource' is each type of output
         # 'glob_key' is a path to each and every individual output file,
         # except with the subject ID replaced with a wildcard (*)
-        
-        if resource in c.derivativeList:
-                 
-            #get all the motion parameters across subjects
-            try:
+                      
+        #get all the motion parameters across subjects
+        try:
 
-                from CPAC.utils import extract_parameters
-                extract_parameters.run(c.outputDirectory, c.runScrubbing)
+            from CPAC.utils import extract_parameters
+            extract_parameters.run(c.outputDirectory, c.runScrubbing)
 
-            except:
-                print '\n\n [!] CPAC says: Extract parameters script did ' \
-                      'not run correctly.\n\n'
-                raise Exception
+        except:
+            print '\n\n [!] CPAC says: Extract parameters script did ' \
+                  'not run correctly.\n\n'
+            raise Exception
 
-            if not c.runOnGrid:
+        if not c.runOnGrid:
                     
-                from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
+            from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)])))
 
        
           
