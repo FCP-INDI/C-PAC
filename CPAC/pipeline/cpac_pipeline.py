@@ -2134,7 +2134,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
             strat.update_resource_pool({'raw_reho_map':(reho, 'outputspec.raw_reho_map')})
-            #strat.update_resource_pool({'reho_Z_img':(reho, 'outputspec.z_score')})
             strat.append_name(reho.name)
             
             create_log_node(reho, 'outputspec.raw_reho_map', num_strat)
@@ -2203,8 +2202,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             strat.append_name(spatial_map_timeseries.name)
 
             strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
-                                        #'functional_to_spatial_map' : (resample_functional_to_spatial_map, 'out_file'),
-                                        #'functional_mask_to_spatial_map' : (resample_functional_mask_to_spatial_map, 'out_file')})
             
             create_log_node(spatial_map_timeseries, 'outputspec.subject_timeseries', num_strat)
 
