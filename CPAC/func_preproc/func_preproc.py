@@ -575,12 +575,19 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     #stopidx = None
     #startidx = None
+    # Import packages
     from nibabel import load
 
+    # Init variables
     img = load(in_files)
     hdr = img.get_header()
-    nvols = int(hdr.get_data_shape()[3])
+    shape = hdr.get_data_shape()
     
+    # Check to make sure the input file is 4-dimensional
+    if len(shape) != 4:
+        raise TypeError('Input nifti file: %s is not a 4D file' % in_files)
+    # Grab the number of volumes
+    nvols = int(hdr.get_data_shape()[3])
 
     if (start_idx == None) or (start_idx < 0) or (start_idx > (nvols - 1)):
         startidx = 0
