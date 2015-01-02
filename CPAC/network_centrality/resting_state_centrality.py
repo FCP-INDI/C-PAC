@@ -629,7 +629,6 @@ def get_centrality_by_sparsity(ts_normd,
             # Make it symmetric
             Rsp = Rsp + Rsp.T
             Rcsr = Rsp.tocsr()
-            import timeit
             degree_binarize[:] = np.array(Rcsr.sum(axis=0))
         if weight_options[1]:
             # Create the sparse correlation matrix (upper triangle) from wij's
