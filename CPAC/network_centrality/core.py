@@ -46,7 +46,7 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
     
     if out is None:
         out = np.zeros(corr_matrix.shape[0], dtype=corr_matrix.dtype)
-    
+    print 'about to call thresh_and_sum'
     func_name   = "centrality_%s_%s" % (method, dtype)
     func        = globals()[func_name]
     func(corr_matrix, out, r_value)
