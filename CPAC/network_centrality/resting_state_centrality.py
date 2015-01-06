@@ -569,7 +569,7 @@ def get_centrality_by_sparsity(ts_normd,
         rmat_block = rmat_block[block_mask]
         thr_idx = np.where(rmat_block >= r_value)   
         rmat_block = rmat_block[thr_idx]
-        print 'number of passing correlations id %d' % len(rmat_block)
+        print 'number of passing correlations is %d' % len(rmat_block)
         # Add global offset
         idx = np.where(block_mask)
         i = idx[0][thr_idx].astype('int32') + n
@@ -621,19 +621,23 @@ def get_centrality_by_sparsity(ts_normd,
         i = wij_global.f1
         j = wij_global.f2
         del wij_global
-        # Create the sparse correlation matrix (upper triangle) from wij's
-        Rsp = sp.sparse.coo_matrix((w,(i,j)), shape=(nvoxs,nvoxs))
-        del w, i, j
-        # Make it symmetric
-        Rsp = Rsp + Rsp.T
-        
         # And compute degree centrality on sparse matrix
         if weight_options[0]:
-            degree_centrality(Rsp.todense(), r_value, method='binarize', 
-                              out=degree_binarize)
+            # Create the sparse correlation matrix (upper triangle) from wij's
+            Rsp = sp.sparse.coo_matrix((np.ones(len(w)),(i,j)),
+                                        shape=(nvoxs,nvoxs))
+            # Make it symmetric
+            Rsp = Rsp + Rsp.T
+            Rcsr = Rsp.tocsr()
+            degree_binarize[:] = np.array(Rcsr.sum(axis=0))
         if weight_options[1]:
-            degree_centrality(Rsp.todense(), r_value, method='weighted', 
-                              out=degree_weighted)
+            # Create the sparse correlation matrix (upper triangle) from wij's
+            Rsp = sp.sparse.coo_matrix((w,(i,j)), shape=(nvoxs,nvoxs))
+            del w, i, j
+            # Make it symmetric
+            Rsp = Rsp + Rsp.T
+            Rcsr = Rsp.tocsr()
+            degree_weighted[:] = np.array(Rcsr.sum(axis=0))
         del Rsp
     
     # Eigenvector - compute the r value from entire matrix
