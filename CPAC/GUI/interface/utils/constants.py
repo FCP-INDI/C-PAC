@@ -2,26 +2,26 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 
-control = enum(CHOICE_BOX=0, 
-               TEXT_BOX=1, 
-               COMBO_BOX=2,
-               INT_CTRL=3,
+control = enum(CHOICE_BOX = 0, 
+               TEXT_BOX = 1, 
+               COMBO_BOX = 2,
+               INT_CTRL = 3,
                FLOAT_CTRL = 4,
                DIR_COMBO_BOX = 5,
-               CHECKLIST_BOX =6,
+               CHECKLIST_BOX = 6,
                LISTBOX_COMBO = 7,
                TEXTBOX_COMBO = 8,
                CHECKBOX_GRID = 9)
 
-dtype = enum(BOOL=0,
-             STR=1,
-             NUM=2,
-             LBOOL=3,
-             LSTR=4,
-             LNUM=5,
-             LOFL=6,
-             COMBO=7,
-             LDICT=8) 
+dtype = enum(BOOL = 0,
+             STR= 1,
+             NUM= 2,
+             LBOOL = 3,
+             LSTR = 4,
+             LNUM = 5,
+             LOFL = 6,
+             COMBO = 7,
+             LDICT= 8 ) 
 
 
 substitution_map = {'On': 1,
