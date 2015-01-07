@@ -417,19 +417,28 @@ def generate_supplementary_files(output_path, subject_list_name):
     scan_set = Set()
     data_list = []
 
-    for sub in subjects_list:
-        
-        if sub['unique_id']:
-            subject_id = sub['subject_id'] + "_" + sub['unique_id']
-        else:
-            subject_id = sub['subject_id']
+    try:
+        for sub in subjects_list:
             
-        for scan in sub['rest'].keys():
-            subject_scan_set.add((subject_id, scan))
-            subID_set.add(sub['subject_id'])
-            session_set.add(sub['unique_id'])
-            subject_set.add(subject_id)
-            scan_set.add(scan)
+            if sub['unique_id']:
+                subject_id = sub['subject_id'] + "_" + sub['unique_id']
+            else:
+                subject_id = sub['subject_id']
+                
+            for scan in sub['rest'].keys():
+                subject_scan_set.add((subject_id, scan))
+                subID_set.add(sub['subject_id'])
+                session_set.add(sub['unique_id'])
+                subject_set.add(subject_id)
+                scan_set.add(scan)
+    except TypeError as e:
+        print 'Subject list could not be populated!'
+        print 'This is most likely due to a mis-formatting in your '\
+              'inclusion and/or exclusion subjects txt file.'
+        print 'Error: %s' % e
+        err_str = 'Check formatting of your inclusion/exclusion subjects '\
+                  'text files'
+        raise TypeError(err_str)
 
     for item in subject_scan_set:
         list1 = []
