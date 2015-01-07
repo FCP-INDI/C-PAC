@@ -129,6 +129,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
         pull output paths (instead of path_files_here)
         '''
 
+        print "Sorting through subject list to check for missing outputs..\n"
+
         for path in s_paths:
 
             if (group_conf.repeated_measures == True):
@@ -260,7 +262,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
             if (measure in group_conf.design_formula):
                 no_measures_error(measure)
 
-         parameter_file = None
+        parameter_file = None
 
 
 
@@ -312,7 +314,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     for derivative_path in derivative_paths:
 
         try:
-            3dmaskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
+            maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
         except Exception as e:
             print "AFNI 3dmaskave failed for output: %s\n" % current_output
             print "error: %s\n\n" % e
@@ -323,7 +325,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
 
         # this crazy-looking command simply extracts the mean from the
         # verbose AFNI 3dmaskave output string
-        derivative_mean[derivative_path_subID] = 3dmaskave_output.split("\n")[-1].split(" ")[0]
+        derivative_mean[derivative_path_subID] = maskave_output.split("\n")[-1].split(" ")[0]
 
         # derivative_mean is now something like this:
         # { 'sub001': 0.3124, 'sub002': 0.2981, .. }
@@ -369,9 +371,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     strgy_path_name = strgy_path.replace('/', '__')
            
 
-    wf = pe.Workflow(name = "%s_%s" % (resource, group_conf.model_name) 
+    wf = pe.Workflow(name = "%s_%s" % (resource, group_conf.model_name))
 
-    workDir = c.workingDirectory + '/group_analysis__%s__grp_model_%s__%s' % (resource, group_conf.model_name, scan_ids[0])
+    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
     workDir = workDir + '/' + strgy_path_name
 
     wf.base_dir = workDir

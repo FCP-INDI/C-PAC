@@ -196,13 +196,6 @@ def run(config_file, subject_list_file, output_path_file):
         raise Exception
 
 
-    if len(c.derivativeList) == 0:
-        print '[!] CPAC says: You do not have any derivatives selected ' \
-              'to run for group-level analysis. Return to your pipeline ' \
-              'configuration file and select at least one.\n\n'
-        raise Exception
-
-
     if len(c.modelConfigs) == 0:
         print '[!] CPAC says: You do not have any models selected ' \
               'to run for group-level analysis. Return to your pipeline ' \
@@ -229,6 +222,8 @@ def run(config_file, subject_list_file, output_path_file):
     analysis_map = defaultdict(list)
     analysis_map_gp = defaultdict(list)
 
+
+    print "Parsing through output paths..\n"
 
     for subject_path in subject_paths:
 
@@ -260,29 +255,6 @@ def run(config_file, subject_list_file, output_path_file):
                 subject_id = sub['subject_id']
               
 
-        # include all of the scans and sessions in one model if True
-        if c.repeatedMeasures == True:
-            key = subject_path.replace(subject_unique_id, '*')
-            key = key.replace(scan_id, '*')
-        else:
-            # each group of subjects from each session go into their own
-            # separate model, instead of combining all sessions into one
-            try:
-                key = subject_path.replace(subject_id, '*')
-            except:
-                # this fires if 'subject_id' was never given a value basically
-                print '\n\n[!] CPAC says: Either the derivative path file ' \
-                      'you provided does not contain the output directory ' \
-                      'given in the pipeline configuration file.\n'
-                print 'Derivative path file: ', output_path_file, '\n'
-                print 'Output directory: ', c.outputDirectory, '\n'
-                print '- OR -\n'
-                print 'Your subject list does not contain all of the ' \
-                      'subjects you wish to run group-level analysis on.\n'
-                print 'Please correct this and try again.\n\n\n'
-                raise Exception
-
-
         # 'resource_id' is each type of output
         # 'key' is a path to each and every individual output file,
         # except with the subject ID replaced with a wildcard (*)
@@ -296,9 +268,40 @@ def run(config_file, subject_list_file, output_path_file):
             try:
                 ga_config = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
             except:
-                raise Exception("Error in reading %s configuration file" % group_config_file)
+                raise Exception("\n\nError in reading %s configuration file\n\n" % group_config_file)
+
+            if len(ga_config.derivative_list) == 0:
+                print '[!] CPAC says: You do not have any derivatives selected ' \
+                      'to run for group-level analysis. Return to your group-analysis ' \
+                      'configuration file and select at least one.'
+                print 'Group analysis configuration file: %s\n\n' % group_config_file
+                raise Exception
+
 
             if resource_id in ga_config.derivative_list:
+
+                # include all of the scans and sessions in one model if True
+                if ga_config.repeated_measures == True:
+                    key = subject_path.replace(subject_unique_id, '*')
+                    key = key.replace(scan_id, '*')
+                else:
+                    # each group of subjects from each session go into their own
+                    # separate model, instead of combining all sessions into one
+                    try:
+                        key = subject_path.replace(subject_id, '*')
+                    except:
+                        # this fires if 'subject_id' was never given a value basically
+                        print '\n\n[!] CPAC says: Either the derivative path file ' \
+                              'you provided does not contain the output directory ' \
+                              'given in the pipeline configuration file.\n'
+                        print 'Derivative path file: ', output_path_file, '\n'
+                        print 'Output directory: ', c.outputDirectory, '\n'
+                        print '- OR -\n'
+                        print 'Your subject list does not contain all of the ' \
+                              'subjects you wish to run group-level analysis on.\n'
+                        print 'Please correct this and try again.\n\n\n'
+                        raise Exception
+
 
                 analysis_map[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
@@ -313,7 +316,7 @@ def run(config_file, subject_list_file, output_path_file):
 
 
 
-    for resource, glob_key in analysis_map.keys():
+    for resource, group_model, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
 
 
@@ -356,6 +359,9 @@ def run(config_file, subject_list_file, output_path_file):
         # except with the subject ID replaced with a wildcard (*)
                       
         #get all the motion parameters across subjects
+
+        print "Pulling motion parameters for all subjects..\n"
+
         try:
 
             from CPAC.utils import extract_parameters
@@ -368,7 +374,9 @@ def run(config_file, subject_list_file, output_path_file):
 
         if not c.runOnGrid:
                     
-            from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
+            print "Starting group analysis pipeline setup..\n"
+
+            from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
             procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)])))
 
        
