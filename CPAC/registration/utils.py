@@ -16,7 +16,7 @@ def seperate_warps_list(warp_list, selection):
     return selected_warp
 
 
-def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull, reference_skull):
+def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull, reference_skull, wait=""):
 
     import os
 
@@ -33,6 +33,8 @@ def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull, reference
 
         if "Warped" in f:
             warped_image = os.getcwd() + "/" + f
+
+    print wait
 
     return warp_list, warped_image
 
