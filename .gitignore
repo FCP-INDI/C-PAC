@@ -33,3 +33,5 @@ pip-log.txt
 #Eclipse project files
 .project
 .pydevproject
+
+*tests/resources/*

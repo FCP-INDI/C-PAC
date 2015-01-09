@@ -434,10 +434,11 @@ def generate_supplementary_files(output_path, subject_list_name):
     except TypeError as e:
         print 'Subject list could not be populated!'
         print 'This is most likely due to a mis-formatting in your '\
-              'inclusion and/or exclusion subjects txt file.'
+              'inclusion and/or exclusion subjects txt file or your '\
+              'anatomical and/or functional path templates.'
         print 'Error: %s' % e
-        err_str = 'Check formatting of your inclusion/exclusion subjects '\
-                  'text files'
+        err_str = 'Check formatting of your anatomical/functional path '\
+                  'templates and inclusion/exclusion subjects text files'
         raise TypeError(err_str)
 
     for item in subject_scan_set:
