@@ -7,7 +7,36 @@ def combine_inputs_into_list(input1, input2, input3):
 
 def seperate_warps_list(warp_list, selection):
 
-     return warp_list[selection]
+    for warp in warp_list:
+
+        if selection in warp:
+
+            selected_warp = warp
+     
+    return selected_warp
+
+
+def hardcoded_reg(anatomical_brain, reference_brain, anatomical_skull, reference_skull, wait=""):
+
+    import os
+
+    os.system("antsRegistration --collapse-linear-transforms-to-fixed-image-header 0 --collapse-output-transforms 0 --dimensionality 3 --initial-moving-transform [ %s, %s, 0 ] --interpolation Linear --output [ transform, transform_Warped.nii.gz ] --transform Rigid[ 0.1 ] --metric MI[ %s, %s, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 8x4x2x1 --use-histogram-matching 1 --transform Affine[ 0.1 ] --metric MI[ %s, %s, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 8x4x2x1 --use-histogram-matching 1 --transform SyN[ 0.1, 3.0, 0.0 ] --metric CC[ %s, %s, 1, 4 ] --convergence [ 100x100x70x20, 1e-09, 15 ] --smoothing-sigmas 3.0x2.0x1.0x0.0 --shrink-factors 6x4x2x1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.01, 0.99 ]" % (reference_brain, anatomical_brain, reference_brain, anatomical_brain, reference_brain, anatomical_brain, reference_skull, anatomical_skull))
+
+    warp_list = []
+
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+
+    for f in files:
+
+        if ("transform" in f) and ("Warped" not in f):
+            warp_list.append(os.getcwd() + "/" + f)
+
+        if "Warped" in f:
+            warped_image = os.getcwd() + "/" + f
+
+    print wait
+
+    return warp_list, warped_image
 
 
 

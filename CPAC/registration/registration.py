@@ -69,6 +69,7 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'input_skull',
                                                        'reference_brain',
                                                        'reference_skull',
+                                                       'ref_mask',
                                                        'fnirt_config']),
                         name='inputspec')
   
@@ -106,6 +107,9 @@ def create_nonlinear_register(name='nonlinear_register'):
 
     nonlinear_register.connect(inputspec, 'reference_skull',
                                nonlinear_reg, 'ref_file')
+
+    nonlinear_register.connect(inputspec, 'ref_mask',
+                               nonlinear_reg, 'refmask_file')
     
     # FNIRT parameters are specified by FSL config file
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
@@ -577,7 +581,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     import nipype.interfaces.ants as ants
     from nipype.interfaces.utility import Function
     from CPAC.registration.utils import seperate_warps_list, \
-                                        combine_inputs_into_list
+                                        combine_inputs_into_list, \
+                                        hardcoded_reg
 
 
     calc_ants_warp_wf = pe.Workflow(name=name)
@@ -591,55 +596,57 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
             'convergence_threshold', 'convergence_window_size', 'transforms',
             'transform_parameters', 'shrink_factors', 'smoothing_sigmas',
             'write_composite_transform', 'anatomical_skull', 'reference_skull',
-            ]), name='inputspec')
+            'wait']), name='inputspec')
 
 
     # use ANTS to warp the masked anatomical image to a template image
+    '''
     calculate_ants_warp = pe.Node(interface=ants.Registration(),
             name='calculate_ants_warp')
 
     calculate_ants_warp.inputs.output_warped_image = True
     calculate_ants_warp.inputs.initial_moving_transform_com = 0
-
+    '''
+    calculate_ants_warp = pe.Node(interface=util.Function(input_names=['anatomical_brain', 'reference_brain', 'anatomical_skull', 'reference_skull', 'wait'], output_names=['warp_list', 'warped_image'], function=hardcoded_reg), name='calc_ants_warp')
 
     select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_initial')
 
-    select_forward_initial.inputs.selection = 0
+    select_forward_initial.inputs.selection = "Initial"
 
 
     select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_rigid')
 
-    select_forward_rigid.inputs.selection = 1
+    select_forward_rigid.inputs.selection = "Rigid"
 
 
     select_forward_affine = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_affine')
 
-    select_forward_affine.inputs.selection = 2
+    select_forward_affine.inputs.selection = "Affine"
 
 
     select_forward_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_warp')
 
-    select_forward_warp.inputs.selection = 3
+    select_forward_warp.inputs.selection = "3Warp"
 
 
     select_inverse_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_inverse_warp')
 
-    select_inverse_warp.inputs.selection = 0
+    select_inverse_warp.inputs.selection = "Inverse"
 
 
     outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
             'ants_rigid_xfm', 'ants_affine_xfm', 'warp_field',
-            'inverse_warp_field', 'composite_transform',
+            'inverse_warp_field', 'composite_transform', 'wait',
             'normalized_output_brain']), name='outputspec')
 
 
@@ -647,6 +654,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     if mult_input == 1:
 
+        '''
         combine_inputs = pe.Node(util.Function(input_names=['input1', 'input2', 'input3'],
                 output_names=['inputs_list'], function=combine_inputs_into_list),
                 name='ants_reg_combine_inputs')
@@ -654,7 +662,24 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
         combine_refs = pe.Node(util.Function(input_names=['input1', 'input2', 'input3'],
                 output_names=['inputs_list'], function=combine_inputs_into_list),
                 name='ants_reg_combine_refs')
+        '''
 
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                calculate_ants_warp, 'anatomical_brain')
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_skull',
+                calculate_ants_warp, 'anatomical_skull')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                calculate_ants_warp, 'reference_brain')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_skull',
+                calculate_ants_warp, 'reference_skull')
+
+        calc_ants_warp_wf.connect(inputspec, 'wait',
+                calculate_ants_warp, 'wait')
+
+        '''
         calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
                 combine_inputs, 'input1')
 
@@ -678,6 +703,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
         calc_ants_warp_wf.connect(combine_refs, 'inputs_list',
                 calculate_ants_warp, 'fixed_image') 
+        '''
 
     else:
 
@@ -740,19 +766,19 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     # inter-workflow connections
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
             select_forward_initial, 'warp_list')
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
             select_forward_rigid, 'warp_list')
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
             select_forward_affine, 'warp_list')
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'forward_transforms',
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
             select_forward_warp, 'warp_list')
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'reverse_transforms',
+    calc_ants_warp_wf.connect(calculate_ants_warp, 'warp_list',
             select_inverse_warp, 'warp_list')
 
     # connections to outputspec
@@ -772,11 +798,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calc_ants_warp_wf.connect(select_inverse_warp, 'selected_warp',
             outputspec, 'inverse_warp_field')
 
-    calc_ants_warp_wf.connect(calculate_ants_warp, 'composite_transform',
-            outputspec, 'composite_transform')
-
     calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
             outputspec, 'normalized_output_brain')
+
+    calc_ants_warp_wf.connect(inputspec, 'wait',
+            outputspec, 'wait')
 
 
     return calc_ants_warp_wf
@@ -886,7 +912,6 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
 
 
     return apply_ants_warp_wf
-
 
 
 def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_fsl_to_itk'):
