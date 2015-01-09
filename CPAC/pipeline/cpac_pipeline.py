@@ -235,7 +235,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         print '\nPlease double-check your pipeline configuration file.\n\n'
 
-        raise Exception
+        # VERY TEMPORARY
+        if (len(wrong_filepath_list) == 1) and (wrong_filepath_list[0][0] == "dilated_symmetric_brain_mask"):
+            pass
+        else:
+            raise Exception
                 
     
 
@@ -444,6 +448,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # pass the reference files                
                     fnirt_reg_anat_mni.inputs.inputspec.reference_brain = c.template_brain_only_for_anat
                     fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.template_skull_for_anat
+                    fnirt_reg_anat_mni.inputs.inputspec.ref_mask = c.ref_mask
 
                     # assign the FSL FNIRT config file specified in pipeline config.yml
                     fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
@@ -607,6 +612,246 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                             'mni_normalized_anatomical':(ants_reg_anat_mni, 'outputspec.normalized_output_brain')})
 
                 create_log_node(ants_reg_anat_mni, 'outputspec.normalized_output_brain', num_strat)
+          
+                num_strat += 1
+            
+    strat_list += new_strat_list
+
+
+
+
+    '''
+    [SYMMETRIC] T1 -> Symmetric Template, Non-linear registration (FNIRT/ANTS)
+    '''
+    new_strat_list = []
+    num_strat = 0
+
+    workflow_counter += 1
+    
+    # either run FSL anatomical-to-MNI registration, or...
+    
+    if (1 in c.runRegistrationPreprocessing) and (1 in c.runVMHC):
+
+        if not os.path.exists(c.template_symmetric_brain_only):
+            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_brain_only) + "\n\n" + \
+                        "Error name: cpac_pipeline_0017" + "\n\n")
+            raise Exception
+        
+        if not os.path.exists(c.template_symmetric_skull):
+            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_skull) + "\n\n" + \
+                        "Error name: cpac_pipeline_0018" + "\n\n")
+            raise Exception
+            
+
+        workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
+        for strat in strat_list:
+
+            if 'FSL' in c.regOption:
+
+                # this is to prevent the user from running FNIRT if they are
+                # providing already-skullstripped inputs. this is because
+                # FNIRT requires an input with the skull still on
+                if already_skullstripped == 1:
+
+                    err_msg = '\n\n[!] CPAC says: FNIRT (for anatomical ' \
+                              'registration) will not work properly if you ' \
+                              'are providing inputs that have already been ' \
+                              'skull-stripped.\n\nEither switch to using ' \
+                              'ANTS for registration or provide input ' \
+                              'images that have not been already ' \
+                              'skull-stripped.\n\n'
+
+                    logger.info(err_msg)
+                    raise Exception
+
+                fnirt_reg_anat_symm_mni = create_nonlinear_register('anat_symmetric_mni_fnirt_register_%d' % num_strat)
+
+                try:
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni, 'inputspec.input_brain')
+
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni, 'inputspec.input_skull')
+
+                    # pass the reference files                
+                    fnirt_reg_anat_symm_mni.inputs.inputspec.reference_brain = c.template_symmetric_brain_only
+                    fnirt_reg_anat_symm_mni.inputs.inputspec.reference_skull = c.template_symmetric_skull
+                    fnirt_reg_anat_symm_mni.inputs.inputspec.ref_mask = c.dilated_symmetric_brain_mask
+
+                    # assign the FSL FNIRT config file specified in pipeline config.yml
+                    fnirt_reg_anat_symm_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
+
+                    node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+                    workflow.connect(node, out_file,
+                                     fnirt_reg_anat_symm_mni, 'inputspec.wait')
+
+                except:
+                    logConnectionError('Symmetric Anatomical Registration (FSL)', num_strat, strat.get_resource_pool(), '0002')
+                    raise
+
+                if (0 in c.runRegistrationPreprocessing) or ('ANTS' in c.regOption):
+                    tmp = strategy()
+                    tmp.resource_pool = dict(strat.resource_pool)
+                    tmp.leaf_node = (strat.leaf_node)
+                    tmp.leaf_out_file = str(strat.leaf_out_file)
+                    tmp.name = list(strat.name)
+                    strat = tmp
+                    new_strat_list.append(strat)
+
+                strat.append_name(fnirt_reg_anat_symm_mni.name)
+                strat.set_leaf_properties(fnirt_reg_anat_symm_mni, 'outputspec.output_brain')
+
+                strat.update_resource_pool({'anatomical_to_symmetric_mni_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.linear_xfm'),
+                                            'anatomical_to_symmetric_mni_nonlinear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
+                                            'symmetric_mni_to_anatomical_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
+                                            'symmetric_mni_normalized_anatomical':(fnirt_reg_anat_symm_mni, 'outputspec.output_brain'),
+                                            'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
+
+
+                create_log_node(fnirt_reg_anat_symm_mni, 'outputspec.output_brain', num_strat)
+            
+            
+                num_strat += 1
+                
+        strat_list += new_strat_list
+
+
+        
+        new_strat_list = []
+            
+        for strat in strat_list:
+            
+            nodes = getNodeList(strat)
+            
+            # or run ANTS anatomical-to-MNI registration instead
+            if ('ANTS' in c.regOption) and \
+                    ('anat_symmetric_mni_fnirt_register' not in nodes):
+
+                ants_reg_anat_symm_mni = create_wf_calculate_ants_warp('anat' \
+                        '_symmetric_mni_ants_register_%d' % num_strat, \
+                        c.regWithSkull[0])
+
+                try:
+
+                    # calculating the transform with the skullstripped is
+                    # reported to be better, but it requires very high
+                    # quality skullstripping. If skullstripping is imprecise
+                    # registration with skull is preferred
+                    if (1 in c.regWithSkull):
+
+                        if already_skullstripped == 1:
+
+                            err_msg = '\n\n[!] CPAC says: You selected ' \
+                                      'to run anatomical registration with ' \
+                                      'the skull, but you also selected to ' \
+                                      'use already-skullstripped images as ' \
+                                      'your inputs. This can be changed ' \
+                                      'in your pipeline configuration ' \
+                                      'editor.\n\n'
+
+                            logger.info(err_msg)
+                            raise Exception
+
+                        # get the reorient skull-on anatomical from resource pool
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+
+                        # pass the anatomical to the workflow
+                        workflow.connect(node, out_file,
+                            ants_reg_anat_symm_mni,'inputspec.anatomical_brain')
+
+                        # pass the reference file
+                        ants_reg_anat_symm_mni.inputs.inputspec.reference_brain = \
+                            c.template_symmetric_brain_only
+
+                        # get the reorient skull-on anatomical from resource pool
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+
+                        # pass the anatomical to the workflow
+                        workflow.connect(node, out_file,
+                            ants_reg_anat_symm_mni,'inputspec.anatomical_skull')
+
+                        # pass the reference file
+                        ants_reg_anat_symm_mni.inputs.inputspec.reference_skull = \
+                            c.template_symmetric_skull
+
+
+                    else:
+
+                        node, out_file = strat.get_leaf_properties()
+
+                        workflow.connect(node, out_file, ants_reg_anat_symm_mni,
+                            'inputspec.anatomical_brain')
+
+                        # pass the reference file           
+                        ants_reg_anat_symm_mni.inputs.inputspec. \
+                            reference_brain = c.template_symmetric_brain_only
+
+
+                    ants_reg_anat_symm_mni.inputs.inputspec.dimension = 3
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        use_histogram_matching = True
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        winsorize_lower_quantile = 0.01
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        winsorize_upper_quantile = 0.99
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        metric = ['MI','MI','CC']
+                    ants_reg_anat_symm_mni.inputs.inputspec.metric_weight = [1,1,1]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        radius_or_number_of_bins = [32,32,4]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        sampling_strategy = ['Regular','Regular',None]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        sampling_percentage = [0.25,0.25,None]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        number_of_iterations = [[1000,500,250,100], \
+                        [1000,500,250,100], [100,100,70,20]]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        convergence_threshold = [1e-8,1e-8,1e-9]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        convergence_window_size = [10,10,15]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        transforms = ['Rigid','Affine','SyN']
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        transform_parameters = [[0.1],[0.1],[0.1,3,0]]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        shrink_factors = [[8,4,2,1],[8,4,2,1],[6,4,2,1]]
+                    ants_reg_anat_symm_mni.inputs.inputspec. \
+                        smoothing_sigmas = [[3,2,1,0],[3,2,1,0],[3,2,1,0]]
+
+                    node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+                    workflow.connect(node, out_file,
+                                     ants_reg_anat_symm_mni, 'inputspec.wait')
+                
+
+                except:
+                    logConnectionError('Symmetric Anatomical Registration (ANTS)', num_strat, strat.get_resource_pool(), '0003')
+                    raise
+
+                if 0 in c.runRegistrationPreprocessing:
+                    tmp = strategy()
+                    tmp.resource_pool = dict(strat.resource_pool)
+                    tmp.leaf_node = (strat.leaf_node)
+                    tmp.leaf_out_file = str(strat.leaf_out_file)
+                    tmp.name = list(strat.name)
+                    strat = tmp
+                    new_strat_list.append(strat)
+
+                strat.append_name(ants_reg_anat_symm_mni.name)
+                strat.set_leaf_properties(ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')
+
+                strat.update_resource_pool({'ants_symmetric_initial_xfm':(ants_reg_anat_symm_mni, 'outputspec.ants_initial_xfm'),
+                                            'ants_symmetric_rigid_xfm':(ants_reg_anat_symm_mni, 'outputspec.ants_rigid_xfm'),
+                                            'ants_symmetric_affine_xfm':(ants_reg_anat_symm_mni, 'outputspec.ants_affine_xfm'),
+                                            'anatomical_to_symmetric_mni_nonlinear_xfm':(ants_reg_anat_symm_mni, 'outputspec.warp_field'),
+                                            'symmetric_mni_to_anatomical_nonlinear_xfm':(ants_reg_anat_symm_mni, 'outputspec.inverse_warp_field'),
+                                            'anat_to_symmetric_mni_ants_composite_xfm':(ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
+                                            'symmetric_mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain'),
+                                            'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
+
+                create_log_node(ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain', num_strat)
           
                 num_strat += 1
             
@@ -2020,45 +2265,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     new_strat_list = []
     num_strat = 0
 
-    if 1 in c.runVMHC:
-        
-        if not os.path.exists(c.template_symmetric_brain_only):
-            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_brain_only) + "\n\n" + \
-                        "Error name: cpac_pipeline_0017" + "\n\n")
-            raise Exception
-        
-        if not os.path.exists(c.template_symmetric_skull):
-            logger.info("\n\n" + ("ERROR: Missing file - %s" % c.template_symmetric_skull) + "\n\n" + \
-                        "Error name: cpac_pipeline_0018" + "\n\n")
-            raise Exception
-            
+    if 1 in c.runVMHC:          
         
         for strat in strat_list:
             
             nodes = getNodeList(strat)
             
             if 'func_mni_fsl_warp' in nodes:
-                preproc = create_vmhc(False)
+                vmhc = create_vmhc(False, 'vmhc_%d' % num_strat)
             else:
-                preproc = create_vmhc(True)
+                vmhc = create_vmhc(True, 'vmhc_%d' % num_strat)
 
-            preproc.inputs.inputspec.symmetric_brain = \
-                                            c.template_symmetric_brain_only
-            preproc.inputs.inputspec.symmetric_skull = \
-                                            c.template_symmetric_skull
-            preproc.inputs.inputspec.twomm_brain_mask_dil = \
-                                            c.dilated_symmetric_brain_mask
-            preproc.inputs.inputspec.config_file_twomm = \
-                                            c.configFileTwomm
-            preproc.inputs.inputspec.standard_for_func = \
-                                            c.template_skull_for_func
-            preproc.inputs.fwhm_input.fwhm = c.fwhm
-            preproc.get_node('fwhm_input').iterables = ('fwhm',
-                                                        c.fwhm)
-
-
-            vmhc = preproc.clone('vmhc_%d' % num_strat)
-
+            vmhc.inputs.inputspec.standard_for_func = c.template_skull_for_func
+            vmhc.inputs.fwhm_input.fwhm = c.fwhm
+            vmhc.get_node('fwhm_input').iterables = ('fwhm', c.fwhm)
 
 
             try:
@@ -2074,17 +2294,39 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.rest_mask')
 
+                node, out_file = strat.get_node_from_resource_pool('mean_functional')
+                workflow.connect(node, out_file,
+                                 vmhc, 'inputspec.mean_functional')
+
                 node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 workflow.connect(node, out_file,
                                  vmhc, 'inputspec.brain')
 
-                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
-                workflow.connect(node, out_file,
-                                 vmhc, 'inputspec.reorient')
 
-                node, out_file = strat.get_node_from_resource_pool('mean_functional')
-                workflow.connect(node, out_file,
-                                 vmhc, 'inputspec.mean_functional')
+                if 'func_mni_fsl_warp' in nodes:
+
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_symmetric_mni_nonlinear_xfm')
+                    workflow.connect(node, out_file,
+                                     vmhc, 'inputspec.fnirt_nonlinear_warp')
+
+                else:
+
+                    node, out_file = strat.get_node_from_resource_pool('ants_symmetric_initial_xfm')
+                    workflow.connect(node, out_file,
+                                     vmhc, 'inputspec.ants_symm_initial_xfm')
+
+                    node, out_file = strat.get_node_from_resource_pool('ants_symmetric_rigid_xfm')
+                    workflow.connect(node, out_file,
+                                     vmhc, 'inputspec.ants_symm_rigid_xfm')
+
+                    node, out_file = strat.get_node_from_resource_pool('ants_symmetric_affine_xfm')
+                    workflow.connect(node, out_file,
+                                     vmhc, 'inputspec.ants_symm_affine_xfm')
+
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_symmetric_mni_nonlinear_xfm')
+                    workflow.connect(node, out_file,
+                                     vmhc, 'inputspec.ants_symm_warp_field')
+
 
             except:
                 logConnectionError('VMHC', num_strat, strat.get_resource_pool(), '0019')
