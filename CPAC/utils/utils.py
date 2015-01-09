@@ -677,8 +677,6 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
     return return_roi_files
 
 
-
-
 def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, create_sym_links):
 
     import os

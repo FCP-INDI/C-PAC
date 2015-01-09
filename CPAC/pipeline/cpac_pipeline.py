@@ -2700,8 +2700,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
 
 
-
-
     '''
     Inserting Network centrality
     '''
@@ -5522,30 +5520,92 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     return workflow
 
 
-
-
-def run(config, subject_list_file, indx, strategies, \
-     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile, p_name = None):
+# Run the prep_workflow function with specific arguments
+def run(config, subject_list_file, indx, strategies,
+        maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
+        p_name=None, **kwargs):
+    '''
+    Function to build and execute the complete workflow
+    
+    Parameters
+    ----------
+    config: string
+        filepath to a C-PAC config file
+    subject_list_file : string
+        filepath to a C-PAC subject list file
+    indx : integer
+        index of the subject in the subject list to run
+    strategies : string
+        filepath to a C-PAC strategies file
+    maskSpecificationFile : string
+        filepath to the mask-specification file
+    roiSpecificationFile : string
+        filepath to the roi-specification file
+    templateSpecificationFile : string
+        filepath to the template-specification file
+    p_name : string (optional)
+        name of the pipeline configuration
+    creds_path : string (optional)
+        filepath to the AWS keys credentials file
+    bucket_name : string (optional)
+        name of the S3 bucket to pull data from
+    bucket_prefix : string (optional)
+        base directory where S3 inputs and outputs are stored
+    local_prefix : string (optional)
+        base directory where the local subject list files were built
+    '''
+    
+    # Import packages
     import commands
+    from CPAC.AWS import fetch_creds
+    from CPAC.AWS import aws_utils
     commands.getoutput('source ~/.bashrc')
     import pickle
     import yaml
+    
+    # Init variables
+    creds_path = kwargs.get('creds_path')
+    bucket_name = kwargs.get('bucket_name')
+    bucket_prefix = kwargs.get('bucket_prefix')
+    local_prefix = kwargs.get('local_prefix')
 
-
+    # Import configuration file
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
+    # Try and load in the subject list
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
-    sub_dict = sublist[int(indx) - 1]
+    # Grab the subject of interest
+    sub_dict = sublist[int(indx)-1]
+    
+    # Build and download subject's list
+    # If we're using AWS
+    if creds_path:
+        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+        print 'Using data from S3 bucket: %s' % bucket_name
+        aws_utils.build_download_sublist(bucket,
+                                         os.path.join(bucket_prefix, '/RawData'),
+                                         local_prefix, [sub_dict])
+    # Otherwise, state use of local disk and move on
+    else:
+        print 'Using local disk for input/output'
 
-
+    # Load in the different spec files to Configuration object
     c.maskSpecificationFile = maskSpecificationFile
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
-    
+    # Build and run the pipeline
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
-
+    
+    # Now upload results to S3
+    if creds_path:
+        src_list = aws_utils.collect_outputs_list(c.outputDirectory,
+                                                  sub_dict['subject_id'])
+        dst_list = [s.replace(local_prefix, os.path.join(bucket_prefix, '/cpac/outputs/'))
+                    for s in src_list]
+        aws_utils.s3_upload(bucket, src_list, dst_list, make_public=True)
+        
