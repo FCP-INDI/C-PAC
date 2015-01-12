@@ -263,11 +263,13 @@ class ConfigFslFrame(wx.Frame):
 
 class ContrastsFrame(wx.Frame):
 
-    def __init__(self, parent, values):
+    def __init__(self, parent, values, avail_cons):
 
         wx.Frame.__init__(self, parent, title="Add Contrast Description", \
                 size = (300,80))
         
+        self.avail_cons = avail_cons
+
         panel = wx.Panel(self)
         
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -288,15 +290,82 @@ class ContrastsFrame(wx.Frame):
         
         self.Show()
     
-    def onButtonClick(self,event):
+
+    def onButtonClick(self, event):
+
         parent = self.Parent
+
+        add_con = 0
         
         if self.box1.GetValue():
-            
+          
             val = self.box1.GetValue()
-            parent.listbox.Append(str(val))
-            parent.options.append(str(val))
-            self.Close()
+
+            # do validation first
+
+            contrasts_in_string = self.parse_contrast(val)
+
+            for contrast in contrasts_in_string:
+
+                if contrast not in self.avail_cons:
+
+                    errmsg = 'CPAC says: The contrast \'%s\' you ' \
+                        'entered within the string \'%s\' is not ' \
+                        'one of the available contrast selections.' \
+                        '\n\nPlease enter only the contrast labels ' \
+                        'listed under \'Available Contrasts\'.' \
+                        % (contrast, val)
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+
+                    add_con += 1
+
+
+            if add_con == 0:
+
+                parent.listbox.Append(str(val))
+                parent.options.append(str(val))
+                self.Close()
+
+
+
+    def parse_contrast(self, contrast_string):
+
+        orig_string = contrast_string
+
+        contrast_string = contrast_string.replace(' ', '')
+
+        if '>' in contrast_string:
+            split_contrast = contrast_string.split('>')
+        elif '<' in contrast_string:
+            split_contrast = contrast_string.split('<')
+        elif '+' in contrast_string:
+            split_contrast = contrast_string.split('+')
+        elif '-' in contrast_string:
+            split_contrast = contrast_string.split('-')
+        else:
+
+            errmsg = 'CPAC says: The contrast \'%s\' did not contain any ' \
+                     'valid operators.\n\nValid operators: > , < , + , -' \
+                     % orig_string
+
+            errCon = wx.MessageDialog(self, errmsg, 'Invalid Operator',
+                         wx.OK | wx.ICON_ERROR)
+            errCon.ShowModal()
+            errCon.Destroy()
+
+
+
+        # in the case of the '+' or '-' contrast operators, which result in
+        # the split_contrast list containing a blank element ''
+        for item in split_contrast:
+            if item == '':
+                split_contrast.remove(item)
+
+        return split_contrast
 
 
 
@@ -356,7 +425,7 @@ class ListBoxCombo(wx.Panel):
         elif self.ctype == 1:
             CheckBox(self, self.values)
         elif self.ctype == 4:
-            ContrastsFrame(self, self.values)
+            ContrastsFrame(self, self.values, self.avail_cons)
         
     def GetListBoxCtrl(self):
         return self.listbox
@@ -380,6 +449,15 @@ class ListBoxCombo(wx.Panel):
 
     def get_listbox_options(self):
         return self.options
+
+
+    def set_available_contrasts(self, avail_cons):
+
+        # this is the list of contrast names available to the user to be
+        # placed into the contrast strings - this gets passed to
+        # ContrastsFrame so it can do string checking immediately
+        self.avail_cons = avail_cons
+
 
     #def get_listbox_selections(self):
     #    return self.listbox_selections
@@ -460,23 +538,24 @@ class TextBoxCombo(wx.combo.ComboCtrl):
         
         
         
-class CheckBoxGrid(wx.ScrolledWindow):
+class CheckBoxGrid(wx.Panel):
     
     def __init__(self, parent, idx, values, size):
-        wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
+        wx.Panel.__init__(self, parent, id=idx, size=size)
+        #wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
         
-        #mainSizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.VSCROLL)  #wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
-        
+
+
         self.values = []
         self.values = values
         
         #wx.StaticText(self, label="Include EV", pos=(250,0))
-        wx.StaticText(self, label="Categorical", pos=(300,0))
-        wx.StaticText(self, label="Demean", pos=(400,0))
+        cat_label = wx.StaticText(self, label="Categorical", pos=(300,0))
+        demean_label = wx.StaticText(self, label="Demean", pos=(400,0))
         
+
         j = 0
         self.idx = 100
         self.includeCBList = []
@@ -515,6 +594,8 @@ class CheckBoxGrid(wx.ScrolledWindow):
             self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
         '''
 
+
+
         
     def set_checkbox_grid_values(self, value_list):
 
@@ -530,36 +611,48 @@ class CheckBoxGrid(wx.ScrolledWindow):
 
         self.maxIDNum = (len(value_list)*2)+101
 
+        # clear the checkbox grid panel in case its already populated
+        self.scrollWin.DestroyChildren()
+
+
+        self.grid_sizer = wx.GridBagSizer(wx.VERTICAL)
+
+        self.scrollWin.SetSizer(self.grid_sizer)
+        self.scrollWin.SetScrollRate(10,10)
+        self.scrollWin.EnableScrolling(True,True)
+
+
+        row_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        row_panel.SetBackgroundColour(wx.WHITE)
 
         # iterate over each phenotype header item
         for name in value_list:
-            
+           
             # set up the label of each header item
-            wx.StaticText(self.scrollWin, label=name, pos=(5,j))
+            EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
                   
 
             # Categorical checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+1, pos=(300,j))
+            self.cb = wx.CheckBox(row_panel, id=self.idx+1, pos=(300,j))
             self.cb.SetValue(False)
             self.categoricalCBList.append(self.cb)
+            #self.row_sizer.Add(self.cb, pos=(300,0))
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))#, self.idx+1))
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
 
-            #self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck_categorical())
             
             
             # Demean checkbox for header item
-            self.cb = wx.CheckBox(self.scrollWin, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
+            self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
+
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))#, self.idx+2))
-
-            #self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, self.demeanCBList, self.demeanCBList[0]))
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
                       
                 
             # just a nice amount to space the checkboxes out by
@@ -569,13 +662,28 @@ class CheckBoxGrid(wx.ScrolledWindow):
             self.idx += 2
 
 
+
         # automatically include some of the pre-calculated measures from
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
-        wx.StaticText(self.scrollWin, label='MeanFD', pos=(5,j))
-        wx.StaticText(self.scrollWin, label='MeanFD_Jenkinson', pos=(5,j+30))
-        wx.StaticText(self.scrollWin, label='MeanDVARS', pos=(5,j+60))
-        wx.StaticText(self.scrollWin, label='Measure_Mean', pos=(5,j+90))
+
+
+
+        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+
+        #wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
+
+        #wx.StaticText(row_panel, label='MeanDVARS (demeaned)', pos=(5,j+60))
+
+        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+30))
+
+        # add the panel that contains all of the rows (labels and checkboxes)
+        # to the grid sizer. the grid sizer is necessary for wxPython to know
+        # when to provide a scrollbar in the scrollWin object
+        self.grid_sizer.Add(row_panel, pos=(0,0))
+
+        w,h = self.grid_sizer.GetMinSize()
+        self.scrollWin.SetVirtualSize((w,h))
 
 
 
@@ -589,24 +697,25 @@ class CheckBoxGrid(wx.ScrolledWindow):
             
             cb_name = self.cbValuesDict[cb_id][0]
 
-            '''
-            TO-DO: finish
-            '''
 
-            if (cb_name in ev_selections['categorical']) and (cb_id % 2 != 0):
+            if 'categorical' in ev_selections.keys():
 
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
+                if (cb_name in ev_selections['categorical']) and (cb_id % 2 != 0):
 
-                self.choiceCategoricalList.append(cb_name)
+                    cb = wx.FindWindowById(cb_id)
+                    cb.SetValue(True)
+
+                    self.choiceCategoricalList.append(cb_name)
 
 
-            if (cb_name in ev_selections['demean']) and (cb_id % 2 == 0):
+            if 'demean' in ev_selections.keys():
 
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
+                if (cb_name in ev_selections['demean']) and (cb_id % 2 == 0):
 
-                self.choiceDemeanList.append(cb_name)
+                    cb = wx.FindWindowById(cb_id)
+                    cb.SetValue(True)
+
+                    self.choiceDemeanList.append(cb_name)
 
 
 

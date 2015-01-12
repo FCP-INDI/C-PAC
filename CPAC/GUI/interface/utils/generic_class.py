@@ -336,6 +336,13 @@ class Control(wx.Control):
     def get_listbox_selections(self):
         if self.get_type() == 7:
             return self.listbox_selections
+
+    # this takes the list of available contrast names from modelDesign_window
+    # and sends it to the 'Add Contrast' dialog box, so that it may do
+    # validation immediately when the user enters contrast strings
+    def set_available_contrasts(self, avail_cons):
+        if self.get_type() == 7:
+            self.ctrl.set_available_contrasts(avail_cons)
         
         
     def set_id(self):

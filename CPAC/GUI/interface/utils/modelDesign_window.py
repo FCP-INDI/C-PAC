@@ -15,11 +15,13 @@ class ModelDesign(wx.Frame):
     def __init__(self, parent, gpa_settings, varlist):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(750, 550))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
 
         self.parent = parent
 
         self.gpa_settings = gpa_settings
+
+        self.contrasts_list = varlist
 
         if 'contrasts' not in self.gpa_settings.keys():
             self.gpa_settings['contrasts'] = {}
@@ -60,23 +62,44 @@ class ModelDesign(wx.Frame):
         
 
 
-        
+        # build 'Available contrasts' string
+        contrasts_text = 'Available contrasts:\n'
+
+        con_length = 65
+
+        for con in varlist:
+            contrasts_text = contrasts_text + '    ' + con
+
+            if len(contrasts_text) > con_length:
+                contrasts_text = contrasts_text + '\n'
+                con_length += 50
+            
+
 
         varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        var_list_text = wx.StaticText(self.window, label=str(varlist))
+        var_list_text = wx.StaticText(self.window, label=str(contrasts_text))
         varlist_sizer.Add(var_list_text)
 
         self.page.add_pheno_load_panel(varlist_sizer)
-        
+    
 
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
                       name = 'contrastStrings',
                       type = dtype.LSTR,
                       values = self.gpa_settings['contrasts'],
-                      comment = '',
+                      comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ .',
                       size = (300,200),
                       combo_type = 4)
+
+        # this sends the list of available contrast names to the 'Add
+        # Contrast' dialog box, so that it may do validation immediately when
+        # the user enters contrast strings
+        for ctrl in self.page.get_ctrl_list():
+            name = ctrl.get_name()
+            if name == 'contrastStrings':
+                ctrl.set_available_contrasts(varlist)
+
 
         self.page.add(label="Model Group Variances Seperately ",
                       control=control.CHOICE_BOX,
@@ -105,7 +128,7 @@ class ModelDesign(wx.Frame):
                       control=control.DIR_COMBO_BOX,
                       name="outputModelFilesDirectory",
                       type=dtype.STR,
-                      comment="Full path to the directory where CPAC should place model files.",
+                      comment="Full path to the directory where CPAC should place the model files (.mat, .con, .grp) and the outputs of group analysis.",
                       values=self.gpa_settings['output_dir'])
 
 
@@ -235,6 +258,33 @@ class ModelDesign(wx.Frame):
 
 
 
+    def parse_contrast(self, contrast_string):
+
+        contrast_string = contrast_string.replace(' ', '')
+
+        if '>' in contrast_string:
+            split_contrast = contrast_string.split('>')
+        elif '<' in contrast_string:
+            split_contrast = contrast_string.split('<')
+        elif '+' in contrast_string:
+            split_contrast = contrast_string.split('+')
+        elif '-' in contrast_string:
+            split_contrast = contrast_string.split('-')
+        else:
+            print '[!] CPAC says: The contrast \' ', contrast_string, ' \' ' \
+                  'did not contain any valid operators ( > , < , + , - ).\n'
+            raise Exception
+
+        # in the case of the '+' or '-' contrast operators, which result in
+        # the split_contrast list containing a blank element ''
+        for item in split_contrast:
+            if item == '':
+                split_contrast.remove(item)
+
+        return split_contrast
+
+
+
     def collect_input(self):
 
         for ctrl in self.page.get_ctrl_list():
@@ -245,6 +295,31 @@ class ModelDesign(wx.Frame):
 
                 for option in ctrl.get_listbox_options():
 
+                    # first, make sure the contrasts are valid!
+                    contrasts = self.parse_contrast(option)
+       
+                    # check to make sure the contrast names are contrasts that
+                    # are actually valid - this will only really ever happen
+                    # if the user hand-edits the config file, the GUI catches
+                    # invalid contrasts when entered
+                    for contrast in contrasts:
+                        if contrast not in self.contrasts_list:
+
+                            errmsg = 'CPAC says: The contrast \'%s\' you ' \
+                                'entered within the string \'%s\' is not ' \
+                                'one of the available contrast selections.' \
+                                '\n\nPlease enter only the contrast labels ' \
+                                'listed under \'Available Contrasts\'.' \
+                                % (contrast, option)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                            raise Exception
+                            
+
+                    # then, add them to gpa_settings appropriately
                     if option in ctrl.get_listbox_selections():
                         self.gpa_settings['contrasts'][option] = True
                     else:
@@ -290,13 +365,6 @@ class ModelDesign(wx.Frame):
 
         then it will restore them.
         but if the user changes the pheno or something, you need to warn them
-        '''
-
-
-        '''
-        ALSO TO-DO:
-        have the contrasts box have a method for restoring the strings
-        AND their checked states
         '''
 
 
@@ -352,6 +420,33 @@ class ModelDesign(wx.Frame):
                                 'Formula for the design matrix. The EVs ' \
                                 'included in this formula will be included ' \
                                 'in the model. <MORE INFO>'))
+
+        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
+                                'Choose the coding scheme to use when ' \
+                                'generating your model. '))
+
+        config_list.append(('derivative_list', vals['derivative_list'], 6, \
+                                'Choose the derivatives to run the group ' \
+                                'model on.'))
+
+        config_list.append(('f_test', vals['f_test'], 0, \
+                                'Select if the group analysis model uses ' \
+                                'f-tests.'))
+
+        config_list.append(('z_threshold', vals['z_threshold'], 4, \
+                                'Only voxels with a Z-score higher than ' \
+                                'this value will be considered significant.'))
+
+        config_list.append(('p_threshold', vals['p_threshold'], 4, \
+                                'Significance threshold (P-value) to use ' \
+                                'when doing cluster correction for multiple ' \
+                                'comparisons.'))
+
+        config_list.append(('repeated_measures', vals['repeated_measures'], 0, \
+                                'Run repeated measures to compare different ' \
+                                'scans (must use the group analysis subject ' \
+                                'list and phenotypic file formatted for ' \
+                                'repeated measures.'))
 
         config_list.append(('contrasts', vals['contrasts'], 8, \
                                 'A dictionary of contrast descriptions, ' \
@@ -418,6 +513,19 @@ class ModelDesign(wx.Frame):
                         # all other data types
                         else:
                             value = str(item[1])
+
+
+                        if item[0] == 'derivative_list':
+
+                            value = []
+
+                            # go over each string in the list
+                            for val in ast.literal_eval(str(item[1])):
+                                if substitution_map.get(val) != None:
+                                    value.append(substitution_map.get(val))
+                                elif val != 'None':
+                                    value.append(ast.literal_eval(val))
+
 
                         # print out 'help' (comments describing values)
                         for lines in item[3].split('\n'):

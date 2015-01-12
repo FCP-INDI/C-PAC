@@ -32,6 +32,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
 
+    fTest = False
 
     def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path, sub_id):
         
@@ -155,10 +156,6 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         exist_paths = []
 
 
-        print 'subject_list: ', subject_list, '\n\n'
-        print 's_paths: ', s_paths, '\n\n'
-
-
 
 
         ''' begin iteration through group subject list for processing '''
@@ -170,8 +167,9 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             # vice versa
             if (c.repeatedMeasures == True) and (',' not in sub):
                 print '\n\n'
-                print 'Whoops! The group analysis subject list is not in ' \
-                        'the appropriate format for repeated measures.\n'
+                print '[!] CPAC says: The group analysis subject list is ' \
+                        'not inthe appropriate format for repeated ' \
+                        'measures.\n'
                 print 'Please use the appropriate format as described in ' \
                         'the CPAC User Guide or turn off Repeated Measures ' \
                         'in the CPAC pipeline configuration editor, found ' \
@@ -224,6 +222,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             # check the path files in path_files_here folder in the subject's
             # output folder - and drop any subjects from the group analysis
             # subject list which do not exist in the paths to the output files
+
             for path in s_paths:
 
                 if (c.repeatedMeasures == True):
@@ -238,8 +237,10 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                             exist_paths.append(sub)
 
                 else:
+
                     if sub in path:
-                        exist_paths.append(sub)           
+                        exist_paths.append(sub)
+ 
 
 
 
@@ -255,20 +256,13 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         
 
-        mod_path = os.path.join(os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name)),
-                                'model_files')
+        # create the path string for the group analysis output
+        out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
+        out_dir = os.path.join(conf.output_dir, out_dir[1])
+        out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],conf.model_name))
 
-        print "basename: ", os.path.basename(conf.subject_list)
+        mod_path = os.path.join(out_dir, 'model_files')
 
-        '''
-        try:
-            os.makedirs(mod_path)
-            print "Creating directory:"
-            print mod_path
-        except:
-            print "Attempted to create directory, but path already exists:"
-            print mod_path
-        '''
 
         if not os.path.isdir(mod_path):
             os.makedirs(mod_path)
@@ -294,14 +288,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
             raise Exception
 
 
-        conf.update('subjectListFile',new_sub_file)
+        conf.update('subject_list',new_sub_file)
 
         sub_id = conf.subject_id_label
         
 
 
         if measure_dict != None:
-            conf.update('phenotypicFile',get_phenotypic_file(conf.pheno_file, measure_dict, measure_list, mod_path, sub_id))
+            conf.update('pheno_file',get_phenotypic_file(conf.pheno_file, measure_dict, measure_list, mod_path, sub_id))
         
         print 'conf updated pheno: ', conf.pheno_file, '\n\n'
 
@@ -377,7 +371,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, c.fTest, parameter_file, pipeline_path, current_output, True)
+            create_fsl_model.run(conf, False, parameter_file, pipeline_path, current_output, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
@@ -403,15 +397,15 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
     ''' start group analysis '''
 
+    print '\n\nPreparing the group analysis workflow..\n\n'
+
     for model_sub in model_sub_list:
 
         #print >>diag, "Current model_sub: ", model_sub
         #print >>diag, ""
         
         model, subject_list = model_sub
-        
-        print "running for model %s and resource %s..." % (os.path.basename(model), resource)
-        
+   
 
         if not os.path.exists(model):
             raise Exception("path to model %s doesn't exist"%model)
@@ -456,9 +450,11 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         wf.base_dir = workDir
         wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
         log_dir = os.path.join(conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (conf.model_name))
-        try:
+        
+
+        if not os.path.exists(log_dir):
             os.makedirs(log_dir)
-        except:
+        else:
             print "log_dir already exist"
         
 
@@ -546,11 +542,26 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
 
 
+        print 'S_paths length: ', len(s_paths)
+
         print "Ordered paths length (number of subjects): ", len(ordered_paths)
       
         print "input_subject_list -> %s" % input_subject_list
 
         print "strgy_path: ", strgy_path
+
+
+        if len(ordered_paths) == 0:
+            print '\n\n\n[!] CPAC says: None of the subjects listed in the ' \
+                  'group analysis subject list were found to have outputs ' \
+                  'produced by individual-level analysis.\n\nEnsure that ' \
+                  'the subjects listed in your group analysis subject list ' \
+                  'are the same as the ones included in the individual-' \
+                  'level analysis you are running group-level analysis for.' \
+                  '\n\n\n'
+            raise Exception
+
+
 
         # gp_flow
         # Extracts the model files (.con, .grp, .mat, .fts) from the model
@@ -558,14 +569,14 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
         gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % currentDerivative)
         gp_flow.inputs.inputspec.grp_model = model
-        gp_flow.inputs.inputspec.ftest = c.fTest
-        
-        
-        
+        gp_flow.inputs.inputspec.fTest = fTest
+  
+
+
         # gpa_wf
         # Creates the actual group analysis workflow
 
-        gpa_wf = create_group_analysis(c.fTest, "gp_analysis_%s" % currentDerivative)
+        gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % currentDerivative)
 
         gpa_wf.inputs.inputspec.zmap_files = ordered_paths
         gpa_wf.inputs.inputspec.z_threshold = c.zThreshold
@@ -573,7 +584,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
     
         print "group model: ", model
-        print "f test: ", c.fTest
+        print "f test: ", fTest
         print "z threshold: ", c.zThreshold
         print "p threshold: ", c.pThreshold
         print "parameters: ", (c.FSLDIR, 'MNI152')
@@ -587,7 +598,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                     gpa_wf, 'inputspec.grp_file')
 
             
-        if c.fTest:
+        if fTest:
             wf.connect(gp_flow, 'outputspec.fts',
                        gpa_wf, 'inputspec.fts_file')
         
@@ -597,15 +608,15 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         # Creates the datasink node for group analysis
         
         ds = pe.Node(nio.DataSink(), name='gpa_sink')
-        out_dir = os.path.dirname(s_paths[0]).replace(s_ids[0], 'group_analysis_results/_grp_model_%s'%(conf.model_name))
-        
+     
         if 'sca_roi' in resource:
             out_dir = os.path.join(out_dir, \
               re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
             
         if 'centrality' in resource:
             names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
-                      'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted']
+                     'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted', \
+                     'lfcd_binarize', 'lfcd_weighted']
             for name in names:
                 if name in os.path.basename(s_paths[0]):
                     out_dir = os.path.join(out_dir, name)
@@ -618,7 +629,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 #         if c.mixedScanAnalysis == True:
 #             out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-        ds.inputs.base_directory = conf.output_dir
+        ds.inputs.base_directory = out_dir
         ds.inputs.container = ''
         
         ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
@@ -631,6 +642,7 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                                           (r'_slicer(.)*[/]',''),
                                           (r'_overlay(.)*[/]','')]
     
+        '''
         if 1 in c.runSymbolicLinks:
     
     
@@ -642,11 +654,12 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
                                     name='link_gp_', iterfield=['in_file'])
             link_node.inputs.resource = resource
             wf.connect(ds, 'out_file', link_node, 'in_file')
+        '''
     
 
 
         ########datasink connections#########
-        if c.fTest:
+        if fTest:
             wf.connect(gp_flow, 'outputspec.fts',
                        ds, 'model_files.@0') 
         

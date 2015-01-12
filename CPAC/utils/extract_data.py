@@ -212,6 +212,8 @@ def extract_data(c, param_map):
 
     f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName[0]), 'wb')
 
+
+
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
         Method to extract anatomical and functional
@@ -287,12 +289,19 @@ def extract_data(c, param_map):
                 logging.debug("skipping subject %s"%anat_sub.split("/")[0])
         
         except ValueError:
+
             logging.exception(ValueError.message)
             raise
+
         except Exception, e:
-            msg = "Exception while fetching anatomical and functional paths. " + str(e)
-            logging.exception(msg)
-            raise Exception(msg)
+
+            err_msg = 'Exception while felching anatomical and functional ' \
+                      'paths: \n' + str(e)
+
+            logging.exception(err_msg)
+            raise Exception(err_msg)
+
+
 
     def walk(index, sub):
         """
@@ -338,12 +347,19 @@ def extract_data(c, param_map):
                 fetch_path(index, sub, sub, session_id)
 
         except Exception:
+
             logging.exception(Exception.message)
             raise
+
         except:
-            msg = "Please make sessions are consistent across all subjects"
-            logging.exception(msg)
-            raise Exception(msg)
+
+            err_msg = 'Please make sessions are consistent across all ' \
+                      'subjects.\n\n'
+
+            logging.exception(err_msg)
+            raise Exception(err_msg)
+
+
     try:
         for i in range(len(anat_base)):
             for sub in os.listdir(anat_base[i]):
@@ -360,11 +376,16 @@ def extract_data(c, param_map):
         
         name = os.path.join(c.outputSubjectListLocation, 'CPAC_subject_list.yml')
         print "Extraction Successfully Completed...Input Subjects_list for CPAC - %s" % name
+
     except Exception:
+
         logging.exception(Exception.message)
         raise
+
     finally:
+
         f.close()
+
 
 
 
@@ -396,19 +417,29 @@ def generate_supplementary_files(output_path, subject_list_name):
     scan_set = Set()
     data_list = []
 
-    for sub in subjects_list:
-        
-        if sub['unique_id']:
-            subject_id = sub['subject_id'] + "_" + sub['unique_id']
-        else:
-            subject_id = sub['subject_id']
+    try:
+        for sub in subjects_list:
             
-        for scan in sub['rest'].keys():
-            subject_scan_set.add((subject_id, scan))
-            subID_set.add(sub['subject_id'])
-            session_set.add(sub['unique_id'])
-            subject_set.add(subject_id)
-            scan_set.add(scan)
+            if sub['unique_id']:
+                subject_id = sub['subject_id'] + "_" + sub['unique_id']
+            else:
+                subject_id = sub['subject_id']
+                
+            for scan in sub['rest'].keys():
+                subject_scan_set.add((subject_id, scan))
+                subID_set.add(sub['subject_id'])
+                session_set.add(sub['unique_id'])
+                subject_set.add(subject_id)
+                scan_set.add(scan)
+    except TypeError as e:
+        print 'Subject list could not be populated!'
+        print 'This is most likely due to a mis-formatting in your '\
+              'inclusion and/or exclusion subjects txt file or your '\
+              'anatomical and/or functional path templates.'
+        print 'Error: %s' % e
+        err_str = 'Check formatting of your anatomical/functional path '\
+                  'templates and inclusion/exclusion subjects text files'
+        raise TypeError(err_str)
 
     for item in subject_scan_set:
         list1 = []

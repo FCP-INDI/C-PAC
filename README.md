@@ -14,7 +14,7 @@ CPAC website is located here:  http://fcp-indi.github.com/
 Installation
 ------------
 
-If you are running ubuntu >=10.4:
+If you are running ubuntu >=12.04:
 Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
     `sudo ./ cpac_install.sh`
 
@@ -31,7 +31,7 @@ Developer documention can ne found here: http://fcp-indi.github.com/docs/develop
 Dicussion Forum
 ---------------
 
-CPAC Discussion forum is located here: http://www.nitrc.org/forum/forum.php?forum_id=3567
+CPAC Discussion forum is located here: https://groups.google.com/forum/#!forum/cpax_forum
 
 Troubleshooting and Help
 ------------------------

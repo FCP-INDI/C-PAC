@@ -5,27 +5,9 @@ import csv
 import yaml
 
 
-# what this file now needs to do:
-
-# - demean the selected EVs
-# - create the pheno data dict like it does in the modelconfig
-# - take the formula and put that and the data into dmatrix, with Sum encoding
-
-# - parse the contrasts strings, use Aimi's code in that part
-# - write the .mat and .con files, and .grp as well
-# - figure out multicollinearity (if patsy doesn't do this)
-# - figure out modeling group variances separately
-
-
-
-
-
-
 def create_pheno_dict(gpa_fsl_yml):
 
-    # \/ \/ DUPLICATED CODE! PUT THIS FUNCTION IN ONE PLACE,
-    #       OR REMOVE THE ORIGINAL ONE
-    def read_phenotypic(pheno_file, ev_selections):
+    def read_phenotypic(pheno_file, ev_selections, subject_id_label):
 
         import csv
         import numpy as np
@@ -45,6 +27,11 @@ def create_pheno_dict(gpa_fsl_yml):
 
         for line in p_reader:
 
+            # here, each instance of 'line' is really a dictionary where the
+            # keys are the pheno headers, and their values are the values of
+            # each EV for that one subject - each iteration of this loop is
+            # one subject
+
             for key in line.keys():
 
                 if key not in pheno_data_dict.keys():
@@ -55,11 +42,21 @@ def create_pheno_dict(gpa_fsl_yml):
                 # Patsy can understand regarding categoricals:
                 #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
                 #                instead of just [1, 1, 0, 1], etc.
-                if key in ev_selections['categorical']:
-                    pheno_data_dict[key].append(key + str(line[key]))
+                if 'categorical' in ev_selections.keys():
+                    if key in ev_selections['categorical']:
+                        pheno_data_dict[key].append(key + str(line[key]))
+
+                    elif key == subject_id_label:
+                        pheno_data_dict[key].append(line[key])
+
+                    else:
+                        pheno_data_dict[key].append(float(line[key]))
+
+                elif key == subject_id_label:
+                    pheno_data_dict[key].append(line[key])
 
                 else:
-                    pheno_data_dict[key].append(line[key])
+                    pheno_data_dict[key].append(float(line[key]))
 
 
 
@@ -68,35 +65,37 @@ def create_pheno_dict(gpa_fsl_yml):
         for key in pheno_data_dict.keys():
 
             # demean the EVs marked for demeaning
-            if key in ev_selections['demean']:
+            if 'demean' in ev_selections.keys():
+                if key in ev_selections['demean']:
 
-                new_demeaned_evs = []
+                    new_demeaned_evs = []
 
-                mean_evs = 0.0
+                    mean_evs = 0.0
 
-                # populate a dictionary, a key for each demeanable EV, with
-                # the value being the sum of all the values (which need to be
-                # converted to float first)
-                for val in pheno_data_dict[key]:
-                    mean_evs += float(val)
+                    # populate a dictionary, a key for each demeanable EV, with
+                    # the value being the sum of all the values (which need to be
+                    # converted to float first)
+                    for val in pheno_data_dict[key]:
+                        mean_evs += float(val)
 
-                # calculate the mean of the current EV in this loop
-                mean_evs = mean_evs / len(pheno_data_dict[key])
+                    # calculate the mean of the current EV in this loop
+                    mean_evs = mean_evs / len(pheno_data_dict[key])
 
-                # remove the EV's mean from each value of this EV
-                # (demean it!)
-                for val in pheno_data_dict[key]:
-                    new_demeaned_evs.append(float(val) - mean_evs)
+                    # remove the EV's mean from each value of this EV
+                    # (demean it!)
+                    for val in pheno_data_dict[key]:
+                        new_demeaned_evs.append(float(val) - mean_evs)
 
-                # replace
-                pheno_data_dict[key] = new_demeaned_evs
+                    # replace
+                    pheno_data_dict[key] = new_demeaned_evs
 
 
             # converts non-categorical EV lists into NumPy arrays
             # so that Patsy may read them in properly
-            if key not in ev_selections['categorical']:
+            if 'categorical' in ev_selections.keys():
+                if key not in ev_selections['categorical']:
             
-                pheno_data_dict[key] = np.array(pheno_data_dict[key])
+                    pheno_data_dict[key] = np.array(pheno_data_dict[key])
 
 
 
@@ -105,264 +104,12 @@ def create_pheno_dict(gpa_fsl_yml):
 
     # pheno_data_dict gets loaded with the phenotypic data, in a dictionary
     # formatted for proper use with Patsy
-    pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections)
+    pheno_data_dict = read_phenotypic(gpa_fsl_yml.pheno_file, gpa_fsl_yml.ev_selections, gpa_fsl_yml.subject_id_label)
 
     return pheno_data_dict
 
 
 
-
-
-def organize_data(filter_data, c):
-
-    """
-
-    The main purpose of this function is to identify the categorical and directional columns in the model,
-    demean the categorical columns and organize the directional columns.
-
-    Parameters
-    ----------
-
-    filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py
-
-    c : The configuration file object containing all the variables specified in the configuration file.
-
-    Returns
-    -------
-
-    filter_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
-
-    field_names : The field names are the column names in the final model file
-
-    """
-
-
-    mean = {}
-    mean_cols = []
-    directional_cols = []
-    directional_map = {}
-
-    ### line up columns for the model
-    for i in range(0, len(c.columnsInModel)):
-
-        if c.deMean[i]:
-            mean_cols.append(c.columnsInModel[i])
-
-        # UNCOMMENT THIS AFTER ITS ENABLED
-        #if c.categoricalVsDirectional[i]:
-        #    directional_cols.append(c.columnsInModel[i])
-
-
-
-    for data in filter_data:
-
-        # filter_data is a LIST of dictionaries, one for each subject
-        # so 'data' is each dictionary - each one has the phenotypic header
-        # items (EVs) as its keys, and the values as its entries
-
-        # there is one dictionary ('data') per subject, and the subject ID
-        # is one of the entries in each dictionary
-
-        for col in mean_cols:
-
-            # mean_cols is a LIST of pheno header items (EVs) which are marked
-            # to be demeaned (should only be continuous EVs)
-
-            try:
-
-                if not col in mean:
-                    # if the current EV-to-be-demeaned does not already have
-                    # an entry in the dictionary 'mean', then ensure the
-                    # current subject's value for it is a float and put it in
-                    mean[col] = float(data[col])
-
-                else:
-                    # otherwise, if an entry in 'mean' already exists for the
-                    # current EV in the iteration, then simply ensure the
-                    # current subject's value for it is a float and then ADD
-                    # it to the current sum of this continuous EV's summation
-                    mean[col] += float(data[col])
-
-            except ValueError, e:
-                print 'error ', e, ' for column: ', col, 'in data row: ', data
-                raise
-
-
-        for col in directional_cols:
-
-            # directional_cols is a LIST of pheno header items (EVs) which are
-            # marked as categorical/non-continuous
-            # (i.e. are labels, like sex M/F)
-
-            # here, each 'col' is an EV that has been marked as categorical
-
-            # load the phenotype-file VALUE of the current subject's 'col'
-            # (categorical EV) into 'val'
-            val = data[col]
-
-            # concatenate the name of the categorical EV with its value
-            new_col = col + '__' + val
-
-
-            if not col in directional_map:
-
-                # add this 'categoricalEV__value' into this categorical
-                # dictionary, if an entry for this categorical EV has not been
-                # created in this 'directional_map' dictionary yet
-                directional_map[col] = [new_col]
-
-            else:
-
-                # if categorical values for this EV have already been loaded
-                # into 'directional_map', then load what is already in the
-                # dictionary into 'val'
-                val = directional_map[col]
-
-                # if the current subject's value for this particular
-                # categorical EV does not exist in what was already in
-                # 'directional_map', then append the current value (the
-                # 'categoricalEV__value') into 'val' (now a list?) and then
-                # load this list 'val' back into 'directional_map' under the
-                # key for this particular categorical EV
-                if not new_col in val:
-
-                    val.append(new_col)
-                    directional_map[col] = val
-
-
-    # the 'mean' dictionary now has a key for each EV (pheno header item),
-    # with each key corresponding to a value which is the sum of all the
-    # subjects' float values for that particular continuous EV
-
-    # the 'directional_map' dictionary now has a key for each EV, with each
-    # key corresponding to a LIST which contains all of the subjects'
-    # categorical/non-continuous values for that particular categorical EV,
-    # and these values are in the 'categoricalEV__value' format
-
-
-
-    idx = 0
-    for data in filter_data:
-
-        # once again, each 'data' is each subject's collection of EVs and
-        # their values
-
-        for col in directional_map.keys():
-
-            # make 'val' the current subject's current categorical EV's value
-            val = data[col]
-
-            # make 'vals' a list of all of the values of the current
-            # categorical EV
-            vals = directional_map[col]
-
-            # remove the entry for the current subject's current categorical
-            # EV from the dictionary 'data' (which is all of the EVs of the
-            # current subject)
-            del data[col]
-
-
-            for value in vals:
-
-                # 'value' is each categorical EV value (from directional_map)
-                # in the 'categoricalEV__value' format
-
-                column_name, v = value.rsplit('__',1)
-
-                # iterating over each categorical EV value from
-                # directional_map, check if the current subject's current
-                # categorical EV value ('val', which holds steady) matches:
-                if v == val:
-                    # if it does, add an entry into 'data', the dictionary
-                    # which has all of the current subject's EVs and their
-                    # values, where the entry's key is the
-                    # 'categoricalEV__value', and the value is '1'
-                    data[value] = '1'
-
-                else:
-                    # if not, do the same as above, except make the value '0'
-                    data[value] = '0'
-
-            # now that 'for value in vals:' is complete for the current
-            # subject's current categorical EV, the dictionary 'data' has been
-            # cleared of all of its original categorical EV entries and new
-            # entries have been added for each categorical EV found in
-            # 'directional_map' which contain a '1' if this particular subject
-            # had an EV with the same VALUE as the VALUE of any of the
-            # categorical EVs in 'directional_map'
-
-        filter_data[idx] = data
-
-        idx += 1
-
-
-    # by now, the dictionary 'filter_data' contains an entry for each subject,
-    # with all of the categorical EVs 'broken out' into separate columns -
-    # so if a categorical EV like sex can be either 'male' or 'female', it
-    # creates a column for both options and places a 1 in the column that
-    # corresponds for that subject
-
-
-
-    for col in mean.keys():
-
-        mean[col] = float(mean[col])/float(len(filter_data))
-
-
-    idx = 0
-    for data in filter_data:
-
-        # this demeans the continuous EVs - only demeans the EVs that were
-        # marked to be demeaned (only they were added to the 'mean'
-        # dictionary)
-        
-        for col in mean.keys():
-
-            val = 0.0
-            val = float(data[col])
-            val = val - mean[col]
-
-            data[col] = str(val)
-        filter_data[idx] = data
-        idx += 1
-
-
-    try:
-        zeroth = filter_data[0]
-    except:
-        print "\n\n" + "ERROR: Subject information did not match properly" \
-              " between the phenotypic file and group analysis subject " \
-              "list.\n Tip: Double-check subject names." + "\n" + \
-        "Error name: create_fsl_model_0001" + "\n\n"
-        raise Exception
-
-
-    field_names = [c.subjectColumn]
-
-    keys = zeroth.keys()
-
-    for ignore, directional_columns in directional_map.items():
-
-        for column_name in sorted(directional_columns):
-
-            field_names.append(column_name)
-
-
-
-    for col in sorted(mean.keys()):
-
-        field_names.append(col)
-
-    for f_n in filter_data[0].keys():
-
-        if not (f_n in field_names):
-            field_names.append(f_n)
-
-
-
-    return filter_data, field_names
 
 
 
@@ -391,118 +138,9 @@ def check_multicollinearity(matrix):
 
 
 
-def write_data(model_data, field_names, c):
-
-    """
-    The main purpose of this function is to populate the Model CSV File.
-    This file becomes the basis for the FSL group Analysis inputs (.mat, .grp, .con, .fts etc)
-
-    Parameters
-    ----------
-
-    model_data : List of maps. Each map contains data corresponding to a row in the phenotypic file, but only for the columns specified
-    in columnsInModel variable in the config_fsl.py. The Directional columns get split according to the number of values they have. 
-
-    field_names : The field names are the column names in the final model file
-
-    Returns
-    -------
-
-    The populated Model File
-
-    """
-
-    evs = open(c.contrastFile, 'r').readline()
-    evs = evs.rstrip('\n')
-    evs = evs.rstrip('\n')
-    evs = evs.split(',')
-    evs = [ev.replace("\"", '') for ev in evs]
-
-    new_evs = []
-    
-
-    for ev in evs:
-        if (ev in field_names):
-            new_evs.append(ev)
-
-    # evs is now a list of contrast file header items
-    evs = list(new_evs)
-    del new_evs
-
-    # new_field_names is a list of evs with the subjectID
-    # column added at the beginning
-    new_field_names = [c.subjectColumn] + evs
 
 
-    try:
-
-        csvPath = c.outputModelFilesDirectory + '/' + c.outputModelFile
-        f = open(csvPath, 'wt')
-
-    except:
-
-        print "Could not open the output model file: ", csvPath
-        print ""
-        raise Exception
-
-
-    try:
-
-        # make fieldnames=new_field_names so that when the unordered
-        # phenotype data is written to the model file, the header items
-        # and their corresponding values will be in the correct order
-        writer = csv.DictWriter(f, fieldnames=new_field_names)
-
-        header = dict((n, n) for n in new_field_names)
-
-        writer.writerow(header)
-
-        dropped_columns_a = []
-        dropped_columns_b = []
-        dropped_columns_a = [name for name in field_names if not (name in list(set(field_names) & set(new_field_names))) ]
-        dropped_columns_b = [name for name in new_field_names if not (name in list(set(field_names) & set(new_field_names))) ]
-        dropped_columns = list(set(dropped_columns_a + dropped_columns_b))
-
-
-        if not (len(dropped_columns) == 0):
-            print 'dropping columns(not specified in contrasts) from the model ', dropped_columns
-
-
-        new_data = []
-        
-        # model_data is a LIST of dictionaries of the phenotype
-        # header items matched to their values
-        for data in model_data:
-
-            data_row = []
-            for name in field_names:
-
-                if not name in field_names:
-                    del data[name]
-                else:
-                    if not (c.subjectColumn in name):
-                        data_row.append(float(data[name]))
-
-            new_data.append(list(data_row))
-         
-            writer.writerow(data)
-                
-
-        detect = 0
-
-        detect = check_multicollinearity(np.array(new_data))
-
-        if detect == 1:
-
-            print 'Detected Multicollinearity in the computed Model. Please check %s ' % c.outputModelFile
-            #sys.exit(0)
-
-    finally:
-        f.close()
-
-
-
-def create_mat_file(data, model_name, outputModelFilesDirectory):
+def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
 
     """
     create the .mat file
@@ -533,8 +171,17 @@ def create_mat_file(data, model_name, outputModelFilesDirectory):
     print >>f, '/NumPoints\t%d' %dimx
     print >>f, ppstring
 
+    # print labels for the columns - mainly for double-checking your model
+    col_string = '\n'
+
+    for col in col_names:
+        col_string = col_string + col + '\t'
+
+    print >>f, col_string, '\n'
+
 
     print >>f, '/Matrix'
+
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
 
     f.close()
@@ -900,7 +547,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = False):
+def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, CPAC_run = False):
 
     # create_fsl_model.run()
     # this is called from cpac_group_analysis_pipeline.py
@@ -1017,7 +664,6 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
             # add this new list to the pheno_data_dict
             pheno_data_dict[measure_name] = np.array(measure_list)
 
-
         ''' insert measures into pheno data '''
         # add measures selected in the design formula into pheno_data_dict
         # they are also demeaned prior
@@ -1027,148 +673,160 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
 
 
-    ''' extract the mean of derivative for each subject if selected '''
-    # if the user has selected it to be part of their model, insert the mean
-    # of the outputs included in group analysis (i.e. if running ReHo in
-    # group-level analysis, have the mean of each subject's ReHo output
-    # included as an EV in the phenotype - regress out the mean of measure
-    #     pull the mean value from the output_means.csv file in the subject
-    #     directory of the appropriate pipeline's output folder
-    sub_means_dict = {}
-    output_means_dict = {}
-
-    for sub in pheno_data_dict[c.subject_id_label]:
-
-        output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
-
-        if os.path.exists(output_means_file):
-            
-            try:
-
-                output_means = csv.DictReader(open(output_means_file,'rU'))
-                
-            except:
-
-                print '\n\n[!] CPAC says: Could not open the output_means' \
-                      '.csv file usually located in each subject\'s output ' \
-                      'folder in the output directory.\n'
-                print 'Path: ', output_means_file, '\n\n'
-                raise Exception
-
-            # pull in the output_means .csv as a dictionary
-            for row in output_means:
-                sub_means_dict = row
-
-            output_means_dict[sub] = str(row[current_output])      
-
-
-        else:
-            print '\n\n[!] CPAC says: The output_means.csv file usually ' \
-                  'located in each subject\'s output folder in the output ' \
-                  'directory does not exist!\n'
-            print 'Path not found: ', output_means_file, '\n\n'
-            raise Exception
-
-    
-    # by the end of this for loop above, output_means_dict should look
-    # something like this:
-    #    {sub1: mean_val, sub2: mean_val, ..}
-    #        as this code runs once per output, this dictionary contains the
-    #        mean values of the one current output, right now
-
-
-
-
-    ''' insert mean of derivatives into pheno data '''
-    means_list = []
-
-    # create a blank list that is the proper length
-    for sub in pheno_data_dict[c.subject_id_label]:
-        means_list.append(0)
-
-    for subID in output_means_dict.keys():
-
-        # find matching subject IDs between the output_means_dict and the
-        # pheno_data_dict so we can insert mean values into the
-        # pheno_data_dict
-        for subject in pheno_data_dict[c.subject_id_label]:
-
-            if subject == subID:
-
-                # return the index (just an integer) of where in the
-                # pheno_data_dict list structure a subject ID is
-                idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
-
-                # insert Mean FD value in the proper point
-                means_list[idx] = float(output_means_dict[subID])
-
-
-    # time to demean the means!
-    means_sum = 0.0
-
-    for mean in means_list:
-
-        means_sum = means_sum + mean
-
-    measure_mean = means_sum / len(means_list)
-
-    idx = 0
-
-    for mean in means_list:
-
-        means_list[idx] = mean - measure_mean
-        idx += 1
-
-
-    ''' insert means into pheno data if selected '''
-
     if 'Measure_Mean' in c.design_formula:
+
+        ''' extract the mean of derivative for each subject if selected '''
+        # if the user has selected it to be part of their model, insert the mean
+        # of the outputs included in group analysis (i.e. if running ReHo in
+        # group-level analysis, have the mean of each subject's ReHo output
+        # included as an EV in the phenotype - regress out the mean of measure
+
+        # IF user selects to use derivative means generated using a group mask:
+        #     use the dictionary generated in cpac_ga_model_generator.py
+
+        # IF user selects to use derivative means generated at the subject
+        # level:
+        #     pull the mean value from the output_means.csv file in the subject
+        #     directory of the appropriate pipeline's output folder
+
+        if c.group_mean == 1:
+
+            ''' use output means calculated using group mask '''
+
+            output_means_dict = derivative_means_dict
+
+
+        elif c.group_mean == 0:
+
+            ''' pull output means from subject-level (from .csv in output) '''
+
+            sub_means_dict = {}
+            output_means_dict = {}
+
+            for sub in pheno_data_dict[c.subject_id_label]:
+
+                output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
+
+                if os.path.exists(output_means_file):
+            
+                    try:
+
+                        output_means = csv.DictReader(open(output_means_file,'rU'))
+                
+                    except:
+
+                        print '\n\n[!] CPAC says: Could not open the output_means' \
+                              '.csv file usually located in each subject\'s output ' \
+                              'folder in the output directory.\n'
+                        print 'Path: ', output_means_file, '\n\n'
+                        raise Exception
+
+
+                    # pull in the output_means .csv as a dictionary
+                    for row in output_means:
+                        sub_means_dict = row
+
+
+                    try:
+
+                        output_means_dict[sub] = str(row[current_output])
+
+                    except:
+
+                        print '\n\n[!] CPAC says: There is no mean value ' \
+                              'stored for the output \'', current_output, \
+                              '\' for subject \'', sub, '\'.\n'
+                        print 'Path to means file: ', output_means_file, '\n'
+                        print 'Possible situations:\n1. The output \'', \
+                               current_output, '\' was not included in ' \
+                              'individual-level analysis, but was included to ' \
+                              'be run in group-level analysis.\n2. The means ' \
+                              'file for this subject was not created properly.' \
+                              '\n3. Individual-level analysis did not ' \
+                              'complete properly.\n\n'
+                        raise Exception
+
+                else:
+                    print '\n\n[!] CPAC says: The output_means.csv file usually ' \
+                          'located in each subject\'s output folder in the output ' \
+                          'directory does not exist!\n'
+                    print 'Path not found: ', output_means_file, '\n\n'
+                    print 'Tip: Either check if individual-level analysis ' \
+                          'completed successfully, or remove the measure mean ' \
+                          'from your model design.\n\n'
+                    raise Exception
+    
+            # by the end of this for loop above, output_means_dict should look
+            # something like this:
+            #    {sub1: mean_val, sub2: mean_val, ..}
+            #        as this code runs once per output, this dictionary contains
+            #        the mean values of the one current output, right now
+
+
+
+
+        ''' insert mean of derivatives into pheno data '''
+        means_list = []
+
+        # create a blank list that is the proper length
+        for sub in pheno_data_dict[c.subject_id_label]:
+            means_list.append(0)
+
+        for subID in output_means_dict.keys():
+
+            # find matching subject IDs between the output_means_dict and the
+            # pheno_data_dict so we can insert mean values into the
+            # pheno_data_dict
+            for subject in pheno_data_dict[c.subject_id_label]:
+
+                if subject == subID:
+
+                    # return the index (just an integer) of where in the
+                    # pheno_data_dict list structure a subject ID is
+                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+
+                    # insert Mean FD value in the proper point
+                    means_list[idx] = float(output_means_dict[subID])
+
+
+        # time to demean the means!
+        means_sum = 0.0
+
+        for mean in means_list:
+
+            means_sum = means_sum + mean
+
+        measure_mean = means_sum / len(means_list)
+
+        idx = 0
+
+        for mean in means_list:
+
+            means_list[idx] = mean - measure_mean
+            idx += 1
+
+
+        ''' insert means into pheno data if selected '''
+
         # add this new list to the pheno_data_dict
         pheno_data_dict['Measure_Mean'] = np.array(means_list)
    
 
 
-
-
-    '''TO-DO: figure this out'''
-
-    '''
-    if c.modelGroupVariancesSeparately == 1 and (c.groupingVariable == None or (not c.groupingVariable in c.columnsInModel)):
-        raise ValueError('modelGroupVariancesSeparately is set to 1 but groupingVariable not one of the columns in model')
-
-
+    # make sure the group analysis output directory exists
     try:
-        if not os.path.exists(c.outputModelFilesDirectory):
 
-            os.makedirs(c.outputModelFilesDirectory)
+        if not os.path.exists(c.output_dir):
 
-    except OSError, e:
+            os.makedirs(c.output_dir)
 
-        print 'Error: ', e, ' while trying to create outputModelFilesDirectory'
-        raise
-    '''
+    except:
 
+        print '\n\n[!] CPAC says: Could not successfully create the group ' \
+              'analysis output directory:\n', c.output_dir, '\n\nMake sure ' \
+              'you have write access in this file structure.\n\n\n'
+        raise Exception
 
-
-    model_ready_data = None
-    field_names = None
-    gp_var = None
-
-
-    '''FIGURE THIS OUT'''
-
-    '''
-    if c.modelGroupVariancesSeparately == 0:
-
-        model_ready_data, field_names = organize_data(filter_data, c)
-   
-    else:
-
-        model_ready_data, field_names, gp_var = alternate_organize_data(filter_data, c)
-
-
-    write_data(model_ready_data, field_names, c)
-    '''
 
 
 
@@ -1179,12 +837,29 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     when generating the design matrix (this goes into the .mat file)
     formula = c.design_formula
 
-    for EV_name in c.ev_selections['categorical']:
-        formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+    coding_scheme = c.coding_scheme[0]
+
+
+    if 'categorical' in c.ev_selections.keys():
+        for EV_name in c.ev_selections['categorical']:
+
+            if coding_scheme == 'Treatment':
+                formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+            elif coding_scheme == 'Sum':
+                formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
 
 
     # create the actual design matrix using Patsy
     import patsy
+
+
+    # drop pickles of the inputs meant for Patsy so you can manually test it
+    # later if needed
+    #import pickle
+    #pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
+    #pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
+
 
     try:
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
@@ -1204,28 +879,59 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     # parse in user-input contrast strings that were selected, and generate
     # the contrast file (.con)
 
-    ''' start Aimi's code '''
-    def greater_than(dmat, a, b):
-        c1 = positive(dmat, a)
-        c2 = positive(dmat, b)
+    def greater_than(dmat, a, b, coding):
+        c1 = positive(dmat, a, coding)
+        c2 = positive(dmat, b, coding)
         return c1-c2
 
-    def positive(dmat, a):
-        evs = dmat.design_info.column_name_indexes
-        con = np.zeros(dmat.shape[1])
-        if a in evs:
-            con[evs[a]] = 1
-        else:
-            #it is a dropped term so make all other terms in that category at -1
-            term = a.split('[')[0]
-            for ev in evs:
-                if ev.startswith(term):
-                    con[evs[ev]]= -1
-        con[0] = 1
-        return con
+    def positive(dmat, a, coding):
 
-    def negative(dmat, a):
-        con = 0-positive(dmat, a)
+        if coding == "Treatment":
+
+            evs = dmat.design_info.column_name_indexes
+            con = np.zeros(dmat.shape[1])
+
+            print "a: ", a
+            print "evs: ", evs
+
+            if a in evs:
+                print "a is in evs."
+                con[evs[a]] = 1
+            else:
+                print "a is not in evs."
+                #it is a dropped term so make all other terms in that category at -1
+                term = a.split('[')[0]
+                print "term: ", term
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+
+            # make Intercept 0
+            con[0] = 0
+
+            return con
+
+        elif coding == "Sum":
+
+            evs = dmat.design_info.column_name_indexes
+            con = np.zeros(dmat.shape[1])
+            if a in evs:
+                con[evs[a]] = 1
+            else:
+                #it is a dropped term so make all other terms in that category at -1
+                term = a.split('[')[0]
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+
+            # make Intercept 1
+            con[0] = 1
+
+            return con
+
+
+    def negative(dmat, a, coding):
+        con = 0-positive(dmat, a, coding)
         return con
 
     def create_dummy_string(length):
@@ -1235,26 +941,35 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         ppstring += '\n' 
         return ppstring
 
-    def create_con_file(con_dict, file_name, out_dir):
+    def create_con_file(con_dict, col_names, file_name, out_dir):
         with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
             #write header
+            num = 1
             for key in con_dict:
-                f.write("/ContrastName1\t\"%s\"\n" %key)
+                f.write("/ContrastName%s\t%s\n" %(num,key))
+                num += 1
             f.write("/NumWaves\t%d\n" %len(con_dict[key]))
             f.write("/NumContrasts\t%d\n" %len(con_dict))
-            f.write("/PPString%s" %create_dummy_string(len(con_dict[key])))
+            f.write("/PPheights%s" %create_dummy_string(len(con_dict[key])))
             f.write("/RequiredEffect%s" %create_dummy_string(len(con_dict[key])))
             f.write("\n\n")
 
+            # print labels for the columns - mainly for double-checking your
+            # model
+            col_string = '\n'
+            for col in col_names:
+                col_string = col_string + col + '\t'
+            print >>f, col_string, '\n'
+
             #write data
             f.write("/Matrix\n")
+
             for key in con_dict:
                 for v in con_dict[key]:
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
-    ''' end Aimi's code '''
-
+   
 
     contrasts = c.contrasts
     contrasts_list = []
@@ -1272,18 +987,59 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
     #     identify which are categorical - adapting the string if so
     def process_contrast(operator):
 
+        parsed_EVs_in_contrast = []
+
         EVs_in_contrast = parsed_contrast.split(operator)
 
         if '' in EVs_in_contrast:
             EVs_in_contrast.remove('')
 
+
         for EV in EVs_in_contrast:
-            for cat_EV in c.ev_selections['categorical']:
-                if cat_EV in EV:
-                    cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + EV + ']')
-                    parsed_EVs_in_contrast.append(cat_EV_contrast)
-                else:
-                    parsed_EVs_in_contrast.append(EV)
+
+            skip = 0
+
+            # they need to be put back into Patsy formatted header titles
+            # because the dmatrix gets passed into the function that writes
+            # out the contrast matrix
+            if 'categorical' in c.ev_selections.keys():
+                for cat_EV in c.ev_selections['categorical']:
+
+                    if cat_EV in EV:
+
+                        # handle interactions
+                        if ":" in EV:
+                            temp_split_EV = EV.split(":")
+                            for interaction_EV in temp_split_EV:
+                                if cat_EV in interaction_EV:
+                                    current_EV = interaction_EV
+                        else:
+                            current_EV = EV
+
+                        if coding_scheme == 'Treatment':
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ')[T.' + current_EV + ']')
+
+                        elif coding_scheme == 'Sum':
+                            cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + ', Sum)[S.' + current_EV + ']')
+
+                        parsed_EVs_in_contrast.append(cat_EV_contrast)
+                        skip = 1
+                    
+            if skip == 0:
+
+                parsed_EVs_in_contrast.append(EV)
+
+            # handle interactions
+            if ":" in EV and len(parsed_EVs_in_contrast) == 2:
+
+                parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0] + ":" + parsed_EVs_in_contrast[1]]
+
+            if ":" in EV and len(parsed_EVs_in_contrast) == 3:
+
+                parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1] + ":" + parsed_EVs_in_contrast[2]]
+
+
+        return parsed_EVs_in_contrast
 
 
 
@@ -1300,66 +1056,267 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
 
         if '>' in parsed_contrast:
 
-            process_contrast('>')
+            print "parsed contrast: ", parsed_contrast
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1])
+            parsed_EVs_in_contrast = process_contrast('>')
+
+            print "parsed EVs in contrast: ", parsed_EVs_in_contrast
+
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme)
+
+            print "contrasts_dict[parsed_contrast]: ", contrasts_dict[parsed_contrast]
 
 
         elif '<' in parsed_contrast:
 
-            process_contrast('<')
+            parsed_EVs_in_contrast = process_contrast('<')
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0])
-
-
-        elif '+' in parsed_contrast:
-
-            process_contrast('+')
-
-            # check how many in list, if single, yeah
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0], coding_scheme)
 
 
-        elif '-' in parsed_contrast:
+        else:
 
-            process_contrast('-')
+            contrast_string = parsed_contrast.replace('+',',+,')
+            contrast_string = contrast_string.replace('-',',-,')
+            contrast_items = contrast_string.split(',')
 
-            # check how many in list, if single, yeah
-        
+            if '' in contrast_items:
+                contrast_items.remove('')
 
+            if '+' in contrast_items and len(contrast_items) == 2:
 
+                parsed_EVs_in_contrast = process_contrast('+')
 
-    '''
-    model_name = c.model_name
+                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
 
-    ###generate the final FSL .grp, .mat, .con, .fts files 
-    model = c.output_dir + '/' + model_name + '.csv'
+            elif '-' in contrast_items and len(contrast_items) == 2:
 
-    rdr = csv.DictReader(open(model, 'rb'))
-    no_of_columns = len(rdr.fieldnames)
+                parsed_EVs_in_contrast = process_contrast('-')
 
-    tuple_columns = tuple([n for n in range(1, no_of_columns)])
-    data = np.loadtxt(open(model, 'rb'), delimiter=',', skiprows=1, usecols=tuple_columns)
-        
-
-    data_lst = data.tolist()
+                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
 
 
-    data = []
+            if len(contrast_items) > 2:
 
-    for tp in data_lst:
-        data.append(tp)
+                idx = 0
+                for item in contrast_items:
 
-    print "Length of data list: ", len(data[:])
-    print ""
-    data = np.array(data, dtype=np.float16)
-    '''
+                    # they need to be put back into Patsy formatted header titles
+                    # because the dmatrix gets passed into the function that writes
+                    # out the contrast matrix
+                    if 'categorical' in c.ev_selections.keys():
+                        for cat_EV in c.ev_selections['categorical']:
+
+                            if cat_EV in item:
+
+                                if coding_scheme == 'Treatment':
+                                    item = item.replace(item, 'C(' + cat_EV + ')[T.' + item + ']')
+
+                                elif coding_scheme == 'Sum':
+                                    item = item.replace(item, 'C(' + cat_EV + ', Sum)[S.' + item + ']')
+
+
+                    if idx == 0:
+
+                        if item != '+' and item != '-':
+
+                            contrast_vector = positive(dmatrix, item)
+
+                            if parsed_contrast not in contrasts_dict.keys():
+                                contrasts_dict[parsed_contrast] = contrast_vector
+                            else:
+                                contrasts_dict[parsed_contrast] += contrast_vector
+
+                    elif idx != 0:
+
+                        if item != '+' and item != '-':
+
+                            if contrast_items[idx-1] == '+':
+
+                                contrast_vector = positive(dmatrix, item)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+
+                            if contrast_items[idx-1] == '-':
+
+                                contrast_vector = negative(dmatrix, item)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+
+                    idx += 1        
+
+
+
+    ### CREATE the .mat, .con, and .grp files
 
     # convert the Patsy-generated design matrix into a NumPy array
     data = np.asarray((dmatrix))
 
 
+
+
+    if check_multicollinearity(np.array(data)) == 1:
+
+        print '\n\n[!] CPAC warns: Detected multicollinearity in the ' \
+              'computed group-level analysis model. Please double-check ' \
+              'your model design.\n\n'
+
+
+
+    if c.group_sep == True and (c.grouping_var == None or (c.grouping_var not in c.design_formula)):
+        print '\n\n[!] CPAC says: Model group variances separately is ' \
+              'enabled, but the grouping variable set is either set to ' \
+              'None, or was not included in the model as one of the EVs.\n'
+        print 'Design formula: ', c.design_formula
+        print 'Grouping variable: ', c.grouping_var, '\n\n'
+        raise Exception
+
+
+
+    # prep data and column names if user decides to model group variances
+    # separately
+
+    if c.group_sep == True:
+
+        EV_options = []
+        grouping_options = []
+        new_options = []
+
+        # take in what the grouping variable is. get the names of the options.
+        for col_name in dmatrix.design_info.column_names:
+
+            if col_name != 'Intercept':
+                
+                skip = 0
+
+                if 'categorical' in c.ev_selections.keys():
+                    for cat_EV in c.ev_selections['categorical']:
+                        if cat_EV in col_name:
+
+                            if coding_scheme == 'Treatment':
+                                cat_EV_stripped = col_name.replace('C(' + cat_EV + ')[T.', '')
+                            elif coding_scheme == 'Sum':
+                                cat_EV_stripped = col_name.replace('C(' + cat_EV + ', Sum)[S.', '')
+
+                            cat_EV_stripped = cat_EV_stripped.replace(']', '')
+                            EV_options.append(cat_EV_stripped)
+                            skip = 1
+
+                if skip == 0:
+                    EV_options.append(col_name)
+
+
+
+        idx = 1
+
+        for ev in EV_options:
+
+            if c.grouping_var in ev:
+
+                grouping_variable_info = []
+
+                grouping_variable_info.append(ev)
+                grouping_variable_info.append(idx)
+
+                grouping_options.append(grouping_variable_info)
+
+                # grouping_var_idx is the column numbers in the design matrix
+                # which holds the grouping variable (and its possible levels)
+
+
+            idx += 1
+
+
+        # all the categorical values/levels of the grouping variable
+        grouping_var_levels = []
+
+        for gv_idx in grouping_options:
+            for subject in dmatrix:
+
+                level_label = '__' + gv_idx[0] + '_' + str(subject[gv_idx[1]])
+
+                if level_label not in grouping_var_levels:
+                    grouping_var_levels.append(level_label)
+
+
+        # make the new header for the reorganized data
+        for ev in EV_options:
+            if c.grouping_var not in ev:
+                for level in grouping_var_levels:
+                    new_options.append(ev + level)
+            elif c.grouping_var in ev:
+                new_options.append(ev)
+
+
+
+        grouped_data = []
+
+        for subject in dmatrix:
+
+            new_row = []
+
+            # put in the Intercept first
+            new_row.append(subject[0])
+
+            for option in grouping_options:
+
+                grouping_var_id = option[1]
+                gp_var_value = subject[grouping_var_id]
+                gp_var_label = '_' + str(gp_var_value)
+
+
+                for orig_idx in range(1,len(subject)):
+
+                    # if the current ev_value in the current subject line is the
+                    # grouping variable
+                    if orig_idx == grouping_var_id:
+                        new_row.append(subject[orig_idx])
+
+                    else:
+
+                        for new_header in new_options:
+
+                            if EV_options[orig_idx-1] in new_header:
+                                if gp_var_label in new_header:
+                                    new_row.append(subject[orig_idx])
+                                else:
+                                    new_row.append(0)
+
+          
+
+            grouped_data.append(new_row)
+
+
+        data = np.array(grouped_data, dtype=np.float16)
+
+        new_options.insert(0, 'Intercept')
+
+        column_names = new_options
+
+    else:
+
+        data = np.array(data, dtype=np.float16)
+
+        column_names = dmatrix.design_info.column_names
+
+
+
+    '''
+    still need:
+        contrast handling?
+    '''
+
+
     try:
-        create_mat_file(data, c.model_name, c.output_dir)
+        create_mat_file(data, column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .mat file during ' \
                   'group-level analysis model file generation.\n'
@@ -1367,7 +1324,7 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     try:
-        create_grp_file(data, c.model_name, gp_var, c.output_dir)
+        create_grp_file(data, c.model_name, c.grouping_var, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .grp file during ' \
                   'group-level analysis model file generation.\n'
@@ -1375,14 +1332,15 @@ def run(config, fTest, param_file, pipeline_path, current_output, CPAC_run = Fal
         raise Exception
 
     try:
-        create_con_file(contrasts_dict, c.model_name, c.output_dir)
+        create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
     except:
         print '\n\n[!] CPAC says: Could not create .con file during ' \
                   'group-level analysis model file generation.\n'
         print 'Attempted output directory: ', c.output_dir, '\n\n'
         raise Exception
 
-    #create_con_ftst_file(con, model_name, fTest, c.output_dir)
+
+
 
 
 

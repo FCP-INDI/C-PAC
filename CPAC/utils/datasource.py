@@ -64,25 +64,52 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
 
 
-def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
+def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask'):
 
     import nipype.interfaces.io as nio
     import os
 
     wf = pe.Workflow(name=wf_name)
-    masks = open(dirPath, 'r').readlines()
+
+    if mask_type == 'roi':
+        tab = 'ROI Average TSE'
+    elif mask_type == 'voxel':
+        tab = 'ROI Voxelwise TSE'
+    elif mask_type == 'centrality':
+        tab = 'Network Centrality'
+
+
+    if '.nii' in dir_path:
+
+        masks = []
+        masks.append(dir_path)
+
+    elif '.txt' in dir_path:
+        
+        masks = open(dir_path, 'r').readlines()
+
+    else:
+
+        print '\n\n[!] CPAC says: Your ROI/mask specification file (under ' \
+              '%s options) either needs to be a NIFTI file (.nii or ' \
+              '.nii.gz) of an ROI/mask or a text file (.txt) containing a ' \
+              'list of NIFTI files of ROI/mask files.\nPlease change this ' \
+              'in your pipeline configuration file and try again.\n\n' % tab
+        raise Exception
+
 
     mask_dict = {}
+
     for mask_file in masks:
 
         mask_file = mask_file.rstrip('\r\n')
 
         if not os.path.exists(mask_file):
-            print "\n\n" + "ERROR: One of your ROI specification files (under ROI" + \
-            " Voxelwise TSE options) does not have a correct path or does not exist." + \
-            "\n" + "Tip: If all the paths are okay, then ensure there are no" + \
-            " whitespaces or blank lines in your ROI specification file." + \
-            "\n\n" + "Error name: datasource_0003" + "\n\n"
+            print '\n\n[!] CPAC says: One of your ROI/mask specification ' \
+                  'files (under %s options) does not have a correct path ' \
+                  'or does not exist.\nTip: If all the paths are okay, ' \
+                  'then ensure there are no whitespaces or blank lines in ' \
+                  'your ROI specification file.\n\n' % mask_type
             raise Exception
 
         if mask_file.strip() == '' or mask_file.startswith('#'):
@@ -101,6 +128,8 @@ def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
             mask_dict[base_name] = mask_file
         else:
             raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name]))
+
+
 
     inputnode = pe.Node(util.IdentityInterface(
                             fields=['mask'],
@@ -126,61 +155,6 @@ def create_mask_dataflow(dirPath, wf_name='datasource_mask'):
     return wf
 
 
-def create_roi_dataflow(dirPath, wf_name='datasource_roi'):
-
-    import nipype.interfaces.io as nio
-    import os
-
-
-    wf = pe.Workflow(name=wf_name)
-    rois = open(dirPath, 'r').readlines()
-
-    roi_dict = {}
-    for roi_file in rois:
-
-        roi_file = roi_file.rstrip('\r\n')
-
-        if not os.path.exists(roi_file):
-            print "\n\n" + "ERROR: One of your ROI specification files (under ROI" + \
-            " Average TSE options) does not have a correct path or does not exist." + \
-            "\n" + "Tip: If all the paths are okay, then ensure there are no" + \
-            " whitespaces or blank lines in your ROI specification file." + \
-            "\n\n" + "Error name: datasource_0002" + "\n\n"
-            raise Exception
-
-        if roi_file.strip() == '' or roi_file.startswith('#'):
-            continue
-
-        base_file = os.path.basename(roi_file)
-        base_name = ''
-        if base_file.endswith('.nii'):
-            base_name = os.path.splitext(base_file)[0]
-        elif(base_file.endswith('.nii.gz')):
-            base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
-        else:
-            raise("File extension not in  .nii and .nii.gz File: %s" % roi_file)
-
-        if not (base_name in roi_dict):
-            roi_dict[base_name] = roi_file
-        else:
-            raise ValueError('Files with same name not allowed %s %s' % (roi_file, roi_dict[base_name]))
-
-    inputnode = pe.Node(util.IdentityInterface(
-                            fields=['roi'],
-                            mandatory_inputs=True),
-                    name='inputspec')
-
-    inputnode.iterables = [('roi', roi_dict.keys())]
-
-    selectroi = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
-                                       output_names=['out_file'],
-                                       function=get_rest),
-                         name='select_roi')
-    selectroi.inputs.rest_dict = roi_dict
-
-    wf.connect(inputnode, 'roi',
-               selectroi, 'scan')
-    return wf
 
 
 def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):

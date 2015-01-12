@@ -223,7 +223,7 @@ class DataConfig(wx.Frame):
             return -1
         
         except Exception, e:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.%s"%e,
+            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%e,
                                'Error!',
                            wx.OK | wx.ICON_ERROR)
             dlg2.ShowModal()
@@ -249,6 +249,7 @@ class DataConfig(wx.Frame):
                 #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
+                value = value.strip()
                 name = ctrl.get_name()
                 dtype= ctrl.get_datatype()
 
@@ -267,12 +268,20 @@ class DataConfig(wx.Frame):
                         display(win, "Template cannot start with %s")
                         
                 if '/' in value and 'Template' not in name:
-                    if not os.path.exists(ctrl.get_selection()):
+                    if not os.path.exists(value):
                         display(win,"%s field contains incorrect path. Please update the path!"%ctrl.get_name())
          
                 config_list.append((name, value, dtype))
                 
         except Exception, e:
+
+            errdlg = wx.MessageDialog(self, "Could not save your subject " \
+                               "list information.\n\n%s" % e,
+                               'Error!',
+                           wx.OK | wx.ICON_ERROR)
+            errdlg.ShowModal()
+            errdlg.Destroy()
+
             print e
             return
             
@@ -317,30 +326,40 @@ class DataConfig(wx.Frame):
                 style=wx.OPEN | wx.CHANGE_DIR)
         
             if dlg.ShowModal() == wx.ID_OK:
-                path = dlg.GetPath()
+
+                try:
+
+                    path = dlg.GetPath()
                     
-                config_map = yaml.load(open(path, 'r'))
-                for ctrl in self.page.get_ctrl_list():
-                    name = ctrl.get_name()
-                    value = config_map.get(name)
-                    dtype = ctrl.get_datatype()
-                    if isinstance(value, list):
-                        val = None
-                        for v in value:
-                            if val:
-                                val = val + "," + str(v)
-                            else:
-                                val = str(v)
-                    else:
-                        val = value
+                    config_map = yaml.load(open(path, 'r'))
+                    for ctrl in self.page.get_ctrl_list():
+                        name = ctrl.get_name()
+                        value = config_map.get(name)
+                        dtype = ctrl.get_datatype()
+                        if isinstance(value, list):
+                            val = None
+                            for v in value:
+                                if val:
+                                    val = val + "," + str(v)
+                                else:
+                                    val = str(v)
+                        else:
+                            val = value
                 
-                    #print "setting value in ctrl name, value -->", name, val             
-                    ctrl.set_value(str(val))
+                        ctrl.set_value(str(val))
+
+                except Exception as e:
+
+                    errdlg = wx.MessageDialog(self, "CPAC could not load " \
+                               "your subject list information. Double-" \
+                               "check the formatting of your data_config " \
+                               "YAML file.\n\nIssue info:\n%s" % e,
+                               'Error!',
+                           wx.OK | wx.ICON_ERROR)
+                    errdlg.ShowModal()
+                    errdlg.Destroy()
                 
                         
                 dlg.Destroy()
         
         
-#app = wx.App()
-#DataConfig(None).Show()
-#app.MainLoop()

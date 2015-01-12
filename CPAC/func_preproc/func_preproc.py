@@ -1,14 +1,167 @@
+from nipype import logging
+logger = logging.getLogger('workflow')
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 #import CPAC.interfaces.afni.preprocess as preprocess
 from nipype.interfaces.afni import preprocess
+from CPAC.utils import dbg_file_lineno
+
+# workflow to edit the scan to the proscribed TRs
+def create_wf_edit_func( wf_name = "edit_func" ):
+    """
+    Workflow Inputs::
+    
+        inputspec.func : func file or a list of func/rest nifti file 
+            User input functional(T2*) Image
+            
+        inputspec.start_idx : string 
+            Starting volume/slice of the functional image (optional)
+            
+        inputspec.stop_idx : string
+            Last volume/slice of the functional image (optional)
+            
+    Workflow Outputs::
+    
+        outputspec.edited_func : string (nifti file)
+            Path to Output image with the initial few slices dropped
+          
+           
+    Order of commands:
+    
+    - Get the start and the end volume index of the functional run. If not defined by the user, return the first and last volume.
+    
+        get_idx(in_files, stop_idx, start_idx)
+        
+    - Dropping the initial TRs. For details see `3dcalc <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html>`_::
+        
+        3dcalc -a rest.nii.gz[4..299] 
+               -expr 'a' 
+               -prefix rest_3dc.nii.gz
+               
+    """
+
+    # allocate a workflow object
+    try:
+        preproc = pe.Workflow(name=wf_name)
+    except:
+        logger.info( "Error allocating workflow %s."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    # configure the workflow's input spec
+    try:
+        inputNode = pe.Node(util.IdentityInterface(fields=['func',
+                                                           'start_idx',
+                                                           'stop_idx']),
+                            name='inputspec')
+    except:
+        logger.info( "Error allocating inputspec (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    # configure the workflow's output spec
+    try:
+        outputNode = pe.Node(util.IdentityInterface(fields=['edited_func']),
+                          name='outputspec')
+    except:
+        logger.info( "Error allocating output spec (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    # allocate a node to check that the requested edits are
+    # reasonable given the data
+    try:
+        func_get_idx = pe.Node(util.Function(input_names=['in_files', 
+                                                          'stop_idx', 
+                                                          'start_idx'],
+                                   output_names=['stopidx', 
+                                                 'startidx'],
+                     function=get_idx), name='func_get_idx')
+    except:
+        logger.info( "Error allocating get_idx function node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+   
+    # wire in the func_get_idx node
+    try: 
+        preproc.connect(inputNode, 'func',
+                        func_get_idx, 'in_files')
+    except:
+        logger.info( "Error connecting 'in_files' input to get_idx function node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    try:
+        preproc.connect(inputNode, 'start_idx',
+                        func_get_idx, 'start_idx')
+    except:
+        logger.info( "Error connecting 'start_idx' input to get_idx function node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    try:
+        preproc.connect(inputNode, 'stop_idx',
+                     func_get_idx, 'stop_idx')
+    except:
+        logger.info( "Error connecting 'stop_idx' input to get_idx function node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    try:
+        # allocate a node to edit the functional file 
+        func_drop_trs = pe.Node(interface=preprocess.Calc(),
+                               name='func_drop_trs')
+        func_drop_trs.inputs.expr = 'a'
+        func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
+    except:
+        logger.info( "Error allocating afni Calc node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+   
+    # wire in the inpus
+    try: 
+        preproc.connect(inputNode, 'func',
+                        func_drop_trs, 'in_file_a')
+    except:
+        logger.info( "Error connecting 'in_file_a' input to afni Calc node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    try: 
+        preproc.connect(func_get_idx, 'startidx',
+                        func_drop_trs, 'start_idx')
+    except:
+        logger.info( "Error connecting 'start_idx' input to afni Calc node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+
+    try: 
+        preproc.connect(func_get_idx, 'stopidx',
+                        func_drop_trs, 'stop_idx')
+    except:
+        logger.info( "Error connecting 'stop_idx' input to afni Calc node (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+  
+    try: 
+        # wire the output 
+        preproc.connect(func_drop_trs, 'out_file',
+                        outputNode, 'edited_func')
+    except:
+        logger.info( "Error connecting output (wflow %s)."+\
+                     " (%s:%d)" % (wf_name, dbg_file_lineno() ))
+        raise
+  
+    return preproc
+    
 
 
 #functional preprocessing
-
-def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_name = 'func_preproc'):
+def create_func_preproc(use_bet = False, wf_name = 'func_preproc'):
     """
     
     The main purpose of this workflow is to process functional data. Raw rest file is deobliqued and reoriented 
@@ -19,8 +172,6 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
     Parameters
     ----------
     
-    slice_timing_correction : boolean
-        Slice timing Correction option
     wf_name : string
         Workflow name
     
@@ -39,12 +190,6 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
         inputspec.rest : func/rest file or a list of func/rest nifti file 
             User input functional(T2) Image, in any of the 8 orientations
             
-        inputspec.start_idx : string 
-            Starting volume/slice of the functional image (optional)
-            
-        inputspec.stop_idx : string
-            Last volume/slice of the functional image (optional)
-            
         scan_params.tr : string
             Subject TR
         
@@ -56,12 +201,6 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
             
     Workflow Outputs::
     
-        outputspec.drop_tr : string (nifti file)
-            Path to Output image with the initial few slices dropped
-          
-        outputspec.slice_time_corrected : string (nifti file)
-            Path to Slice time corrected image
-          
         outputspec.refit : string (nifti file)
             Path to deobliqued anatomical data 
         
@@ -99,26 +238,8 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
         outputspec.preprocessed_mask : string (nifti file)
            Mask obtained from normalized preprocessed image
            
-    
     Order of commands:
-    
-    - Get the start and the end volume index of the functional run. If not defined by the user, return the first and last volume.
-    
-        get_idx(in_files, stop_idx, start_idx)
-        
-    - Dropping the initial TRs. For details see `3dcalc <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html>`_::
-        
-        3dcalc -a rest.nii.gz[4..299] 
-               -expr 'a' 
-               -prefix rest_3dc.nii.gz
                
-    - Slice timing correction. For details see `3dshift <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTshift.html>`_::
-    
-        3dTshift -TR 2.1s 
-                 -slice 18 
-                 -tpattern alt+z 
-                 -prefix rest_3dc_shift.nii.gz rest_3dc.nii.gz
-
     - Deobliqing the scans.  For details see `3drefit <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html>`_::
     
         3drefit -deoblique rest_3dc.nii.gz
@@ -218,36 +339,23 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
     --------
     
     >>> import func_preproc
-    >>> preproc = create_func_preproc(slice_timing_correction=True)
+    >>> preproc = create_func_preproc(bet=True)
     >>> preproc.inputs.inputspec.func='sub1/func/rest.nii.gz'
-    >>> preproc.inputs.scan_params.TR = '2.0'
-    >>> preproc.inputs.scan_params.ref_slice = 19
-    >>> preproc.inputs.scan_params.acquisition = 'alt+z2'
     >>> preproc.run() #doctest: +SKIP
 
 
     >>> import func_preproc
-    >>> preproc = create_func_preproc(slice_timing_correction=False)
+    >>> preproc = create_func_preproc(bet=False)
     >>> preproc.inputs.inputspec.func='sub1/func/rest.nii.gz'
-    >>> preproc.inputs.inputspec.start_idx = 4
-    >>> preproc.inputs.inputspec.stop_idx = 250
     >>> preproc.run() #doctest: +SKIP
     
     """
 
     preproc = pe.Workflow(name=wf_name)
-    inputNode = pe.Node(util.IdentityInterface(fields=['rest',
-                                                       'start_idx',
-                                                       'stop_idx']),
+    inputNode = pe.Node(util.IdentityInterface(fields=['func']),
                         name='inputspec')
     
-    scan_params = pe.Node(util.IdentityInterface(fields=['tr',
-                                                         'acquisition',
-                                                         'ref_slice']),
-                          name = 'scan_params')
-
-    outputNode = pe.Node(util.IdentityInterface(fields=['drop_tr',
-                                                        'refit',
+    outputNode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
                                                         'reorient_mean',
                                                         'motion_correct',
@@ -265,68 +373,14 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
 
                           name='outputspec')
 
-    func_get_idx = pe.Node(util.Function(input_names=['in_files', 
-                                                      'stop_idx', 
-                                                      'start_idx'],
-                               output_names=['stopidx', 
-                                             'startidx'],
-                 function=get_idx), name='func_get_idx')
-    
-    preproc.connect(inputNode, 'rest',
-                    func_get_idx, 'in_files')
-    preproc.connect(inputNode, 'start_idx',
-                    func_get_idx, 'start_idx')
-    preproc.connect(inputNode, 'stop_idx',
-                    func_get_idx, 'stop_idx')
-    
-    
-    func_drop_trs = pe.Node(interface=preprocess.Calc(),
-                           name='func_drop_trs')
-    func_drop_trs.inputs.expr = 'a'
-    func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
-    
-    preproc.connect(inputNode, 'rest',
-                    func_drop_trs, 'in_file_a')
-    preproc.connect(func_get_idx, 'startidx',
-                    func_drop_trs, 'start_idx')
-    preproc.connect(func_get_idx, 'stopidx',
-                    func_drop_trs, 'stop_idx')
-    
-    preproc.connect(func_drop_trs, 'out_file',
-                    outputNode, 'drop_tr')
-    
-    
-    func_slice_timing_correction = pe.Node(interface=preprocess.TShift(),
-                                           name = 'func_slice_timing_correction')
-    func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
     
     func_deoblique = pe.Node(interface=preprocess.Refit(),
                             name='func_deoblique')
     func_deoblique.inputs.deoblique = True
     
-    
-    if slice_timing_correction:
-        preproc.connect(func_drop_trs, 'out_file',
-                        func_slice_timing_correction,'in_file')
-        preproc.connect(scan_params, 'tr',
-                        func_slice_timing_correction, 'tr')
-        preproc.connect(scan_params, 'acquisition',
-                        func_slice_timing_correction, 'tpattern')
-        preproc.connect(scan_params, 'ref_slice',
-                        func_slice_timing_correction, 'tslice')
-        
-        preproc.connect(func_slice_timing_correction, 'out_file',
-                        func_deoblique, 'in_file')
-        
-        preproc.connect(func_slice_timing_correction, 'out_file',
-                        outputNode, 'slice_time_corrected')
-    else:
-        preproc.connect(func_drop_trs, 'out_file',
+    preproc.connect(inputNode, 'func',
                         func_deoblique, 'in_file')
     
-    preproc.connect(func_deoblique, 'out_file',
-                    outputNode, 'refit')
-
     func_reorient = pe.Node(interface=preprocess.Resample(),
                                name='func_reorient')
     func_reorient.inputs.orientation = 'RPI'
@@ -487,6 +541,7 @@ def create_func_preproc(slice_timing_correction = False, use_bet = False, wf_nam
     return preproc
 
 
+
 def get_idx(in_files, stop_idx=None, start_idx=None):
 
     """
@@ -520,12 +575,19 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
 
     #stopidx = None
     #startidx = None
+    # Import packages
     from nibabel import load
 
+    # Init variables
     img = load(in_files)
     hdr = img.get_header()
-    nvols = int(hdr.get_data_shape()[3])
+    shape = hdr.get_data_shape()
     
+    # Check to make sure the input file is 4-dimensional
+    if len(shape) != 4:
+        raise TypeError('Input nifti file: %s is not a 4D file' % in_files)
+    # Grab the number of volumes
+    nvols = int(hdr.get_data_shape()[3])
 
     if (start_idx == None) or (start_idx < 0) or (start_idx > (nvols - 1)):
         startidx = 0
@@ -538,6 +600,5 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
         stopidx = stop_idx
 
     return stopidx, startidx
-
 
 

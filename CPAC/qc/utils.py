@@ -157,6 +157,7 @@ def first_pass_organizing_files(qc_path):
                 strat_dict[str_] = [file_]
 
 
+
 def second_pass_organizing_files(qc_path):
 
 
@@ -260,6 +261,7 @@ def second_pass_organizing_files(qc_path):
                 raise
 
 
+
 def organize(dict_, all_ids, png_, new_dict):
 
     """
@@ -302,6 +304,7 @@ def organize(dict_, all_ids, png_, new_dict):
                 all_ids.append(id_no)
 
     return  all_ids
+
 
 
 def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
@@ -373,6 +376,7 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
+
 def add_head(f_html_, f_html_0, f_html_1):
 
     """
@@ -430,6 +434,7 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_1, "<a name='reverse'>"
 
 
+
 def add_tail(f_html_, f_html_0, f_html_1):
 
 
@@ -484,6 +489,7 @@ def add_tail(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "</html>"
     print >>f_html_1, "</body>"
     print >>f_html_1, "</html>"
+
 
 
 def feed_line_nav(id_,

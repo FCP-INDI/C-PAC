@@ -31,7 +31,7 @@ def get_workflow(c):
 
     """
     standard = os.path.join(c.FSLDIR,
-            'data/standard/MNI152_T1_%s.nii.gz' % (c.standardResolution))
+            'data/standard/MNI152_T1_%s.nii.gz' % (c.resolution_for_func))
 
     sca = None
     sca = create_sca(c.correlationSpace)

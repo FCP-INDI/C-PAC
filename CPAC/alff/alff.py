@@ -8,7 +8,6 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.alff.alff import *
 from CPAC.alff.utils import *
-#from CPAC.interfaces.afni import preprocess
 from nipype.interfaces.afni import preprocess
 
 def create_alff(wf_name = 'alff_workflow'):
@@ -163,9 +162,7 @@ def create_alff(wf_name = 'alff_workflow'):
                              name='lp_input')
     
     outputNode = pe.Node(util.IdentityInterface(fields=[ 'alff_img',
-                                                         'falff_img',
-                                                         'alff_Z_img',
-                                                         'falff_Z_img']),
+                                                         'falff_img']),
                           name='outputspec')
     
     #filtering
@@ -213,7 +210,8 @@ def create_alff(wf_name = 'alff_workflow'):
     #falff calculations
     falff = pe.Node(interface = preprocess.Calc(),
                     name = 'falff')
-    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c)) -float'
+    falff.inputs.args = '-float'
+    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
     wf.connect(inputNode, 'rest_mask',
                falff, 'in_file_a')
@@ -225,25 +223,6 @@ def create_alff(wf_name = 'alff_workflow'):
     wf.connect(falff, 'out_file',
                outputNode, 'falff_img') 
     
-    #alff zscore
-    alff_zscore = get_zscore("alff_zscore")
-    wf.connect(stddev_fltrd, 'out_file', 
-               alff_zscore, 'inputspec.input_file')
-    wf.connect(inputNode, 'rest_mask',
-               alff_zscore, 'inputspec.mask_file')
-    
-    wf.connect(alff_zscore, 'outputspec.z_score_img',
-               outputNode, 'alff_Z_img')
-    
-    #falff score          
-    falf_zscore = get_zscore("falf_zscore")
-    wf.connect(falff, 'out_file', 
-               falf_zscore, 'inputspec.input_file')
-    wf.connect(inputNode, 'rest_mask',
-               falf_zscore, 'inputspec.mask_file')
-    
-    wf.connect(falf_zscore, 'outputspec.z_score_img',
-               outputNode, 'falff_Z_img')
     
     return wf
 

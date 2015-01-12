@@ -16,7 +16,7 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 600))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
 
 
         if gpa_settings == None:
@@ -25,6 +25,12 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['pheno_file'] = ''
             self.gpa_settings['subject_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
+            self.gpa_settings['coding_scheme'] = ''
+            self.gpa_settings['derivative_list'] = ''
+            self.gpa_settings['f_test'] = ''
+            self.gpa_settings['z_threshold'] = ''
+            self.gpa_settings['p_threshold'] = ''
+            self.gpa_settings['repeated_measures'] = ''
         else:
             self.gpa_settings = gpa_settings
         
@@ -84,16 +90,86 @@ class ModelConfig(wx.Frame):
                       name = "model_setup",
                       type = 9,#dtype.LBOOL,
                       values = '',
-                      comment="glob",
+                      comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD' and 'Measure Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
                       size = (450, -1))
 
         self.page.add(label="Design Matrix Formula ",
                       control=control.TEXT_BOX,
                       name="design_formula",
                       type=dtype.STR,
-                      comment="Specify a descriptor for your model.",
+                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD and Measure_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
+
+        self.page.add(label="Coding Scheme ", 
+                     control=control.CHOICE_BOX, 
+                     name="coding_scheme", 
+                     type=dtype.LSTR, 
+                     comment="Choose the coding scheme to use when generating your model.", 
+                     values=["Treatment", "Sum"])
+
+        self.page.add(label = "Select Derivatives ",
+                    control = control.CHECKLIST_BOX,
+                    name = "derivative_list",
+                    type = dtype.LSTR,
+                    values = ['ALFF',
+                              'ALFF (smoothed)',
+                              'ALFF (smoothed, z-score std)',
+                              'f/ALFF',
+                              'f/ALFF (smoothed)',
+                              'f/ALFF (smoothed, z-score std)',
+                              'ReHo',
+                              'ReHo (smoothed)',
+                              'ReHo (smoothed, z-score std)',
+                              'ROI Average SCA',
+                              'ROI Average SCA (smoothed)',
+                              'ROI Average SCA (smoothed, Fisher z-score std)',
+                              'Voxelwise SCA',
+                              'Voxelwise SCA (smoothed)',
+                              'Voxelwise SCA (smoothed, Fisher z-score std)',
+                              'Multiple Regression SCA (smoothed)',
+                              'VMHC (Fisher z-score std)',
+                              'VMHC z-stat (Fisher z-score std)',
+                              'Network Centrality (smoothed)',
+                              'Network Centrality (smoothed, z-score std)',
+                              'Dual Regression',
+                              'Dual Regression (smoothed)',
+                              'Dual Regression z-stat',
+                              'Dual Regression z-stat (smoothed)'],
+                    comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
+                    size = (350,160))
+ 
+
+        self.page.add(label="Models Contain F-tests ", 
+                 control=control.CHOICE_BOX, 
+                 name='f_test', 
+                 type=dtype.BOOL, 
+                 comment = "Set this option to True if any of the models specified above contain F-tests.", 
+                 values=["False","True"])
+        
+        self.page.add(label="Z threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='z_threshold', 
+                     type=dtype.NUM, 
+                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
+                     values=2.3)
+
+        self.page.add(label="Cluster Significance Threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='p_threshold', 
+                     type=dtype.NUM, 
+                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
+                     values=0.05)
+
+        self.page.add(label="Run Repeated Measures ", 
+                     control=control.CHOICE_BOX, 
+                     name='repeated_measures', 
+                     type=dtype.BOOL, 
+                     comment="Run repeated measures to compare different " \
+                             "scans (must use the group analysis subject " \
+                             "list and phenotypic file formatted for " \
+                             "repeated measures.", 
+                     values=["False","True"])
 
 
 
@@ -108,11 +184,6 @@ class ModelConfig(wx.Frame):
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-#         run = wx.Button(btnPanel, ID_RUN, "Create Model", (
-#             280, -1), wx.DefaultSize, 0)
-#         self.Bind(wx.EVT_BUTTON, lambda event: self.save(
-#             event, 'run'), id=ID_RUN)
-#         hbox.Add(run, 0, flag=wx.LEFT | wx.ALIGN_LEFT, border=10)
 
         buffer = wx.StaticText(btnPanel, label="\t\t\t\t\t\t")
         hbox.Add(buffer)
@@ -137,6 +208,15 @@ class ModelConfig(wx.Frame):
 
         btnPanel.SetSizer(hbox)
 
+
+
+        text_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
+        text_sizer.Add(measure_text)
+
+
+        mainSizer.Add(text_sizer)
+
         mainSizer.Add(
             btnPanel, 0.5,  flag=wx.ALIGN_RIGHT | wx.RIGHT, border=20)
 
@@ -148,7 +228,7 @@ class ModelConfig(wx.Frame):
         # this fires only if we're coming BACK to this page from the second
         # page, and these parameters are already pre-loaded. this is to
         # automatically repopulate the 'Model Setup' checkbox grid
-        if 'pheno_file' in self.gpa_settings.keys():
+        if self.gpa_settings['pheno_file'] != '':
 
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
 
@@ -239,26 +319,6 @@ class ModelConfig(wx.Frame):
                     ctrl.set_value(str(self.gpa_settings[name]))
                 
 
-
-                '''
-                if isinstance(value, list):
-                    val = None
-                    for v in value:
-                        if val:
-                            val = val + "," + str(v)
-                        else:
-                            val = str(v)
-                    print 'value1: ', val
-                else:
-                    val = s_map.get(value)
-                    if val == None:
-                        val = value
-                    print 'value2: ', val
-                '''
-
-
-                #ctrl.set_value(str(val))
-
             dlg.Destroy()
 
 
@@ -293,8 +353,12 @@ class ModelConfig(wx.Frame):
                 # Patsy can understand regarding categoricals:
                 #     example: { ADHD: ['adhd1', 'adhd1', 'adhd2', 'adhd1'] }
                 #                instead of just [1, 1, 2, 1], etc.
-                if key in ev_selections['categorical']:
-                    pheno_data_dict[key].append(key + str(line[key]))
+                if 'categorical' in ev_selections.keys():
+                    if key in ev_selections['categorical']:
+                        pheno_data_dict[key].append(key + str(line[key]))
+
+                    else:
+                        pheno_data_dict[key].append(line[key])
 
                 else:
                     pheno_data_dict[key].append(line[key])
@@ -316,10 +380,9 @@ class ModelConfig(wx.Frame):
           
             
     def populateEVs(self, event):
-        
-        # somehow get in the header from the phenotype
-        # also get in the subject column
-        
+
+        # this runs when the user clicks 'Load Phenotype File'
+               
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()
@@ -402,7 +465,6 @@ class ModelConfig(wx.Frame):
     def load_next_stage(self, event):
 
         import patsy
-
 
         for ctrl in self.page.get_ctrl_list():
             
@@ -488,9 +550,277 @@ class ModelConfig(wx.Frame):
             print self.gpa_settings['pheno_file'], '\n\n'
             raise IOError
 
-        '''
+
+
+        # validate design formula and build Available Contrasts list
+        var_list_for_contrasts = []
+        EVs_to_test = []
+        EVs_to_include = []
+
+        # take the user-provided design formula and break down the included
+        # terms into a list, and use this to create the list of available
+        # contrasts
+                
+
+        formula = self.gpa_settings['design_formula']
+            
+
+        # need to cycle through the EVs inside parentheses just to make
+        # sure they are valid
+
+        # THEN you have to treat the entire parentheses thing as one EV when
+        # it comes to including it in the list for contrasts
+
+        formula_strip = formula.replace('+',' ')
+        formula_strip = formula_strip.replace('-',' ')
+        formula_strip = formula_strip.replace('**(', '**')
+        formula_strip = formula_strip.replace(')**', '**')
+        formula_strip = formula_strip.replace('(',' ')
+        formula_strip = formula_strip.replace(')',' ')
+        EVs_to_test = formula_strip.split()
+
+
+
+        # ensure the design formula only has valid EVs in it
+        for EV in EVs_to_test:
+
+            # ensure ** interactions have a valid EV on one side and a number
+            # on the other
+            if '**' in EV:
+
+                both_sides = EV.split('**')
+
+                int_check = 0
+
+                for side in both_sides:
+
+                    if side.isdigit():
+                        int_check = 1
+                    else:
+                        if (side not in self.pheno_data_dict.keys()) and \
+                            side != 'MeanFD' and side != 'Measure_Mean':
+
+                            errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                     'entered within the design formula as ' \
+                                     'part of the interaction \'%s\' is not a ' \
+                                     'valid EV option.\n\nPlease enter only ' \
+                                     'the EVs in your phenotype file or the ' \
+                                     'MeanFD or Measure_Mean options.' \
+                                     % (side,EV)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid EV', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                
+                            raise Exception
+
+
+                if int_check != 1:
+
+                    errmsg = 'CPAC says: The interaction \'%s\' you ' \
+                             'entered within the design formula requires ' \
+                             'a number on one side.\n\nExample: ' \
+                             '(EV1 + EV2 + EV3)**3\n\nNote: This would be ' \
+                             'equivalent to\n(EV1 + EV2 + EV3) * ' \
+                             '(EV1 + EV2 + EV3) * (EV1 + EV2 + EV3)' % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
+                    
+            # ensure these interactions are input correctly
+            elif (':' in EV) or ('/' in EV) or ('*' in EV):
+
+                if ':' in EV:
+                    both_EVs_in_interaction = EV.split(':')
+
+                if '/' in EV:
+                    both_EVs_in_interaction = EV.split('/')
+
+                if '*' in EV:
+                    both_EVs_in_interaction = EV.split('*')
+
+
+                for interaction_EV in both_EVs_in_interaction:
+
+                    if (interaction_EV not in self.pheno_data_dict.keys()) and \
+                        interaction_EV != 'MeanFD' and interaction_EV != 'Measure_Mean':
+
+                        errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                                 'entered within the design formula as ' \
+                                 'part of the interaction \'%s\' is not a ' \
+                                 'valid EV option.\n\nPlease enter only ' \
+                                 'the EVs in your phenotype file or the ' \
+                                 'MeanFD or Measure_Mean options.' \
+                                 % (interaction_EV,EV)
+
+                        errSubID = wx.MessageDialog(self, errmsg,
+                            'Invalid EV', wx.OK | wx.ICON_ERROR)
+                        errSubID.ShowModal()
+                        errSubID.Destroy()
+                
+                        raise Exception    
+
+            else:
+
+                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
+                    and EV != 'Measure_Mean':
+
+                    errmsg = 'CPAC says: The regressor \'%s\' you ' \
+                             'entered within the design formula is not ' \
+                             'a valid EV option.' \
+                             '\n\nPlease enter only the EVs in your phenotype ' \
+                             'file or the MeanFD or Measure_Mean options.' \
+                             % EV
+
+                    errSubID = wx.MessageDialog(self, errmsg,
+                        'Invalid EV', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                
+                    raise Exception
+
+
+
+        def read_phenotypic(pheno_file, ev_selections, subject_id_label):
+
+            import csv
+            import numpy as np
+
+            ph = pheno_file
+
+            # Read in the phenotypic CSV file into a dictionary named pheno_dict
+            # while preserving the header fields as they correspond to the data
+            p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+
+            # dictionary to store the data in a format Patsy can use
+            # i.e. a dictionary where each header is a key, and the value is a
+            # list of all of that header's values
+            pheno_data_dict = {}
+
+            for line in p_reader:
+
+                # here, each instance of 'line' is really a dictionary where the
+                # keys are the pheno headers, and their values are the values of
+                # each EV for that one subject - each iteration of this loop is
+                # one subject
+
+                for key in line.keys():
+
+                    if key not in pheno_data_dict.keys():
+                        pheno_data_dict[key] = []
+
+                    # create a list within one of the dictionary values for that
+                    # EV if it is categorical; formats this list into a form
+                    # Patsy can understand regarding categoricals:
+                    #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                    #                instead of just [1, 1, 0, 1], etc.
+                    if 'categorical' in ev_selections.keys():
+                        if key in ev_selections['categorical']:
+                            pheno_data_dict[key].append(key + str(line[key]))
+
+                        elif key == subject_id_label:
+                            pheno_data_dict[key].append(line[key])
+
+                        else:
+                            pheno_data_dict[key].append(float(line[key]))
+
+                    elif key == subject_id_label:
+                        pheno_data_dict[key].append(line[key])
+
+                    else:
+                        pheno_data_dict[key].append(float(line[key]))
+
+
+
+            # this needs to run after each list in each key has been fully
+            # populated above
+            for key in pheno_data_dict.keys():
+
+                # demean the EVs marked for demeaning
+                if 'demean' in ev_selections.keys():
+                    if key in ev_selections['demean']:
+
+                        new_demeaned_evs = []
+
+                        mean_evs = 0.0
+
+                        # populate a dictionary, a key for each demeanable EV, with
+                        # the value being the sum of all the values (which need to be
+                        # converted to float first)
+                        for val in pheno_data_dict[key]:
+                            mean_evs += float(val)
+
+                        # calculate the mean of the current EV in this loop
+                        mean_evs = mean_evs / len(pheno_data_dict[key])
+
+                        # remove the EV's mean from each value of this EV
+                        # (demean it!)
+                        for val in pheno_data_dict[key]:
+                            new_demeaned_evs.append(float(val) - mean_evs)
+
+                        # replace
+                        pheno_data_dict[key] = new_demeaned_evs
+
+
+                # converts non-categorical EV lists into NumPy arrays
+                # so that Patsy may read them in properly
+                if 'categorical' in ev_selections.keys():
+                    if key not in ev_selections['categorical']:
+            
+                        pheno_data_dict[key] = np.array(pheno_data_dict[key])
+
+
+            return pheno_data_dict
+
+
+        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
+
+        # let's create dummy columns for MeanFD and Measure_Mean just so we
+        # can get an accurate list of EVs Patsy will generate
+        if 'MeanFD' in formula or 'Measure_Mean' in formula:
+
+            import numpy as np
+
+            MeanFD = []
+            Measure_Mean = []
+
+            for key in patsy_formatted_pheno.keys():
+               for val in patsy_formatted_pheno[key]:
+                   MeanFD.append(0.0)
+                   Measure_Mean.append(0.0)
+               break
+
+            MeanFD = np.array(MeanFD)
+            Measure_Mean = np.array(Measure_Mean)
+
+            patsy_formatted_pheno['MeanFD'] = MeanFD
+            patsy_formatted_pheno['Measure_Mean'] = Measure_Mean
+
+        print "\n\npatsy_formatted_pheno:"
+        print patsy_formatted_pheno
+        print "\n\n"
+
+
+        if 'categorical' in self.gpa_settings['ev_selections']:
+            for EV_name in self.gpa_settings['ev_selections']['categorical']:
+
+                if self.gpa_settings['coding_scheme'] == 'Treatment':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                elif self.gpa_settings['coding_scheme'] == 'Sum':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+
+       
+        # create the dmatrix in Patsy just to see what the design matrix
+        # columns are going to be 
         try:
-            dmatrix = patsy.dmatrix(self.gpa_settings['design_formula'], self.pheno_data_dict)
+            dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
         except:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
@@ -498,31 +828,51 @@ class ModelConfig(wx.Frame):
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
             raise Exception
-        '''
 
 
+        column_names = dmatrix.design_info.column_names
+        
+        print "\n\n"
+        print dmatrix.design_info
+        print "\n\n"
 
-        # eat the pheno_data_dict, picking out the header items. remove the
-        # subject header, then identify which ones are categorical (by seeing
-        # what the user selected), and then providing the names of each
-        # categorical option
 
-        var_list_for_contrasts = []
+        # remove the header formatting Patsy creates for categorical variables
+        # because we are going to use var_list_for_contrasts as a label for
+        # users to know what contrasts are available to them
+        for column in column_names:
 
-        for header in self.pheno_data_dict.keys():
+            column_string = column
 
-            if header in self.gpa_settings['ev_selections']['categorical']:
+            record = 0
+            string_for_removal = ''
+
+            for char in column_string:
+
+                if record == 2:
+                    string_for_removal = string_for_removal + char
+                elif record == 1 and char == '(':
+                    string_for_removal = 'C('
+                    record = 2
+                else:
+                    record = 0
                 
-                for val in self.pheno_data_dict[header]:
-                    if val not in var_list_for_contrasts:
-                        var_list_for_contrasts.append(val)
+                if char == 'C' and record == 0:
+                    record = 1
 
-            else:
+                if char == '.':
+                    record = 0
+                    column_string = column_string.replace(string_for_removal, '')
+                    string_for_removal = ''
 
-                if header != self.gpa_settings['subject_id_label']:
-                    var_list_for_contrasts.append(header)
+            column_string = column_string.replace(']', '')
+
+            if column_string != 'Intercept':
+                var_list_for_contrasts.append(column_string)
+
 
         
+        print 'varlist: ', var_list_for_contrasts
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well

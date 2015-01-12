@@ -96,14 +96,26 @@ class ROITimeseries(wx.ScrolledWindow):
                       control=control.COMBO_BOX,
                       name="roiSpecificationFile",
                       type=dtype.STR,
-                      comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing one or more ROIs.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
+                      comment='Full path to a text file containing a list ROI files.'
+                              '\n\nEach line in this file should be the path '
+                              'to a NIfTI file containing one or more ROIs.'
+                              '\n\nIf you only wish to extract time series '
+                              'for newly defined spherical seed ROIs, set '
+                              'this field to None.\n\nNote that all ROI masks '
+                              'values are converted to integers within C-PAC.',
                       values="None")
 
         self.page.add(label="ROI Specification File (for use in SCA)",
                       control=control.COMBO_BOX,
                       name="roiSpecificationFileForSCA",
                       type=dtype.STR,
-                      comment="Full path to a text file containing a list ROI files.\n\nEach line in this file should be the path to a NIfTI file containing one or more ROIs.\n\nIf you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.",
+                      comment='Full path to a text file containing a list ROI '
+                              'files.\n\nEach line in this file should be the '
+                              'path to a NIfTI file containing one or more ROIs.'
+                              '\n\nIf you only wish to extract time series for '
+                              'newly defined spherical seed ROIs, set this field to None.'
+                              '\n\nNote that all ROI masks values are converted '
+                              'to integers within C-PAC.',
                       values="None")
 
         self.page.add(label="Output Options ",

@@ -333,7 +333,125 @@ class MainFrame(wx.Frame):
                 #print "type -->", type(value)
                 ctrl.set_value(value)
 
-
+    # Test the subject list
+    def test_sublist(self, sublist):
+        '''
+        Instance method to test a subject list for errors
+        
+        Parameters
+        ----------
+        self : MainFrame (wx.Frame object)
+            the method is aware of the instance as self
+        sublist : list (dict)
+            a C-PAC-formatted subject list (yaml list of dictionaries)
+        
+        Returns
+        -------
+        pass_flg : boolean
+            flag which indicates whether the subject list passed testing
+        '''
+        
+        # Import packages
+        import nibabel as nb
+        import os
+        
+        # Init variables
+        err_str = ''
+        err_msg = ''
+        not_found_flg = False
+        bad_dim_flg = False
+        pass_flg = False
+        
+        # Check to ensure the user is providing an actual subject
+        # list and not some other kind of file
+        try:
+            subInfo = sublist[0]
+        except:
+            errDlg4 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0001',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg4.ShowModal()
+            errDlg4.Destroy()
+    
+            raise Exception  
+            
+        # Another check to ensure the actual subject list was generated
+        # properly and that it will work
+        if 'subject_id' not in subInfo:
+            errDlg3 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0002',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg3.ShowModal()
+            errDlg3.Destroy()
+    
+            raise Exception
+        
+        # Iterate and test each subject's files
+        for sub in sublist:
+            anat_file = sub['anat']
+            func_files = sub['rest']
+            # Check if anatomical file exists
+            if os.path.exists(anat_file):
+                img = nb.load(anat_file)
+                hdr = img.get_header()
+                dims = hdr.get_data_shape()
+                # Check to make sure it has the proper dimensions
+                if len(dims) != 3:
+                    bad_dim_flg = True
+                    err_str_suffix = 'Anat file not 3-dimensional: %s\n' \
+                                     % anat_file
+                    err_str = err_str + err_str_suffix
+            # Anat file doesnt exist
+            else:
+                not_found_flg = True
+                err_str_suffix = 'File not found: %s\n' % anat_file
+                err_str = err_str + err_str_suffix
+            # For each functional file
+            for func_file in func_files.values():
+                # Check if functional file exists
+                if os.path.exists(func_file):
+                    img = nb.load(func_file)
+                    hdr = img.get_header()
+                    dims = hdr.get_data_shape()
+                    # Check to make sure it has the proper dimensions
+                    if len(dims) != 4:
+                        bad_dim_flg = True
+                        err_str_suffix = 'Func file not 4-dimensional: %s\n' \
+                                         % func_file
+                        err_str = err_str + err_str_suffix
+                # Functional file doesnt exist
+                else:
+                    not_found_flg = True
+                    err_str_suffix = 'File not found: %s\n' % func_file
+                    err_str = err_str + err_str_suffix
+            # Check flags for error message
+            if not_found_flg:
+                err_msg = 'One or more of your input files are missing.\n'
+            if bad_dim_flg:
+                err_msg = err_msg + 'One or more of your input images have '\
+                          'improper dimensionality\n'
+            # If err_msg was populated, display in window
+            if err_msg:
+                err_msg = 'ERROR: ' + err_msg + \
+                          'See terminal output for more details'
+                errDlgFileTest = wx.MessageDialog(self,
+                                                  err_msg,
+                                                  'Pipeline Not Ready',
+                                                  wx.OK | wx.ICON_ERROR)
+                errDlgFileTest.ShowModal()
+                errDlgFileTest.Destroy()
+                raise Exception(err_str)
+            else:
+                pass_flg = True
+        
+        # Return the flag
+        return pass_flg
 
     def testConfig(self, event):
         
@@ -350,7 +468,6 @@ class MainFrame(wx.Frame):
         
         import os
         import yaml
-        
         from CPAC.utils import Configuration
         
         from CPAC.pipeline.cpac_pipeline import prep_workflow
@@ -381,71 +498,44 @@ class MainFrame(wx.Frame):
         
         if dlg.ShowModal() == wx.ID_OK:
             subListPath = dlg.GetPath()
-            
+        
+        # Load and test the subject list
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
-        
-        
-        # Check to ensure the user is providing an actual subject
-        # list and not some other kind of file
-        try:
-            subInfo = sublist[0]
-        except:
-            errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0001',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
-            errDlg4.ShowModal()
-            errDlg4.Destroy()
-    
-            raise Exception  
-            
-        # Another check to ensure the actual subject list was generated
-        # properly and that it will work
-        if 'subject_id' not in subInfo:
-            errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0002',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
-            errDlg3.ShowModal()
-            errDlg3.Destroy()
-    
-            raise Exception       
-            
+        sub_flg = self.test_sublist(sublist)
+        if not sub_flg:
+            raise Exception
         
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
+
         config_list = []
         wf_counter = []
 
-        #print "self.nb.get_page_list()", self.nb.get_page_list()
         for page in self.nb.get_page_list():
-            #print "page ----> ", page
+
             switch = page.page.get_switch()
-            #print "switch ---->", switch
+
             ctrl_list = page.page.get_ctrl_list()
             validate = False
 
             if switch:
                 switch_val = str(switch.get_selection()).lower()
-                #print "switch_val ---->", switch_val
+
                 if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
                     validate = True
                     wf_counter.append(page.get_counter())
 
             for ctrl in ctrl_list:
+
+                # option_name will be the selection name as it is written
+                # as the dictionary key of the config.yml dictionary
+                option_name = ctrl.get_name()
                 
                 #validating
-                if (switch == None or validate) and ctrl.get_validation():
-
+                if (switch == None or validate) and ctrl.get_validation() \
+                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
 
                     win = ctrl.get_ctrl()
-                    #print "validating ctrl-->", ctrl.get_name()
-                    #print "ctrl.get_selection()", ctrl.get_selection()
-                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
@@ -470,9 +560,10 @@ class MainFrame(wx.Frame):
                 config_list.append(ctrl)
                 
         
+
         # Get the user's CPAC output directory for use in this script
         for config in config_list:
-            #print config.get_name(), "   ", config.get_selection()
+
             if config.get_name() == 'outputDirectory':
                 outDir = config.get_selection()
         
@@ -533,10 +624,11 @@ class MainFrame(wx.Frame):
             if param != '':
                 paramList.append(param.split(','))
         
+
         # function for file path checking
-        def testFile(filepath, paramName):
+        def testFile(filepath, paramName, switch):
             try:
-                if filepath != None:
+                if (1 in switch) and (filepath != None):
                     fileTest = open(filepath)
                     fileTest.close()
             except:
@@ -561,45 +653,49 @@ class MainFrame(wx.Frame):
                 errDlgFileTest.Destroy()
         
         
-        testFile(c.standardResolutionBrainAnat,'standardResolutionBrainAnat')
-        testFile(c.standardAnat,'standardAnat')
-        testFile(c.PRIOR_WHITE,'PRIOR_WHITE')
-        testFile(c.PRIOR_GRAY,'PRIOR_GRAY')
-        testFile(c.PRIOR_CSF,'PRIOR_CSF')
-        testFile(c.standardResolutionBrain,'standardResolutionBrain')
-        testFile(c.standard,'standard')
-        testFile(c.identityMatrix,'identityMatrix')
-        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule')
-        testFile(c.harvardOxfordMask,'harvardOxfordMask')
-        testFile(c.seedSpecificationFile,'seedSpecificationFile')
-        testFile(c.roiSpecificationFile,'roiSpecificationFile')
-        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA')
-        testFile(c.maskSpecificationFile,'maskSpecificationFile')
-        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA')
-        testFile(c.spatialPatternMaps,'spatialPatternMaps')
-        testFile(c.brainSymmetric,'brainSymmetric')
-        testFile(c.symmStandard,'symmStandard')
-        testFile(c.twommBrainMaskDiluted,'twommBrainMaskDiluted')
-        testFile(c.configFileTwomm,'configFileTwomm')
-        testFile(c.templateSpecificationFile,'templateSpecificationFile')
-        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile')
-        testFile(c.cwasROIFile,'cwasROIFile')
-        testFile(c.cwasRegressorFile,'cwasRegressorFile')
+        testFile(c.template_brain_only_for_anat,'template_brain_only_for_anat',c.runRegistrationPreprocessing)
+        testFile(c.template_skull_for_anat,'template_skull_for_anat',c.runRegistrationPreprocessing)
+        testFile(c.PRIORS_WHITE,'PRIORS_WHITE',c.runSegmentationPreprocessing)
+        testFile(c.PRIORS_GRAY,'PRIORS_GRAY',c.runSegmentationPreprocessing)
+        testFile(c.PRIORS_CSF,'PRIORS_CSF',c.runSegmentationPreprocessing)
+        testFile(c.template_brain_only_for_func,'template_brain_only_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_skull_for_func,'template_skull_for_func',c.runRegisterFuncToMNI)
+        testFile(c.identityMatrix,'identityMatrix',c.runRegisterFuncToMNI)
+        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule',c.runRegisterFuncToAnat)
+        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask',c.runNuisance)
+        testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
+        testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
+        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
+        testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
+        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
+        testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
+        testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only',c.runVMHC)
+        testFile(c.template_symmetric_skull,'template_symmetric_skull',c.runVMHC)
+        testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask',c.runVMHC)
+        testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
+        testFile(c.templateSpecificationFile,'templateSpecificationFile',c.runNetworkCentrality)
+        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
+        testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
+        testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
              
             
         try:
             
             # Run the pipeline building           
             prep_workflow(sublist[0], c, strategies, 0)
-            
-        except:
+
+        except Exception as xxx:
+
+            print xxx
+            print "an exception occured"
             
             testDlg1.Destroy()
             
             errDlg1 = wx.MessageDialog(
-                self, 'There are issues with the current configuration which need to be' \
-                      ' resolved - please check to make sure the options you are running' \
-                      ' have the proper pre-requisites selected.',
+                self, 'There are issues with the current configuration ' \
+                      'which need to be resolved - please check to make ' \
+                      'sure the options you are running have the proper ' \
+                      'pre-requisites selected.\n\nIssue Info:\n%s' % xxx,
                 'Pipeline Not Ready',
                 wx.OK | wx.ICON_ERROR)
             errDlg1.ShowModal()
@@ -650,14 +746,16 @@ class MainFrame(wx.Frame):
                     wf_counter.append(page.get_counter())
 
             for ctrl in ctrl_list:
+
+                # option_name will be the selection name as it is written
+                # as the dictionary key of the config.yml dictionary
+                option_name = ctrl.get_name()
                 
                 #validating
-                if (switch == None or validate) and ctrl.get_validation():
-
+                if (switch == None or validate) and ctrl.get_validation() \
+                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                
                     win = ctrl.get_ctrl()
-                    #print "validating ctrl-->", ctrl.get_name()
-                    #print "ctrl.get_selection()", ctrl.get_selection()
-                    #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                     
                     if isinstance(ctrl.get_selection(), list):
                         value = ctrl.get_selection()
@@ -678,14 +776,13 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
-                    
                 config_list.append(ctrl)
+
 
         # Get the user's CPAC pipeline name for use in this script
         for config in config_list:
             if config.get_name() == 'pipelineName':
                 pipeline_name = config.get_selection()
-                
                 if len(pipeline_name) == 0:
                     noNameDlg = wx.MessageDialog(
                         self, 'Please enter a pipeline name.',
@@ -694,12 +791,11 @@ class MainFrame(wx.Frame):
                     noNameDlg.ShowModal()
                     noNameDlg.Destroy()
                     return
-                    
 
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-        dlg.SetFilterIndex(2)
+        #dlg.SetFilterIndex(2)
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -709,9 +805,8 @@ class MainFrame(wx.Frame):
             self.path = os.path.splitext(self.path)[0] + '.yml'
 
             self.write(self.path, config_list)
-            
             dlg.Destroy()
-            if self.option != 'edit':
+            if self.option == 'save':
 
                 # this runs if you hit 'Save' from within the pipeline config
                 # editor AND the editor was opened from the main window by
@@ -740,7 +835,12 @@ class MainFrame(wx.Frame):
 
                 pipeline_map = self.parent.get_pipeline_map()
 
-                if pipeline_map.get(pipeline_name) != None:
+                if self.option == 'load':
+                    # this runs if your pipeline config is being updated
+                    pipeline_map[pipeline_name] = self.path
+                    self.Parent.listbox.Append(pipeline_name)
+
+                elif pipeline_map.get(pipeline_name) != None:
                     # this runs if you hit Edit, change your pipeline config
                     # file BUT keep the Pipeline Name the same and save it
                     pipeline_map[pipeline_name] = self.path
@@ -781,36 +881,6 @@ class MainFrame(wx.Frame):
 
 
 
-    '''
-    def update_listbox(self, value):
-
-        while True:
-            dlg = wx.TextEntryDialog(
-                self, 'Please enter a unique pipeline id for the configuration',
-                'Pipeline Id', value.strip())
-            dlg.SetValue(str(value.strip()))
-            dlg.Restore()
-            if dlg.ShowModal() == wx.ID_OK:
-                if len(dlg.GetValue()) > 0:
-                    self.pipeline_id = dlg.GetValue()
-                    pipeline_map = self.parent.get_pipeline_map()
-                    if pipeline_map.get(self.pipeline_id) == None:
-                        pipeline_map[self.pipeline_id] = self.path
-                        self.Parent.listbox.Append(self.pipeline_id)
-                        dlg.Destroy()
-                        break
-                    else:
-
-                        dlg2 = wx.MessageDialog(
-                            self, 'Pipeline already exist. Please enter a new name',
-                            'Error!',
-                            wx.OK | wx.ICON_ERROR)
-                        dlg2.ShowModal()
-                        dlg2.Destroy()
-    '''
-
-
-
     def write(self, path, config_list):
         import ast
 
@@ -824,13 +894,6 @@ class MainFrame(wx.Frame):
                 dtype = item.get_datatype()
                 type = item.get_type()
 
-                '''
-                print "LABEL: ", label
-                print "VALUE: ", value
-                print "DTYPE: ", dtype
-                print "TYPE: ", type
-                print ""
-                '''
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -913,33 +976,6 @@ class MainFrame(wx.Frame):
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
 
-                    '''
-                    print "1: ", ast.literal_eval(value)
-                    print "2: ", ast.literal_eval(str(value))
-                    print "3: ", value
-                    print "4: ", str(value)
-                    print "5: ", [value]
-                    print "6: ", list(value)
-                    print "7: ", [sample_list.index(val) for val in value]
-                    '''                  
-
-                    '''
-                    if isinstance(value, list):
-                        value = ast.literal_eval(str(value))
-                    else:
-                        value = str(value)
-                    '''                  
-
-                    '''
-                    if isinstance(value, tuple):
-                        value = list(value)
-                    elif isinstance(value, list):
-                        value = [sample_list.index(val) for val in value]
-                    else:
-                        value = [value]
-                    '''
-
-
                     ### parse user input   ### can't use internal function type() here???
                     if value.find(',') != -1:
                         lvalue = value.split(',')
@@ -950,7 +986,6 @@ class MainFrame(wx.Frame):
                     else:
                         lvalue = [value]
 
-                    #print 'split value: ', lvalue
 
                     if value.find('.') != -1:
                         lvalue = [float(item) for item in lvalue]
@@ -958,19 +993,7 @@ class MainFrame(wx.Frame):
                         lvalue = [int(item) for item in lvalue]
                     else:
                         lvalue = 0
-                    #print 'final value: ', lvalue
 
-                    """
-                    if len(value) > 1:
-                        value = float(value)
-                    elif len(value) == 1:
-                        value = int(value)
-                    else:
-                        value = 0
-                    
-                    valueList = []
-                    valueList.append(value)
-                    """
                     
                     print>>f, label, ":", lvalue   ###
                     print>>f, "\n"
@@ -1027,4 +1050,4 @@ class MainFrame(wx.Frame):
         except Exception, e:
             print e
             print "Error Writing the pipeline configuration file %s" % path
-            raise Exception
+            raise

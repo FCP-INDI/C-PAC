@@ -84,15 +84,22 @@ class ComputerSettings(wx.ScrolledWindow):
                       control=control.INT_CTRL,
                       name='numCoresPerSubject',
                       type=dtype.NUM,
-                      comment="Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.\n\nIMPORTANT: Number of Cores Per Subject multiplied by Number of Subjects to Run Simultaneously must not be greater than the total number of cores.",
+                      comment="Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
                       values=1)
 
         self.page.add(label="Number of Subjects to Run Simultaneously ",
                       control=control.INT_CTRL,
                       name='numSubjectsAtOnce',
                       type=dtype.NUM,
-                      comment="This number depends on computing resources.",
-                      values=2)
+                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      values=1)
+
+        self.page.add(label="Number of Cores for Anatomical Registration (ANTS only) ",
+                      control=control.INT_CTRL,
+                      name='num_ants_threads',
+                      type=dtype.NUM,
+                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      values=1)
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -202,6 +209,13 @@ class WorkflowConfig(wx.ScrolledWindow):
                       comment="Runs the anatomical preprocessing workflow.\n\nMust be enabled to run any subsequent processing or analysis workflows.",
                       values=["On", "Off"])
 
+        self.page.add(label="Inputs Already Skull-stripped? ",
+                      control=control.CHOICE_BOX,
+                      name='already_skullstripped',
+                      type=dtype.LSTR,
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
+                      values=["Off", "On"])
+
         self.page.add(label="Run Functional Preprocessing ",
                       control=control.CHOICE_BOX,
                       name='runFunctionalPreprocessing',
@@ -241,7 +255,7 @@ class DerivativesConfig(wx.ScrolledWindow):
                               " non-z-scored outputs, On will produce" \
                               " z-scores of outputs, and On/Off will" \
                               " produce both.",
-                      values=["On/Off", "On", "Off"])
+                      values=["On", "Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

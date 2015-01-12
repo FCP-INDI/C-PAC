@@ -78,35 +78,35 @@ class Segmentation(wx.ScrolledWindow):
         
         self.page.add(label= "Priors Directory ",
                  control=control.DIR_COMBO_BOX, 
-                 name='prior_path', 
+                 name='priors_path', 
                  type=dtype.STR, 
-                 values= os.path.join(fsl, 'data/standard/tissuepriors/$standardResolution'),
+                 values= os.path.join(fsl, 'data/standard/tissuepriors/2mm'),
                  comment="Full path to a directory containing binarized prior probability maps.\n\nThese maps are included as part of the 'Image Resource Files' package available on the Install page of the User Guide.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
 
         self.page.add(label= "White Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_WHITE', 
+                 name='PRIORS_WHITE', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_white_bin.nii.gz',
+                 values = '$priors_path/avg152T1_white_bin.nii.gz',
                  comment="Full path to a binarized White Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "Gray Matter Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_GRAY', 
+                 name='PRIORS_GRAY', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_gray_bin.nii.gz',
+                 values = '$priors_path/avg152T1_gray_bin.nii.gz',
                  comment="Full path to a binarized Gray Matter prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")
         
         self.page.add(label= "CSF Prior Probability Map ",
                  control=control.COMBO_BOX, 
-                 name='PRIOR_CSF', 
+                 name='PRIORS_CSF', 
                  type=dtype.STR, 
-                 values = '$prior_path/avg152T1_csf_bin.nii.gz',
+                 values = '$priors_path/avg152T1_csf_bin.nii.gz',
                  comment="Full path to a binarized CSF prior probability map.\n\nIt is not necessary to change this path unless you intend to use non-standard priors.")        
                 
         self.page.set_sizer()
         parent.get_page_list().append(self)
-        
+
     def get_counter(self):
         return self.counter
     
@@ -132,23 +132,23 @@ class Registration(wx.ScrolledWindow):
         
         self.page.add(label="Anatomical Template Resolution ", 
                       control=control.CHOICE_BOX, 
-                      name='standardResolutionAnat', 
+                      name='resolution_for_anat', 
                       type=dtype.STR, 
                       values = ["1mm", "2mm", "3mm"],
                       comment="The resolution to which anatomical images should be transformed during registration.\n\nThis is the resolution at which processed anatomical files will be output.")
         
         self.page.add(label="Anatomical Template (Brain Only) ", 
                      control=control.COMBO_BOX, 
-                     name='standardResolutionBrainAnat', 
+                     name='template_brain_only_for_anat', 
                      type=dtype.STR, 
-                     values = str(os.path.join(fsl, "data/standard/MNI152_T1_${standardResolutionAnat}_brain.nii.gz")),
+                     values = str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz")),
                      comment="Template to be used during registration.\n\nIt is not necessary to change this path unless you intend to use a non-standard template.")
 
         self.page.add(label="Anatomical Template (With Skull) ", 
                      control=control.COMBO_BOX, 
-                     name='standardAnat', 
+                     name='template_skull_for_anat', 
                      type=dtype.STR, 
-                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${standardResolutionAnat}.nii.gz")),
+                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}.nii.gz")),
                      comment="Template to be used during registration.\n\nIt is not necessary to change this path unless you intend to use a non-standard template.")
 
         self.page.add(label="Anatomical to Template Registration Method ", 
@@ -165,6 +165,21 @@ class Registration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values =  str(os.path.join("T1_2_MNI152_2mm")),
                      comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
+
+        self.page.add(label="FSL FNIRT Reference Mask (FSL only) ", 
+                     control=control.COMBO_BOX, 
+                     name='ref_mask', 
+                     type=dtype.STR, 
+                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz")),
+                     comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
+
+        self.page.add(label="Use skull-on image to calculate transform? (ANTS only) ", 
+                     control=control.CHOICE_BOX, 
+                     name='regWithSkull', 
+                     type=dtype.LSTR, 
+                     comment="Register skull-on anatomical image to a template.", 
+                     values=["Off","On"],
+                     wkf_switch = True)
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

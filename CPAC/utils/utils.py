@@ -1,3 +1,5 @@
+from inspect import currentframe, getframeinfo
+
 import threading
 global_lock = threading.Lock()
 
@@ -13,12 +15,14 @@ files_folders_wf = {
     'anatomical_gm_mask': 'anat',
     'anatomical_csf_mask': 'anat',
     'anatomical_wm_mask': 'anat',
+    'ants_initial_xfm': 'anat',
     'ants_rigid_xfm': 'anat',
     'ants_affine_xfm': 'anat',
     'mean_functional': 'func',
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
     'functional_mask_to_spatial_map': 'func',
+    'slice_time_corrected': 'func',
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
     'max_displacement':'parameters',
@@ -29,6 +33,8 @@ files_folders_wf = {
     'motion_correct':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
+    'raw_functional' : 'func',
+    'selected_func_volume' : 'func',
     'anatomical_wm_edge' : 'registration',
     'anatomical_to_functional_xfm':'registration',
     'inverse_anatomical_to_functional_xfm':'registration',
@@ -39,10 +45,6 @@ files_folders_wf = {
     'functional_nuisance_residuals':'func',
     'functional_median_angle_corrected':'func',
     'power_spectrum_distribution':'alff',
-    'alff_img':'alff',
-    'falff_img':'alff',
-    'alff_Z_img':'alff',
-    'falff_Z_img':'alff',
     'functional_freq_filtered':'func',
     'scrubbing_movement_parameters':'parameters',
     'scrubbing_frames_included':'parameters',
@@ -62,57 +64,61 @@ files_folders_wf = {
     'functional_to_anat_linear_xfm':'registration',
     'functional_to_mni_linear_xfm':'registration',
     'mni_to_functional_linear_xfm':'registration',
+    'ants_symmetric_initial_xfm':'registration',
+    'ants_symmetric_rigid_xfm':'registration',
+    'ants_symmetric_affine_xfm':'registration',
+    'anatomical_to_symmetric_mni_nonlinear_xfm':'registration',
+    'symmetric_mni_to_anatomical_nonlinear_xfm':'registration',
+    'symmetric_mni_to_anatomical_linear_xfm':'registration',
+    'anat_to_symmetric_mni_ants_composite_xfm':'registration',
+    'symmetric_mni_normalized_anatomical':'registration',
+    'anatomical_to_symmetric_mni_linear_xfm':'registration',
     'mni_normalized_anatomical':'anat',
     'vmhc_raw_score':'vmhc',
-    'vmhc_z_score':'vmhc',
-    'vmhc_z_score_stat_map':'vmhc',
-    'raw_reho_map':'reho',
-    'reho_Z_img':'reho',
+    'vmhc_fisher_zstd':'vmhc',
+    'vmhc_fisher_zstd_zstat_map':'vmhc',
+    'alff_img':'alff',
+    'falff_img':'alff',
     'alff_smooth':'alff',
     'falff_smooth':'alff',
     'alff_to_standard':'alff',
     'falff_to_standard':'alff',
     'alff_to_standard_smooth':'alff',
     'falff_to_standard_smooth':'alff',
-    'alff_Z_to_standard':'alff',
-    'falff_Z_to_standard':'alff',
-    'alff_Z_smooth':'alff',
-    'falff_Z_smooth':'alff',
-    'alff_Z_to_standard_smooth':'alff',
-    'falff_Z_to_standard_smooth':'alff',
+    'alff_to_standard_zstd':'alff',
+    'falff_to_standard_zstd':'alff',
+    'alff_to_standard_smooth_zstd':'alff',
+    'falff_to_standard_smooth_zstd':'alff',
+    'raw_reho_map':'reho',
     'reho_smooth':'reho',
     'reho_to_standard':'reho',
     'reho_to_standard_smooth':'reho',
-    'reho_Z_to_standard':'reho',
-    'reho_Z_smooth':'reho',
-    'reho_Z_to_standard_smooth':'reho',
+    'reho_to_standard_zstd':'reho',
+    'reho_to_standard_smooth_zstd':'reho',
     'voxel_timeseries':'timeseries',
     'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_roi_correlations':'sca_roi',
-    'sca_roi_Z':'sca_roi',
     'sca_seed_correlations':'sca_mask',
     'sca_seed_smooth':'sca_mask',
-    'sca_seed_Z':'sca_mask',
-    'sca_seed_Z_to_standard':'sca_mask',
     'sca_seed_to_standard':'sca_mask',
     'sca_seed_to_standard_smooth':'sca_mask',
-    'sca_roi_Z_to_standard':'sca_roi',
-    'sca_seed_Z_smooth':'sca_mask',
-    'sca_seed_Z_to_standard_smooth':'sca_mask',
+    'sca_seed_to_standard_fisher_zstd':'sca_mask',
+    'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
+    'sca_roi_correlations':'sca_roi',
     'sca_roi_smooth':'sca_roi',
-    'sca_roi_Z_smooth':'sca_roi',
-    'sca_roi_Z_to_standard_smooth':'sca_roi',
     'sca_roi_to_standard':'sca_roi',
     'sca_roi_to_standard_smooth':'sca_roi',
+    'sca_roi_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_to_standard_smooth_fisher_zstd':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
-    'centrality_outputs_smoothed':'centrality',
-    'centrality_outputs_zscore':'centrality',
     'centrality_outputs':'centrality',
+    'centrality_outputs_smoothed':'centrality',
+    'centrality_outputs_zstd':'centrality',
+    'centrality_outputs_zstd_smoothed': 'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -120,21 +126,299 @@ files_folders_wf = {
     'seg_partial_volume_files': 'anat',
     'spatial_map_timeseries': 'timeseries',
     'dr_tempreg_maps_stack': 'spatial_regression',
-    'dr_tempreg_maps_z_stack': 'spatial_regression',
-    'dr_tempreg_maps_z_files': 'spatial_regression',
-    'dr_tempreg_maps_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_z_stack_smooth': 'spatial_regression',
-    'dr_tempreg_maps_z_files_smooth':'spatial_regression',
-    'dr_tempreg_maps_z_stack_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_z_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_files': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files': 'spatial_regression',
     'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_stack_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_files_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_zstat_stack_to_standard_smooth': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_to_standard_smooth':'spatial_regression',
     'sca_tempreg_maps_stack': 'sca_roi',
-    'sca_tempreg_maps_z_stack': 'sca_roi',
-    'sca_tempreg_maps_z_files': 'sca_roi',
+    'sca_tempreg_maps_files': 'sca_roi',
+    'sca_tempreg_maps_files_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_stack': 'sca_roi',
+    'sca_tempreg_maps_zstat_files': 'sca_roi',
     'sca_tempreg_maps_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_z_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_z_files_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_stack_smooth': 'sca_roi',
+    'sca_tempreg_maps_zstat_files_smooth': 'sca_roi',
 }
+
+
+def get_zscore(input_name, wf_name = 'z_score'):
+    
+    """
+    Workflow to calculate z-scores
+    
+    Parameters
+    ----------
+    wf_name : string
+        name of the workflow
+        
+    Returns
+    -------
+    wf : workflow object
+    
+    Notes
+    -----
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
+    
+    
+    Workflow Inputs::
+        
+        inputspec.input_file : string
+            path to input functional derivative file for which z score has to be calculated
+        inputspec.mask_file : string
+            path to whole brain functional mask file required to calculate zscore
+    
+    Workflow Outputs::
+        
+        outputspec.z_score_img : string
+             path to image containing Normalized Input Image Z scores across full brain.
+    
+    High Level Workflow Graph:
+    
+    .. image:: ../images/zscore.dot.png
+       :width: 500
+    
+    
+    Detailed Workflow Graph:
+    
+    .. image:: ../images/zscore_detailed.dot.png
+       :width: 500
+    
+    Example
+    -------
+    >>> import get_zscore as z
+    >>> wf = z.get_zscore()
+    >>> wf.inputs.inputspec.input_file = '/home/data/graph_working_dir/calculate_centrality/degree_centrality_binarize.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/graphs/GraphGeneration/new_mask_3m.nii.gz'
+    >>> wf.run()
+    
+    """
+    
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['input_file',
+                                                       'mask_file']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
+                          name='outputspec')
+
+    mean = pe.Node(interface=fsl.ImageStats(),
+                   name='mean')
+    mean.inputs.op_string = '-k %s -m'    
+    wflow.connect(inputNode, 'input_file',
+                  mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  mean, 'mask_file')
+
+
+    standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                 name='standard_deviation')
+    standard_deviation.inputs.op_string = '-k %s -s'
+    wflow.connect(inputNode, 'input_file',
+                  standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  standard_deviation, 'mask_file')
+    
+    
+    op_string = pe.Node(util.Function(input_names=['mean','std_dev'],
+                                      output_names=['op_string'],
+                                      function=get_operand_string),
+                        name='op_string')
+    wflow.connect(mean, 'out_stat',
+                  op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat',
+                  op_string, 'std_dev')
+    
+    
+    z_score = pe.Node(interface=fsl.MultiImageMaths(),
+                        name='z_score')
+
+    z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+
+    wflow.connect(op_string, 'op_string',
+                  z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file',
+                  z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file',
+                  z_score, 'operand_files')
+  
+    wflow.connect(z_score, 'out_file', outputNode, 'z_score_img')
+    
+    return wflow
+
+
+
+def get_operand_string(mean, std_dev):
+    """
+    Method to get operand string for Fsl Maths
+    
+    Parameters
+    ----------
+    mean : string
+        path to img containing mean
+    std_dev : string
+        path to img containing standard deviation
+    
+    Returns
+    ------
+    op_string : string
+        operand string
+    """
+    
+    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
+    op_string = str1 + " -mas %s"
+    return op_string
+
+
+
+
+def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
+
+    """
+    Runs the compute_fisher_z_score function as part of a one-node workflow.
+    """
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.fsl as fsl
+    
+    wflow = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['correlation_file',
+                                                       'timeseries_one_d']),
+                        name='inputspec')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['fisher_z_score_img']),
+                          name='outputspec')
+
+
+    if map_node == 0:
+
+        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score')
+
+    else:
+
+        # node to separate out 
+
+        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
+                                   output_names=['out_file'],
+                     function=compute_fisher_z_score), name='fisher_z_score',
+                     iterfield=['correlation_file'])
+
+
+    fisher_z_score.inputs.input_name = input_name
+
+    wflow.connect(inputNode, 'correlation_file',
+                fisher_z_score, 'correlation_file')
+    wflow.connect(inputNode, 'timeseries_one_d',
+                fisher_z_score, 'timeseries_one_d')
+
+
+    wflow.connect(fisher_z_score, 'out_file',
+                outputNode, 'fisher_z_score_img')
+
+
+    return wflow
+
+
+
+def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
+
+    """
+    Computes the fisher z transform of the input correlation map
+    If the correlation map contains data for multiple ROIs then 
+    the function returns z score for each ROI as a seperate nifti 
+    file
+
+
+    Parameters
+    ----------
+
+    correlation_file: string
+        Input correlations file
+    
+
+    Returns
+    -------
+
+    out_file : list (nifti files)
+        list of z_scores for mask or ROI
+    """
+
+    import nibabel as nb
+    import numpy as np
+    import os
+
+    for timeseries_file_string in timeseries_one_d:
+        if ".1D" in timeseries_file_string:
+            timeseries_file = timeseries_file_string
+
+    roi_numbers = []
+    if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
+        roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+
+    corr_img = nb.load(correlation_file)
+    corr_data = corr_img.get_data()
+
+    hdr = corr_img.get_header()
+
+    corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
+
+    dims = corr_data.shape
+
+    out_file = []
+
+    if len(dims) == 5 or len(roi_numbers) > 0:
+
+        if len(dims) == 5:
+            x, y, z, one, roi_number = dims
+
+            corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
+
+
+        for i in range(0, len(roi_numbers)):
+
+            sub_data = corr_data
+            if len(dims) == 5:
+                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+
+            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+
+            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
+
+            sub_img.to_filename(sub_z_score_file)
+
+            out_file.append(sub_z_score_file)
+
+    else:
+
+        z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
+
+        z_score_file = os.path.join(os.getcwd(), input_name + '_fisher_zstd.nii.gz')
+
+        z_score_img.to_filename(z_score_file)
+
+        out_file.append(z_score_file)
+
+
+    return out_file
+
+
+
+
 
 def safe_shape(*vol_data):
     """
@@ -257,6 +541,11 @@ def get_strategies_for_path(path, strategies):
 
 def get_workflow(remainder_path):
 
+    # this iterates over the hard-coded list at the top of this file
+    # (utils.py) and matches workflow output paths provided to the function to
+    # more user-friendly labels. for example, a path to the output of
+    # 'functional_preprocessed_mask' is matched with the label 'func'
+
     global files_folders_wf
     lst = remainder_path.split('/')
 
@@ -290,16 +579,20 @@ def get_session(remainder_path):
     return session
 
 
+
 def get_hplpfwhmseed_(parameter, remainder_path):
 
+    # this function extracts the filtering and smoothing parameters info from
+    # a path leading to an output of individual level analysis, and then
+    # returns these parameter values so that descriptive sym-link directories
+    # can be generated 
 
     partial_parameter_value = remainder_path.split(parameter)[1]
-
-    # print partial_parameter_value, ' ~~~~', parameter
 
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_') + value
+
 
 
 def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
@@ -393,37 +686,48 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
     return return_roi_files
 
 
-
-
-def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
+def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, create_sym_links):
 
     import os
     import commands
     from CPAC.utils.utils import get_workflow, get_session, \
                      get_hplpfwhmseed_
 
-    # from sink import global_lock
+    # path (one of the inputs of this function) is a path to a file output by
+    # individual-level analysis, and this function runs once per output file
 
-
+    # relevant_strategies is a list of lists, where each list contains all of
+    # the nuisance correction selections per strategy
     for strategy in relevant_strategies:
 
         base_path, remainder_path = path.split(subject_id, 1)
 
-
         sym_path = path.split(pipeline_id)[0]
 
+        # create 'file_path', the path to a subject's output folder
+        # example: {path}/{output folder}/{pipeline id}/{subject id}
+        #
+        # this is used later to generate the QC and path_files directory paths
         file_path = os.path.join(sym_path, pipeline_id)
         file_path = os.path.join(file_path, subject_id)
-        sym_path = os.path.join(sym_path, 'sym_links')
 
+        # create the sym-link directory paths
+        sym_path = os.path.join(sym_path, 'sym_links')
         sym_path = os.path.join(sym_path, pipeline_id)
 
-        try:
-            os.makedirs(sym_path)
-        except:
-            print '.'
+
+        if create_sym_links == True:
+
+            try:
+                os.makedirs(sym_path)
+            except:
+                # don't raise an exception here because multiple runs of the
+                # same os.makedirs are expected
+                pass
+        
 
         strategy_identifier = None
+
 
         try:
 
@@ -434,35 +738,41 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
 
             strategy_identifier = ''
 
+            # iterate over each attribute of the nuisance correction strategy,
+            # then process these into the strategy_identifier string which is
+            # is used to name the sym-link folders under the pipeline ID
+            # folder and above the subject ID folders in the sym-links
+            # directory, describing the user's correction selections
             for el in strategy:
-                key, value = el.rsplit('_', 1)
 
-                print key, ' ----------> ', value
+                key, value = el.rsplit('_', 1)
 
                 if '_compcor_'in key:
 
                     if 'compcor0' in value:
                         strategy_identifier += (value + '_')
-
                         continue
                     else:
                         val1 = key.split('_selector')[0]
                         strategy_identifier += val1 + '_' + value + '_'
                         continue
 
+                # the pipeline name is included as one of the instances of
+                # 'el' in this iteration, but we don't want this as part of
+                # the strategy identifier, so exclude 'pipeline_{name}'
                 if not 'pipeline' in key:
                     strategy_identifier += short_names[key] + value + '_'
 
             strategy_identifier = strategy_identifier.rsplit('_', 1)[0]
-
-
 
         except:
             print str(strategy), " not in labels_dict"
             raise
 
 
-        # remove unused corrections
+        # this removes unused corrections from the strategy_identifier string,
+        # keeping in mind that corrections with a 0 appended to the end of the
+        # name denotes they were not included
         strategy_identifier = strategy_identifier.replace('pc10.', '')
         strategy_identifier = strategy_identifier.replace('linear0.', '')
         strategy_identifier = strategy_identifier.replace('wm0.', '')
@@ -473,159 +783,230 @@ def create_symbolic_links(pipeline_id, relevant_strategies, path, subject_id):
         strategy_identifier = strategy_identifier.replace('csf0_', '')
         strategy_identifier = strategy_identifier.replace('compcor0.', '')
 
-#        strategy_identifier = 'regressors.' + strategy_identifier
-
         # start making basic sym link directories
         sym_path = os.path.join(sym_path, strategy_identifier)
         new_sub_path = os.path.join(sym_path, subject_id)
+
+        # 'get_workflow' iterates over the hard-coded list at the top of this
+        # file (utils.py) and matches workflow output paths provided to the
+        # function to more user-friendly labels. for example, a path to the
+        # output of 'functional_preprocessed_mask' is matched with the label
+        # 'func'
         file_name, wf, remainder_path = get_workflow(remainder_path)
         session = get_session(remainder_path)
+
         new_session_path = os.path.join(new_sub_path, session)
         new_wf_path = os.path.join(new_session_path, wf)
         new_path = new_wf_path
 
+        # new_path is now the full path to a workflow output's symlink folder
+        # for one subject and one nuisance correction strategy
+        # example: {path to output folder}/sym_links/{pipeline id}/
+        #              {correction selections}/{subject id}/{scan id}/
+        #                  {workflow label, such as alff}
 
-        # bring into use the tier 2 iterables for recursive directory structure
 
-        scan_info = '~~~'
+
+        # now bring into use the tier 2 iterables for recursive directory
+        # structure
+
+        # the 'get_hplpfwhmseed_' function extracts the filtering and
+        # smoothing parameters info from a path leading to an output of
+        # individual level analysis, and then returns these parameter values
+        # so that descriptive sym-link directories can be generated
+
+        # example: /{path to output folder}/sym_links/{pipeline id}/
+        #              {correction selections}/{subject id}/{scan id}/
+        #                  alff/hp_0.01/lp_0.1
+        #
+        # with 'hp_0.01' and 'lp_0.1' being the outputs of the
+        # 'get_hplpfwhmseed_' function for the remainder_path that included
+        # the alff output 
+
+        scan_info = ''
         if '/_scan_' in path:
 
             scan_info = get_hplpfwhmseed_('/_scan_', path)
 
-        print scan_info, ' ~~~', remainder_path
 
         if '/_mask_' in remainder_path:
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_mask_', remainder_path))
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_mask_', remainder_path))
+
 
         if '/_roi_' in remainder_path:
 
-            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_roi_', remainder_path))
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_roi_', remainder_path))
 
-#        if '/_sca_roi_' in remainder_path:
 
-#            new_path = os.path.join(new_path, get_hplpfwhmseed_('/_sca_roi_', remainder_path))
+        if '/_sca_roi_' in remainder_path:
+
+            new_path = os.path.join(new_path, \
+                get_hplpfwhmseed_('/_sca_roi_', remainder_path))
+
 
         hp_str = ''
-
         if ('_hp_'  in remainder_path):
 
             hp_str = get_hplpfwhmseed_('/_hp_', remainder_path)
             new_path = os.path.join(new_path, hp_str)
 
-        lp_str = ''
 
+        lp_str = ''
         if ('_lp_' in remainder_path):
 
             lp_str = get_hplpfwhmseed_('/_lp_', remainder_path)
-
             new_path = os.path.join(new_path, lp_str)
 
-        bp_freq = ''
 
+        bp_freq = ''
         if ('_bandpass_freqs_' in remainder_path):
 
             bp_freq = get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path)
             new_path = os.path.join(new_path, bp_freq)
 
 
-        fwhm_str = ''
-
-
         spatial_map = ''
         if('_spatial_map_' in remainder_path):
+
             spatial_map = get_hplpfwhmseed_('/_spatial_map_', remainder_path)
             new_path = os.path.join(new_path, spatial_map)
 
-        if ('_fwhm_' in remainder_path):
 
+        fwhm_str = ''
+        if ('_fwhm_' in remainder_path):
 
             fwhm_str = get_hplpfwhmseed_('/_fwhm_', remainder_path)
             new_path = os.path.join(new_path, fwhm_str)
 
 
-        try:
-            os.makedirs(new_path)
-        except:
-            print '.'
+        if create_sym_links == True:
+
+            # create the final symlink path for the output, if not created
+            # already
+            try:
+                os.makedirs(new_path)
+            except:
+                # don't raise an exception here because multiple runs of
+                # os.makedirs are expected
+                pass
 
 
+        # prepare paths and filenames for QC text files and output paths_file
+        # text files that are written to the output directory
+
         try:
-            if 'qc' == wf:
+
+            if wf == 'qc':
+                # if the output file is QC related, send it over to
+                # 'qc_files_here'. these files are often the .png images for
+                # the QC dashboard
                 new_f_path = os.path.join(file_path, 'qc_files_here')
                 os.makedirs(new_f_path)
             else:
+                # if the output file is not QC related, send it over to
+                # 'path_files_here'
                 new_f_path = os.path.join(file_path, 'path_files_here')
                 os.makedirs(new_f_path)
+
         except:
-            print '.'
+            # don't raise an exception here because multiple runs of
+            # os.makedirs are expected
+            pass
 
 
         try:
-
 
             global global_lock
             global_lock.acquire()
 
-            scan_info = scan_info.replace('~~~', '')
             f_n = None
+
+            # use the strategy identifier strings and the filtering and
+            # smoothing parameter values extracted above to name the qc and
+            # output paths_file text files descriptively
+
             if wf == 'qc':
                 f_n = os.path.join(new_f_path, 'qc_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
             else:
                 f_n = os.path.join(new_f_path, 'paths_file_%s.txt') % (scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
-            f = open(f_n, 'a')
 
-            print >> f, path
+            f = open(f_n, 'a')
+            print >>f, path
+
             global_lock.release()
 
         except:
+
             print 'trouble acquiring locks or opening file skipping :', os.path.join(new_f_path, 'paths_file_%s.txt') % new_path.replace('/', '_')
             raise
 
-        fname = os.path.basename(path)
-
-        ext = fname.split('.', 1)[1]
-        ext = '.' + (ext)
-
-        # special case for ROI , need the ROI number
-
-        if '_ROI_' in fname and 'sca_' in path:
-            import re
-            roi_number = re.findall(r'\d+', fname)[0]
-            file_name += '_' + roi_number
 
 
-        dont_change_fname = ['vertices_timeseries',
-        'centrality_outputs_smoothed',
-        'centrality_outputs_zscore',
-        'centrality_outputs',
-        'centrality_graphs'
-        'voxel_timeseries',
-        'roi_timeseries',
-        'seg_probability_maps',
-        'seg_mixeltype',
-        'seg_partial_volume_map',
-        'seg_partial_volume_files',
-        'dr_tempreg_maps_z_files',
-        'dr_tempreg_maps_z_files_smooth',
-        'sca_tempreg_maps_z_files',
-        'sca_tempreg_maps_z_files_smooth']
+        if create_sym_links == True:
 
-        if file_name in dont_change_fname or 'qc' == wf:
+            # create the actual sym-links now
 
-            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
-            print cmd
-            commands.getoutput(cmd)
-        else:
+            # fname is the filename of the current individual level output
+            # file
+            fname = os.path.basename(path)
 
-            cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name + ext))
-            try:
+            # ext is the extension of the current individual level output file
+            ext = fname.split('.', 1)[1]
+            ext = '.' + (ext)
 
-                f1 = open(os.path.join(new_path, file_name + ext))
 
-            except:
+            # special case for ROI , need the ROI number
+            if '_ROI_' in fname and 'sca_' in path:
+
+                # extracts the ROI number from the output file's path in the
+                # output folder and appends it to the symlink file's name
+                import re
+                roi_number = re.findall(r'\d+', fname)[0]
+                file_name += '_' + roi_number
+
+
+            dont_change_fname = ['vertices_timeseries',
+            'centrality_outputs_smoothed',
+            'centrality_outputs_zscore',
+            'centrality_outputs',
+            'centrality_graphs'
+            'voxel_timeseries',
+            'roi_timeseries',
+            'seg_probability_maps',
+            'seg_mixeltype',
+            'seg_partial_volume_map',
+            'seg_partial_volume_files',
+            'dr_tempreg_maps_zstat_files',
+            'dr_tempreg_maps_zstat_files_smooth',
+            'sca_tempreg_maps_zstat_files',
+            'sca_tempreg_maps_zstat_files_smooth']
+
+
+            # split up the files between QC or not, and also between the ones
+            # where the filename has changed for the symlink or not
+
+            # if wf == 'qc', those are files used in the QC pages, such as
+            # .png files and other images
+
+            if (file_name in dont_change_fname) or (wf == 'qc'):
+
+                cmd = 'ln -s %s %s' % (path, os.path.join(new_path, fname))
                 print cmd
                 commands.getoutput(cmd)
+
+            else:
+
+                cmd = 'ln -s %s %s' % (path, os.path.join(new_path, file_name + ext))
+
+                try:
+                    f1 = open(os.path.join(new_path, file_name + ext))
+                except:
+                    print cmd
+                    commands.getoutput(cmd)
+
 
 
 def prepare_gp_links(in_file, resource):
@@ -745,25 +1126,25 @@ def prepare_gp_links(in_file, resource):
 
     fourth_tier = ''
 
-    if 'sca_roi_Z' in resource and '/_roi_' in in_file:
+    if 'sca_roi' in resource and '/_roi_' in in_file:
 
         third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
 
         roi_number = ''.join(['ROI_', get_param_val_('/ROI_number_', in_file)])
         third_tier = third_tier + '/' + roi_number
 
-    elif ('dr_tempreg_maps_z_files' in resource and '/temp_reg_map_z_' in in_file):
+    elif ('dr_tempreg_maps_zstat_files' in resource and '/temp_reg_map_z_' in in_file):
 
         third_tier = resource + '_' + get_param_val_('/_spatial_map_', in_file)
         third_tier = third_tier + '/' + get_param_val_('/temp_reg_map_z_', in_file)
 
-    elif ('sca_tempreg_maps_z_files' in resource and '/sca_tempreg_z_maps_roi_' in in_file):
+    elif ('sca_tempreg_maps_zstat_files' in resource and '/sca_tempreg_z_maps_roi_' in in_file):
         third_tier = resource + '_' + get_param_val_('/_roi_', in_file)
         roi_number = ''.join(['ROI_', get_param_val_('/sca_tempreg_z_maps_roi_', in_file)])
         third_tier = third_tier + '/' + roi_number
 
 
-    elif ('sca_seed_Z' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
+    elif ('sca_seed' in resource or 'centrality_outputs' in resource)  and '/_mask_' in in_file:
 
         third_tier = resource + '_' + get_param_val_('/_mask_', in_file)
 
@@ -834,6 +1215,7 @@ def prepare_gp_links(in_file, resource):
     commands.getoutput(cmd)
 
 
+
 def clean_strategy(strategies, helper):
 
 # ##
@@ -850,7 +1232,7 @@ def clean_strategy(strategies, helper):
 
             key = el.rsplit('_', 1)[0]
 
-            print '~~~~~~ ', key, ' ~~~ ', el
+            print key, ': ', el
             if not ('compcor' in key):
 
                 if 'pipeline' in key:
@@ -882,11 +1264,11 @@ def clean_strategy(strategies, helper):
     return new_strat
 
 
-def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper):
 
-    from CPAC.utils.utils import get_strategies_for_path, create_symbolic_links, clean_strategy
-       
-    
+def process_outputs(in_file, strategies, subject_id, pipeline_id, helper, create_sym_links):
+
+    from CPAC.utils.utils import get_strategies_for_path, create_paths_and_links, clean_strategy
+        
     for path in in_file:
 
         for strategy in strategies:
@@ -897,7 +1279,8 @@ def prepare_symbolic_links(in_file, strategies, subject_id, pipeline_id, helper)
         
         cleaned_strategies = clean_strategy(relevant_strategies, helper)
         
-        create_symbolic_links(pipeline_id, cleaned_strategies, path, subject_id)
+        create_paths_and_links(pipeline_id, cleaned_strategies, path, subject_id, create_sym_links)
+
 
 
 def modify_model(input_sublist, output_sublist, mat_file, grp_file):
@@ -1038,7 +1421,7 @@ def select_model_files(model, ftest):
 
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
+def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr, tpattern):
 
     """
     Method to extract slice timing correction parameters
@@ -1094,20 +1477,51 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     check2 = lambda val : val if val == None or val == '' else int(val)
 
-    TR = float(check('tr', True))
-    pattern = str(check('acquisition', True))
-    ref_slice = int(check('reference', True))
-    first_tr = check2(check('first_tr', False))
-    last_tr = check2(check('last_tr', False))
-    unit = 's'
-    # if empty override with config information
+
+    # initialize vars to empty
+    TR=''
+    pattern=''
+    ref_slice=''
+    first_tr=''
+    last_tr=''
+
+    if 'scan_parameters' in subject_map.keys():
+        # get details from the configuration
+        TR = float(check('tr', False))
+        pattern = str(check('acquisition', False))
+        ref_slice = int(check('reference', False))
+        first_tr = check2(check('first_tr', False))
+        last_tr = check2(check('last_tr', False))
+
+
+    # if values are still empty, override with GUI config
+    if TR == '':
+        if tr:
+            TR = float(tr)
+        else:
+            TR = None
+
     if first_tr == '':
         first_tr = start_indx
 
     if last_tr == '':
         last_tr = stop_indx
 
-    if pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
+    unit = 's'
+
+    # if the user has mandated that we the timining informaiton in the header,
+    # that takes precedence
+    if "Use NIFTI Header" in tpattern:
+        pattern = ''
+    else:
+    # otherwise he slice acquisition pattern in the subject file takes precedence, but if it 
+    # isn't set we use the value in the configuration file
+        if pattern == '':
+            pattern = tpattern
+
+    # pattern can be one of a few keywords, a filename, or blank which indicates that the 
+    # images header information should be used
+    if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z', 'altminus',
                    'alt-z2', 'seq+z', 'seqplus', 'seq-z', 'seqminus']:
         if not os.path.exists(pattern):
             raise Exception ("Invalid Pattern file path %s , Please provide the correct path" % pattern)
@@ -1123,7 +1537,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
             max_slice_offset = slice_timings[-1]
             # checking if the unit of TR and slice timing match or not
             # if slice timing in ms convert TR to ms as well
-            if  max_slice_offset > TR:
+            if  TR and max_slice_offset > TR:
                 warnings.warn("TR is in seconds and slice timings are in milliseconds."\
                               "Converting TR into milliseconds")
                 TR = TR * 1000
@@ -1132,7 +1546,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx):
 
     else:
         # check to see, if TR is in milliseconds, convert it into seconds
-        if TR > 10:
+        if TR and TR > 10:
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR / 1000.0
             print "New TR value %.2f s" % TR
@@ -1148,7 +1562,9 @@ def get_tr (tr):
     Method to return TR in seconds
     """
     import re
-    if tr != None:
+    if 'None' in tr:
+        tr = None
+    if tr:
         tr = re.search("\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
@@ -1182,6 +1598,8 @@ def check_tr(tr, in_file):
         warnings.warn('Warning: The TR information does not match between the config and subject list files.')
     
     return TR
+
+
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     """
@@ -1535,5 +1953,11 @@ def create_output_mean_csv(subject_dir):
 
     csv_file.close()
 
+    return
 
-    
+
+def dbg_file_lineno():
+    cf=currentframe()
+    return cf.f_back.f_code.co_filename, cf.f_back.f_lineno
+
+

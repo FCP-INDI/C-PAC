@@ -1,3 +1,4 @@
+# Import packages
 import os
 import sys
 import commands
@@ -251,7 +252,9 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
     preproc = pe.Workflow(name = wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['brain',
+                                                       'standard2highres_init',
                                                        'standard2highres_mat',
+                                                       'standard2highres_rig',
                                                        'PRIOR_CSF',
                                                        'PRIOR_GRAY',
                                                        'PRIOR_WHITE']),
@@ -311,6 +314,13 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
     ##get binarize thresholded csf mask
     process_csf = process_segment_map('CSF', use_ants)
+
+    if use_ants == True:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        process_csf, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        process_csf, 'inputspec.standard2highres_rig')
+
     preproc.connect(inputNode, 'brain',
                     process_csf, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_CSF',
@@ -333,6 +343,13 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
     #get binarize thresholded wm mask
     process_wm = process_segment_map('WM', use_ants)
+
+    if use_ants == True:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        process_wm, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        process_wm, 'inputspec.standard2highres_rig')
+
     preproc.connect(inputNode, 'brain',
                     process_wm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_WHITE',
@@ -353,8 +370,15 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     preproc.connect(process_wm, 'outputspec.segment_mask',
                     outputNode, 'wm_mask')
 
-   #get binarize thresholded gm mask
+    # get binarize thresholded gm mask
     process_gm = process_segment_map('GM', use_ants)
+
+    if use_ants == True:
+        preproc.connect(inputNode, 'standard2highres_init',
+                        process_gm, 'inputspec.standard2highres_init')
+        preproc.connect(inputNode, 'standard2highres_rig',
+                        process_gm, 'inputspec.standard2highres_rig')
+
     preproc.connect(inputNode, 'brain',
                     process_gm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_GRAY', 
@@ -463,7 +487,7 @@ def process_segment_map(wf_name, use_ants):
         
     """
 
-
+    import nipype.interfaces.utility as util
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -471,7 +495,9 @@ def process_segment_map(wf_name, use_ants):
                                                        'threshold',
                                                        'brain',
                                                        'probability_map',
-                                                       'standard2highres_mat']),
+                                                       'standard2highres_init',
+                                                       'standard2highres_mat',
+                                                       'standard2highres_rig']),
                         name='inputspec')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['tissueprior_mni2t1',
@@ -486,9 +512,11 @@ def process_segment_map(wf_name, use_ants):
 
     if use_ants == True:
 
-        tissueprior_mni_to_t1 = pe.Node(interface=ants.WarpImageMultiTransform(), name='%s_prior_mni_to_t1' % (wf_name))
-        tissueprior_mni_to_t1.inputs.invert_affine = [1]
-        tissueprior_mni_to_t1.inputs.use_nearest = True
+        collect_linear_transforms = pe.Node(util.Merge(3), name='%s_collect_linear_transforms' % (wf_name))
+
+        tissueprior_mni_to_t1 = pe.Node(interface=ants.ApplyTransforms(), name='%s_prior_mni_to_t1' % (wf_name))
+        tissueprior_mni_to_t1.inputs.invert_transform_flags = [True, True, True]
+        tissueprior_mni_to_t1.inputs.interpolation = 'NearestNeighbor'
 
         overlap_segmentmap_with_prior = pe.Node(interface=fsl.MultiImageMaths(), name='overlap_%s_map_with_prior' % (wf_name))
         overlap_segmentmap_with_prior.inputs.op_string = '-mas %s '
@@ -504,7 +532,11 @@ def process_segment_map(wf_name, use_ants):
 
         preproc.connect(inputNode, 'brain', tissueprior_mni_to_t1, 'reference_image')
 
-        preproc.connect(inputNode, 'standard2highres_mat', tissueprior_mni_to_t1, 'transformation_series')
+        preproc.connect(inputNode, 'standard2highres_init', collect_linear_transforms, 'in1')
+        preproc.connect(inputNode, 'standard2highres_rig', collect_linear_transforms, 'in2')
+        preproc.connect(inputNode, 'standard2highres_mat', collect_linear_transforms, 'in3')
+
+        preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
 
 
         #overlapping

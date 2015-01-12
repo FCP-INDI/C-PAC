@@ -49,15 +49,15 @@ class NuisanceCorrection(wx.ScrolledWindow):
                  name='runNuisance', 
                  type=dtype.LSTR, 
                  comment="Run Nuisance Signal Correction", 
-                 values=["On","Off","On/Off"],
+                 values=["Off","On","On/Off"],
                  wkf_switch = True)
         
-        self.page.add(label="Standard Harvard Oxford Mask:", 
+        self.page.add(label="Lateral Ventricles Mask (Standard Space) ", 
                      control=control.COMBO_BOX, 
-                     name='harvardOxfordMask', 
+                     name='lateral_ventricles_mask', 
                      type=dtype.STR, 
-                     values = os.path.join(fsl, "data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz"),
-                     comment="Standard FSL Anatomical Brain Image")
+                     values = os.path.join(fsl, "data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz"),
+                     comment="Standard Lateral Ventricles Binary Mask")
 
         self.page.add(label = "Corrections:",
                       #control = control.CHECKLISTBOX_COMBO,

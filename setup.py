@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
-"""
-CPAC
-"""
 
+'''
+Configurable Pipeline for the Analysis of Connectomes (C-PAC)
+'''
+
+# Package Information
 DISTNAME = 'CPAC'
 DESCRIPTION = 'Configurable Pipeline for the Analysis of Connectomes'
 LONG_DESCRIPTION = ''
 MAINTAINER = ''
 MAINTAINER_EMAIL = ''
-URL = ''
+URL = 'http://fcp-indi.github.io/'
 LICENSE = 'BSD License'
-DOWNLOAD_URL = ''
+DOWNLOAD_URL = 'https://github.com/FCP-INDI/C-PAC/tarball/master'
 
+# Import packages
 import os, sys
 
 # Import build helpers
@@ -102,15 +105,18 @@ def main(**extra_args):
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
-
+# Run main by default
 if __name__ == "__main__":
+
+    # Import packages
     import site, shutil
     from shutil import rmtree, copytree
-    
+
     # Get in the right directory
     old_path = os.getcwd()
     local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
     os.chdir(local_path)
     sys.path.insert(0, local_path)
-    
+
+    # Run main function
     main(**extra_setuptools_args)

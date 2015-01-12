@@ -1,5 +1,4 @@
 import sys
-#from CPAC.interfaces.afni import preprocess
 from nipype.interfaces.afni import preprocess
 import os
 import commands
@@ -11,7 +10,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 
 
-def create_anat_preproc():
+def create_anat_preproc(already_skullstripped=0):
     """ 
     
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented 
@@ -102,10 +101,14 @@ def create_anat_preproc():
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
 
-    anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
-                              name='anat_skullstrip')
-    #anat_skullstrip.inputs.options = '-o_ply'
-    #anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+    # if not already skullstripped
+    if already_skullstripped != 1:
+
+        anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
+                                  name='anat_skullstrip')
+        #anat_skullstrip.inputs.options = '-o_ply'
+        #anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+
 
     anat_brain_only = pe.Node(interface=preprocess.Calc(),
                         name='anat_brain_only')
@@ -116,10 +119,21 @@ def create_anat_preproc():
                     anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file',
                     anat_reorient, 'in_file')
-    preproc.connect(anat_reorient, 'out_file',
-                    anat_skullstrip, 'in_file')
-    preproc.connect(anat_skullstrip, 'out_file',
-                    anat_brain_only, 'in_file_b')
+
+    # if not already skullstripped
+    if already_skullstripped != 1:
+
+        preproc.connect(anat_reorient, 'out_file',
+                        anat_skullstrip, 'in_file')
+        preproc.connect(anat_skullstrip, 'out_file',
+                        anat_brain_only, 'in_file_b')
+
+    else:
+
+        preproc.connect(anat_reorient, 'out_file',
+                        anat_brain_only, 'in_file_b')
+
+
     preproc.connect(anat_reorient, 'out_file',
                     anat_brain_only, 'in_file_a')
 
@@ -127,8 +141,13 @@ def create_anat_preproc():
                     outputNode, 'refit')
     preproc.connect(anat_reorient, 'out_file',
                     outputNode, 'reorient')
-    preproc.connect(anat_skullstrip, 'out_file',
-                    outputNode, 'skullstrip')
+
+    # if not already skullstripped
+    if already_skullstripped != 1:
+
+        preproc.connect(anat_skullstrip, 'out_file',
+                        outputNode, 'skullstrip')
+
     preproc.connect(anat_brain_only, 'out_file',
                     outputNode, 'brain')
 

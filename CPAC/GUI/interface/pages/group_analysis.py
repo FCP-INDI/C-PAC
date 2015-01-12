@@ -44,30 +44,7 @@ class GPASettings(wx.ScrolledWindow):
                       type=dtype.NUM,
                       comment="This number depends on computing resources.",
                       values=1)
-        
-        self.page.add(label = "Select Derivatives ",
-                    control = control.CHECKLIST_BOX,
-                    name = "derivativeList",
-                    type = dtype.LSTR,
-                    values = ['ROI Average SCA',
-                              'ROI Average SCA (z-scored)', 
-                              'Voxelwise SCA',
-                              'Voxelwise SCA (z-scored)',
-                              'Multiple Regression SCA',
-                              'Dual Regression',
-                              'VMHC',
-                              'VMHC (z-scored)',
-                              'ALFF', 
-                              'ALFF (z-scored)',
-                              'f/ALFF', 
-                              'f/ALFF (z-scored)',
-                              'ReHo',
-                              'ReHo (z-scored)',
-                              'Network Centrality',
-                              'Network Centrality (z-scored)'],
-                    comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
-                    size = (220,160))
- 
+
         self.page.add(label = "Models to Run ",
                       control = control.LISTBOX_COMBO,
                       name = 'modelConfigs',
@@ -76,39 +53,7 @@ class GPASettings(wx.ScrolledWindow):
                       comment="Use the + to add FSL model configuration to be run.",
                       size = (400,100),
                       combo_type = 3)
-
-        self.page.add(label="Models Contain F-tests ", 
-                 control=control.CHOICE_BOX, 
-                 name='fTest', 
-                 type=dtype.BOOL, 
-                 comment = "Set this option to True if any of the models specified above contain F-tests.", 
-                 values=["False","True"])
-        
-        self.page.add(label="Z threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='zThreshold', 
-                     type=dtype.NUM, 
-                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
-                     values=2.3)
-
-        self.page.add(label="Cluster Significance Threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='pThreshold', 
-                     type=dtype.NUM, 
-                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
-                     values=0.05)
-
-        self.page.add(label="Run Repeated Measures ", 
-                     control=control.CHOICE_BOX, 
-                     name='repeatedMeasures', 
-                     type=dtype.BOOL, 
-                     comment="Run repeated measures to compare different " \
-                             "scans (must use the group analysis subject " \
-                             "list and phenotypic file formatted for " \
-                             "repeated measures.", 
-                     values=["False","True"])
-
-                
+                        
         self.page.set_sizer()
         parent.get_page_list().append(self)
         

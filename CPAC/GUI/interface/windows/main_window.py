@@ -1,3 +1,4 @@
+# Import packages
 import wx
 from config_window import MainFrame
 from dataconfig_window import DataConfig
@@ -9,6 +10,8 @@ import pkg_resources as p
 import sys
 from CPAC.utils import Configuration
 import yaml
+
+# Init constants
 ID_NEW = 1
 ID_RENAME = 2
 ID_CLEAR = 3
@@ -21,10 +24,13 @@ ID_SHOW = 9
 ID_DISPLAY = 10
 ID_CLEARALL = 11
 
+
+# ListBox class definition
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
 
+        # Import packages
         import CPAC
         
         self.CreateStatusBar()
@@ -145,7 +151,8 @@ class ListBox(wx.Frame):
             btnSizer2.Add((-1,30))
         else:
             btnSizer2.Add((-1, 27))
-        
+
+        # Add buttons to button sizer
         btnSizer2.Add(create, 0, wx.TOP)
         btnSizer2.Add(add, 0, wx.TOP)
         btnSizer2.Add(show, 0, wx.TOP)
@@ -217,6 +224,8 @@ class ListBox(wx.Frame):
         self.Centre()
         self.Show(True)
         
+
+
     def runAnalysis1(self,pipeline, sublist, p):
         
         try:
@@ -229,38 +238,54 @@ class ListBox(wx.Frame):
             print "Error importing CPAC"
             print e
 
+
+
     def runIndividualAnalysis(self, event):
 
         try:
-                if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
-                    (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
-                    
-                    import thread
-                    
-                    pipelines = self.listbox.GetCheckedStrings()
-                    sublists = self.listbox2.GetCheckedStrings()
-                    
-                    #self.runCPAC1.SetPulseOnFocus(True)
-                    
-                    import CPAC
-                    
-                    for s in sublists:
-                        sublist = self.sublist_map.get(s)
-                        for p in pipelines:
-                            pipeline = self.pipeline_map.get(p)
-                            print "running for configuration, subject list, pipeline_id -->", \
-                                  pipeline, sublist, p
-                            
-                            thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
 
+            if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
+                (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
+                
+                import thread
+                import CPAC
                     
-                else:
-                    print "no pipeline and subject list selected"
+                pipelines = self.listbox.GetCheckedStrings()
+                sublists = self.listbox2.GetCheckedStrings()
+                    
+                for s in sublists:
+                    sublist = self.sublist_map.get(s)
+                    for p in pipelines:
+                        pipeline = self.pipeline_map.get(p)
+                        print "running for configuration, subject list, pipeline_id -->", \
+                              pipeline, sublist, p
+                            
+                        thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
+                    
+            else:
+
+                errmsg = 'CPAC says: No pipeline or subject list ' \
+                      'selected.'
+
+                errSubID = wx.MessageDialog(self, errmsg, 'Error',
+                    wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                print '\n\n[!] ' + errmsg + '\n\n'
+
+
                     
 
         except Exception, e:
-                print e
-                #wx.MessageBox(e, "Error") 
+
+            errSubID = wx.MessageDialog(self, str(e), 'Error',
+                 wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+
+            print e
+
                 
 
 
@@ -312,8 +337,8 @@ class ListBox(wx.Frame):
                         print "pipeline doesn't exist"
                     
                 
-            else:
-                print "No pipeline selected"
+        else:
+            print "No pipeline selected"
 
 
 
@@ -523,8 +548,7 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
-
-        
+                
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -544,10 +568,24 @@ class ListBox(wx.Frame):
                 paramList.append(param.split(','))
 
 
+
         for param in paramList:
 
-            if str(param[0]) not in c:
-                missingParams.append(param)
+            try:
+                if str(param[0]) not in c:
+                    missingParams.append(param)
+            except:
+                errdlg = wx.MessageDialog(self, "Your pipeline " \
+                                          "configuration file could not be " \
+                                          "processed properly - please " \
+                                          "ensure it is formatted properly." \
+                                          "\n\nConfig file: %s" % config,
+                                          "Error!",
+                                       wx.OK | wx.ICON_ERROR)
+                errdlg.ShowModal()
+                errdlg.Destroy()
+                break
+                
 
         
         if missingParams:
@@ -564,7 +602,7 @@ class ListBox(wx.Frame):
             dlg.Destroy()
 
             if os.path.exists(config):
-                MainFrame(self, option ="edit", path=config)
+                MainFrame(self, option ="load", path=config)
             else:
                 print "Couldn't find the config file %s "%config    
 
