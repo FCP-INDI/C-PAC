@@ -36,8 +36,8 @@ def return_aws_keys(creds_path):
     csv_reader = csv.reader(open(creds_path, 'r'))
     
     # Grab csv rows
-    row1 = csv_reader.next()
-    row2 = csv_reader.next()
+    row1 = csv_reader.next()[0]
+    row2 = csv_reader.next()[0]
     
     # And split out for keys
     aws_access_key_id = row1.split('=')[1]

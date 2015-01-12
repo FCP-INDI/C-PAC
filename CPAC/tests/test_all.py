@@ -13,12 +13,14 @@ import unittest
 
 # Import submodules
 import CPAC.tests.unit.GUI.interface.windows as windows
+import CPAC.tests.unit.pipeline as pipeline
 
 # Init full test suite
 full_suite = unittest.TestSuite()
 
 # Add TestCases, by module, to the full TestSuite
 full_suite.addTest(unittest.TestLoader().loadTestsFromModule(windows))
+full_suite.addTest(unittest.TestLoader().loadTestsFromModule(pipeline))
 
 # Init the full suite runner and run the TestSuite
 suite_runner = unittest.TextTestRunner()

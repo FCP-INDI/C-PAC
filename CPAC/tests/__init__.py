@@ -13,11 +13,6 @@ import unittest
 # Init globals
 cpac_base = CPAC.__file__
 RESOURCE_DIR = '/'.join(cpac_base.split('/')[:-1]) + '/tests/resources'
-
-# Import submodule TestCases
-from CPAC.tests.unit.GUI.interface.windows import ConfigWindowTestCase,\
-                                                  DataConfigWindowTestCase
-
-# Import all TestCases to environment
-__all__ = ['ConfigWindowTestCase',
-           'DataConfigWindowTestCase']
+# File resources
+PIPELINE_CONFIG = os.path.join(RESOURCE_DIR, 'pipeline_config_test.yml')
+SUBJECT_LIST = os.path.join(RESOURCE_DIR, 'CPAC_sublist_test.yml')
