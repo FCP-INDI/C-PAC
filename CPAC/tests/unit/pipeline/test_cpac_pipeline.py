@@ -16,7 +16,7 @@ from CPAC.tests import RESOURCE_DIR
 # Test case for the run function
 class CPACPipelineRunTestCase(unittest.TestCase):
     '''
-    This class is a test case for the cpac_pipeline.run function
+    This class is a test case for the cpac_pipeline.run() function
     
     Inherits
     --------

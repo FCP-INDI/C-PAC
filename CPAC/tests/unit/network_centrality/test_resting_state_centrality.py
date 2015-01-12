@@ -61,10 +61,10 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         '''
     
         # Import packages
-        from CPAC.network_centrality import resting_state_centrality as graph
+        from CPAC.network_centrality import resting_state_centrality
     
         # Init variables
-        wflow = graph.create_resting_state_graphs(allocated_memory=mem)
+        self.wflow = resting_state_centrality.create_resting_state_graphs(allocated_memory=mem)
     
         # Parameterize the workflow
         wflow.inputs.inputspec.method_option = meth_opt
