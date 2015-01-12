@@ -9,10 +9,8 @@ CPAC/network_centrality package
 '''
 
 # Import module TestCases
-from CPAC.tests.unit.GUI.interface.windows.test_config_window import ConfigWindowTestCase
-from CPAC.tests.unit.GUI.interface.windows.test_dataconfig_window import DataConfigWindowTestCase
-
+from CPAC.tests.unit.network_centrality.test_resting_state_centrality import \
+CentralityWorkflowTestCase
 
 # Setup module environment
-__all__ = ['ConfigWindowTestCase',
-           'DataConfigWindowTestCase']
+__all__ = ['CentralityWorkflowTestCase']

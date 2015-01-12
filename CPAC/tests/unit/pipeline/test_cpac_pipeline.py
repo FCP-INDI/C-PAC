@@ -51,7 +51,7 @@ class CPACPipelineRunTestCase(unittest.TestCase):
         ----------
         self : CPACPippelineRunTestCase
             a unittest.TestCase-inherited class
-        
+
         Returns
         -------
         None
@@ -63,13 +63,13 @@ class CPACPipelineRunTestCase(unittest.TestCase):
             self.config : CPAC.utils.configuration.Configuration object
             self.strategies : list [dict]
         '''
-        
+
         # Import packages
         import os
         import yaml
         from CPAC.utils.configuration import Configuration
         from CPAC.pipeline.cpac_runner import build_strategies
-        
+
         # Init variables
         self.config_file = os.path.join(RESOURCE_DIR, 'test_pipeline_config.yml')
         self.sublist_file = os.path.join(RESOURCE_DIR, 'test_sublist.yml')
@@ -77,16 +77,16 @@ class CPACPipelineRunTestCase(unittest.TestCase):
         # Init Configuration class from config_file
         self.config = Configuration(yaml.load(open(self.config_file), 'r'))
         self.strategies = build_strategies(self.config)
-    
+
     # Method to test AWS-S3 compatibility
     def test_s3_interaction(self):
         '''
         Method to test cpac_pipeline.run()'s ability to download data from
         '''
-        
+
         # Import packages
         import os
-        
+
         # AWS variables
         creds_path = os.path.join(RESOURCE_DIR, 'aws_creds.csv')
         bucket_name = 'fcp-indi'

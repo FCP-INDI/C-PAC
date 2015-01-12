@@ -21,6 +21,15 @@ class ConfigWindowTestCase(unittest.TestCase):
     Inherits
     --------
     unittest.TestCase class
+    
+    Attributes (class):
+    -------------------
+    see unittest.TestCase documentation
+    
+    Attributes (instance):
+    ----------------------
+    config_mainframe : CPAC.GUI.interface.windows.config_window.MainFrame 
+                       instance
     '''
     
     # Method to setup the MainFrame object
@@ -34,7 +43,7 @@ class ConfigWindowTestCase(unittest.TestCase):
         
         # Init variables
         wx_app = wx.App()
-        self.config_mainframe_instance = config_window.MainFrame(None)
+        self.config_mainframe = config_window.MainFrame(None)
     
     # Method to test the subject list
     def test_config_sublist(self):
@@ -52,7 +61,7 @@ class ConfigWindowTestCase(unittest.TestCase):
         sublist = yaml.load(open(sublist_path, 'r'))
         
         # Test subject list
-        pass_flg = self.config_mainframe_instance.test_sublist(sublist)
+        pass_flg = self.config_mainframe.test_sublist(sublist)
         
         # Assert that pass flag is true
         self.assertEqual(pass_flg, True, 'Subject failed')

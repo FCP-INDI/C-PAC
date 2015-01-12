@@ -20,6 +20,15 @@ class DataConfigWindowTestCase(unittest.TestCase):
     Inherits
     --------
     unittest.TestCase class
+    
+    Attributes (class):
+    -------------------
+    see unittest.TestCase documentation
+    
+    Attributes (instance):
+    ----------------------
+    data_config : CPAC.GUI.interface.windows.dataconfig_window.DataConfig
+                  instance
     '''
     
     # Method to setup the DataConfig object
@@ -33,7 +42,7 @@ class DataConfigWindowTestCase(unittest.TestCase):
         
         # Init variables
         wx_app = wx.App()
-        self.data_config_instance = dataconfig_window.DataConfig(None)
+        self.data_config = dataconfig_window.DataConfig(None)
     
     # Method to tear down the TestCase
     def tearDown(self):
@@ -42,7 +51,7 @@ class DataConfigWindowTestCase(unittest.TestCase):
         '''
         
         # Use the instance's cancel function with the button event to close it
-        self.data_config_instance.cancel(wx.EVT_BUTTON)
+        self.data_config.cancel(wx.EVT_BUTTON)
     
     # Method to test if the window launches
     def test_dataconfig_init(self):
@@ -55,7 +64,7 @@ class DataConfigWindowTestCase(unittest.TestCase):
                   'instance type'
         
         # Test to make sure it comes up
-        self.assertIsInstance(self.data_config_instance, wx.Frame, msg=err_msg)
+        self.assertIsInstance(self.data_config, wx.Frame, msg=err_msg)
 
 
 # Command-line run-able unittest module
