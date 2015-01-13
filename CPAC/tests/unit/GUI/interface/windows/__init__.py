@@ -9,8 +9,10 @@ CPAC/GUI/interface/windows package
 '''
 
 # Import module TestCases
-from CPAC.tests.unit.GUI.interface.windows.test_config_window import ConfigWindowTestCase
-from CPAC.tests.unit.GUI.interface.windows.test_dataconfig_window import DataConfigWindowTestCase
+from CPAC.tests.unit.GUI.interface.windows.test_config_window \
+    import ConfigWindowTestCase
+from CPAC.tests.unit.GUI.interface.windows.test_dataconfig_window \
+    import DataConfigWindowTestCase
 
 
 # Setup module environment

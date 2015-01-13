@@ -1,4 +1,4 @@
-# CPAC/tests/unit/pipeline/test_cpac_pipeline.py
+# CPAC/tests/unit/network_centrality/test_resting_state_centrality.py
 #
 # Contributing authors (please append):
 # Daniel Clark
