@@ -2216,7 +2216,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-                # FUNCTIONAL apply warp
+                # 4D FUNCTIONAL apply warp
                 fsl_to_itk_conversion('mean_functional', 'anatomical_brain', 'functional_mni')
                 collect_transforms_func_mni('functional_mni')
 
@@ -2242,6 +2242,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 node, out_file = strat.get_node_from_resource_pool('mean' \
                         '_functional')
                 ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 0, 'mean_functional_in_mni')
+
+
+                # 4D FUNCTIONAL MOTION-CORRECTED apply warp
+                fsl_to_itk_conversion('mean_functional', 'anatomical_brain', 'motion_correct_to_standard')
+                collect_transforms_func_mni('motion_correct_to_standard')
+
+                node, out_file = strat.get_node_from_resource_pool('motion_correct')
+                ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 3, 'motion_correct_to_standard')
 
             
                 num_strat += 1
@@ -3749,6 +3757,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                         'dr_tempreg_maps_zstat_files_to_standard_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
+    strat_list += new_strat_list
+
+
+
+    '''
+    Smoothing motion-corrected functional to MNI output
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+    if (1 in c.runRegisterFuncToMNI) and (1 in c.runFunctionalPreprocessing) and (c.fwhm != None):
+        for strat in strat_list:
+
+            output_smooth('motion_correct', 'motion_correct', strat, num_strat)
+
+            num_strat += 1
+
     strat_list += new_strat_list
 
 
