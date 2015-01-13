@@ -1,6 +1,6 @@
 # CPAC/AWS/fetch_creds.py
 #
-# Contributing authors 
+# Contributing authors (please append):
 # Daniel Clark
 
 '''
@@ -36,8 +36,8 @@ def return_aws_keys(creds_path):
     csv_reader = csv.reader(open(creds_path, 'r'))
     
     # Grab csv rows
-    row1 = csv_reader.next()
-    row2 = csv_reader.next()
+    row1 = csv_reader.next()[0]
+    row2 = csv_reader.next()[0]
     
     # And split out for keys
     aws_access_key_id = row1.split('=')[1]
@@ -46,64 +46,6 @@ def return_aws_keys(creds_path):
     # Return keys
     return aws_access_key_id,\
            aws_secret_access_key,\
-
-
-# Function to return RDS secure environment variables
-def return_rds_vars(creds_path):
-    '''
-    Method to return user, password, host, port, and SID for an AWS RDS
-    Oracle DB instance using credentials found in a local file.
-
-    Parameters
-    ----------
-    creds_path : string (filepath)
-        path to the csv file with 'db_user=' followed by oracle db
-        username in the first row, 'db_passwd'= followed by oracle db
-        password in the second row, 'db_host=' followed by oracle db
-        hostname in the third row, 'db_port=' followed by oracle db
-        portname in the fourth row, and 'db_sid' followed by oracle_db
-        serviceID in the fifth row
-
-    Returns
-    -------
-    db_user : string
-        string of the username for the database connection
-    db_passwd : string
-        string of the password for the database connection
-    db_host : string
-        string of the host for the database connection
-    db_port : string
-        string of the port for the database connection
-    db_sid : string
-        string of the SID for the database connection
-    '''
-
-    # Import packages
-    import csv
-
-    # Init variables
-    csv_reader = csv.reader(open(creds_path, 'r'))
-    
-    # Grab csv rows
-    row1 = csv_reader.next()
-    row2 = csv_reader.next()
-    row3 = csv_reader.next()
-    row4 = csv_reader.next()
-    row5 = csv_reader.next()
-
-    # Get database credentials
-    db_user = row1.split('=')[1]
-    db_passwd = row2.split('=')[1]
-    db_host = row3.split('=')[1]
-    db_port = row4.split('=')[1]
-    db_sid = row5.split('=')[1]
-
-    # Return the DB variables
-    return db_user,\
-           db_passwd,\
-           db_host,\
-           db_port,\
-           db_sid
 
 
 # Function to return an AWS S3 bucket
@@ -178,3 +120,61 @@ def return_cursor(creds_path):
 
     # Return cursor
     return cursor
+
+
+# Function to return RDS secure environment variables
+def return_rds_vars(creds_path):
+    '''
+    Method to return user, password, host, port, and SID for an AWS RDS
+    Oracle DB instance using credentials found in a local file.
+
+    Parameters
+    ----------
+    creds_path : string (filepath)
+        path to the csv file with 'db_user=' followed by oracle db
+        username in the first row, 'db_passwd'= followed by oracle db
+        password in the second row, 'db_host=' followed by oracle db
+        hostname in the third row, 'db_port=' followed by oracle db
+        portname in the fourth row, and 'db_sid' followed by oracle_db
+        serviceID in the fifth row
+
+    Returns
+    -------
+    db_user : string
+        string of the username for the database connection
+    db_passwd : string
+        string of the password for the database connection
+    db_host : string
+        string of the host for the database connection
+    db_port : string
+        string of the port for the database connection
+    db_sid : string
+        string of the SID for the database connection
+    '''
+
+    # Import packages
+    import csv
+
+    # Init variables
+    csv_reader = csv.reader(open(creds_path, 'r'))
+    
+    # Grab csv rows
+    row1 = csv_reader.next()[0]
+    row2 = csv_reader.next()[0]
+    row3 = csv_reader.next()[0]
+    row4 = csv_reader.next()[0]
+    row5 = csv_reader.next()[0]
+
+    # Get database credentials
+    db_user = row1.split('=')[1]
+    db_passwd = row2.split('=')[1]
+    db_host = row3.split('=')[1]
+    db_port = row4.split('=')[1]
+    db_sid = row5.split('=')[1]
+
+    # Return the DB variables
+    return db_user,\
+           db_passwd,\
+           db_host,\
+           db_port,\
+           db_sid

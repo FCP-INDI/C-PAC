@@ -5854,7 +5854,7 @@ def run(config, subject_list_file, indx, strategies,
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         print 'Using data from S3 bucket: %s' % bucket_name
         aws_utils.build_download_sublist(bucket,
-                                         os.path.join(bucket_prefix, '/RawData'),
+                                         os.path.join(bucket_prefix, 'RawData'),
                                          local_prefix, [sub_dict])
     # Otherwise, state use of local disk and move on
     else:
