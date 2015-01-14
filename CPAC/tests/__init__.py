@@ -17,6 +17,7 @@ RESOURCE_DIR = '/'.join(cpac_base.split('/')[:-1]) + '/tests/resources'
 # File resources
 PIPELINE_CONFIG = os.path.join(RESOURCE_DIR, 'pipeline_config_test.yml')
 SUBJECT_LIST = os.path.join(RESOURCE_DIR, 'CPAC_sublist_test.yml')
+STRAT_FILE = os.path.join(RESOURCE_DIR, 'strategies.obj')
 # AWS resources
 AWS_CREDS = os.path.join(RESOURCE_DIR, 'aws_creds.csv')
 DB_CREDS = os.path.join(RESOURCE_DIR, 'db_creds.csv')

@@ -11,7 +11,8 @@ CPAC/pipeline/cpac_pipeline.py
 # Import packages
 import unittest
 from CPAC.pipeline.cpac_pipeline import run as cpac_pipeline_run
-from CPAC.tests import RESOURCE_DIR
+from CPAC.tests import AWS_CREDS, PIPELINE_CONFIG, SUBJECT_LIST, RESOURCE_DIR,\
+                       STRAT_FILE
 
 # Test case for the run function
 class CPACPipelineRunTestCase(unittest.TestCase):
@@ -68,15 +69,14 @@ class CPACPipelineRunTestCase(unittest.TestCase):
         import os
         import yaml
         from CPAC.utils.configuration import Configuration
-        from CPAC.pipeline.cpac_runner import build_strategies
 
         # Init variables
-        self.config_file = os.path.join(RESOURCE_DIR, 'test_pipeline_config.yml')
-        self.sublist_file = os.path.join(RESOURCE_DIR, 'test_sublist.yml')
-        self.idx = 0
+        self.config_file = PIPELINE_CONFIG
+        self.sublist_file = SUBJECT_LIST
+        self.idx = 1
         # Init Configuration class from config_file
-        self.config = Configuration(yaml.load(open(self.config_file), 'r'))
-        self.strategies = build_strategies(self.config)
+        self.config = Configuration(yaml.load(open(self.config_file, 'r')))
+        self.strategies = STRAT_FILE
 
     # Method to test AWS-S3 compatibility
     def test_s3_interaction(self):
@@ -84,14 +84,15 @@ class CPACPipelineRunTestCase(unittest.TestCase):
         Method to test cpac_pipeline.run()'s ability to download data from
         '''
 
-        # Import packages
+        # Import packages    
         import os
 
         # AWS variables
-        creds_path = os.path.join(RESOURCE_DIR, 'aws_creds.csv')
+        creds_path = AWS_CREDS
         bucket_name = 'fcp-indi'
-        bucket_prefix = 'data/Projects/ABIDE_Initiative/'
-        local_prefix = os.path.join(RESOURCE_DIR, 'inputs')
+        bucket_prefix = 'data/test_resources/input/'
+        local_prefix = os.path.join(RESOURCE_DIR, 'input/')
+        bucket_upload_prefix = 'data/test_resources/'
         
         # Run with AWS variables
         cpac_pipeline_run(self.config_file,
@@ -105,6 +106,7 @@ class CPACPipelineRunTestCase(unittest.TestCase):
                           creds_path=creds_path,
                           bucket_name=bucket_name,
                           bucket_prefix=bucket_prefix,
+                          bucket_upload_prefix=bucket_upload_prefix,
                           local_prefix=local_prefix)
 
 

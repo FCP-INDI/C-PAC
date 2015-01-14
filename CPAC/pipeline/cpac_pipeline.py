@@ -5526,7 +5526,7 @@ def run(config, subject_list_file, indx, strategies,
         p_name=None, **kwargs):
     '''
     Function to build and execute the complete workflow
-    
+
     Parameters
     ----------
     config: string
@@ -5556,7 +5556,7 @@ def run(config, subject_list_file, indx, strategies,
     local_prefix : string (optional)
         base directory where the local subject list files were built
     '''
-    
+
     # Import packages
     import commands
     from CPAC.AWS import fetch_creds
@@ -5564,7 +5564,7 @@ def run(config, subject_list_file, indx, strategies,
     commands.getoutput('source ~/.bashrc')
     import pickle
     import yaml
-    
+
     # Init variables
     creds_path = kwargs.get('creds_path')
     bucket_name = kwargs.get('bucket_name')
@@ -5583,7 +5583,7 @@ def run(config, subject_list_file, indx, strategies,
 
     # Grab the subject of interest
     sub_dict = sublist[int(indx)-1]
-    
+
     # Build and download subject's list
     # If we're using AWS
     if creds_path:
@@ -5603,12 +5603,22 @@ def run(config, subject_list_file, indx, strategies,
 
     # Build and run the pipeline
     prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
-    
+
     # Now upload results to S3
     if creds_path:
-        src_list = aws_utils.collect_outputs_list(c.outputDirectory,
-                                                  sub_dict['subject_id'])
-        dst_list = [s.replace(local_prefix, bucket_upload_prefix)
-                    for s in src_list]
-        aws_utils.s3_upload(bucket, src_list, dst_list, make_public=True)
+        sub_id = sub_dict['subject_id']
+        sub_output_dir = os.path.join(c.outputDirectory, 'pipeline_*')
+        sub_work_dir = os.path.join(c.workingDirectory, '*_' + sub_id + '_*')
+        output_list = aws_utils.collect_subject_files(sub_output_dir,
+                                                      sub_id)
+        working_list = aws_utils.collect_subject_files(sub_work_dir,
+                                                       sub_id)
+        dst_list = [o.replace(c.outputDirectory, bucket_upload_prefix)
+                    for o in output_list]
+        aws_utils.s3_upload(bucket, output_list, dst_list, make_public=True)
         
+        # Delete subject working/output directories
+        for wfile in working_list:
+            os.remove(wfile)
+        for ofile in output_list:
+            os.remove(ofile)
