@@ -5550,7 +5550,9 @@ def run(config, subject_list_file, indx, strategies,
     bucket_name : string (optional)
         name of the S3 bucket to pull data from
     bucket_prefix : string (optional)
-        base directory where S3 inputs and outputs are stored
+        base directory where S3 inputs are stored and downloaded from
+    bucket_upload_prefix : string (optional)
+        base directory where local outputs are sent to in S3
     local_prefix : string (optional)
         base directory where the local subject list files were built
     '''
@@ -5567,6 +5569,7 @@ def run(config, subject_list_file, indx, strategies,
     creds_path = kwargs.get('creds_path')
     bucket_name = kwargs.get('bucket_name')
     bucket_prefix = kwargs.get('bucket_prefix')
+    bucket_upload_prefix = kwargs.get('bucket_upload_prefix')
     local_prefix = kwargs.get('local_prefix')
 
     # Import configuration file
@@ -5587,7 +5590,7 @@ def run(config, subject_list_file, indx, strategies,
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         print 'Using data from S3 bucket: %s' % bucket_name
         aws_utils.build_download_sublist(bucket,
-                                         os.path.join(bucket_prefix, 'RawData'),
+                                         bucket_prefix,
                                          local_prefix, [sub_dict])
     # Otherwise, state use of local disk and move on
     else:
@@ -5605,7 +5608,7 @@ def run(config, subject_list_file, indx, strategies,
     if creds_path:
         src_list = aws_utils.collect_outputs_list(c.outputDirectory,
                                                   sub_dict['subject_id'])
-        dst_list = [s.replace(local_prefix, os.path.join(bucket_prefix, '/cpac/outputs/'))
+        dst_list = [s.replace(local_prefix, bucket_upload_prefix)
                     for s in src_list]
         aws_utils.s3_upload(bucket, src_list, dst_list, make_public=True)
         
