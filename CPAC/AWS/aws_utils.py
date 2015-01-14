@@ -39,10 +39,25 @@ def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
     for sub_dict in sub_list:
         local_list.append(sub_dict['anat'])
         local_list.extend([v for v in sub_dict['rest'].values()])
-    
+
     # Substitute the prefixes to build S3 list to download from
     s3_list = [l.replace(local_prefix, bucket_prefix) for l in local_list]
     
+    # Check already-existing files and remove from download lists
+    local_rm = []
+    s3_rm = []
+    # Build remove-lists
+    for i in range(len(local_list)):
+        l = local_list[i]
+        s = s3_list[i]
+        if os.path.exists(l):
+            local_rm.append(l)
+            s3_rm.append(s)
+    # Go through remove lists and remove files
+    for l, s in zip(local_rm, s3_rm):
+        local_list.remove(l)
+        s3_list.remove(s)
+
     # Download the data to the local prefix
     s3_download(bucket, s3_list, local_prefix, bucket_prefix=bucket_prefix)
     
@@ -55,15 +70,17 @@ def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
 
 
 # Collect all files in directory as the source list
-def collect_outputs_list(prefix, sub_id):
+def collect_subject_files(prefix_star, sub_id):
     '''
     Function to collect all of the files in a directory into a list of
     full paths
     
     Parameters
     ----------
-    prefix : string
-        filepath to the folder, in which, all of the sub-files are collected
+    prefix_star : string
+        filepath to the folder, in which, all of the sub-files are
+        collected; this filepath should have a wildcard character of
+        '*' so that glob can collect the files via the pattern given
     sub_id : string
         the subject id to look for in the output folder
     
@@ -78,7 +95,7 @@ def collect_outputs_list(prefix, sub_id):
     import os
 
     # Init variables
-    bases = glob.glob(os.path.join(prefix, 'pipeline_*'))
+    bases = glob.glob(prefix_star)
     src_list = []
     
     # For each pipeline
