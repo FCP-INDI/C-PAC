@@ -2719,7 +2719,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
-            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile, 'Network Centrality', 'template_dataflow_%d' % num_strat)
+            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
+                                                         'Network Centrality',
+                                                         'template_dataflow_%d' % num_strat)
 
             # Connect in each workflow for the centrality method of interest
             def connectCentralityWorkflow(methodOption,
