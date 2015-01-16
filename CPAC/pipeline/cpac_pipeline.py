@@ -5850,12 +5850,22 @@ def run(config, subject_list_file, indx, strategies,
 
     # Grab the subject of interest
     sub_dict = sublist[int(indx)-1]
-
+    sub_id = sub_dict['subject_id']
+    uploaded_templates = ['mnt/output/pipeline_abide_test/%s_session_1' % sub_id,
+                          'mnt/output/pipeline_abide_test__freq-filter/%s_session_1' % sub_id]
     # Build and download subject's list
     # If we're using AWS
     if creds_path:
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         print 'Using data from S3 bucket: %s' % bucket_name
+        # Check to see if outputs are already uploaded
+        upl_files = []
+        for upl in uploaded_templates:
+            upl_files.append([str(k.name) for k in bucket.list(prefix=upl)])
+        if len(upl_files[0]) > 0 and len(upl_files[1]) > 0:
+            print 'Subject %s already processed, skipping...' % sub_id
+            return
+            
         aws_utils.build_download_sublist(bucket,
                                          bucket_prefix,
                                          local_prefix, [sub_dict])
@@ -5868,12 +5878,15 @@ def run(config, subject_list_file, indx, strategies,
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
-    # Build and run the pipeline
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+    try:
+        # Build and run the pipeline
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+    except Exception as e:
+        print 'Could not complete cpac run for subject: %s!' % sub_id
+        print 'Error: %s' % e
 
     # Now upload results to S3
     if creds_path:
-        sub_id = sub_dict['subject_id']
         sub_output_dir = os.path.join(c.outputDirectory, 'pipeline_*')
         sub_work_dir = os.path.join(c.workingDirectory, '*_' + sub_id + '_*')
         output_list = aws_utils.collect_subject_files(sub_output_dir,
