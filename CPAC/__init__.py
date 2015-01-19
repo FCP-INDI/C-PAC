@@ -49,7 +49,7 @@ import re
 #__version__ = '0.1-git'
 
 try:
-    version = '0.3.8 ANTS hardcode + VMHC opt'
+    version = '0.3.8 ANTS hardcode + VMHC opt + var filt + cc\'s s3 mods'
 
 
 #    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
