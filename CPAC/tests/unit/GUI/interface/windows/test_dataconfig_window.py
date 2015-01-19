@@ -10,7 +10,7 @@ This module performs testing on the functions in CPAC/GUI/interface/windows
 # Import packages
 import unittest
 import wx
-from CPAC.tests import RESOURCE_DIR
+from CPAC.tests import RESOURCE_DIR, DATA_CONFIG
 
 # Test case for the dataconfig_window.py module
 class DataConfigWindowTestCase(unittest.TestCase):
@@ -41,7 +41,7 @@ class DataConfigWindowTestCase(unittest.TestCase):
         from CPAC.GUI.interface.windows import dataconfig_window
 
         # Init variables
-        wx_app = wx.App()
+        self.wx_app = wx.App()
         self.data_config = dataconfig_window.DataConfig(None)
 
     # Method to tear down the TestCase
@@ -66,7 +66,9 @@ class DataConfigWindowTestCase(unittest.TestCase):
         # Test to make sure it comes up
         self.assertIsInstance(self.data_config, wx.Frame, msg=err_msg)
 
-    # Method to test for the various 
+    # Method to test the run method
+    def test_dataconfig_run(self):
+        self.data_config.run(DATA_CONFIG)
 
 # Command-line run-able unittest module
 if __name__ == '__main__':
