@@ -42,7 +42,7 @@ def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
 
     # Substitute the prefixes to build S3 list to download from
     s3_list = [l.replace(local_prefix, bucket_prefix) for l in local_list]
-    
+
     # Check already-existing files and remove from download lists
     local_rm = []
     s3_rm = []
@@ -152,7 +152,7 @@ def md5_sum(bucket, prefix='', filt_str=''):
 
 
 # Rename s3 keys from src_list to dst_list
-def s3_rename(bucket, src_list, dst_list):
+def s3_rename(bucket, src_list, dst_list, keep_old=False):
     '''
     Function to rename files from an AWS S3 bucket via a copy and delete
     process. Uses all keys in src_list as the original names and renames
@@ -167,7 +167,9 @@ def s3_rename(bucket, src_list, dst_list):
         a list of relative paths of the files to delete from the bucket
     dst_list : list (str)
         a list of relative paths of the files to delete from the bucket
-
+    keep_old : boolean (optional)
+        flag indicating whether to keep the src_list files or not;
+        default is False
     Returns
     -------
     None
@@ -192,7 +194,8 @@ def s3_rename(bucket, src_list, dst_list):
             print 'copying source: ', str(src_key.key)
             print 'to destination: ', dst_key
             src_key.copy(bucket, dst_key)
-            src_key.delete()
+            if not keep_old:
+                src_key.delete()
         else:
             print '%s already exists' % dst_key
         i += 1
