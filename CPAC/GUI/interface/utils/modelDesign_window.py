@@ -425,6 +425,29 @@ class ModelDesign(wx.Frame):
                                 'Choose the coding scheme to use when ' \
                                 'generating your model. '))
 
+        config_list.append(('derivative_list', vals['derivative_list'], 6, \
+                                'Choose the derivatives to run the group ' \
+                                'model on.'))
+
+        config_list.append(('f_test', vals['f_test'], 0, \
+                                'Select if the group analysis model uses ' \
+                                'f-tests.'))
+
+        config_list.append(('z_threshold', vals['z_threshold'], 4, \
+                                'Only voxels with a Z-score higher than ' \
+                                'this value will be considered significant.'))
+
+        config_list.append(('p_threshold', vals['p_threshold'], 4, \
+                                'Significance threshold (P-value) to use ' \
+                                'when doing cluster correction for multiple ' \
+                                'comparisons.'))
+
+        config_list.append(('repeated_measures', vals['repeated_measures'], 0, \
+                                'Run repeated measures to compare different ' \
+                                'scans (must use the group analysis subject ' \
+                                'list and phenotypic file formatted for ' \
+                                'repeated measures.'))
+
         config_list.append(('contrasts', vals['contrasts'], 8, \
                                 'A dictionary of contrast descriptions, ' \
                                 'including which ones to be included in ' \
@@ -490,6 +513,19 @@ class ModelDesign(wx.Frame):
                         # all other data types
                         else:
                             value = str(item[1])
+
+
+                        if item[0] == 'derivative_list':
+
+                            value = []
+
+                            # go over each string in the list
+                            for val in ast.literal_eval(str(item[1])):
+                                if substitution_map.get(val) != None:
+                                    value.append(substitution_map.get(val))
+                                elif val != 'None':
+                                    value.append(ast.literal_eval(val))
+
 
                         # print out 'help' (comments describing values)
                         for lines in item[3].split('\n'):

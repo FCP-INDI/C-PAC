@@ -25,6 +25,12 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['pheno_file'] = ''
             self.gpa_settings['subject_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
+            self.gpa_settings['coding_scheme'] = ''
+            self.gpa_settings['derivative_list'] = ''
+            self.gpa_settings['f_test'] = ''
+            self.gpa_settings['z_threshold'] = ''
+            self.gpa_settings['p_threshold'] = ''
+            self.gpa_settings['repeated_measures'] = ''
         else:
             self.gpa_settings = gpa_settings
         
@@ -101,6 +107,69 @@ class ModelConfig(wx.Frame):
                      type=dtype.LSTR, 
                      comment="Choose the coding scheme to use when generating your model.", 
                      values=["Treatment", "Sum"])
+
+        self.page.add(label = "Select Derivatives ",
+                    control = control.CHECKLIST_BOX,
+                    name = "derivative_list",
+                    type = dtype.LSTR,
+                    values = ['ALFF',
+                              'ALFF (smoothed)',
+                              'ALFF (smoothed, z-score std)',
+                              'f/ALFF',
+                              'f/ALFF (smoothed)',
+                              'f/ALFF (smoothed, z-score std)',
+                              'ReHo',
+                              'ReHo (smoothed)',
+                              'ReHo (smoothed, z-score std)',
+                              'ROI Average SCA',
+                              'ROI Average SCA (smoothed)',
+                              'ROI Average SCA (smoothed, Fisher z-score std)',
+                              'Voxelwise SCA',
+                              'Voxelwise SCA (smoothed)',
+                              'Voxelwise SCA (smoothed, Fisher z-score std)',
+                              'Multiple Regression SCA (smoothed)',
+                              'VMHC (Fisher z-score std)',
+                              'VMHC z-stat (Fisher z-score std)',
+                              'Network Centrality (smoothed)',
+                              'Network Centrality (smoothed, z-score std)',
+                              'Dual Regression',
+                              'Dual Regression (smoothed)',
+                              'Dual Regression z-stat',
+                              'Dual Regression z-stat (smoothed)'],
+                    comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
+                    size = (350,160))
+ 
+
+        self.page.add(label="Models Contain F-tests ", 
+                 control=control.CHOICE_BOX, 
+                 name='f_test', 
+                 type=dtype.BOOL, 
+                 comment = "Set this option to True if any of the models specified above contain F-tests.", 
+                 values=["False","True"])
+        
+        self.page.add(label="Z threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='z_threshold', 
+                     type=dtype.NUM, 
+                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
+                     values=2.3)
+
+        self.page.add(label="Cluster Significance Threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='p_threshold', 
+                     type=dtype.NUM, 
+                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
+                     values=0.05)
+
+        self.page.add(label="Run Repeated Measures ", 
+                     control=control.CHOICE_BOX, 
+                     name='repeated_measures', 
+                     type=dtype.BOOL, 
+                     comment="Run repeated measures to compare different " \
+                             "scans (must use the group analysis subject " \
+                             "list and phenotypic file formatted for " \
+                             "repeated measures.", 
+                     values=["False","True"])
 
 
 

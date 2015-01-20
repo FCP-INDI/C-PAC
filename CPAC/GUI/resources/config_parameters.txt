@@ -127,7 +127,4 @@ cwasParallelNodes,CWAS Parallel Nodes,CWAS Settings
 cwasRegressorCols,Column Number with Regressor of Interest,CWAS Settings
 cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
 numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
-derivativeList,Select Derivatives,Group Analysis Settings
 modelConfigs,Models to Run,Group Analysis Settings
-zThreshold,Z threshold,Group Analysis Settings
-pThreshold,P threshold,Group Analysis Settings

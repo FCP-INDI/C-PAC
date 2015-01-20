@@ -99,18 +99,24 @@ files_folders_wf = {
     'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_seed_correlations':'sca_mask',
+    'sca_seed_correlation_files':'sca_mask',
     'sca_seed_smooth':'sca_mask',
     'sca_seed_to_standard':'sca_mask',
     'sca_seed_to_standard_smooth':'sca_mask',
     'sca_seed_to_standard_fisher_zstd':'sca_mask',
     'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
-    'sca_roi_correlations':'sca_roi',
-    'sca_roi_smooth':'sca_roi',
-    'sca_roi_to_standard':'sca_roi',
-    'sca_roi_to_standard_smooth':'sca_roi',
-    'sca_roi_to_standard_fisher_zstd':'sca_roi',
-    'sca_roi_to_standard_smooth_fisher_zstd':'sca_roi',
+    'sca_roi_correlation_stack':'sca_roi',
+    'sca_roi_correlation_files':'sca_roi',
+    'sca_roi_stack_smooth':'sca_roi',
+    'sca_roi_files_smooth':'sca_roi',
+    'sca_roi_stack_to_standard':'sca_roi',
+    'sca_roi_files_to_standard':'sca_roi',
+    'sca_roi_stack_to_standard_smooth':'sca_roi',
+    'sca_roi_files_to_standard_smooth':'sca_roi',
+    'sca_roi_stack_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_stack_to_standard_smooth_fisher_zstd':'sca_roi',
+    'sca_roi_files_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_files_to_standard_smooth_fisher_zstd':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
@@ -375,12 +381,20 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
     hdr = corr_img.get_header()
 
+    # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
     dims = corr_data.shape
 
     out_file = []
 
+    # dims = tuple of dimensions of correlation NIFTI file
+    # roi_numbers = list of label numbers for each ROI; length of this will be
+    #               how many ROIs you have
+
+    # I think the point of this check is to see if there are multiple volumes
+    # in the correlation file (i.e. is a stack), or is a file with ROIs, and if
+    # so, to deal with it appropriately
     if len(dims) == 5 or len(roi_numbers) > 0:
 
         if len(dims) == 5:
@@ -403,6 +417,8 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
             out_file.append(sub_z_score_file)
 
+
+    # if the correlation file is a single volume image
     else:
 
         z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())

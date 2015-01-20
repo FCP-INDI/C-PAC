@@ -223,7 +223,7 @@ class DataConfig(wx.Frame):
             return -1
         
         except Exception, e:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.%s"%e,
+            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%e,
                                'Error!',
                            wx.OK | wx.ICON_ERROR)
             dlg2.ShowModal()
