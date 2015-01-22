@@ -5853,10 +5853,6 @@ def run(config, subject_list_file, indx, strategies,
     # Grab the subject of interest
     sub_dict = sublist[int(indx)-1]
     sub_id = sub_dict['subject_id']
-    uploaded_templates = ['mnt/output/pipeline_abide_test/%s_session_1' % sub_id,
-                          'mnt/output/pipeline_abide_test__freq-filter/%s_session_1' % sub_id,
-                          'data/Projects/ABIDE_Initiative/Outputs/cpac/pipeline_abide_test/%s_session_1' % sub_id,
-                          'data/Projects/ABIDE_Initiative/Outputs/cpac/pipeline_abide_test__freq-filter/%s_session_1' % sub_id]
 
     # Build and download subject's list
     # If we're using AWS
@@ -5864,13 +5860,8 @@ def run(config, subject_list_file, indx, strategies,
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         print 'Using data from S3 bucket: %s' % bucket_name
         # Check to see if outputs are already uploaded
-        upl_files = []
-        for upl in uploaded_templates:
-            upl_files.append([str(k.name) for k in bucket.list(prefix=upl)])
-        if len(upl_files[0]) + len(upl_files[1]) >= 701 or len(upl_files[2]) + len(upl_files[3]) >= 701:
-            print 'Subject %s already processed, skipping...' % sub_id
-            return
-            
+        upl_files = [str(k.name) for k in bucket.list(prefix=bucket_upload_prefix)]
+
         aws_utils.build_download_sublist(bucket,
                                          bucket_prefix,
                                          local_prefix, [sub_dict])
