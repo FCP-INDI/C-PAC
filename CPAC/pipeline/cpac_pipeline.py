@@ -2672,7 +2672,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-
     '''
     Inserting SCA
     Workflow for ROI INPUT
@@ -2700,9 +2699,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
 
-            strat.update_resource_pool({'sca_roi_correlations':(sca_roi, 'outputspec.correlation_file')})
+            strat.update_resource_pool({'sca_roi_correlation_stack':(sca_roi, 'outputspec.correlation_stack'),
+                                        'sca_roi_correlation_files':(sca_roi, 'outputspec.correlation_files')})
             
-            create_log_node(sca_roi, 'outputspec.correlation_file', num_strat)
+            create_log_node(sca_roi, 'outputspec.correlation_stack', num_strat)
             
             strat.append_name(sca_roi.name)
             num_strat += 1
@@ -2737,7 +2737,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
 
-            strat.update_resource_pool({'sca_seed_correlations':(sca_seed, 'outputspec.correlation_file')})
+            strat.update_resource_pool({'sca_seed_correlation_files':(sca_seed, 'outputspec.correlation_files')})
 
             strat.append_name(sca_seed.name)
             num_strat += 1
@@ -3581,7 +3581,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runROITimeseries):
         for strat in strat_list:
 
-            output_to_standard('sca_roi', 'sca_roi_correlations', strat, num_strat, input_image_type=3)
+            output_to_standard('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat, input_image_type=3)
+            output_to_standard('sca_roi_files', 'sca_roi_correlation_files', strat, num_strat, 1)
             
             num_strat += 1
 
@@ -3598,7 +3599,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
         for strat in strat_list:
 
-            output_to_standard('sca_seed', 'sca_seed_correlations', strat, num_strat)
+            output_to_standard('sca_seed', 'sca_seed_correlation_files', strat, num_strat)
             
             num_strat += 1
     
@@ -3870,7 +3871,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runSCA) and (1 in c.runROITimeseries) and c.fwhm != None:
         for strat in strat_list:
 
-            output_smooth('sca_roi', 'sca_roi_correlations', strat, num_strat)
+            output_smooth('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat)
+            output_smooth('sca_roi_files', 'sca_roi_correlation_files', strat, num_strat, 1)
             
             num_strat += 1
 
@@ -3890,9 +3892,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             if c.fwhm != None:
-                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat)
+                fisher_z_score_standardize('sca_roi_stack', 'sca_roi_stack_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat)
+                #fisher_z_score_standardize('sca_roi_files', 'sca_roi_files_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat, 1)
             else:
-                fisher_z_score_standardize('sca_roi', 'sca_roi_to_standard', 'roi_timeseries_for_SCA', strat, num_strat)
+                fisher_z_score_standardize('sca_roi_stack', 'sca_roi_stack_to_standard', 'roi_timeseries_for_SCA', strat, num_strat)
+                #fisher_z_score_standardize('sca_roi_files', 'sca_roi_files_to_standard', 'roi_timeseries_for_SCA', strat, num_strat, 1)
 
             num_strat += 1
 
@@ -3909,7 +3913,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     if (1 in c.runSCA) and (1 in c.runVoxelTimeseries) and c.fwhm != None:
         for strat in strat_list:
 
-            output_smooth('sca_seed', 'sca_seed_correlations', strat, num_strat)
+            output_smooth('sca_seed', 'sca_seed_correlation_files', strat, num_strat)
 
             num_strat += 1
 

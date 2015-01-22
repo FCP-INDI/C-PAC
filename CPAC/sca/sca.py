@@ -100,7 +100,8 @@ def create_sca(name_sca='sca'):
 
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'correlation_file',
+                                                    'correlation_stack',
+                                                    'correlation_files',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
@@ -113,23 +114,37 @@ def create_sca(name_sca='sca'):
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
-
-    # Transform the sub-bricks into volumes
-    concat = pe.Node(interface=preprocess.TCat(),
-                      name='3dTCat')
-    concat.inputs.outputtype = 'NIFTI_GZ'
-
-
     sca.connect(inputNode, 'timeseries_one_d',
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
 
-    sca.connect(corr, 'out_file',
-                concat, 'in_files')
 
-    sca.connect(concat, 'out_file',
-                outputNode, 'correlation_file')
+    if "roi" in name_sca:
+
+        # Transform the sub-bricks into volumes
+        concat = pe.Node(interface=preprocess.TCat(),
+                          name='3dTCat')
+        concat.inputs.outputtype = 'NIFTI_GZ'
+
+        # also write out volumes as individual files
+        split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+        split.inputs.dimension = 't'
+
+        split.inputs.out_base_name = 'sca_roi_'
+
+        sca.connect(corr, 'out_file', concat, 'in_files')
+
+        sca.connect(concat, 'out_file', split, 'in_file')
+
+        sca.connect(concat, 'out_file',
+                    outputNode, 'correlation_stack')
+
+        sca.connect(split, 'out_files', outputNode, 'correlation_files')
+
+    else:
+
+        sca.connect(corr, 'out_file', outputNode, 'correlation_files')
 
 
 
