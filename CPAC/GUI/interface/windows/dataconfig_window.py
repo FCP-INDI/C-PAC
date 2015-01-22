@@ -10,7 +10,7 @@ ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
 
 class DataConfig(wx.Frame):
-    
+        
     
     def __init__(self, parent):
 

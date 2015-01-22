@@ -92,7 +92,7 @@ class CPACPipelineRunTestCase(unittest.TestCase):
         bucket_name = 'fcp-indi'
         bucket_prefix = 'data/test_resources/input/'
         local_prefix = os.path.join(RESOURCE_DIR, 'input/')
-        bucket_upload_prefix = 'data/test_resources/'
+        bucket_upload_prefix = 'data/test_resources/output/'
         
         # Run with AWS variables
         cpac_pipeline_run(self.config_file,
