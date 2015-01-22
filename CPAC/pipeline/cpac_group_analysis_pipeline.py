@@ -32,6 +32,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
 
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
 
+
+    # set this to False for now
     fTest = False
 
     def get_phenotypic_file(phenotypic_file, m_dict, m_list, mod_path, sub_id):
@@ -371,7 +373,8 @@ def prep_group_analysis_workflow(c, resource, subject_infos):
         try:
 
             from CPAC.utils import create_fsl_model
-            create_fsl_model.run(conf, False, parameter_file, pipeline_path, current_output, True)
+
+            create_fsl_model.run(conf, fTest, parameter_file, pipeline_path, current_output, True)
 
             #print >>diag, "> Runs create_fsl_model."
             #print >>diag, ""
