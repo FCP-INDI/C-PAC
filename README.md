@@ -15,8 +15,9 @@ Installation
 ------------
 
 If you are running ubuntu >=12.04:
-Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
-    `sudo ./ cpac_install.sh`
+1. Download: `C-PAC/scripts/cpac_install.sh`
+2. Make the script executable: `chmod +x /path/to/cpac_install.sh`
+3. Run as super-user: `sudo /path/to/cpac_install.sh`
 
 Otherwise, follow the installation documentation here: http://fcp-indi.github.io/docs/user/install.html
 
