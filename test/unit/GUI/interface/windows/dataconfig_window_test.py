@@ -1,4 +1,4 @@
-# CPAC/tests/unit/GUI/interface/windows/test_dataconfig_window.py
+# test/unit/GUI/interface/windows/test_dataconfig_window.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -10,7 +10,7 @@ This module performs testing on the functions in CPAC/GUI/interface/windows
 # Import packages
 import unittest
 import wx
-from CPAC.tests import RESOURCE_DIR, DATA_CONFIG
+from test import RESOURCE_DIR, DATA_CONFIG
 
 # Test case for the dataconfig_window.py module
 class DataConfigWindowTestCase(unittest.TestCase):

@@ -1,4 +1,4 @@
-# CPAC/tests/unit/pipeline/test_cpac_pipeline.py
+# test/unit/pipeline/test_cpac_pipeline.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -11,7 +11,7 @@ CPAC/pipeline/cpac_pipeline.py
 # Import packages
 import unittest
 from CPAC.pipeline.cpac_pipeline import run as cpac_pipeline_run
-from CPAC.tests import AWS_CREDS, PIPELINE_CONFIG, SUBJECT_LIST, RESOURCE_DIR,\
+from test import AWS_CREDS, PIPELINE_CONFIG, SUBJECT_LIST, RESOURCE_DIR,\
                        STRAT_FILE
 
 # Test case for the run function

@@ -1,4 +1,4 @@
-# CPAC/tests/unit/network_centrality/test_resting_state_centrality.py
+# test/unit/network_centrality/test_resting_state_centrality.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -10,7 +10,7 @@ CPAC/pipeline/cpac_pipeline.py
 
 # Import packages
 import unittest
-from CPAC.tests import RESOURCE_DIR
+from test import RESOURCE_DIR
 
 # Test case for the run function
 class CentralityWorkflowTestCase(unittest.TestCase):

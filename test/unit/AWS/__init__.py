@@ -1,15 +1,16 @@
-# CPAC/tests/unit/pipeline/__init__.py
+# test/unit/AWS/__init__.py
 #
 # Contributing authors (please append):
 # Daniel Clark
 #
 '''
 This module performs testing via unittest.TestCases of the functionality of the
-CPAC/pipeline package
+CPAC/AWS package
 '''
 
 # Import module TestCases
-from CPAC.tests.unit.pipeline.test_cpac_pipeline import CPACPipelineRunTestCase
+from test.unit.AWS.fetch_creds_test import FetchCredsTestCase
+
 
 # Setup module environment
-__all__ = ['CPACPipelineRunTestCase']
+__all__ = ['FetchCredsTestCase']

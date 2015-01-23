@@ -1,4 +1,4 @@
-# CPAC/tests/unit/AWS/test_fetch_creds.py
+# test/unit/AWS/test_fetch_creds.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -11,7 +11,7 @@ CPAC/AWS/fetch_creds.py
 # Import packages
 import unittest
 from CPAC.AWS import fetch_creds
-from CPAC.tests import AWS_CREDS, BUCKET_NAME, DB_CREDS
+from test import AWS_CREDS, BUCKET_NAME, DB_CREDS
 
 # Test case for the run function
 class FetchCredsTestCase(unittest.TestCase):

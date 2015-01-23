@@ -1,0 +1,16 @@
+anatomicalTemplate  :  RESOURCE_DIR/input/%s/%s/session_1/anat_1/mprage.nii.gz
+
+functionalTemplate  :  RESOURCE_DIR/input/%s/%s/session_1/rest_1/rest.nii.gz
+
+subjectList  :  None 
+
+exclusionSubjectList  :  None 
+
+siteList  :  ['site_1']
+
+scanParametersCSV  :  None 
+
+outputSubjectListLocation  :  RESOURCE_DIR/settings/configs
+
+subjectListName  :  ['test']
+

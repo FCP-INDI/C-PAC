@@ -1,4 +1,4 @@
-# CPAC/tests/unit/network_centrality/__init__.py
+# test/unit/network_centrality/__init__.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -9,8 +9,8 @@ CPAC/network_centrality package
 '''
 
 # Import module TestCases
-from CPAC.tests.unit.network_centrality.test_resting_state_centrality \
-    import CentralityWorkflowTestCase
+from test.unit.network_centrality.resting_state_centrality_test import \
+    CentralityWorkflowTestCase
 
 # Setup module environment
 __all__ = ['CentralityWorkflowTestCase']

@@ -1,21 +1,21 @@
-# CPAC/tests/test_all.py
+# test/test_all.py
 #
 # Contributing authors (please append):
 # Daniel Clark
 #
 '''
 This script runs all of the TestCases of all of the submodules within
-the CPAC/tests folder and returns the results
+the C-PAC/test package and returns the results
 '''
 
 # Import packages
 import unittest
 
 # Import submodules
-import CPAC.tests.unit.AWS as aws
-import CPAC.tests.unit.GUI.interface.windows as windows
-import CPAC.tests.unit.network_centrality as centrality
-import CPAC.tests.unit.pipeline as pipeline
+import unit.AWS as aws
+import unit.GUI.interface.windows as windows
+import unit.network_centrality as centrality
+import unit.pipeline as pipeline
 
 # Init full test suite
 full_suite = unittest.TestSuite()

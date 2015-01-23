@@ -1,4 +1,4 @@
-# CPAC/tests/unit/GUI/interface/windows/test_config_window.py
+# test/unit/GUI/interface/windows/test_config_window.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -10,7 +10,7 @@ This module performs testing on the functions in CPAC/GUI/interface/windows
 # Import packages
 import unittest
 import wx
-from CPAC.tests import RESOURCE_DIR
+from test import RESOURCE_DIR
 
 
 # Test case for the config_window.py module

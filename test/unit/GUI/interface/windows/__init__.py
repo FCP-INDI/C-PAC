@@ -1,4 +1,4 @@
-# CPAC/tests/unit/GUI/interface/windows/__init__.py
+# test/unit/GUI/interface/windows/__init__.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -9,9 +9,9 @@ CPAC/GUI/interface/windows package
 '''
 
 # Import module TestCases
-from CPAC.tests.unit.GUI.interface.windows.test_config_window \
+from test.unit.GUI.interface.windows.config_window_test \
     import ConfigWindowTestCase
-from CPAC.tests.unit.GUI.interface.windows.test_dataconfig_window \
+from test.unit.GUI.interface.windows.dataconfig_window_test \
     import DataConfigWindowTestCase
 
 
