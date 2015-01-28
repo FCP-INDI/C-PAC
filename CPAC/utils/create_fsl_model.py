@@ -226,6 +226,9 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 
 
 
+# OLDER CODE to facilitate creation of .con and .fts file via user-provided
+# contrasts matrix
+
 def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory):
 
     """
@@ -879,7 +882,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    ### CREATE CONTRAST FILE
+    ''' CREATE CONTRAST FILE '''
 
     # parse in user-input contrast strings that were selected, and generate
     # the contrast file (.con)
@@ -969,7 +972,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
-   
+
+
+    # begin contrast file generation
 
     contrasts = c.contrasts
     contrasts_list = []
@@ -1337,13 +1342,34 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print 'Attempted output directory: ', c.output_dir, '\n\n'
         raise Exception
 
-    try:
-        create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
-    except:
-        print '\n\n[!] CPAC says: Could not create .con file during ' \
-                  'group-level analysis model file generation.\n'
-        print 'Attempted output directory: ', c.output_dir, '\n\n'
-        raise Exception
+
+    if (c.custom_contrasts == None) or (c.custom_contrasts == '') or \
+        ("None" in c.custom_contrasts):
+
+        print "Writing contrasts file (.con) based on contrasts provided " \
+              "using the group analysis model builder's contrasts editor.."
+
+        try:
+            create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
+        except:
+            print '\n\n[!] CPAC says: Could not create .con file during ' \
+                      'group-level analysis model file generation.\n'
+            print 'Attempted output directory: ', c.output_dir, '\n\n'
+            raise Exception
+
+    else:
+
+        print "Writing contrasts file (.con) based on contrasts provided " \
+              "with a custom contrasts matrix CSV file.."
+
+        try:
+            create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.output_dir)
+        except:
+            print '\n\n[!] CPAC says: Could not create .con file during ' \
+                      'group-level analysis model file generation, via the ' \
+                      'user-provided custom contrasts matrix.\n'
+            print 'Attempted output directory: ', c.output_dir, '\n\n'
+            raise Exception
 
 
 

@@ -26,6 +26,9 @@ class ModelDesign(wx.Frame):
         if 'contrasts' not in self.gpa_settings.keys():
             self.gpa_settings['contrasts'] = {}
 
+        if 'custom_contrasts' not in self.gpa_settings.keys():
+            self.gpa_settings['custom_contrasts'] = 'None'
+
         if 'grouping_var' not in self.gpa_settings.keys():
             self.gpa_settings['grouping_var'] = 'None'
 
@@ -99,6 +102,14 @@ class ModelDesign(wx.Frame):
             name = ctrl.get_name()
             if name == 'contrastStrings':
                 ctrl.set_available_contrasts(varlist)
+
+
+        self.page.add(label="Custom Contrasts Matrix ",
+                      control=control.COMBO_BOX,
+                      name="custom_contrasts",
+                      type=dtype.STR,
+                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. Consult the User Guide for proper formatting.\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead.",
+                      values=self.gpa_settings['custom_contrasts'])
 
 
         self.page.add(label="Model Group Variances Seperately ",
@@ -326,6 +337,11 @@ class ModelDesign(wx.Frame):
                         self.gpa_settings['contrasts'][option] = False
 
 
+            if name == 'custom_contrasts':
+
+                self.gpa_settings['custom_contrasts'] = ctrl.get_selection()
+
+
             if name == 'modelGroupVariancesSeparately':
 
                 self.gpa_settings['group_sep'] = ctrl.get_selection()
@@ -458,6 +474,16 @@ class ModelDesign(wx.Frame):
                                 'including which ones to be included in ' \
                                 'the model (marked with either True or ' \
                                 'False).'))
+
+        config_list.append(('custom_contrasts', vals['custom_contrasts'], 1, \
+                                'Optional: Full path to a CSV file which ' \
+                                'specifies the contrasts you wish to run in ' \
+                                'group analysis. Consult the User Guide for ' \
+                                'proper formatting.\nIf you wish to use the ' \
+                                'standard contrast builder, leave this ' \
+                                'field blank. If you provide a path for ' \
+                                'this option, CPAC will use your custom ' \
+                                'contrasts matrix instead.'))
 
         config_list.append(('group_sep', vals['group_sep'], 0, \
                                 'Specify whether FSL should model the ' \

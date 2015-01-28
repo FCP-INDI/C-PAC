@@ -63,6 +63,12 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     derivative_paths = []
 
 
+    z_threshold = float(group_conf.z_threshold[0])
+
+    p_threshold = float(group_conf.p_threshold[0])
+
+
+
     ''' begin iteration through group subject list for processing '''
 
     for ga_sub in group_sublist:
@@ -428,8 +434,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     gpa_wf.inputs.inputspec.merged_file = merge_output
     gpa_wf.inputs.inputspec.merge_mask = merge_mask_output
 
-    gpa_wf.inputs.inputspec.z_threshold = group_conf.z_threshold
-    gpa_wf.inputs.inputspec.p_threshold = group_conf.p_threshold
+    gpa_wf.inputs.inputspec.z_threshold = z_threshold
+    gpa_wf.inputs.inputspec.p_threshold = p_threshold
     gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
     
    
