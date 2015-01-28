@@ -120,8 +120,10 @@ def check_multicollinearity(matrix):
     max_singular = np.max(s)
     min_singular = np.min(s)
 
-    print max_singular, ' ~~~~~~ ', min_singular
-    print 'RANK ~~~~~~ ', np.linalg.matrix_rank(matrix)
+    print "Max singular: ", max_singular
+    print "Min singular: ", min_singular
+    print "Rank: ", np.linalg.matrix_rank(matrix), "\n"
+
     if min_singular == 0:
 
         return 1
@@ -129,7 +131,7 @@ def check_multicollinearity(matrix):
     else:
 
         condition_number = float(max_singular)/float(min_singular)
-        print 'condition_number %f' % condition_number
+        print "Condition number: %f\n\n" % condition_number
         if condition_number > 30:
 
             return 1
@@ -564,6 +566,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     #     http://patsy.readthedocs.org/en/latest/overview.html
 
 
+    print "\nBuilding the FSL group analysis model for %s..\n" % current_output
+
+
     # open the GROUP ANALYSIS FSL .YML CONFIG FILE, not the main pipeline
     # config .yml file!
     if CPAC_run:
@@ -593,8 +598,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
         ''' extract motion measures for insertion as EVs if selected '''
         # insert MeanFD or other measures into pheno_data_dict
-        #     first, pull the measure values from the all_params .csv file written
-        #     to the individual-level analysis output directory
+        #     first, pull the measure values from the all_params .csv file
+        #     written to the individual-level analysis output directory
         #     then, ensure the values are in the same order as the subject ids
 
         measures = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
@@ -689,14 +694,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         #     pull the mean value from the output_means.csv file in the subject
         #     directory of the appropriate pipeline's output folder
 
-        if c.group_mean == 1:
+        if "Group Mask" in c.mean_mask:
 
             ''' use output means calculated using group mask '''
 
             output_means_dict = derivative_means_dict
 
 
-        elif c.group_mean == 0:
+        elif "Individual Mask" in c.mean_mask:
 
             ''' pull output means from subject-level (from .csv in output) '''
 
@@ -891,17 +896,12 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
             evs = dmat.design_info.column_name_indexes
             con = np.zeros(dmat.shape[1])
 
-            print "a: ", a
-            print "evs: ", evs
-
             if a in evs:
-                print "a is in evs."
                 con[evs[a]] = 1
             else:
-                print "a is not in evs."
                 #it is a dropped term so make all other terms in that category at -1
                 term = a.split('[')[0]
-                print "term: ", term
+
                 for ev in evs:
                     if ev.startswith(term):
                         con[evs[ev]]= -1
@@ -1162,15 +1162,21 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
+    ''' check the model for multicollinearity '''
+
+    print "\nChecking for multicollinearity in the model for %s.." \
+          % current_output
 
     if check_multicollinearity(np.array(data)) == 1:
 
-        print '\n\n[!] CPAC warns: Detected multicollinearity in the ' \
-              'computed group-level analysis model. Please double-check ' \
-              'your model design.\n\n'
+        print '[!] CPAC warns: Detected multicollinearity in the ' \
+              'computed group-level analysis model for %s. Please double-' \
+              'check your model design.\n\n' % current_output
 
 
 
+    ''' check for appropriate settings for modeling group '''
+    ''' variances separately '''
     if c.group_sep == True and (c.grouping_var == None or (c.grouping_var not in c.design_formula)):
         print '\n\n[!] CPAC says: Model group variances separately is ' \
               'enabled, but the grouping variable set is either set to ' \
@@ -1181,8 +1187,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    # prep data and column names if user decides to model group variances
-    # separately
+    ''' prep data and column names if user decides to model group '''
+    ''' variances separately '''
 
     if c.group_sep == True:
 

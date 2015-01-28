@@ -707,11 +707,29 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     else:
 
+        '''
         calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
                 calculate_ants_warp, 'moving_image')
 
         calc_ants_warp_wf.connect(inputspec, 'reference_brain',
                 calculate_ants_warp, 'fixed_image')
+        '''
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                calculate_ants_warp, 'anatomical_brain')
+
+        calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
+                calculate_ants_warp, 'anatomical_skull')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                calculate_ants_warp, 'reference_brain')
+
+        calc_ants_warp_wf.connect(inputspec, 'reference_brain',
+                calculate_ants_warp, 'reference_skull')
+
+        calc_ants_warp_wf.connect(inputspec, 'wait',
+                calculate_ants_warp, 'wait')
+
 
     calc_ants_warp_wf.connect(inputspec, 'dimension', calculate_ants_warp,
             'dimension')

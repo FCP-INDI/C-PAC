@@ -362,22 +362,15 @@ def run(config_file, subject_list_file, output_path_file):
 
         print "Pulling motion parameters for all subjects..\n"
 
-        try:
-
-            from CPAC.utils import extract_parameters
-            extract_parameters.run(c.outputDirectory, c.runScrubbing)
-
-        except:
-            print '\n\n [!] CPAC says: Extract parameters script did ' \
-                  'not run correctly.\n\n'
-            raise Exception
+        from CPAC.utils import extract_parameters
+        scrub_threshold = extract_parameters.run(c.outputDirectory, c.runScrubbing)
 
         if not c.runOnGrid:
                     
             print "Starting group analysis pipeline setup..\n"
 
             from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
-            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)])))
+            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
 
        
           

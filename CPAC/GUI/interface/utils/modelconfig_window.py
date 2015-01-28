@@ -27,10 +27,11 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['design_formula'] = ''
             self.gpa_settings['coding_scheme'] = ''
             self.gpa_settings['derivative_list'] = ''
+            self.gpa_settings['mean_mask'] = ''
             self.gpa_settings['f_test'] = ''
+            self.gpa_settings['repeated_measures'] = ''
             self.gpa_settings['z_threshold'] = ''
             self.gpa_settings['p_threshold'] = ''
-            self.gpa_settings['repeated_measures'] = ''
         else:
             self.gpa_settings = gpa_settings
         
@@ -140,12 +141,29 @@ class ModelConfig(wx.Frame):
                     size = (350,160))
  
 
+        self.page.add(label="Measure Mean Generation ", 
+                 control=control.CHOICE_BOX, 
+                 name='mean_mask', 
+                 type=dtype.LSTR, 
+                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.", 
+                 values=["Group Mask","Individual Mask"])
+
         self.page.add(label="Models Contain F-tests ", 
                  control=control.CHOICE_BOX, 
                  name='f_test', 
                  type=dtype.BOOL, 
                  comment = "Set this option to True if any of the models specified above contain F-tests.", 
                  values=["False","True"])
+
+        self.page.add(label="Run Repeated Measures ", 
+                     control=control.CHOICE_BOX, 
+                     name='repeated_measures', 
+                     type=dtype.BOOL, 
+                     comment="Run repeated measures to compare different " \
+                             "scans (must use the group analysis subject " \
+                             "list and phenotypic file formatted for " \
+                             "repeated measures.", 
+                     values=["False","True"])
         
         self.page.add(label="Z threshold ", 
                      control=control.FLOAT_CTRL, 
@@ -160,16 +178,6 @@ class ModelConfig(wx.Frame):
                      type=dtype.NUM, 
                      comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
                      values=0.05)
-
-        self.page.add(label="Run Repeated Measures ", 
-                     control=control.CHOICE_BOX, 
-                     name='repeated_measures', 
-                     type=dtype.BOOL, 
-                     comment="Run repeated measures to compare different " \
-                             "scans (must use the group analysis subject " \
-                             "list and phenotypic file formatted for " \
-                             "repeated measures.", 
-                     values=["False","True"])
 
 
 
@@ -210,12 +218,12 @@ class ModelConfig(wx.Frame):
 
 
 
-        text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
-        text_sizer.Add(measure_text)
+        #text_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
+        #text_sizer.Add(measure_text)
 
+        #mainSizer.Add(text_sizer)
 
-        mainSizer.Add(text_sizer)
 
         mainSizer.Add(
             btnPanel, 0.5,  flag=wx.ALIGN_RIGHT | wx.RIGHT, border=20)
@@ -227,7 +235,8 @@ class ModelConfig(wx.Frame):
 
         # this fires only if we're coming BACK to this page from the second
         # page, and these parameters are already pre-loaded. this is to
-        # automatically repopulate the 'Model Setup' checkbox grid
+        # automatically repopulate the 'Model Setup' checkbox grid and other
+        # settings under it
         if self.gpa_settings['pheno_file'] != '':
 
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
@@ -244,6 +253,26 @@ class ModelConfig(wx.Frame):
                     ctrl.set_value(phenoHeaderItems)
                     ctrl.set_selection(self.gpa_settings['ev_selections'])
 
+                if ctrl.get_name() == 'coding_scheme':
+                    ctrl.set_value(self.gpa_settings['coding_scheme'])
+
+                if ctrl.get_name() == 'mean_mask':
+                    ctrl.set_value(self.gpa_settings['mean_mask'])
+
+                if ctrl.get_name() == 'f_test':
+                    ctrl.set_value(self.gpa_settings['f_test'])
+
+                if ctrl.get_name() == 'repeated_measures':
+                    ctrl.set_value(self.gpa_settings['repeated_measures'])
+
+                if ctrl.get_name() == 'z_threshold':
+                    ctrl.set_value(self.gpa_settings['z_threshold'])
+
+                if ctrl.get_name() == 'p_threshold':
+                    ctrl.set_selection(self.gpa_settings['p_threshold'])
+
+                if ctrl.get_name() == 'derivative_list':
+                    ctrl.set_value(self.gpa_settings['derivative_list'])
 
 
 
@@ -262,6 +291,8 @@ class ModelConfig(wx.Frame):
         pass
 
     
+
+    ''' button: LOAD SETTINGS '''
     def load(self, event):
 
         # when the user clicks 'Load Settings', which loads the
@@ -315,8 +346,35 @@ class ModelConfig(wx.Frame):
                 # the model setup checkbox grid is the only one that doesn't
                 # get repopulated the standard way. instead it is repopulated
                 # by the code directly above
-                if name != 'model_setup':
-                    ctrl.set_value(str(self.gpa_settings[name]))
+
+                if name == 'derivative_list':
+                    value = [s_map.get(item)
+                                 for item in value if s_map.get(item) != None]
+                    if not value:
+                        value = [str(item) for item in val]
+                    
+                    ctrl.set_value(value)
+
+                elif name == 'f_test' or name == 'repeated_measures':
+                    ctrl.set_value(str(value))
+
+                elif name == 'z_threshold' or name == 'p_threshold':
+                    value = value[0]
+                    ctrl.set_value(value)
+
+                elif name != 'model_setup' and name != 'derivative_list':
+                    try:
+                        ctrl.set_value(value)#str(self.gpa_settings[name]))
+                    except:
+                        print name, " ", value
+
+
+                    '''
+                    except Exception as e:
+                        print name, " ", value
+                        print e, "\n"
+                        pass
+                    '''
                 
 
             dlg.Destroy()
@@ -378,7 +436,7 @@ class ModelConfig(wx.Frame):
 
 
           
-            
+    ''' button: LOAD PHENOTYPE FILE '''
     def populateEVs(self, event):
 
         # this runs when the user clicks 'Load Phenotype File'
@@ -461,7 +519,7 @@ class ModelConfig(wx.Frame):
 
 
 
-
+    ''' button: NEXT '''
     def load_next_stage(self, event):
 
         import patsy
@@ -484,8 +542,8 @@ class ModelConfig(wx.Frame):
             except:
                     
                 errDlgFileTest = wx.MessageDialog(
-                    self, 'Error reading file - either it does not exist or you' \
-                          ' do not have read access. \n\n' \
+                    self, 'Error reading file - either it does not exist ' \
+                          'or you do not have read access. \n\n' \
                           'Parameter: %s' % paramName,
                     'File Access Error',
                     wx.OK | wx.ICON_ERROR)
@@ -527,13 +585,18 @@ class ModelConfig(wx.Frame):
                 self.gpa_settings['design_formula'] = str(ctrl.get_selection())
 
             # get the EV categorical + demean grid selections
-            if name == 'model_setup':
+            elif name == 'model_setup':
 
                 # basically, ctrl is checkbox_grid in this case, and
                 # get_selection goes to generic_class.py first, which links
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
+
+            else:
+
+                self.gpa_settings[name] = str(ctrl.get_selection())
+
 
 
         self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'])
@@ -803,9 +866,6 @@ class ModelConfig(wx.Frame):
             patsy_formatted_pheno['MeanFD'] = MeanFD
             patsy_formatted_pheno['Measure_Mean'] = Measure_Mean
 
-        print "\n\npatsy_formatted_pheno:"
-        print patsy_formatted_pheno
-        print "\n\n"
 
 
         if 'categorical' in self.gpa_settings['ev_selections']:
@@ -831,10 +891,6 @@ class ModelConfig(wx.Frame):
 
 
         column_names = dmatrix.design_info.column_names
-        
-        print "\n\n"
-        print dmatrix.design_info
-        print "\n\n"
 
 
         # remove the header formatting Patsy creates for categorical variables
@@ -842,26 +898,21 @@ class ModelConfig(wx.Frame):
         # users to know what contrasts are available to them
         for column in column_names:
 
+            # if using Sum encoding, a column name may look like this:
+            #     C(adhd, Sum)[S.adhd0]
+
+            # this loop leaves it with only "adhd0" in this case, for the
+            # contrasts list for the next GUI page
+
             column_string = column
 
-            record = 0
             string_for_removal = ''
 
             for char in column_string:
 
-                if record == 2:
-                    string_for_removal = string_for_removal + char
-                elif record == 1 and char == '(':
-                    string_for_removal = 'C('
-                    record = 2
-                else:
-                    record = 0
-                
-                if char == 'C' and record == 0:
-                    record = 1
+                string_for_removal = string_for_removal + char
 
                 if char == '.':
-                    record = 0
                     column_string = column_string.replace(string_for_removal, '')
                     string_for_removal = ''
 

@@ -429,6 +429,11 @@ class ModelDesign(wx.Frame):
                                 'Choose the derivatives to run the group ' \
                                 'model on.'))
 
+        config_list.append(('mean_mask', vals['mean_mask'], 4, \
+                                'Choose whether to use a group mask or ' \
+                                'individual-specific mask when calculating ' \
+                                'the output means to be used as a regressor.'))
+
         config_list.append(('f_test', vals['f_test'], 0, \
                                 'Select if the group analysis model uses ' \
                                 'f-tests.'))
@@ -478,6 +483,7 @@ class ModelDesign(wx.Frame):
 
 
         try:
+
             if self.validate() == True:
                 dlg = wx.FileDialog(self, message="Save file as ...",
                                     defaultDir=os.getcwd(),
@@ -507,8 +513,22 @@ class ModelDesign(wx.Frame):
 
                         # num ctrl
                         elif item[2] == 4:
-                            value = [str(v.strip())
-                                     for v in item[1].split(',')]
+
+                            # patchwork code to get this working for now, but
+                            # why does coding_scheme print out as a string
+                            # everytime, even with the list formatting?
+                            # example: ['Treatment'] is fully a string in the
+                            # yaml file, including the [' and '], which are
+                            # characters in the string
+                            if isinstance(item[1], str) and "[" in item[1] and "]" in item[1]:
+                                value = item[1].replace("['","")
+                                value = value.replace("']","")
+
+                            else:
+                                # regular handling
+                                value = [str(v.strip())
+                                         for v in item[1].split(',')]
+
 
                         # all other data types
                         else:
@@ -518,6 +538,11 @@ class ModelDesign(wx.Frame):
                         if item[0] == 'derivative_list':
 
                             value = []
+
+                            # this takes the user selection in the derivative
+                            # list and matches it with the output directory
+                            # folder name for each chosen derivative via the
+                            # substitution map in constants.py
 
                             # go over each string in the list
                             for val in ast.literal_eval(str(item[1])):

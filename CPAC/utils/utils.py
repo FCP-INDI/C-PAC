@@ -403,19 +403,19 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
             corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
 
 
-        for i in range(0, len(roi_numbers)):
+        #for i in range(0, len(roi_numbers)):
 
-            sub_data = corr_data
-            if len(dims) == 5:
-                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+        sub_data = corr_data
+        #if len(dims) == 5:
+        #    sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
-            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+        sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
-            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
+        sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI.nii.gz') #_number_%s.nii.gz' % (roi_numbers[i]))
 
-            sub_img.to_filename(sub_z_score_file)
+        sub_img.to_filename(sub_z_score_file)
 
-            out_file.append(sub_z_score_file)
+        out_file.append(sub_z_score_file)
 
 
     # if the correlation file is a single volume image
