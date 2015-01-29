@@ -229,7 +229,7 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 # OLDER CODE to facilitate creation of .con and .fts file via user-provided
 # contrasts matrix
 
-def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory):
+def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory, column_names):
 
     """
     Create the contrasts and fts file
@@ -258,7 +258,6 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory)
 
     lst = data.tolist()
 
-
     ftst = []
     contrasts = []
     contrast_names = []
@@ -277,6 +276,8 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory)
             if fTest:
                 ftst.append(list(tp[length-count_ftests: length]))
 
+        num_EVs_in_con_file = len(contrasts[0])
+
         contrasts = np.array(contrasts, dtype=np.float16)
         
         if fTest:
@@ -284,11 +285,26 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory)
 
     except:
         print "\n\n" + "ERROR: Not enough contrasts for running f-tests." \
-              "\n Tip: Do you have only one contrast in your contrasts file?" \
-              " f-tests require more than one contrast." + "\n" + \
-              "Either turn off f-tests or include more contrasts." + "\n" + \
-              "Error name: create_fsl_model_0002" + "\n\n"
+              "\nTip: Do you have only one contrast in your contrasts file? " \
+              "f-tests require more than one contrast." + "\n" + \
+              "Either turn off f-tests or include more contrasts." + "\n\n"
         raise Exception
+
+
+    if len(column_names) != num_EVs_in_con_file:
+
+        err_string = "\n\n[!] CPAC says: The number of EVs in your model " \
+                     "design matrix (found in the %s.mat file) does not " \
+                     "match the number of EVs (columns) in your custom " \
+                     "contrasts matrix CSV file.\n\nCustom contrasts matrix " \
+                     "file: %s\n\nNumber of EVs in design matrix: %d\n" \
+                     "Number of EVs in contrasts file: %d\n\nThe column " \
+                     "labels in the design matrix should match those in " \
+                     "your contrasts .CSV file.\nColumn labels in design " \
+                     "matrix:\n%s" % (model_name, con_file, \
+                     len(column_names), num_EVs_in_con_file, str(column_names))
+
+        raise Exception(err_string)
 
 
     try:
@@ -552,7 +568,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, CPAC_run = False):
+def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, roi_means_dict=None, CPAC_run=False):
 
     # create_fsl_model.run()
     # this is called from cpac_group_analysis_pipeline.py
@@ -597,6 +613,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     pheno_data_dict = create_pheno_dict(c)
 
 
+    formula = c.design_formula
+
+
     if param_file != None:
 
         ''' extract motion measures for insertion as EVs if selected '''
@@ -621,8 +640,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                 measure_dict[line['Subject']] = measure_map
            
         except:
-            print '\n\n[!] CPAC says: Could not extract required information ' \
-                  'from the parameters file.\n'
+            print '\n\n[!] CPAC says: Could not extract required ' \
+                  'information from the parameters file.\n'
             print 'Path: ', param_file, '\n\n'
             raise Exception
 
@@ -772,53 +791,119 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
+        def insert_means_into_model(means_dict):
 
-        ''' insert mean of derivatives into pheno data '''
-        means_list = []
+            means_list = []
 
-        # create a blank list that is the proper length
-        for sub in pheno_data_dict[c.subject_id_label]:
-            means_list.append(0)
+            # create a blank list that is the proper length (num of subjects)
+            for sub in pheno_data_dict[c.subject_id_label]:
+                means_list.append(0)
 
-        for subID in output_means_dict.keys():
+            for subID in output_means_dict.keys():
 
-            # find matching subject IDs between the output_means_dict and the
-            # pheno_data_dict so we can insert mean values into the
-            # pheno_data_dict
-            for subject in pheno_data_dict[c.subject_id_label]:
+                # find matching subject IDs between the output_means_dict and
+                # the pheno_data_dict so we can insert mean values into the
+                # pheno_data_dict
+                for subject in pheno_data_dict[c.subject_id_label]:
 
-                if subject == subID:
+                    if subject == subID:
 
-                    # return the index (just an integer) of where in the
-                    # pheno_data_dict list structure a subject ID is
-                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+                        # return the index (just an integer) of where in the
+                        # pheno_data_dict list structure a subject ID is
+                        idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
 
-                    # insert Mean FD value in the proper point
-                    means_list[idx] = float(output_means_dict[subID])
+                        # insert Mean FD value in the proper point
+                        means_list[idx] = float(means_dict[subID])
 
 
-        # time to demean the means!
-        means_sum = 0.0
+            # time to demean the means!
+            means_sum = 0.0
 
-        for mean in means_list:
+            for mean in means_list:
 
-            means_sum = means_sum + mean
+                means_sum = means_sum + mean
 
-        measure_mean = means_sum / len(means_list)
+            measure_mean = means_sum / len(means_list)
 
-        idx = 0
+            idx = 0
 
-        for mean in means_list:
+            for mean in means_list:
 
-            means_list[idx] = mean - measure_mean
-            idx += 1
+                means_list[idx] = mean - measure_mean
+                idx += 1
+
+
+            return means_list
+
 
 
         ''' insert means into pheno data if selected '''
 
+        measure_means_list = insert_means_into_model(output_means_dict)
+
         # add this new list to the pheno_data_dict
-        pheno_data_dict['Measure_Mean'] = np.array(means_list)
-   
+        pheno_data_dict['Measure_Mean'] = np.array(measure_means_list)
+
+
+
+
+    if "Custom_ROI_Mean" in c.design_formula:
+
+        ''' include the means of the specified ROIs as regressors '''
+
+        # check
+        if roi_means_dict == None:
+            err_string = "\n\n[!] CPAC says: The custom ROI means were not " \
+                         "calculated properly during the group analysis " \
+                         "model generation.\n\n"
+            raise Exception(err_string)
+
+
+        for val in roi_means_dict.values():
+            roi_num = len(val)
+
+        # this will be a dictionary matching ROI regressor header labels with
+        # the actual ROI dictionaries
+        roi_dict_dict = {}
+
+        # split the roi_means_dict from { subID: [mean1,mean2,mean3,..], ..}
+        # to three dictionaries of { subID: mean1, .. }, { subID: mean2, .. },
+        # and so on
+        for num in range(1,roi_num):
+
+            label = "Custom_ROI_Mean_%d" % num
+            temp_roi_dict = {}
+
+            for key in roi_means_dict.keys():
+                
+                temp_roi_dict[key] = roi_means_dict[key][num-1]
+
+            roi_dict_dict[label] = temp_roi_dict
+
+
+        add_formula_string = ""
+
+        for roi_column in roi_dict_dict.keys():
+
+            roi_means_list = insert_means_into_model(roi_dict_dict[roi_column])
+
+            # add this new list to the pheno_data_dict
+            pheno_data_dict[roi_column] = np.array(roi_means_list)
+
+            # create a string of all the new custom ROI regressor column names
+            # to be inserted into the design formula, so that Patsy will accept
+            # the phenotypic data dictionary that now has these columns
+            if add_formula_string == "":
+                add_formula_string = add_formula_string + roi_column
+            else:
+                add_formula_string = add_formula_string + " + " + roi_column
+
+        # a regressor column of ROI means for each custom-specified ROI has now
+        # been added to the model with appropriate column labels      
+
+
+        formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
+
 
 
     # make sure the group analysis output directory exists
@@ -843,7 +928,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     # design formula and insert C(<name>, Sum) into the design formula
     #     this is required for Patsy to process the categorical EVs properly
     #     when generating the design matrix (this goes into the .mat file)
-    formula = c.design_formula
 
     coding_scheme = c.coding_scheme[0]
 
@@ -867,7 +951,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     #import pickle
     #pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
     #pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
-
+    print pheno_data_dict
 
     try:
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
@@ -1319,7 +1403,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         column_names = dmatrix.design_info.column_names
 
 
-
     '''
     still need:
         contrast handling?
@@ -1362,14 +1445,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print "Writing contrasts file (.con) based on contrasts provided " \
               "with a custom contrasts matrix CSV file.."
 
-        try:
-            create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.output_dir)
-        except:
-            print '\n\n[!] CPAC says: Could not create .con file during ' \
-                      'group-level analysis model file generation, via the ' \
-                      'user-provided custom contrasts matrix.\n'
-            print 'Attempted output directory: ', c.output_dir, '\n\n'
-            raise Exception
+        create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.output_dir, column_names)
+
 
 
 

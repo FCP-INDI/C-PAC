@@ -1407,10 +1407,13 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     return new_grp_file, new_mat_file, new_sub_file
 
 
-def select_model_files(model, ftest):
+
+def select_model_files(model, ftest, model_name):
+
     """
     Method to select model files
     """
+
     import os
     import glob
 
@@ -1418,18 +1421,19 @@ def select_model_files(model, ftest):
         files = glob.glob(os.path.join(model, '*'))
 
         if len(files) == 0:
-            raise Exception("No files foudn inside model %s" % model)
+            raise Exception("No files found inside directory %s" % model)
 
         fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
+
+        for filename in files:
+            if (model_name + '.mat') in filename:
+                mat_file = filename
+            elif (model_name + '.grp') in filename:
+                grp_file = filename
+            elif ((model_name + '.fts') in filename) and ftest:
+                fts_file = filename
+            elif (model_name + '.con') in filename:
+                con_file = filename
 
     except Exception:
         print "All the model files are not present. Please check the model folder %s" % model

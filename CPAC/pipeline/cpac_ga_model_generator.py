@@ -287,6 +287,26 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # create_fsl_model.py is currently being run for
     current_output = s_paths[0].replace(pipeline_path, '').split('/')[2]
 
+    # generate working directory for this output's group analysis run
+    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
+
+    # s_paths is a list of paths to each subject's derivative (of the current
+    # derivative gpa is being run on) - s_paths_dirList is a list of each directory
+    # in this path separated into list elements
+             
+    strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
+
+    for ch in ['.']:
+        if ch in strgy_path:
+            strgy_path = strgy_path.replace(ch, '_')
+                
+    # create nipype-workflow-name-friendly strgy_path
+    # (remove special characters)
+    strgy_path_name = strgy_path.replace('/', '__')
+
+    workDir = workDir + '/' + strgy_path_name
+
+
 
     ''' merge the remaining subjects for this current output '''
     # then, take the group mask, and iterate over the list of subjects
@@ -295,7 +315,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     merge_input = " "
 
-    merge_output_dir = group_conf.output_dir + "/merged_files"
+    merge_output_dir = workDir + "/merged_files"
 
     if not os.path.exists(merge_output_dir):
         os.makedirs(merge_output_dir)
@@ -330,6 +350,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
     derivative_means_dict = {}
+    roi_means_dict = {}
 
     # CALCULATE THE MEANS of each remaining output using the group mask
     for derivative_path in derivative_paths:
@@ -337,8 +358,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         try:
             maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
         except Exception as e:
-            print "[!] CPAC says: AFNI 3dmaskave failed for output: %s" \
-                  % current_output
+            print "[!] CPAC says: AFNI 3dmaskave failed for output: %s\n" \
+                  "(Measure Mean calculation)" % current_output
             print "Error details: %s\n\n" % e
             raise
 
@@ -352,8 +373,41 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         # derivative_means_dict is now something like this:
         # { 'sub001': 0.3124, 'sub002': 0.2981, .. }
 
+ 
+        # if custom ROI means are included in the model, do the same for those
+        if "Custom_ROI_Mean" in group_conf.design_formula:
 
-    print "DERIVATIVE MEANS DICT!: ", derivative_means_dict
+            try:
+                ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (group_conf.custom_roi_mask, derivative_path))
+            except Exception as e:
+                print "[!] CPAC says: AFNI 3dROIstats failed for output: %s" \
+                      "\n(Custom ROI Mean calculation)" % current_output
+                print "Error details: %s\n\n" % e
+                raise
+
+            ROIstats_list = ROIstats_output.split("\t")
+
+            # calculate the number of ROIs - 3dROIstats output can be split
+            # into a list, and the actual ROI means begin at a certain point
+            num_rois = (len(ROIstats_list)-3)/2
+
+            roi_means = []
+
+            # create a list of the ROI means - each derivative of each subject
+            # will have N number of ROIs depending on how many ROIs were
+            # specified in the custom ROI mask
+            for num in range(num_rois+3,len(ROIstats_list)):
+
+                roi_means.append(ROIstats_list[num])
+
+
+            roi_means_dict[derivative_path_subID] = roi_means
+
+        else:
+
+            roi_means_dict = None
+
+
 
     if len(derivative_means_dict.keys()) == 0:
         err_string = "[!] CPAC says: Something went wrong with the " \
@@ -363,16 +417,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
     ''' run create_fsl_model.py to generate the group analysis models '''
-    try:
-
-        from CPAC.utils import create_fsl_model
-        create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, True)
-
-    except Exception, e:
-
-        print "FSL Group Analysis model not successfully created - error in create_fsl_model script"
-        #print "Error ->", e
-        raise
+    
+    from CPAC.utils import create_fsl_model
+    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, roi_means_dict, True)
 
 
 
@@ -384,27 +431,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     #if c.mixedScanAnalysis == True:
     #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
     #else:
-        
-        
-    # s_paths is a list of paths to each subject's derivative (of the current
-    # derivative gpa is being run on) - s_paths_dirList is a list of each directory
-    # in this path separated into list elements
-             
-    strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
-
-    for ch in ['.']:
-        if ch in strgy_path:
-            strgy_path = strgy_path.replace(ch, '_')
-                
-    # create nipype-workflow-name-friendly strgy_path
-    # (remove special characters)
-    strgy_path_name = strgy_path.replace('/', '__')
-           
 
     wf = pe.Workflow(name = "%s_%s" % (resource, group_conf.model_name))
-
-    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
-    workDir = workDir + '/' + strgy_path_name
 
     wf.base_dir = workDir
     wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
@@ -423,6 +451,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
     gp_flow.inputs.inputspec.grp_model = group_conf.output_dir
+    gp_flow.inputs.inputspec.model_name = group_conf.model_name
     gp_flow.inputs.inputspec.ftest = fTest
   
 

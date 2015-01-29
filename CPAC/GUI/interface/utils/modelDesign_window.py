@@ -15,7 +15,7 @@ class ModelDesign(wx.Frame):
     def __init__(self, parent, gpa_settings, varlist):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
 
         self.parent = parent
 
@@ -108,7 +108,7 @@ class ModelDesign(wx.Frame):
                       control=control.COMBO_BOX,
                       name="custom_contrasts",
                       type=dtype.STR,
-                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. Consult the User Guide for proper formatting.\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead.",
+                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead.",
                       values=self.gpa_settings['custom_contrasts'])
 
 
@@ -433,22 +433,45 @@ class ModelDesign(wx.Frame):
                                 'be demeaned.'))
 
         config_list.append(('design_formula', vals['design_formula'], 1, \
-                                'Formula for the design matrix. The EVs ' \
-                                'included in this formula will be included ' \
-                                'in the model. <MORE INFO>'))
+                                'Specify the formula to describe your ' \
+                                'model design. Essentially, including EVs ' \
+                                'in this formula inserts them into the ' \
+                                'model. The most basic format to include ' \
+                                'each EV you select would be \'EV + EV + EV ' \
+                                '+ ..\', etc. You can also select to ' \
+                                'include MeanFD, Measure_Mean, and ' \
+                                'Custom_ROI_Mean here. See the C-PAC User ' \
+                                'Guide for more detailed information ' \
+                                'regarding formatting your design formula.'))
 
-        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
-                                'Choose the coding scheme to use when ' \
-                                'generating your model. '))
+        config_list.append(('mean_mask', vals['mean_mask'], 4, \
+                                'Choose whether to use a group mask or ' \
+                                'individual-specific mask when calculating ' \
+                                'the output means to be used as a ' \
+                                'regressor.\n\nThis only takes effect if ' \
+                                'you include the \'Measure_Mean\' regressor ' \
+                                'in your Design Matrix Formula.'))
+
+        config_list.append(('custom_roi_mask', vals['custom_roi_mask'], 1, \
+                                'Full path to a NIFTI file containing one ' \
+                                'or more ROI masks. The means of the masked ' \
+                                'regions will then be computed for each ' \
+                                'subject\'s output and will be included in ' \
+                                'the model as regressors (one for each ROI ' \
+                                'in the mask file) if you include ' \
+                                '\'Custom_ROI_Mean\' in the Design Matrix ' \
+                                'Formula.'))
 
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
                                 'Choose the derivatives to run the group ' \
                                 'model on.'))
 
-        config_list.append(('mean_mask', vals['mean_mask'], 4, \
-                                'Choose whether to use a group mask or ' \
-                                'individual-specific mask when calculating ' \
-                                'the output means to be used as a regressor.'))
+        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
+                                'Choose the coding scheme to use when ' \
+                                'generating your model. \'Treatment\' ' \
+                                'encoding is generally considered the ' \
+                                'typical scheme. Consult the User Guide for ' \
+                                'more information.'))
 
         config_list.append(('f_test', vals['f_test'], 0, \
                                 'Select if the group analysis model uses ' \
