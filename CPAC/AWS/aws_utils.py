@@ -296,10 +296,13 @@ def s3_download(bucket, in_list, local_prefix, bucket_prefix=''):
         print 'attempting to download %s to %s...' % (remote_filename,
                                                       local_filename)
         try:
-            k = bucket.get_key(f)
-            k.get_contents_to_filename(local_filename)
-            per = 100*(float(i)/no_files)
-            print 'Done downloading %d/%d\n%f%% complete' % (i, no_files, per)
+            if not os.path.exists(local_filename):
+                k = bucket.get_key(f)
+                k.get_contents_to_filename(local_filename)
+                per = 100*(float(i)/no_files)
+                print 'Done downloading %d/%d\n%f%% complete' % (i, no_files, per)
+            else:
+                print 'File %s already exists, skipping...' % local_filename
         except AttributeError:
             print 'No key found for %s on bucket %s' % (f, bucket.name)
 
@@ -308,7 +311,7 @@ def s3_download(bucket, in_list, local_prefix, bucket_prefix=''):
 
 
 # Upload files to AWS S3
-def s3_upload(bucket, src_list, dst_list, make_public=False):
+def s3_upload(bucket, src_list, dst_list, make_public=False, overwrite=False):
     '''
     Function to upload a list of data to an S3 bucket
 
@@ -322,8 +325,11 @@ def s3_upload(bucket, src_list, dst_list, make_public=False):
         list of filepaths as strings coinciding with src_list, such
         that src_list[1] gets uploaded to S3 with the S3 path given in
         dst_list[1]
-    make_public : boolean, default= False
+    make_public : boolean (optional), default=False
         set to True if files should be publically available on S3
+    overwrite : boolean (optional), default=False
+        set to True if the uploaded files should overwrite what is
+        already there
 
     Returns
     -------
@@ -363,7 +369,7 @@ def s3_upload(bucket, src_list, dst_list, make_public=False):
 
         # Create a new key from the bucket and set its contents
         k = bucket.new_key(dst_file)
-        if k.exists():
+        if k.exists() and not overwrite:
             print 'key %s already exists, skipping...' % dst_file
         else:
             k.set_contents_from_filename(src_file, cb=callback, replace=True)

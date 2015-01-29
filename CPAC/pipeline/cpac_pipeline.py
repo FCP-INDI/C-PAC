@@ -3136,8 +3136,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     OUTPUT TO STANDARD
     '''
 
-    def output_to_standard(output_name, output_resource, strat, num_strat, map_node=0, input_image_type=0):
-            
+    def output_to_standard(output_name, output_resource, strat, num_strat,
+                           map_node=0, input_image_type=0):
 
         nodes = getNodeList(strat)
            
