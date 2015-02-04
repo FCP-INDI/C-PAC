@@ -35,9 +35,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
 
-    # set this to False for now
-    fTest = False
-
     try:
         group_conf = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
     except Exception as e:
@@ -67,9 +64,17 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     p_threshold = float(group_conf.p_threshold[0])
 
+    if (len(group_conf.f_tests) == 0) or (group_conf.f_tests == None):
+        fTest = False
+    else:
+        fTest = True
+
 
 
     ''' begin iteration through group subject list for processing '''
+
+    print "Sorting through subject list to check for missing outputs " \
+          "for %s..\n" % resource
 
     for ga_sub in group_sublist:
 
@@ -141,9 +146,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         REVISIT THIS LATER to establish a potentially better way to
         pull output paths (instead of path_files_here)
         '''
-
-        print "Sorting through subject list to check for missing outputs " \
-              "for %s..\n" % resource
 
         for path in s_paths:
 

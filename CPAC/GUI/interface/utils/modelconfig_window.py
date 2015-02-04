@@ -29,7 +29,6 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['custom_roi_mask'] = 'None'
             self.gpa_settings['coding_scheme'] = ''
             self.gpa_settings['derivative_list'] = ''
-            self.gpa_settings['f_test'] = ''
             self.gpa_settings['repeated_measures'] = ''
             self.gpa_settings['z_threshold'] = ''
             self.gpa_settings['p_threshold'] = ''
@@ -155,13 +154,6 @@ class ModelConfig(wx.Frame):
                      comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
                      values=["Treatment", "Sum"])
 
-        self.page.add(label="Models Contain F-tests ", 
-                 control=control.CHOICE_BOX, 
-                 name='f_test', 
-                 type=dtype.BOOL, 
-                 comment = "Set this option to True if any of the models specified above contain F-tests.", 
-                 values=["False","True"])
-
         self.page.add(label="Run Repeated Measures ", 
                      control=control.CHOICE_BOX, 
                      name='repeated_measures', 
@@ -268,9 +260,6 @@ class ModelConfig(wx.Frame):
                 if name == 'mean_mask':
                     ctrl.set_value(self.gpa_settings['mean_mask'])
 
-                if name == 'f_test':
-                    ctrl.set_value(str(self.gpa_settings['f_test']))
-
                 if name == 'repeated_measures':
                     ctrl.set_value(self.gpa_settings['repeated_measures'])
 
@@ -369,7 +358,7 @@ class ModelConfig(wx.Frame):
                     
                     ctrl.set_value(value)
 
-                elif name == 'f_test' or name == 'repeated_measures':
+                elif name == 'repeated_measures':
                     ctrl.set_value(str(value))
 
                 elif name == 'z_threshold' or name == 'p_threshold':
@@ -672,10 +661,10 @@ class ModelConfig(wx.Frame):
 
                             errmsg = 'CPAC says: The regressor \'%s\' you ' \
                                      'entered within the design formula as ' \
-                                     'part of the interaction \'%s\' is not a ' \
-                                     'valid EV option.\n\nPlease enter only ' \
-                                     'the EVs in your phenotype file or the ' \
-                                     'MeanFD or Measure_Mean options.' \
+                                     'part of the interaction \'%s\' is not ' \
+                                     'a valid EV option.\n\nPlease enter ' \
+                                     'only the EVs in your phenotype file ' \
+                                     'or the MeanFD or Measure_Mean options.' \
                                      % (side,EV)
 
                             errSubID = wx.MessageDialog(self, errmsg,
@@ -783,7 +772,9 @@ class ModelConfig(wx.Frame):
 
         if "Custom_ROI_Mean" not in formula and \
             (self.gpa_settings['custom_roi_mask'] != None and \
-            self.gpa_settings['custom_roi_mask'] != ""):
+            self.gpa_settings['custom_roi_mask'] != "" and \
+            self.gpa_settings['custom_roi_mask'] != "None" and \
+            self.gpa_settings['custom_roi_mask'] != "none"):
 
             warn_string = "Note: You specified a Custom ROI Mean Mask file, " \
                           "but you did not include 'Custom_ROI_Mean' as a " \
@@ -797,6 +788,8 @@ class ModelConfig(wx.Frame):
             errSubID.ShowModal()
             errSubID.Destroy()
 
+            raise Exception
+
 
 
         # if there is a custom ROI mean mask file provided, and the user
@@ -806,7 +799,9 @@ class ModelConfig(wx.Frame):
 
         if "Custom_ROI_Mean" in formula and \
             (self.gpa_settings['custom_roi_mask'] != None and \
-            self.gpa_settings['custom_roi_mask'] != ""):
+            self.gpa_settings['custom_roi_mask'] != "" and \
+            self.gpa_settings['custom_roi_mask'] != "None" and \
+            self.gpa_settings['custom_roi_mask'] != "none"):
 
             import commands
 

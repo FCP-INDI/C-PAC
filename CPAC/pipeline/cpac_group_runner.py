@@ -223,7 +223,10 @@ def run(config_file, subject_list_file, output_path_file):
     analysis_map_gp = defaultdict(list)
 
 
-    print "Parsing through output paths..\n"
+    print "Parsing through output paths. This may take a little while " \
+          "depending on how many subjects and outputs you have..\n"
+
+    count = 0
 
     for subject_path in subject_paths:
 
@@ -307,6 +310,10 @@ def run(config_file, subject_list_file, output_path_file):
 
                 analysis_map_gp[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
+        count += 1
+
+        if count == int(len(subject_paths)*0.7):
+            print "Almost finished parsing output paths.."     
 
         # with this loop, 'analysis_map_gp' is a dictionary with a key for
         # each individual output file - and each entry is a list of tuples,
@@ -314,6 +321,8 @@ def run(config_file, subject_list_file, output_path_file):
         # 'subject_path', which is a full path to that output file for that
         # one particular subject
 
+
+    print "Finished parsing through output paths!\n"
 
 
     for resource, group_model, glob_key in analysis_map.keys():
@@ -324,13 +333,13 @@ def run(config_file, subject_list_file, output_path_file):
 
                 if not c.runOnGrid:
                     from CPAC.pipeline.cpac_basc_pipeline import prep_basc_workflow
-                    prep_basc_workflow(c, analysis_map[(resource, glob_key)])
+                    prep_basc_workflow(c, analysis_map[(resource, group_model, glob_key)])
                 else:
                     if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
                     elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
 
             if 1 in c.runCWAS:
@@ -338,14 +347,14 @@ def run(config_file, subject_list_file, output_path_file):
                 if not c.runOnGrid:
 
                     from CPAC.pipeline.cpac_cwas_pipeline import prep_cwas_workflow
-                    prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
+                    prep_cwas_workflow(c, analysis_map[(resource, group_model, glob_key)])
 
                 else:
                     if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
                     elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
 
 

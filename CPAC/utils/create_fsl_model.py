@@ -229,7 +229,7 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 # OLDER CODE to facilitate creation of .con and .fts file via user-provided
 # contrasts matrix
 
-def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory, column_names):
+def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFilesDirectory, column_names, coding_scheme):
 
     """
     Create the contrasts and fts file
@@ -239,11 +239,11 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory,
     evs = evs.rstrip('\r\n').split(',')
     count_ftests = 0
 
-    for ev in evs:
+    # remove "Contrasts" label and replace it with "Intercept"
+    evs[0] = "Intercept"
 
-        if 'f_test' in ev.lower():
 
-            count_ftests += 1
+    count_ftests = len(ftest_list)
 
 
     try:
@@ -268,30 +268,66 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory,
 
     try:
 
+        # lst = list of tuples, "tp"
+        # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
+        #      with the zeroes being the vector of contrasts for that contrast
+
         for tp in lst:
 
             contrast_names.append(tp[0])
-            contrasts.append(list(tp)[1:length-count_ftests])
 
-            if fTest:
-                ftst.append(list(tp[length-count_ftests: length]))
+            # create a list of integers that is the vector for the contrast
+            # ex. [0, 1, 1, 0, ..]
+            con_vector = list(tp)[1:length]
+
+            # add Intercept column
+            if coding_scheme == "Treatment":
+                con_vector.insert(0, 0)
+            elif coding_scheme == "Sum":
+                con_vector.insert(0, 1)
+
+            contrasts.append(con_vector)
+
+        # contrast_names = list of the names of the contrasts (not regressors)
+        # contrasts = list of lists with the contrast vectors
 
         num_EVs_in_con_file = len(contrasts[0])
 
         contrasts = np.array(contrasts, dtype=np.float16)
         
+
+        # if there are f-tests, create the array for them
         if fTest:
+
+            # process each f-test
+            for ftest_string in ftest_list:
+
+                ftest_vector = []
+                
+                cons_in_ftest = ftest_string.split(",")
+
+                for con in contrast_names:
+                    if con in cons_in_ftest:
+                        ftest_vector.append(1)
+                    else:
+                        ftest_vector.append(0)
+
+                ftst.append(ftest_vector)
+
             fts_n = np.array(ftst)
 
+
     except:
-        print "\n\n" + "ERROR: Not enough contrasts for running f-tests." \
-              "\nTip: Do you have only one contrast in your contrasts file? " \
-              "f-tests require more than one contrast." + "\n" + \
-              "Either turn off f-tests or include more contrasts." + "\n\n"
-        raise Exception
+
+        errmsg = "\n\n[!] CPAC says: Not enough contrasts for running " \
+              "f-tests.\nTip: Do you have only one contrast in your " \
+              "contrasts file? f-tests require more than one contrast.\n" \
+              "Either turn off f-tests or include more contrasts.\n\n"
+
+        raise Exception(errmsg)
 
 
-    if len(column_names) != num_EVs_in_con_file:
+    if len(column_names) != (num_EVs_in_con_file):
 
         err_string = "\n\n[!] CPAC says: The number of EVs in your model " \
                      "design matrix (found in the %s.mat file) does not " \
@@ -305,6 +341,21 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory,
                      len(column_names), num_EVs_in_con_file, str(column_names))
 
         raise Exception(err_string)
+
+
+    for design_mat_col, con_csv_col in zip(column_names, evs):
+
+        if design_mat_col != con_csv_col:
+
+            errmsg = "\n\n[!] CPAC says: The names of the EVs in your " \
+                     "custom contrasts .csv file do not match the names or " \
+                     "order of the EVs in the design matrix. Please make " \
+                     "sure these are consistent.\nDesign matrix EV columns: " \
+                     "%s\nYour contrasts matrix columns: %s\n\n" \
+                     % (column_names, evs)
+
+            raise Exception(errmsg)        
+
 
 
     try:
@@ -325,38 +376,68 @@ def create_con_ftst_file(con_file, model_name, fTest, outputModelFilesDirectory,
         print >>f, '/NumContrasts\t', (contrasts.shape)[0]
         print >>f, pp_str
         print >>f, re_str + '\n'
+
+        # print labels for the columns - mainly for double-checking your model
+        col_string = '\n'
+        for ev in evs:
+            col_string = col_string + ev + '\t'
+        print >>f, col_string, '\n'
+
+
         print >>f, '/Matrix'
    
         np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
         f.close()
 
-    except:
-        print "Error: Could not create .con file."
-        print ""
-        raise Exception
+    except Exception as e:
+
+        filepath = os.path.join(outputModelFilesDirectory, model_name + '.con')
+
+        errmsg = "\n\n[!] CPAC says: Could not create the .con file for " \
+                 "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
+                 "Error details: %s\n\n" % (filepath, e)
+
+        raise Exception(errmsg)
+
 
 
     if fTest:
 
         try:
 
-            fts_n = fts_n.T
+            print "\nFound f-tests in your model, writing f-tests file " \
+                  "(.fts)..\n"
+
             f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
-            print >>f, '/NumWaves\t%d' % (contrasts.shape)[0]
-            print >>f, '/NumContrasts\t%d\n' % count_ftests
+            print >>f, '/NumContrasts\t', (contrasts.shape)[0]
+            print >>f, '/NumFTests\t', count_ftests
+
+            # print labels for the columns - mainly for double-checking your
+            # model
+            col_string = '\n'
+            for con in contrast_names:
+                col_string = col_string + con + '\t'
+            print >>f, col_string, '\n'
 
             print >>f, '/Matrix'
 
             for i in range(fts_n.shape[0]):
                 print >>f, ' '.join(fts_n[i].astype('str'))
-            #np.savetxt(f, fts_n[None], fmt='%d', delimiter=' ')
+
+            #np.savetxt(f, fts_n, fmt='%1.5e', delimiter=' ')
+
             f.close()
 
-        except:
-            print "Error: Could not create .fts file."
-            print ""
-            raise Exception
+        except Exception as e:
+
+            filepath = os.path.join(outputModelFilesDirectory, model_name + '.fts')
+
+            errmsg = "\n\n[!] CPAC says: Could not create .fts file for " \
+                     "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
+                     "Error details: %s\n\n" % (filepath, e)
+
+            raise Exception(errmsg)
 
 
 
@@ -951,7 +1032,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     #import pickle
     #pickle.dump(formula, open(c.output_dir + '/' + "formula.p", "wb" ) )
     #pickle.dump(pheno_data_dict, open(c.output_dir + '/' + "data_dict.p", "wb" ) )
-    print pheno_data_dict
+    #print pheno_data_dict
 
     try:
         dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
@@ -966,7 +1047,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    ''' CREATE CONTRAST FILE '''
+    ''' CONTRAST FILE PREP FUNCTIONS '''
 
     # parse in user-input contrast strings that were selected, and generate
     # the contrast file (.con)
@@ -980,13 +1061,17 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
         if coding == "Treatment":
 
+            # this is also where the "Intercept" column gets introduced into
+            # the contrasts columns, for when the user uses the model builder's
+            # contrast builder
             evs = dmat.design_info.column_name_indexes
             con = np.zeros(dmat.shape[1])
 
             if a in evs:
                 con[evs[a]] = 1
             else:
-                #it is a dropped term so make all other terms in that category at -1
+                # it is a dropped term so make all other terms in that category
+                # at -1
                 term = a.split('[')[0]
 
                 for ev in evs:
@@ -1005,7 +1090,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
             if a in evs:
                 con[evs[a]] = 1
             else:
-                #it is a dropped term so make all other terms in that category at -1
+                # it is a dropped term so make all other terms in that category
+                # at -1
                 term = a.split('[')[0]
                 for ev in evs:
                     if ev.startswith(term):
@@ -1030,7 +1116,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
     def create_con_file(con_dict, col_names, file_name, out_dir):
         with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
-            #write header
+            # write header
             num = 1
             for key in con_dict:
                 f.write("/ContrastName%s\t%s\n" %(num,key))
@@ -1048,7 +1134,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                 col_string = col_string + col + '\t'
             print >>f, col_string, '\n'
 
-            #write data
+            # write data
             f.write("/Matrix\n")
 
             for key in con_dict:
@@ -1058,7 +1144,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    # begin contrast file generation
+    ''' Create contrasts_dict dictionary for the .con file generation later '''
 
     contrasts = c.contrasts
     contrasts_list = []
@@ -1145,15 +1231,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
         if '>' in parsed_contrast:
 
-            print "parsed contrast: ", parsed_contrast
-
             parsed_EVs_in_contrast = process_contrast('>')
 
-            print "parsed EVs in contrast: ", parsed_EVs_in_contrast
-
             contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme)
-
-            print "contrasts_dict[parsed_contrast]: ", contrasts_dict[parsed_contrast]
 
 
         elif '<' in parsed_contrast:
@@ -1239,12 +1319,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                                 else:
                                     contrasts_dict[parsed_contrast] += contrast_vector
 
-
                     idx += 1        
 
 
-
-    ### CREATE the .mat, .con, and .grp files
 
     # convert the Patsy-generated design matrix into a NumPy array
     data = np.asarray((dmatrix))
@@ -1264,8 +1341,11 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    ''' check for appropriate settings for modeling group '''
-    ''' variances separately '''
+
+    ''' Modeling Group Variances Separately '''
+
+
+    # check for appropriate settings for modeling group variances separately
     if c.group_sep == True and (c.grouping_var == None or (c.grouping_var not in c.design_formula)):
         print '\n\n[!] CPAC says: Model group variances separately is ' \
               'enabled, but the grouping variable set is either set to ' \
@@ -1276,9 +1356,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    ''' prep data and column names if user decides to model group '''
-    ''' variances separately '''
-
+    # prep data and column names if user decides to model group variances
+    # separately
     if c.group_sep == True:
 
         EV_options = []
@@ -1308,8 +1387,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                 if skip == 0:
                     EV_options.append(col_name)
 
-
-
         idx = 1
 
         for ev in EV_options:
@@ -1325,7 +1402,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
                 # grouping_var_idx is the column numbers in the design matrix
                 # which holds the grouping variable (and its possible levels)
-
 
             idx += 1
 
@@ -1349,7 +1425,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     new_options.append(ev + level)
             elif c.grouping_var in ev:
                 new_options.append(ev)
-
 
 
         grouped_data = []
@@ -1384,8 +1459,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                                     new_row.append(subject[orig_idx])
                                 else:
                                     new_row.append(0)
-
-          
+        
 
             grouped_data.append(new_row)
 
@@ -1403,11 +1477,49 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         column_names = dmatrix.design_info.column_names
 
 
-    '''
-    still need:
-        contrast handling?
-    '''
+    # remove the header formatting Patsy creates for categorical variables
+    # because we are going to use depatsified_EV_names to test user-made
+    # custom contrast files
 
+    depatsified_EV_names = []
+
+    for column in column_names:
+
+        # if using Sum encoding, a column name may look like this:
+        #     C(adhd, Sum)[S.adhd0]
+
+        # this loop leaves it with only "adhd0" in this case, for the
+        # contrasts list for the next GUI page
+
+        column_string = column
+
+        string_for_removal = ''
+
+        for char in column_string:
+
+            string_for_removal = string_for_removal + char
+
+            if char == '.':
+                column_string = column_string.replace(string_for_removal, '')
+                string_for_removal = ''
+
+        column_string = column_string.replace(']', '')
+
+        depatsified_EV_names.append(column_string)
+
+
+
+
+    ''' let's get those f-tests ready '''
+
+
+
+
+
+
+
+
+    ''' FLAMEO model input files generation '''
 
     try:
         create_mat_file(data, column_names, c.model_name, c.output_dir)
@@ -1432,20 +1544,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print "Writing contrasts file (.con) based on contrasts provided " \
               "using the group analysis model builder's contrasts editor.."
 
-        try:
-            create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
-        except:
-            print '\n\n[!] CPAC says: Could not create .con file during ' \
-                      'group-level analysis model file generation.\n'
-            print 'Attempted output directory: ', c.output_dir, '\n\n'
-            raise Exception
+        create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
 
     else:
 
-        print "Writing contrasts file (.con) based on contrasts provided " \
-              "with a custom contrasts matrix CSV file.."
+        print "\nWriting contrasts file (.con) based on contrasts provided " \
+              "with a custom contrasts matrix CSV file..\n"
 
-        create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.output_dir, column_names)
+        create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.f_tests, c.output_dir, depatsified_EV_names, coding_scheme)
 
 
 

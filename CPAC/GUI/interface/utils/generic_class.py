@@ -307,6 +307,7 @@ class Control(wx.Control):
             self.options = self.ctrl.get_listbox_options()
             self.listbox_selections = []
 
+
             
         elif type == 8:
             self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 

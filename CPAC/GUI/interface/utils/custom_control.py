@@ -2,7 +2,7 @@ import wx
 import wx.combo
 import os
 from wx.lib.masked import NumCtrl
-import modelconfig_window
+import modelconfig_window, modelDesign_window
 import wx.lib.agw.balloontip as BT
 import pkg_resources as p
 
@@ -328,6 +328,7 @@ class ContrastsFrame(wx.Frame):
 
                 parent.listbox.Append(str(val))
                 parent.options.append(str(val))
+                parent.raise_listbox_options()
                 self.Close()
 
 
@@ -369,12 +370,59 @@ class ContrastsFrame(wx.Frame):
 
 
 
+class f_test_frame(wx.Frame):
+    
+    def __init__(self, parent, values):
+        wx.Frame.__init__(self, parent, title="Select Contrasts for f-Test", size = (280,200))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        panel = wx.Panel(self)
+        self.ctrl = wx.CheckListBox(panel, id = wx.ID_ANY,
+                                    choices = values)
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(self.ctrl, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+    
+    def onButtonClick(self,event):
+        parent = self.Parent
+
+        if len(self.ctrl.GetCheckedStrings()) < 2:
+            
+            errmsg = "Please select at least two contrasts for your f-test."
+            errCon = wx.MessageDialog(self, errmsg, "Not Enough Contrasts",
+                     wx.OK | wx.ICON_ERROR)
+            errCon.ShowModal()
+            errCon.Destroy()
+
+            raise Exception
+
+
+        if self.ctrl.GetCheckedStrings():
+            val=""
+            for sel in self.ctrl.GetCheckedStrings():
+                if val:
+                    val = val + "," + sel
+                else:
+                    val = sel
+            parent.listbox.Append(val)
+            parent.options.append(val)
+            self.Close()
+
+
+
+
 
 class ListBoxCombo(wx.Panel):
     
     def __init__(self, parent, size, validator, style, values, combo_type):
         wx.Panel.__init__(self, parent)
         
+        self.parent = parent
+
         self.ctype = combo_type
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -406,6 +454,7 @@ class ListBoxCombo(wx.Panel):
 
                     # insert the contrast strings into the GUI's checkbox list
                     self.listbox.Append(str(val))
+                    self.options.append(str(val))
 
                     # find out which ones were selected
                     if values[val] == True:
@@ -414,6 +463,29 @@ class ListBoxCombo(wx.Panel):
                 # select the contrast checkboxes that the user checked when
                 # they load their gpa config.yml file into the model builder
                 self.listbox.SetCheckedStrings(selected_contrasts)
+
+                # have to do this to make sure the f-test option list populates
+                self.raise_listbox_options()
+
+
+        if self.ctype == 5:
+
+            # if this is a 'load' situation when the user loads their group
+            # analysis .yml file and they already have f-tests inserted into
+            # the list
+            if values:
+
+                selected_ftests = []
+
+                for val in values:
+
+                    # insert the f-test strings into the GUI's checkbox list
+                    self.listbox.Append(str(val))
+                    self.options.append(str(val))
+
+                # select the contrast checkboxes that the user checked when
+                # they load their gpa config.yml file into the model builder
+                self.listbox.SetCheckedStrings(values)
 
                    
         
@@ -426,6 +498,24 @@ class ListBoxCombo(wx.Panel):
             CheckBox(self, self.values)
         elif self.ctype == 4:
             ContrastsFrame(self, self.values, self.avail_cons)
+        elif self.ctype == 5:
+
+            # here: get the contrasts.csv and populate "self.parent.input_contrasts"
+            # if custom_contrasts is a thing:
+
+            if len(self.parent.input_contrasts) < 2:
+
+                errmsg = "Please input at least two contrasts before " \
+                             "attempting to enter f-test selections."
+                errCon = wx.MessageDialog(self, errmsg, "Not Enough Contrasts",
+                         wx.OK | wx.ICON_ERROR)
+                errCon.ShowModal()
+                errCon.Destroy()
+
+            else:
+
+                f_test_frame(self, self.parent.input_contrasts)
+
         
     def GetListBoxCtrl(self):
         return self.listbox
@@ -447,8 +537,13 @@ class ListBoxCombo(wx.Panel):
             # Set the message (tip) foreground colour
             tip.SetMessageColour(wx.BLUE)
 
+
     def get_listbox_options(self):
         return self.options
+
+
+    def raise_listbox_options(self):
+        self.parent.input_contrasts = self.options
 
 
     def set_available_contrasts(self, avail_cons):
