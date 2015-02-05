@@ -16,7 +16,7 @@ class ModelConfig(wx.Frame):
     def __init__(self, parent, gpa_settings=None):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 650))
 
 
         if gpa_settings == None:
@@ -25,12 +25,13 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['pheno_file'] = ''
             self.gpa_settings['subject_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
+            self.gpa_settings['mean_mask'] = ''
+            self.gpa_settings['custom_roi_mask'] = 'None'
             self.gpa_settings['coding_scheme'] = ''
             self.gpa_settings['derivative_list'] = ''
-            self.gpa_settings['f_test'] = ''
+            self.gpa_settings['repeated_measures'] = ''
             self.gpa_settings['z_threshold'] = ''
             self.gpa_settings['p_threshold'] = ''
-            self.gpa_settings['repeated_measures'] = ''
         else:
             self.gpa_settings = gpa_settings
         
@@ -97,16 +98,23 @@ class ModelConfig(wx.Frame):
                       control=control.TEXT_BOX,
                       name="design_formula",
                       type=dtype.STR,
-                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD and Measure_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
+                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD, Measure_Mean, and Custom_ROI_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 
-        self.page.add(label="Coding Scheme ", 
-                     control=control.CHOICE_BOX, 
-                     name="coding_scheme", 
-                     type=dtype.LSTR, 
-                     comment="Choose the coding scheme to use when generating your model.", 
-                     values=["Treatment", "Sum"])
+        self.page.add(label="Measure Mean Generation ", 
+                 control=control.CHOICE_BOX, 
+                 name='mean_mask', 
+                 type=dtype.LSTR, 
+                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' regressor in your Design Matrix Formula.", 
+                 values=["Group Mask","Individual Mask"])
+
+        self.page.add(label="Custom ROI Mean Mask ",
+                      control=control.COMBO_BOX,
+                      name="custom_roi_mask",
+                      type=dtype.STR,
+                      comment="Optional: Full path to a NIFTI file containing one or more ROI masks. The means of the masked regions will then be computed for each subject's output and will be included in the model as regressors (one for each ROI in the mask file) if you include 'Custom_ROI_Mean' in the Design Matrix Formula.",
+                      values=self.gpa_settings['custom_roi_mask'])
 
         self.page.add(label = "Select Derivatives ",
                     control = control.CHECKLIST_BOX,
@@ -138,14 +146,23 @@ class ModelConfig(wx.Frame):
                               'Dual Regression z-stat (smoothed)'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
                     size = (350,160))
- 
 
-        self.page.add(label="Models Contain F-tests ", 
-                 control=control.CHOICE_BOX, 
-                 name='f_test', 
-                 type=dtype.BOOL, 
-                 comment = "Set this option to True if any of the models specified above contain F-tests.", 
-                 values=["False","True"])
+        self.page.add(label="Coding Scheme ", 
+                     control=control.CHOICE_BOX, 
+                     name="coding_scheme", 
+                     type=dtype.LSTR, 
+                     comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
+                     values=["Treatment", "Sum"])
+
+        self.page.add(label="Run Repeated Measures ", 
+                     control=control.CHOICE_BOX, 
+                     name='repeated_measures', 
+                     type=dtype.BOOL, 
+                     comment="Run repeated measures to compare different " \
+                             "scans (must use the group analysis subject " \
+                             "list and phenotypic file formatted for " \
+                             "repeated measures.", 
+                     values=["False","True"])
         
         self.page.add(label="Z threshold ", 
                      control=control.FLOAT_CTRL, 
@@ -160,16 +177,6 @@ class ModelConfig(wx.Frame):
                      type=dtype.NUM, 
                      comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
                      values=0.05)
-
-        self.page.add(label="Run Repeated Measures ", 
-                     control=control.CHOICE_BOX, 
-                     name='repeated_measures', 
-                     type=dtype.BOOL, 
-                     comment="Run repeated measures to compare different " \
-                             "scans (must use the group analysis subject " \
-                             "list and phenotypic file formatted for " \
-                             "repeated measures.", 
-                     values=["False","True"])
 
 
 
@@ -210,12 +217,12 @@ class ModelConfig(wx.Frame):
 
 
 
-        text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
-        text_sizer.Add(measure_text)
+        #text_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
+        #text_sizer.Add(measure_text)
 
+        #mainSizer.Add(text_sizer)
 
-        mainSizer.Add(text_sizer)
 
         mainSizer.Add(
             btnPanel, 0.5,  flag=wx.ALIGN_RIGHT | wx.RIGHT, border=20)
@@ -227,7 +234,8 @@ class ModelConfig(wx.Frame):
 
         # this fires only if we're coming BACK to this page from the second
         # page, and these parameters are already pre-loaded. this is to
-        # automatically repopulate the 'Model Setup' checkbox grid
+        # automatically repopulate the 'Model Setup' checkbox grid and other
+        # settings under it
         if self.gpa_settings['pheno_file'] != '':
 
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
@@ -240,10 +248,34 @@ class ModelConfig(wx.Frame):
             # their associated checkboxes for categorical and demean
             for ctrl in self.page.get_ctrl_list():
 
-                if ctrl.get_name() == 'model_setup':
+                name = ctrl.get_name()
+
+                if name == 'model_setup':
                     ctrl.set_value(phenoHeaderItems)
                     ctrl.set_selection(self.gpa_settings['ev_selections'])
 
+                if name == 'coding_scheme':
+                    ctrl.set_value(self.gpa_settings['coding_scheme'])
+
+                if name == 'mean_mask':
+                    ctrl.set_value(self.gpa_settings['mean_mask'])
+
+                if name == 'repeated_measures':
+                    ctrl.set_value(self.gpa_settings['repeated_measures'])
+
+                if name == 'z_threshold':
+                    ctrl.set_value(self.gpa_settings['z_threshold'][0])
+
+                if name == 'p_threshold':
+                    ctrl.set_value(self.gpa_settings['p_threshold'])
+
+                if name == 'derivative_list':
+
+                    value = self.gpa_settings['derivative_list']
+
+                    value = value.replace("['","").replace("']","").split("', '")
+
+                    ctrl.set_value(value)
 
 
 
@@ -262,6 +294,8 @@ class ModelConfig(wx.Frame):
         pass
 
     
+
+    ''' button: LOAD SETTINGS '''
     def load(self, event):
 
         # when the user clicks 'Load Settings', which loads the
@@ -315,8 +349,27 @@ class ModelConfig(wx.Frame):
                 # the model setup checkbox grid is the only one that doesn't
                 # get repopulated the standard way. instead it is repopulated
                 # by the code directly above
-                if name != 'model_setup':
-                    ctrl.set_value(str(self.gpa_settings[name]))
+
+                if name == 'derivative_list':
+                    value = [s_map.get(item)
+                                 for item in value if s_map.get(item) != None]
+                    if not value:
+                        value = [str(item) for item in value]
+                    
+                    ctrl.set_value(value)
+
+                elif name == 'repeated_measures':
+                    ctrl.set_value(str(value))
+
+                elif name == 'z_threshold' or name == 'p_threshold':
+                    value = value[0]
+                    ctrl.set_value(value)
+
+                elif name != 'model_setup' and name != 'derivative_list':
+                    try:
+                        ctrl.set_value(value)#str(self.gpa_settings[name]))
+                    except:
+                        print name, " ", value
                 
 
             dlg.Destroy()
@@ -378,7 +431,7 @@ class ModelConfig(wx.Frame):
 
 
           
-            
+    ''' button: LOAD PHENOTYPE FILE '''
     def populateEVs(self, event):
 
         # this runs when the user clicks 'Load Phenotype File'
@@ -461,7 +514,7 @@ class ModelConfig(wx.Frame):
 
 
 
-
+    ''' button: NEXT '''
     def load_next_stage(self, event):
 
         import patsy
@@ -484,8 +537,8 @@ class ModelConfig(wx.Frame):
             except:
                     
                 errDlgFileTest = wx.MessageDialog(
-                    self, 'Error reading file - either it does not exist or you' \
-                          ' do not have read access. \n\n' \
+                    self, 'Error reading file - either it does not exist ' \
+                          'or you do not have read access. \n\n' \
                           'Parameter: %s' % paramName,
                     'File Access Error',
                     wx.OK | wx.ICON_ERROR)
@@ -527,13 +580,18 @@ class ModelConfig(wx.Frame):
                 self.gpa_settings['design_formula'] = str(ctrl.get_selection())
 
             # get the EV categorical + demean grid selections
-            if name == 'model_setup':
+            elif name == 'model_setup':
 
                 # basically, ctrl is checkbox_grid in this case, and
                 # get_selection goes to generic_class.py first, which links
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
+
+            else:
+
+                self.gpa_settings[name] = str(ctrl.get_selection())
+
 
 
         self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'])
@@ -598,14 +656,15 @@ class ModelConfig(wx.Frame):
                         int_check = 1
                     else:
                         if (side not in self.pheno_data_dict.keys()) and \
-                            side != 'MeanFD' and side != 'Measure_Mean':
+                            side != 'MeanFD' and side != 'Measure_Mean' and \
+                            side != 'Custom_ROI_Mean':
 
                             errmsg = 'CPAC says: The regressor \'%s\' you ' \
                                      'entered within the design formula as ' \
-                                     'part of the interaction \'%s\' is not a ' \
-                                     'valid EV option.\n\nPlease enter only ' \
-                                     'the EVs in your phenotype file or the ' \
-                                     'MeanFD or Measure_Mean options.' \
+                                     'part of the interaction \'%s\' is not ' \
+                                     'a valid EV option.\n\nPlease enter ' \
+                                     'only the EVs in your phenotype file ' \
+                                     'or the MeanFD or Measure_Mean options.' \
                                      % (side,EV)
 
                             errSubID = wx.MessageDialog(self, errmsg,
@@ -650,7 +709,9 @@ class ModelConfig(wx.Frame):
                 for interaction_EV in both_EVs_in_interaction:
 
                     if (interaction_EV not in self.pheno_data_dict.keys()) and \
-                        interaction_EV != 'MeanFD' and interaction_EV != 'Measure_Mean':
+                        interaction_EV != 'MeanFD' and \
+                        interaction_EV != 'Measure_Mean' and \
+                        interaction_EV != 'Custom_ROI_Mean':
 
                         errmsg = 'CPAC says: The regressor \'%s\' you ' \
                                  'entered within the design formula as ' \
@@ -670,7 +731,7 @@ class ModelConfig(wx.Frame):
             else:
 
                 if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
-                    and EV != 'Measure_Mean':
+                    and EV != 'Measure_Mean' and EV != 'Custom_ROI_Mean':
 
                     errmsg = 'CPAC says: The regressor \'%s\' you ' \
                              'entered within the design formula is not ' \
@@ -685,6 +746,90 @@ class ModelConfig(wx.Frame):
                     errSubID.Destroy()
                 
                     raise Exception
+
+
+
+        # more design formula/input parameters checks
+
+        if "Custom_ROI_Mean" in formula and \
+            (self.gpa_settings['custom_roi_mask'] == None or \
+            self.gpa_settings['custom_roi_mask'] == ""):
+
+            err_string = "You included 'Custom_ROI_Mean' as a regressor " \
+                         "in your Design Matrix Formula, but you did not " \
+                         "specify a Custom ROI Mean Mask file.\n\nPlease " \
+                         "either specify a mask file, or remove " \
+                         "'Custom_ROI_Mean' from your model."
+
+            errSubID = wx.MessageDialog(self, err_string,
+                'No Custom ROI Mean Mask File', wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+
+            raise Exception
+
+
+
+        if "Custom_ROI_Mean" not in formula and \
+            (self.gpa_settings['custom_roi_mask'] != None and \
+            self.gpa_settings['custom_roi_mask'] != "" and \
+            self.gpa_settings['custom_roi_mask'] != "None" and \
+            self.gpa_settings['custom_roi_mask'] != "none"):
+
+            warn_string = "Note: You specified a Custom ROI Mean Mask file, " \
+                          "but you did not include 'Custom_ROI_Mean' as a " \
+                          "regressor in your Design Matrix Formula.\n\nThe " \
+                          "means of the ROIs specified in the file will not " \
+                          "be included as regressors unless you include " \
+                          "'Custom_ROI_Mean' in your model."
+
+            errSubID = wx.MessageDialog(self, warn_string,
+                'No Custom_ROI_Mean Regressor', wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+
+            raise Exception
+
+
+
+        # if there is a custom ROI mean mask file provided, and the user
+        # includes it as a regressor in their design matrix formula, calculate
+        # the number of ROIs in the file and generate the column names so that
+        # they can be passed as possible contrast labels
+
+        if "Custom_ROI_Mean" in formula and \
+            (self.gpa_settings['custom_roi_mask'] != None and \
+            self.gpa_settings['custom_roi_mask'] != "" and \
+            self.gpa_settings['custom_roi_mask'] != "None" and \
+            self.gpa_settings['custom_roi_mask'] != "none"):
+
+            import commands
+
+            try:
+                ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" \
+                                  % (self.gpa_settings['custom_roi_mask'], \
+                                  self.gpa_settings['custom_roi_mask']))
+            except Exception as e:
+                print "[!] CPAC says: AFNI 3dROIstats failed for custom ROI" \
+                      "Mean Mask file validation. Please ensure you either " \
+                      "have AFNI installed and that you created the mask " \
+                      "file properly. Consult the User Guide for more " \
+                      "information.\n\n"
+                print "Error details: %s\n\n" % e
+                raise
+
+            ROIstats_list = ROIstats_output.split("\t")
+
+            # calculate the number of ROIs - 3dROIstats output can be split
+            # into a list, and the actual ROI means begin at a certain point
+            num_rois = (len(ROIstats_list)-3)/2
+
+
+            custom_roi_labels = []
+
+            for num in range(1,num_rois):
+                custom_roi_labels.append("Custom_ROI_Mean_%d" % num)
+
 
 
 
@@ -782,30 +927,56 @@ class ModelConfig(wx.Frame):
 
         patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
 
-        # let's create dummy columns for MeanFD and Measure_Mean just so we
+
+        # let's create dummy columns for MeanFD, Measure_Mean, and
+        # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
         # can get an accurate list of EVs Patsy will generate
-        if 'MeanFD' in formula or 'Measure_Mean' in formula:
+
+        def create_regressor_column(regressor):
+
+            # regressor should be a string of the name of the regressor
 
             import numpy as np
 
-            MeanFD = []
-            Measure_Mean = []
+            regressor_list = []
 
             for key in patsy_formatted_pheno.keys():
                for val in patsy_formatted_pheno[key]:
-                   MeanFD.append(0.0)
-                   Measure_Mean.append(0.0)
+                   regressor_list.append(0.0)
                break
 
-            MeanFD = np.array(MeanFD)
-            Measure_Mean = np.array(Measure_Mean)
+            regressor_list = np.array(regressor_list)
 
-            patsy_formatted_pheno['MeanFD'] = MeanFD
-            patsy_formatted_pheno['Measure_Mean'] = Measure_Mean
+            patsy_formatted_pheno[regressor] = regressor_list
 
-        print "\n\npatsy_formatted_pheno:"
-        print patsy_formatted_pheno
-        print "\n\n"
+
+        if 'MeanFD' in formula:
+            create_regressor_column('MeanFD')
+        if 'Measure_Mean' in formula:
+            create_regressor_column('Measure_Mean')
+
+        if 'Custom_ROI_Mean' in formula:
+
+            add_formula_string = ""
+
+            for col_label in custom_roi_labels:
+
+                create_regressor_column(col_label)
+
+                # create a string of all the new custom ROI regressor column
+                # names to be inserted into the design formula, so that Patsy
+                # will accept the phenotypic data dictionary that now has these
+                # columns
+                if add_formula_string == "":
+                    add_formula_string = add_formula_string + col_label
+                else:
+                    add_formula_string = add_formula_string + " + " + col_label
+   
+
+            formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
+
+
+
 
 
         if 'categorical' in self.gpa_settings['ev_selections']:
@@ -816,7 +987,8 @@ class ModelConfig(wx.Frame):
                 elif self.gpa_settings['coding_scheme'] == 'Sum':
                     formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
-       
+
+
         # create the dmatrix in Patsy just to see what the design matrix
         # columns are going to be 
         try:
@@ -831,10 +1003,6 @@ class ModelConfig(wx.Frame):
 
 
         column_names = dmatrix.design_info.column_names
-        
-        print "\n\n"
-        print dmatrix.design_info
-        print "\n\n"
 
 
         # remove the header formatting Patsy creates for categorical variables
@@ -842,26 +1010,21 @@ class ModelConfig(wx.Frame):
         # users to know what contrasts are available to them
         for column in column_names:
 
+            # if using Sum encoding, a column name may look like this:
+            #     C(adhd, Sum)[S.adhd0]
+
+            # this loop leaves it with only "adhd0" in this case, for the
+            # contrasts list for the next GUI page
+
             column_string = column
 
-            record = 0
             string_for_removal = ''
 
             for char in column_string:
 
-                if record == 2:
-                    string_for_removal = string_for_removal + char
-                elif record == 1 and char == '(':
-                    string_for_removal = 'C('
-                    record = 2
-                else:
-                    record = 0
-                
-                if char == 'C' and record == 0:
-                    record = 1
+                string_for_removal = string_for_removal + char
 
                 if char == '.':
-                    record = 0
                     column_string = column_string.replace(string_for_removal, '')
                     string_for_removal = ''
 
@@ -870,9 +1033,6 @@ class ModelConfig(wx.Frame):
             if column_string != 'Intercept':
                 var_list_for_contrasts.append(column_string)
 
-
-        
-        print 'varlist: ', var_list_for_contrasts
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well

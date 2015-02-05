@@ -272,8 +272,6 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
 
     if ftest:
 
-        print "ftest is True"
-
         #calling easythresh for zfstats file
         grp_analysis.connect(inputnode, 'fts_file',
                              fsl_flameo, 'f_con_file')

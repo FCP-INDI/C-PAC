@@ -224,7 +224,7 @@ class Control(wx.Control):
                                style=style, size= wx.DefaultSize, 
                                validator=wx.DefaultValidator,
                                choices=values)
-            self.selection = values[0]        
+            self.selection = values[0]
         
         elif type ==1:
             self.ctrl= wx.TextCtrl(parent, id = wx.ID_ANY, 
@@ -306,6 +306,7 @@ class Control(wx.Control):
            
             self.options = self.ctrl.get_listbox_options()
             self.listbox_selections = []
+
 
             
         elif type == 8:
@@ -411,6 +412,7 @@ class Control(wx.Control):
     def set_value(self, val):
         import ast
         #print "self.get_name(), self.get_type() , val -->", self.get_name(), self.get_type(), val
+
         if val == None or val =="":
             val = self.get_values()
         else:
@@ -422,19 +424,27 @@ class Control(wx.Control):
                         listbox.Check(0)
                         self.set_selection(v)  
             elif self.get_type()==6:
-                #self.ctrl.SetChecked(val)
+
+                # if the control is a checkbox, handle appropriately
+                # this is for the derivative list in the group analysis GUI
+                if "[" in val and "]" in val:
+                    val = val.replace("[", "")
+                    val = val.replace("]", "")
+                    val = val.replace("'", "")
+                    val = val.split(", ")
+
                 self.ctrl.SetCheckedStrings(val)
-                strings = self.ctrl.GetCheckedStrings() 
+                strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()
                 for s in strings:
                     self.set_selection(s, sample_list.index(s))
+
             elif self.get_type() == 9:
                 self.ctrl.set_checkbox_grid_values(val)
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):
                         val = val[0]
-                    #print "combo box value, default values---------------> ", val, self.get_values()
                     self.ctrl.SetStringSelection(val)
                 elif self.get_type() ==3 or self.get_type()==4:
                     if str(val) != 'None':

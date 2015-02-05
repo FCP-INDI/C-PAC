@@ -15,7 +15,7 @@ class ModelDesign(wx.Frame):
     def __init__(self, parent, gpa_settings, varlist):
 
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC - Create New FSL Model", size=(800, 600))
+            self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
 
         self.parent = parent
 
@@ -23,8 +23,15 @@ class ModelDesign(wx.Frame):
 
         self.contrasts_list = varlist
 
+
         if 'contrasts' not in self.gpa_settings.keys():
             self.gpa_settings['contrasts'] = {}
+
+        if 'custom_contrasts' not in self.gpa_settings.keys():
+            self.gpa_settings['custom_contrasts'] = 'None'
+
+        if 'f_tests' not in self.gpa_settings.keys():
+            self.gpa_settings['f_tests'] = []
 
         if 'grouping_var' not in self.gpa_settings.keys():
             self.gpa_settings['grouping_var'] = 'None'
@@ -88,7 +95,7 @@ class ModelDesign(wx.Frame):
                       name = 'contrastStrings',
                       type = dtype.LSTR,
                       values = self.gpa_settings['contrasts'],
-                      comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ .',
+                      comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ . Consult the User Guide for more information about describing contrasts. Alternatively, you can provide your own custom-written contrasts matrix in a CSV file in the \'Custom Contrasts Matrix\' field below.',
                       size = (300,200),
                       combo_type = 4)
 
@@ -101,7 +108,25 @@ class ModelDesign(wx.Frame):
                 ctrl.set_available_contrasts(varlist)
 
 
-        self.page.add(label="Model Group Variances Seperately ",
+        self.page.add(label = 'f-Tests ',
+                      control = control.LISTBOX_COMBO,
+                      name = 'f_tests',
+                      type = dtype.LSTR,
+                      values = self.gpa_settings['f_tests'],
+                      comment = 'Optional: Specify your desired f-tests, if any, in this window.',
+                      size = (300,120),
+                      combo_type = 5)
+
+
+        self.page.add(label="Custom Contrasts Matrix ",
+                      control=control.COMBO_BOX,
+                      name="custom_contrasts",
+                      type=dtype.STR,
+                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix if you do not wish to use the contrasts builder above. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead.",
+                      values=str(self.gpa_settings['custom_contrasts']))
+
+
+        self.page.add(label="Model Group Variances Separately ",
                       control=control.CHOICE_BOX,
                       name='modelGroupVariancesSeparately',
                       type=dtype.NUM,
@@ -120,7 +145,7 @@ class ModelDesign(wx.Frame):
                       control=control.TEXT_BOX,
                       name="modelName",
                       type=dtype.STR,
-                      comment="Specify a name for the new model.",
+                      comment="Specify a name for the new model. Output and working directories for group analysis, as well as the FLAMEO model files (.mat, .con, .grp, etc.) will be labeled with this name.",
                       values=self.gpa_settings['model_name'],
                       size=(200, -1))
 
@@ -300,8 +325,8 @@ class ModelDesign(wx.Frame):
        
                     # check to make sure the contrast names are contrasts that
                     # are actually valid - this will only really ever happen
-                    # if the user hand-edits the config file, the GUI catches
-                    # invalid contrasts when entered
+                    # if the user hand-edits the config file; otherwise the GUI
+                    # catches invalid contrasts when entered
                     for contrast in contrasts:
                         if contrast not in self.contrasts_list:
 
@@ -324,6 +349,51 @@ class ModelDesign(wx.Frame):
                         self.gpa_settings['contrasts'][option] = True
                     else:
                         self.gpa_settings['contrasts'][option] = False
+
+
+            if name == 'f_tests':
+
+                self.gpa_settings['f_tests'] = []
+
+                for option in ctrl.get_listbox_options():
+
+                    cons_in_ftest = []
+
+                    for con in option.split(","):
+                        cons_in_ftest.append(con)
+
+                    # check to make sure the contrasts in the f-test lists
+                    # are actually valid - this will only really ever happen
+                    # if the user hand-edits the config file, the GUI catches
+                    # invalid contrasts when entered
+                    for contrast in cons_in_ftest:
+
+                        if contrast not in self.window.input_contrasts:
+
+                            errmsg = 'CPAC says: The contrast \'%s\' you ' \
+                                'entered within the f-test \'%s\' is not ' \
+                                'one of the available contrast selections.' \
+                                '\n\nPlease enter only the contrast labels ' \
+                                'of the contrasts you have specified.' \
+                                % (contrast, option)
+
+                            errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+                            raise Exception
+                            
+
+                    # then, add them to gpa_settings appropriately
+                    if option in ctrl.get_listbox_options():
+                        self.gpa_settings['f_tests'].append(str(option))
+                    else:
+                        self.gpa_settings['f_tests'].append(str(option))
+
+
+            if name == 'custom_contrasts':
+
+                self.gpa_settings['custom_contrasts'] = ctrl.get_selection()
 
 
             if name == 'modelGroupVariancesSeparately':
@@ -358,14 +428,22 @@ class ModelDesign(wx.Frame):
 
 
         '''
-        TO-DO:
-        also pass new selections from within this window
+        done:
+        also pass new selections from within this window (done)
         make it so that if modelconfig receives these, it stores them in case
         the user hits next without changing anything
 
         then it will restore them.
+
+        to do:
         but if the user changes the pheno or something, you need to warn them
         '''
+
+
+
+    def collect_contrasts(self):
+        pass
+
 
 
 
@@ -376,8 +454,6 @@ class ModelDesign(wx.Frame):
         # model setup
 
         self.collect_input()
-
-        print self.gpa_settings
 
         config_list = []
         config_map = {}
@@ -417,21 +493,45 @@ class ModelDesign(wx.Frame):
                                 'be demeaned.'))
 
         config_list.append(('design_formula', vals['design_formula'], 1, \
-                                'Formula for the design matrix. The EVs ' \
-                                'included in this formula will be included ' \
-                                'in the model. <MORE INFO>'))
+                                'Specify the formula to describe your ' \
+                                'model design. Essentially, including EVs ' \
+                                'in this formula inserts them into the ' \
+                                'model. The most basic format to include ' \
+                                'each EV you select would be \'EV + EV + EV ' \
+                                '+ ..\', etc. You can also select to ' \
+                                'include MeanFD, Measure_Mean, and ' \
+                                'Custom_ROI_Mean here. See the C-PAC User ' \
+                                'Guide for more detailed information ' \
+                                'regarding formatting your design formula.'))
 
-        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
-                                'Choose the coding scheme to use when ' \
-                                'generating your model. '))
+        config_list.append(('mean_mask', vals['mean_mask'], 4, \
+                                'Choose whether to use a group mask or ' \
+                                'individual-specific mask when calculating ' \
+                                'the output means to be used as a ' \
+                                'regressor.\n\nThis only takes effect if ' \
+                                'you include the \'Measure_Mean\' regressor ' \
+                                'in your Design Matrix Formula.'))
+
+        config_list.append(('custom_roi_mask', vals['custom_roi_mask'], 1, \
+                                'Full path to a NIFTI file containing one ' \
+                                'or more ROI masks. The means of the masked ' \
+                                'regions will then be computed for each ' \
+                                'subject\'s output and will be included in ' \
+                                'the model as regressors (one for each ROI ' \
+                                'in the mask file) if you include ' \
+                                '\'Custom_ROI_Mean\' in the Design Matrix ' \
+                                'Formula.'))
 
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
                                 'Choose the derivatives to run the group ' \
                                 'model on.'))
 
-        config_list.append(('f_test', vals['f_test'], 0, \
-                                'Select if the group analysis model uses ' \
-                                'f-tests.'))
+        config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
+                                'Choose the coding scheme to use when ' \
+                                'generating your model. \'Treatment\' ' \
+                                'encoding is generally considered the ' \
+                                'typical scheme. Consult the User Guide for ' \
+                                'more information.'))
 
         config_list.append(('z_threshold', vals['z_threshold'], 4, \
                                 'Only voxels with a Z-score higher than ' \
@@ -453,6 +553,21 @@ class ModelDesign(wx.Frame):
                                 'including which ones to be included in ' \
                                 'the model (marked with either True or ' \
                                 'False).'))
+
+        config_list.append(('f_tests', vals['f_tests'], 8, \
+                                'Optional: A list of f-test strings ' \
+                                'containing contrasts. If you do not wish ' \
+                                'to run f-tests, leave this blank.'))
+
+        config_list.append(('custom_contrasts', vals['custom_contrasts'], 1, \
+                                'Optional: Full path to a CSV file which ' \
+                                'specifies the contrasts you wish to run in ' \
+                                'group analysis. Consult the User Guide for ' \
+                                'proper formatting.\nIf you wish to use the ' \
+                                'standard contrast builder, leave this ' \
+                                'field blank. If you provide a path for ' \
+                                'this option, CPAC will use your custom ' \
+                                'contrasts matrix instead.'))
 
         config_list.append(('group_sep', vals['group_sep'], 0, \
                                 'Specify whether FSL should model the ' \
@@ -478,6 +593,7 @@ class ModelDesign(wx.Frame):
 
 
         try:
+
             if self.validate() == True:
                 dlg = wx.FileDialog(self, message="Save file as ...",
                                     defaultDir=os.getcwd(),
@@ -507,8 +623,22 @@ class ModelDesign(wx.Frame):
 
                         # num ctrl
                         elif item[2] == 4:
-                            value = [str(v.strip())
-                                     for v in item[1].split(',')]
+
+                            # patchwork code to get this working for now, but
+                            # why does coding_scheme print out as a string
+                            # everytime, even with the list formatting?
+                            # example: ['Treatment'] is fully a string in the
+                            # yaml file, including the [' and '], which are
+                            # characters in the string
+                            if isinstance(item[1], str) and "[" in item[1] and "]" in item[1]:
+                                value = item[1].replace("['","")
+                                value = value.replace("']","")
+
+                            else:
+                                # regular handling
+                                value = [str(v.strip())
+                                         for v in item[1].split(',')]
+
 
                         # all other data types
                         else:
@@ -518,6 +648,11 @@ class ModelDesign(wx.Frame):
                         if item[0] == 'derivative_list':
 
                             value = []
+
+                            # this takes the user selection in the derivative
+                            # list and matches it with the output directory
+                            # folder name for each chosen derivative via the
+                            # substitution map in constants.py
 
                             # go over each string in the list
                             for val in ast.literal_eval(str(item[1])):
@@ -542,12 +677,14 @@ class ModelDesign(wx.Frame):
                     self.Close()
 
 
-        except Exception:
-            print '\n\n[!] CPAC says: I couldn\'t save the group analysis ' \
+        except Exception as e:
+
+            errmsg = '\n\n[!] CPAC says: Couldn\'t save the group analysis ' \
                       'model configuration file! Maybe check if you have ' \
-                      'write permissions?\n\nPath you selected: ', path, \
-                      '\n\n'
-            raise
+                      'write permissions?\n\nPath you selected: %s\n\n' \
+                      'Error details: %s' % (path, e)
+
+            raise Exception(errmsg)
 
             
             

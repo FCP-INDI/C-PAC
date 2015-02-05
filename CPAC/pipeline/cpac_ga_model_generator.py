@@ -14,11 +14,14 @@ from CPAC.group_analysis import create_group_analysis
 
 
 
-def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
+def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, threshold_val):
     
     #
     # this function runs once per output file during group analysis
     #
+
+    import yaml
+    import commands
 
     # p_id = a list of pipeline IDs, i.e. the name of the output folder for
     #        the strat
@@ -32,14 +35,15 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
 
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
 
-    # set this to False for now
-    fTest = False
-
-     
     try:
         group_conf = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
-    except:
-        raise Exception("Error in reading %s configuration file" % group_config_file)
+    except Exception as e:
+        err_string = "\n\n[!] CPAC says: Could not read group model " \
+                     "configuration YML file. Ensure you have read access " \
+                     "for the file and that it is formatted properly.\n\n" \
+                     "Configuration file: %s\n\nError details: %s" \
+                     % (group_config_file, e)
+        raise Exception(err_string)
 
      
     group_sublist_file = open(group_conf.subject_list, 'r')
@@ -56,7 +60,21 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     derivative_paths = []
 
 
+    z_threshold = float(group_conf.z_threshold[0])
+
+    p_threshold = float(group_conf.p_threshold[0])
+
+    if (len(group_conf.f_tests) == 0) or (group_conf.f_tests == None):
+        fTest = False
+    else:
+        fTest = True
+
+
+
     ''' begin iteration through group subject list for processing '''
+
+    print "Sorting through subject list to check for missing outputs " \
+          "for %s..\n" % resource
 
     for ga_sub in group_sublist:
 
@@ -129,8 +147,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
         pull output paths (instead of path_files_here)
         '''
 
-        print "Sorting through subject list to check for missing outputs..\n"
-
         for path in s_paths:
 
             if (group_conf.repeated_measures == True):
@@ -169,9 +185,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
  
 
     # check to see if any derivatives of subjects are missing
-    if len(list(set(subject_list) - set(exist_paths))) >0:
+    if len(list(set(group_sublist) - set(exist_paths))) >0:
         print "List of outputs missing for subjects:"
-        print list(set(subject_list) - set(exist_paths))
+        print list(set(group_sublist) - set(exist_paths))
         print "..for derivatives:"
         print resource
         print "..at paths:"
@@ -217,11 +233,10 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     # Run 'create_fsl_model' script to extract phenotypic data from
     # the phenotypic file for each of the subjects in the subject list
 
-
     ''' get the motion statistics parameter file, if present '''
     # get the parameter file so it can be passed to create_fsl_model.py
     # so MeanFD or other measures can be included in the design matrix
-    parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s_threshold_%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+    parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
 
     if 1 in c.runGenerateMotionStatistics:
 
@@ -274,88 +289,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     # create_fsl_model.py is currently being run for
     current_output = s_paths[0].replace(pipeline_path, '').split('/')[2]
 
+    # generate working directory for this output's group analysis run
+    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
 
-    ''' merge the remaining subjects for this current output '''
-    # then, take the group mask, and iterate over the list of subjects
-    # remaining to extract the mean of each subject using the group
-    # mask
-
-    merge_input = " "
-    merge_output = modpath + "/" + current_output + "_merged.nii.gz"
-    merge_mask_output = modpath + "/" + current_output + "_merged_mask.nii.gz"
-
-    for derivative_path in derivative_paths:
-        merge_input = merge_input + derivative_path
-
-    merge_string = "fslmerge -t %s %s" % (merge_output, merge_input)
-
-    # MERGE the remaining outputs
-    try:
-        commands.getoutput(merge_string)
-    except Exception as e:
-        print "FSL Merge failed for output: %s\n" % current_output
-        print "error: %s\n\n" % e
-        raise
-
-    merge_mask_string = "fslmaths %s -abs -Tmin -bin %s" % (merge_output, merge_mask_output)
-
-    # CREATE A MASK of the merged file
-    try:
-        commands.getoutput(merge_mask_string)
-    except Exception as e:
-        print "FSL Mask failed for output: %s\n" % current_output
-        print "error: %s\n\n" % e
-        raise
-
-
-    derivative_mean = {}
-
-    # CALCULATE THE MEANS of each remaining output using the group mask
-    for derivative_path in derivative_paths:
-
-        try:
-            maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
-        except Exception as e:
-            print "AFNI 3dmaskave failed for output: %s\n" % current_output
-            print "error: %s\n\n" % e
-            raise
-
-        # get the subject ID of the current derivative path reliably
-        derivative_path_subID = derivative_path.replace(pipeline_path,"").strip("/").split("/")[0]
-
-        # this crazy-looking command simply extracts the mean from the
-        # verbose AFNI 3dmaskave output string
-        derivative_mean[derivative_path_subID] = maskave_output.split("\n")[-1].split(" ")[0]
-
-        # derivative_mean is now something like this:
-        # { 'sub001': 0.3124, 'sub002': 0.2981, .. }
-
-
-
-    ''' run create_fsl_model.py to generate the group analysis models '''
-    try:
-
-        from CPAC.utils import create_fsl_model
-        create_fsl_model.run(group_conf, fTest, parameter_file, derivative_mean, pipeline_path, current_output, True)
-
-    except Exception, e:
-
-        print "FSL Group Analysis model not successfully created - error in create_fsl_model script"
-        #print "Error ->", e
-        raise
-
-
-
-    ''' begin GA workflow setup '''
-
-    if not os.path.exists(subject_list):
-        raise Exception("path to input subject list %s is invalid" % subject_list)
-        
-    #if c.mixedScanAnalysis == True:
-    #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
-    #else:
-        
-        
     # s_paths is a list of paths to each subject's derivative (of the current
     # derivative gpa is being run on) - s_paths_dirList is a list of each directory
     # in this path separated into list elements
@@ -369,22 +305,146 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
     # create nipype-workflow-name-friendly strgy_path
     # (remove special characters)
     strgy_path_name = strgy_path.replace('/', '__')
-           
+
+    workDir = workDir + '/' + strgy_path_name
+
+
+
+    ''' merge the remaining subjects for this current output '''
+    # then, take the group mask, and iterate over the list of subjects
+    # remaining to extract the mean of each subject using the group
+    # mask
+
+    merge_input = " "
+
+    merge_output_dir = workDir + "/merged_files"
+
+    if not os.path.exists(merge_output_dir):
+        os.makedirs(merge_output_dir)
+
+    merge_output = merge_output_dir + "/" + current_output + "_merged.nii.gz"
+    merge_mask_output = merge_output_dir + "/" + current_output + "_merged_mask.nii.gz"
+
+    # create a string per derivative filled with every subject's path to the
+    # derivative output file
+    for derivative_path in derivative_paths:
+        merge_input = merge_input + " " + derivative_path
+
+    merge_string = "fslmerge -t %s %s" % (merge_output, merge_input)
+
+    # MERGE the remaining outputs
+    try:
+        commands.getoutput(merge_string)
+    except Exception as e:
+        print "[!] CPAC says: FSL Merge failed for output: %s" % current_output
+        print "Error details: %s\n\n" % e
+        raise
+
+    merge_mask_string = "fslmaths %s -abs -Tmin -bin %s" % (merge_output, merge_mask_output)
+
+    # CREATE A MASK of the merged file
+    try:
+        commands.getoutput(merge_mask_string)
+    except Exception as e:
+        print "[!] CPAC says: FSL Mask failed for output: %s" % current_output
+        print "Error details: %s\n\n" % e
+        raise
+
+
+    derivative_means_dict = {}
+    roi_means_dict = {}
+
+    # CALCULATE THE MEANS of each remaining output using the group mask
+    for derivative_path in derivative_paths:
+
+        try:
+            maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
+        except Exception as e:
+            print "[!] CPAC says: AFNI 3dmaskave failed for output: %s\n" \
+                  "(Measure Mean calculation)" % current_output
+            print "Error details: %s\n\n" % e
+            raise
+
+        # get the subject ID of the current derivative path reliably
+        derivative_path_subID = derivative_path.replace(pipeline_path,"").strip("/").split("/")[0]
+
+        # this crazy-looking command simply extracts the mean from the
+        # verbose AFNI 3dmaskave output string
+        derivative_means_dict[derivative_path_subID] = maskave_output.split("\n")[-1].split(" ")[0]
+
+        # derivative_means_dict is now something like this:
+        # { 'sub001': 0.3124, 'sub002': 0.2981, .. }
+
+ 
+        # if custom ROI means are included in the model, do the same for those
+        if "Custom_ROI_Mean" in group_conf.design_formula:
+
+            try:
+                ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (group_conf.custom_roi_mask, derivative_path))
+            except Exception as e:
+                print "[!] CPAC says: AFNI 3dROIstats failed for output: %s" \
+                      "\n(Custom ROI Mean calculation)" % current_output
+                print "Error details: %s\n\n" % e
+                raise
+
+            ROIstats_list = ROIstats_output.split("\t")
+
+            # calculate the number of ROIs - 3dROIstats output can be split
+            # into a list, and the actual ROI means begin at a certain point
+            num_rois = (len(ROIstats_list)-3)/2
+
+            roi_means = []
+
+            # create a list of the ROI means - each derivative of each subject
+            # will have N number of ROIs depending on how many ROIs were
+            # specified in the custom ROI mask
+            for num in range(num_rois+3,len(ROIstats_list)):
+
+                roi_means.append(ROIstats_list[num])
+
+
+            roi_means_dict[derivative_path_subID] = roi_means
+
+        else:
+
+            roi_means_dict = None
+
+
+
+    if len(derivative_means_dict.keys()) == 0:
+        err_string = "[!] CPAC says: Something went wrong with the " \
+                     "calculation of the output means via the group mask.\n\n"
+        raise Exception(err_string)
+                     
+
+
+    ''' run create_fsl_model.py to generate the group analysis models '''
+    
+    from CPAC.utils import create_fsl_model
+    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, roi_means_dict, True)
+
+
+
+    ''' begin GA workflow setup '''
+
+    if not os.path.exists(new_sub_file):
+        raise Exception("path to input subject list %s is invalid" % new_sub_file)
+        
+    #if c.mixedScanAnalysis == True:
+    #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
+    #else:
 
     wf = pe.Workflow(name = "%s_%s" % (resource, group_conf.model_name))
 
-    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
-    workDir = workDir + '/' + strgy_path_name
-
     wf.base_dir = workDir
     wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-    log_dir = os.path.join(conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (group_conf.model_name))
+    log_dir = os.path.join(group_conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (group_conf.model_name))
         
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     else:
-        print "log_dir already exist"
+        pass
 
 
     # gp_flow
@@ -393,7 +453,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
 
     gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
     gp_flow.inputs.inputspec.grp_model = group_conf.output_dir
-    gp_flow.inputs.inputspec.fTest = fTest
+    gp_flow.inputs.inputspec.model_name = group_conf.model_name
+    gp_flow.inputs.inputspec.ftest = fTest
   
 
     # gpa_wf
@@ -401,8 +462,11 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos):
 
     gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % resource)
 
-    gpa_wf.inputs.inputspec.z_threshold = group_conf.z_threshold
-    gpa_wf.inputs.inputspec.p_threshold = group_conf.p_threshold
+    gpa_wf.inputs.inputspec.merged_file = merge_output
+    gpa_wf.inputs.inputspec.merge_mask = merge_mask_output
+
+    gpa_wf.inputs.inputspec.z_threshold = z_threshold
+    gpa_wf.inputs.inputspec.p_threshold = p_threshold
     gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
     
    
