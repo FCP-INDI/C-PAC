@@ -503,6 +503,26 @@ class ListBox(wx.Frame):
         
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            # Check tfor path existence
+            if os.path.exists(path):
+                path = os.path.realpath(path)
+                # Try and load in file contents
+                try:
+                    f_sl = yaml.load(open(path, 'r'))
+                except Exception as e:
+                    print 'Unable to load in the specified file: %s' % path
+                    print 'Error:\n%s' % e
+                # If it's not a list, we know it's not a subject list
+                if type(f_sl) != list:
+                    err_msg = 'File is not a subject list file. It might be a '\
+                              'pipeline or data configuration file.'
+                    raise Exception(err_msg)
+            # Otherwise, report error
+            else:
+                err_msg = 'File %s does not exist. Check and try again.' \
+                          % path
+                raise Exception(err_msg)
+
             while True:
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a alias name for the Subject List',
                                      'Sublist Name', os.path.splitext(os.path.basename(path))[0])
@@ -607,16 +627,12 @@ class ListBox(wx.Frame):
                 print "Couldn't find the config file %s "%config    
 
             ret_val = -1    
-        
 
         return ret_val
 
-    
-                            
     def AddConfig(self, event):
         
         # Gets called when you click 'Load' for pipeline config in the GUI
-
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
             defaultDir=os.getcwd(), 
@@ -625,17 +641,41 @@ class ListBox(wx.Frame):
             style=wx.OPEN | wx.CHANGE_DIR)
         
         if dlg.ShowModal() == wx.ID_OK:
+            # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
+            # Check for path existence
+            if os.path.exists(path):
+                path = os.path.realpath(path)
+                try:
+                    f_cfg = yaml.load(open(path, 'r'))
+                except Exception as e:
+                    print 'Unable to load in the specified file: %s' % path
+                    print 'Error:\n%s' % e
+                if type(f_cfg) == dict:
+                    if not f_cfg.has_key('pipelineName'):
+                        err_msg = 'File is not a pipeline configuration '\
+                                  'file. It might be a data configuration file.'
+                        raise Exception(err_msg)
+                else:
+                    err_msg = 'File is not a pipeline configuration '\
+                              'file. It might be a subject list file.'
+                    raise Exception(err_msg)
+            # Otherwise, report error
+            else:
+                err_msg = 'File %s does not exist. Check and try again.' \
+                          % path
+                raise Exception(err_msg)
             if self.check_config(path) > 0:
                 while True:
-                    
                     try:
-                        c = Configuration(yaml.load(open(os.path.realpath(path), 'r')))
-                    except:
-                        print "\n\n" + "ERROR: Configuration file could not be loaded properly - the file " \
-                              "might be access-protected or you might have chosen the wrong file." + "\n"
-                        print "Error name: main_window_0001" + "\n\n"
-                        raise Exception
+                        c = Configuration(f_cfg)
+                    except Exception as e:
+                        print '\n\nERROR: Configuration file could not be '\
+                              'loaded properly - the file might be '\
+                              'access-protected or you might have chosen the '\
+                              'wrong file.\n'
+                        print 'Error name: main_window_0001\n\n'
+                        print 'Exception: %s' % e
                     
 
                     if c.pipelineName != None:
