@@ -296,17 +296,14 @@ class Control(wx.Control):
                     # typed into the contrasts box. this only exists if the
                     # user entered contrasts, then saved them or went back to
                     # the first model builder window, then returned
-                    for option in values.keys():
+                    for val in values:
 
                         # this re-checks the user's past contrast option
                         # SELECTIONS (which ones were checked) in the listbox
-                        if values[option] == True:
-                            self.selection.append(option)
+                        self.selection.append(val)
                             
            
             self.options = self.ctrl.get_listbox_options()
-            self.listbox_selections = []
-
 
             
         elif type == 8:
@@ -334,9 +331,9 @@ class Control(wx.Control):
         if self.get_type() == 7:
             return self.options
 
-    def get_listbox_selections(self):
-        if self.get_type() == 7:
-            return self.listbox_selections
+    #def get_listbox_selections(self):
+    #    if self.get_type() == 7:
+    #        return self.listbox_selections
 
     # this takes the list of available contrast names from modelDesign_window
     # and sends it to the 'Add Contrast' dialog box, so that it may do

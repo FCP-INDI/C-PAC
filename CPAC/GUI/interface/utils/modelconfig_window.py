@@ -1034,6 +1034,122 @@ class ModelConfig(wx.Frame):
                 var_list_for_contrasts.append(column_string)
 
 
+
+        # check for repeated measures file formatting!
+
+        group_sublist_file = open(self.gpa_settings['subject_list'], 'r')
+
+        group_sublist_items = group_sublist_file.readlines()
+
+        group_sublist = [line.rstrip('\n') for line in group_sublist_items \
+                          if not (line == '\n') and not line.startswith('#')]
+
+        for ga_sub in group_sublist:
+
+            # ga_sub = subject ID taken off the group analysis subject list
+
+            # let's check to make sure the subject list is formatted for
+            # repeated measures properly if repeated measures is enabled
+            # and vice versa
+            if (self.gpa_settings['repeated_measures'] == "True") and \
+                (',' not in ga_sub):
+
+                errmsg = "The group analysis subject list is not in the " \
+                         "appropriate format for repeated measures. Please " \
+                         "use the appropriate format as described in the " \
+                         "CPAC User Guide, or turn off Repeated Measures." \
+                         "\n\nNote: CPAC generates a properly-formatted " \
+                         "group analysis subject list meant for running " \
+                         "repeated measures when you create your original " \
+                         "subject list. Look for 'subject_list_group_" \
+                         "analysis_repeated_measures.txt' in the directory " \
+                         "where you created your subject list."
+
+                errSubID = wx.MessageDialog(self, errmsg,
+                    'Subject List Format', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+
+            elif (self.gpa_settings['repeated_measures'] == "False") and \
+                (',' in ga_sub):
+
+                errmsg = "It looks like your group analysis subject list is " \
+                         "formatted for running repeated measures, but " \
+                         "'Run Repeated Measures' is not enabled."
+
+                errSubID = wx.MessageDialog(self, errmsg,
+                    'Subject List Format', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+
+
+        # make sure the sub IDs in the sublist and pheno files match!
+
+        group_pheno_file = open(self.gpa_settings['pheno_file'], 'r')
+
+        group_pheno_lines = group_pheno_file.readlines()
+
+        # gather the subject IDs from the phenotype file
+        def get_pheno_subjects(delimiter):
+
+            for item in group_pheno_lines[0].split(delimiter):
+                if item == self.gpa_settings['subject_id_label']:
+                    index = group_pheno_lines[0].index(item)
+
+            group_pheno_subs = group_pheno_lines[1:len(group_pheno_lines)]
+
+            pheno_subs = []
+
+            for pheno_sub_line in group_pheno_subs:
+                pheno_subs.append(pheno_sub_line.split(delimiter)[index])
+
+            return pheno_subs
+
+
+        pheno_subs = []
+
+        if "," in group_pheno_lines[0]:
+            pheno_subs = get_pheno_subjects(",")
+
+        # now make sure the group sublist and pheno subject IDs match, at least
+        # for the ones that exist (i.e. may be less sub IDs in the sublist)
+        for sublist_subID, pheno_subID in zip(group_sublist, pheno_subs):
+
+            # if group sublist is formatted for repeated measures
+            if "," in sublist_subID:
+                sublist_subID = sublist_subID.replace(",","_")
+
+            if sublist_subID != pheno_subID:
+
+                if self.gpa_settings['repeated_measures'] == "False":
+
+                    errmsg = "The subject IDs in your group subject list " \
+                             "and your phenotype file do not match. Please " \
+                             "make sure these have been set up correctly."
+
+                else:
+
+                    errmsg = "The subject IDs in your group subject list " \
+                             "and your phenotype file do not match. Please " \
+                             "make sure these have been set up correctly." \
+                             "\n\nNote: Repeated measures is enabled - does " \
+                             "your phenotype file have properly-formatted " \
+                             "subject IDs matching your repeated measures " \
+                             "group analysis subject list?"
+
+                errSubID = wx.MessageDialog(self, errmsg,
+                    'Subject ID Mismatch', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+
+
+
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
 

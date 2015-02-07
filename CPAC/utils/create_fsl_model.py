@@ -229,7 +229,7 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
 # OLDER CODE to facilitate creation of .con and .fts file via user-provided
 # contrasts matrix
 
-def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFilesDirectory, column_names, coding_scheme):
+def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column_names, coding_scheme):
 
     """
     Create the contrasts and fts file
@@ -242,8 +242,14 @@ def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFil
     # remove "Contrasts" label and replace it with "Intercept"
     evs[0] = "Intercept"
 
+    fTest = False
 
-    count_ftests = len(ftest_list)
+    for ev in evs:
+        if "f_test" in ev:
+            count_ftests += 1
+
+    if count_ftests > 0:
+        fTest = True
 
 
     try:
@@ -259,6 +265,7 @@ def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFil
     lst = data.tolist()
 
     ftst = []
+    fts_columns = []
     contrasts = []
     contrast_names = []
 
@@ -266,65 +273,71 @@ def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFil
     length = len(list(lst[0]))
 
 
-    try:
+    # lst = list of tuples, "tp"
+    # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
+    #      with the zeroes being the vector of contrasts for that contrast
 
-        # lst = list of tuples, "tp"
-        # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
-        #      with the zeroes being the vector of contrasts for that contrast
+    for tp in lst:
 
-        for tp in lst:
+        contrast_names.append(tp[0])
 
-            contrast_names.append(tp[0])
+        # create a list of integers that is the vector for the contrast
+        # ex. [0, 1, 1, 0, ..]
+        con_vector = list(tp)[1:(length-count_ftests)]
 
-            # create a list of integers that is the vector for the contrast
-            # ex. [0, 1, 1, 0, ..]
-            con_vector = list(tp)[1:length]
+        fts_vector = list(tp)[(length-count_ftests):length]
+        fts_columns.append(fts_vector)
 
-            # add Intercept column
-            if coding_scheme == "Treatment":
-                con_vector.insert(0, 0)
-            elif coding_scheme == "Sum":
-                con_vector.insert(0, 1)
+        # add Intercept column
+        if coding_scheme == "Treatment":
+            con_vector.insert(0, 0)
+        elif coding_scheme == "Sum":
+            con_vector.insert(0, 1)
 
-            contrasts.append(con_vector)
+        contrasts.append(con_vector)
 
-        # contrast_names = list of the names of the contrasts (not regressors)
-        # contrasts = list of lists with the contrast vectors
+    # contrast_names = list of the names of the contrasts (not regressors)
+    # contrasts = list of lists with the contrast vectors
 
-        num_EVs_in_con_file = len(contrasts[0])
+    num_EVs_in_con_file = len(contrasts[0])
 
-        contrasts = np.array(contrasts, dtype=np.float16)
-        
+    contrasts = np.array(contrasts, dtype=np.float16)
 
-        # if there are f-tests, create the array for them
-        if fTest:
+    fts_columns = np.array(fts_columns)
+       
 
-            # process each f-test
-            for ftest_string in ftest_list:
+    # if there are f-tests, create the array for them
+    if fTest:
 
-                ftest_vector = []
+        if len(contrast_names) < 2:
+            errmsg = "\n\n[!] CPAC says: Not enough contrasts for running " \
+                  "f-tests.\nTip: Do you have only one contrast in your " \
+                  "contrasts file? f-tests require more than one contrast.\n" \
+                  "Either remove the f-tests or include more contrasts.\n\n"
+
+            raise Exception(errmsg)
+
+        '''
+        # process each f-test
+        for ftest_string in ftest_list:
+
+            ftest_vector = []
                 
-                cons_in_ftest = ftest_string.split(",")
+            cons_in_ftest = ftest_string.split(",")
 
-                for con in contrast_names:
-                    if con in cons_in_ftest:
-                        ftest_vector.append(1)
-                    else:
-                        ftest_vector.append(0)
+            for con in contrast_names:
+                if con in cons_in_ftest:
+                    ftest_vector.append(1)
+                else:
+                    ftest_vector.append(0)
 
-                ftst.append(ftest_vector)
+            ftst.append(ftest_vector)
+        
+        fts_n = np.array(ftst)
+        '''
 
-            fts_n = np.array(ftst)
+        fts_n = fts_columns.T
 
-
-    except:
-
-        errmsg = "\n\n[!] CPAC says: Not enough contrasts for running " \
-              "f-tests.\nTip: Do you have only one contrast in your " \
-              "contrasts file? f-tests require more than one contrast.\n" \
-              "Either turn off f-tests or include more contrasts.\n\n"
-
-        raise Exception(errmsg)
 
 
     if len(column_names) != (num_EVs_in_con_file):
@@ -410,8 +423,8 @@ def create_con_ftst_file(con_file, model_name, fTest, ftest_list, outputModelFil
                   "(.fts)..\n"
 
             f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
-            print >>f, '/NumContrasts\t', (contrasts.shape)[0]
-            print >>f, '/NumFTests\t', count_ftests
+            print >>f, '/NumWaves\t', (contrasts.shape)[0]
+            print >>f, '/NumContrasts\t', count_ftests
 
             # print labels for the columns - mainly for double-checking your
             # model
@@ -1142,20 +1155,67 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
+    def create_fts_file(ftest_list, con_dict, model_name, out_dir):
+
+        try:
+
+            print "\nFound f-tests in your model, writing f-tests file " \
+                  "(.fts)..\n"
+
+            f = open(os.path.join(out_dir, model_name + '.fts'), 'w')
+            print >>f, '/NumWaves\t', len(con_dict)
+            print >>f, '/NumContrasts\t', len(ftest_list)
+
+            # process each f-test
+            ftst = []
+
+            for ftest_string in ftest_list:
+
+                ftest_vector = []
+                
+                cons_in_ftest = ftest_string.split(",")
+
+                for con in con_dict.keys():
+                    if con in cons_in_ftest:
+                        ftest_vector.append(1)
+                    else:
+                        ftest_vector.append(0)
+
+                ftst.append(ftest_vector)
+        
+            fts_n = np.array(ftst)
+
+
+            # print labels for the columns - mainly for double-checking your
+            # model
+            col_string = '\n'
+            for con in con_dict.keys():
+                col_string = col_string + con + '\t'
+            print >>f, col_string, '\n'
+
+            print >>f, '/Matrix'
+
+            for i in range(fts_n.shape[0]):
+                print >>f, ' '.join(fts_n[i].astype('str'))
+
+            f.close()
+
+        except Exception as e:
+
+            filepath = os.path.join(out_dir, model_name + '.fts')
+
+            errmsg = "\n\n[!] CPAC says: Could not create .fts file for " \
+                     "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
+                     "Error details: %s\n\n" % (filepath, e)
+
+            raise Exception(errmsg)
+
 
 
     ''' Create contrasts_dict dictionary for the .con file generation later '''
 
-    contrasts = c.contrasts
-    contrasts_list = []
+    contrasts_list = c.contrasts
     contrasts_dict = {}
-
-    # collect the user-selected contrast strings into a list of strings
-    for contrast in contrasts.keys():
-        if contrasts[contrast] == True:
-
-            contrasts_list.append(contrast)
-
 
     # take the contrast strings and process them appropriately
     #     extract the two separate contrasts (if there are two), and then
@@ -1510,15 +1570,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-    ''' let's get those f-tests ready '''
-
-
-
-
-
-
-
-
     ''' FLAMEO model input files generation '''
 
     try:
@@ -1545,13 +1596,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
               "using the group analysis model builder's contrasts editor.."
 
         create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
+        create_fts_file(c.f_tests, contrasts_dict, c.model_name, c.output_dir)
 
     else:
 
         print "\nWriting contrasts file (.con) based on contrasts provided " \
               "with a custom contrasts matrix CSV file..\n"
 
-        create_con_ftst_file(c.custom_contrasts, c.model_name, fTest, c.f_tests, c.output_dir, depatsified_EV_names, coding_scheme)
+        create_con_ftst_file(c.custom_contrasts, c.model_name, c.output_dir, depatsified_EV_names, coding_scheme)
 
 
 

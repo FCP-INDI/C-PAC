@@ -450,19 +450,17 @@ class ListBoxCombo(wx.Panel):
 
                 selected_contrasts = []
 
-                for val in values.keys():
+                for val in values:
 
                     # insert the contrast strings into the GUI's checkbox list
                     self.listbox.Append(str(val))
                     self.options.append(str(val))
 
-                    # find out which ones were selected
-                    if values[val] == True:
-                        selected_contrasts.append(val)
-
                 # select the contrast checkboxes that the user checked when
                 # they load their gpa config.yml file into the model builder
-                self.listbox.SetCheckedStrings(selected_contrasts)
+                #     actually- they should all automatically be checked
+                #     because the GUI only saves the ones that are checked
+                self.listbox.SetCheckedStrings(values)
 
                 # have to do this to make sure the f-test option list populates
                 self.raise_listbox_options()
@@ -490,20 +488,28 @@ class ListBoxCombo(wx.Panel):
                    
         
     def onButtonClick(self, event):
-        if self.ctype == 3:
-            ConfigFslFrame(self, self.values)
+
+        if self.ctype == 1:
+            CheckBox(self, self.values)
         elif self.ctype == 2:    
             TextBoxFrame(self, self.values)
-        elif self.ctype == 1:
-            CheckBox(self, self.values)
+        elif self.ctype == 3:
+            ConfigFslFrame(self, self.values)
         elif self.ctype == 4:
             ContrastsFrame(self, self.values, self.avail_cons)
-        elif self.ctype == 5:
+        elif self.ctype == 5:         
 
             # here: get the contrasts.csv and populate "self.parent.input_contrasts"
             # if custom_contrasts is a thing:
 
-            if len(self.parent.input_contrasts) < 2:
+            input_contrasts = self.parent.input_contrasts
+
+            #custom_cons = self.parent.get_custom_contrasts()
+
+            #if len(custom_cons) > 0:
+            #    input_contrasts = custom_cons
+
+            if len(input_contrasts) < 2:
 
                 errmsg = "Please input at least two contrasts before " \
                              "attempting to enter f-test selections."
@@ -514,7 +520,7 @@ class ListBoxCombo(wx.Panel):
 
             else:
 
-                f_test_frame(self, self.parent.input_contrasts)
+                f_test_frame(self, input_contrasts)
 
         
     def GetListBoxCtrl(self):

@@ -82,7 +82,6 @@ class ModelDesign(wx.Frame):
                 con_length += 50
             
 
-
         varlist_sizer = wx.BoxSizer(wx.HORIZONTAL)
         var_list_text = wx.StaticText(self.window, label=str(contrasts_text))
         varlist_sizer.Add(var_list_text)
@@ -117,14 +116,12 @@ class ModelDesign(wx.Frame):
                       size = (300,120),
                       combo_type = 5)
 
-
         self.page.add(label="Custom Contrasts Matrix ",
                       control=control.COMBO_BOX,
                       name="custom_contrasts",
                       type=dtype.STR,
-                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix if you do not wish to use the contrasts builder above. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead.",
+                      comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix if you do not wish to use the contrasts builder above. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field in the GUI above).\n\nIf you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.",
                       values=str(self.gpa_settings['custom_contrasts']))
-
 
         self.page.add(label="Model Group Variances Separately ",
                       control=control.CHOICE_BOX,
@@ -318,7 +315,9 @@ class ModelDesign(wx.Frame):
 
             if name == 'contrastStrings':
 
-                for option in ctrl.get_listbox_options():
+                self.gpa_settings['contrasts'] = []
+
+                for option in ctrl.get_selection(): #listbox_options():
 
                     # first, make sure the contrasts are valid!
                     contrasts = self.parse_contrast(option)
@@ -343,19 +342,15 @@ class ModelDesign(wx.Frame):
                             errSubID.Destroy()
                             raise Exception
                             
+                    self.gpa_settings['contrasts'].append(option)
 
-                    # then, add them to gpa_settings appropriately
-                    if option in ctrl.get_listbox_selections():
-                        self.gpa_settings['contrasts'][option] = True
-                    else:
-                        self.gpa_settings['contrasts'][option] = False
 
 
             if name == 'f_tests':
 
                 self.gpa_settings['f_tests'] = []
 
-                for option in ctrl.get_listbox_options():
+                for option in ctrl.get_selection():
 
                     cons_in_ftest = []
 
@@ -385,15 +380,30 @@ class ModelDesign(wx.Frame):
                             
 
                     # then, add them to gpa_settings appropriately
-                    if option in ctrl.get_listbox_options():
-                        self.gpa_settings['f_tests'].append(str(option))
-                    else:
-                        self.gpa_settings['f_tests'].append(str(option))
+                    self.gpa_settings['f_tests'].append(option)
 
 
             if name == 'custom_contrasts':
 
                 self.gpa_settings['custom_contrasts'] = ctrl.get_selection()
+
+                custom_confile = self.gpa_settings['custom_contrasts']
+
+                if not ((custom_confile == None) or (custom_confile == '') or \
+                    ("None" in custom_confile)):
+
+                    if not os.path.exists(custom_confile):
+                    
+                        errmsg = "You've specified a Custom Contrasts file " \
+                                 "for your group model, but this file " \
+                                 "cannot be found. Please double-check the " \
+                                 "filepath you have entered."
+
+                        errSubID = wx.MessageDialog(self, errmsg,
+                                'Invalid Path', wx.OK | wx.ICON_ERROR)
+                        errSubID.ShowModal()
+                        errSubID.Destroy()
+                        raise Exception
 
 
             if name == 'modelGroupVariancesSeparately':
@@ -414,6 +424,35 @@ class ModelDesign(wx.Frame):
             if name == 'outputModelFilesDirectory':
 
                 self.gpa_settings['output_dir'] = ctrl.get_selection()
+
+
+
+    '''
+    def get_custom_contrasts(self.window):
+
+        self.collect_input()
+
+        confilepath = self.gpa_settings['custom_contrasts']
+
+        con_names = []
+
+        if (confilepath != None) or (confilepath != '') or \
+            ("None" not in confilepath):
+
+            if os.path.exists(confilepath):
+
+                confile = open(confilepath, 'rb')
+
+                for con in confile.readlines():
+
+                    con_names.append(con.split(",")[0])
+
+                # get rid of "Contrasts" header label that came from the first
+                # row in the file (if formatted properly)
+                del con_names[0]
+
+        return con_names
+    '''
 
 
 
@@ -567,7 +606,17 @@ class ModelDesign(wx.Frame):
                                 'standard contrast builder, leave this ' \
                                 'field blank. If you provide a path for ' \
                                 'this option, CPAC will use your custom ' \
-                                'contrasts matrix instead.'))
+                                'contrasts matrix instead, and will use the ' \
+                                'f-tests described in this custom file only ' \
+                                '(ignoring those you have input in the ' \
+                                'f-tests field above).\nIf you wish to ' \
+                                'include f-tests, create a new column in ' \
+                                'your CSV file for each f-test named ' \
+                                '\'f_test_1\', \'f_test_2\', .. etc. Then, ' \
+                                'mark the contrasts you would like to ' \
+                                'include in each f-test with a 1, and mark ' \
+                                'the rest 0. Note that you must select at ' \
+                                'least two contrasts per f-test.'))
 
         config_list.append(('group_sep', vals['group_sep'], 0, \
                                 'Specify whether FSL should model the ' \
@@ -588,7 +637,6 @@ class ModelDesign(wx.Frame):
         config_list.append(('output_dir', vals['output_dir'], 1, \
                                 'Full path to the directory where CPAC ' \
                                 'should place model files.'))
-
             
 
 

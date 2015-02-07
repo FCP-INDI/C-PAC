@@ -64,10 +64,38 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     p_threshold = float(group_conf.p_threshold[0])
 
-    if (len(group_conf.f_tests) == 0) or (group_conf.f_tests == None):
-        fTest = False
+
+    custom_confile = group_conf.custom_contrasts
+
+    if ((custom_confile == None) or (custom_confile == '') or \
+            ("None" in custom_confile)):
+
+        if (len(group_conf.f_tests) == 0) or (group_conf.f_tests == None):
+            fTest = False
+        else:
+            fTest = True
+
     else:
-        fTest = True
+
+        if not os.path.exists(custom_confile):
+            errmsg = "\n[!] CPAC says: You've specified a custom contrasts " \
+                     ".CSV file for your group model, but this file cannot " \
+                     "be found. Please double-check the filepath you have " \
+                     "entered.\n\nFilepath: %s\n\n" % custom_confile
+            raise Exception(errmsg)
+
+        evs = open(custom_confile, 'r').readline()
+        evs = evs.rstrip('\r\n').split(',')
+        count_ftests = 0
+
+        fTest = False
+
+        for ev in evs:
+            if "f_test" in ev:
+                count_ftests += 1
+
+        if count_ftests > 0:
+            fTest = True
 
 
 

@@ -730,11 +730,11 @@ class MainFrame(wx.Frame):
         hash_val = 0
         wf_counter = []
 
-        #print "self.nb.get_page_list()", self.nb.get_page_list()
+
         for page in self.nb.get_page_list():
-            #print "page ----> ", page
+
             switch = page.page.get_switch()
-            #print "switch ---->", switch
+
             ctrl_list = page.page.get_ctrl_list()
             validate = False
 
@@ -751,14 +751,19 @@ class MainFrame(wx.Frame):
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
                 
-                #validating
+                # validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
                 
                     win = ctrl.get_ctrl()
                     
                     if isinstance(ctrl.get_selection(), list):
+
+                        # fires if the control is a ListBoxCombo (type 7 in
+                        # generic_class.py)
+
                         value = ctrl.get_selection()
+
                         if not value:
                             display(
                                 win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
@@ -776,6 +781,7 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
+
                 config_list.append(ctrl)
 
 
@@ -795,7 +801,7 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-        #dlg.SetFilterIndex(2)
+
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -897,7 +903,7 @@ class MainFrame(wx.Frame):
 
                 sample_list = item.get_values()
                 comment = item.get_help()
-                #print "*****label : type : value -->", label, " : ", dtype, " : ", value
+
                 for line in comment.split("\n"):
                     if line:
                         print>>f, "#", line
@@ -1051,3 +1057,5 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise
+
+
