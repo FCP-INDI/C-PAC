@@ -2216,7 +2216,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-                # FUNCTIONAL apply warp
+                # 4D FUNCTIONAL apply warp
                 fsl_to_itk_conversion('mean_functional', 'anatomical_brain', 'functional_mni')
                 collect_transforms_func_mni('functional_mni')
 
@@ -2242,6 +2242,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 node, out_file = strat.get_node_from_resource_pool('mean' \
                         '_functional')
                 ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 0, 'mean_functional_in_mni')
+
+
+                # 4D FUNCTIONAL MOTION-CORRECTED apply warp
+                fsl_to_itk_conversion('mean_functional', 'anatomical_brain', 'motion_correct_to_standard')
+                collect_transforms_func_mni('motion_correct_to_standard')
+
+                node, out_file = strat.get_node_from_resource_pool('motion_correct')
+                ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 3, 'motion_correct_to_standard')
 
             
                 num_strat += 1
@@ -2942,8 +2950,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
 
 
-
-
     '''
     Inserting Network centrality
     '''
@@ -2963,7 +2969,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
-            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile, 'Network Centrality', 'template_dataflow_%d' % num_strat)
+            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
+                                                         'Network Centrality',
+                                                         'template_dataflow_%d' % num_strat)
 
             # Connect in each workflow for the centrality method of interest
             def connectCentralityWorkflow(methodOption,
@@ -3128,8 +3136,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     OUTPUT TO STANDARD
     '''
 
-    def output_to_standard(output_name, output_resource, strat, num_strat, map_node=0, input_image_type=0):
-            
+    def output_to_standard(output_name, output_resource, strat, num_strat,
+                           map_node=0, input_image_type=0):
 
         nodes = getNodeList(strat)
            
@@ -3752,6 +3760,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                         'dr_tempreg_maps_zstat_files_to_standard_smooth':(dr_temp_reg_maps_Z_files_smooth, 'out_file')})
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
+    strat_list += new_strat_list
+
+
+
+    '''
+    Smoothing motion-corrected functional to MNI output
+    '''
+
+    new_strat_list = []
+    num_strat = 0
+    if (1 in c.runRegisterFuncToMNI) and (1 in c.runFunctionalPreprocessing) and (c.fwhm != None):
+        for strat in strat_list:
+
+            output_smooth('motion_correct', 'motion_correct', strat, num_strat)
+
+            num_strat += 1
+
     strat_list += new_strat_list
 
 
@@ -5768,30 +5793,112 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     return workflow
 
 
+# Run the prep_workflow function with specific arguments
+def run(config, subject_list_file, indx, strategies,
+        maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
+        p_name=None, **kwargs):
+    '''
+    Function to build and execute the complete workflow
 
+    Parameters
+    ----------
+    config: string
+        filepath to a C-PAC config file
+    subject_list_file : string
+        filepath to a C-PAC subject list file
+    indx : integer
+        index of the subject in the subject list to run
+    strategies : string
+        filepath to a C-PAC strategies file
+    maskSpecificationFile : string
+        filepath to the mask-specification file
+    roiSpecificationFile : string
+        filepath to the roi-specification file
+    templateSpecificationFile : string
+        filepath to the template-specification file
+    p_name : string (optional)
+        name of the pipeline configuration
+    creds_path : string (optional)
+        filepath to the AWS keys credentials file
+    bucket_name : string (optional)
+        name of the S3 bucket to pull data from
+    bucket_prefix : string (optional)
+        base directory where S3 inputs are stored and downloaded from
+    bucket_upload_prefix : string (optional)
+        base directory where local outputs are sent to in S3
+    local_prefix : string (optional)
+        base directory where the local subject list files were built
+    '''
 
-def run(config, subject_list_file, indx, strategies, \
-     maskSpecificationFile, roiSpecificationFile, templateSpecificationFile, p_name = None):
+    # Import packages
     import commands
+    from CPAC.AWS import fetch_creds
+    from CPAC.AWS import aws_utils
     commands.getoutput('source ~/.bashrc')
     import pickle
     import yaml
 
+    # Init variables
+    creds_path = kwargs.get('creds_path')
+    bucket_name = kwargs.get('bucket_name')
+    bucket_prefix = kwargs.get('bucket_prefix')
+    bucket_upload_prefix = kwargs.get('bucket_upload_prefix')
+    local_prefix = kwargs.get('local_prefix')
 
+    # Import configuration file
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
 
+    # Try and load in the subject list
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
 
-    sub_dict = sublist[int(indx) - 1]
+    # Grab the subject of interest
+    sub_dict = sublist[int(indx)-1]
+    sub_id = sub_dict['subject_id']
 
+    # Build and download subject's list
+    # If we're using AWS
+    if creds_path:
+        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+        print 'Using data from S3 bucket: %s' % bucket_name
+        # Check to see if outputs are already uploaded
+        upl_files = [str(k.name) for k in bucket.list(prefix=bucket_upload_prefix)]
 
+        aws_utils.build_download_sublist(bucket,
+                                         bucket_prefix,
+                                         local_prefix, [sub_dict])
+    # Otherwise, state use of local disk and move on
+    else:
+        print 'Using local disk for input/output'
+
+    # Load in the different spec files to Configuration object
     c.maskSpecificationFile = maskSpecificationFile
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
-    
-    prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+    try:
+        # Build and run the pipeline
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+    except Exception as e:
+        print 'Could not complete cpac run for subject: %s!' % sub_id
+        print 'Error: %s' % e
 
+    # Now upload results to S3
+    if creds_path:
+        sub_output_dir = os.path.join(c.outputDirectory, 'pipeline_*')
+        sub_work_dir = os.path.join(c.workingDirectory, '*_' + sub_id + '_*')
+        output_list = aws_utils.collect_subject_files(sub_output_dir,
+                                                      sub_id)
+        working_list = aws_utils.collect_subject_files(sub_work_dir,
+                                                       sub_id)
+        dst_list = [o.replace(c.outputDirectory, bucket_upload_prefix)
+                    for o in output_list]
+        aws_utils.s3_upload(bucket, output_list, dst_list, make_public=True)
+
+        # Delete subject working/output directories
+        for wfile in working_list:
+            os.remove(wfile)
+        for ofile in output_list:
+            os.remove(ofile)

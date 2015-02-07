@@ -343,7 +343,7 @@ class MainFrame(wx.Frame):
         self : MainFrame (wx.Frame object)
             the method is aware of the instance as self
         sublist : list (dict)
-            a list of dictionaries for each subject to analyze
+            a C-PAC-formatted subject list (yaml list of dictionaries)
         
         Returns
         -------

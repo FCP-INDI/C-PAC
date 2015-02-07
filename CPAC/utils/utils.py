@@ -31,6 +31,11 @@ files_folders_wf = {
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
+    'motion_correct_smooth':'func',
+    'itk_func_anat_affine_motion_correct_to_standard':'func',
+    'itk_collected_warps_motion_correct_to_standard':'func',
+    'motion_correct_to_standard':'func',
+    'motion_correct_to_standard_smooth':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
     'raw_functional' : 'func',
@@ -700,8 +705,6 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     print return_roi_files
     return return_roi_files
-
-
 
 
 def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, create_sym_links):
