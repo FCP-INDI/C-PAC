@@ -1,3 +1,11 @@
+# CPAC/pipeline/cpac_pipeline.py
+# 
+
+'''
+This module prepares and executes the main C-PAC workflow
+'''
+
+# Import packages
 import os
 import time
 from time import strftime
@@ -2366,9 +2374,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         for strat in strat_list:
 
             preproc = create_reho()
-            preproc.inputs.inputspec.cluster_size = c.clusterSize
-            reho = preproc.clone('reho_%d' % num_strat)
-
+            cluster_size = c.clusterSize
+            # Check the cluster size is supported
+            if not (cluster_size == 27 or \
+                    cluster_size == 19 or \
+                    cluster_size == 7):
+                err_msg = 'Cluster size specified: %d, is not supported. '\
+                          'Change to 7, 19, or 27 and try again' % cluster_size
+                raise Exception(err_msg)
+            else:
+                preproc.inputs.inputspec.cluster_size = cluster_size
+                reho = preproc.clone('reho_%d' % num_strat)
 
             try:
                 node, out_file = strat.get_leaf_properties()

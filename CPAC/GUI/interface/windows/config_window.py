@@ -750,7 +750,6 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
-                
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
@@ -923,7 +922,10 @@ class MainFrame(wx.Frame):
                 # parameters that are integers
                 elif dtype == 2:
 
-                    if type == 0:
+                    # Add check for ReHo cluster
+                    if label == 'clusterSize':
+                        print 'Using ReHo cluster size of ', value
+                    elif type == 0:
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
