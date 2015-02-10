@@ -253,10 +253,15 @@ def run(config_file, subject_list_file, output_path_file):
         # session IDs
         # if it exists, load it into unique_id
 
+        # init subject_id to None
+        subject_id = None
         for sub in sublist:
             if sub['subject_id'] in subject_unique_id:
                 subject_id = sub['subject_id']
-              
+
+        # If subject_id never gets set for this specific subject, move on to next subject
+        if not subject_id:
+            continue
 
         # 'resource_id' is each type of output
         # 'key' is a path to each and every individual output file,
