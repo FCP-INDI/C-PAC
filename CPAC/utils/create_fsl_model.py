@@ -142,10 +142,27 @@ def check_multicollinearity(matrix):
 
 
 
-def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
+def create_mat_file(data, col_names, model_name, output_dir):
 
     """
     create the .mat file
+
+    inputs:
+
+    data = NumPy matrix of the design matrix
+
+    col_names = a list of strings with the design matrix header labels
+
+    model_name = a string containing the name of the group analysis model,
+                 this is entered by the user either in the GUI or the
+                 group analysis yaml config file
+
+    output_dir = output directory for group analysis outputs, also set by the
+                 user
+
+    output:
+    writes the .mat file to disk for FLAMEO's use later
+
     """
 
     dimx = None
@@ -167,7 +184,7 @@ def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
     ppstring += '\n'
 
 
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.mat'), 'w')
+    f = open(os.path.join(output_dir, model_name + '.mat'), 'w')
 
     print >>f, '/NumWaves\t%d' %dimy
     print >>f, '/NumPoints\t%d' %dimx
@@ -187,6 +204,81 @@ def create_mat_file(data, col_names, model_name, outputModelFilesDirectory):
     np.savetxt(f, data, fmt='%1.5e', delimiter='\t')
 
     f.close()
+
+
+
+def test_create_mat_file():
+
+    """
+    unit test for create_mat_file()
+    """
+
+
+    """
+    TO-DO:
+
+        - find a better way to handle picking the output directory
+        - decide if all of the inputs should be hand-specified like below, or
+          if they should be taken from the outputs of other unit tests?
+        - can unit tests have multiple asserts? if so, run an assert for
+          whether or not the output file successfully opens ("open_mat" below)
+
+    """
+
+    import os
+    import numpy as np
+
+    # set test inputs
+
+    sub1 = [1.001, 2.001, 3.001, 4.001]
+    sub2 = [1.002, 2.002, 3.002, 4.002]
+    sub3 = [1.003, 2.003, 3.003, 4.003]
+    sub4 = [1.004, 2.004, 3.004, 4.004]
+
+    data = [sub1,sub2,sub3,sub4]
+
+    data = np.array(data, dtype=np.float16)
+
+    col_names = ["EV_1","EV_2","EV_3","EV_4"]
+
+    current_dir = os.getcwd()
+
+    model_name = "Test_Model"
+
+    output_dir = os.path.join(current_dir, "test_model_output")
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+
+    # set test output
+
+    correct_output_lines = ['/NumWaves\t4\n', '/NumPoints\t4\n', \
+        '/PPheights\t1.00000e+00\t1.00000e+00\t1.00000e+00\t1.00000e+00\n', \
+        '\n', '\n', 'EV_1\tEV_2\tEV_3\tEV_4\n', '\n', '/Matrix\n', \
+        '1.00100e+00\t2.00100e+00\t3.00100e+00\t4.00100e+00\n',
+        '1.00200e+00\t2.00200e+00\t3.00200e+00\t4.00200e+00\n',
+        '1.00300e+00\t2.00300e+00\t3.00300e+00\t4.00300e+00\n',
+        '1.00400e+00\t2.00400e+00\t3.00400e+00\t4.00400e+00\n']
+
+
+    # run the function
+    create_mat_file(data, col_names, model_name, output_dir)
+
+
+    # open the file
+    open_mat = open(os.path.join(output_dir, model_name + ".mat"),"rb")
+
+    output_mat = open_mat.readlines()
+
+    err_count = 0
+
+    for line, correct_line in zip(output_mat, correct_output_lines):
+
+        if line != correct_line:
+            err_count += 1
+
+    assert err_count == 0        
 
 
 

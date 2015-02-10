@@ -350,6 +350,8 @@ class ModelDesign(wx.Frame):
 
                 self.gpa_settings['f_tests'] = []
 
+                print "f tests from ctrl: ", ctrl.get_selection(), "\n\n"
+
                 for option in ctrl.get_selection():
 
                     cons_in_ftest = []
@@ -461,6 +463,8 @@ class ModelDesign(wx.Frame):
 
         self.collect_input()
 
+        print "gpa settings going back: ", self.gpa_settings, "\n\n"
+
         modelconfig_window.ModelConfig(self.parent, self.gpa_settings)
 
         self.Close()
@@ -560,6 +564,11 @@ class ModelDesign(wx.Frame):
                                 'in the mask file) if you include ' \
                                 '\'Custom_ROI_Mean\' in the Design Matrix ' \
                                 'Formula.'))
+
+        config_list.append(('use_zscore', vals['use_zscore'], 0, \
+                                'Run the group analysis model on the ' \
+                                'z-score standardized version of the ' \
+                                'derivatives you choose in the list below.'))
 
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
                                 'Choose the derivatives to run the group ' \

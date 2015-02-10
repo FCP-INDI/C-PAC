@@ -28,6 +28,7 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['mean_mask'] = ''
             self.gpa_settings['custom_roi_mask'] = 'None'
             self.gpa_settings['coding_scheme'] = ''
+            self.gpa_settings['use_zscore'] = True
             self.gpa_settings['derivative_list'] = ''
             self.gpa_settings['repeated_measures'] = ''
             self.gpa_settings['z_threshold'] = ''
@@ -116,30 +117,33 @@ class ModelConfig(wx.Frame):
                       comment="Optional: Full path to a NIFTI file containing one or more ROI masks. The means of the masked regions will then be computed for each subject's output and will be included in the model as regressors (one for each ROI in the mask file) if you include 'Custom_ROI_Mean' in the Design Matrix Formula.",
                       values=self.gpa_settings['custom_roi_mask'])
 
+        self.page.add(label="Use z-score Standardized Derivatives ", 
+                     control=control.CHOICE_BOX, 
+                     name='use_zscore', 
+                     type=dtype.BOOL, 
+                     comment="Run the group analysis model on the z-score " \
+                             "standardized version of the derivatives you " \
+                             "choose in the list below.",
+                     values=["True","False"])
+
         self.page.add(label = "Select Derivatives ",
                     control = control.CHECKLIST_BOX,
                     name = "derivative_list",
                     type = dtype.LSTR,
                     values = ['ALFF',
                               'ALFF (smoothed)',
-                              'ALFF (smoothed, z-score std)',
                               'f/ALFF',
                               'f/ALFF (smoothed)',
-                              'f/ALFF (smoothed, z-score std)',
                               'ReHo',
                               'ReHo (smoothed)',
-                              'ReHo (smoothed, z-score std)',
                               'ROI Average SCA',
                               'ROI Average SCA (smoothed)',
-                              'ROI Average SCA (smoothed, Fisher z-score std)',
                               'Voxelwise SCA',
                               'Voxelwise SCA (smoothed)',
-                              'Voxelwise SCA (smoothed, Fisher z-score std)',
                               'Multiple Regression SCA (smoothed)',
-                              'VMHC (Fisher z-score std)',
-                              'VMHC z-stat (Fisher z-score std)',
+                              'VMHC',
+                              'VMHC z-stat (z-score only)',
                               'Network Centrality (smoothed)',
-                              'Network Centrality (smoothed, z-score std)',
                               'Dual Regression',
                               'Dual Regression (smoothed)',
                               'Dual Regression z-stat',
@@ -269,13 +273,28 @@ class ModelConfig(wx.Frame):
                 if name == 'p_threshold':
                     ctrl.set_value(self.gpa_settings['p_threshold'])
 
+                if name == 'use_zscore':
+                    ctrl.set_value(self.gpa_settings['use_zscore'])
+
                 if name == 'derivative_list':
 
                     value = self.gpa_settings['derivative_list']
 
-                    value = value.replace("['","").replace("']","").split("', '")
+                    if isinstance(value, str):
+                        value = value.replace("['","").replace("']","").split("', '")
 
-                    ctrl.set_value(value)
+                    new_derlist = []
+
+                    # remove the _z if they are there, just so it can
+                    # repopulate the listbox through the substitution map
+                    for val in value:
+                        if "_z" in val:
+                            val = val.replace("_z","")
+                            new_derlist.append(val)
+                        else:
+                            new_derlist.append(val)                           
+
+                    ctrl.set_value(new_derlist)
 
 
 
@@ -356,9 +375,18 @@ class ModelConfig(wx.Frame):
                     if not value:
                         value = [str(item) for item in value]
                     
-                    ctrl.set_value(value)
+                    new_derlist = []
 
-                elif name == 'repeated_measures':
+                    for val in value:
+                        if "_z" in val:
+                            val = val.replace("_z","")
+                            new_derlist.append(val)
+                        else:
+                            new_derlist.append(val)
+
+                    ctrl.set_value(new_derlist)
+
+                elif name == 'repeated_measures' or name == 'use_zscore':
                     ctrl.set_value(str(value))
 
                 elif name == 'z_threshold' or name == 'p_threshold':
@@ -508,7 +536,7 @@ class ModelConfig(wx.Frame):
                     else:
                         formula_string = formula_string + ' + ' + EV
 
-                formula_string = formula_string + ' + MeanFD + Measure_Mean'
+                formula_string = formula_string + ' + MeanFD'
 
                 ctrl.set_value(formula_string)
 
@@ -573,7 +601,7 @@ class ModelConfig(wx.Frame):
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()
-            
+            print name
             # get the design matrix formula
             if name == 'design_formula':
 
@@ -588,9 +616,26 @@ class ModelConfig(wx.Frame):
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
 
-            else:
+            if name == 'derivative_list':
 
+                # grab this for below
+                derlist_ctrl = ctrl
+
+            else:
+                print ctrl.get_selection(), "\n\n"
                 self.gpa_settings[name] = str(ctrl.get_selection())
+
+
+
+        self.gpa_settings['derivative_list'] = []
+
+        for derivative in list(derlist_ctrl.get_selection()):
+            if self.gpa_settings['use_zscore'] == "True":
+                self.gpa_settings['derivative_list'].append(derivative + "_z")
+            else:
+                self.gpa_settings['derivative_list'].append(derivative)
+
+
 
 
 
@@ -1149,6 +1194,7 @@ class ModelConfig(wx.Frame):
                 raise Exception
 
 
+        print "going next, gpa settings: ", self.gpa_settings, "\n\n"
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
