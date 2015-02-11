@@ -14,7 +14,7 @@ def check_inputs(*pathstrs):
             raise SystemExit(2)
     return
 
-if len(sys.argv) < 3 or len(sys.argv) > 5:
+if len(sys.argv) != 3 and len(sys.argv) != 5:
     print "Usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml" % path.basename(sys.argv[0])
     print "Alternate usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml nipype=/path/to/custom/Nipype cpac=/path/to/custom/cpac" % path.basename(sys.argv[0])
     print "Will run C-PAC"
@@ -42,9 +42,9 @@ def check_custom_path(custom_path):
 config_file         = sys.argv[1]
 subject_list_file   = sys.argv[2]
 
-check_custom_path(sys.argv[3])
-check_custom_path(sys.argv[4])
-
+if len(sys.argv)==5:
+    check_custom_path(sys.argv[3])
+    check_custom_path(sys.argv[4])
 
 check_inputs(config_file, subject_list_file)
 
