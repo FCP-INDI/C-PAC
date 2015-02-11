@@ -288,7 +288,7 @@ class Control(wx.Control):
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
             
-            if combo_type == 4:
+            if combo_type == 4 or 5:
 
                 if values:
 
