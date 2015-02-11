@@ -297,7 +297,7 @@ def get_roi_num_list(timeseries_file, prefix=None):
 
     tsfile = open(timeseries_file, "rb")
 
-    roi_list = tsfile.readlines().strip("\r\n").replace("#","").split("\t")
+    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
 
     if prefix != None:
 
@@ -401,6 +401,12 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
         roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
+
+    # get the specific roi number
+    filename = correlation_file.split("/")[-1]
+    filename = filename.replace(".nii.gz","")
+
+
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
 
@@ -437,7 +443,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
         sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
-        sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI.nii.gz') #_%s.nii.gz' % roi_number) #_number_%s.nii.gz' % (roi_numbers[i]))
+        sub_z_score_file = os.path.join(os.getcwd(), (filename + '_fisher_zstd.nii.gz'))
 
         sub_img.to_filename(sub_z_score_file)
 

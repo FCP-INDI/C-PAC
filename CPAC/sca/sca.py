@@ -10,7 +10,6 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.sca.utils import *
-from CPAC.utils.utils import get_roi_num_list
 
 
 def create_sca(name_sca='sca'):
@@ -93,6 +92,8 @@ def create_sca(name_sca='sca'):
 
     """
 
+    from CPAC.utils.utils import get_roi_num_list
+
     sca = pe.Workflow(name=name_sca)
     inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
                                                 'functional_file',
@@ -135,14 +136,14 @@ def create_sca(name_sca='sca'):
         split.inputs.out_base_name = 'sca_roi_'
 
 
-        get_roi_num_list = util.Function(input_names=['timeseries_file', 'prefix'],
-                        output_names=['roi_list'], function=get_roi_num_list,
-                        name='get_roi_num_list')
+        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'], output_names=['roi_list'], function=get_roi_num_list), name='get_roi_num_list')
 
         get_roi_num_list.inputs.prefix = "sca_roi"
 
-        rename_rois = pe.MapNode(interface=util.Rename(), name='rename_rois',
+        rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
                           iterfield=['in_file','format_string'])
+
+        rename_rois.inputs.keep_ext = True
 
 
         sca.connect(corr, 'out_file', concat, 'in_files')
@@ -159,7 +160,7 @@ def create_sca(name_sca='sca'):
 
         sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
 
-        sca.connect(rename_rois, 'output_list', outputNode,
+        sca.connect(rename_rois, 'out_file', outputNode,
                     'correlation_files')
 
     else:
