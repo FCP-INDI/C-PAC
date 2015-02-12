@@ -13,7 +13,7 @@ class GroupAnalysis(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/group_analysis.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/fsl_ga.html'))
         
 #        try:
 #            code = urlopen("http://fcp-indi.github.io/docs/user/fsl_ga.html").code
