@@ -282,7 +282,7 @@ def test_create_mat_file():
 
 
 
-def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
+def create_grp_file(data, model_name, gp_var, output_dir):
 
     """
     create the grp file
@@ -307,7 +307,7 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
             i += 1
 
 
-    f = open(os.path.join(outputModelFilesDirectory, model_name + '.grp'), 'w')
+    f = open(os.path.join(output_dir, model_name + '.grp'), 'w')
 
     print >>f, '/NumWaves\t1'
     print >>f, '/NumPoints\t%d\n' %dimx
@@ -315,6 +315,74 @@ def create_grp_file(data, model_name, gp_var, outputModelFilesDirectory):
     np.savetxt(f, data, fmt='%d', delimiter='\t')
 
     f.close()
+
+
+
+def test_create_grp_file():
+
+    """
+    unit test for create_grp_file()
+    """
+
+
+    """
+    TO-DO:
+
+        - find a better way to handle picking the output directory
+        - decide if all of the inputs should be hand-specified like below, or
+          if they should be taken from the outputs of other unit tests?
+        - can unit tests have multiple asserts? if so, run an assert for
+          whether or not the output file successfully opens ("open_grp" below)
+
+    """
+
+    import os
+    import numpy as np
+
+    # set test inputs
+
+    sub1 = [1.001, 2.001, 3.001, 4.001]
+    sub2 = [1.002, 2.002, 3.002, 4.002]
+    sub3 = [1.003, 2.003, 3.003, 4.003]
+    sub4 = [1.004, 2.004, 3.004, 4.004]
+
+    data = [sub1,sub2,sub3,sub4]
+
+    data = np.array(data, dtype=np.float16)
+
+    current_dir = os.getcwd()
+
+    model_name = "Test_Model"
+
+    output_dir = os.path.join(current_dir, "test_model_output")
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+
+    # set test output
+
+    correct_output_lines = ['/NumWaves\t1\n', '/NumPoints\t4\n', '\n', \
+        '/Matrix\n', '1\n', '1\n', '1\n', '1']
+
+
+    # run the function
+    create_grp_file(data, model_name, gp_var, output_dir)
+
+
+    # open the file and check it
+    open_grp = open(os.path.join(output_dir, model_name + ".grp"),"rb")
+
+    output_grp = open_grp.readlines()
+
+    err_count = 0
+
+    for line, correct_line in zip(output_grp, correct_output_lines):
+
+        if line != correct_line:
+            err_count += 1
+
+    assert err_count == 0
 
 
 

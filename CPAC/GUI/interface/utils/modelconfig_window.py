@@ -143,6 +143,7 @@ class ModelConfig(wx.Frame):
                               'Multiple Regression SCA (smoothed)',
                               'VMHC',
                               'VMHC z-stat (z-score only)',
+                              'Network Centrality',
                               'Network Centrality (smoothed)',
                               'Dual Regression',
                               'Dual Regression (smoothed)',
@@ -1194,7 +1195,6 @@ class ModelConfig(wx.Frame):
                 raise Exception
 
 
-        print "going next, gpa settings: ", self.gpa_settings, "\n\n"
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well

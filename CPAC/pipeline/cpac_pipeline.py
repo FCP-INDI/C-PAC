@@ -3113,9 +3113,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      zstd_smoothing, 'op_string')
 
                     strat.append_name(smoothing.name)
-                    strat.update_resource_pool({'centrality_outputs_smoothed': (smoothing, 'out_file'),
-                                                'centrality_outputs_zstd' : (z_score, 'outputspec.z_score_img'),
-                                                'centrality_outputs_zstd_smoothed' : (zstd_smoothing, 'out_file')})
+                    strat.update_resource_pool({'centrality_outputs_zstd': (z_score, 'outputspec.z_score_img'),
+                                                'centrality_outputs_smoothed': (smoothing, 'out_file'),
+                                                'centrality_outputs_zstd_smoothed': (zstd_smoothing, 'out_file')})
                     
                     strat.append_name(smoothing.name)
                     create_log_node(smoothing, 'out_file', num_strat)

@@ -350,8 +350,6 @@ class ModelDesign(wx.Frame):
 
                 self.gpa_settings['f_tests'] = []
 
-                print "f tests from ctrl: ", ctrl.get_selection(), "\n\n"
-
                 for option in ctrl.get_selection():
 
                     cons_in_ftest = []
@@ -571,15 +569,57 @@ class ModelDesign(wx.Frame):
                                 'derivatives you choose in the list below.'))
 
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
-                                'Choose the derivatives to run the group ' \
-                                'model on.'))
+                                "Choose the derivatives to run the group " \
+                                "model on.\n\nThese must be written out " \
+                                "as a list, and must be one of the options " \
+                                "listed below.\n\nFor z-scored analyses:\n" \
+                                "'alff_to_standard_zstd', " \
+                                "'alff_to_standard_smooth_zstd', " \
+                                "'falff_to_standard_zstd', " \
+                                "'falff_to_standard_smooth_zstd', " \
+                                "'reho_to_standard_zstd', " \
+                                "'reho_to_standard_smooth_zstd', " \
+                                "'sca_roi_to_standard_fisher_zstd', " \
+                                "'sca_roi_to_standard_smooth_fisher_zstd', " \
+                                "'sca_seed_to_standard_fisher_zstd', " \
+                                "'sca_seed_to_standard_smooth_fisher_zstd', " \
+                                "'vmhc_fisher_zstd', " \
+                                "'vmhc_fisher_zstd_zstat_map', " \
+                                "'centrality_outputs_zstd', " \
+                                "'centrality_outputs_smoothed_zstd'\n\n" \
+                                "For raw (non-z-scored) analyses:\n" \
+                                "'alff_to_standard', " \
+                                "'alff_to_standard_smooth', " \
+                                "'falff_to_standard', " \
+                                "'falff_to_standard_smooth', " \
+                                "'reho_to_standard', " \
+                                "'reho_to_standard_smooth', " \
+                                "'sca_roi_to_standard', " \
+                                "'sca_roi_to_standard_smooth', " \
+                                "'sca_seed_to_standard', " \
+                                "'sca_seed_to_standard_smooth', " \
+                                "'vmhc_raw_score', " \
+                                "'centrality_outputs', " \
+                                "'centrality_outputs_smoothed'\n\n" \
+                                "Outputs that can be included regardless " \
+                                "of the z-scoring selection:\n"
+                                "'dr_tempreg_maps_files_to_standard', " \
+                                "'dr_tempreg_maps_files_to_standard_smooth', " \
+                                "'dr_tempreg_maps_zstat_files_to_standard', " \
+                                "'dr_tempreg_maps_zstat_files_to_standard_smooth', " \
+                                "'sca_tempreg_maps_zstat_files_smooth'\n\n" \
+                                "Example input: derivative_list :  ['alff_to" \
+                                "_standard_smooth_zstd', 'sca_roi_to_" \
+                                "standard_smooth_fisher_zstd']\n"))
+
 
         config_list.append(('coding_scheme', vals['coding_scheme'], 4, \
                                 'Choose the coding scheme to use when ' \
                                 'generating your model. \'Treatment\' ' \
                                 'encoding is generally considered the ' \
                                 'typical scheme. Consult the User Guide for ' \
-                                'more information.'))
+                                'more information.\n\nAvailable options:\n' \
+                                '\'Treatment\', \'Sum\'\n'))
 
         config_list.append(('z_threshold', vals['z_threshold'], 4, \
                                 'Only voxels with a Z-score higher than ' \
@@ -597,10 +637,7 @@ class ModelDesign(wx.Frame):
                                 'repeated measures.'))
 
         config_list.append(('contrasts', vals['contrasts'], 8, \
-                                'A dictionary of contrast descriptions, ' \
-                                'including which ones to be included in ' \
-                                'the model (marked with either True or ' \
-                                'False).'))
+                                'A list of contrast descriptions.'))
 
         config_list.append(('f_tests', vals['f_tests'], 8, \
                                 'Optional: A list of f-test strings ' \
