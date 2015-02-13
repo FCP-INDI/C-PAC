@@ -17,7 +17,7 @@ class Settings(wx.html.HtmlWindow):
 
         self.counter = counter
 
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/settings.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/compute_config.html'))
 
 #        try:
 #            code = urlopen("http://fcp-indi.github.io/docs/user/compute_config.html").code
