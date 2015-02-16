@@ -1,0 +1,91 @@
+=======================
+ Timeseries Extraction
+=======================
+C-PAC lets users easily export BOLD timeseries in a number of different ways. This can be useful for those wishing to undertake advanced analysis not included in C-PAC, but still take advantage of its robust pre-processing features. For instructions on how to use these seeds within C-PAC
+, please see the :doc:`Seed-based Correlation Analysis </sca>`.
+
+Define New Seeds
+================
+Users can easily define new spherical seeds (for use in Time Series Extraction and/or Seed-based Correlation Analysis)by providing a text file containing seed definitions. Seeds are defined by providing a seed label number, x/y/z coordinates in MNI space, seed radius (in mm), and resolution. For example:
+::
+    1 -28 -40 -12 2 3mm
+    2 -4 48 24 3 2mm 
+
+If multiple seeds are specified with the same resolution, they will be grouped into a single file containing multiple seeds, with the values within each seed ROI set to the seed label number. Note that CPAC does not check for overlapping seeds. In the event that a voxel is present in multiple seeds defined here, the value of that voxel will be set to the sum of the two seed label numbers (effectively resulting in a new seed). Users should confirm the seeds they define do not overlap before running CPAC.
+
+ROI Timeseries Extraction
+=========================
+
+.. figure:: /_images/sca_average.png
+
+ROI Timeseries Extraction allows you export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by the user.
+
+.. figure:: /_images/roi_tse.png
+
+When an ROI is placed within a functionally homogeneous area, averaging signals in this way can produce a timeseries which may more accurately reflect the overall activity pattern in the region than does the timeseries of any individual voxel. 
+
+Voxel Timeseries Extraction
+===========================
+
+.. figure:: /_images/sca_voxel.png
+
+Voxel Timeseries Extraction will export the individual timeseries of all voxels within one or more masks.
+
+.. figure:: /_images/voxel_tse.png
+
+Vertex Timeseries Extraction
+============================
+Voxel Timeseries Extraction uses FreeSurfer to generate a 2-dimensional model of the cortical surface. Activation data is transformed and registered to points (vertices) on the surface model, each with its own activation timeseries. These timeseries can then be extracted. 
+
+Output Options
+==============
+Timeseries can be exported as either a standard .csv file or as a `Numpy Array <http://scipy-lectures.github.com/intro/numpy/array_object.html?>`_
+
+Configuring C-PAC
+=================
+The following settings in :file:`config.yml` are used to configure Time Series Extraction::
+    
+    # Extract an average timeseries for each ROI
+    # Required if you wish to run ROI-based SCA
+    runROITimeseries = [0]
+
+    # Export ROI timeseries data
+    # First value = Output .csv
+    # Second value = Output numPy array
+    # Options are True/False
+    roiTSOutputs = [True, True]
+
+    # Directory containing ROI definitions
+    # For best performance, all ROIs should be in a single file (see User Guide)
+    roiDirectoryPath = '/path/to/roi_definitions_directory'
+
+    # Extract timeseries data for all individual voxels within a mask
+    # Required if you wish to run voxel-based SCA
+    runVoxelTimeseries = [0]
+
+    # Export voxel timeseries data
+    # First value = Output .csv
+    # Second value = Output numPy array
+    # Options are True/False
+    voxelTSOutputs = [False, False]
+
+    # Directory contaning masks
+    # For best performance, all masks should be in a single file (see User Guide)
+    maskDirectoryPath = '/path/to/mask_definitions_directory'
+
+    # Register timeseries data to a surface model built by FreeSurfer
+    # Required to run vertex timeseries extraction
+    runSurfaceRegistraion = [0]
+
+    # Directory where FreeSurfer outputs surface data
+    # This should be the same as SUBJECTS_DIR in .bashrc
+    reconSubjectsDirectory = '/path/to/fs_output_directory'
+
+    # Extract timeseries data for surface vertices
+    runVerticesTimeSeries = [0]
+
+    # Export vertex timeseries data
+    # First value = Output .csv
+    # Second value = Output numPy array
+    # Options are True/False
+    verticesTSOutputs = [False, False]
