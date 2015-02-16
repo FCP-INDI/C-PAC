@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Computer Settings &mdash; C-PAC 0.3.9 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.9 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
+    <link rel="up" title="Using C-PAC" href="use.html" />
+    <link rel="next" title="Data Preprocessing" href="preproc.html" />
+    <link rel="prev" title="Subject List Setup" href="data_config.html" /> 
+  </head>
+  <body>
+    <div class="content">
+        
+        
+  <div class="section" id="computer-settings">
+<h1>Computer Settings<a class="headerlink" href="#computer-settings" title="Permalink to this headline">¶</a></h1>
+<div class="figure">
+<img alt="_images/compute_gui.png" src="_images/compute_gui.png" />
+</div>
+<ol class="arabic simple">
+<li><strong>Run CPAC on a Cluster/Grid:</strong> Select False if you intend to run CPAC on a single machine. If set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.</li>
+<li><strong>FSL Path:</strong> Full path to the FSL version to be used by CPAC. If you have specified an FSL path in your .bashrc file, this path will be set automatically.</li>
+<li><strong>Job Scheduler / Resource Manager:</strong> Sun Grid Engine (SGE) or Portable Batch System (PBS). Only applies if you are running on a grid or compute cluster.</li>
+<li><strong>SGE Parallel Environment:</strong> SGE Parallel Environment to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
+<li><strong>SGE Queue:</strong> SGE Queue to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
+<li><strong>Number of Cores Per Subject:</strong> Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node. &#8216;Number of Cores Per Subject&#8217; multiplied by &#8216;Number of Subjects to Run Simultaneously&#8217; multiplied by &#8216;Number of Cores for Anatomical Registration (ANTS)&#8217; must not be greater than the total number of cores.</li>
+<li><strong>Number of Subjects to Run Simultaneously:</strong> This number depends on computing resources.</li>
+<li><strong>Number of Cores for Anatomical Registration (ANTS):</strong> This number depends on computing resources.</li>
+</ol>
+</div>
+
+
+      </div>
+    <div class="footer">
+        &copy; Copyright 2015, C-PAC Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

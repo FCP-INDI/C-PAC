@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>FSL Group Analysis &mdash; C-PAC 0.3.9 Alpha documentation</title>
+    
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.9 Alpha',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
+    <link rel="up" title="Outputs and Measures" href="derivs.html" />
+    <link rel="next" title="Data Output" href="outputs.html" />
+    <link rel="prev" title="Timeseries Extraction" href="tse.html" /> 
+  </head>
+  <body>
+    <div class="content">
+        
+        
+  <div class="section" id="fsl-group-analysis">
+<h1>FSL Group Analysis<a class="headerlink" href="#fsl-group-analysis" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>C-PAC uses <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/UserGuide">FSL/FEAT</a> to compare findings across groups.</p>
+<p>Users create a model file that includes group, phenotypic, and nuisance regressors for each subject, and the data is <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/UserGuide#Appendix_A:_Brief_Overview_of_GLM_Analysis">run through a General Linear Model (GLM) based on pre-defined comparisons (contrasts)</a>.</p>
+<p>The following links provide an introduction to how groups are compared using FSL, as well as how to define contrasts.</p>
+<ul class="simple">
+<li><a class="reference external" href="http://ccn.ucla.edu/wiki/_images/c/c7/FSL_workshop_FEAT_2.pdf">http://ccn.ucla.edu/wiki/_images/c/c7/FSL_workshop_FEAT_2.pdf</a></li>
+<li><a class="reference external" href="http://www.fmrib.ox.ac.uk/fslcourse/lectures/feat1_part2.pdf">http://www.fmrib.ox.ac.uk/fslcourse/lectures/feat1_part2.pdf</a></li>
+<li><a class="reference external" href="http://www.cubric.cf.ac.uk/neuroimaging-training/session5_group.pdf">http://www.cubric.cf.ac.uk/neuroimaging-training/session5_group.pdf</a></li>
+</ul>
+</div>
+<div class="section" id="configuring-cpac-to-run-fsl-group-analysis">
+<h2>Configuring CPAC to Run FSL Group Analysis<a class="headerlink" href="#configuring-cpac-to-run-fsl-group-analysis" title="Permalink to this headline">¶</a></h2>
+<div class="figure">
+<img alt="_images/ga_main.png" src="_images/ga_main.png" />
+</div>
+<ul class="simple">
+<li><strong>Number of Models to Run Simultaneously:</strong> This number depends on computing resources. Choose how many models to run at the same time (parallelization).</li>
+<li><strong>Select Derivatives:</strong> Select which derivatives you would like to include when running group analysis. When including Dual Regression, make sure to correct your P-value for the number of maps you are comparing. When including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.</li>
+<li><strong>Models to Run:</strong> Use the + to add FSL Models to be run (or to create new models).</li>
+<li><strong>Models Contain F-tests:</strong> Set this option to True if any of the models specified above contain F-tests.</li>
+<li><strong>Z Threshold:</strong> Only voxels with a Z-score higher than this value will be considered significant.</li>
+<li><strong>Cluster Significance Threshold:</strong> Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.</li>
+<li><strong>Run Repeated Measures:</strong> Run repeated measures to build within-subject models or compare different scans (must use the group analysis subject list and phenotypic file formatted for repeated measures - more details below listed under &#8216;Subject List&#8217; and &#8216;Phenotype/EV File&#8217;).</li>
+</ul>
+<div class="section" id="specifying-models-to-run">
+<h3>Specifying Models to Run<a class="headerlink" href="#specifying-models-to-run" title="Permalink to this headline">¶</a></h3>
+<div class="figure">
+<img alt="_images/ga_gui1.png" src="_images/ga_gui1.png" />
+</div>
+<ul class="simple">
+<li><strong>Subject List:</strong> Full path to a list of subjects to be included in the model. This should be a text file with one subject per line. Tip 1: A list in this format containing all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt). Tip 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.</li>
+<li><strong>Phenotype/EV File:</strong> Full path to a .csv file containing EV information for each subject. Tip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).</li>
+<li><strong>Subjects Column Name:</strong> Name of the subjects column in your EV file.</li>
+</ul>
+<p><strong>Note for repeated measures/within-subject models:</strong></p>
+<p>An additional group analysis subject list and phenotype file template are generated when you create your subject list, and are pre-formatted for use in repeated measures/within-subject models - these versions are to be used if you enable Repeated Measures in the pipeline configuration editor. These will have &#8216;repeated_measures&#8217; in their filenames.</p>
+<p><cite>Upon populating these fields and clicking &#8220;Load Phenotype File&#8221;, your model builder will look something like this:</cite></p>
+<div class="figure">
+<img alt="_images/ga_gui2.png" src="_images/ga_gui2.png" />
+</div>
+<p><strong>Model Setup:</strong> A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). &#8216;MeanFD&#8217; and &#8216;Measure Mean&#8217; will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.</p>
+<p><strong>Design Matrix Formula:</strong> Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be &#8216;EV + EV + EV + ..&#8217;, etc. You can also select to include MeanFD and Measure_Mean here. Note that this design formula is pre-generated for the user depending on the EVs in the phenotype file, but can be edited at any time. C-PAC uses the Python library Patsy to generate the design matrices, so more information on how to format your design formula for specific designs can be found here- <a class="reference external" href="https://patsy.readthedocs.org/en/latest/formulas.html">Patsy formula documentation</a>.</p>
+<p><strong>Note:</strong> MeanFD and Measure_Mean values are automatically demeaned prior to being inserted into the group analysis model.</p>
+<p><cite>Upon making your selections and clicking &#8220;Next&#8221;, you will see this screen:</cite></p>
+<div class="figure">
+<img alt="_images/ga_gui3.png" src="_images/ga_gui3.png" />
+</div>
+<dl class="docutils">
+<dt><strong>Contrasts:</strong> Specify your contrasts in this window. When the model builder builds the design matrix, it will process the categorical variables appropriately and provide the names of the different levels available as contrast labels, listed under &#8216;Available Contrasts&#8217;. The contrast operators available right now include:</dt>
+<dd><ul class="first last simple">
+<li><strong>&gt;</strong> Greater than</li>
+<li><strong>&gt;</strong> Less than</li>
+<li><strong>+</strong> Positive</li>
+<li><strong>&gt;</strong> Negative</li>
+</ul>
+</dd>
+</dl>
+<p><strong>Model Group Variances Separately:</strong> Specify whether FSL should model the variance for each group separately. If this option is enabled, you must specify a grouping variable below.</p>
+<p><strong>Grouping Variable:</strong> The name of the EV that should be used to group subjects when modeling variances. If you do not wish to model group variances separately, set this value to None.</p>
+<p><strong>Model Name:</strong> Specify a name for the new model.</p>
+<p><strong>Output Directory:</strong> Full path to the directory where CPAC should place the model files (.mat, .con, .grp) and the outputs of group analysis.</p>
+</div>
+</div>
+</div>
+
+
+      </div>
+   <div class="footer">
+        &copy; Copyright 2015, C-PAC Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
