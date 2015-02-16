@@ -897,7 +897,7 @@ class MainFrame(wx.Frame):
                 label = item.get_name()
                 value = item.get_selection()
                 dtype = item.get_datatype()
-                type = item.get_type()
+                item_type = item.get_type()
 
 
                 sample_list = item.get_values()
@@ -925,7 +925,7 @@ class MainFrame(wx.Frame):
                     # Add check for ReHo cluster
                     if label == 'clusterSize':
                         print 'Using ReHo cluster size of ', value
-                    elif type == 0:
+                    elif item_type == 0:
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
@@ -1014,7 +1014,12 @@ class MainFrame(wx.Frame):
                     values = []
  
                     for val in ast.literal_eval(str(value)):
-                        values.append(ast.literal_eval(val))
+                        try:
+                            val=ast.literal_eval(str(val))
+                        except Exception as err:
+                            print "Exception trying to translate: %s, %s, %s, %s"%(label,str(value),val,err)
+                            print "value type: %s"%(type(val))
+                        values.append(ast.literal_eval(str(val)))
 
                     print>>f, label, ":", values
                     print>>f, "\n"
