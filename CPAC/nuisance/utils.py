@@ -6,9 +6,9 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     wmcsf_sigs = np.vstack((wm_sigs, csf_sigs))
 
     # filter out any voxels whose variance equals 0
+    print 'Removing zero variance components'
     wmcsf_sigs = wmcsf_sigs[wmcsf_sigs.std(1)!=0,:]
 
-    print 'Removing zero variance components'
     if wmcsf_sigs.shape.count(0):
         print 'No wm or csf signals left after removing those with zero variance'
         raise IndexError
@@ -19,7 +19,7 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     Yc = Yc / np.tile(np.array(Y.std(0)).reshape(1,Y.shape[1]), (Y.shape[0],1))
     
     print 'Calculating SVD decomposition of Y*Y\''
-    U, S, Vh = np.linalg.svd(np.dot(Yc, Yc.T))
+    U, S, Vh = np.linalg.svd(Yc)
     
     return U[:,:nComponents]
 
