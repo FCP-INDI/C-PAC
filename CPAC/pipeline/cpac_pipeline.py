@@ -209,7 +209,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
-    input filepaths check
+    input filepaths check and tool setup check
     '''
 
     # this section checks all of the file paths provided in the pipeline
@@ -248,6 +248,38 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             pass
         else:
             raise Exception
+            
+            
+    # this checks to make sure the user has appropriately installed and
+    # configured necessary tools (i.e. AFNI, FSL, ANTS..)
+    
+    missing_install = []
+    
+    if os.system("3dcalc") == 32512:
+        missing_install.append("AFNI")
+          
+    if os.system("fslmaths") == 32512:
+        missing_install.append("FSL")
+    
+    if "ANTS" in c.regOption:
+    
+        if os.system("antsRegistration") == 32512:
+            missing_install.append("ANTS")
+            
+            
+    if len(missing_install) > 0:
+   
+        missing_string = ""
+        
+        for string in missing_install:
+            missing_string = missing_string + string + "\n"
+   
+        err = "\n\n[!] CPAC says: It appears the following software " \
+              "are not installed or configured properly:\n\n%s\nConsult " \
+              "the CPAC Installation Guide for instructions.\n\n" \
+              % missing_string
+        raise Exception(err)
+    
                 
     
 
