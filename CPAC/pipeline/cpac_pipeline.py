@@ -275,8 +275,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             missing_string = missing_string + string + "\n"
    
         err = "\n\n[!] CPAC says: It appears the following software " \
-              "are not installed or configured properly:\n\n%s\nConsult " \
-              "the CPAC Installation Guide for instructions.\n\n" \
+              "packages are not installed or configured properly:\n\n%s\n" \
+              "Consult the CPAC Installation Guide for instructions.\n\n" \
               % missing_string
         raise Exception(err)
     

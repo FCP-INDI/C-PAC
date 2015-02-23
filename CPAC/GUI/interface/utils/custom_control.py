@@ -769,10 +769,12 @@ class CheckBoxGrid(wx.Panel):
         # to remind users that they can include these into the design formula
 
         meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        
+        meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
 
-        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+30))
+        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
 
-        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+60))
+        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
 
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know

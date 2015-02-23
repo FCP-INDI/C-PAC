@@ -92,14 +92,14 @@ class ModelConfig(wx.Frame):
                       name = "model_setup",
                       type = 9,#dtype.LBOOL,
                       values = '',
-                      comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD' and 'Measure Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
+                      comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD', 'MeanFD_Jenkinson', 'Measure Mean', and 'Custom_ROI_Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
                       size = (450, -1))
 
         self.page.add(label="Design Matrix Formula ",
                       control=control.TEXT_BOX,
                       name="design_formula",
                       type=dtype.STR,
-                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD, Measure_Mean, and Custom_ROI_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
+                      comment="Specify the formula to describe your model design. Essentially, including EVs in this formula inserts them into the model. The most basic format to include each EV you select would be 'EV + EV + EV + ..', etc. You can also select to include MeanFD, MeanFD_Jenkinson, Measure_Mean, and Custom_ROI_Mean here. See the C-PAC User Guide for more detailed information regarding formatting your design formula.",
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 
@@ -537,7 +537,7 @@ class ModelConfig(wx.Frame):
                     else:
                         formula_string = formula_string + ' + ' + EV
 
-                formula_string = formula_string + ' + MeanFD'
+                formula_string = formula_string + ' + MeanFD_Jenkinson'
 
                 ctrl.set_value(formula_string)
 
@@ -702,7 +702,8 @@ class ModelConfig(wx.Frame):
                         int_check = 1
                     else:
                         if (side not in self.pheno_data_dict.keys()) and \
-                            side != 'MeanFD' and side != 'Measure_Mean' and \
+                            side != 'MeanFD' and side != 'MeanFD_Jenkinson' \
+                            and side != 'Measure_Mean' and \
                             side != 'Custom_ROI_Mean':
 
                             errmsg = 'CPAC says: The regressor \'%s\' you ' \
@@ -710,7 +711,9 @@ class ModelConfig(wx.Frame):
                                      'part of the interaction \'%s\' is not ' \
                                      'a valid EV option.\n\nPlease enter ' \
                                      'only the EVs in your phenotype file ' \
-                                     'or the MeanFD or Measure_Mean options.' \
+                                     'or the MeanFD, MeanFD_Jenkinson, ' \
+                                     'Custom_ROI_Mean, or Measure_Mean ' \
+                                     'options.' \
                                      % (side,EV)
 
                             errSubID = wx.MessageDialog(self, errmsg,
@@ -756,6 +759,7 @@ class ModelConfig(wx.Frame):
 
                     if (interaction_EV not in self.pheno_data_dict.keys()) and \
                         interaction_EV != 'MeanFD' and \
+                        interaction_EV != 'MeanFD_Jenkinson' and \
                         interaction_EV != 'Measure_Mean' and \
                         interaction_EV != 'Custom_ROI_Mean':
 
@@ -764,7 +768,8 @@ class ModelConfig(wx.Frame):
                                  'part of the interaction \'%s\' is not a ' \
                                  'valid EV option.\n\nPlease enter only ' \
                                  'the EVs in your phenotype file or the ' \
-                                 'MeanFD or Measure_Mean options.' \
+                                 'MeanFD, MeanFD_Jenkinson, Custom_ROI_' \
+                                 'Mean, or Measure_Mean options.' \
                                  % (interaction_EV,EV)
 
                         errSubID = wx.MessageDialog(self, errmsg,
@@ -777,13 +782,15 @@ class ModelConfig(wx.Frame):
             else:
 
                 if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
-                    and EV != 'Measure_Mean' and EV != 'Custom_ROI_Mean':
+                    and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
+                    and EV != 'Custom_ROI_Mean':
 
                     errmsg = 'CPAC says: The regressor \'%s\' you ' \
                              'entered within the design formula is not ' \
                              'a valid EV option.' \
                              '\n\nPlease enter only the EVs in your phenotype ' \
-                             'file or the MeanFD or Measure_Mean options.' \
+                             'file or the MeanFD, MeanFD_Jenkinson, ' \
+                             'Custom_ROI_Mean, or Measure_Mean options.' \
                              % EV
 
                     errSubID = wx.MessageDialog(self, errmsg,
@@ -998,6 +1005,8 @@ class ModelConfig(wx.Frame):
 
         if 'MeanFD' in formula:
             create_regressor_column('MeanFD')
+        if 'MeanFD_Jenkinson' in formula:
+            create_regressor_column('MeanFD_Jenkinson')
         if 'Measure_Mean' in formula:
             create_regressor_column('Measure_Mean')
 
