@@ -95,8 +95,7 @@ class strategy:
 
     def get_node_from_resource_pool(self, resource_key):
         try:
-            if resource_key in self.resource_pool:
-                return self.resource_pool[resource_key]
+            return self.resource_pool[resource_key]
         except:
             logger.info('no node for output: ')
             logger.info(resource_key)

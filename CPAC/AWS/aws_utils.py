@@ -152,7 +152,8 @@ def md5_sum(bucket, prefix='', filt_str=''):
 
 
 # Rename s3 keys from src_list to dst_list
-def s3_rename(bucket, src_list, dst_list, keep_old=False):
+def s3_rename(bucket, src_list, dst_list,
+              keep_old=False, overwrite=False, make_public=False):
     '''
     Function to rename files from an AWS S3 bucket via a copy and delete
     process. Uses all keys in src_list as the original names and renames
@@ -167,9 +168,12 @@ def s3_rename(bucket, src_list, dst_list, keep_old=False):
         a list of relative paths of the files to delete from the bucket
     dst_list : list (str)
         a list of relative paths of the files to delete from the bucket
-    keep_old : boolean (optional)
-        flag indicating whether to keep the src_list files or not;
-        default is False
+    keep_old : boolean (optional), default=False
+        flag indicating whether to keep the src_list files
+    overwrite : boolean (optional), default=False
+        flag indicated whether to overwrite the files in dst_list
+    make_public : boolean (optional), default=False
+        set to True if files should be publically available on S3
     Returns
     -------
     None
@@ -188,16 +192,23 @@ def s3_rename(bucket, src_list, dst_list, keep_old=False):
     # And iterate over keys to copy over new ones
     for f in src_list:
         src_key = bucket.get_key(f)
+        if not src_key:
+            print 'source file %s doesnt exist, skipping...' % f
+            continue
         dst_key = dst_list[i]
         dst_exists = bucket.get_key(dst_key)
-        if not dst_exists:
+        if not dst_exists or overwrite:
             print 'copying source: ', str(src_key.key)
             print 'to destination: ', dst_key
             src_key.copy(bucket, dst_key)
+            if make_public:
+                print 'making public...'
+                dk = bucket.get_key(dst_key)
+                dk.make_public()
             if not keep_old:
                 src_key.delete()
         else:
-            print '%s already exists' % dst_key
+            print '%s exists and not overwriting' % dst_key
         i += 1
         per = 100*(float(i)/no_files)
         print 'Done renaming %d/%d\n%f%% complete' % (i, no_files, per)
