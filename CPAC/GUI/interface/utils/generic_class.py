@@ -288,7 +288,7 @@ class Control(wx.Control):
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
             
-            if combo_type == 4 or 5:
+            if (combo_type == 4) or (combo_type == 5):
 
                 if values:
 
@@ -314,6 +314,7 @@ class Control(wx.Control):
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
+
          
         elif type == 9:
             self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
@@ -373,7 +374,7 @@ class Control(wx.Control):
         if isinstance(self.selection, list):
             if convert_to_string:
                 value = str(value)
-                
+
             # here, 'value' is the single element selected in the control by
             # the user, and 'self.selection' is the list containing these
             # selections
@@ -396,6 +397,7 @@ class Control(wx.Control):
         else:
             self.selection = value
 
+
         if self.get_type()==7:
             self.listbox_selections = self.selection
 
@@ -407,6 +409,7 @@ class Control(wx.Control):
         return self.wfk_switch
         
     def set_value(self, val):
+    
         import ast
         #print "self.get_name(), self.get_type() , val -->", self.get_name(), self.get_type(), val
 

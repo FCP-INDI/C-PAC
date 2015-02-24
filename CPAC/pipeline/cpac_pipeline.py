@@ -443,6 +443,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     '''
     T1 -> Template, Non-linear registration (FNIRT or ANTS)
     '''
+    
     new_strat_list = []
     num_strat = 0
 

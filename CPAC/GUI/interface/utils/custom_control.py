@@ -87,6 +87,7 @@ class DirSelectorCombo(wx.combo.ComboCtrl):
         
         self.SetFocus()
         
+        
 class CheckBox(wx.Frame):
     
     def __init__(self, parent, values):

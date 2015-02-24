@@ -827,8 +827,6 @@ class MainFrame(wx.Frame):
                 #pipeline_id = linecache.getline(p.resource_filename('CPAC', \
                 #       'GUI/resources/pipeline_names.py'), hash_val)
 
-                print "pipeline_id ==", pipeline_name
-
                 if os.path.exists(self.path):
                     self.update_listbox(pipeline_name)
 
@@ -898,7 +896,7 @@ class MainFrame(wx.Frame):
                 value = item.get_selection()
                 dtype = item.get_datatype()
                 item_type = item.get_type()
-
+                
 
                 sample_list = item.get_values()
                 comment = item.get_help()
@@ -1026,6 +1024,7 @@ class MainFrame(wx.Frame):
 
 
                 # parameters that are whole words
+                #     ALSO: the Nuisance Corrections lists                
                 elif dtype == 8:
 
                     print>>f, label,":"
