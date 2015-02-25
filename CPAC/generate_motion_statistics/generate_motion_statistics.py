@@ -950,7 +950,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     
     #Number of frames (time points) where movement 
     #(FD) exceeded threshold
-    numFD = float(jenFD_data[jenkFD_data > threshold].size)
+    numFD = float(jenkFD_data[jenkFD_data > threshold].size)
     f.write('%.4f,' % numFD)
     
     #Root mean square (RMS; across time/frames) 
