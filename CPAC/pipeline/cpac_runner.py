@@ -231,7 +231,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     import re
     if re.search("(?<=Your job-array )\d+", out) == None:
 
-        print "Error: Running of 'qsub' command in terminal failed - is qsub installed?"
+        print "Error: Running of 'qsub' command in terminal failed. Please troubleshoot your SGE configuration with your system administrator and then try again."
+	print "The command run was: qsub %s" % subject_bash_file
         raise Exception
 
     pid = re.search("(?<=Your job-array )\d+", out).group(0)
