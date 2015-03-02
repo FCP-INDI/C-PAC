@@ -83,7 +83,11 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
 def check_ts(in_file):
     import numpy as np
-    timepoints, rois = np.loadtxt(in_file).shape
+    try:
+        timepoints, rois = np.loadtxt(in_file).shape
+    except ValueError:
+        timepoints = np.loadtxt(in_file).shape[0]
+        rois = 1	
     if rois > timepoints:
         message = ('\n\n\n****The number of timepoints (' + str(timepoints)
                    + ') is smaller than the number of ROIs to run ('
