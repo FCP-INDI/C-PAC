@@ -129,7 +129,7 @@ files_folders_wf = {
     'centrality_outputs':'centrality',
     'centrality_outputs_smoothed':'centrality',
     'centrality_outputs_zstd':'centrality',
-    'centrality_outputs_zstd_smoothed': 'centrality',
+    'centrality_outputs_smoothed_zstd': 'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',

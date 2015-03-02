@@ -222,63 +222,6 @@ class ModelDesign(wx.Frame):
         win.Refresh()
         raise ValueError
 
-    def validate(self):
-
-        return True
-
-        '''
-        try:
-
-            columns = [v.strip()
-                       for v in config_map.get('columnsInModel')[1].split(",")]
-
-            if not columns:
-                self.display(config_map.get('columnsInModel')[
-                             0], "No columns specified for the model")
-                return -1
-
-
-            for key, val in config_map.iteritems():
-
-                if key != 'groupingVariable' and len(val[1]) == 0:
-                    self.display(val[0], "%s field is empty!" % key)
-
-                if '/' in val[1] and val[2]:
-                    if not os.path.exists(val[1]):
-                        self.display(val[
-                                     0], "%s field contains incorrect path. Please enter correct path!" % key)
-
-                if key == 'deMean' or key == 'categoricalVsDirectional':
-                    
-                    print val
-                    
-                    value = [int(v) for v in val[1].split(",")]
-                    
-                    for v in value:
-                        if v not in [1, 0]:
-                            self.display(val[
-                                         0], "Invalid Entry. Only 1 and 0 entry allowed")
-
-                    if len(value) != len(columns):
-                        self.display(val[
-                                     0], "Number of values in %s do not match specified columns in the model" % key)
-
-                if key == 'groupingVariable':
-                    if str(config_map.get('modelGroupVariancesSeparately')[1]) == "On":
-                        if len(val[1]) == 0:
-                            self.display(val[0], "%s field is empty!" % key)
-
-                        if val[1] not in columns:
-                            self.display(val[
-                                         0], "Grouping variable/column not a valid column in the model. Please verify the name")
-
-            return 1
-
-        except Exception:
-            return -1
-        '''
-
-
 
     def parse_contrast(self, contrast_string):
 
@@ -686,91 +629,90 @@ class ModelDesign(wx.Frame):
             
 
 
-        try:
+        #try:
+        if 1 == 1:
 
-            if self.validate() == True:
-                dlg = wx.FileDialog(self, message="Save file as ...",
-                                    defaultDir=os.getcwd(),
-                                    defaultFile="gpa_fsl_config_%s.yaml" % self.gpa_settings['model_name'],
-                                    wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
-                                    style=wx.SAVE)
+            dlg = wx.FileDialog(self, message="Save file as ...",
+                                defaultDir=os.getcwd(),
+                                defaultFile="gpa_fsl_config_%s.yaml" % self.gpa_settings['model_name'],
+                                wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                                style=wx.SAVE)
 
-                if dlg.ShowModal() == wx.ID_OK:
+            if dlg.ShowModal() == wx.ID_OK:
 
-                    path = dlg.GetPath()
-                    f = open(path, 'w')
-                    dlg.Destroy()
+                path = dlg.GetPath()
+                f = open(path, 'w')
+                dlg.Destroy()
 
-                    for item in config_list:
+                for item in config_list:
 
-                        # parse the different data types accordingly
+                    # parse the different data types accordingly
 
-                        # file selector combo
-                        if item[2] == 2:
-                            value = substitution_map.get(str(item[1]))
-                            if value is None:
-                                value = ast.literal_eval(item[1])
+                    # file selector combo
+                    if item[2] == 2:
+                        value = substitution_map.get(str(item[1]))
+                        if value is None:
+                            value = ast.literal_eval(item[1])
 
-                        # directory selector combo
-                        elif item[2] == 5:
-                            value = [v for v in ast.literal_eval(item[1])]
+                    # directory selector combo
+                    elif item[2] == 5:
+                        value = [v for v in ast.literal_eval(item[1])]
 
-                        # num ctrl
-                        elif item[2] == 4:
+                    # num ctrl
+                    elif item[2] == 4:
 
-                            # patchwork code to get this working for now, but
-                            # why does coding_scheme print out as a string
-                            # everytime, even with the list formatting?
-                            # example: ['Treatment'] is fully a string in the
-                            # yaml file, including the [' and '], which are
-                            # characters in the string
-                            if isinstance(item[1], str) and "[" in item[1] and "]" in item[1]:
-                                value = item[1].replace("['","")
-                                value = value.replace("']","")
+                        # patchwork code to get this working for now, but
+                        # why does coding_scheme print out as a string
+                        # everytime, even with the list formatting?
+                        # example: ['Treatment'] is fully a string in the
+                        # yaml file, including the [' and '], which are
+                        # characters in the string
+                        if isinstance(item[1], str) and "[" in item[1] and "]" in item[1]:
+                            value = item[1].replace("['","")
+                            value = value.replace("']","")
 
-                            else:
-                                # regular handling
-                                value = [str(v.strip())
-                                         for v in item[1].split(',')]
-
-
-                        # all other data types
                         else:
-                            value = str(item[1])
+                            # regular handling
+                            value = [str(v.strip())
+                                     for v in item[1].split(',')]
+
+                    # all other data types
+                    else:
+                        value = str(item[1])
 
 
-                        if item[0] == 'derivative_list':
+                    if item[0] == 'derivative_list':
 
-                            value = []
+                        value = []
 
-                            # this takes the user selection in the derivative
-                            # list and matches it with the output directory
-                            # folder name for each chosen derivative via the
-                            # substitution map in constants.py
+                        # this takes the user selection in the derivative
+                        # list and matches it with the output directory
+                        # folder name for each chosen derivative via the
+                        # substitution map in constants.py
 
-                            # go over each string in the list
-                            for val in ast.literal_eval(str(item[1])):
-                                if substitution_map.get(val) != None:
-                                    value.append(substitution_map.get(val))
-                                elif val != 'None':
-                                    value.append(ast.literal_eval(val))
+                        # go over each string in the list
+                        for val in ast.literal_eval(str(item[1])):
+                            if substitution_map.get(val) != None:
+                                value.append(substitution_map.get(val))
+                            elif val != 'None':
+                                value.append(ast.literal_eval(val))
 
 
-                        # print out 'help' (comments describing values)
-                        for lines in item[3].split('\n'):
-                            print >> f, '#', lines
+                    # print out 'help' (comments describing values)
+                    for lines in item[3].split('\n'):
+                        print >> f, '#', lines
 
-                        # print out 'label: value'
-                        print >> f, item[0], ': ', value, '\n\n'
+                    # print out 'label: value'
+                    print >> f, item[0], ': ', value, '\n\n'
 
-                    print '\n\nCPAC says: Saving the group analysis model ' \
-                              'configuration file to: ', path, '\n\n'
-                    f.close()
+                print '\n\nCPAC says: Saving the group analysis model ' \
+                          'configuration file to: ', path, '\n\n'
+                f.close()
                     
-                    self.Parent.box2.GetTextCtrl().SetValue(path)
-                    self.Close()
+                self.Parent.box2.GetTextCtrl().SetValue(path)
+                self.Close()
 
-
+        '''
         except Exception as e:
 
             errmsg = '\n\n[!] CPAC says: Couldn\'t save the group analysis ' \
@@ -779,6 +721,7 @@ class ModelDesign(wx.Frame):
                       'Error details: %s' % (path, e)
 
             raise Exception(errmsg)
+        '''
 
             
             

@@ -496,7 +496,7 @@ class ModelConfig(wx.Frame):
         testFile(self.gpa_settings['subject_list'], 'Subject List')
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
-     
+        subFile = open(os.path.abspath(self.gpa_settings['subject_list']))
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
@@ -513,7 +513,30 @@ class ModelConfig(wx.Frame):
             errSubID.ShowModal()
             errSubID.Destroy()
             raise Exception
+            
+            
+        # some more checks
+        sub_IDs = subFile.readlines()
+        self.subs = []
         
+        for sub in sub_IDs:
+            self.subs.append(sub.rstrip("\n"))        
+        
+        pheno_rows = phenoFile.readlines()
+        
+        for row in pheno_rows:
+            for sub in self.subs:
+                if sub in row:
+                    break
+            else:
+                errSubID = wx.MessageDialog(
+                    self, "Your phenotype file contains a subject ID that " \
+                    "is not present in your group analysis subject list.",
+                    "Subject Not In List",
+                    wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+                raise Exception
 
 
         for ctrl in self.page.get_ctrl_list():
@@ -630,10 +653,25 @@ class ModelConfig(wx.Frame):
 
         self.gpa_settings['derivative_list'] = []
 
+        # list of possible group analysis inputs for "selected derivatives" to
+        # run, in string form (before being matched in constants.py)
+        #     these inputs are the ones that should not be affected by the
+        #     "use_zscore" flag in the GUI
+        non_z_ders = ["VMHC z-stat (z-score only)", \
+                      "Multiple Regression SCA (smoothed)", \
+                      "Dual Regression", \
+                      "Dual Regression (smoothed)", \
+                      "Dual Regression z-stat", \
+                      "Dual Regression z-stat (smoothed)"]
+
         for derivative in list(derlist_ctrl.get_selection()):
-            if self.gpa_settings['use_zscore'] == "True":
+            if self.gpa_settings['use_zscore'] == "True" and \
+                derivative not in non_z_ders:
+                
                 self.gpa_settings['derivative_list'].append(derivative + "_z")
+                
             else:
+            
                 self.gpa_settings['derivative_list'].append(derivative)
 
 
@@ -880,8 +918,8 @@ class ModelConfig(wx.Frame):
 
             custom_roi_labels = []
 
-            for num in range(1,num_rois):
-                custom_roi_labels.append("Custom_ROI_Mean_%d" % num)
+            for num in range(0,num_rois):
+                custom_roi_labels.append("Custom_ROI_Mean_%d" % int(num+1))
 
 
 
@@ -1058,6 +1096,27 @@ class ModelConfig(wx.Frame):
 
 
         column_names = dmatrix.design_info.column_names
+        
+        
+        # check to make sure there are more subjects than EVs!!
+        if len(column_names) >= len(self.subs):
+            err = "There are more (or an equal amount of) EVs currently " \
+                  "included in the model than there are subjects in the " \
+                  "group analysis subject list. There must be more " \
+                  "subjects than EVs in the design.\n\nNumber of subjects: " \
+                  "%d\nNumber of EVs: %d\n\nNote: An 'Intercept' " \
+                  "column gets added to the design as an EV, so there will " \
+                  "be one more EV than you may have specified in your " \
+                  "design." % (len(self.subs),len(column_names))
+                  
+            errSubID = wx.MessageDialog(self, err,
+                    "Too Many EVs or Too Few Subjects",
+                    wx.OK | wx.ICON_ERROR)
+            errSubID.ShowModal()
+            errSubID.Destroy()
+                
+            raise Exception
+        
 
 
         # remove the header formatting Patsy creates for categorical variables

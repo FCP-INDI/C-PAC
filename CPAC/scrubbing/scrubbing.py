@@ -5,6 +5,7 @@ import nipype.interfaces.utility as util
 
 
 def create_scrubbing_preproc(wf_name = 'scrubbing'):
+
     """
     This workflow essentially takes the list of offending timepoints that are to be removed
     and removes it from the motion corrected input image. Also, it removes the information
@@ -87,29 +88,45 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
                         name='outputspec')
 
 
+    craft_scrub_input = pe.Node(util.Function(input_names=['scrub_input', 'frames_in_1D_file'],
+                                     output_names=['scrub_input_string'],
+                                     function=get_indx),
+               name = 'scrubbing_craft_input_string')
+
     scrubbed_movement_parameters = pe.Node(util.Function(input_names=['infile_a', 'infile_b'], 
                                                  output_names=['out_file'],
                                                  function=get_mov_parameters), 
                                    name='scrubbed_movement_parameters')
 
-    scrubbed_preprocessed = pe.Node(interface=e_afni.Calc(), 
-                               name='scrubbed_preprocessed')
-    scrubbed_preprocessed.inputs.expr = 'a'
-    scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'
+    # THIS commented out until Nipype has an input for this interface that
+    # allows for the selection of specific volumes to include
+    
+    #scrubbed_preprocessed = pe.Node(interface=e_afni.Calc(), 
+    #                           name='scrubbed_preprocessed')
+    #scrubbed_preprocessed.inputs.expr = 'a'
+    #scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'   
+    
+    scrubbed_preprocessed = pe.Node(util.Function(input_names=['scrub_input'],
+                                                  output_names=['scrubbed_image'],
+                                                  function=scrub_image),
+                            name='scrubbed_preprocessed')
 
-    scrub.connect(inputNode, 'preprocessed', scrubbed_preprocessed, 'in_file_a')
-    #scrub.connect(inputNode, ('frames_in_1D', get_indx), scrubbed_preprocessed, 'list_idx')
+    scrub.connect(inputNode, 'preprocessed', craft_scrub_input, 'scrub_input')
+    scrub.connect(inputNode, 'frames_in_1D', craft_scrub_input, 'frames_in_1D_file')
+    
+    scrub.connect(craft_scrub_input, 'scrub_input_string', scrubbed_preprocessed, 'scrub_input')    
 
     scrub.connect(inputNode, 'movement_parameters', scrubbed_movement_parameters, 'infile_b')
     scrub.connect(inputNode, 'frames_in_1D', scrubbed_movement_parameters, 'infile_a' )
 
-    scrub.connect(scrubbed_preprocessed, 'out_file', outputNode, 'preprocessed')
+    scrub.connect(scrubbed_preprocessed, 'scrubbed_image', outputNode, 'preprocessed')
     scrub.connect(scrubbed_movement_parameters, 'out_file', outputNode, 'scrubbed_movement_parameters')
 
     return scrub
 
 
 def get_mov_parameters(infile_a, infile_b):
+
     """
     Method to get the new movement parameters
     file after removing the offending time frames 
@@ -156,7 +173,8 @@ def get_mov_parameters(infile_a, infile_b):
     return out_file
 
 
-def get_indx(in_file):
+def get_indx(scrub_input, frames_in_1D_file):
+
     """
     Method to get the list of time 
     frames that are to be included
@@ -168,12 +186,13 @@ def get_indx(in_file):
     
     Returns
     -------
-    indx : list
-        list of frame indexes
+    scrub_input_string : string
+        input string for 3dCalc in scrubbing workflow,
+        looks something like " 4dfile.nii.gz[0,1,2,..100] "
     
     """
     
-    f = open(in_file, 'r')
+    f = open(frames_in_1D_file, 'r')
     line = f.readline()
     line = line.strip(',')
     if line:
@@ -182,4 +201,40 @@ def get_indx(in_file):
         raise Exception("No time points remaining after scrubbing.")
     f.close()
     
-    return indx
+    scrub_input_string = scrub_input + str(indx).replace(" ","")
+       
+    
+    return scrub_input_string
+    
+    
+def scrub_image(scrub_input):
+
+    """
+    Method to run 3dcalc in order to scrub the image. This is used instead of
+    the Nipype interface for 3dcalc because functionality is needed for
+    specifying an input file with specifically-selected volumes. For example:
+        input.nii.gz[2,3,4,..98], etc.
+        
+    Parameters
+    ----------
+    scrub_input : string
+        path to 4D file to be scrubbed, plus with selected volumes to be
+        included
+        
+    Returns
+    -------
+    scrubbed_image : string
+        path to the scrubbed 4D file
+        
+    """
+
+    import os
+
+    os.system("3dcalc -a %s -expr 'a' -prefix scrubbed_preprocessed.nii.gz" % scrub_input)
+
+    scrubbed_image = os.path.join(os.getcwd(), "scrubbed_preprocessed.nii.gz")
+
+    return scrubbed_image
+
+    
+    

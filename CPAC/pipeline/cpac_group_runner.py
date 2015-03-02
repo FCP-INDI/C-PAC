@@ -224,7 +224,8 @@ def run(config_file, subject_list_file, output_path_file):
 
 
     print "Parsing through output paths. This may take a little while " \
-          "depending on how many subjects and outputs you have..\n"
+          "depending on how many subjects, group analysis models, or " \
+          "selected derivatives you have..\n"
 
     count = 0
 
@@ -385,10 +386,17 @@ def run(config_file, subject_list_file, output_path_file):
 
             from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
             procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
+            
+        else:
+        
+            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                  "been implemented to handle runs on a cluster or grid.\n\n"\
+                  "Please turn off 'Run CPAC On A Cluster/Grid' in order " \
+                  "to continue with group-level analysis. This will submit " \
+                  "the job to only one node, however.\n\nWe will update " \
+                  "users on when this feature will be available through " \
+                  "release note announcements.\n\n"
 
-       
-          
-    
     
           
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')

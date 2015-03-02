@@ -868,6 +868,12 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
     formula = c.design_formula
+    
+    
+    # get number of subjects that have the derivative for this current model
+    # (basically, the amount of time points, which must be greater than the
+    # number of EVs)
+    num_subjects = len(derivative_means_dict)
 
 
     if param_file != None:
@@ -981,7 +987,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
             ''' pull output means from subject-level (from .csv in output) '''
 
-            sub_means_dict = {}
             output_means_dict = {}
 
             for sub in pheno_data_dict[c.subject_id_label]:
@@ -1003,13 +1008,11 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                         raise Exception
 
 
-                    # pull in the output_means .csv as a dictionary
-                    for row in output_means:
-                        sub_means_dict = row
-
-
                     try:
 
+                        # get the number (the mean value) of the current
+                        # output from the CSV file and insert it into this
+                        # dict with the subID being the key
                         output_means_dict[sub] = str(row[current_output])
 
                     except:
@@ -1123,9 +1126,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         # split the roi_means_dict from { subID: [mean1,mean2,mean3,..], ..}
         # to three dictionaries of { subID: mean1, .. }, { subID: mean2, .. },
         # and so on
-        for num in range(1,roi_num):
+        for num in range(0,roi_num):
 
-            label = "Custom_ROI_Mean_%d" % num
+            label = "Custom_ROI_Mean_%d" % int(num+1)
             temp_roi_dict = {}
 
             for key in roi_means_dict.keys():
@@ -1695,6 +1698,25 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         data = np.array(data, dtype=np.float16)
 
         column_names = dmatrix.design_info.column_names
+        
+        
+        
+    # check to make sure there are more time points than EVs!
+    if len(column_names) >= num_subjects:
+        err = "\n\n[!] CPAC says: There are more EVs than there are " \
+              "subjects currently included in the model for %s. There must " \
+              "be more subjects than EVs in the design.\n\nNumber of " \
+              "subjects: %d\nNumber of EVs: %d\n\nNote: An 'Intercept' " \
+              "column gets added to the design as an EV, so there will be " \
+              "one more EV than you may have specified in your design.\n\n" \
+              "If the number of subjects is lower than the number of " \
+              "subjects in your group analysis subject list, this may be " \
+              "because not every subject in the subject list has an output " \
+              "for %s in the individual-level analysis output directory.\n\n"\
+              % (current_output, num_subjects, len(column_names), \
+              current_output)
+        raise Exception(err)
+        
 
 
     # remove the header formatting Patsy creates for categorical variables
@@ -1734,18 +1756,26 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
     try:
         create_mat_file(data, column_names, c.model_name, c.output_dir)
-    except:
+    except Exception as e:
         print '\n\n[!] CPAC says: Could not create .mat file during ' \
                   'group-level analysis model file generation.\n'
-        print 'Attempted output directory: ', c.output_dir, '\n\n'
+        print 'Attempted output directory: ', c.output_dir, '\n'
+        print "Error details: %s\n\n" % e
         raise Exception
 
+
+    if c.group_sep == "Off":
+        grouping_var = None
+    else:
+        grouping_var = c.grouping_var
+
     try:
-        create_grp_file(data, c.model_name, c.grouping_var, c.output_dir)
-    except:
+        create_grp_file(data, c.model_name, grouping_var, c.output_dir)
+    except Exception as e:
         print '\n\n[!] CPAC says: Could not create .grp file during ' \
                   'group-level analysis model file generation.\n'
-        print 'Attempted output directory: ', c.output_dir, '\n\n'
+        print 'Attempted output directory: ', c.output_dir, '\n'
+        print "Error details: %s\n\n" % e
         raise Exception
 
 
@@ -1755,8 +1785,23 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print "Writing contrasts file (.con) based on contrasts provided " \
               "using the group analysis model builder's contrasts editor.."
 
-        create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
-        create_fts_file(c.f_tests, contrasts_dict, c.model_name, c.output_dir)
+        try:
+            create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
+        except Exception as e:
+            print '\n\n[!] CPAC says: Could not create .con file during ' \
+                  'group-level analysis model file generation.\n'
+            print 'Attempted output directory: ', c.output_dir, '\n'
+            print "Error details: %s\n\n" % e
+            raise Exception            
+            
+        try:    
+            create_fts_file(c.f_tests, contrasts_dict, c.model_name, c.output_dir)
+        except Exception as e:
+            print '\n\n[!] CPAC says: Could not create .fts file during ' \
+                  'group-level analysis model file generation.\n'
+            print 'Attempted output directory: ', c.output_dir, '\n'
+            print "Error details: %s\n\n" % e
+            raise Exception      
 
     else:
 
