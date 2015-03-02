@@ -105,6 +105,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
           "for %s..\n" % resource
 
     for ga_sub in group_sublist:
+        # Strip out carriage-return character if it is there
+	if ga_sub.endswith('\r'):
+	    ga_sub = ga_sub.rstrip('\r')
 
         # ga_sub = subject ID taken off the group analysis subject list
 
@@ -191,7 +194,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                         derivative_paths.append(path)
 
             else:
-
                 if ga_sub in path:
                     exist_paths.append(ga_sub)
                     derivative_paths.append(path)
