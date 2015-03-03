@@ -819,8 +819,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
             outputspec, 'normalized_output_brain')
 
-    calc_ants_warp_wf.connect(inputspec, 'wait',
-            outputspec, 'wait')
+#    calc_ants_warp_wf.connect(inputspec, 'wait',
+#            outputspec, 'wait')
 
 
     return calc_ants_warp_wf
