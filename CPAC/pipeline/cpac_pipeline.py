@@ -262,6 +262,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
     if "ANTS" in c.regOption:
     
+        if os.system("c3d_affine_tool") == 32512:
+            missing_install.append("C3D")
+    
         if os.system("antsRegistration") == 32512:
             missing_install.append("ANTS")
             
@@ -723,9 +726,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     # assign the FSL FNIRT config file specified in pipeline config.yml
                     fnirt_reg_anat_symm_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
 
-                    node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
-                    workflow.connect(node, out_file,
-                                     fnirt_reg_anat_symm_mni, 'inputspec.wait')
+                    #node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+                    #workflow.connect(node, out_file,
+                    #                 fnirt_reg_anat_symm_mni, 'inputspec.wait')
 
                 except:
                     logConnectionError('Symmetric Anatomical Registration (FSL)', num_strat, strat.get_resource_pool(), '0002')
@@ -3211,33 +3214,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             apply_ants_warp.inputs.inputspec. \
                     input_image_type = input_image_type
                     
-            if map_node == 0:
-                    
-                output_to_standard_average = pe.Node(interface=preprocess.Maskave(),
-                    name='%s_mean_%d' % (output_name, num_strat))
-
-                standard_mean_to_csv = pe.Node(util.Function(input_names=\
-                        ['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_mean_to_txt_%d' % (output_name, \
-                        num_strat))
-                        
-            elif map_node == 1:
-            
-                output_to_standard_average = pe.MapNode(interface=preprocess.Maskave(),
-                    name='%s_mean_%d' % (output_name, num_strat), \
-                    iterfield=['in_file'])
-
-                standard_mean_to_csv = pe.MapNode(util.Function(input_names=\
-                        ['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_mean_to_txt_%d' % (output_name, \
-                        num_strat), iterfield=['in_file'])
-            
-          
-            standard_mean_to_csv.inputs.output_name = output_name
             
 
             try:
@@ -3302,12 +3278,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'outputspec.transformation_series', apply_ants_warp,
                         'inputspec.transforms')
                         
-                        
-                workflow.connect(apply_ants_warp, 'outputspec.output_image', \
-                    output_to_standard_average, 'in_file')
-
-                workflow.connect(output_to_standard_average, 'out_file', \
-                    standard_mean_to_csv, 'in_file')
 
 
             except:
@@ -3316,9 +3286,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 raise
 
             strat.update_resource_pool({'%s_to_standard' % (output_name): \
-                        (apply_ants_warp, 'outputspec.output_image'),
-                    'output_means.@%s_to_standard' % (output_name): \
-                        (standard_mean_to_csv, 'output_mean')})
+                        (apply_ants_warp, 'outputspec.output_image')})
             strat.append_name(apply_ants_warp.name)
             
             num_strat += 1
@@ -3333,17 +3301,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             
                 apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
                         name='%s_to_standard_%d' % (output_name, num_strat))
-                        
-                        
-                output_to_standard_average = pe.Node(interface=preprocess.Maskave(),
-                    name='%s_mean_%d' % (output_name, num_strat))
-
-                standard_mean_to_csv = pe.Node(util.Function(input_names=\
-                        ['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_mean_to_txt_%d' % (output_name, \
-                        num_strat))
                           
 
             elif map_node == 1:
@@ -3352,19 +3309,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         name='%s_to_standard_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
                         
-                output_to_standard_average = pe.MapNode(interface=preprocess.Maskave(),
-                    name='%s_mean_%d' % (output_name, num_strat), \
-                    iterfield=['in_file'])
-
-                standard_mean_to_csv = pe.MapNode(util.Function(input_names=\
-                        ['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_mean_to_txt_%d' % (output_name, \
-                        num_strat), iterfield=['in_file'])
-
-
-            standard_mean_to_csv.inputs.output_name = output_name
 
             apply_fsl_warp.inputs.ref_file = c.template_skull_for_func
 
@@ -3386,12 +3330,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'omical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
                 
-                
-                workflow.connect(apply_fsl_warp, 'out_file', \
-                    output_to_standard_average, 'in_file')
-
-                workflow.connect(output_to_standard_average, 'out_file', \
-                        standard_mean_to_csv, 'in_file')
 
 
             except:
@@ -3401,9 +3339,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 
 
             strat.update_resource_pool({'%s_to_standard' % (output_name): \
-                    (apply_fsl_warp, 'out_file'),
-                'output_means.@%s_to_standard' % (output_name): \
-                    (standard_mean_to_csv, 'output_mean')})
+                    (apply_fsl_warp, 'out_file')})
             strat.append_name(apply_fsl_warp.name)
             
             num_strat += 1
@@ -3423,33 +3359,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat))
 
-            output_average = pe.Node(interface=preprocess.Maskave(),
-                    name='%s_smooth_mean_%d' % (output_name, num_strat))
-
-            mean_to_csv = pe.Node(util.Function(input_names=['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_smooth_mean_to_txt_%d' % (output_name, \
-                        num_strat))
-
 
         elif map_node == 1:
             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat), \
                     iterfield=['in_file'])
-
-            output_average = pe.MapNode(interface=preprocess.Maskave(),
-                    name='%s_smooth_mean_%d' % (output_name, num_strat), \
-                    iterfield=['in_file'])
-
-            mean_to_csv = pe.MapNode(util.Function(input_names=['in_file', 'output_name'],
-                        output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_smooth_mean_to_txt_%d' % (output_name, \
-                        num_strat), iterfield=['in_file'])
-
-
-        mean_to_csv.inputs.output_name = output_name + '_smooth'
 
 
         try:
@@ -3466,12 +3380,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     get_node_from_resource_pool('functional_brain_mask')
             workflow.connect(node, out_file, output_smooth, 'operand_files')
 
-            workflow.connect(output_smooth, 'out_file', output_average, \
-                    'in_file')
-
-            workflow.connect(output_average, 'out_file', mean_to_csv, \
-                    'in_file')
-
 
         except:
             logConnectionError('%s smooth' % output_name, num_strat, \
@@ -3480,8 +3388,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         strat.append_name(output_smooth.name)
         strat.update_resource_pool({'%s_smooth' % (output_name): \
-                (output_smooth, 'out_file'),
-                'output_means.@%s' % (output_name): (mean_to_csv, 'output_mean')})
+                (output_smooth, 'out_file')})
 
 
         if 1 in c.runRegisterFuncToMNI:
@@ -3491,16 +3398,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat))
 
-                output_to_standard_average = pe.Node(interface= \
-                        preprocess.Maskave(), name='%s_to_standard_smooth_' \
-                        'mean_%d' % (output_name, num_strat))
-
-                standard_mean_to_csv = pe.Node(util.Function( \
-                        input_names=['in_file', 'output_name'], output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_to_standard_smooth_mean_to_txt_%d' % \
-                        (output_name, num_strat))
-
 
             elif map_node == 1:
                 output_to_standard_smooth = pe.MapNode(interface= \
@@ -3508,19 +3405,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                         'smooth_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
 
-                output_to_standard_average = pe.MapNode(interface= \
-                        preprocess.Maskave(), name='%s_to_standard_smooth_' \
-                        'mean_%d' % (output_name, num_strat), \
-                        iterfield=['in_file'])
-
-                standard_mean_to_csv = pe.MapNode(util.Function( \
-                        input_names=['in_file', 'output_name'], output_names=['output_mean'],
-                        function=extract_output_mean),
-                        name='%s_to_standard_smooth_mean_to_txt_%d' % \
-                        (output_name, num_strat), iterfield=['in_file'])
-
-
-            standard_mean_to_csv.inputs.output_name = output_name + '_to_standard_smooth'
 
 
             try:
@@ -3539,12 +3423,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(node, out_file, output_to_standard_smooth,
                         'operand_files')
 
-                workflow.connect(output_to_standard_smooth, 'out_file', \
-                        output_to_standard_average, 'in_file')
-
-                workflow.connect(output_to_standard_average, 'out_file', \
-                        standard_mean_to_csv, 'in_file')
-
 
             except:
                 logConnectionError('%s smooth in MNI' % output_name, \
@@ -3554,8 +3432,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             strat.append_name(output_to_standard_smooth.name)
             strat.update_resource_pool({'%s_to_standard_smooth' % \
-                    (output_name):(output_to_standard_smooth, 'out_file'),
-                    'output_means.@%s_to_standard_smooth' % (output_name): (standard_mean_to_csv, 'output_mean')})
+                    (output_name):(output_to_standard_smooth, 'out_file')})
             create_log_node(output_to_standard_smooth, 'out_file', num_strat)
 
             
@@ -3623,6 +3500,65 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         strat.append_name(fisher_z_score_std.name)
         strat.update_resource_pool({'%s_fisher_zstd' % (output_resource): \
                 (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
+                
+                
+                
+                
+    '''
+    calculate output averages via individual-level mask
+    '''
+    
+    def calc_avg(output_resource, strat, num_strat, map_node=0):
+    
+        if map_node == 0:
+                    
+            calc_average = pe.Node(interface=preprocess.Maskave(),
+                name='%s_mean_%d' % (output_resource, num_strat))
+
+            mean_to_csv = pe.Node(util.Function(input_names=\
+                    ['in_file', 'output_name'],
+                    output_names=['output_mean'],
+                    function=extract_output_mean),
+                    name='%s_mean_to_txt_%d' % (output_resource, \
+                    num_strat))
+                        
+        elif map_node == 1:
+            
+            calc_average = pe.MapNode(interface=preprocess.Maskave(),
+                name='%s_mean_%d' % (output_resource, num_strat), \
+                iterfield=['in_file'])
+
+            mean_to_csv = pe.MapNode(util.Function(input_names=\
+                    ['in_file', 'output_name'],
+                    output_names=['output_mean'],
+                    function=extract_output_mean),
+                    name='%s_mean_to_txt_%d' % (output_resource, \
+                    num_strat), iterfield=['in_file'])
+            
+          
+        mean_to_csv.inputs.output_name = output_resource
+        
+        
+        try:
+        
+            node, out_file = strat. \
+                    get_node_from_resource_pool(output_resource)
+
+            workflow.connect(node, out_file, calc_average, 'in_file')
+            
+            workflow.connect(calc_average, 'out_file', \
+                mean_to_csv, 'in_file')      
+        
+        
+        except:
+        
+            logConnectionError('%s calc average' % \
+                output_name, num_strat, strat.get_resource_pool(), '0128')
+            raise
+        
+        
+        strat.append_name(calc_average.name)
+        strat.update_resource_pool({'output_means.@%s_average' % (output_resource): (mean_to_csv, 'output_mean')})
 
 
 
@@ -3932,6 +3868,41 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
+    calc averages of alff/falff outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runALFF:
+    
+        for strat in strat_list:
+    
+            calc_avg("alff_img", strat, num_strat)
+            calc_avg("falff_img", strat, num_strat)
+            
+            if c.fwhm != None:
+            
+                calc_avg("alff_smooth", strat, num_strat)
+                calc_avg("falff_smooth", strat, num_strat)
+            
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("alff_to_standard", strat, num_strat)
+                calc_avg("falff_to_standard", strat, num_strat)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("alff_to_standard_smooth", strat, num_strat)
+                    calc_avg("falff_to_standard_smooth", strat, num_strat)                
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
+
+
+
+    '''
     z-standardize alff/falff MNI-standardized outputs
     '''
 
@@ -3975,6 +3946,38 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
     '''
+    calc averages of reho outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if 1 in c.runReHo:
+    
+        for strat in strat_list:
+    
+            calc_avg("raw_reho_map", strat, num_strat)
+            
+            if c.fwhm != None:
+            
+                calc_avg("reho_smooth", strat, num_strat)
+            
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("reho_to_standard", strat, num_strat)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("reho_to_standard_smooth", strat, num_strat)              
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
+
+
+
+
+    '''
     z-standardize ReHo MNI-standardized outputs
     '''
 
@@ -4009,6 +4012,38 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat += 1
 
     strat_list += new_strat_list
+    
+    
+    
+    '''
+    calc averages of SCA files outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runSCA) and (1 in c.runROITimeseries):
+    
+        for strat in strat_list:
+    
+            calc_avg("sca_roi_correlation_files", strat, num_strat, 1)
+            
+            if c.fwhm != None:
+            
+                calc_avg("sca_roi_files_smooth", strat, num_strat, 1)
+            
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("sca_roi_files_to_standard", strat, num_strat, 1)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("sca_roi_files_to_standard_smooth", strat, num_strat, 1)              
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
+    
 
 
 
@@ -4049,6 +4084,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             num_strat += 1
 
+    strat_list += new_strat_list
+    
+    
+    
+    '''
+    calc averages of SCA seed outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runSCA) and (1 in c.runVoxelTimeseries):
+    
+        for strat in strat_list:
+    
+            calc_avg("sca_seed_correlation_files", strat, num_strat)
+            
+            if c.fwhm != None:
+            
+                calc_avg("sca_seed_smooth", strat, num_strat)
+            
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("sca_seed_to_standard", strat, num_strat)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("sca_seed_to_standard_smooth", strat, num_strat)              
+            
+            num_strat += 1
+            
     strat_list += new_strat_list
 
 

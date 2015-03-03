@@ -595,8 +595,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
             'sampling_percentage', 'number_of_iterations', 
             'convergence_threshold', 'convergence_window_size', 'transforms',
             'transform_parameters', 'shrink_factors', 'smoothing_sigmas',
-            'write_composite_transform', 'anatomical_skull', 'reference_skull',
-            'wait']), name='inputspec')
+            'write_composite_transform', 'anatomical_skull',
+            'reference_skull']), name='inputspec')#,'wait']),name='inputspec')
 
 
     # use ANTS to warp the masked anatomical image to a template image
@@ -676,8 +676,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
         calc_ants_warp_wf.connect(inputspec, 'reference_skull',
                 calculate_ants_warp, 'reference_skull')
 
-        calc_ants_warp_wf.connect(inputspec, 'wait',
-                calculate_ants_warp, 'wait')
+        #calc_ants_warp_wf.connect(inputspec, 'wait',
+        #        calculate_ants_warp, 'wait')
 
         '''
         calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
@@ -727,8 +727,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
         calc_ants_warp_wf.connect(inputspec, 'reference_brain',
                 calculate_ants_warp, 'reference_skull')
 
-        calc_ants_warp_wf.connect(inputspec, 'wait',
-                calculate_ants_warp, 'wait')
+        #calc_ants_warp_wf.connect(inputspec, 'wait',
+        #        calculate_ants_warp, 'wait')
 
 
     calc_ants_warp_wf.connect(inputspec, 'dimension', calculate_ants_warp,

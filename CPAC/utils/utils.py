@@ -1932,8 +1932,13 @@ def extract_output_mean(in_file, output_name):
         mean_oned_file.close()
 
         line = line.split('[')[0].strip(' ')
+        
+        # get filename of input maskave 1D file
+        filename = in_file.split("/")[-1]
+        filename = filename.remove(".1D","")
 
-        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % output_name)
+        output_means_file = os.path.join(os.getcwd(), filename, \
+            'mean_%s.txt' % output_name)
         output_means = open(output_means_file, 'wb')
 
         print >>output_means, line
