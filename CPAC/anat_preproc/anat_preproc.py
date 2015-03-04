@@ -75,9 +75,14 @@ def create_anat_preproc(already_skullstripped=False):
     >>> preproc.run() #doctest: +SKIP
             
     """
-    # Define the nodes.
+    preproc = pe.Workflow(name='anat_preproc')
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),
                         name='inputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['refit',
+                                                    'reorient',
+                                                    'skullstrip',
+                                                    'skullstrip_orig_vol']),
+                         name='outputspec')
     anat_deoblique = pe.Node(interface=preprocess.Refit(),
                          name='anat_deoblique')
     anat_deoblique.inputs.deoblique = True
@@ -90,18 +95,11 @@ def create_anat_preproc(already_skullstripped=False):
                                   name='anat_skullstrip')
         #anat_skullstrip.inputs.options = '-o_ply'
         anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
-        anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
+    anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
                         name='anat_skullstrip_orig_vol')
-        anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
-        anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
-    outputNode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                    'reorient',
-                                                    'skullstrip',
-                                                    'brain']),
-                         name='outputspec')
- 
-    # Define the workflow.
-    preproc = pe.Workflow(name='anat_preproc')
+    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+     
     preproc.connect(inputNode, 'anat',
                     anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file',
@@ -116,6 +114,7 @@ def create_anat_preproc(already_skullstripped=False):
                         anat_skullstrip_orig_vol, 'in_file_b')
     preproc.connect(anat_reorient, 'out_file',
                     anat_skullstrip_orig_vol, 'in_file_a')
+   
     preproc.connect(anat_deoblique, 'out_file',
                     outputNode, 'refit')
     preproc.connect(anat_reorient, 'out_file',
@@ -124,7 +123,7 @@ def create_anat_preproc(already_skullstripped=False):
         preproc.connect(anat_skullstrip, 'out_file',
                         outputNode, 'skullstrip')
     preproc.connect(anat_skullstrip_orig_vol, 'out_file',
-                    outputNode, 'brain')
+                        outputNode, 'skullstrip_orig_vol')
 
     return preproc
 
