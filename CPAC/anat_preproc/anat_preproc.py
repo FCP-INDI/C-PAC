@@ -81,7 +81,7 @@ def create_anat_preproc(already_skullstripped=False):
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
                                                     'reorient',
                                                     'skullstrip',
-                                                    'skullstrip_orig_vol']),
+                                                    'brain']),
                          name='outputspec')
     anat_deoblique = pe.Node(interface=preprocess.Refit(),
                          name='anat_deoblique')
@@ -123,7 +123,7 @@ def create_anat_preproc(already_skullstripped=False):
         preproc.connect(anat_skullstrip, 'out_file',
                         outputNode, 'skullstrip')
     preproc.connect(anat_skullstrip_orig_vol, 'out_file',
-                        outputNode, 'skullstrip_orig_vol')
+                        outputNode, 'brain')
 
     return preproc
 
