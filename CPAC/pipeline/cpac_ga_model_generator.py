@@ -106,8 +106,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     for ga_sub in group_sublist:
         # Strip out carriage-return character if it is there
-	if ga_sub.endswith('\r'):
-	    ga_sub = ga_sub.rstrip('\r')
+        
+        if ga_sub.endswith('\r'):
+            ga_sub = ga_sub.rstrip('\r')
 
         # ga_sub = subject ID taken off the group analysis subject list
 
@@ -317,10 +318,10 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     # the current output that cpac_group_analysis_pipeline.py and
     # create_fsl_model.py is currently being run for
-    current_output = s_paths[0].replace(pipeline_path, '').split('/')[2]
+    current_output = resource #s_paths[0].replace(pipeline_path, '').split('/')[2]
 
     # generate working directory for this output's group analysis run
-    workDir = '%s/group_analysis__%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
+    workDir = '%s/group_analysis/%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
 
     # s_paths is a list of paths to each subject's derivative (of the current
     # derivative gpa is being run on) - s_paths_dirList is a list of each directory
@@ -359,7 +360,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # derivative output file
     for derivative_path in derivative_paths:
         merge_input = merge_input + " " + derivative_path
-
+        
     merge_string = "fslmerge -t %s %s" % (merge_output, merge_input)
 
     # MERGE the remaining outputs
@@ -384,6 +385,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     derivative_means_dict = {}
     roi_means_dict = {}
 
+    
     # CALCULATE THE MEANS of each remaining output using the group mask
     for derivative_path in derivative_paths:
 
@@ -519,7 +521,13 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
      
     if 'sca_roi' in resource:
         out_dir = os.path.join(out_dir, \
-            re.search('ROI_number_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            re.search('sca_roi_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            
+            
+    if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource:
+        out_dir = os.path.join(out_dir, \
+            re.search('temp_reg_map_z_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            
             
     if 'centrality' in resource:
         names = ['degree_centrality_binarize', 'degree_centrality_weighted', \

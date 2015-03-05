@@ -140,7 +140,10 @@ class ModelConfig(wx.Frame):
                               'ROI Average SCA (smoothed)',
                               'Voxelwise SCA',
                               'Voxelwise SCA (smoothed)',
+                              'Multiple Regression SCA',
                               'Multiple Regression SCA (smoothed)',
+                              'Multiple Regression SCA z-stat',
+                              'Multiple Regression SCA z-stat (smoothed)',
                               'VMHC',
                               'VMHC z-stat (z-score only)',
                               'Network Centrality',
@@ -625,7 +628,7 @@ class ModelConfig(wx.Frame):
         for ctrl in self.page.get_ctrl_list():
             
             name = ctrl.get_name()
-            print name
+
             # get the design matrix formula
             if name == 'design_formula':
 
@@ -646,7 +649,6 @@ class ModelConfig(wx.Frame):
                 derlist_ctrl = ctrl
 
             else:
-                print ctrl.get_selection(), "\n\n"
                 self.gpa_settings[name] = str(ctrl.get_selection())
 
 
@@ -1097,6 +1099,17 @@ class ModelConfig(wx.Frame):
 
         column_names = dmatrix.design_info.column_names
         
+        
+        
+        subFile = open(os.path.abspath(self.gpa_settings['subject_list']))
+
+        sub_IDs = subFile.readlines()
+        self.subs = []
+        
+        for sub in sub_IDs:
+            self.subs.append(sub.rstrip("\n"))        
+        
+
         
         # check to make sure there are more subjects than EVs!!
         if len(column_names) >= len(self.subs):

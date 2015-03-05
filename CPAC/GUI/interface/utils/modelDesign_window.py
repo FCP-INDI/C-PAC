@@ -550,6 +550,9 @@ class ModelDesign(wx.Frame):
                                 "'dr_tempreg_maps_files_to_standard_smooth', " \
                                 "'dr_tempreg_maps_zstat_files_to_standard', " \
                                 "'dr_tempreg_maps_zstat_files_to_standard_smooth', " \
+                                "'sca_tempreg_maps_files', " \
+                                "'sca_tempreg_maps_files_smooth', " \
+                                "'sca_tempreg_maps_zstat_files', " \
                                 "'sca_tempreg_maps_zstat_files_smooth'\n\n" \
                                 "Example input: derivative_list :  ['alff_to" \
                                 "_standard_smooth_zstd', 'sca_roi_to_" \

@@ -145,8 +145,15 @@ def map_to_roi(timeseries, maps):
                             + ' number of ROIs to run - therefore the'
                             + ' GLM is underspecified and can\'t run.')
         labels = open(timeseries, 'r').readline().split()
-        labels = [os.path.join(os.getcwd(), 'sca_tempreg_z_maps_roi_' + str(l)) \
-                  for l in labels]
+        
+        new_labels = []
+        
+        for l in labels:
+        
+            if "#" in l:
+                l = l.replace("#","")        
+                new_labels.append(os.path.join(os.getcwd(), \
+                    'sca_tempreg_z_maps_roi_' + str(l)))
         numMaps = len(maps)
         maps.sort()
         if not numMaps / 2 == rois:
@@ -155,7 +162,7 @@ def map_to_roi(timeseries, maps):
                             + ' generated')
         maps = maps[:rois]
         # output = zip(labels, component_maps)
-        print "labels, maps", labels, maps
+        print "labels, maps", new_labels, maps
     except Exception:
         print "Error while mapping roi to dual regression split 3d volumes"
-    return labels, maps
+    return new_labels, maps

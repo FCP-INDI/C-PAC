@@ -180,9 +180,40 @@ def run(config_file, subject_list_file, output_path_file):
 
     # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
     # File' provided in the dialog box when group analysis is first run
-    for file in glob.glob(os.path.abspath(output_path_file)):
-        path_list = open(file, 'r').readlines()
-        subject_paths.extend([s.rstrip('\r\n') for s in path_list])
+    #for file in glob.glob(os.path.abspath(output_path_file)):
+    #    path_list = open(file, 'r').readlines()
+    #    subject_paths.extend([s.rstrip('\r\n') for s in path_list])
+        
+           
+    ind_outputs = ['alff_to_standard_zstd', 'alff_to_standard_smooth_zstd', 'falff_to_standard_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_zstd', 'reho_to_standard_smooth_zstd', 'sca_roi_files_to_standard_fisher_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd', 'sca_seed_to_standard_fisher_zstd', 'sca_seed_to_standard_smooth_fisher_zstd', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_fisher_zstd', 'vmhc_fisher_zstd_zstat_map', 'centrality_outputs_zstd', 'centrality_outputs_smoothed_zstd', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth', 'alff_to_standard', 'alff_to_standard_smooth', 'falff_to_standard', 'falff_to_standard_smooth', 'reho_to_standard', 'reho_to_standard_smooth', 'sca_roi_files_to_standard', 'sca_roi_files_to_standard_smooth', 'sca_seed_to_standard', 'sca_seed_to_standard_smooth', 'sca_tempreg_maps_files', 'sca_tempreg_maps_files_smooth', 'sca_tempreg_maps_zstat_files', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_raw_score', 'centrality_outputs', 'centrality_outputs_smoothed', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth']
+            
+            
+    
+    # collect all of the output paths
+    
+    for root, folders, files in os.walk(output_path_file):
+    
+        split_output_dir_path = output_path_file.split("/")
+    
+        for filename in files:
+        
+            if filename.endswith("nii.gz"):
+    
+                fullpath = os.path.join(root, filename)
+            
+                split_fullpath = fullpath.split("/")
+                
+                #subID = split_fullpath[len(split_output_dir_path)]
+                deriv_folder_name = split_fullpath[len(split_output_dir_path)+1]
+            
+                #second_half_filepath = fullpath.split(subID)
+            
+                for output_name in ind_outputs:
+            
+                    if output_name == deriv_folder_name:
+        
+                        subject_paths.append(fullpath)  
+        
 
 
     if len(subject_paths) == 0:
@@ -234,19 +265,64 @@ def run(config_file, subject_list_file, output_path_file):
         # each 'subject_path' is a full filepath to one of the output files
 
         # Remove the base bath offset
-        rs_path = subject_path.replace(base_path, "", 1)
-        rs_path = rs_path.lstrip('/')
+        #rs_path = subject_path.replace(base_path, "", 1)
+        #rs_path = rs_path.lstrip('/')
 
         # rs_path is now the path to the output file, except everything before
         # the pipeline folder (named with the pipeline ID) is stripped from
         # the path
 
-        folders = split_folders(rs_path)
+        #folders = split_folders(rs_path)
  
-        pipeline_id = folders[0]
-        subject_unique_id = folders[1]
-        resource_id = folders[2]
-        scan_id = folders[3]
+        #pipeline_id = folders[0]
+        #subject_unique_id = folders[1]
+        #resource_id = folders[2]
+        #scan_id = folders[3]
+
+
+        split_output_dir_path = output_path_file.split("/")
+        split_fullpath = subject_path.split("/")
+
+        pipeline_id = split_fullpath[len(split_output_dir_path)-1]
+        subject_unique_id = split_fullpath[len(split_output_dir_path)]
+        resource_id = split_fullpath[len(split_output_dir_path)+1]
+        scan_id = split_fullpath[len(split_output_dir_path)+2]
+
+        
+        # add auxiliary stuff to resource_id if applicable
+        
+        if ("_mask_" in subject_path) and (("sca_roi" in subject_path) or \
+            ("sca_tempreg" in subject_path)):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (maskname, filename)
+
+            
+        if ("_spatial_map_" in subject_path) and \
+            ("dr_tempreg" in subject_path):
+            
+            for dirname in split_fullpath:
+                if "_spatial_map_" in dirname:
+                    mapname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (mapname, filename)
 
 
         # get list of all unique IDs (session IDs)
@@ -312,9 +388,9 @@ def run(config_file, subject_list_file, output_path_file):
                         raise Exception
 
 
-                analysis_map[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+                analysis_map[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
-                analysis_map_gp[(resource_id, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+                analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
         count += 1
 
@@ -329,6 +405,7 @@ def run(config_file, subject_list_file, output_path_file):
 
 
     print "Finished parsing through output paths!\n"
+
 
 
     for resource, group_model, glob_key in analysis_map.keys():
@@ -445,6 +522,7 @@ def run(config_file, subject_list_file, output_path_file):
                 
                         jobQueue.append(procss[idx])
                         idx += 1
+
                 
     pid.close()
     
