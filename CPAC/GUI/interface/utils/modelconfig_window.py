@@ -660,7 +660,10 @@ class ModelConfig(wx.Frame):
         #     these inputs are the ones that should not be affected by the
         #     "use_zscore" flag in the GUI
         non_z_ders = ["VMHC z-stat (z-score only)", \
+                      "Multiple Regression SCA", \
                       "Multiple Regression SCA (smoothed)", \
+                      "Multiple Regression SCA z-stat", \
+                      "Multiple Regression SCA z-stat (smoothed)", \
                       "Dual Regression", \
                       "Dual Regression (smoothed)", \
                       "Dual Regression z-stat", \
