@@ -1935,7 +1935,7 @@ def extract_output_mean(in_file, output_name):
         
         # get filename of input maskave 1D file
         filename = in_file.split("/")[-1]
-        filename = filename.remove(".1D","")
+        filename = filename[0:-3]
 
         output_means_file = os.path.join(os.getcwd(), filename, \
             'mean_%s.txt' % output_name)
