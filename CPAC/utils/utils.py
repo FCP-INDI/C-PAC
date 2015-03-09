@@ -1937,8 +1937,7 @@ def extract_output_mean(in_file, output_name):
         filename = in_file.split("/")[-1]
         filename = filename[0:-3]
 
-        output_means_file = os.path.join(os.getcwd(), filename, \
-            'mean_%s.txt' % output_name)
+        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % filename)
         output_means = open(output_means_file, 'wb')
 
         print >>output_means, line
