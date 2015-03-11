@@ -325,7 +325,7 @@ class ListBox(wx.Frame):
                                 raise Exception("Error reading config file- %s", config)
                     
                         if config.get('outputDirectory'):
-                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'), '*', 'path_files_here' , '*.txt')
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName')) #, '*', 'path_files_here' , '*.txt')
                         else:
                             derv_path = ''
                     
@@ -833,7 +833,7 @@ class runGLA(wx.Frame):
     # Once the user clicks "Run", group level analysis begins
 
     def __init__(self, pipeline, sublist, path, name):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (730,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
@@ -842,7 +842,7 @@ class runGLA(wx.Frame):
 
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
        
-        label1 = wx.StaticText(panel, -1, label = 'Derivative Path File ')
+        label1 = wx.StaticText(panel, -1, label = 'Pipeline Output Directory ')
         self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
         self.box1.GetTextCtrl().SetValue(str(path))
         
@@ -904,8 +904,8 @@ class runGLA(wx.Frame):
             thread.start_new(self.runAnalysis, (pipeline, sublist, self.box1.GetValue()))
             self.Close()
         else:
-            wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")
+            wx.MessageBox("Please provide the path to the output directory for the pipeline you want to run group-level analysis for.")
             
     def OnShowDoc(self, event):
-        wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+        wx.TipWindow(self, "Path to output directory of the pipeline you wish to run group-level analysis for.", 500)
 

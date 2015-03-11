@@ -960,6 +960,50 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
+    def insert_means_into_model(output_means_dict):
+
+        means_list = []
+
+        # create a blank list that is the proper length (num of subjects)
+        for sub in pheno_data_dict[c.subject_id_label]:
+            means_list.append(0)
+
+        for subID in output_means_dict.keys():
+
+            # find matching subject IDs between the output_means_dict and
+            # the pheno_data_dict so we can insert mean values into the
+            # pheno_data_dict
+            for subject in pheno_data_dict[c.subject_id_label]:
+
+                if subject == subID:
+
+                    # return the index (just an integer) of where in the
+                    # pheno_data_dict list structure a subject ID is
+                    idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
+
+                    # insert Mean FD value in the proper point
+                    means_list[idx] = float(output_means_dict[subID])
+
+        # time to demean the means!
+        means_sum = 0.0
+
+        for mean in means_list:
+
+            means_sum = means_sum + mean
+
+        measure_mean = means_sum / len(means_list)
+
+        idx = 0
+
+        for mean in means_list:
+
+            means_list[idx] = mean - measure_mean
+            idx += 1
+
+        return means_list
+
+
+
     if 'Measure_Mean' in c.design_formula:
 
         ''' extract the mean of derivative for each subject if selected '''
@@ -1045,54 +1089,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
             #    {sub1: mean_val, sub2: mean_val, ..}
             #        as this code runs once per output, this dictionary contains
             #        the mean values of the one current output, right now
-
-
-
-        def insert_means_into_model(means_dict):
-
-            means_list = []
-
-            # create a blank list that is the proper length (num of subjects)
-            for sub in pheno_data_dict[c.subject_id_label]:
-                means_list.append(0)
-
-            for subID in output_means_dict.keys():
-
-                # find matching subject IDs between the output_means_dict and
-                # the pheno_data_dict so we can insert mean values into the
-                # pheno_data_dict
-                for subject in pheno_data_dict[c.subject_id_label]:
-
-                    if subject == subID:
-
-                        # return the index (just an integer) of where in the
-                        # pheno_data_dict list structure a subject ID is
-                        idx = np.where(pheno_data_dict[c.subject_id_label]==subID)[0][0]
-
-                        # insert Mean FD value in the proper point
-                        means_list[idx] = float(means_dict[subID])
-
-
-            # time to demean the means!
-            means_sum = 0.0
-
-            for mean in means_list:
-
-                means_sum = means_sum + mean
-
-            measure_mean = means_sum / len(means_list)
-
-            idx = 0
-
-            for mean in means_list:
-
-                means_list[idx] = mean - measure_mean
-                idx += 1
-
-
-            return means_list
-
-
 
         ''' insert means into pheno data if selected '''
 

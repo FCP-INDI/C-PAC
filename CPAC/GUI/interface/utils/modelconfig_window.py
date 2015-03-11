@@ -341,6 +341,18 @@ class ModelConfig(wx.Frame):
             # load the group analysis .yml config file (in dictionary form)
             # into the self.gpa_settings dictionary which holds all settings
             self.gpa_settings = config_map
+            
+            
+            if self.gpa_settings is None:
+                errDlgFileTest = wx.MessageDialog(
+                    self, "Error reading file - group analysis " \
+                          "configuration file appears to be blank.",
+                    "File Read Error",
+                    wx.OK | wx.ICON_ERROR)
+                errDlgFileTest.ShowModal()
+                errDlgFileTest.Destroy()
+                raise Exception
+            
 
 
             # repopulate the model setup checkbox grid, since this has to be
@@ -467,6 +479,10 @@ class ModelConfig(wx.Frame):
     def populateEVs(self, event):
 
         # this runs when the user clicks 'Load Phenotype File'
+               
+        if self.gpa_settings is None:
+            self.gpa_settings = {}
+               
                
         for ctrl in self.page.get_ctrl_list():
             

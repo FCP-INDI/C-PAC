@@ -308,7 +308,7 @@ def run(config_file, subject_list_file, output_path_file):
             resource_name = resource_id + "_%s_%s" % (maskname, filename)
 
             
-        if ("_spatial_map_" in subject_path) and \
+        elif ("_spatial_map_" in subject_path) and \
             ("dr_tempreg" in subject_path):
             
             for dirname in split_fullpath:
@@ -323,6 +323,27 @@ def run(config_file, subject_list_file, output_path_file):
                 filename = filename.replace(".nii","")
             
             resource_name = resource_id + "_%s_%s" % (mapname, filename)
+            
+            
+        elif ("_mask_" in subject_path) and ("centrality" in subject_path):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (maskname, filename)
+            
+            
+        else:
+        
+            resource_name = resource_id
 
 
         # get list of all unique IDs (session IDs)
