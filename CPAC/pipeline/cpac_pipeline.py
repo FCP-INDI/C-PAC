@@ -749,8 +749,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 strat.update_resource_pool({'anatomical_to_symmetric_mni_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.linear_xfm'),
                                             'anatomical_to_symmetric_mni_nonlinear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
                                             'symmetric_mni_to_anatomical_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
-                                            'symmetric_mni_normalized_anatomical':(fnirt_reg_anat_symm_mni, 'outputspec.output_brain'),
-                                            'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
+                                            'symmetric_mni_normalized_anatomical':(fnirt_reg_anat_symm_mni, 'outputspec.output_brain')})#,
+#                                            'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
 
 
                 create_log_node(fnirt_reg_anat_symm_mni, 'outputspec.output_brain', num_strat)
