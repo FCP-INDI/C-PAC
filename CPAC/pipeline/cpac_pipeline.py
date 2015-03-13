@@ -2041,7 +2041,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 mean_functional_warp.inputs.ref_file = c.template_brain_only_for_func
                 
                 
-                motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(), name='motion_correct_fsl_warp_%d % num_strat)
+                motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(), name="motion_correct_fsl_warp_%d" % num_strat)
                 motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
                 
     
