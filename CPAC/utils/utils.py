@@ -1936,8 +1936,60 @@ def extract_output_mean(in_file, output_name):
         # get filename of input maskave 1D file
         filename = in_file.split("/")[-1]
         filename = filename[0:-3]
+        
+        
+        split_fullpath = in_file.split("/")
+        
+        if ("_mask_" in in_file) and (("sca_roi" in in_file) or \
+            ("sca_tempreg" in in_file)):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (maskname, filename)
 
-        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % filename)
+            
+        elif ("_spatial_map_" in in_file) and \
+            ("dr_tempreg" in in_file):
+            
+            for dirname in split_fullpath:
+                if "_spatial_map_" in dirname:
+                    mapname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (mapname, filename)
+            
+            
+        elif ("_mask_" in in_file) and ("centrality" in in_file):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (maskname, filename)
+            
+            
+        else:
+        
+            resource_name = output_name
+        
+
+        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % resource_name)
         output_means = open(output_means_file, 'wb')
 
         print >>output_means, line

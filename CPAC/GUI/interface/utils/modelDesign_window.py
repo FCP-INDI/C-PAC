@@ -404,8 +404,6 @@ class ModelDesign(wx.Frame):
 
         self.collect_input()
 
-        print "gpa settings going back: ", self.gpa_settings, "\n\n"
-
         modelconfig_window.ModelConfig(self.parent, self.gpa_settings)
 
         self.Close()
@@ -528,6 +526,10 @@ class ModelDesign(wx.Frame):
                                 "'sca_seed_to_standard_smooth_fisher_zstd', " \
                                 "'vmhc_fisher_zstd', " \
                                 "'vmhc_fisher_zstd_zstat_map', " \
+                                "'dr_tempreg_maps_zstat_files_to_standard', " \
+                                "'dr_tempreg_maps_zstat_files_to_standard_smooth', " \
+                                "'sca_tempreg_maps_zstat_files', " \
+                                "'sca_tempreg_maps_zstat_files_smooth', " \
                                 "'centrality_outputs_zstd', " \
                                 "'centrality_outputs_smoothed_zstd'\n\n" \
                                 "For raw (non-z-scored) analyses:\n" \
@@ -541,19 +543,12 @@ class ModelDesign(wx.Frame):
                                 "'sca_roi_to_standard_smooth', " \
                                 "'sca_seed_to_standard', " \
                                 "'sca_seed_to_standard_smooth', " \
-                                "'vmhc_raw_score', " \
                                 "'centrality_outputs', " \
-                                "'centrality_outputs_smoothed'\n\n" \
-                                "Outputs that can be included regardless " \
-                                "of the z-scoring selection:\n"
+                                "'centrality_outputs_smoothed', " \
                                 "'dr_tempreg_maps_files_to_standard', " \
                                 "'dr_tempreg_maps_files_to_standard_smooth', " \
-                                "'dr_tempreg_maps_zstat_files_to_standard', " \
-                                "'dr_tempreg_maps_zstat_files_to_standard_smooth', " \
                                 "'sca_tempreg_maps_files', " \
-                                "'sca_tempreg_maps_files_smooth', " \
-                                "'sca_tempreg_maps_zstat_files', " \
-                                "'sca_tempreg_maps_zstat_files_smooth'\n\n" \
+                                "'sca_tempreg_maps_files_smooth'\n\n" \
                                 "Example input: derivative_list :  ['alff_to" \
                                 "_standard_smooth_zstd', 'sca_roi_to_" \
                                 "standard_smooth_fisher_zstd']\n"))

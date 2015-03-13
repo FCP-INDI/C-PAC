@@ -959,7 +959,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                 add_measure_to_pheno(measure)
 
 
-
     def insert_means_into_model(output_means_dict):
 
         means_list = []
@@ -984,14 +983,11 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     # insert Mean FD value in the proper point
                     means_list[idx] = float(output_means_dict[subID])
 
+
+
         # time to demean the means!
-        means_sum = 0.0
+        measure_mean = sum(means_list) / len(means_list)
 
-        for mean in means_list:
-
-            means_sum = means_sum + mean
-
-        measure_mean = means_sum / len(means_list)
 
         idx = 0
 
@@ -1035,6 +1031,89 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
             for sub in pheno_data_dict[c.subject_id_label]:
 
+                # get output_means directory path
+                output_means_dir = os.path.join(pipeline_path, sub, "output_means")
+
+                if os.path.isdir(output_means_dir):
+                
+                    # walk this directory
+                    for root, folders, files in os.walk(output_means_dir):
+    
+                        split_output_dir_path = output_means_dir.split("/")
+    
+                        for filename in files:
+                            
+                            if filename.endswith(".txt") and "mean_" in filename:
+                                
+                                fullpath = os.path.join(root, filename)
+
+                                if current_output in filename:
+
+                                    mean_file = open(fullpath,"rb")
+                                    mean_val = float(mean_file.readline())
+                                    mean_file.close()
+
+                                        
+                                    # get the number (the mean value) of the current
+                                    # output from the TXT file and insert it into this
+                                    # dict with the subID being the key
+                                    output_means_dict[sub] = mean_val
+                                    break
+                                    
+                                    '''
+                                    if ("_mask_" in subject_path) and (("sca_roi" in subject_path) or \
+                                        ("sca_tempreg" in subject_path)):
+            
+                                        for dirname in split_fullpath:
+                                            if "_mask_" in dirname:
+                                                maskname = dirname
+                    
+                                        filename = split_fullpath[-1]
+            
+                                        if ".txt" in filename:
+                                            filename = filename.replace(".txt","")
+            
+                                        resource_name = resource_id + "_%s_%s" % (maskname, filename)
+
+            
+                                    elif ("_spatial_map_" in subject_path) and \
+                                        ("dr_tempreg" in subject_path):
+            
+                                        for dirname in split_fullpath:
+                                            if "_spatial_map_" in dirname:
+                                                mapname = dirname
+                    
+                                        filename = split_fullpath[-1]
+            
+                                        if ".txt" in filename:
+                                            filename = filename.replace(".txt","")
+            
+                                        resource_name = resource_id + "_%s_%s" % (mapname, filename)
+            
+            
+                                    elif ("_mask_" in subject_path) and ("centrality" in subject_path):
+            
+                                        for dirname in split_fullpath:
+                                            if "_mask_" in dirname:
+                                                maskname = dirname
+                    
+                                        filename = split_fullpath[-1]
+            
+                                        if ".txt" in filename:
+                                            filename = filename.replace(".txt","")
+            
+                                        resource_name = resource_id + "_%s_%s" % (maskname, filename)
+            
+            
+                                    else:
+        
+                                        resource_name = resource_id
+                                    '''
+               
+
+
+
+                '''
                 output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
 
                 if os.path.exists(output_means_file):
@@ -1083,6 +1162,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                           'completed successfully, or remove the measure mean ' \
                           'from your model design.\n\n'
                     raise Exception
+                '''
     
             # by the end of this for loop above, output_means_dict should look
             # something like this:
@@ -1090,13 +1170,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
             #        as this code runs once per output, this dictionary contains
             #        the mean values of the one current output, right now
 
+
         ''' insert means into pheno data if selected '''
 
         measure_means_list = insert_means_into_model(output_means_dict)
 
         # add this new list to the pheno_data_dict
         pheno_data_dict['Measure_Mean'] = np.array(measure_means_list)
-
+        
 
 
 
@@ -1215,7 +1296,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print 'Phenotype file provided: '
         print c.pheno_file, '\n\n'
         raise Exception
-
 
 
 

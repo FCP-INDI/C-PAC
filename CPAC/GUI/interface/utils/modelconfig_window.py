@@ -140,18 +140,14 @@ class ModelConfig(wx.Frame):
                               'ROI Average SCA (smoothed)',
                               'Voxelwise SCA',
                               'Voxelwise SCA (smoothed)',
-                              'Multiple Regression SCA',
-                              'Multiple Regression SCA (smoothed)',
-                              'Multiple Regression SCA z-stat',
-                              'Multiple Regression SCA z-stat (smoothed)',
-                              'VMHC',
-                              'VMHC z-stat (z-score only)',
-                              'Network Centrality',
-                              'Network Centrality (smoothed)',
                               'Dual Regression',
                               'Dual Regression (smoothed)',
-                              'Dual Regression z-stat',
-                              'Dual Regression z-stat (smoothed)'],
+                              'Multiple Regression SCA',
+                              'Multiple Regression SCA (smoothed)',
+                              'Network Centrality',
+                              'Network Centrality (smoothed)',
+                              'VMHC (z-score std only)',
+                              'VMHC z-stat (z-score std only)'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
                     size = (350,160))
 
@@ -671,23 +667,8 @@ class ModelConfig(wx.Frame):
 
         self.gpa_settings['derivative_list'] = []
 
-        # list of possible group analysis inputs for "selected derivatives" to
-        # run, in string form (before being matched in constants.py)
-        #     these inputs are the ones that should not be affected by the
-        #     "use_zscore" flag in the GUI
-        non_z_ders = ["VMHC z-stat (z-score only)", \
-                      "Multiple Regression SCA", \
-                      "Multiple Regression SCA (smoothed)", \
-                      "Multiple Regression SCA z-stat", \
-                      "Multiple Regression SCA z-stat (smoothed)", \
-                      "Dual Regression", \
-                      "Dual Regression (smoothed)", \
-                      "Dual Regression z-stat", \
-                      "Dual Regression z-stat (smoothed)"]
-
         for derivative in list(derlist_ctrl.get_selection()):
-            if self.gpa_settings['use_zscore'] == "True" and \
-                derivative not in non_z_ders:
+            if self.gpa_settings['use_zscore'] == "True":
                 
                 self.gpa_settings['derivative_list'].append(derivative + "_z")
                 

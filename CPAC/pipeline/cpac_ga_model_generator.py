@@ -321,21 +321,24 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     current_output = resource #s_paths[0].replace(pipeline_path, '').split('/')[2]
 
     # generate working directory for this output's group analysis run
-    workDir = '%s/group_analysis/%s__grp_model_%s__%s' % (c.workingDirectory, resource, group_conf.model_name, scan_ids[0])
+    workDir = '%s/group_analysis/%s/%s_%s' % (c.workingDirectory, group_conf.model_name, resource, scan_ids[0])
 
     # s_paths is a list of paths to each subject's derivative (of the current
     # derivative gpa is being run on) - s_paths_dirList is a list of each directory
     # in this path separated into list elements
              
+    # this makes strgy_path basically the directory path of the folders after
+    # the scan ID folder level         
     strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
 
+    # get rid of periods in the path
     for ch in ['.']:
         if ch in strgy_path:
-            strgy_path = strgy_path.replace(ch, '_')
+            strgy_path = strgy_path.replace(ch, "")
                 
     # create nipype-workflow-name-friendly strgy_path
     # (remove special characters)
-    strgy_path_name = strgy_path.replace('/', '__')
+    strgy_path_name = strgy_path.replace('/', "_")
 
     workDir = workDir + '/' + strgy_path_name
 
@@ -466,7 +469,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
     #else:
 
-    wf = pe.Workflow(name = "%s_%s" % (resource, group_conf.model_name))
+    wf = pe.Workflow(name = resource)
 
     wf.base_dir = workDir
     wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}

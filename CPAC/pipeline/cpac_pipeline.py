@@ -3535,7 +3535,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     name='%s_mean_to_txt_%d' % (output_resource, \
                     num_strat), iterfield=['in_file'])
             
-          
+        
         mean_to_csv.inputs.output_name = output_resource
         
         
@@ -3754,6 +3754,31 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             create_log_node(sc_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
     strat_list += new_strat_list
+    
+    
+    
+    '''
+    calc averages of sca_tempreg outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+    
+        for strat in strat_list:
+                          
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("sca_tempreg_maps_files", strat, num_strat, 1)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("sca_tempreg_maps_files_smooth", strat, num_strat, 1)              
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
 
 
 
@@ -3829,6 +3854,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             create_log_node(dr_temp_reg_maps_smooth, 'out_file', num_strat)
             num_strat += 1
     strat_list += new_strat_list
+
+
+
+    '''
+    calc averages of dr_tempreg outputs
+    '''
+    
+    new_strat_list = []
+    num_strat = 0
+
+    if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
+    
+        for strat in strat_list:
+    
+            calc_avg("dr_tempreg_maps_files", strat, num_strat, 1)
+            
+            #if c.fwhm != None:
+                       
+            if 1 in c.runRegisterFuncToMNI:
+            
+                calc_avg("dr_tempreg_maps_files_to_standard", strat, num_strat, 1)
+                
+                if c.fwhm != None:
+                
+                    calc_avg("dr_tempreg_maps_files_to_standard_smooth", strat, num_strat, 1)              
+            
+            num_strat += 1
+            
+    strat_list += new_strat_list
+
+
 
 
 
