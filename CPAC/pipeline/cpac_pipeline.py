@@ -2039,6 +2039,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 mean_functional_warp = pe.Node(interface=fsl.ApplyWarp(), name='mean_func_fsl_warp_%d' % num_strat)
                 mean_functional_warp.inputs.ref_file = c.template_brain_only_for_func
+                
+                
+                motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(), name='motion_correct_fsl_warp_%d % num_strat)
+                motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
+                
     
                 try:
 
@@ -2060,19 +2065,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                      functional_brain_mask_to_standard, 'field_file')
                     workflow.connect(node, out_file,
                                      mean_functional_warp, 'field_file')
+                    workflow.connect(node, out_file,
+                                     motion_correct_warp, 'field_file')
 
                     node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
                     workflow.connect(node, out_file,
                                      functional_brain_mask_to_standard, 'premat') 
                     workflow.connect(node, out_file,
-                                     mean_functional_warp, 'premat') 
+                                     mean_functional_warp, 'premat')
+                    workflow.connect(node, out_file,
+                                     motion_correct_warp, 'premat') 
 
                     node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
                     workflow.connect(node, out_file,
                                      functional_brain_mask_to_standard, 'in_file')
 
+
                     node, out_file = strat.get_node_from_resource_pool('mean_functional')
                     workflow.connect(node, out_file, mean_functional_warp, 'in_file')
+                    
+                    
+                    node, out_file = strat.get_node_from_resource_pool('motion_correct')
+                    workflow.connect(node, out_file, motion_correct_warp, 'in_file')
 
                     
 
@@ -2082,7 +2096,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
                 strat.update_resource_pool({'functional_mni':(func_mni_warp, 'out_file'),
                                             'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file'),
-                                            'mean_functional_in_mni':(mean_functional_warp, 'out_file')})
+                                            'mean_functional_in_mni':(mean_functional_warp, 'out_file'),
+                                            'motion_correct_to_standard':(motion_correct_warp, 'out_file')})
                 strat.append_name(func_mni_warp.name)
                 create_log_node(func_mni_warp, 'out_file', num_strat)
             
