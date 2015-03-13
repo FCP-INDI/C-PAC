@@ -750,7 +750,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                             'anatomical_to_symmetric_mni_nonlinear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
                                             'symmetric_mni_to_anatomical_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
                                             'symmetric_mni_normalized_anatomical':(fnirt_reg_anat_symm_mni, 'outputspec.output_brain')})#,
-#                                            'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
+#                                           'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
 
 
                 create_log_node(fnirt_reg_anat_symm_mni, 'outputspec.output_brain', num_strat)
@@ -864,9 +864,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     ants_reg_anat_symm_mni.inputs.inputspec. \
                         smoothing_sigmas = [[3,2,1,0],[3,2,1,0],[3,2,1,0]]
 
-                    node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
-           #         workflow.connect(node, out_file,
-            #                         ants_reg_anat_symm_mni, 'inputspec.wait')
+                    #node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+                    #workflow.connect(node, out_file,
+                    #                 ants_reg_anat_symm_mni, 'inputspec.wait')
                 
 
                 except:
