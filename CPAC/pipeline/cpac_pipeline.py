@@ -688,8 +688,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         workflow_bit_id['anat_mni_symmetric_register'] = workflow_counter
         for strat in strat_list:
+        
+            nodes = getNodeList(strat)
 
-            if 'FSL' in c.regOption:
+            if 'FSL' in c.regOption and \
+                    ('anat_mni_ants_register' not in nodes):
 
                 # this is to prevent the user from running FNIRT if they are
                 # providing already-skullstripped inputs. this is because
@@ -734,7 +737,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     logConnectionError('Symmetric Anatomical Registration (FSL)', num_strat, strat.get_resource_pool(), '0002')
                     raise
 
-                if (0 in c.runRegistrationPreprocessing) or ('ANTS' in c.regOption):
+                if (0 in c.runRegistrationPreprocessing):
                     tmp = strategy()
                     tmp.resource_pool = dict(strat.resource_pool)
                     tmp.leaf_node = (strat.leaf_node)
@@ -750,7 +753,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                             'anatomical_to_symmetric_mni_nonlinear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
                                             'symmetric_mni_to_anatomical_linear_xfm':(fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
                                             'symmetric_mni_normalized_anatomical':(fnirt_reg_anat_symm_mni, 'outputspec.output_brain')})#,
-#                                           'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
+                                            #'mni_normalized_anatomical':(ants_reg_anat_symm_mni, 'outputspec.wait')})
 
 
                 create_log_node(fnirt_reg_anat_symm_mni, 'outputspec.output_brain', num_strat)
@@ -770,6 +773,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             
             # or run ANTS anatomical-to-MNI registration instead
             if ('ANTS' in c.regOption) and \
+                    ('anat_mni_fnirt_register' not in nodes) and \
                     ('anat_symmetric_mni_fnirt_register' not in nodes):
 
                 ants_reg_anat_symm_mni = create_wf_calculate_ants_warp('anat' \
@@ -2371,6 +2375,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                 if ('ANTS' in c.regOption) and \
+                    ('anat_mni_fnirt_register' not in nodes) and \
                     ('anat_symmetric_mni_fnirt_register' not in nodes):
 
                     node, out_file = strat.get_node_from_resource_pool('ants_symmetric_initial_xfm')
@@ -5740,7 +5745,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 if workflow_bit_id.get(name) != None:
                         strat_tag += name + '_'
                         
-                        print name, ' ~~~ ', 2 ** workflow_bit_id[name]
+                        print name, ' --- ', 2 ** workflow_bit_id[name]
                         hash_val += 2 ** workflow_bit_id[name]
 
     
@@ -5762,7 +5767,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     #if running multiple pipelines with gui, need to change this in future
                     p_name = None
     
-            logger.info('strat_tag,  ~~~~~ , hash_val,  ~~~~~~ , pipeline_id: %s, ~~~~~ %s, ~~~~~~ %s' % (strat_tag, hash_val, pipeline_id))
+            logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: %s, ---- %s, ---- %s' % (strat_tag, hash_val, pipeline_id))
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
     

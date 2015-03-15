@@ -140,9 +140,7 @@ def check_multicollinearity(matrix):
 
 
 
-
-
-def create_mat_file(data, col_names, model_name, output_dir):
+def create_mat_file(data, col_names, model_name, current_output, output_dir):
 
     """
     create the .mat file
@@ -184,7 +182,8 @@ def create_mat_file(data, col_names, model_name, output_dir):
     ppstring += '\n'
 
 
-    f = open(os.path.join(output_dir, model_name + '.mat'), 'w')
+
+    f = open(os.path.join(output_dir, "model_files", current_output, model_name + '.mat'), 'w')
 
     print >>f, '/NumWaves\t%d' %dimy
     print >>f, '/NumPoints\t%d' %dimx
@@ -243,6 +242,8 @@ def test_create_mat_file():
 
     current_dir = os.getcwd()
 
+    current_output = "Test_Output"
+
     model_name = "Test_Model"
 
     output_dir = os.path.join(current_dir, "test_model_output")
@@ -263,11 +264,11 @@ def test_create_mat_file():
 
 
     # run the function
-    create_mat_file(data, col_names, model_name, output_dir)
+    create_mat_file(data, col_names, model_name, current_output, output_dir)
 
 
     # open the file
-    open_mat = open(os.path.join(output_dir, model_name + ".mat"),"rb")
+    open_mat = open(os.path.join(output_dir, "model_files", current_output, model_name + ".mat"),"rb")
 
     output_mat = open_mat.readlines()
 
@@ -282,7 +283,7 @@ def test_create_mat_file():
 
 
 
-def create_grp_file(data, model_name, gp_var, output_dir):
+def create_grp_file(data, model_name, gp_var, current_output, output_dir):
 
     """
     create the grp file
@@ -307,7 +308,7 @@ def create_grp_file(data, model_name, gp_var, output_dir):
             i += 1
 
 
-    f = open(os.path.join(output_dir, model_name + '.grp'), 'w')
+    f = open(os.path.join(output_dir, "model_files", current_output, model_name + '.grp'), 'w')
 
     print >>f, '/NumWaves\t1'
     print >>f, '/NumPoints\t%d\n' %dimx
@@ -353,6 +354,8 @@ def test_create_grp_file():
     current_dir = os.getcwd()
 
     model_name = "Test_Model"
+    
+    current_output = "Test_Output"
 
     output_dir = os.path.join(current_dir, "test_model_output")
 
@@ -367,11 +370,11 @@ def test_create_grp_file():
 
 
     # run the function
-    create_grp_file(data, model_name, gp_var, output_dir)
+    create_grp_file(data, model_name, gp_var, current_output, output_dir)
 
 
     # open the file and check it
-    open_grp = open(os.path.join(output_dir, model_name + ".grp"),"rb")
+    open_grp = open(os.path.join(output_dir, "model_files", current_output, model_name + ".grp"),"rb")
 
     output_grp = open_grp.readlines()
 
@@ -389,7 +392,7 @@ def test_create_grp_file():
 # OLDER CODE to facilitate creation of .con and .fts file via user-provided
 # contrasts matrix
 
-def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column_names, coding_scheme):
+def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesDirectory, column_names, coding_scheme):
 
     """
     Create the contrasts and fts file
@@ -533,7 +536,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column
 
     try:
 
-        f = open(os.path.join(outputModelFilesDirectory, model_name + '.con'), 'w')
+        f = open(os.path.join(outputModelFilesDirectory, "model_files", current_output, model_name + '.con'), 'w')
 
         idx = 1
         pp_str = '/PPheights'
@@ -565,7 +568,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column
 
     except Exception as e:
 
-        filepath = os.path.join(outputModelFilesDirectory, model_name + '.con')
+        filepath = os.path.join(outputModelFilesDirectory, "model_files", current_output, model_name + '.con')
 
         errmsg = "\n\n[!] CPAC says: Could not create the .con file for " \
                  "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
@@ -582,7 +585,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column
             print "\nFound f-tests in your model, writing f-tests file " \
                   "(.fts)..\n"
 
-            f = open(os.path.join(outputModelFilesDirectory, model_name + '.fts'), 'w')
+            f = open(os.path.join(outputModelFilesDirectory, "model_files", current_output, model_name + '.fts'), 'w')
             print >>f, '/NumWaves\t', (contrasts.shape)[0]
             print >>f, '/NumContrasts\t', count_ftests
 
@@ -604,7 +607,7 @@ def create_con_ftst_file(con_file, model_name, outputModelFilesDirectory, column
 
         except Exception as e:
 
-            filepath = os.path.join(outputModelFilesDirectory, model_name + '.fts')
+            filepath = os.path.join(outputModelFilesDirectory, "model_files", current_output, model_name + '.fts')
 
             errmsg = "\n\n[!] CPAC says: Could not create .fts file for " \
                      "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
@@ -822,7 +825,7 @@ def alternate_organize_data(data, c):
 
 
 
-def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, roi_means_dict=None, CPAC_run=False):
+def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current_output, model_out_dir, roi_means_dict=None, CPAC_run=False):
 
     # create_fsl_model.run()
     # this is called from cpac_group_analysis_pipeline.py
@@ -1366,8 +1369,8 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         ppstring += '\n' 
         return ppstring
 
-    def create_con_file(con_dict, col_names, file_name, out_dir):
-        with open(os.path.join(out_dir, file_name)+".con",'w+') as f:
+    def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
+        with open(os.path.join(out_dir, "model_files", current_output, file_name)+".con",'w+') as f:
             # write header
             num = 1
             for key in con_dict:
@@ -1394,14 +1397,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     f.write("%1.5e\t" %v)
                 f.write("\n")
 
-    def create_fts_file(ftest_list, con_dict, model_name, out_dir):
+    def create_fts_file(ftest_list, con_dict, model_name, current_output, out_dir):
 
         try:
 
             print "\nFound f-tests in your model, writing f-tests file " \
                   "(.fts)..\n"
 
-            f = open(os.path.join(out_dir, model_name + '.fts'), 'w')
+            f = open(os.path.join(out_dir, "model_files", current_output, model_name + '.fts'), 'w')
             print >>f, '/NumWaves\t', len(con_dict)
             print >>f, '/NumContrasts\t', len(ftest_list)
 
@@ -1441,7 +1444,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
         except Exception as e:
 
-            filepath = os.path.join(out_dir, model_name + '.fts')
+            filepath = os.path.join(out_dir, "model_files", current_output, model_name + '.fts')
 
             errmsg = "\n\n[!] CPAC says: Could not create .fts file for " \
                      "FLAMEO or write it to disk.\nAttempted filepath: %s\n" \
@@ -1623,7 +1626,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
     # convert the Patsy-generated design matrix into a NumPy array
+    
     data = np.asarray((dmatrix))
+
 
 
 
@@ -1830,12 +1835,17 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
     ''' FLAMEO model input files generation '''
 
+
+    if not os.path.isdir(os.path.join(model_out_dir, "model_files", current_output)):
+        os.makedirs(os.path.join(model_out_dir, "model_files", current_output))
+
+
     try:
-        create_mat_file(data, column_names, c.model_name, c.output_dir)
+        create_mat_file(data, column_names, c.model_name, current_output, model_out_dir)
     except Exception as e:
         print '\n\n[!] CPAC says: Could not create .mat file during ' \
                   'group-level analysis model file generation.\n'
-        print 'Attempted output directory: ', c.output_dir, '\n'
+        print 'Attempted output directory: ', model_out_dir, '\n'
         print "Error details: %s\n\n" % e
         raise Exception
 
@@ -1846,11 +1856,11 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         grouping_var = c.grouping_var
 
     try:
-        create_grp_file(data, c.model_name, grouping_var, c.output_dir)
+        create_grp_file(data, c.model_name, grouping_var, current_output, model_out_dir)
     except Exception as e:
         print '\n\n[!] CPAC says: Could not create .grp file during ' \
                   'group-level analysis model file generation.\n'
-        print 'Attempted output directory: ', c.output_dir, '\n'
+        print 'Attempted output directory: ', model_out_dir, '\n'
         print "Error details: %s\n\n" % e
         raise Exception
 
@@ -1862,20 +1872,20 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
               "using the group analysis model builder's contrasts editor.."
 
         try:
-            create_con_file(contrasts_dict, column_names, c.model_name, c.output_dir)
+            create_con_file(contrasts_dict, column_names, c.model_name, current_output, model_out_dir)
         except Exception as e:
             print '\n\n[!] CPAC says: Could not create .con file during ' \
                   'group-level analysis model file generation.\n'
-            print 'Attempted output directory: ', c.output_dir, '\n'
+            print 'Attempted output directory: ', model_out_dir, '\n'
             print "Error details: %s\n\n" % e
             raise Exception            
             
         try:    
-            create_fts_file(c.f_tests, contrasts_dict, c.model_name, c.output_dir)
+            create_fts_file(c.f_tests, contrasts_dict, c.model_name, current_output, model_out_dir)
         except Exception as e:
             print '\n\n[!] CPAC says: Could not create .fts file during ' \
                   'group-level analysis model file generation.\n'
-            print 'Attempted output directory: ', c.output_dir, '\n'
+            print 'Attempted output directory: ', model_out_dir, '\n'
             print "Error details: %s\n\n" % e
             raise Exception      
 
@@ -1884,7 +1894,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print "\nWriting contrasts file (.con) based on contrasts provided " \
               "with a custom contrasts matrix CSV file..\n"
 
-        create_con_ftst_file(c.custom_contrasts, c.model_name, c.output_dir, depatsified_EV_names, coding_scheme)
+        create_con_ftst_file(c.custom_contrasts, c.model_name, current_output, model_out_dir, depatsified_EV_names, coding_scheme)
 
 
 

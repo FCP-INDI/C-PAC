@@ -882,6 +882,42 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
 
             raise Exception
+            
+            
+        if str(self.gpa_settings["use_zscore"]) == "True":
+        
+            if "Measure_Mean" in formula:
+            
+                warn_string = "Note: You have included Measure_Mean as a " \
+                    "regressor in your model, but you have selected to run " \
+                    "the group-level analysis with the z-score standardized "\
+                    "version of the outputs.\n\nThe mean of any z-score " \
+                    "standardized output will always be zero."
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'Measure_Mean Included With z-scored Outputs', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+        
+        else:
+        
+            for deriv in self.gpa_settings["derivative_list"]:
+            
+                if "VMHC" in deriv:
+                
+                    warn_string = "Note: You have selected to run group-" \
+                        "level analysis using raw outputs (non-z-score " \
+                        "standardized), but you have also included VMHC " \
+                        "as one of the outputs to include in your model."
+
+                    errSubID = wx.MessageDialog(self, warn_string,
+                        'VMHC Cannot Be Included As Raw Output', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+
+                    raise Exception
 
 
 
@@ -1069,8 +1105,6 @@ class ModelConfig(wx.Frame):
    
 
             formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
-
-
 
 
 

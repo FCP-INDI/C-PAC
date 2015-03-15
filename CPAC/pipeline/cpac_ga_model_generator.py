@@ -231,6 +231,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     out_dir = os.path.join(group_conf.output_dir, out_dir[1])
     out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
 
+    model_out_dir = os.path.join(group_conf.output_dir, 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
+
     mod_path = os.path.join(out_dir, 'model_files')
 
 
@@ -456,7 +458,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     ''' run create_fsl_model.py to generate the group analysis models '''
     
     from CPAC.utils import create_fsl_model
-    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, roi_means_dict, True)
+    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, model_out_dir, roi_means_dict, True)
 
 
 
@@ -487,7 +489,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # directory and sends them to the create_group_analysis workflow gpa_wf
 
     gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
-    gp_flow.inputs.inputspec.grp_model = group_conf.output_dir
+    gp_flow.inputs.inputspec.grp_model = os.path.join(model_out_dir, "model_files", current_output)
     gp_flow.inputs.inputspec.model_name = group_conf.model_name
     gp_flow.inputs.inputspec.ftest = fTest
   
