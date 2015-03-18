@@ -200,7 +200,7 @@ def s3_rename(bucket, src_list, dst_list,
         if not dst_exists or overwrite:
             print 'copying source: ', str(src_key.key)
             print 'to destination: ', dst_key
-            src_key.copy(bucket, dst_key)
+            src_key.copy(bucket.name, dst_key)
             if make_public:
                 print 'making public...'
                 dk = bucket.get_key(dst_key)
