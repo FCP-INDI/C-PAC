@@ -793,7 +793,7 @@ def alternate_organize_data(data, c):
         idx += 1
 
     #take the mean
-    for  row in data:
+    for row in data:
 
         for col in mean_cols:
 
@@ -1063,109 +1063,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                                     output_means_dict[sub] = mean_val
                                     break
                                     
-                                    '''
-                                    if ("_mask_" in subject_path) and (("sca_roi" in subject_path) or \
-                                        ("sca_tempreg" in subject_path)):
-            
-                                        for dirname in split_fullpath:
-                                            if "_mask_" in dirname:
-                                                maskname = dirname
-                    
-                                        filename = split_fullpath[-1]
-            
-                                        if ".txt" in filename:
-                                            filename = filename.replace(".txt","")
-            
-                                        resource_name = resource_id + "_%s_%s" % (maskname, filename)
-
-            
-                                    elif ("_spatial_map_" in subject_path) and \
-                                        ("dr_tempreg" in subject_path):
-            
-                                        for dirname in split_fullpath:
-                                            if "_spatial_map_" in dirname:
-                                                mapname = dirname
-                    
-                                        filename = split_fullpath[-1]
-            
-                                        if ".txt" in filename:
-                                            filename = filename.replace(".txt","")
-            
-                                        resource_name = resource_id + "_%s_%s" % (mapname, filename)
-            
-            
-                                    elif ("_mask_" in subject_path) and ("centrality" in subject_path):
-            
-                                        for dirname in split_fullpath:
-                                            if "_mask_" in dirname:
-                                                maskname = dirname
-                    
-                                        filename = split_fullpath[-1]
-            
-                                        if ".txt" in filename:
-                                            filename = filename.replace(".txt","")
-            
-                                        resource_name = resource_id + "_%s_%s" % (maskname, filename)
-            
-            
-                                    else:
-        
-                                        resource_name = resource_id
-                                    '''
-               
-
-
-
-                '''
-                output_means_file = os.path.join(pipeline_path, sub, 'output_means_%s.csv' % sub)
-
-                if os.path.exists(output_means_file):
-            
-                    try:
-
-                        output_means = csv.DictReader(open(output_means_file,'rU'))
-                
-                    except:
-
-                        print '\n\n[!] CPAC says: Could not open the output_means' \
-                              '.csv file usually located in each subject\'s output ' \
-                              'folder in the output directory.\n'
-                        print 'Path: ', output_means_file, '\n\n'
-                        raise Exception
-
-
-                    try:
-
-                        # get the number (the mean value) of the current
-                        # output from the CSV file and insert it into this
-                        # dict with the subID being the key
-                        output_means_dict[sub] = str(row[current_output])
-
-                    except:
-
-                        print '\n\n[!] CPAC says: There is no mean value ' \
-                              'stored for the output \'', current_output, \
-                              '\' for subject \'', sub, '\'.\n'
-                        print 'Path to means file: ', output_means_file, '\n'
-                        print 'Possible situations:\n1. The output \'', \
-                               current_output, '\' was not included in ' \
-                              'individual-level analysis, but was included to ' \
-                              'be run in group-level analysis.\n2. The means ' \
-                              'file for this subject was not created properly.' \
-                              '\n3. Individual-level analysis did not ' \
-                              'complete properly.\n\n'
-                        raise Exception
-
-                else:
-                    print '\n\n[!] CPAC says: The output_means.csv file usually ' \
-                          'located in each subject\'s output folder in the output ' \
-                          'directory does not exist!\n'
-                    print 'Path not found: ', output_means_file, '\n\n'
-                    print 'Tip: Either check if individual-level analysis ' \
-                          'completed successfully, or remove the measure mean ' \
-                          'from your model design.\n\n'
-                    raise Exception
-                '''
+ 
     
             # by the end of this for loop above, output_means_dict should look
             # something like this:
@@ -1243,6 +1141,159 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
+
+    ''' Modeling Group Variances Separately '''
+    
+    if c.group_sep == True:
+    
+        if c.grouping_var == None or c.grouping_var not in c.design_formula:
+            print '\n\n[!] CPAC says: Model group variances separately is ' \
+                  'enabled, but the grouping variable set is either set to ' \
+                  'None, or was not included in the model as one of the ' \
+                  'EVs.\n'
+            print 'Design formula: ', c.design_formula
+            print 'Grouping variable: ', c.grouping_var, '\n\n'
+            raise Exception
+            
+            
+        coding_scheme = c.coding_scheme[0]
+
+        # do this a little early for the grouping variable so that it doesn't
+        # get in the way of doing this for the other EVs once they have the
+        # grouping variable in their names
+        if 'categorical' in c.ev_selections.keys():
+            for EV_name in c.ev_selections['categorical']:
+            
+                if EV_name == c.grouping_var:
+
+                    if coding_scheme == 'Treatment':
+                        formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                    elif coding_scheme == 'Sum':
+                        formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+    
+    
+        groupvar_levels = []
+        grouping_var_id_dict = {}
+        idx = 0
+    
+        for cat_ev_value in pheno_data_dict[c.grouping_var]:
+        
+            # here, each "cat_ev_value" will be one of the Patsy-format values
+            # of the categorical EV that the user has selected as the grouping
+            # variable, i.e. "sex1, sex1, sex0, sex1", etc..
+            
+            # cat_ev_level is the level digit or label without the EV name
+            # ex. sex1 becomes 1
+            cat_ev_level = str(cat_ev_value).replace(str(c.grouping_var), "")
+            
+            if cat_ev_level not in groupvar_levels:
+                groupvar_levels.append(cat_ev_level)
+            
+            # groupvar_levels only keeps track of how many levels there are in
+            # the grouping variable
+            
+            # populate this dict for create_grp_file():
+            try:
+                grouping_var_id_dict[cat_ev_level].append(idx)
+            except:
+                grouping_var_id_dict[cat_ev_level] = [idx]
+                
+            idx += 1
+            
+            
+        split_EVs = {}
+            
+        for key in pheno_data_dict.keys():
+        
+            # here, "key" is the name of each EV from the phenotype file, as
+            # they are labeled in the phenotype file (not Patsy format)
+            
+            if (key in formula) and (key != c.grouping_var):
+            
+                # for the formula edit
+                new_key_string = ""
+                
+                for level in groupvar_levels:
+                
+                    # for the new split EV label
+                    groupvar_with_level = str(c.grouping_var) + str(level)  
+                    new_key = key + "__" + groupvar_with_level
+                    
+                    # for the formula edit
+                    if new_key_string == "":
+                        new_key_string = new_key
+                    else:
+                        new_key_string = new_key_string + " + " + new_key
+                
+                    split_EVs[new_key] = []
+                    
+                    # for the formula as well
+                    if key in c.ev_selections["categorical"]:
+                        c.ev_selections["categorical"].append(new_key)
+                    
+                    for val, groupvar_val in zip(pheno_data_dict[key], pheno_data_dict[c.grouping_var]):
+                    
+                        if groupvar_with_level == groupvar_val:
+                        
+                            split_EVs[new_key].append(val)
+                            
+                        else:
+                        
+                            split_EVs[new_key].append(0)
+                            
+                del pheno_data_dict[key]
+                if key in c.ev_selections["categorical"]:
+                    c.ev_selections["categorical"].remove(key)
+                
+                # formula edit
+                print key
+                print new_key_string
+                print "lol"
+                formula = formula.replace(key, new_key_string)
+                
+        # put split EVs into pheno data dict
+        pheno_data_dict.update(split_EVs)
+        
+        
+        # parse through ev_selections, find the categorical names within the
+        # design formula and insert C(<name>, Sum) into the design formula
+        #     this is required for Patsy to process the categorical EVs
+        #     properly when generating the design matrix (this goes into the
+        #     .mat file)
+
+        if 'categorical' in c.ev_selections.keys():
+            for EV_name in c.ev_selections['categorical']:
+            
+                if EV_name != c.grouping_var:
+
+                    if coding_scheme == 'Treatment':
+                        formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                    elif coding_scheme == 'Sum':
+                        formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+        
+        
+    else:
+    
+        # parse through ev_selections, find the categorical names within the
+        # design formula and insert C(<name>, Sum) into the design formula
+        #     this is required for Patsy to process the categorical EVs
+        #     properly when generating the design matrix (this goes into the
+        #     .mat file)
+
+        coding_scheme = c.coding_scheme[0]
+
+
+        if 'categorical' in c.ev_selections.keys():
+            for EV_name in c.ev_selections['categorical']:
+
+                if coding_scheme == 'Treatment':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                elif coding_scheme == 'Sum':
+                    formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+    
+                 
+
+
     # make sure the group analysis output directory exists
     try:
 
@@ -1261,25 +1312,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
     ''' create the Patsy design matrix '''
-    # parse through ev_selections, find the categorical names within the
-    # design formula and insert C(<name>, Sum) into the design formula
-    #     this is required for Patsy to process the categorical EVs properly
-    #     when generating the design matrix (this goes into the .mat file)
 
-    coding_scheme = c.coding_scheme[0]
-
-
-    if 'categorical' in c.ev_selections.keys():
-        for EV_name in c.ev_selections['categorical']:
-
-            if coding_scheme == 'Treatment':
-                formula = formula.replace(EV_name, 'C(' + EV_name + ')')
-            elif coding_scheme == 'Sum':
-                formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
-
-
-
-    # create the actual design matrix using Patsy
     import patsy
 
 
@@ -1291,7 +1324,12 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     #print pheno_data_dict
 
     try:
-        dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
+
+        if c.group_sep == True:
+            dmatrix = patsy.dmatrix(formula + " - 1", pheno_data_dict, NA_action='raise')
+        else:
+            dmatrix = patsy.dmatrix(formula, pheno_data_dict, NA_action='raise')
+            
     except:
         print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                 'successful - do the terms in your formula correctly ' \
@@ -1307,20 +1345,64 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
     # parse in user-input contrast strings that were selected, and generate
     # the contrast file (.con)
 
-    def greater_than(dmat, a, b, coding):
-        c1 = positive(dmat, a, coding)
-        c2 = positive(dmat, b, coding)
+    def greater_than(dmat, a, b, coding, group_sep, grouping_var):
+        c1 = positive(dmat, a, coding, group_sep, grouping_var)
+        c2 = positive(dmat, b, coding, group_sep, grouping_var)
         return c1-c2
 
-    def positive(dmat, a, coding):
+    def positive(dmat, a, coding, group_sep, grouping_var):
 
-        if coding == "Treatment":
+        # this is also where the "Intercept" column gets introduced into
+        # the contrasts columns, for when the user uses the model builder's
+        # contrast builder
+        evs = dmat.design_info.column_name_indexes
+        con = np.zeros(dmat.shape[1])
 
-            # this is also where the "Intercept" column gets introduced into
-            # the contrasts columns, for when the user uses the model builder's
-            # contrast builder
-            evs = dmat.design_info.column_name_indexes
-            con = np.zeros(dmat.shape[1])
+        if group_sep == True:
+            
+            if "__" in a and grouping_var in a:
+                ev_desc = a.split("__")
+                    
+                for ev in evs:
+                    count = 0
+                    for desc in ev_desc:
+                        if desc in ev:
+                            count += 1
+                    if count == len(ev_desc):
+                        con[evs[ev]] = 1
+                        break
+                            
+                else:
+                    # it is a dropped term so make all other terms in that category
+                    # at -1
+                    term = a.split('[')[0]
+
+                    for ev in evs:
+                        if ev.startswith(term):
+                            con[evs[ev]]= -1
+                                
+            elif len(a.split(grouping_var)) > 2:
+                
+                # this is if the current parsed contrast is the actual
+                # grouping variable, as the Patsified name will have the
+                # variable's name string in it twice
+                    
+                for ev in evs:
+                    if a.split(".")[1] in ev:
+                        con[evs[ev]] = 1
+                        break
+                else:
+                    # it is a dropped term so make all other terms in that category
+                    # at -1
+                    term = a.split('[')[0]
+
+                    for ev in evs:
+                        if ev.startswith(term):
+                            con[evs[ev]]= -1
+
+
+        # else not modeling group variances separately
+        else:
 
             if a in evs:
                 con[evs[a]] = 1
@@ -1332,34 +1414,19 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                 for ev in evs:
                     if ev.startswith(term):
                         con[evs[ev]]= -1
+     
+            if coding == "Treatment":     
+                # make Intercept 0
+                con[0] = 0
+            elif coding == "Sum":
+                # make Intercept 1
+                con[1] = 1
 
-            # make Intercept 0
-            con[0] = 0
-
-            return con
-
-        elif coding == "Sum":
-
-            evs = dmat.design_info.column_name_indexes
-            con = np.zeros(dmat.shape[1])
-            if a in evs:
-                con[evs[a]] = 1
-            else:
-                # it is a dropped term so make all other terms in that category
-                # at -1
-                term = a.split('[')[0]
-                for ev in evs:
-                    if ev.startswith(term):
-                        con[evs[ev]]= -1
-
-            # make Intercept 1
-            con[0] = 1
-
-            return con
+        return con
 
 
-    def negative(dmat, a, coding):
-        con = 0-positive(dmat, a, coding)
+    def negative(dmat, a, coding, group_sep, grouping_var):
+        con = 0-positive(dmat, a, coding, group_sep, grouping_var)
         return con
 
     def create_dummy_string(length):
@@ -1373,6 +1440,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         with open(os.path.join(out_dir, "model_files", current_output, file_name)+".con",'w+') as f:
             # write header
             num = 1
+
             for key in con_dict:
                 f.write("/ContrastName%s\t%s\n" %(num,key))
                 num += 1
@@ -1482,7 +1550,12 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
             if 'categorical' in c.ev_selections.keys():
                 for cat_EV in c.ev_selections['categorical']:
 
-                    if cat_EV in EV:
+                    # second half of this if clause is in case group variances
+                    # are being modeled separately, and we don't want the EV
+                    # that is the grouping variable (which is now present in
+                    # other EV names) to confound this operation
+                    if (cat_EV in EV) and not (c.grouping_var in EV and \
+                        "__" in EV):
 
                         # handle interactions
                         if ":" in EV:
@@ -1535,14 +1608,14 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
             parsed_EVs_in_contrast = process_contrast('>')
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme)
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[0], parsed_EVs_in_contrast[1], coding_scheme, c.group_sep, c.grouping_var)
 
 
         elif '<' in parsed_contrast:
 
             parsed_EVs_in_contrast = process_contrast('<')
 
-            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0], coding_scheme)
+            contrasts_dict[parsed_contrast] = greater_than(dmatrix, parsed_EVs_in_contrast[1], parsed_EVs_in_contrast[0], coding_scheme, c.group_sep, c.grouping_var)
 
 
         else:
@@ -1558,13 +1631,13 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
                 parsed_EVs_in_contrast = process_contrast('+')
 
-                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
+                contrasts_dict[parsed_contrast] = positive(dmatrix, parsed_EVs_in_contrast[0], coding_scheme, c.group_sep, c.grouping_var)
 
             elif '-' in contrast_items and len(contrast_items) == 2:
 
                 parsed_EVs_in_contrast = process_contrast('-')
 
-                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0], coding_scheme)
+                contrasts_dict[parsed_contrast] = negative(dmatrix, parsed_EVs_in_contrast[0], coding_scheme, c.group_sep, c.grouping_var)
 
 
             if len(contrast_items) > 2:
@@ -1645,20 +1718,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
 
-
-    ''' Modeling Group Variances Separately '''
-
-
-    # check for appropriate settings for modeling group variances separately
-    if c.group_sep == True and (c.grouping_var == None or (c.grouping_var not in c.design_formula)):
-        print '\n\n[!] CPAC says: Model group variances separately is ' \
-              'enabled, but the grouping variable set is either set to ' \
-              'None, or was not included in the model as one of the EVs.\n'
-        print 'Design formula: ', c.design_formula
-        print 'Grouping variable: ', c.grouping_var, '\n\n'
-        raise Exception
-
-
+    '''
 
     # prep data and column names if user decides to model group variances
     # separately
@@ -1668,8 +1728,15 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         grouping_options = []
         new_options = []
 
+        idx = 0
+
         # take in what the grouping variable is. get the names of the options.
         for col_name in dmatrix.design_info.column_names:
+        
+            # first, link what the user entered as the grouping variable to
+            # what Patsy has renamed it..
+            if c.grouping_var in col_name:
+                grouping_var_idx = idx   
 
             if col_name != 'Intercept':
                 
@@ -1690,6 +1757,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
                 if skip == 0:
                     EV_options.append(col_name)
+                    
+            idx += 1
+            
 
         idx = 1
 
@@ -1715,8 +1785,13 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
         for gv_idx in grouping_options:
             for subject in dmatrix:
+            
+                if c.grouping_var in c.ev_selections["categorical"]:
+                    level_num = str(int(subject[gv_idx[1]]))
+                else:
+                    level_num = str(subject[gv_idx[1]])
 
-                level_label = '__' + gv_idx[0] + '_' + str(subject[gv_idx[1]])
+                level_label = '__' + c.grouping_var + level_num
 
                 if level_label not in grouping_var_levels:
                     grouping_var_levels.append(level_label)
@@ -1732,8 +1807,25 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
 
         grouped_data = []
+        
+        # this is a dict that will be something like this:
+        # grouping variable = Sex, M or F
+        # { "M": [1,3,7], "F": [2,4,5,6] } with the digits being row numbers
+        # from the design matrix
+        grouping_var_id_dict = {}
+        
+        idx = 0
+
 
         for subject in dmatrix:
+        
+            # populate this dict for create_grp_file():
+            try:
+                grouping_var_id_dict[str(subject[int(grouping_var_idx)])].append(idx)
+            except:
+                grouping_var_id_dict[str(subject[int(grouping_var_idx)])] = [idx]
+        
+        
 
             new_row = []
 
@@ -1764,22 +1856,28 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                                 else:
                                     new_row.append(0)
         
+            # kill the intercept (not needed in modeling group variances
+            # separately)
+            del new_row[0]
 
             grouped_data.append(new_row)
+            
+            idx += 1
+            
+    
 
 
         data = np.array(grouped_data, dtype=np.float16)
 
-        new_options.insert(0, 'Intercept')
-
         column_names = new_options
 
     else:
+    '''
 
-        data = np.array(data, dtype=np.float16)
+    data = np.array(data, dtype=np.float16)
 
-        column_names = dmatrix.design_info.column_names
-        
+    column_names = dmatrix.design_info.column_names
+      
         
         
     # check to make sure there are more time points than EVs!
@@ -1789,7 +1887,11 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
               "be more subjects than EVs in the design.\n\nNumber of " \
               "subjects: %d\nNumber of EVs: %d\n\nNote: An 'Intercept' " \
               "column gets added to the design as an EV, so there will be " \
-              "one more EV than you may have specified in your design.\n\n" \
+              "one more EV than you may have specified in your design. In " \
+              "addition, if you specified to model group variances " \
+              "separately, an Intercept column will not be included, but " \
+              "the amount of EVs can nearly double once they are split " \
+              "along the grouping variable.\n\n" \
               "If the number of subjects is lower than the number of " \
               "subjects in your group analysis subject list, this may be " \
               "because not every subject in the subject list has an output " \
@@ -1850,13 +1952,9 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         raise Exception
 
 
-    if c.group_sep == "Off":
-        grouping_var = None
-    else:
-        grouping_var = c.grouping_var
 
     try:
-        create_grp_file(data, c.model_name, grouping_var, current_output, model_out_dir)
+        create_grp_file(data, c.model_name, grouping_var_id_dict, current_output, model_out_dir)
     except Exception as e:
         print '\n\n[!] CPAC says: Could not create .grp file during ' \
                   'group-level analysis model file generation.\n'

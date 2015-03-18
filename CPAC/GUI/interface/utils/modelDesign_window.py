@@ -33,9 +33,6 @@ class ModelDesign(wx.Frame):
         if 'f_tests' not in self.gpa_settings.keys():
             self.gpa_settings['f_tests'] = []
 
-        if 'grouping_var' not in self.gpa_settings.keys():
-            self.gpa_settings['grouping_var'] = 'None'
-
         if 'model_name' not in self.gpa_settings.keys():
             self.gpa_settings['model_name'] = ''
 
@@ -91,7 +88,7 @@ class ModelDesign(wx.Frame):
 
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
-                      name = 'contrastStrings',
+                      name = 'contrasts',
                       type = dtype.LSTR,
                       values = self.gpa_settings['contrasts'],
                       comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ . Consult the User Guide for more information about describing contrasts. Alternatively, you can provide your own custom-written contrasts matrix in a CSV file in the \'Custom Contrasts Matrix\' field below.',
@@ -103,7 +100,7 @@ class ModelDesign(wx.Frame):
         # the user enters contrast strings
         for ctrl in self.page.get_ctrl_list():
             name = ctrl.get_name()
-            if name == 'contrastStrings':
+            if name == 'contrasts':
                 ctrl.set_available_contrasts(varlist)
 
 
@@ -122,25 +119,10 @@ class ModelDesign(wx.Frame):
                       type=dtype.STR,
                       comment="Optional: Full path to a CSV file which specifies the contrasts you wish to run in group analysis. This allows you to describe your own custom contrasts matrix if you do not wish to use the contrasts builder above. Consult the User Guide for proper formatting.\n\nIf you wish to use the standard contrast builder, leave this field blank. If you provide a path for this option, CPAC will use your custom contrasts matrix instead, and will use the f-tests described in this custom file only (ignoring those you have input in the f-tests field in the GUI above).\n\nIf you wish to include f-tests, create a new column in your CSV file for each f-test named 'f_test_1', 'f_test_2', .. etc. Then, mark the contrasts you would like to include in each f-test with a 1, and mark the rest 0. Note that you must select at least two contrasts per f-test.",
                       values=str(self.gpa_settings['custom_contrasts']))
-
-        self.page.add(label="Model Group Variances Separately ",
-                      control=control.CHOICE_BOX,
-                      name='modelGroupVariancesSeparately',
-                      type=dtype.NUM,
-                      comment="Specify whether FSL should model the variance for each group separately.\n\nIf this option is enabled, you must specify a grouping variable below.",
-                      values=['Off', 'On'])
-
-        self.page.add(label="Grouping Variable ",
-                      control=control.TEXT_BOX,
-                      name="groupingVariable",
-                      type=dtype.STR,
-                      comment="The name of the EV that should be used to group subjects when modeling variances.\n\nIf you do not wish to model group variances separately, set this value to None.",
-                      values=self.gpa_settings['grouping_var'],
-                      size=(160, -1))
         
         self.page.add(label="Model Name ",
                       control=control.TEXT_BOX,
-                      name="modelName",
+                      name="model_name",
                       type=dtype.STR,
                       comment="Specify a name for the new model. Output and working directories for group analysis, as well as the FLAMEO model files (.mat, .con, .grp, etc.) will be labeled with this name.",
                       values=self.gpa_settings['model_name'],
@@ -148,25 +130,12 @@ class ModelDesign(wx.Frame):
 
         self.page.add(label="Output Directory ",
                       control=control.DIR_COMBO_BOX,
-                      name="outputModelFilesDirectory",
+                      name="output_dir",
                       type=dtype.STR,
                       comment="Full path to the directory where CPAC should place the model files (.mat, .con, .grp) and the outputs of group analysis.",
                       values=self.gpa_settings['output_dir'])
 
-
-        if 'group_sep' in self.gpa_settings.keys():
-
-            for ctrl in self.page.get_ctrl_list():
-
-                name = ctrl.get_name()
-
-                if name == 'modelGroupVariancesSeparately':
-
-                    if self.gpa_settings['group_sep'] == True:
-                        ctrl.set_value('On')
-                    elif self.gpa_settings['group_sep'] == False:
-                        ctrl.set_value('Off')
-            
+           
 
         self.page.set_sizer()
 
@@ -256,7 +225,7 @@ class ModelDesign(wx.Frame):
 
             name = ctrl.get_name()
 
-            if name == 'contrastStrings':
+            if name == 'contrasts':
 
                 self.gpa_settings['contrasts'] = []
 
@@ -349,22 +318,12 @@ class ModelDesign(wx.Frame):
                         raise Exception
 
 
-            if name == 'modelGroupVariancesSeparately':
-
-                self.gpa_settings['group_sep'] = ctrl.get_selection()
-
-
-            if name == 'groupingVariable':
-
-                self.gpa_settings['grouping_var'] = ctrl.get_selection()
-
-
-            if name == 'modelName':
+            if name == 'model_name':
 
                 self.gpa_settings['model_name'] = ctrl.get_selection()
 
 
-            if name == 'outputModelFilesDirectory':
+            if name == 'output_dir':
 
                 self.gpa_settings['output_dir'] = ctrl.get_selection()
 
@@ -561,6 +520,19 @@ class ModelDesign(wx.Frame):
                                 'typical scheme. Consult the User Guide for ' \
                                 'more information.\n\nAvailable options:\n' \
                                 '\'Treatment\', \'Sum\'\n'))
+                                
+        config_list.append(('group_sep', vals['group_sep'], 0, \
+                                'Specify whether FSL should model the ' \
+                                'variance for each group separately.\n\n' \
+                                'If this option is enabled, you must ' \
+                                'specify a grouping variable below.'))
+
+        config_list.append(('grouping_var', vals['grouping_var'], 1, \
+                                'The name of the EV that should be used to ' \
+                                'group subjects when modeling variances.\n' \
+                                '\nIf you do not wish to model group ' \
+                                'variances separately, set this value to ' \
+                                'None.'))
 
         config_list.append(('z_threshold', vals['z_threshold'], 4, \
                                 'Only voxels with a Z-score higher than ' \
@@ -605,19 +577,6 @@ class ModelDesign(wx.Frame):
                                 'the rest 0. Note that you must select at ' \
                                 'least two contrasts per f-test.'))
 
-        config_list.append(('group_sep', vals['group_sep'], 0, \
-                                'Specify whether FSL should model the ' \
-                                'variance for each group separately.\n\n' \
-                                'If this option is enabled, you must ' \
-                                'specify a grouping variable below.'))
-
-        config_list.append(('grouping_var', vals['grouping_var'], 1, \
-                                'The name of the EV that should be used to ' \
-                                'group subjects when modeling variances.\n' \
-                                '\nIf you do not wish to model group ' \
-                                'variances separately, set this value to ' \
-                                'None.'))
-
         config_list.append(('model_name', vals['model_name'], 1, \
                                 'Specify a name for the new model.'))
 
@@ -627,8 +586,7 @@ class ModelDesign(wx.Frame):
             
 
 
-        #try:
-        if 1 == 1:
+        try:
 
             dlg = wx.FileDialog(self, message="Save file as ...",
                                 defaultDir=os.getcwd(),
@@ -710,7 +668,7 @@ class ModelDesign(wx.Frame):
                 self.Parent.box2.GetTextCtrl().SetValue(path)
                 self.Close()
 
-        '''
+        
         except Exception as e:
 
             errmsg = '\n\n[!] CPAC says: Couldn\'t save the group analysis ' \
@@ -719,7 +677,7 @@ class ModelDesign(wx.Frame):
                       'Error details: %s' % (path, e)
 
             raise Exception(errmsg)
-        '''
+        
 
             
             

@@ -31,6 +31,8 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['use_zscore'] = True
             self.gpa_settings['derivative_list'] = ''
             self.gpa_settings['repeated_measures'] = ''
+            self.gpa_settings['group_sep'] = ''
+            self.gpa_settings['grouping_var'] = 'None'
             self.gpa_settings['z_threshold'] = ''
             self.gpa_settings['p_threshold'] = ''
         else:
@@ -157,6 +159,21 @@ class ModelConfig(wx.Frame):
                      type=dtype.LSTR, 
                      comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
                      values=["Treatment", "Sum"])
+                     
+        self.page.add(label="Model Group Variances Separately ",
+                      control=control.CHOICE_BOX,
+                      name='group_sep',
+                      type=dtype.NUM,
+                      comment="Specify whether FSL should model the variance for each group separately.\n\nIf this option is enabled, you must specify a grouping variable below.",
+                      values=['Off', 'On'])
+
+        self.page.add(label="Grouping Variable ",
+                      control=control.TEXT_BOX,
+                      name="grouping_var",
+                      type=dtype.STR,
+                      comment="The name of the EV that should be used to group subjects when modeling variances.\n\nIf you do not wish to model group variances separately, set this value to None.",
+                      values=self.gpa_settings['grouping_var'],
+                      size=(160, -1))
 
         self.page.add(label="Run Repeated Measures ", 
                      control=control.CHOICE_BOX, 
@@ -185,6 +202,20 @@ class ModelConfig(wx.Frame):
 
 
         self.page.set_sizer()
+        
+        
+        if 'group_sep' in self.gpa_settings.keys():
+
+            for ctrl in self.page.get_ctrl_list():
+
+                name = ctrl.get_name()
+
+                if name == 'group_sep':
+
+                    if self.gpa_settings['group_sep'] == True:
+                        ctrl.set_value('On')
+                    elif self.gpa_settings['group_sep'] == False:
+                        ctrl.set_value('Off')
 
         
 
@@ -275,6 +306,12 @@ class ModelConfig(wx.Frame):
 
                 if name == 'use_zscore':
                     ctrl.set_value(self.gpa_settings['use_zscore'])
+                    
+                if name == 'group_sep':
+                    ctrl.set_value(self.gpa_settings['group_sep'])
+
+                if name == 'grouping_var':
+                    ctrl.set_value(self.gpa_settings['grouping_var'])
 
                 if name == 'derivative_list':
 
@@ -372,7 +409,7 @@ class ModelConfig(wx.Frame):
 
             # populate the rest of the controls
             for ctrl in self.page.get_ctrl_list():
-                
+
                 name = ctrl.get_name()
                 value = config_map.get(name)
                 dtype = ctrl.get_datatype()
@@ -404,12 +441,13 @@ class ModelConfig(wx.Frame):
                 elif name == 'z_threshold' or name == 'p_threshold':
                     value = value[0]
                     ctrl.set_value(value)
+                    
+                elif name == 'group_sep':
+                    value = s_map.get(value)
+                    ctrl.set_value(value)                
 
                 elif name != 'model_setup' and name != 'derivative_list':
-                    try:
-                        ctrl.set_value(value)#str(self.gpa_settings[name]))
-                    except:
-                        print name, " ", value
+                    ctrl.set_value(value)
                 
 
             dlg.Destroy()
@@ -654,6 +692,17 @@ class ModelConfig(wx.Frame):
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
+                
+            elif name == 'group_sep':
+
+                self.gpa_settings['group_sep'] = ctrl.get_selection()
+
+
+            elif name == 'grouping_var':
+
+                self.gpa_settings['grouping_var'] = ctrl.get_selection()
+
+
 
             if name == 'derivative_list':
 
@@ -842,7 +891,9 @@ class ModelConfig(wx.Frame):
 
 
 
-        # more design formula/input parameters checks
+
+
+        ''' design formula/input parameters checks '''
 
         if "Custom_ROI_Mean" in formula and \
             (self.gpa_settings['custom_roi_mask'] == None or \
@@ -958,6 +1009,41 @@ class ModelConfig(wx.Frame):
 
             for num in range(0,num_rois):
                 custom_roi_labels.append("Custom_ROI_Mean_%d" % int(num+1))
+                
+                
+        
+        if str(self.gpa_settings["group_sep"]) == "On":
+        
+            if (self.gpa_settings["grouping_var"] == "None") or \
+                (self.gpa_settings["grouping_var"] is None) or \
+                (self.gpa_settings["grouping_var"] == "none"):
+                
+                warn_string = "Note: You have selected to model group " \
+                    "variances separately, but you have not specified a " \
+                    "grouping variable."
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'No Grouping Variable Specified', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+        
+            if self.gpa_settings["grouping_var"] not in formula:           
+                
+                warn_string = "Note: You have specified '%s' as your " \
+                    "grouping variable for modeling the group variances " \
+                    "separately, but you have not included this variable " \
+                    "in your design formula.\n\nPlease include this " \
+                    "variable in your design, or choose a different " \
+                    "grouping variable." % self.gpa_settings["grouping_var"]
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
 
 
 
@@ -1166,6 +1252,8 @@ class ModelConfig(wx.Frame):
         
 
 
+        raw_column_strings = []
+        
         # remove the header formatting Patsy creates for categorical variables
         # because we are going to use var_list_for_contrasts as a label for
         # users to know what contrasts are available to them
@@ -1190,9 +1278,69 @@ class ModelConfig(wx.Frame):
                     string_for_removal = ''
 
             column_string = column_string.replace(']', '')
+            
+            raw_column_strings.append(column_string)
+            
+            
+        
+        if str(self.gpa_settings["group_sep"]) == "On":     
 
-            if column_string != 'Intercept':
-                var_list_for_contrasts.append(column_string)
+            grouping_options = []
+            idx = 1
+            
+            for column_string in raw_column_strings:
+
+                if self.gpa_settings["grouping_var"] in column_string:
+
+                    grouping_variable_info = []
+
+                    grouping_variable_info.append(column_string)
+                    grouping_variable_info.append(idx)
+
+                    grouping_options.append(grouping_variable_info)
+
+                    # grouping_var_idx is the column numbers in the design matrix
+                    # which holds the grouping variable (and its possible levels)
+
+                idx += 1               
+
+
+            # all the categorical values/levels of the grouping variable
+            grouping_var_levels = []
+
+            for gv_idx in grouping_options:
+            
+                for subject in dmatrix:
+                
+                    if self.gpa_settings["grouping_var"] in self.gpa_settings["ev_selections"]["categorical"]:
+                        level_num = str(int(subject[gv_idx[1]]))
+                    else:
+                        level_num = str(subject[gv_idx[1]])
+
+                    level_label = '__' + self.gpa_settings["grouping_var"] + level_num
+
+                    if level_label not in grouping_var_levels:
+                        grouping_var_levels.append(level_label)
+
+
+            # make the new header for the reorganized data
+            for column_string in raw_column_strings:
+            
+                if column_string != "Intercept":
+            
+                    if self.gpa_settings["grouping_var"] not in column_string:
+                        for level in grouping_var_levels:
+                            var_list_for_contrasts.append(column_string + level)
+                    elif self.gpa_settings["grouping_var"] in column_string:
+                        var_list_for_contrasts.append(column_string)
+
+
+        else:
+        
+            for column_string in raw_column_strings:
+
+                if column_string != 'Intercept':
+                    var_list_for_contrasts.append(column_string)
 
 
 
@@ -1297,7 +1445,7 @@ class ModelConfig(wx.Frame):
                     errmsg = "The subject IDs in your group subject list " \
                              "and your phenotype file do not match. Please " \
                              "make sure these have been set up correctly." \
-                             "\n\nNote: Repeated measures is enabled - does " \
+                             "\n\nNote: Repeated measures is enabled - does "\
                              "your phenotype file have properly-formatted " \
                              "subject IDs matching your repeated measures " \
                              "group analysis subject list?"
