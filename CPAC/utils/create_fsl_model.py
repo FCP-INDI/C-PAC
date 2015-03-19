@@ -1272,14 +1272,16 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                         formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
         
         
+    # if group_sep = Off    
     else:
+    
+        grouping_var_id_dict = None
     
         # parse through ev_selections, find the categorical names within the
         # design formula and insert C(<name>, Sum) into the design formula
         #     this is required for Patsy to process the categorical EVs
         #     properly when generating the design matrix (this goes into the
         #     .mat file)
-
         coding_scheme = c.coding_scheme[0]
 
 
@@ -1554,7 +1556,12 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     # are being modeled separately, and we don't want the EV
                     # that is the grouping variable (which is now present in
                     # other EV names) to confound this operation
-                    if (cat_EV in EV) and not (c.grouping_var in EV and \
+                    if c.group_sep == True:
+                        gpvar = c.grouping_var
+                    else:
+                        gpvar = "..."
+                    
+                    if (cat_EV in EV) and not (gpvar in EV and \
                         "__" in EV):
 
                         # handle interactions

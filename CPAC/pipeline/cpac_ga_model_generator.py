@@ -544,7 +544,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                 out_dir = os.path.join(out_dir, name)
                 break
 
-    if 'tempreg_maps_z_files' in resource:
+    if 'tempreg_maps' in resource:
         out_dir = os.path.join(out_dir, \
             re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
         
