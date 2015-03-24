@@ -1279,6 +1279,12 @@ class ModelConfig(wx.Frame):
 
             column_string = column_string.replace(']', '')
             
+            if ":" in column_string:
+                try:
+                    column_string = column_string.split("[")[1]
+                except:
+                    pass
+            
             raw_column_strings.append(column_string)
             
             

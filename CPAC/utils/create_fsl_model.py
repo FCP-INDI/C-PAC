@@ -1195,9 +1195,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
                     c.ev_selections["categorical"].remove(key)
                 
                 # formula edit
-                print key
-                print new_key_string
-                print "lol"
                 formula = formula.replace(key, new_key_string)
                 
         # put split EVs into pheno data dict

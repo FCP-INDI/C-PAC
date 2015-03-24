@@ -67,7 +67,7 @@ class ModelDesign(wx.Frame):
 
 
         # build 'Available contrasts' string
-        contrasts_text = 'Available contrasts:\n'
+        contrasts_text = 'Available EVs for contrasts:\n'
 
         con_length = 65
 
