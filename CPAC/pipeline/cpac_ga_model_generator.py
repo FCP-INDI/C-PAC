@@ -395,7 +395,10 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     for derivative_path in derivative_paths:
 
         try:
-            maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
+            if "Group Mask" in group_conf.mean_mask:
+                maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
+            elif "Individual Mask" in group_conf.mean_mask:
+                maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (derivative_path, derivative_path))
         except Exception as e:
             print "[!] CPAC says: AFNI 3dmaskave failed for output: %s\n" \
                   "(Measure Mean calculation)" % current_output
@@ -417,7 +420,20 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         if "Custom_ROI_Mean" in group_conf.design_formula:
 
             try:
-                ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (group_conf.custom_roi_mask, derivative_path))
+            
+                if "centrality" in derivative_path:
+                
+                    # resample custom roi mask to 3mm, then use that
+                    resampled_roi_mask = merge_output_dir + "/" + current_output + "_resampled_roi_mask.nii.gz"
+                    
+                    commands.getoutput("flirt -in %s -ref %s -o %s -applyxfm -init %s -interp nearestneighbour" % (group_conf.custom_roi_mask, derivative_path, resampled_roi_mask, c.identityMatrix))
+                    
+                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))       
+                    
+                else:    
+                        
+                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (group_conf.custom_roi_mask, derivative_path))
+                    
             except Exception as e:
                 print "[!] CPAC says: AFNI 3dROIstats failed for output: %s" \
                       "\n(Custom ROI Mean calculation)" % current_output

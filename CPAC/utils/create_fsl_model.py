@@ -392,7 +392,7 @@ def test_create_grp_file():
 # OLDER CODE to facilitate creation of .con and .fts file via user-provided
 # contrasts matrix
 
-def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesDirectory, column_names, coding_scheme):
+def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesDirectory, column_names, coding_scheme, group_sep):
 
     """
     Create the contrasts and fts file
@@ -452,10 +452,11 @@ def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesD
         fts_columns.append(fts_vector)
 
         # add Intercept column
-        if coding_scheme == "Treatment":
-            con_vector.insert(0, 0)
-        elif coding_scheme == "Sum":
-            con_vector.insert(0, 1)
+        if group_sep == False:
+            if coding_scheme == "Treatment":
+                con_vector.insert(0, 0)
+            elif coding_scheme == "Sum":
+                con_vector.insert(0, 1)
 
         contrasts.append(con_vector)
 
@@ -1011,65 +1012,13 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         # group-level analysis, have the mean of each subject's ReHo output
         # included as an EV in the phenotype - regress out the mean of measure
 
-        # IF user selects to use derivative means generated using a group mask:
-        #     use the dictionary generated in cpac_ga_model_generator.py
-
-        # IF user selects to use derivative means generated at the subject
-        # level:
-        #     pull the mean value from the output_means.csv file in the subject
-        #     directory of the appropriate pipeline's output folder
-
-        if "Group Mask" in c.mean_mask:
-
-            ''' use output means calculated using group mask '''
-
-            output_means_dict = derivative_means_dict
-
-
-        elif "Individual Mask" in c.mean_mask:
-
-            ''' pull output means from subject-level (from .csv in output) '''
-
-            output_means_dict = {}
-
-            for sub in pheno_data_dict[c.subject_id_label]:
-
-                # get output_means directory path
-                output_means_dir = os.path.join(pipeline_path, sub, "output_means")
-
-                if os.path.isdir(output_means_dir):
-                
-                    # walk this directory
-                    for root, folders, files in os.walk(output_means_dir):
-    
-                        split_output_dir_path = output_means_dir.split("/")
-    
-                        for filename in files:
-                            
-                            if filename.endswith(".txt") and "mean_" in filename:
-                                
-                                fullpath = os.path.join(root, filename)
-
-                                if current_output in filename:
-
-                                    mean_file = open(fullpath,"rb")
-                                    mean_val = float(mean_file.readline())
-                                    mean_file.close()
-
-                                        
-                                    # get the number (the mean value) of the current
-                                    # output from the TXT file and insert it into this
-                                    # dict with the subID being the key
-                                    output_means_dict[sub] = mean_val
-                                    break
-                                    
- 
-    
-            # by the end of this for loop above, output_means_dict should look
-            # something like this:
-            #    {sub1: mean_val, sub2: mean_val, ..}
-            #        as this code runs once per output, this dictionary contains
-            #        the mean values of the one current output, right now
+        output_means_dict = derivative_means_dict
+                                  
+        # by the end of this for loop above, output_means_dict should look
+        # something like this:
+        #    {sub1: mean_val, sub2: mean_val, ..}
+        #        as this code runs once per output, this dictionary contains
+        #        the mean values of the one current output, right now
 
 
         ''' insert means into pheno data if selected '''
@@ -1999,7 +1948,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         print "\nWriting contrasts file (.con) based on contrasts provided " \
               "with a custom contrasts matrix CSV file..\n"
 
-        create_con_ftst_file(c.custom_contrasts, c.model_name, current_output, model_out_dir, depatsified_EV_names, coding_scheme)
+        create_con_ftst_file(c.custom_contrasts, c.model_name, current_output, model_out_dir, depatsified_EV_names, coding_scheme, c.group_sep)
 
 
 
