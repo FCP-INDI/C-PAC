@@ -1292,7 +1292,7 @@ class ModelConfig(wx.Frame):
         if str(self.gpa_settings["group_sep"]) == "On":     
 
             grouping_options = []
-            idx = 1
+            idx = 0
             
             for column_string in raw_column_strings:
 
