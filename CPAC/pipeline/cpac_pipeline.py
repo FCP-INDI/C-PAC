@@ -254,18 +254,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
     missing_install = []
     
-    if os.system("3dcalc") == 32512:
+    if os.system("3dcalc >/dev/null") == 32512:
         missing_install.append("AFNI")
           
-    if os.system("fslmaths") == 32512:
+    if os.system("fslmaths >/dev/null") == 32512:
         missing_install.append("FSL")
     
     if "ANTS" in c.regOption:
     
-        if os.system("c3d_affine_tool") == 32512:
+        if os.system("c3d_affine_tool >/dev/null") == 32512:
             missing_install.append("C3D")
     
-        if os.system("antsRegistration") == 32512:
+        if os.system("antsRegistration >/dev/null") == 32512:
             missing_install.append("ANTS")
             
             
@@ -480,7 +480,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 fnirt_reg_anat_mni = create_nonlinear_register('anat_mni_fnirt_register_%d' % num_strat)
 
                 try:
-                    node, out_file = strat.get_leaf_properties()
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_mni, 'inputspec.input_brain')
 
@@ -562,7 +562,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                             logger.info(err_msg)
                             raise Exception
 
-                        # get the reorient skull-on anatomical from resource pool
+                        # get the skull-stripped anatomical from resource pool
                         node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
 
                         # pass the anatomical to the workflow
@@ -587,7 +587,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     else:
 
-                        node, out_file = strat.get_leaf_properties()
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
 
                         workflow.connect(node, out_file, ants_reg_anat_mni,
                             'inputspec.anatomical_brain')
@@ -713,7 +713,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 fnirt_reg_anat_symm_mni = create_nonlinear_register('anat_symmetric_mni_fnirt_register_%d' % num_strat)
 
                 try:
-                    node, out_file = strat.get_leaf_properties()
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni, 'inputspec.input_brain')
 

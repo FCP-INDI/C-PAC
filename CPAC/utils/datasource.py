@@ -105,12 +105,12 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         mask_file = mask_file.rstrip('\r\n')
 
         if not os.path.exists(mask_file):
-            print '\n\n[!] CPAC says: One of your ROI/mask specification ' \
+            err = '\n\n[!] CPAC says: One of your ROI/mask specification ' \
                   'files (under %s options) does not have a correct path ' \
                   'or does not exist.\nTip: If all the paths are okay, ' \
                   'then ensure there are no whitespaces or blank lines in ' \
                   'your ROI specification file.\n\n' % mask_type
-            raise Exception
+            raise Exception(err)
 
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
@@ -122,13 +122,21 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         elif(base_file.endswith('.nii.gz')):
             base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
         else:
-            raise("File extension not in  .nii and .nii.gz File: %s" % mask_file)
+            err = "\n\n[!] CPAC says: One of your ROI/mask specification " \
+                  "files (under %s options) does not have '.nii' or " \
+                  "'.nii.gz' as an extension.\n\nMask file: %s\n\n" \
+                  % (tab, mask_file)
+            raise Exception(err)
 
         if not (base_name in mask_dict):
             mask_dict[base_name] = mask_file
         else:
-            raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name]))
-
+            err = "\n\n[!] CPAC says: You have two or more ROI/mask files " \
+            "with the same name - please make sure these files are named " \
+            "differently.\n\nDuplicate name: %s\n\nNote: This can be " \
+            "changed in the ROI/mask file you specified under the %s " \
+            "options.\n\n" % (mask_file, tab)
+            raise Exception(err)
 
 
     inputnode = pe.Node(util.IdentityInterface(
