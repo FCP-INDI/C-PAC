@@ -550,7 +550,7 @@ class ModelConfig(wx.Frame):
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
         subFile = open(os.path.abspath(self.gpa_settings['subject_list']))
-        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
+        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
@@ -578,18 +578,31 @@ class ModelConfig(wx.Frame):
         pheno_rows = phenoFile.readlines()
         
         for row in pheno_rows:
-            for sub in self.subs:
-                if sub in row:
-                    break
-            else:
-                errSubID = wx.MessageDialog(
-                    self, "Your phenotype file contains a subject ID that " \
-                    "is not present in your group analysis subject list.",
-                    "Subject Not In List",
-                    wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-                raise Exception
+        
+            # check if the pheno file produces any rows such as ",,,,," due
+            # to odd file formatting issues. if so, ignore this row. if there
+            # are values present in the row, continue as normal
+            if ",," not in row:
+                    
+                # if it finds a sub from the subject list in the current row
+                # taken from the pheno, move on. if it goes through the entire
+                # subject list and never finds a match, kick off the "else"
+                # clause below containing the error message
+                for sub in self.subs:
+                    if sub in row:
+                        break
+                else:
+                    errSubID = wx.MessageDialog(
+                        self, "Your phenotype file contains a subject ID " \
+                        "that is not present in your group analysis " \
+                        "subject list.\n\nPhenotype file row with subject " \
+                        "ID not in subject list:\n%s" \
+                        % row,
+                        "Subject Not In List",
+                        wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+                    raise Exception
 
 
         for ctrl in self.page.get_ctrl_list():
@@ -656,7 +669,7 @@ class ModelConfig(wx.Frame):
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
      
-        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
+        phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')

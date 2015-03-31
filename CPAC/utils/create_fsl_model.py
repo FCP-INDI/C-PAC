@@ -31,32 +31,46 @@ def create_pheno_dict(gpa_fsl_yml):
             # keys are the pheno headers, and their values are the values of
             # each EV for that one subject - each iteration of this loop is
             # one subject
+            
+            for val in line.values():
+            
+                # if there are any blank values in the pheno row, skip this
+                # row. if not, continue on with the "else" clause
+                if val == "":
+                    break
+                    
+            else:
+            
+                for key in line.keys():
+            
+                    # if there are blank entries because of an empty row in
+                    # the CSV (such as ",,,,,"), move on to the next entry
+                    if len(line[key]) == 0:
+                        continue
 
-            for key in line.keys():
+                    if key not in pheno_data_dict.keys():
+                        pheno_data_dict[key] = []
 
-                if key not in pheno_data_dict.keys():
-                    pheno_data_dict[key] = []
+                    # create a list within one of the dictionary values for that
+                    # EV if it is categorical; formats this list into a form
+                    # Patsy can understand regarding categoricals:
+                    #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                    #                instead of just [1, 1, 0, 1], etc.
+                    if 'categorical' in ev_selections.keys():
+                        if key in ev_selections['categorical']:
+                            pheno_data_dict[key].append(key + str(line[key]))
 
-                # create a list within one of the dictionary values for that
-                # EV if it is categorical; formats this list into a form
-                # Patsy can understand regarding categoricals:
-                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
-                #                instead of just [1, 1, 0, 1], etc.
-                if 'categorical' in ev_selections.keys():
-                    if key in ev_selections['categorical']:
-                        pheno_data_dict[key].append(key + str(line[key]))
+                        elif key == subject_id_label:
+                            pheno_data_dict[key].append(line[key])
+
+                        else:
+                            pheno_data_dict[key].append(float(line[key]))
 
                     elif key == subject_id_label:
                         pheno_data_dict[key].append(line[key])
 
                     else:
                         pheno_data_dict[key].append(float(line[key]))
-
-                elif key == subject_id_label:
-                    pheno_data_dict[key].append(line[key])
-
-                else:
-                    pheno_data_dict[key].append(float(line[key]))
 
 
 
