@@ -589,8 +589,21 @@ class ModelConfig(wx.Frame):
                 # subject list and never finds a match, kick off the "else"
                 # clause below containing the error message
                 for sub in self.subs:
-                    if sub in row:
-                        break
+                
+                    # for repeated measures-formatted files
+                    if "," in sub:
+                    
+                        # make the comma separator an underscore to match the
+                        # repeated measures-formatted pheno file
+                        if sub.replace(",","_") in row:
+                            break
+                            
+                    # for normal
+                    else:
+                
+                        if sub in row:
+                            break
+                            
                 else:
                     errSubID = wx.MessageDialog(
                         self, "Your phenotype file contains a subject ID " \
