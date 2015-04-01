@@ -218,12 +218,10 @@ def run(config_file, subject_list_file, output_path_file):
 
     if len(subject_paths) == 0:
         print '[!] CPAC says: No individual-level analysis outputs were ' \
-              'found given the path file you provided.\n\nDerivative ' \
-              'Path File provided: ', output_path_file, '\n\nEither make ' \
-              'sure your Derivative Path File is correctly formatted, or ' \
-              'that individual-level analysis completed successfully and ' \
-              'generated the \'path_files_here\' folder found in the ' \
-              'output directory, then try again.\n\n'
+              'found given the path file you provided.\n\nPipeline Output ' \
+              'Directory provided: ', output_path_file, '\n\nEither make ' \
+              'sure your Output Directory path is correct, or that ' \
+              'individual-level analysis completed successfully.\n\n'
         raise Exception
 
 
