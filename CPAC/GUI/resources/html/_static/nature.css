@@ -4,7 +4,7 @@
  *
  * Sphinx stylesheet -- nature theme.
  *
- * :copyright: Copyright 2007-2011 by the Sphinx team, see AUTHORS.
+ * :copyright: Copyright 2007-2014 by the Sphinx team, see AUTHORS.
  * :license: BSD, see LICENSE for details.
  *
  */
@@ -15,8 +15,8 @@
  
 body {
     font-family: Arial, sans-serif;
-    font-size: 120%;
-    /** background-color: #929D9E;  Gray from CMI Logo **/
+    font-size: 100%;
+    background-color: #111;
     color: #555;
     margin: 0;
     padding: 0;
@@ -47,7 +47,7 @@ div.body {
 }
  
 div.footer {
-    color: #eee; /** Changed text color to sidebar gray **/
+    color: #555;
     width: 100%;
     padding: 13px 0;
     text-align: center;
@@ -60,7 +60,7 @@ div.footer a {
 }
  
 div.related {
-    background-color: #d75920; /** Dark orange from the extended pallate **/
+    background-color: #6BA81E;
     line-height: 32px;
     color: #fff;
     text-shadow: 0px 1px 0 #444;
@@ -68,7 +68,7 @@ div.related {
 }
  
 div.related a {
-    color: #fff; /** Changed to white **/
+    color: #E2F3CC;
 }
  
 div.sphinxsidebar {
@@ -132,7 +132,7 @@ div.sphinxsidebar input[type=text]{
 /* -- body styles ----------------------------------------------------------- */
  
 a {
-    color: #d75920; /** Blue from CMI logo **/
+    color: #005B81;
     text-decoration: none;
 }
  
@@ -148,7 +148,7 @@ div.body h4,
 div.body h5,
 div.body h6 {
     font-family: Arial, sans-serif;
-    background-color: #ddd; /** Changed to sidebar header gray **/
+    background-color: #BED4EB;
     font-weight: normal;
     color: #212224;
     margin: 30px 0px 10px 0px;
@@ -157,11 +157,11 @@ div.body h6 {
 }
  
 div.body h1 { border-top: 20px solid white; margin-top: 0; font-size: 200%; }
-div.body h2 { font-size: 150%; background-color: #eee; } /** Sidebar gray **/
-div.body h3 { font-size: 120%; background-color: #eee; } /** Sidebar gray **/
-div.body h4 { font-size: 110%; background-color: #E8E9F5; }
-div.body h5 { font-size: 100%; background-color: #E8E9F5; }
-div.body h6 { font-size: 100%; background-color: #E8E9F5; }
+div.body h2 { font-size: 150%; background-color: #C8D5E3; }
+div.body h3 { font-size: 120%; background-color: #D8DEE3; }
+div.body h4 { font-size: 110%; background-color: #D8DEE3; }
+div.body h5 { font-size: 100%; background-color: #D8DEE3; }
+div.body h6 { font-size: 100%; background-color: #D8DEE3; }
  
 a.headerlink {
     color: #c60f0f;
@@ -242,9 +242,4 @@ div.viewcode-block:target {
     background-color: #f4debf;
     border-top: 1px solid #ac9;
     border-bottom: 1px solid #ac9;
-}
-
-div #indi_sidebar {
-    padding: 20px;
-    text-align: center;
 }

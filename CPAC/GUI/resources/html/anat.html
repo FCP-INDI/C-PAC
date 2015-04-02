@@ -1,21 +1,20 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Anatomical Preprocessing &mdash; C-PAC 0.1 Alpha documentation</title>
+    <title>Anatomical Preprocessing &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
-        VERSION:     '0.1 Alpha',
+        URL_ROOT:    './',
+        VERSION:     '0.3.9 Alpha',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,97 +23,90 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="C-PAC 0.1 Alpha documentation" href="index.html" />
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Data Preprocessing" href="preproc.html" />
-    <link rel="next" title="Motion Correction" href="motion.html" />
+    <link rel="next" title="Functional Preprocessing" href="func.html" />
     <link rel="prev" title="Data Preprocessing" href="preproc.html" /> 
   </head>
   <body>
-    
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body">
-            
+          
+      <div class="content">
+        
+        
   <div class="section" id="anatomical-preprocessing">
-<h1>Anatomical Preprocessing<a class="headerlink" href="#anatomical-preprocessing" title="Permalink to this headline"></a></h1>
-<div class="section" id="registration">
-<h2>Registration<a class="headerlink" href="#registration" title="Permalink to this headline"></a></h2>
-<p>In order to compare brain activations between subjects, individual functional and anatomical images must first be transformed to match a common template. The most commonly used template (<a class="reference external" href="http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009">MNI152</a>) is maintained by the Montreal Neurological Institute, and is created by combining data from the brains of many different individuals to create an &#8220;average&#8221; brain.  The image below shows how an individual brain is warped to match the shape of the template.</p>
+<h1>Anatomical Preprocessing<a class="headerlink" href="#anatomical-preprocessing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="anatomical-registration">
+<h2>Anatomical Registration<a class="headerlink" href="#anatomical-registration" title="Permalink to this headline">¶</a></h2>
+<p>In order to compare brain activations between subjects, individual functional and anatomical images must first be transformed to match a common template. The most commonly used template (<a class="reference external" href="http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009">MNI152</a>) is maintained by the Montreal Neurological Institute, and is created by combining data from the brains of many different individuals to create an &#8220;average&#8221; brain. The image below shows how an individual brain is warped to match the shape of the template.</p>
 <div class="figure">
 <img alt="_images/registration.png" src="_images/registration.png" />
 </div>
-<p>Individual anatomical images are first transformed to match the common template. Then, the functional data for each subject is registered to their own transformed anatomical image. Finally, functional derivative files are transformed to the common template.</p>
-<p>By default, C-PAC will register subject brains to the MNI152 template included with FSL. Additionally, C-PAC requires the presence of an additional symmetric brain template which should have been downloaded during <tt class="xref doc docutils literal"><span class="pre">installation</span></tt>. These files must be present for C-PAC to run.</p>
-<p>Users wishing to register their data to a different template (such as a group specific template) can specifiy alternative template files in the <a class="reference internal" href="dir_config.html"><em>Resource Directory Setup section of the configuration file</em></a>.</p>
+<p>CPAC provides the option of either using FSL (<a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT">FLIRT</a> and <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT">FNIRT</a>) or <a class="reference external" href="http://stnava.github.io/ANTs/">Advanced Normalization Tools (ANTS)</a> to register images. Although the use of ANTS requires an extra step during the CPAC install process, we have found its results to be significantly better than those produced by FSL (a conclusion supported by a <a class="reference external" href="http://mindboggle.info/papers/evaluation_NeuroImage2010.php">recent systematic analysis by Klein et al.</a> )</p>
+<p>During registration, individual anatomical images are first transformed to match the common template. Then, the functional data for each subject is registered to their own transformed anatomical image. Finally, functional derivative files are transformed to the common template. For more detail on how CPAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.io/docs/developer/workflows/registration.html">Registration Page of the developer documentation</a>.</p>
+<p>By default, CPAC will register subject brains to the MNI152 template included with FSL. Users wishing to register their data to a different template (such as a group specific template) can specify alternative template files.</p>
+<div class="section" id="configuring-cpac-to-run-anatomical-registration">
+<h3>Configuring CPAC to run Anatomical Registration<a class="headerlink" href="#configuring-cpac-to-run-anatomical-registration" title="Permalink to this headline">¶</a></h3>
+<div class="figure">
+<img alt="_images/anat_reg_gui.png" src="_images/anat_reg_gui.png" />
 </div>
-<div class="section" id="segmentation">
-<h2>Segmentation<a class="headerlink" href="#segmentation" title="Permalink to this headline"></a></h2>
-<p>C-PAC uses <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FAST">FSL/FAST</a> to automatically segment brain images into white matter, gray matter, and CSF. This is done using probability maps that contain information about the likelihood that a given voxel will be of a particular tissue type. Users specify a probability threshold such that voxels meeting a minimum probability of being a particular tissue will be classified as such. This results in masks containing voxels of only a single tissue type.</p>
+<ol class="arabic simple">
+<li><strong>Run Anatomical Registration - [On, Off, On/Off]:</strong> Register anatomical images to a template.</li>
+<li><strong>Anatomical Template Resolution - [1mm, 2mm, 3mm]:</strong> The resolution to which anatomical images should be transformed during registration. This is the resolution at which processed anatomical files will be output.</li>
+<li><strong>Anatomical Template (Brain Only) - [path]:</strong> Template to be used during registration. It is not necessary to change this path unless you intend to use a non-standard template.</li>
+<li><strong>Anatomical Template (With Skull) - [path]:</strong> Template to be used during registration. It is not necessary to change this path unless you intend to use a non-standard template.</li>
+<li><strong>Registration Method - [ANTS, FSL, ANTS &amp; FSL]:</strong> Registration methods to be used. Options are <a class="reference external" href="http://stnava.github.io/ANTs/">ANTS</a> and <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/reg/">FSL</a>.</li>
+<li><strong>FNIRT Configuration File - [path]:</strong> Configuration file specifying settings used during registration. Required if FSL is selected as the registration method. This file can be found in the <tt class="file docutils literal"><span class="pre">/etc/flirtsch</span></tt> directory of your FSL install.</li>
+<li><strong>Use skull-on image to calculate transform? (ANTS only) - [Off, On]:</strong> Register skull-on anatomical image to template. Calculating the transform with skull-stripped images is reported to be better, but it requires very high-quality skull-stripping. If skull-stripping is imprecise, registration with skull is preferred. Note: This option only affects ANTS due to the fact that FNIRT already uses skull-on images for calculating warps.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="anatomical-tissue-segmentation">
+<h2>Anatomical Tissue Segmentation<a class="headerlink" href="#anatomical-tissue-segmentation" title="Permalink to this headline">¶</a></h2>
+<p>CPAC uses <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FAST">FSL/FAST</a> to automatically segment brain images into white matter, gray matter, and CSF. This is done using probability maps that contain information about the likelihood that a given voxel will be of a particular tissue type. Users specify a probability threshold such that voxels meeting a minimum probability of being a particular tissue will be classified as such. This results in masks containing voxels of only a single tissue type.</p>
 <div class="figure">
 <img alt="_images/segmentation.png" src="_images/segmentation.png" />
 </div>
-<p>The tissue probability maps (referred to as piors) used during segmentation are based on information from a large number of brains, and are distributed with FSL. However, prior to use by C-PAC, these files must be binarized, such that for each voxel has it&#8217;s probability for each tissue type set to either 0% or 100%. This can be done using the script below.</p>
+<p>The default tissue probability maps (referred to as Prior Probability Maps) used during segmentation are based on information from a large number of brains, and are based on the priors distributed with FSL and are included in the &#8220;Image Resource Files&#8221; package downloaded during installation. For more detail on how CPAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.io/docs/developer/workflows/seg_preproc.html">Segmentation Page of the developer documentation</a>.</p>
+<p>If you would like to use different priors, they must first be binarized such that for each voxel the probability for each tissue type is set to either 0% or 100%.</p>
 <p>The following bash script will binarize existing priors:</p>
-<div class="highlight-python"><pre># Define what kind of priors to generate
-# the example is for gray matter. gray can be substitute to white, csf or brain for priors of white matter, csf and how brian mask.
-        tissue=gray
-        threshold=0.5
-# copy input from FSL folder
-    3dcopy $FSL_DIR/data/standard/tissuepriors/avg152T1_${tissue}.hdr avg152T1_${tissue}.nii.gz
-# using fslmaths to binarize the image at the threshold you set up above
-    fslmaths avg152T1_${tissue}.nii.gz -thr $threshold -bin avg152T1_${tissue}_2mm_bin
-# resample the data to the voxel size you want. here I resampled it to 3.0mm isotopic voxel size.
-    3dresample -dxyz 3.0 3.0 3.0 -prefix avg152T1_${tissue}_bin_3mm.nii.gz -inset avg152T1_${tissue}_2mm_bin.nii.gz</pre>
-</div>
-<p>Alternately, C-PAC ready versions are provided as part of the <tt class="file docutils literal"><span class="pre">cpac_rsources.tgz</span></tt> package downloaded during <tt class="xref doc docutils literal"><span class="pre">installation</span></tt>.</p>
-</div>
-<div class="section" id="configuring-c-pac">
-<h2>Configuring C-PAC<a class="headerlink" href="#configuring-c-pac" title="Permalink to this headline"></a></h2>
-<p>The following settings in <tt class="file docutils literal"><span class="pre">config.yml</span></tt> are used to configure Registration:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Set the resolution (in mm) to which images are transformed</span>
-<span class="c"># Transformation occurs during registration and is requried for many measures</span>
-<span class="n">standardResolution</span> <span class="o">=</span> <span class="s">&#39;3mm&#39;</span>
+<div class="highlight-python"><div class="highlight"><pre># Define what kind of priors to generate (gray, white, or csf)
+tissue=gray
+
+# Define threshold to use when binarizing data
+threshold=0.5
+
+# Copy existing priors (in this example, from FSL)
+3dcopy $FSL_DIR/data/standard/tissuepriors/avg152T1_${tissue}.hdr avg152T1_${tissue}.nii.gz
+
+# Binarize image using threshold set above
+fslmaths avg152T1_${tissue}.nii.gz -thr $threshold -bin avg152T1_${tissue}_2mm_bin
 </pre></div>
 </div>
-<p>The following settings in <tt class="file docutils literal"><span class="pre">config.yml</span></tt> are used to configure Segmentation:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Run automatic tissue segmentation</span>
-<span class="n">runSegmentationPreprocessing</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-
-<span class="c"># C-PAC uses FSL to automatically distinguish tissue types based on priors.</span>
-<span class="c"># Each prior represents the probability that a given voxel will be</span>
-<span class="c"># of a particular tissue type (white matter, gray matter, or CSF).</span>
-
-<span class="c"># Please specify the location and name of your prior files.</span>
-<span class="c"># Priors distributed with FSL must be binarized to be used by C-PAC</span>
-<span class="c"># For information about how to do this, please see the User Guide</span>
-<span class="n">prior_path</span> <span class="o">=</span> <span class="s">&#39;/path/to/tissuepriors/</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">standardResolution</span>
-
-<span class="c"># These values will be set automatically based on prior_path</span>
-<span class="n">PRIOR_CSF</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prior_path</span><span class="p">,</span> <span class="s">&#39;avg152T1_csf_bin.nii.gz&#39;</span><span class="p">)</span>
-<span class="n">PRIOR_GRAY</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prior_path</span><span class="p">,</span> <span class="s">&#39;avg152T1_gray_bin.nii.gz&#39;</span><span class="p">)</span>
-<span class="n">PRIOR_WHITE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prior_path</span><span class="p">,</span> <span class="s">&#39;avg152T1_white_bin.nii.gz&#39;</span><span class="p">)</span>
-
-<span class="c"># Set thresholds for use during automatic tissue segmentation.</span>
-<span class="c"># Values correspond to probability thresholds for a given tissue type.</span>
-<span class="c"># For example, setting a value of 0.8 will result in areas with a 80 percent</span>
-<span class="c"># probability of being a particular tissue type to be classified as such</span>
-
-<span class="n">cerebralSpinalFluidThreshold</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">]</span>
-
-<span class="n">whiteMatterThreshold</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.66</span><span class="p">]</span>
-
-<span class="n">grayMatterThreshold</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">]</span>
-</pre></div>
+<div class="section" id="configuring-cpac-to-run-anatomical-tissue-segmentation">
+<h3>Configuring CPAC to run Anatomical Tissue Segmentation<a class="headerlink" href="#configuring-cpac-to-run-anatomical-tissue-segmentation" title="Permalink to this headline">¶</a></h3>
+<div class="figure">
+<img alt="_images/seg_gui.png" src="_images/seg_gui.png" />
+</div>
+<ol class="arabic simple">
+<li><strong>Run Tissue Segmentation - [On, Off, On/Off]:</strong> Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.</li>
+<li><strong>White Matter Probability Threshold - [decimal]:</strong> Only voxels with a White Matter probability greater than this value will be classified as White Matter. Can be a single value or a list of values separated by commas.</li>
+<li><strong>Gray Matter Probability Threshold - [decimal]:</strong> Only voxels with a Gray Matter probability greater than this value will be classified as Gray Matter. Can be a single value or a list of values separated by commas.</li>
+<li><strong>CSF Probability Threshold - [decimal]:</strong> Only voxels with a CSF probability greater than this value will be classified as CSF. Can be a single value or a list of values separated by commas.</li>
+<li><strong>Priors Directory - [path]:</strong> Full path to a directory containing binarized prior probability maps. These maps are included as part of the &#8216;Image Resource Files&#8217; package available on the Install page of the User Guide. It is not necessary to change this path unless you intend to use non-standard priors.</li>
+<li><strong>White Matter Prior Probability Map - [path]:</strong> Full path to a binarized White Matter prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.</li>
+<li><strong>Gray Matter Prior Probability Map - [path]:</strong> Full path to a binarized Gray Matter prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.</li>
+<li><strong>CSF Prior Probability Map - [path]:</strong> Full path to a binarized CSF prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.</li>
+</ol>
 </div>
 </div>
 </div>
 
 
-          </div>
-        </div>
       </div>
-
+    <div class="footer">
+        &copy; Copyright 2015, C-PAC Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
   </body>
 </html>

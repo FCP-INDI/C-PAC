@@ -180,26 +180,48 @@ def run(config_file, subject_list_file, output_path_file):
 
     # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
     # File' provided in the dialog box when group analysis is first run
-    for file in glob.glob(os.path.abspath(output_path_file)):
-        path_list = open(file, 'r').readlines()
-        subject_paths.extend([s.rstrip('\r\n') for s in path_list])
+    #for file in glob.glob(os.path.abspath(output_path_file)):
+    #    path_list = open(file, 'r').readlines()
+    #    subject_paths.extend([s.rstrip('\r\n') for s in path_list])
+        
+           
+    ind_outputs = ['alff_to_standard_zstd', 'alff_to_standard_smooth_zstd', 'falff_to_standard_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_zstd', 'reho_to_standard_smooth_zstd', 'sca_roi_files_to_standard_fisher_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd', 'sca_seed_to_standard_fisher_zstd', 'sca_seed_to_standard_smooth_fisher_zstd', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_fisher_zstd', 'vmhc_fisher_zstd_zstat_map', 'centrality_outputs_zstd', 'centrality_outputs_smoothed_zstd', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth', 'alff_to_standard', 'alff_to_standard_smooth', 'falff_to_standard', 'falff_to_standard_smooth', 'reho_to_standard', 'reho_to_standard_smooth', 'sca_roi_files_to_standard', 'sca_roi_files_to_standard_smooth', 'sca_seed_to_standard', 'sca_seed_to_standard_smooth', 'sca_tempreg_maps_files', 'sca_tempreg_maps_files_smooth', 'sca_tempreg_maps_zstat_files', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_raw_score', 'centrality_outputs', 'centrality_outputs_smoothed', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth']
+            
+            
+    
+    # collect all of the output paths
+    
+    for root, folders, files in os.walk(output_path_file):
+    
+        split_output_dir_path = output_path_file.split("/")
+    
+        for filename in files:
+        
+            if filename.endswith("nii.gz"):
+    
+                fullpath = os.path.join(root, filename)
+            
+                split_fullpath = fullpath.split("/")
+                
+                #subID = split_fullpath[len(split_output_dir_path)]
+                deriv_folder_name = split_fullpath[len(split_output_dir_path)+1]
+            
+                #second_half_filepath = fullpath.split(subID)
+            
+                for output_name in ind_outputs:
+            
+                    if output_name == deriv_folder_name:
+        
+                        subject_paths.append(fullpath)  
+        
 
 
     if len(subject_paths) == 0:
         print '[!] CPAC says: No individual-level analysis outputs were ' \
-              'found given the path file you provided.\n\nDerivative ' \
-              'Path File provided: ', output_path_file, '\n\nEither make ' \
-              'sure your Derivative Path File is correctly formatted, or ' \
-              'that individual-level analysis completed successfully and ' \
-              'generated the \'path_files_here\' folder found in the ' \
-              'output directory, then try again.\n\n'
-        raise Exception
-
-
-    if len(c.derivativeList) == 0:
-        print '[!] CPAC says: You do not have any derivatives selected ' \
-              'to run for group-level analysis. Return to your pipeline ' \
-              'configuration file and select at least one.\n\n'
+              'found given the path file you provided.\n\nPipeline Output ' \
+              'Directory provided: ', output_path_file, '\n\nEither make ' \
+              'sure your Output Directory path is correct, or that ' \
+              'individual-level analysis completed successfully.\n\n'
         raise Exception
 
 
@@ -230,24 +252,96 @@ def run(config_file, subject_list_file, output_path_file):
     analysis_map_gp = defaultdict(list)
 
 
+    print "Parsing through output paths. This may take a little while " \
+          "depending on how many subjects, group analysis models, or " \
+          "selected derivatives you have..\n"
+
+    count = 0
+
     for subject_path in subject_paths:
 
         # each 'subject_path' is a full filepath to one of the output files
 
         # Remove the base bath offset
-        rs_path = subject_path.replace(base_path, "", 1)
-        rs_path = rs_path.lstrip('/')
+        #rs_path = subject_path.replace(base_path, "", 1)
+        #rs_path = rs_path.lstrip('/')
 
         # rs_path is now the path to the output file, except everything before
         # the pipeline folder (named with the pipeline ID) is stripped from
         # the path
 
-        folders = split_folders(rs_path)
+        #folders = split_folders(rs_path)
  
-        pipeline_id = folders[0]
-        subject_unique_id = folders[1]
-        resource_id = folders[2]
-        scan_id = folders[3]
+        #pipeline_id = folders[0]
+        #subject_unique_id = folders[1]
+        #resource_id = folders[2]
+        #scan_id = folders[3]
+
+
+        split_output_dir_path = output_path_file.split("/")
+        split_fullpath = subject_path.split("/")
+
+        pipeline_id = split_fullpath[len(split_output_dir_path)-1]
+        subject_unique_id = split_fullpath[len(split_output_dir_path)]
+        resource_id = split_fullpath[len(split_output_dir_path)+1]
+        scan_id = split_fullpath[len(split_output_dir_path)+2]
+
+        
+        # add auxiliary stuff to resource_id if applicable
+        
+        if ("_mask_" in subject_path) and (("sca_roi" in subject_path) or \
+            ("sca_tempreg" in subject_path)):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (maskname, filename)
+
+            
+        elif ("_spatial_map_" in subject_path) and \
+            ("dr_tempreg" in subject_path):
+            
+            for dirname in split_fullpath:
+                if "_spatial_map_" in dirname:
+                    mapname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (mapname, filename)
+            
+            
+        elif ("_mask_" in subject_path) and ("centrality" in subject_path):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".nii.gz" in filename:
+                filename = filename.replace(".nii.gz","")
+            elif ".nii" in filename:
+                filename = filename.replace(".nii","")
+            
+            resource_name = resource_id + "_%s_%s" % (maskname, filename)
+            
+            
+        else:
+        
+            resource_name = resource_id
 
 
         # get list of all unique IDs (session IDs)
@@ -255,44 +349,72 @@ def run(config_file, subject_list_file, output_path_file):
         # session IDs
         # if it exists, load it into unique_id
 
+        # init subject_id to None
+        subject_id = None
         for sub in sublist:
             if sub['subject_id'] in subject_unique_id:
                 subject_id = sub['subject_id']
-              
 
-        # include all of the scans and sessions in one model if True
-        if c.repeatedMeasures == True:
-            key = subject_path.replace(subject_unique_id, '*')
-            key = key.replace(scan_id, '*')
-        else:
-            # each group of subjects from each session go into their own
-            # separate model, instead of combining all sessions into one
-            try:
-                key = subject_path.replace(subject_id, '*')
-            except:
-                # this fires if 'subject_id' was never given a value basically
-                print '\n\n[!] CPAC says: Either the derivative path file ' \
-                      'you provided does not contain the output directory ' \
-                      'given in the pipeline configuration file.\n'
-                print 'Derivative path file: ', output_path_file, '\n'
-                print 'Output directory: ', c.outputDirectory, '\n'
-                print '- OR -\n'
-                print 'Your subject list does not contain all of the ' \
-                      'subjects you wish to run group-level analysis on.\n'
-                print 'Please correct this and try again.\n\n\n'
-                raise Exception
-
+        # If subject_id never gets set for this specific subject, move on to next subject
+        if not subject_id:
+            continue
 
         # 'resource_id' is each type of output
         # 'key' is a path to each and every individual output file,
         # except with the subject ID replaced with a wildcard (*)
 
-        if resource_id in c.derivativeList:
+        # loop here to replace the one below it:
+        #     go through model configs, make a list of all ders included
+        #     enumerate list of selected derivatives and the models they are in
+        #     like: (resource_id, group_model, key)
+        for group_config_file in c.modelConfigs:
 
-            analysis_map[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+            try:
+                ga_config = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
+            except:
+                raise Exception("\n\nError in reading %s configuration file\n\n" % group_config_file)
 
-            analysis_map_gp[(resource_id, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+            if len(ga_config.derivative_list) == 0:
+                print '[!] CPAC says: You do not have any derivatives selected ' \
+                      'to run for group-level analysis. Return to your group-analysis ' \
+                      'configuration file and select at least one.'
+                print 'Group analysis configuration file: %s\n\n' % group_config_file
+                raise Exception
 
+
+            if resource_id in ga_config.derivative_list:
+
+                # include all of the scans and sessions in one model if True
+                if ga_config.repeated_measures == True:
+                    key = subject_path.replace(subject_unique_id, '*')
+                    key = key.replace(scan_id, '*')
+                else:
+                    # each group of subjects from each session go into their own
+                    # separate model, instead of combining all sessions into one
+                    try:
+                        key = subject_path.replace(subject_id, '*')
+                    except:
+                        # this fires if 'subject_id' was never given a value basically
+                        print '\n\n[!] CPAC says: Either the derivative path file ' \
+                              'you provided does not contain the output directory ' \
+                              'given in the pipeline configuration file.\n'
+                        print 'Derivative path file: ', output_path_file, '\n'
+                        print 'Output directory: ', c.outputDirectory, '\n'
+                        print '- OR -\n'
+                        print 'Your subject list does not contain all of the ' \
+                              'subjects you wish to run group-level analysis on.\n'
+                        print 'Please correct this and try again.\n\n\n'
+                        raise Exception
+
+
+                analysis_map[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+
+                analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+
+        count += 1
+
+        if count == int(len(subject_paths)*0.7):
+            print "Almost finished parsing output paths.."     
 
         # with this loop, 'analysis_map_gp' is a dictionary with a key for
         # each individual output file - and each entry is a list of tuples,
@@ -301,8 +423,11 @@ def run(config_file, subject_list_file, output_path_file):
         # one particular subject
 
 
+    print "Finished parsing through output paths!\n"
 
-    for resource, glob_key in analysis_map.keys():
+
+
+    for resource, group_model, glob_key in analysis_map.keys():
         if resource == 'functional_mni':
 
 
@@ -310,13 +435,13 @@ def run(config_file, subject_list_file, output_path_file):
 
                 if not c.runOnGrid:
                     from CPAC.pipeline.cpac_basc_pipeline import prep_basc_workflow
-                    prep_basc_workflow(c, analysis_map[(resource, glob_key)])
+                    prep_basc_workflow(c, analysis_map[(resource, group_model, glob_key)])
                 else:
                     if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
                     elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
 
             if 1 in c.runCWAS:
@@ -324,47 +449,50 @@ def run(config_file, subject_list_file, output_path_file):
                 if not c.runOnGrid:
 
                     from CPAC.pipeline.cpac_cwas_pipeline import prep_cwas_workflow
-                    prep_cwas_workflow(c, analysis_map[(resource, glob_key)])
+                    prep_cwas_workflow(c, analysis_map[(resource, group_model, glob_key)])
 
                 else:
                     if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
                     elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, glob_key)])
+                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
 
 
 
     procss = []
     
 
-    for resource, glob_key in analysis_map_gp.keys():
+    for resource, group_model, glob_key in analysis_map_gp.keys():
 
         # 'resource' is each type of output
         # 'glob_key' is a path to each and every individual output file,
         # except with the subject ID replaced with a wildcard (*)
-        
-        if resource in c.derivativeList:
-                 
-            #get all the motion parameters across subjects
-            try:
+                      
+        #get all the motion parameters across subjects
 
-                from CPAC.utils import extract_parameters
-                extract_parameters.run(c.outputDirectory, c.runScrubbing)
+        print "Pulling motion parameters for all subjects..\n"
 
-            except:
-                print '\n\n [!] CPAC says: Extract parameters script did ' \
-                      'not run correctly.\n\n'
-                raise Exception
+        from CPAC.utils import extract_parameters
+        scrub_threshold = extract_parameters.run(c.outputDirectory, c.runScrubbing)
 
-            if not c.runOnGrid:
+        if not c.runOnGrid:
                     
-                from CPAC.pipeline.cpac_group_analysis_pipeline import prep_group_analysis_workflow
-                procss.append(Process(target=prep_group_analysis_workflow, args=(c, resource, analysis_map_gp[(resource, glob_key)])))
+            print "Starting group analysis pipeline setup..\n"
 
-       
-          
-    
+            from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
+            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
+            
+        else:
+        
+            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                  "been implemented to handle runs on a cluster or grid.\n\n"\
+                  "Please turn off 'Run CPAC On A Cluster/Grid' in order " \
+                  "to continue with group-level analysis. This will submit " \
+                  "the job to only one node, however.\n\nWe will update " \
+                  "users on when this feature will be available through " \
+                  "release note announcements.\n\n"
+
     
           
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
@@ -413,6 +541,7 @@ def run(config_file, subject_list_file, output_path_file):
                 
                         jobQueue.append(procss[idx])
                         idx += 1
+
                 
     pid.close()
     

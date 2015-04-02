@@ -10,14 +10,15 @@ of Nipype to users in a plug-and-play fashion; no programming required.
 Website
 -------
 
-CPAC website is located here:  http://fcp-indi.github.com/
+The C-PAC website is located here:  http://fcp-indi.github.com/
 
 Installation
 ------------
 
 If you are running ubuntu >=12.04:
-Download `C-PAC/scripts/cpac_install_ubuntu.tar.gz`, unzip it and run from the terminal.
-    `sudo ./ cpac_install.sh`
+1. Download: `C-PAC/scripts/cpac_install.sh`
+2. Make the script executable: `chmod +x /path/to/cpac_install.sh`
+3. Run as super-user: `sudo /path/to/cpac_install.sh`
 
 Otherwise, follow the installation documentation here: http://fcp-indi.github.io/docs/user/install.html
 
@@ -29,14 +30,17 @@ User documentation can be found here: http://fcp-indi.github.com/docs/user/index
 Developer documention can ne found here: http://fcp-indi.github.com/docs/developer/index.html
 
 
-Dicussion Forum
+Discussion Forum
 ---------------
 
-CPAC Discussion forum is located here: https://groups.google.com/forum/#!forum/cpax_forum
+If you are stuck and need help or have any other questions or comments about C-PAC, there is a C-PAC discussion forum here: https://groups.google.com/forum/#!forum/cpax_forum
 
-Troubleshooting and Help
-------------------------
+Issue Tracker and Bugs
+----------------------
 
-This is an alpha version of CPAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, 
-there will likely still be a few bugs that we did not catch. If you find a bug, have a question that is not answered in the User Guide, or would like to suggest a new feature, 
-please create an issue on CPAC github issue page: https://github.com/FCP-INDI/C-PAC/issues?state=open
+This is an alpha version of C-PAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, 
+there will likely still be a few bugs that we did not catch. If you find a bug or would like to suggest a new feature, 
+please open an issue on the the C-PAC Github issue tracker: https://github.com/FCP-INDI/C-PAC/issues?state=open
+
+If you would like to suggest revisions to the user documentation, please open an issue on the C-PAC website's Github issue tracker: https://github.com/FCP-INDI/fcp-indi.github.com/issues
+

@@ -92,6 +92,8 @@ def create_sca(name_sca='sca'):
 
     """
 
+    from CPAC.utils.utils import get_roi_num_list
+
     sca = pe.Workflow(name=name_sca)
     inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
                                                 'functional_file',
@@ -100,7 +102,8 @@ def create_sca(name_sca='sca'):
 
 
     outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'correlation_file',
+                                                    'correlation_stack',
+                                                    'correlation_files',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
@@ -113,23 +116,56 @@ def create_sca(name_sca='sca'):
     corr.inputs.pearson = True
     corr.inputs.outputtype = 'NIFTI_GZ'
 
-
-    # Transform the sub-bricks into volumes
-    concat = pe.Node(interface=preprocess.TCat(),
-                      name='3dTCat')
-    concat.inputs.outputtype = 'NIFTI_GZ'
-
-
     sca.connect(inputNode, 'timeseries_one_d',
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
 
-    sca.connect(corr, 'out_file',
-                concat, 'in_files')
 
-    sca.connect(concat, 'out_file',
-                outputNode, 'correlation_file')
+    if "roi" in name_sca:
+
+        # Transform the sub-bricks into volumes
+        concat = pe.Node(interface=preprocess.TCat(),
+                          name='3dTCat')
+        concat.inputs.outputtype = 'NIFTI_GZ'
+
+        # also write out volumes as individual files
+        split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+        split.inputs.dimension = 't'
+
+        split.inputs.out_base_name = 'sca_roi_'
+
+
+        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'], output_names=['roi_list'], function=get_roi_num_list), name='get_roi_num_list')
+
+        get_roi_num_list.inputs.prefix = "sca_roi"
+
+        rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
+                          iterfield=['in_file','format_string'])
+
+        rename_rois.inputs.keep_ext = True
+
+
+        sca.connect(corr, 'out_file', concat, 'in_files')
+
+        sca.connect(concat, 'out_file', split, 'in_file')
+
+        sca.connect(concat, 'out_file',
+                    outputNode, 'correlation_stack')
+
+        sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
+                    'timeseries_file')
+
+        sca.connect(split, 'out_files', rename_rois, 'in_file')
+
+        sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
+
+        sca.connect(rename_rois, 'out_file', outputNode,
+                    'correlation_files')
+
+    else:
+
+        sca.connect(corr, 'out_file', outputNode, 'correlation_files')
 
 
 
@@ -138,6 +174,7 @@ def create_sca(name_sca='sca'):
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
+
     """
     Temporal multiple regression workflow
     Provides a spatial map of parameter estimates corresponding to each 
@@ -236,6 +273,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     >>> tr_wf.run() # doctest: +SKIP
 
     """
+    
     wflow = pe.Workflow(name=wflow_name)
 
     inputNode = pe.Node(util.IdentityInterface

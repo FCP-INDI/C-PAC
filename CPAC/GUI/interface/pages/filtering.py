@@ -47,7 +47,6 @@ class FilteringSettings(wx.ScrolledWindow):
                  wkf_switch = True)
         
         self.page.add(label = "Band-Pass Filters ",
-                      #control = control.TEXTLISTBOX_COMBO,
                       control = control.LISTBOX_COMBO,
                       name = "nuisanceBandpassFreq",
                       type = dtype.LOFL,

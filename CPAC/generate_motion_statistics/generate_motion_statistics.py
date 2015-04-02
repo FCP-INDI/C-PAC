@@ -559,7 +559,7 @@ def calculate_FD_P(in_file):
     Returns
     -------
     out_file : string
-        Frame -wise displalcement mat 
+        Frame-wise displacement mat 
         file path
     
     """
@@ -929,46 +929,48 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
     f= open(out_file,'w')
-    print >>f, "Subject,Scan,MeanFD,NumFD_greater_than_%.2f," \
-    "rootMeanSquareFD,FDquartile(top1/4thFD),PercentFD_greater_than_%.2f," \
-     "MeanDVARS, MeanFD_Jenkinson"%(threshold,threshold)
+    print >>f, "Subject,Scan,MeanFD,MeanFD_Jenkinson," \
+    "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
+    "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
 
     f.write("%s," % subject_id)
     f.write("%s," % scan_id)
 
-    data= loadtxt(FD_1D)
+    powersFD_data = loadtxt(FD_1D)
+    jenkFD_data = loadtxt(FDJ_1D)
+    
     #Mean (across time/frames) of the absolute values 
     #for Framewise Displacement (FD)
-    meanFD  = np.mean(data)
+    meanFD  = np.mean(powersFD_data)
     f.write('%.4f,' % meanFD)
+    
+    #Mean FD Jenkinson
+    meanFD_Jenkinson = np.mean(jenkFD_data)
+    f.write('%.4f,' % meanFD_Jenkinson)
     
     #Number of frames (time points) where movement 
     #(FD) exceeded threshold
-    numFD = float(data[data >threshold].size)
+    numFD = float(jenkFD_data[jenkFD_data > threshold].size)
     f.write('%.4f,' % numFD)
     
     #Root mean square (RMS; across time/frames) 
     #of the absolute values for FD
-    rmsFD = np.sqrt(np.mean(data))
+    rmsFD = np.sqrt(np.mean(jenkFD_data))
     f.write('%.4f,' % rmsFD)
 
     #Mean of the top quartile of FD is $FDquartile
-    quat=int(len(data)/4)
-    FDquartile=np.mean(np.sort(data)[::-1][:quat])
+    quat=int(len(jenkFD_data)/4)
+    FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
     f.write('%.4f,' % FDquartile)
 
     ##NUMBER OF FRAMES >threshold FD as percentage of total num frames
-    count = np.float(data[data>threshold].size)
-    percentFD = (count*100/(len(data)+1))
+    count = np.float(jenkFD_data[jenkFD_data>threshold].size)
+    percentFD = (count*100/(len(jenkFD_data)+1))
     f.write('%.4f,' %percentFD)
 
     #Mean DVARS 
     meanDVARS = np.mean(np.load(DVARS))
     f.write('%.4f,' % meanDVARS)
-
-    #Mean FD Jenkinson
-    meanFD_Jenkinson = np.mean(loadtxt(FDJ_1D))
-    f.write('%.4f,' % meanFD_Jenkinson)
     
     f.close()
     return out_file

@@ -166,6 +166,13 @@ class Registration(wx.ScrolledWindow):
                      values =  str(os.path.join("T1_2_MNI152_2mm")),
                      comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
 
+        self.page.add(label="FSL FNIRT Reference Mask (FSL only) ", 
+                     control=control.COMBO_BOX, 
+                     name='ref_mask', 
+                     type=dtype.STR, 
+                     values =  str(os.path.join(fsl, "data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz")),
+                     comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
+
         self.page.add(label="Use skull-on image to calculate transform? (ANTS only) ", 
                      control=control.CHOICE_BOX, 
                      name='regWithSkull', 

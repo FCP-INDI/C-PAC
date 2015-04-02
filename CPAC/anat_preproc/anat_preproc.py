@@ -1,16 +1,10 @@
-import sys
 from nipype.interfaces.afni import preprocess
-import os
-import commands
 import nipype.pipeline.engine as pe
-import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 
 
-def create_anat_preproc(already_skullstripped=0):
+def create_anat_preproc(already_skullstripped=False):
     """ 
     
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented 
@@ -76,80 +70,60 @@ def create_anat_preproc(already_skullstripped=0):
     --------
     
     >>> import anat
-    >>> prproc = create_anat_preproc()
+    >>> preproc = create_anat_preproc()
     >>> preproc.inputs.inputspec.anat='sub1/anat/mprage.nii.gz'
-    >>> preporc.run() #doctest: +SKIP
+    >>> preproc.run() #doctest: +SKIP
             
     """
     preproc = pe.Workflow(name='anat_preproc')
-
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),
                         name='inputspec')
-
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
                                                     'reorient',
                                                     'skullstrip',
                                                     'brain']),
                          name='outputspec')
-
     anat_deoblique = pe.Node(interface=preprocess.Refit(),
                          name='anat_deoblique')
     anat_deoblique.inputs.deoblique = True
-
     anat_reorient = pe.Node(interface=preprocess.Resample(),
                             name='anat_reorient')
     anat_reorient.inputs.orientation = 'RPI'
     anat_reorient.inputs.outputtype = 'NIFTI_GZ'
-
-    # if not already skullstripped
-    if already_skullstripped != 1:
-
+    if not already_skullstripped:
         anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
                                   name='anat_skullstrip')
         #anat_skullstrip.inputs.options = '-o_ply'
-        #anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
-
-
-    anat_brain_only = pe.Node(interface=preprocess.Calc(),
-                        name='anat_brain_only')
-    anat_brain_only.inputs.expr = 'a*step(b)'
-    anat_brain_only.inputs.outputtype = 'NIFTI_GZ'
-
+        anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+    anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
+                        name='anat_skullstrip_orig_vol')
+    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
+     
     preproc.connect(inputNode, 'anat',
                     anat_deoblique, 'in_file')
     preproc.connect(anat_deoblique, 'out_file',
                     anat_reorient, 'in_file')
-
-    # if not already skullstripped
-    if already_skullstripped != 1:
-
+    if not already_skullstripped:
         preproc.connect(anat_reorient, 'out_file',
                         anat_skullstrip, 'in_file')
         preproc.connect(anat_skullstrip, 'out_file',
-                        anat_brain_only, 'in_file_b')
-
+                        anat_skullstrip_orig_vol, 'in_file_b')
     else:
-
         preproc.connect(anat_reorient, 'out_file',
-                        anat_brain_only, 'in_file_b')
-
-
+                        anat_skullstrip_orig_vol, 'in_file_b')
     preproc.connect(anat_reorient, 'out_file',
-                    anat_brain_only, 'in_file_a')
-
+                    anat_skullstrip_orig_vol, 'in_file_a')
+   
     preproc.connect(anat_deoblique, 'out_file',
                     outputNode, 'refit')
     preproc.connect(anat_reorient, 'out_file',
                     outputNode, 'reorient')
-
-    # if not already skullstripped
-    if already_skullstripped != 1:
-
+    if not already_skullstripped:
         preproc.connect(anat_skullstrip, 'out_file',
                         outputNode, 'skullstrip')
-
-    preproc.connect(anat_brain_only, 'out_file',
-                    outputNode, 'brain')
+    preproc.connect(anat_skullstrip_orig_vol, 'out_file',
+                        outputNode, 'brain')
 
     return preproc
 

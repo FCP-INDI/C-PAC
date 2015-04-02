@@ -231,7 +231,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     import re
     if re.search("(?<=Your job-array )\d+", out) == None:
 
-        print "Error: Running of 'qsub' command in terminal failed - is qsub installed?"
+        print "Error: Running of 'qsub' command in terminal failed. Please troubleshoot your SGE configuration with your system administrator and then try again."
+	print "The command run was: qsub %s" % subject_bash_file
         raise Exception
 
     pid = re.search("(?<=Your job-array )\d+", out).group(0)
@@ -366,6 +367,9 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 def run(config_file, subject_list_file, p_name = None):
     
+    # Import packages
+    import time
+
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
     pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
@@ -477,11 +481,19 @@ def run(config_file, subject_list_file, p_name = None):
 
     if not c.runOnGrid:
 
+        # Import packages
         from CPAC.pipeline.cpac_pipeline import prep_workflow
-        procss = [Process(target=prep_workflow, args=(sub, c, strategies, 1, pipeline_timing_info, p_name)) for sub in sublist]
+
+        # Init variables
+        procss = [Process(target=prep_workflow,
+                          args=(sub, c, strategies, 1,
+                                pipeline_timing_info, p_name)) \
+                  for sub in sublist]
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
-        
+        # Init job queue
         jobQueue = []
+
+        # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.numSubjectsAtOnce:
             """
             Stream all the subjects as sublist is
@@ -491,9 +503,8 @@ def run(config_file, subject_list_file, p_name = None):
             for p in procss:
                 p.start()
                 print >>pid,p.pid
-
+        # Otherwise manage resources to run processes incrementally
         else:
-
             """
             Stream the subject workflows for preprocessing.
             At Any time in the pipeline c.numSubjectsAtOnce
@@ -502,30 +513,34 @@ def run(config_file, subject_list_file, p_name = None):
             """
             idx = 0
             while(idx < len(sublist)):
-
+                # If the job queue is empty and we haven't started indexing
                 if len(jobQueue) == 0 and idx == 0:
-
+                    # Init subject process index
                     idc = idx
+                    # Launch processes (one for each subject)
                     for p in procss[idc: idc + c.numSubjectsAtOnce]:
-
                         p.start()
                         print >>pid,p.pid
                         jobQueue.append(p)
                         idx += 1
-
+                # Otherwise, jobs are running - check them
                 else:
-
+                    # Check every job in the queue's status
                     for job in jobQueue:
-
+                        # If the job is not alive
                         if not job.is_alive():
+                            # Find job and delete it from queue
                             print 'found dead job ', job
                             loc = jobQueue.index(job)
                             del jobQueue[loc]
+                            # ...and start the next available process (subject)
                             procss[idx].start()
-
+                            # Append this to job queue and increment index
                             jobQueue.append(procss[idx])
                             idx += 1
 
+                    # Add sleep so while loop isn't consuming 100% of CPU
+                    time.sleep(2)
         pid.close()
         
         

@@ -5,6 +5,9 @@ Configurable Pipeline for the Analysis of Connectomes
 CPAC is a configurable, open-source, Nipype-based, automated processing pipeline for resting state functional MRI (R-fMRI) data, for use by both novice and expert users.
 """
 
+import numpy as np
+import pyximport
+pyximport.install(setup_args={'include_dirs': [np.get_include()]})
 
 from numpy.testing import nosetester
 test = nosetester.NoseTester.test
@@ -46,7 +49,7 @@ import re
 #__version__ = '0.1-git'
 
 try:
-    version = '0.3.8'
+    version = '0.3.9'
 
 
 #    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)

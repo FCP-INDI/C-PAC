@@ -27,6 +27,7 @@ template_brain_only_for_anat,Anatomical Template (Brain Only),Anatomical Registr
 template_skull_for_anat,Anatomical Template (With Skull),Anatomical Registration
 regOption,Anatomical to Template Registration Method,Anatomical Registration
 fnirtConfig,FSL FNIRT Configuration File (FSL only),Anatomical Registration
+ref_mask,FSL FNIRT Reference Mask (FSL only),Anatomical Registration
 regWithSkull,Use skull-on image to calculate transform? (ANTS only), Anatomical Registration
 runSegmentationPreprocessing,Run Tissue Segmentation,Tissue Segmentation
 whiteMatterThreshold,White Matter Probability Threshold,Tissue Segmentation
@@ -126,7 +127,4 @@ cwasParallelNodes,CWAS Parallel Nodes,CWAS Settings
 cwasRegressorCols,Column Number with Regressor of Interest,CWAS Settings
 cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
 numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
-derivativeList,Select Derivatives,Group Analysis Settings
 modelConfigs,Models to Run,Group Analysis Settings
-zThreshold,Z threshold,Group Analysis Settings
-pThreshold,P threshold,Group Analysis Settings

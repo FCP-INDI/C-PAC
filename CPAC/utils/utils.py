@@ -31,6 +31,11 @@ files_folders_wf = {
     'preprocessed':'func',
     'functional_brain_mask':'func',
     'motion_correct':'func',
+    'motion_correct_smooth':'func',
+    'itk_func_anat_affine_motion_correct_to_standard':'func',
+    'itk_collected_warps_motion_correct_to_standard':'func',
+    'motion_correct_to_standard':'func',
+    'motion_correct_to_standard_smooth':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
     'raw_functional' : 'func',
@@ -64,6 +69,15 @@ files_folders_wf = {
     'functional_to_anat_linear_xfm':'registration',
     'functional_to_mni_linear_xfm':'registration',
     'mni_to_functional_linear_xfm':'registration',
+    'ants_symmetric_initial_xfm':'registration',
+    'ants_symmetric_rigid_xfm':'registration',
+    'ants_symmetric_affine_xfm':'registration',
+    'anatomical_to_symmetric_mni_nonlinear_xfm':'registration',
+    'symmetric_mni_to_anatomical_nonlinear_xfm':'registration',
+    'symmetric_mni_to_anatomical_linear_xfm':'registration',
+    'anat_to_symmetric_mni_ants_composite_xfm':'registration',
+    'symmetric_mni_normalized_anatomical':'registration',
+    'anatomical_to_symmetric_mni_linear_xfm':'registration',
     'mni_normalized_anatomical':'anat',
     'vmhc_raw_score':'vmhc',
     'vmhc_fisher_zstd':'vmhc',
@@ -90,18 +104,24 @@ files_folders_wf = {
     'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_seed_correlations':'sca_mask',
+    'sca_seed_correlation_files':'sca_mask',
     'sca_seed_smooth':'sca_mask',
     'sca_seed_to_standard':'sca_mask',
     'sca_seed_to_standard_smooth':'sca_mask',
     'sca_seed_to_standard_fisher_zstd':'sca_mask',
     'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
-    'sca_roi_correlations':'sca_roi',
-    'sca_roi_smooth':'sca_roi',
-    'sca_roi_to_standard':'sca_roi',
-    'sca_roi_to_standard_smooth':'sca_roi',
-    'sca_roi_to_standard_fisher_zstd':'sca_roi',
-    'sca_roi_to_standard_smooth_fisher_zstd':'sca_roi',
+    'sca_roi_correlation_stack':'sca_roi',
+    'sca_roi_correlation_files':'sca_roi',
+    'sca_roi_stack_smooth':'sca_roi',
+    'sca_roi_files_smooth':'sca_roi',
+    'sca_roi_stack_to_standard':'sca_roi',
+    'sca_roi_files_to_standard':'sca_roi',
+    'sca_roi_stack_to_standard_smooth':'sca_roi',
+    'sca_roi_files_to_standard_smooth':'sca_roi',
+    'sca_roi_stack_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_stack_to_standard_smooth_fisher_zstd':'sca_roi',
+    'sca_roi_files_to_standard_fisher_zstd':'sca_roi',
+    'sca_roi_files_to_standard_smooth_fisher_zstd':'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
@@ -109,7 +129,7 @@ files_folders_wf = {
     'centrality_outputs':'centrality',
     'centrality_outputs_smoothed':'centrality',
     'centrality_outputs_zstd':'centrality',
-    'centrality_outputs_zstd_smoothed': 'centrality',
+    'centrality_outputs_smoothed_zstd': 'centrality',
     'centrality_graphs':'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -273,6 +293,26 @@ def get_operand_string(mean, std_dev):
 
 
 
+def get_roi_num_list(timeseries_file, prefix=None):
+
+    tsfile = open(timeseries_file, "rb")
+
+    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
+
+    if prefix != None:
+
+        temp_rois = []
+
+        for roi in roi_list:
+            roi = prefix + "_" + roi
+            temp_rois.append(roi)
+
+        roi_list = temp_rois
+
+
+    return roi_list
+
+
 
 def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
 
@@ -361,39 +401,56 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
         roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
+
+    # get the specific roi number
+    filename = correlation_file.split("/")[-1]
+    filename = filename.replace(".nii.gz","")
+
+
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
 
     hdr = corr_img.get_header()
 
+    # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
     dims = corr_data.shape
 
     out_file = []
 
+    # dims = tuple of dimensions of correlation NIFTI file
+    # roi_numbers = list of label numbers for each ROI; length of this will be
+    #               how many ROIs you have
+
+    # I think the point of this check is to see if there are multiple volumes
+    # in the correlation file (i.e. is a stack), or is a file with ROIs, and if
+    # so, to deal with it appropriately
     if len(dims) == 5 or len(roi_numbers) > 0:
 
         if len(dims) == 5:
+
             x, y, z, one, roi_number = dims
 
             corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
 
 
-        for i in range(0, len(roi_numbers)):
+        #for i in range(0, len(roi_numbers)):
 
-            sub_data = corr_data
-            if len(dims) == 5:
-                sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
+        sub_data = corr_data
+        #if len(dims) == 5:
+        #    sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
-            sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
+        sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
-            sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
+        sub_z_score_file = os.path.join(os.getcwd(), (filename + '_fisher_zstd.nii.gz'))
 
-            sub_img.to_filename(sub_z_score_file)
+        sub_img.to_filename(sub_z_score_file)
 
-            out_file.append(sub_z_score_file)
+        out_file.append(sub_z_score_file)
 
+
+    # if the correlation file is a single volume image
     else:
 
         z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
@@ -675,8 +732,6 @@ def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
 
     print return_roi_files
     return return_roi_files
-
-
 
 
 def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, create_sym_links):
@@ -1382,33 +1437,45 @@ def modify_model(input_sublist, output_sublist, mat_file, grp_file):
     return new_grp_file, new_mat_file, new_sub_file
 
 
-def select_model_files(model, ftest):
+
+def select_model_files(model, ftest, model_name):
+
     """
     Method to select model files
     """
+
     import os
     import glob
 
-    try:
-        files = glob.glob(os.path.join(model, '*'))
+    files = glob.glob(os.path.join(model, '*'))
 
-        if len(files) == 0:
-            raise Exception("No files foudn inside model %s" % model)
+    if len(files) == 0:
+        raise Exception("No files found inside directory %s" % model)
 
-        fts_file = ''
-        for file in files:
-            if file.endswith('.mat'):
-                mat_file = file
-            elif file.endswith('.grp'):
-                grp_file = file
-            elif file.endswith('.fts') and ftest:
-                 fts_file = file
-            elif file.endswith('.con'):
-                 con_file = file
+    fts_file = ''
 
-    except Exception:
-        print "All the model files are not present. Please check the model folder %s" % model
-        raise
+    for filename in files:
+        if (model_name + '.mat') in filename:
+            mat_file = filename
+        elif (model_name + '.grp') in filename:
+            grp_file = filename
+        elif ((model_name + '.fts') in filename) and ftest:
+            fts_file = filename
+        elif (model_name + '.con') in filename:
+            con_file = filename
+
+    if ftest == True and fts_file == '':
+
+        errmsg = "\n[!] CPAC says: You have f-tests included in your group " \
+                 "analysis model '%s', but no .fts files were found in the " \
+                 "output folder specified for group analysis: %s.\n\nThe " \
+                 ".fts file is automatically generated by CPAC, and if you " \
+                 "are seeing this error, it is because something went wrong " \
+                 "with the generation of this file, or it has been moved." \
+                 "\n\n" % (model_name, model)
+
+        raise Exception(errmsg)
+
 
     return fts_file, con_file, grp_file, mat_file
 
@@ -1865,8 +1932,64 @@ def extract_output_mean(in_file, output_name):
         mean_oned_file.close()
 
         line = line.split('[')[0].strip(' ')
+        
+        # get filename of input maskave 1D file
+        filename = in_file.split("/")[-1]
+        filename = filename[0:-3]
+        
+        
+        split_fullpath = in_file.split("/")
+        
+        if ("_mask_" in in_file) and (("sca_roi" in in_file) or \
+            ("sca_tempreg" in in_file)):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (maskname, filename)
 
-        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % output_name)
+            
+        elif ("_spatial_map_" in in_file) and \
+            ("dr_tempreg" in in_file):
+            
+            for dirname in split_fullpath:
+                if "_spatial_map_" in dirname:
+                    mapname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (mapname, filename)
+            
+            
+        elif ("_mask_" in in_file) and ("centrality" in in_file):
+            
+            for dirname in split_fullpath:
+                if "_mask_" in dirname:
+                    maskname = dirname
+                    
+            filename = split_fullpath[-1]
+            
+            if ".1D" in filename:
+                filename = filename.replace(".1D","")
+            
+            resource_name = output_name + "_%s_%s" % (maskname, filename)
+            
+            
+        else:
+        
+            resource_name = output_name
+        
+
+        output_means_file = os.path.join(os.getcwd(), 'mean_%s.txt' % resource_name)
         output_means = open(output_means_file, 'wb')
 
         print >>output_means, line

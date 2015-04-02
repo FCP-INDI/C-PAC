@@ -325,7 +325,7 @@ class ListBox(wx.Frame):
                                 raise Exception("Error reading config file- %s", config)
                     
                         if config.get('outputDirectory'):
-                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'), '*', 'path_files_here' , '*.txt')
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName')) #, '*', 'path_files_here' , '*.txt')
                         else:
                             derv_path = ''
                     
@@ -503,6 +503,26 @@ class ListBox(wx.Frame):
         
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            # Check tfor path existence
+            if os.path.exists(path):
+                path = os.path.realpath(path)
+                # Try and load in file contents
+                try:
+                    f_sl = yaml.load(open(path, 'r'))
+                except Exception as e:
+                    print 'Unable to load in the specified file: %s' % path
+                    print 'Error:\n%s' % e
+                # If it's not a list, we know it's not a subject list
+                if type(f_sl) != list:
+                    err_msg = 'File is not a subject list file. It might be a '\
+                              'pipeline or data configuration file.'
+                    raise Exception(err_msg)
+            # Otherwise, report error
+            else:
+                err_msg = 'File %s does not exist. Check and try again.' \
+                          % path
+                raise Exception(err_msg)
+
             while True:
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a alias name for the Subject List',
                                      'Sublist Name', os.path.splitext(os.path.basename(path))[0])
@@ -607,16 +627,12 @@ class ListBox(wx.Frame):
                 print "Couldn't find the config file %s "%config    
 
             ret_val = -1    
-        
 
         return ret_val
 
-    
-                            
     def AddConfig(self, event):
         
         # Gets called when you click 'Load' for pipeline config in the GUI
-
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
             defaultDir=os.getcwd(), 
@@ -625,17 +641,41 @@ class ListBox(wx.Frame):
             style=wx.OPEN | wx.CHANGE_DIR)
         
         if dlg.ShowModal() == wx.ID_OK:
+            # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
+            # Check for path existence
+            if os.path.exists(path):
+                path = os.path.realpath(path)
+                try:
+                    f_cfg = yaml.load(open(path, 'r'))
+                except Exception as e:
+                    print 'Unable to load in the specified file: %s' % path
+                    print 'Error:\n%s' % e
+                if type(f_cfg) == dict:
+                    if not f_cfg.has_key('pipelineName'):
+                        err_msg = 'File is not a pipeline configuration '\
+                                  'file. It might be a data configuration file.'
+                        raise Exception(err_msg)
+                else:
+                    err_msg = 'File is not a pipeline configuration '\
+                              'file. It might be a subject list file.'
+                    raise Exception(err_msg)
+            # Otherwise, report error
+            else:
+                err_msg = 'File %s does not exist. Check and try again.' \
+                          % path
+                raise Exception(err_msg)
             if self.check_config(path) > 0:
                 while True:
-                    
                     try:
-                        c = Configuration(yaml.load(open(os.path.realpath(path), 'r')))
-                    except:
-                        print "\n\n" + "ERROR: Configuration file could not be loaded properly - the file " \
-                              "might be access-protected or you might have chosen the wrong file." + "\n"
-                        print "Error name: main_window_0001" + "\n\n"
-                        raise Exception
+                        c = Configuration(f_cfg)
+                    except Exception as e:
+                        print '\n\nERROR: Configuration file could not be '\
+                              'loaded properly - the file might be '\
+                              'access-protected or you might have chosen the '\
+                              'wrong file.\n'
+                        print 'Error name: main_window_0001\n\n'
+                        print 'Exception: %s' % e
                     
 
                     if c.pipelineName != None:
@@ -793,7 +833,7 @@ class runGLA(wx.Frame):
     # Once the user clicks "Run", group level analysis begins
 
     def __init__(self, pipeline, sublist, path, name):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (680,120))
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (730,120))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
@@ -802,7 +842,7 @@ class runGLA(wx.Frame):
 
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
        
-        label1 = wx.StaticText(panel, -1, label = 'Derivative Path File ')
+        label1 = wx.StaticText(panel, -1, label = 'Pipeline Output Directory ')
         self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
         self.box1.GetTextCtrl().SetValue(str(path))
         
@@ -864,8 +904,8 @@ class runGLA(wx.Frame):
             thread.start_new(self.runAnalysis, (pipeline, sublist, self.box1.GetValue()))
             self.Close()
         else:
-            wx.MessageBox("Please provide the path for the file containing output derivative path for each subject.")
+            wx.MessageBox("Please provide the path to the output directory for the pipeline you want to run group-level analysis for.")
             
     def OnShowDoc(self, event):
-        wx.TipWindow(self, "Path to file containing derivative path. \n\nThis should be a text file with one path to derivative per line.", 500)
+        wx.TipWindow(self, "Path to output directory of the pipeline you wish to run group-level analysis for.", 500)
 

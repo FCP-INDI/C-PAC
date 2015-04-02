@@ -333,8 +333,125 @@ class MainFrame(wx.Frame):
                 #print "type -->", type(value)
                 ctrl.set_value(value)
 
-
-
+    # Test the subject list
+    def test_sublist(self, sublist):
+        '''
+        Instance method to test a subject list for errors
+        
+        Parameters
+        ----------
+        self : MainFrame (wx.Frame object)
+            the method is aware of the instance as self
+        sublist : list (dict)
+            a C-PAC-formatted subject list (yaml list of dictionaries)
+        
+        Returns
+        -------
+        pass_flg : boolean
+            flag which indicates whether the subject list passed testing
+        '''
+        
+        # Import packages
+        import nibabel as nb
+        import os
+        
+        # Init variables
+        err_str = ''
+        err_msg = ''
+        not_found_flg = False
+        bad_dim_flg = False
+        pass_flg = False
+        
+        # Check to ensure the user is providing an actual subject
+        # list and not some other kind of file
+        try:
+            subInfo = sublist[0]
+        except:
+            errDlg4 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0001',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg4.ShowModal()
+            errDlg4.Destroy()
+    
+            raise Exception  
+            
+        # Another check to ensure the actual subject list was generated
+        # properly and that it will work
+        if 'subject_id' not in subInfo:
+            errDlg3 = wx.MessageDialog(
+                self, 'ERROR: Subject list file not in proper format - check if you' \
+                        ' loaded the correct file? \n\n' \
+                        'Error name: config_window_0002',
+                'Subject List Error',
+                wx.OK | wx.ICON_ERROR)
+            errDlg3.ShowModal()
+            errDlg3.Destroy()
+    
+            raise Exception
+        
+        # Iterate and test each subject's files
+        for sub in sublist:
+            anat_file = sub['anat']
+            func_files = sub['rest']
+            # Check if anatomical file exists
+            if os.path.exists(anat_file):
+                img = nb.load(anat_file)
+                hdr = img.get_header()
+                dims = hdr.get_data_shape()
+                # Check to make sure it has the proper dimensions
+                if len(dims) != 3:
+                    bad_dim_flg = True
+                    err_str_suffix = 'Anat file not 3-dimensional: %s\n' \
+                                     % anat_file
+                    err_str = err_str + err_str_suffix
+            # Anat file doesnt exist
+            else:
+                not_found_flg = True
+                err_str_suffix = 'File not found: %s\n' % anat_file
+                err_str = err_str + err_str_suffix
+            # For each functional file
+            for func_file in func_files.values():
+                # Check if functional file exists
+                if os.path.exists(func_file):
+                    img = nb.load(func_file)
+                    hdr = img.get_header()
+                    dims = hdr.get_data_shape()
+                    # Check to make sure it has the proper dimensions
+                    if len(dims) != 4:
+                        bad_dim_flg = True
+                        err_str_suffix = 'Func file not 4-dimensional: %s\n' \
+                                         % func_file
+                        err_str = err_str + err_str_suffix
+                # Functional file doesnt exist
+                else:
+                    not_found_flg = True
+                    err_str_suffix = 'File not found: %s\n' % func_file
+                    err_str = err_str + err_str_suffix
+            # Check flags for error message
+            if not_found_flg:
+                err_msg = 'One or more of your input files are missing.\n'
+            if bad_dim_flg:
+                err_msg = err_msg + 'One or more of your input images have '\
+                          'improper dimensionality\n'
+            # If err_msg was populated, display in window
+            if err_msg:
+                err_msg = 'ERROR: ' + err_msg + \
+                          'See terminal output for more details'
+                errDlgFileTest = wx.MessageDialog(self,
+                                                  err_msg,
+                                                  'Pipeline Not Ready',
+                                                  wx.OK | wx.ICON_ERROR)
+                errDlgFileTest.ShowModal()
+                errDlgFileTest.Destroy()
+                raise Exception(err_str)
+            else:
+                pass_flg = True
+        
+        # Return the flag
+        return pass_flg
 
     def testConfig(self, event):
         
@@ -351,7 +468,6 @@ class MainFrame(wx.Frame):
         
         import os
         import yaml
-        
         from CPAC.utils import Configuration
         
         from CPAC.pipeline.cpac_pipeline import prep_workflow
@@ -382,40 +498,12 @@ class MainFrame(wx.Frame):
         
         if dlg.ShowModal() == wx.ID_OK:
             subListPath = dlg.GetPath()
-            
+        
+        # Load and test the subject list
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
-        
-        
-        # Check to ensure the user is providing an actual subject
-        # list and not some other kind of file
-        try:
-            subInfo = sublist[0]
-        except:
-            errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0001',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
-            errDlg4.ShowModal()
-            errDlg4.Destroy()
-    
-            raise Exception  
-            
-        # Another check to ensure the actual subject list was generated
-        # properly and that it will work
-        if 'subject_id' not in subInfo:
-            errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0002',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
-            errDlg3.ShowModal()
-            errDlg3.Destroy()
-    
-            raise Exception       
-            
+        sub_flg = self.test_sublist(sublist)
+        if not sub_flg:
+            raise Exception
         
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
@@ -642,11 +730,11 @@ class MainFrame(wx.Frame):
         hash_val = 0
         wf_counter = []
 
-        #print "self.nb.get_page_list()", self.nb.get_page_list()
+
         for page in self.nb.get_page_list():
-            #print "page ----> ", page
+
             switch = page.page.get_switch()
-            #print "switch ---->", switch
+
             ctrl_list = page.page.get_ctrl_list()
             validate = False
 
@@ -662,15 +750,19 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
-                
-                #validating
+                # validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
                 
                     win = ctrl.get_ctrl()
                     
                     if isinstance(ctrl.get_selection(), list):
+
+                        # fires if the control is a ListBoxCombo (type 7 in
+                        # generic_class.py)
+
                         value = ctrl.get_selection()
+
                         if not value:
                             display(
                                 win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
@@ -688,6 +780,7 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
+
                 config_list.append(ctrl)
 
 
@@ -707,7 +800,7 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-        #dlg.SetFilterIndex(2)
+
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -733,8 +826,6 @@ class MainFrame(wx.Frame):
                 #print "hashval --> ", hash_val
                 #pipeline_id = linecache.getline(p.resource_filename('CPAC', \
                 #       'GUI/resources/pipeline_names.py'), hash_val)
-
-                print "pipeline_id ==", pipeline_name
 
                 if os.path.exists(self.path):
                     self.update_listbox(pipeline_name)
@@ -793,8 +884,6 @@ class MainFrame(wx.Frame):
 
 
 
-
-
     def write(self, path, config_list):
         import ast
 
@@ -806,12 +895,12 @@ class MainFrame(wx.Frame):
                 label = item.get_name()
                 value = item.get_selection()
                 dtype = item.get_datatype()
-                type = item.get_type()
-
+                item_type = item.get_type()
+                
 
                 sample_list = item.get_values()
                 comment = item.get_help()
-                #print "*****label : type : value -->", label, " : ", dtype, " : ", value
+
                 for line in comment.split("\n"):
                     if line:
                         print>>f, "#", line
@@ -831,7 +920,10 @@ class MainFrame(wx.Frame):
                 # parameters that are integers
                 elif dtype == 2:
 
-                    if type == 0:
+                    # Add check for ReHo cluster
+                    if label == 'clusterSize':
+                        print 'Using ReHo cluster size of ', value
+                    elif item_type == 0:
                         value = sample_list.index(value)
                     else:
                         if substitution_map.get(value) != None:
@@ -920,13 +1012,19 @@ class MainFrame(wx.Frame):
                     values = []
  
                     for val in ast.literal_eval(str(value)):
-                        values.append(ast.literal_eval(val))
+                        try:
+                            val=ast.literal_eval(str(val))
+                        except Exception as err:
+                            print "Exception trying to translate: %s, %s, %s, %s"%(label,str(value),val,err)
+                            print "value type: %s"%(type(val))
+                        values.append(ast.literal_eval(str(val)))
 
                     print>>f, label, ":", values
                     print>>f, "\n"
 
 
                 # parameters that are whole words
+                #     ALSO: the Nuisance Corrections lists                
                 elif dtype == 8:
 
                     print>>f, label,":"
@@ -965,3 +1063,5 @@ class MainFrame(wx.Frame):
             print e
             print "Error Writing the pipeline configuration file %s" % path
             raise
+
+

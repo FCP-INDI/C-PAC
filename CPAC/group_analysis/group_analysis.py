@@ -187,14 +187,15 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     """
     grp_analysis = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(fields=['mat_file',
-                                                        'con_file',
-                                                        'grp_file',
-                                                        'fts_file',
-                                                        'zmap_files',
-                                                        'z_threshold',
-                                                        'p_threshold',
-                                                        'parameters']),
+    inputnode = pe.Node(util.IdentityInterface(fields=['merged_file',
+                                                       'merge_mask',
+                                                       'mat_file',
+                                                       'con_file',
+                                                       'grp_file',
+                                                       'fts_file',
+                                                       'z_threshold',
+                                                       'p_threshold',
+                                                       'parameters']),
                          name='inputspec')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['merged',
@@ -215,7 +216,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
 
 
 
-    
+    '''
     merge_to_4d = pe.Node(interface=fsl.Merge(),
                           name='merge_to_4d')
     merge_to_4d.inputs.dimension = 't'
@@ -228,6 +229,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     merge_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='merge_mask')
     merge_mask.inputs.op_string = '-abs -Tmin -bin'
+    '''
 
     fsl_flameo = pe.Node(interface=fsl.FLAMEO(),
                          name='fsl_flameo')
@@ -251,14 +253,15 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                        name='get_opstring')
 
     #connections
+    '''
     grp_analysis.connect(inputnode, 'zmap_files',
                          merge_to_4d, 'in_files')
     grp_analysis.connect(merge_to_4d, 'merged_file',
                          merge_mask, 'in_file')
-
-    grp_analysis.connect(merge_to_4d, 'merged_file',
+    '''
+    grp_analysis.connect(inputnode, 'merged_file',
                          fsl_flameo, 'cope_file')
-    grp_analysis.connect(merge_mask, 'out_file',
+    grp_analysis.connect(inputnode, 'merge_mask',
                          fsl_flameo, 'mask_file')
     grp_analysis.connect(inputnode, 'mat_file',
                          fsl_flameo, 'design_file')
@@ -269,8 +272,6 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
 
     if ftest:
 
-        print "ftest is True"
-
         #calling easythresh for zfstats file
         grp_analysis.connect(inputnode, 'fts_file',
                              fsl_flameo, 'f_con_file')
@@ -279,7 +280,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
 
         grp_analysis.connect(fsl_flameo, 'zfstats',
                              easy_thresh_zf, 'inputspec.z_stats')
-        grp_analysis.connect(merge_mask, 'out_file',
+        grp_analysis.connect(inputnode, 'merge_mask',
                              easy_thresh_zf, 'inputspec.merge_mask')
         grp_analysis.connect(inputnode, 'z_threshold',
                              easy_thresh_zf, 'inputspec.z_threshold')
@@ -302,7 +303,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     easy_thresh_z = easy_thresh('easy_thresh_z')
     grp_analysis.connect(fsl_flameo, 'zstats',
                          easy_thresh_z, 'inputspec.z_stats')
-    grp_analysis.connect(merge_mask, 'out_file',
+    grp_analysis.connect(inputnode, 'merge_mask',
                          easy_thresh_z, 'inputspec.merge_mask')
     grp_analysis.connect(inputnode, 'z_threshold',
                          easy_thresh_z, 'inputspec.z_threshold')
@@ -311,9 +312,9 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     grp_analysis.connect(inputnode, 'parameters',
                          easy_thresh_z, 'inputspec.parameters')
 
-    grp_analysis.connect(merge_to_4d, 'merged_file',
+    grp_analysis.connect(inputnode, 'merged_file',
                          get_opstring, 'in_file')
-    grp_analysis.connect(merge_to_4d, 'merged_file',
+    grp_analysis.connect(inputnode, 'merged_file',
                          merge_mean_mask, 'in_file')
     grp_analysis.connect(get_opstring, 'out_file',
                          merge_mean_mask, 'op_string')
@@ -322,7 +323,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          outputnode, 'zfstats')
     grp_analysis.connect(fsl_flameo, 'fstats',
                          outputnode, 'fstats')
-    grp_analysis.connect(merge_to_4d, 'merged_file',
+    grp_analysis.connect(inputnode, 'merged_file',
                          outputnode, 'merged')
     grp_analysis.connect(fsl_flameo, 'zstats',
                          outputnode, 'zstats')
@@ -341,6 +342,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          outputnode, 'rendered_image')
 
     return grp_analysis
+
 
 
 def get_operation(in_file):

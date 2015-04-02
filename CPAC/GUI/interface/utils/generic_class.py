@@ -224,7 +224,7 @@ class Control(wx.Control):
                                style=style, size= wx.DefaultSize, 
                                validator=wx.DefaultValidator,
                                choices=values)
-            self.selection = values[0]        
+            self.selection = values[0]
         
         elif type ==1:
             self.ctrl= wx.TextCtrl(parent, id = wx.ID_ANY, 
@@ -288,7 +288,7 @@ class Control(wx.Control):
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
             
-            if combo_type == 4:
+            if (combo_type == 4) or (combo_type == 5):
 
                 if values:
 
@@ -296,16 +296,14 @@ class Control(wx.Control):
                     # typed into the contrasts box. this only exists if the
                     # user entered contrasts, then saved them or went back to
                     # the first model builder window, then returned
-                    for option in values.keys():
+                    for val in values:
 
                         # this re-checks the user's past contrast option
                         # SELECTIONS (which ones were checked) in the listbox
-                        if values[option] == True:
-                            self.selection.append(option)
+                        self.selection.append(val)
                             
            
             self.options = self.ctrl.get_listbox_options()
-            self.listbox_selections = []
 
             
         elif type == 8:
@@ -316,6 +314,7 @@ class Control(wx.Control):
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
+
          
         elif type == 9:
             self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
@@ -333,9 +332,9 @@ class Control(wx.Control):
         if self.get_type() == 7:
             return self.options
 
-    def get_listbox_selections(self):
-        if self.get_type() == 7:
-            return self.listbox_selections
+    #def get_listbox_selections(self):
+    #    if self.get_type() == 7:
+    #        return self.listbox_selections
 
     # this takes the list of available contrast names from modelDesign_window
     # and sends it to the 'Add Contrast' dialog box, so that it may do
@@ -375,7 +374,7 @@ class Control(wx.Control):
         if isinstance(self.selection, list):
             if convert_to_string:
                 value = str(value)
-                
+
             # here, 'value' is the single element selected in the control by
             # the user, and 'self.selection' is the list containing these
             # selections
@@ -398,6 +397,7 @@ class Control(wx.Control):
         else:
             self.selection = value
 
+
         if self.get_type()==7:
             self.listbox_selections = self.selection
 
@@ -409,8 +409,10 @@ class Control(wx.Control):
         return self.wfk_switch
         
     def set_value(self, val):
+    
         import ast
         #print "self.get_name(), self.get_type() , val -->", self.get_name(), self.get_type(), val
+
         if val == None or val =="":
             val = self.get_values()
         else:
@@ -422,19 +424,27 @@ class Control(wx.Control):
                         listbox.Check(0)
                         self.set_selection(v)  
             elif self.get_type()==6:
-                #self.ctrl.SetChecked(val)
+
+                # if the control is a checkbox, handle appropriately
+                # this is for the derivative list in the group analysis GUI
+                if "[" in val and "]" in val:
+                    val = val.replace("[", "")
+                    val = val.replace("]", "")
+                    val = val.replace("'", "")
+                    val = val.split(", ")
+
                 self.ctrl.SetCheckedStrings(val)
-                strings = self.ctrl.GetCheckedStrings() 
+                strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()
                 for s in strings:
                     self.set_selection(s, sample_list.index(s))
+
             elif self.get_type() == 9:
                 self.ctrl.set_checkbox_grid_values(val)
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):
                         val = val[0]
-                    #print "combo box value, default values---------------> ", val, self.get_values()
                     self.ctrl.SetStringSelection(val)
                 elif self.get_type() ==3 or self.get_type()==4:
                     if str(val) != 'None':

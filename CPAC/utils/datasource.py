@@ -105,12 +105,12 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         mask_file = mask_file.rstrip('\r\n')
 
         if not os.path.exists(mask_file):
-            print '\n\n[!] CPAC says: One of your ROI/mask specification ' \
+            err = '\n\n[!] CPAC says: One of your ROI/mask specification ' \
                   'files (under %s options) does not have a correct path ' \
                   'or does not exist.\nTip: If all the paths are okay, ' \
                   'then ensure there are no whitespaces or blank lines in ' \
                   'your ROI specification file.\n\n' % mask_type
-            raise Exception
+            raise Exception(err)
 
         if mask_file.strip() == '' or mask_file.startswith('#'):
             continue
@@ -122,13 +122,21 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         elif(base_file.endswith('.nii.gz')):
             base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
         else:
-            raise("File extension not in  .nii and .nii.gz File: %s" % mask_file)
+            err = "\n\n[!] CPAC says: One of your ROI/mask specification " \
+                  "files (under %s options) does not have '.nii' or " \
+                  "'.nii.gz' as an extension.\n\nMask file: %s\n\n" \
+                  % (tab, mask_file)
+            raise Exception(err)
 
         if not (base_name in mask_dict):
             mask_dict[base_name] = mask_file
         else:
-            raise ValueError('Files with same name not allowed %s %s' % (mask_file, mask_dict[base_name]))
-
+            err = "\n\n[!] CPAC says: You have two or more ROI/mask files " \
+            "with the same name - please make sure these files are named " \
+            "differently.\n\nDuplicate name: %s\n\nNote: This can be " \
+            "changed in the ROI/mask file you specified under the %s " \
+            "options.\n\n" % (mask_file, tab)
+            raise Exception(err)
 
 
     inputnode = pe.Node(util.IdentityInterface(
@@ -215,21 +223,24 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
     return wf
 
 
+
 def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
-        from CPAC.utils import  select_model_files
+        from CPAC.utils import select_model_files
 
         wf = pe.Workflow(name=wf_name)
 
         inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
-                                                           'grp_model'],
+                                                           'grp_model',
+                                                           'model_name'],
                                                    mandatory_inputs=True),
                             name='inputspec')
 
         selectmodel = pe.Node(util.Function(input_names=['model',
-                                                         'ftest'],
+                                                         'ftest',
+                                                         'model_name'],
                                            output_names=['fts_file',
                                                          'con_file',
                                                          'grp_file',
@@ -241,6 +252,7 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
                    selectmodel, 'ftest')
         wf.connect(inputnode, 'grp_model',
                    selectmodel, 'model')
+        wf.connect(inputnode, 'model_name', selectmodel, 'model_name')
 
 
 
@@ -263,73 +275,4 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
         return wf
 
-def create_gpa_dataflow(wf_name='gp_dataflow'):
-
-        import nipype.pipeline.engine as pe
-        import nipype.interfaces.utility as util
-        from CPAC.utils import modify_model, select_model_files
-
-        wf = pe.Workflow(name=wf_name)
-
-        inputnode = pe.Node(util.IdentityInterface(fields=['ftest',
-                                                           'grp_model',
-                                                           'input_sublist',
-                                                           'output_sublist'],
-                                                   mandatory_inputs=True),
-                            name='inputspec')
-
-        selectmodel = pe.Node(util.Function(input_names=['model',
-                                                         'ftest'],
-                                           output_names=['fts_file',
-                                                         'con_file',
-                                                         'grp_file',
-                                                         'mat_file'],
-                                           function=select_model_files),
-                             name='selectnode')
-
-        wf.connect(inputnode, 'ftest',
-                   selectmodel, 'ftest')
-        wf.connect(inputnode, 'grp_model',
-                   selectmodel, 'model')
-
-        modifymodel = pe.Node(util.Function(input_names=['input_sublist',
-                                                            'output_sublist',
-                                                            'mat_file',
-                                                            'grp_file'],
-                                             output_names=['grp_file',
-                                                             'mat_file',
-                                                             'sub_file'],
-                                             function=modify_model),
-                              name='modifymodel')
-
-        wf.connect(selectmodel, 'mat_file',
-                   modifymodel, 'mat_file')
-        wf.connect(selectmodel, 'grp_file',
-                   modifymodel, 'grp_file')
-        wf.connect(inputnode, 'input_sublist',
-                   modifymodel, 'input_sublist')
-        wf.connect(inputnode, 'output_sublist',
-                   modifymodel, 'output_sublist')
-
-        outputnode = pe.Node(util.IdentityInterface(fields=['fts',
-                                                            'grp',
-                                                            'mat',
-                                                            'con',
-                                                            'sublist'],
-                                mandatory_inputs=True),
-                    name='outputspec')
-
-        wf.connect(modifymodel, 'mat_file',
-                   outputnode, 'mat')
-        wf.connect(modifymodel, 'grp_file',
-                   outputnode, 'grp')
-        wf.connect(modifymodel, 'sub_file',
-                   outputnode, 'sublist')
-        wf.connect(selectmodel, 'fts_file',
-                   outputnode, 'fts')
-        wf.connect(selectmodel, 'con_file',
-                   outputnode, 'con')
-
-
-        return wf
 

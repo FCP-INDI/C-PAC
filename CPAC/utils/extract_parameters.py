@@ -1,8 +1,10 @@
 def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
+
     """
     Method to merge power parameters and motion
     parameters file
     """
+
     import os
     import re
 
@@ -20,40 +22,72 @@ def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
 
         threshold_val = float(re.sub(r"[a-zA-Z_]", '', threshold))
 
-    if flag:
-        f = open(outfile, 'w')
 
-        print outfile
-        print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
-        "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
-        "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
-        "Max_Abs_Maxdisp,Max_Relative_Roll,Max_Relative_Pitch," \
-        "Max_Relative_Yaw,Max_Relative_dS-I,Max_Relative_dL-R," \
-        "Max_Relative_dP-A,Mean_Relative_Roll,Mean_Relative_Pitch,Mean_Relative_Yaw," \
-        "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll," \
-        "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A," \
-        "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A,"\
-        "MeanFD,NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD),"\
-        "PercentFD_greater_than_%.2f,MeanDVARS,MeanFD_Jenkinson" % (threshold_val, threshold_val)
-    else:
-        f = open(outfile, 'a')
+    # Read in the motion and power parameters files
+    try:
+        motion = open(motion_f, 'r').readlines()
+    except Exception as e:
+        err_string = "\n\n[!] CPAC says: Could not read the motion " \
+                     "parameters file.\n\nFilepath: %s\n\nError details: %s" \
+                     "\n\n" % (motion_f, e)
+        raise Exception(err_string)
 
-    motion = open(motion_f, 'r').readlines()
-    power = open(power_f, 'r').readlines()
+    try:
+        power = open(power_f, 'r').readlines()
+    except Exception as e:
+        err_string = "\n\n[!] CPAC says: Could not read the power " \
+                     "parameters file.\n\nFilepath: %s\n\nError details: %s" \
+                     "\n\n" % (power_f, e)
+        raise Exception(err_string)
 
-    m = motion[1].rstrip(",").split(",")
-    p = power[1].rstrip(",").split(",")
 
-    for item in m:
-        f.write("%s," % item)
+    # Write the combined motion and power parameters CSV file
+    try:
 
-    for item in p[2:]:
-        f.write("%s," % item)
-    f.write("\n")
-    f.close()
+        if flag:
+            f = open(outfile, 'w')
+
+            print "Combining motion and power parameters into one CSV file: " \
+                  "%s\n" % outfile
+            print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
+            "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
+            "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
+            "Max_Abs_Maxdisp,Max_Relative_Roll,Max_Relative_Pitch," \
+            "Max_Relative_Yaw,Max_Relative_dS-I,Max_Relative_dL-R," \
+            "Max_Relative_dP-A,Mean_Relative_Roll,Mean_Relative_Pitch,Mean_Relative_Yaw," \
+            "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll," \
+            "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A," \
+            "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A,"\
+            "MeanFD,NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD),"\
+            "PercentFD_greater_than_%.2f,MeanDVARS,MeanFD_Jenkinson" % (threshold_val, threshold_val)
+        else:
+             f = open(outfile, 'a')
+
+        m = motion[1].rstrip(",").split(",")
+        p = power[1].rstrip(",").split(",")
+
+        for item in m:
+            f.write("%s," % item)
+
+        for item in p[2:]:
+            f.write("%s," % item)
+        f.write("\n")
+        f.close()
+
+    except Exception as e:
+
+        err_string = "\n\n[!] CPAC says: Could not create or open the motion "\
+                     "and power parameters CSV file. Ensure you have write " \
+                     "permissions for the directory it is writing to.\n\n" \
+                     "Attempted write path: %s\n\nError details: %s\n\n" \
+                     % (outfile, e)
+
+        raise Exception(err_string)
+
 
 
 def grab(output_dir, scrubbing):
+
     """
     Method to grab all the motion parameters
     and power parameters file from each subject
@@ -64,6 +98,7 @@ def grab(output_dir, scrubbing):
     output_dir : string
         Path to the datasink output directory of CPAC
     """
+
     import glob
     import os
     import re
@@ -128,16 +163,25 @@ def grab(output_dir, scrubbing):
 
                     if os.path.exists(motion_file) and \
                         os.path.exists(power_file):
-                        merge(p, scan, None,
-                              motion_file, power_file, Flag)
+
+                        threshold = None
+
+                        merge(p, scan, threshold, motion_file,
+                            power_file, Flag)
+
                         Flag = 0
                 
 
+    print "Motion and Power parameters extraction process finished...\n"
 
-    print "process finished..."
+    return threshold
+
     
+
 def run(output_path, scrubbing):
-    grab(output_path, scrubbing)
+    threshold = grab(output_path, scrubbing)
+    return threshold
+
 
 if __name__ == "__main__":
     import sys

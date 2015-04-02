@@ -14,7 +14,7 @@ class FunctionalPreProcessing(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/functional.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/func.html'))
         
 #        try:
 #            code = urlopen("http://fcp-indi.github.io/docs/user/motion.html").code
@@ -200,7 +200,7 @@ class FunctionalPreProcessing(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/functional.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/func.html'))
         
 #        try:
 #            code = urlopen("http://fcp-indi.github.io/docs/user/motion.html").code
