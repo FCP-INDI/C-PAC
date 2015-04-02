@@ -474,11 +474,11 @@ def create_nuisance(use_ants, name='nuisance'):
 
     if use_ants == True:
 
-        collect_linear_transforms = pe.Node(util.Merge(2), name='ho_mni_to_2mm_ants_collect_linear_transforms')
+        collect_linear_transforms = pe.Node(util.Merge(3), name='ho_mni_to_2mm_ants_collect_linear_transforms')
 
         ho_mni_to_2mm = pe.Node(interface=ants.ApplyTransforms(), name='ho_mni_to_2mm_ants_applyxfm')
 
-        ho_mni_to_2mm.inputs.invert_transform_flags = [True, True]
+        ho_mni_to_2mm.inputs.invert_transform_flags = [True, True, True]
         ho_mni_to_2mm.inputs.interpolation = 'NearestNeighbor'
         ho_mni_to_2mm.inputs.dimension = 3
 
