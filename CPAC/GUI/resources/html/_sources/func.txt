@@ -1,33 +1,30 @@
 Functional Preprocessing
-------------------------
-
+-------------------------
 
 Timeseries Options
 ^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/ts_options.png
 
-startIdx and stopIdx
-""""""""""""""""""""
-Users wishing to discard the first few volumes of a scan (to facilitate stable magnetization) can specify a starting volume here::
+#. **First Timepoint - [integer]:** The starting volume of the scan.  If you need to censor the first volumes of a scan to facilitate stable magnetization, you can do so here.
 
-    # Ignore volumes before this timepoint
-    # Options are an integer or None (defaults to beginning of timeseries)
-    startIdx = 0
+#. **Last Timepoint - [integer/text]:** The last volume of the timeseries.  If you wish to cut off the timeseries before a specific point, you can do so here.  Otherwise, set this to 'End'.
 
-Users can also chose to ignore volumes after a specific timepoint::
+#. **TR - [numerical value]:** The TR for volume acquisitions.  If you wish to have this information read from the NifTI header set this to 'None'.
 
-    # Ignore volumes after this timepoint
-    # Options are an integer or None (defaults to end of timeseries)
-    stopIdx = None
+#. **Perform Slice Time Correction - [On, Off, On/Off]:**  Interpolate voxel timeseries so that sampling occurs at the same time.
 
-TR
-"""
-If the actual TR used during scanning is different than what is specified in the image header, you can specify that value here::
+#. **Slice Acquisition Pattern - [Use NifTI Header, alt+z, alt+z2, alt-z, alt-z2, seq+z, seq-z]:** The order of slice acquisition for the scans.
 
-    # Specify a TR (in seconds) other than what is listen in image headers
-    # Options are a number or None (defaults to header information)
-    TR = None
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
 
+To configure the timeseries options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    startIdx : 0
+    stopIdx : None
+    TR : None
+    slice_timing_correction : [0]
+    slice_timing_pattern : ['Use NIFTI Header']
 
 Functional to Anatomical Registration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,10 +40,20 @@ Functional to Anatomical Registration
 
 #. **Functional Volume to Use as Input (Selected Functional Volume only) - [integer]:** Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
 
-Functional to Standard Registration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. figure:: /_images/func_to_standard_reg.png
+To configure functional to anatomical registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runRegisterFuncToAnat : [1]
+    runBBReg : [1]
+    boundaryBasedRegistrationSchedule : /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+    func_reg_input :  ['Mean Functional']
+    func_reg_input_volume :  0
+
+Functional to MNI Registration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. figure:: /_images/func_to_mni_reg.png
 
 #. **Run Functional to MNI Registration - [On, Off]:** Register functional images to a standard MNI152 template. This option must be enabled if you wish to calculate any derivatives.
 
@@ -57,3 +64,14 @@ Functional to Standard Registration
 #. **Standard Template with Skull (functional resolution) - [path]:** Standard FSL Anatomical Brain Image with skull.
 
 #. **Standard Identity Matrix - [path]:** Matrix containing all 1's. Used as an identity matrix during registration. It is not necessary to change this path unless you intend to use non-standard MNI registration.
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure functional to MNI registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runRegisterFuncToMNI : [1]
+    resolution_for_func : 2mm
+    template_brain_only_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    template_skull_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    identityMatrix : /usr/share/fsl/5.0/etc/flirtsch/ident.mat

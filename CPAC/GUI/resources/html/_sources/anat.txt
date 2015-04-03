@@ -7,14 +7,14 @@ In order to compare brain activations between subjects, individual functional an
 
 .. figure:: /_images/registration.png
 
-CPAC provides the option of either using FSL (`FLIRT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT>`_ and `FNIRT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT>`_) or `Advanced Normalization Tools (ANTS) <http://stnava.github.io/ANTs/>`_ to register images. Although the use of ANTS requires an extra step during the CPAC install process, we have found its results to be significantly better than those produced by FSL (a conclusion supported by a `recent systematic analysis by Klein et al. <http://mindboggle.info/papers/evaluation_NeuroImage2010.php>`_ )
+CPAC provides the option of either using FSL (`FLIRT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT>`_ and `FNIRT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT>`_) or `Advanced Normalization Tools (ANTS) <http://stnava.github.io/ANTs/>`_ to register images. Although the use of ANTS requires an extra step during the CPAC install process, we have found its results to be significantly better than those produced by FSL (a conclusion supported by a `recent systematic analysis by Klein et al. <http://mindboggle.info/papers/Evaluation_Klein_NeuroImage2010.pdf>`_).
 
 During registration, individual anatomical images are first transformed to match the common template. Then, the functional data for each subject is registered to their own transformed anatomical image. Finally, functional derivative files are transformed to the common template. For more detail on how CPAC computes these steps, please see the `Registration Page of the developer documentation <http://fcp-indi.github.io/docs/developer/workflows/registration.html>`_.
 
 By default, CPAC will register subject brains to the MNI152 template included with FSL. Users wishing to register their data to a different template (such as a group specific template) can specify alternative template files.
 
-Configuring CPAC to run Anatomical Registration
-"""""""""""""""""""""""""""""""""""""""""""""""
+Configuring CPAC to Run Anatomical Registration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/anat_reg_gui.png
 
 #. **Run Anatomical Registration - [On, Off, On/Off]:** Register anatomical images to a template.
@@ -27,9 +27,25 @@ Configuring CPAC to run Anatomical Registration
 
 #. **Registration Method - [ANTS, FSL, ANTS & FSL]:** Registration methods to be used. Options are `ANTS <http://stnava.github.io/ANTs/>`_ and `FSL <http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/reg/>`_.
 
-#. **FNIRT Configuration File - [path]:** Configuration file specifying settings used during registration. Required if FSL is selected as the registration method. This file can be found in the :file:`/etc/flirtsch` directory of your FSL install.
+#. **FSL FNIRT Configuration File - [path]:** Configuration file specifying settings used during registration. Required if FSL is selected as the registration method. This file can be found in the :file:`/etc/flirtsch` directory of your FSL install.
+
+#. **FSL FNIRT Reference Mask - [path]:** A reference mask to be used by FNIRT.
 
 #. **Use skull-on image to calculate transform? (ANTS only) - [Off, On]:** Register skull-on anatomical image to template. Calculating the transform with skull-stripped images is reported to be better, but it requires very high-quality skull-stripping. If skull-stripping is imprecise, registration with skull is preferred. Note: This option only affects ANTS due to the fact that FNIRT already uses skull-on images for calculating warps. 
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure the anatomical registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runRegistrationPreprocessing : [1]
+    resolution_for_anat : 2mm
+    template_brain_only_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+    template_skull_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+    regOption : ['ANTS']
+    fnirtConfig : T1_2_MNI152_2mm
+    ref_mask : $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+    regWithSkull : [0]
 
 Anatomical Tissue Segmentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -55,8 +71,8 @@ The following bash script will binarize existing priors::
     # Binarize image using threshold set above
     fslmaths avg152T1_${tissue}.nii.gz -thr $threshold -bin avg152T1_${tissue}_2mm_bin
 
-Configuring CPAC to run Anatomical Tissue Segmentation
-""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Configuring CPAC to Run Anatomical Tissue Segmentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/seg_gui.png
 
 #. **Run Tissue Segmentation - [On, Off, On/Off]:** Automatically segment anatomical images into white matter, gray matter, and CSF based on prior probability maps.
@@ -75,4 +91,17 @@ Configuring CPAC to run Anatomical Tissue Segmentation
 
 #. **CSF Prior Probability Map - [path]:** Full path to a binarized CSF prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure the timeseries options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runSegmentationPreprocessing : [1]
+    whiteMatterThreshold : [0.98]
+    grayMatterThreshold : [0.7]
+    cerebralSpinalFluidThreshold : [0.98]
+    priors_path : /usr/share/fsl/5.0/data/standard/tissuepriors/${resolution_for_anat}
+    PRIORS_WHITE : $priors_path/avg152T1_white_bin.nii.gz
+    PRIORS_GRAY : $priors_path/avg152T1_gray_bin.nii.gz
+    PRIORS_CSF : $priors_path/avg152T1_csf_bin.nii.gz
 

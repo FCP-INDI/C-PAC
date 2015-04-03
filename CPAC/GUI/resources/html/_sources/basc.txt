@@ -29,7 +29,7 @@ Computation and Analysis Considerations
 
 The figure below (taken from Garcia-Garcia et al.) shows a visual representation of these steps. For more detail on how CPAC computes these steps, please see the `BASC Page of the developer documentation <http://fcp-indi.github.com/docs/developer/workflows/basc.html>`_.
 
-.. figure:: /images/basc_manu_schematic.png
+.. figure:: /_images/basc_manu_schematic.png
 
 Note that clusters do not by themselves convey any quantitative information regarding stability. Based on a stability matrix, it is possible to construct a stability map for each cluster that will depict the stability of each voxel's membership to that cluster. This can be done at both the individual and group level.
 
@@ -39,8 +39,8 @@ BASC has recently been used to investigate differences in striatal connectivity 
 
 A number of parameters can influence the results of a BASC analysis, the most important of which is the number of clusters. Users are directed to Bellec et al. 2010 for an in-depth discussion of how each parameter influences calculation.
 
-Configuring CPAC to run Anatomical Registration
-"""""""""""""""""""""""""""""""""""""""""""""""
+Configuring CPAC to Run BASC
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/basc_gui.png
 
 #. **Run BASC - [Off, On]:** Run Bootstrap Analysis of Stable Clusters.
@@ -55,6 +55,17 @@ Configuring CPAC to run Anatomical Registration
 
 #. **Number of Clusters - [integer]:** Number of clusters to create during clustering at both the individual and group levels.
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure BASC options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runBASC : [0]
+    bascROIFile : None
+    bascTimeseriesBootstraps : 100
+    bascDatasetBootstraps : 100
+    bascAffinityThresholdFile : 
+    bascClusters : 6
 
 References
 ^^^^^^^^^^

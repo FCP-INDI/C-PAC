@@ -37,6 +37,16 @@ Configuring CPAC to Run ALFF and f/ALFF
 
 #. **f/ALFF Low-Pass Cutoff - [decimal]:** Frequency cutoff (in Hz) for the low-pass filter used when calculating f/ALFF
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure ALFF and f/ALFF options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runALFF : [1]
+    highPassFreqALFF : [0.01]
+    lowPassFreqALFF : [0.1]
+
+
 References
 ^^^^^^^^^^
 Power, J. D., Barnes, K. A., Snyder, A. Z., Schlaggar, B. L., & Petersen, S. E. (2012). `Spurious but systematic correlations in functional connectivity MRI networks arise from subject motion <http://www.ncbi.nlm.nih.gov/pubmed/22019881>`_. Neuroimage, 59(3), 2142–2154. 

@@ -32,15 +32,11 @@ Once downloaded, these packages should be extracted (using the command ``tar -xz
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Open the CPAC GUI and click to create a new Subject List. In the Subject List Configuration window, select Load and navigate to the ``/settings/configs`` directory of the CPAC Benchmark Package. Select ``benchmark_data_config.yml`` and hit OK. This will load load the pre-configured settings.
 
-.. figure:: /_images/benchmark_data_config.png
-
 Click Generate Subject Lists. You will be asked to specify a name for a configuration file containing the newly entered settings, as well as for the subject list itself. 
 
 4) Configure CPAC
 ^^^^^^^^^^^^^^^^^
 In the main CPAC window, under Pipelines, click Load and select the ``benchmark_config.yml`` file located in the ``/configs`` directory of the CPAC Benchmark Package. A new pipeline will show up in the list window; select this pipeline and click Edit. This will load the Pipeline Configuration window.
-
-.. figure:: /_images/benchmark_pipeline_config.png
 
 The majority of the preprocessing and analysis settings will be preloaded, but there are a few system-specific options that must be edited by the user before running CPAC. 
 
@@ -71,8 +67,5 @@ Using the ``spatial_correlation.py`` script located in the scripts directory, yo
 To run this script, simply type ``python spatial_correlation.py file1 file2``, replacing ``file1`` and ``file2`` with the files which you would like to compare.
 
 It is also possible to view a scatterplot of voxelwise correlations of the values in two files. To do this, run the ``voxelwise_correlation.py`` script in the same manner as the script above.
-
-Alternately, you may run the comparison scripts manually by following the instructions below:
-
 
 

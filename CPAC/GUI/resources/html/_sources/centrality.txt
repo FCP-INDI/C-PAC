@@ -3,7 +3,7 @@ Network Centrality
 
 Introduction & Background 
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Nodes are the basic units of a network, and are connected by edges. Among the many nodes that form the whole-brain network (also known as the functional connectome), some play a crucial role and may be considered &#8220;central&#8221; within the network. These central nodes can be identified by applying various graph-theory based network analysis techniques which provide a measure of the &#8220;centrality&#8221; or functional importance of each node (Koschutzki et al. 2005). Different centrality measures capture different aspects of connectivity (Joyce et al., 2010; Zuo et al., 2011). CPAC is able to calculate three commonly used centrality indices: Degree Centrality (DC), Eigenvector Centrality (EC), and local Functional Connectivity Density (lFCD). Unlike traditional functional connectivity analyses, centrality measures capture the complexity of the entire functional connectome, and do not require the selection of any <em>a priori</em> regions of interest.
+Nodes are the basic units of a network, and are connected by edges. Among the many nodes that form the whole-brain network (also known as the functional connectome), some play a crucial role and may be considered &#8220;central&#8221; within the network. These central nodes can be identified by applying various graph-theory based network analysis techniques which provide a measure of the &#8220;centrality&#8221; or functional importance of each node (Koschutzki et al. 2005). Different centrality measures capture different aspects of connectivity (Joyce et al., 2010; Zuo et al., 2011). CPAC is able to calculate three commonly used centrality indices: Degree Centrality (DC), Eigenvector Centrality (EC), and local Functional Connectivity Density (lFCD). Unlike traditional functional connectivity analyses, centrality measures capture the complexity of the entire functional connectome, and do not require the selection of any **a priori** regions of interest.
 
 **Degree centrality** is a measure of local network connectivity and identifies the most connected nodes by counting the number of direct connections (edges) to all other nodes. As such, a node with high DC will have direct connections to many other nodes in the network. Degree centrality analysis tends to emphasize higher order cortical association areas while showing reduced sensitivity for paralimbic and subcortical regions (Zuo et al., 2012).
 
@@ -29,8 +29,8 @@ Degree centrality has been widely used to identify "functional hubs" and examine
 
 Beyond detecting functional hubs, both DC and EC have been used as a way of characterizing information flow through the functional connectome at the voxel level. These voxel-wise centrality analyses (depicted in the figure above, taken from Zuo et al., 2012) showed both short and long-term test-retest reliability, and appear to be modulated by age and sex (Zuo et al., 2012). Additionally, EC has been shown to be modulated by subjects' states of hunger or satiety (Lohmann et al. 2010).
 
-Configuring CPAC to run Network Centrality
-""""""""""""""""""""""""""""""""""""""""""
+Configuring CPAC to Run Network Centrality
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/centrality_gui.png
 
 #. **Calculate Network Centrality Measures - [Off, On]:** Calculate Degree Centrality and/or Eigenvector Centrality and/or Local Functional Connectivity Density. Note that calculating Eigenvector Centrality will take significantly longer and require significantly more computing power to calculate than Degree Centrality.
@@ -46,6 +46,24 @@ Configuring CPAC to run Network Centrality
 #. **Threshold Value - [decimal]:** Based on the Threshold Type selected above, enter a Threshold Value. P-value for Significance Threshold, Sparsity value for Sparsity Threshold, Pearson's r value for Correlation Threshold.
 
 #. **Maximum RAM Use (GB) - [decimal]:** Maximum amount of RAM (in GB) to be used when calculating Degree Centrality and local Functional Connectivity Density. Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes. Setting this measure is still recommended as a way to check whether your machine has enough memory to run Eigenvector Centrality.
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure network centrality options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runNetworkCentrality : [0]
+    templateSpecificationFile : /path/to/centrality/specs
+    degWeightOptions : [True, True]
+    degCorrelationThresholdOption : 0
+    degCorrelationThreshold : 0.001
+    eigWeightOptions : [False, False]
+    eigCorrelationThresholdOption : 0
+    eigCorrelationThreshold : 0.001
+    lfcdWeightOptions : [True, True]
+    lfcdCorrelationThresholdOption : 0
+    lfcdCorrelationThreshold : 0.001
+    memoryAllocatedForDegreeCentrality : 2.0
 
 References
 ^^^^^^^^^^

@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Computer Settings &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,38 +25,60 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Using C-PAC" href="use.html" />
     <link rel="next" title="Data Preprocessing" href="preproc.html" />
-    <link rel="prev" title="Subject List Setup" href="data_config.html" /> 
+    <link rel="prev" title="Subject List Setup" href="data_config.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-    <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="computer-settings">
 <h1>Computer Settings<a class="headerlink" href="#computer-settings" title="Permalink to this headline">¶</a></h1>
 <div class="figure">
 <img alt="_images/compute_gui.png" src="_images/compute_gui.png" />
 </div>
 <ol class="arabic simple">
-<li><strong>Run CPAC on a Cluster/Grid:</strong> Select False if you intend to run CPAC on a single machine. If set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.</li>
-<li><strong>FSL Path:</strong> Full path to the FSL version to be used by CPAC. If you have specified an FSL path in your .bashrc file, this path will be set automatically.</li>
-<li><strong>Job Scheduler / Resource Manager:</strong> Sun Grid Engine (SGE) or Portable Batch System (PBS). Only applies if you are running on a grid or compute cluster.</li>
-<li><strong>SGE Parallel Environment:</strong> SGE Parallel Environment to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
-<li><strong>SGE Queue:</strong> SGE Queue to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
-<li><strong>Number of Cores Per Subject:</strong> Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node. &#8216;Number of Cores Per Subject&#8217; multiplied by &#8216;Number of Subjects to Run Simultaneously&#8217; multiplied by &#8216;Number of Cores for Anatomical Registration (ANTS)&#8217; must not be greater than the total number of cores.</li>
-<li><strong>Number of Subjects to Run Simultaneously:</strong> This number depends on computing resources.</li>
-<li><strong>Number of Cores for Anatomical Registration (ANTS):</strong> This number depends on computing resources.</li>
+<li><strong>Run CPAC on a Cluster/Grid - [False, True]:</strong> Select False if you intend to run CPAC on a single machine. If set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.</li>
+<li><strong>FSL Path - [path]:</strong> Full path to the FSL version to be used by CPAC. If you have specified an FSL path in your .bashrc file, this path will be set automatically.</li>
+<li><strong>Job Scheduler / Resource Manager - [SGE, PBS]:</strong> Sun Grid Engine (SGE) or Portable Batch System (PBS). Only applies if you are running on a grid or compute cluster.</li>
+<li><strong>SGE Parallel Environment - [text]:</strong> SGE Parallel Environment to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
+<li><strong>SGE Queue - [text]:</strong> SGE Queue to use when running CPAC. Only applies when you are running on a grid or compute cluster using SGE.</li>
+<li><strong>Number of Cores Per Subject - [integer]:</strong> Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node. &#8216;Number of Cores Per Subject&#8217; multiplied by &#8216;Number of Subjects to Run Simultaneously&#8217; multiplied by &#8216;Number of Cores for Anatomical Registration (ANTS)&#8217; must not be greater than the total number of cores.</li>
+<li><strong>Number of Subjects to Run Simultaneously - [integer]:</strong> This number depends on computing resources.</li>
+<li><strong>Number of Cores for Anatomical Registration (ANTS) - [integer]:</strong> This number depends on computing resources.</li>
 </ol>
 </div>
 
 
-      </div>
-    <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

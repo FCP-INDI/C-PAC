@@ -3,7 +3,7 @@ Dual Regression
 
 Background and Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-Many large-scale functional brain networks have been shown to be reproducible across subjects (Smith et al, 2009; Yeo et al, 2011). Dual Regression (Beckman et al, 2009; Filippini et al, 2009)allows researchers to investigate individual and group differences in the structure of these networks, as well as to identify subject-specific networks based on networks identified at the group level.
+Many large-scale functional brain networks have been shown to be reproducible across subjects (Smith et al, 2009; Yeo et al, 2011). Dual Regression (Beckman et al, 2009; Filippini et al, 2009) allows researchers to investigate individual and group differences in the structure of these networks, as well as to identify subject-specific networks based on networks identified at the group level.
 
 Computation and Analysis Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -19,17 +19,20 @@ The spatial maps used during Dual Regression can be generated any number of ways
 
 Configuring CPAC to Run Dual Regression
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Spatial maps for use during Dual Regression must be specified on the Spatial Regression page of the CPAC GUI.
+Spatial maps for use during Dual Regression must be specified on the Spatial Regression page of the CPAC GUI under "Time Series Extraction (TSE)".
 
 .. figure:: /_images/dr_spatial.png
 
 #. **Run Spatial Regression - [Off, On]:** Extract the time series from one or more existing spatial maps (such as an ICA map). Required if you wish to run Dual Regression.
+
 #. **Spatial Map Specification File - [path]:** Full path to a text file containing a list of spatial maps. Each line in this file should be the path to a 4D NIfTI file containing one spatial map per volume.
+
 #. **Demean Spatial Maps - [True, False]:** Demean spatial maps before running spatial regression.
 
 .. figure:: /_images/dr_dr.png
 
 #. **Run Dual Regression - [Off, On]:** Run Dual Regression. Requires that Spatial Regression be enabled under Time Series Extraction
+
 #. **Normalize Time Series - [True, False]:** Normalize time series before running Dual Regression.
 
 

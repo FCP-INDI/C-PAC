@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Functional Preprocessing &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,16 +25,27 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Data Preprocessing" href="preproc.html" />
     <link rel="next" title="Slice Timing Correction" href="slice.html" />
-    <link rel="prev" title="Anatomical Preprocessing" href="anat.html" /> 
+    <link rel="prev" title="Anatomical Preprocessing" href="anat.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-     <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="functional-preprocessing">
 <h1>Functional Preprocessing<a class="headerlink" href="#functional-preprocessing" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="timeseries-options">
@@ -40,27 +53,21 @@
 <div class="figure">
 <img alt="_images/ts_options.png" src="_images/ts_options.png" />
 </div>
-<div class="section" id="startidx-and-stopidx">
-<h3>startIdx and stopIdx<a class="headerlink" href="#startidx-and-stopidx" title="Permalink to this headline">¶</a></h3>
-<p>Users wishing to discard the first few volumes of a scan (to facilitate stable magnetization) can specify a starting volume here:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Ignore volumes before this timepoint</span>
-<span class="c"># Options are an integer or None (defaults to beginning of timeseries)</span>
-<span class="n">startIdx</span> <span class="o">=</span> <span class="mi">0</span>
-</pre></div>
-</div>
-<p>Users can also chose to ignore volumes after a specific timepoint:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Ignore volumes after this timepoint</span>
-<span class="c"># Options are an integer or None (defaults to end of timeseries)</span>
-<span class="n">stopIdx</span> <span class="o">=</span> <span class="bp">None</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="tr">
-<h3>TR<a class="headerlink" href="#tr" title="Permalink to this headline">¶</a></h3>
-<p>If the actual TR used during scanning is different than what is specified in the image header, you can specify that value here:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Specify a TR (in seconds) other than what is listen in image headers</span>
-<span class="c"># Options are a number or None (defaults to header information)</span>
-<span class="n">TR</span> <span class="o">=</span> <span class="bp">None</span>
+<ol class="arabic simple">
+<li><strong>First Timepoint - [integer]:</strong> The starting volume of the scan.  If you need to censor the first volumes of a scan to facilitate stable magnetization, you can do so here.</li>
+<li><strong>Last Timepoint - [integer/text]:</strong> The last volume of the timeseries.  If you wish to cut off the timeseries before a specific point, you can do so here.  Otherwise, set this to &#8216;End&#8217;.</li>
+<li><strong>TR - [numerical value]:</strong> The TR for volume acquisitions.  If you wish to have this information read from the NifTI header set this to &#8216;None&#8217;.</li>
+<li><strong>Perform Slice Time Correction - [On, Off, On/Off]:</strong>  Interpolate voxel timeseries so that sampling occurs at the same time.</li>
+<li><strong>Slice Acquisition Pattern - [Use NifTI Header, alt+z, alt+z2, alt-z, alt-z2, seq+z, seq-z]:</strong> The order of slice acquisition for the scans.</li>
+</ol>
+<div class="section" id="configuration-using-a-yaml-file">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
+<p>To configure the timeseries options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>startIdx : 0
+stopIdx : None
+TR : None
+slice_timing_correction : [0]
+slice_timing_pattern : [&#39;Use NIFTI Header&#39;]
 </pre></div>
 </div>
 </div>
@@ -77,11 +84,22 @@
 <li><strong>Use as Functional-to-Anatomical Registration Input - [Mean Functional, Selected Functional Volume]:</strong> Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.</li>
 <li><strong>Functional Volume to Use as Input (Selected Functional Volume only) - [integer]:</strong> Only for when &#8216;Use as Functional-to-Anatomical Registration Input&#8217; is set to &#8216;Selected Functional Volume&#8217;. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.</li>
 </ol>
+<div class="section" id="id1">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To configure functional to anatomical registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runRegisterFuncToAnat : [1]
+runBBReg : [1]
+boundaryBasedRegistrationSchedule : /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+func_reg_input :  [&#39;Mean Functional&#39;]
+func_reg_input_volume :  0
+</pre></div>
 </div>
-<div class="section" id="functional-to-standard-registration">
-<h2>Functional to Standard Registration<a class="headerlink" href="#functional-to-standard-registration" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+<div class="section" id="functional-to-mni-registration">
+<h2>Functional to MNI Registration<a class="headerlink" href="#functional-to-mni-registration" title="Permalink to this headline">¶</a></h2>
 <div class="figure">
-<img alt="_images/func_to_standard_reg.png" src="_images/func_to_standard_reg.png" />
+<img alt="_images/func_to_mni_reg.png" src="_images/func_to_mni_reg.png" />
 </div>
 <ol class="arabic simple">
 <li><strong>Run Functional to MNI Registration - [On, Off]:</strong> Register functional images to a standard MNI152 template. This option must be enabled if you wish to calculate any derivatives.</li>
@@ -90,14 +108,36 @@
 <li><strong>Standard Template with Skull (functional resolution) - [path]:</strong> Standard FSL Anatomical Brain Image with skull.</li>
 <li><strong>Standard Identity Matrix - [path]:</strong> Matrix containing all 1&#8217;s. Used as an identity matrix during registration. It is not necessary to change this path unless you intend to use non-standard MNI registration.</li>
 </ol>
+<div class="section" id="id2">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>To configure functional to MNI registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runRegisterFuncToMNI : [1]
+resolution_for_func : 2mm
+template_brain_only_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_skull_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+identityMatrix : /usr/share/fsl/5.0/etc/flirtsch/ident.mat
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 
 
-      </div>
-   <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

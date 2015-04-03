@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Dual Regression &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,18 +25,29 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" /> 
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-     <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="dual-regression">
 <h1>Dual Regression<a class="headerlink" href="#dual-regression" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="background-and-information">
 <h2>Background and Information<a class="headerlink" href="#background-and-information" title="Permalink to this headline">¶</a></h2>
-<p>Many large-scale functional brain networks have been shown to be reproducible across subjects (Smith et al, 2009; Yeo et al, 2011). Dual Regression (Beckman et al, 2009; Filippini et al, 2009)allows researchers to investigate individual and group differences in the structure of these networks, as well as to identify subject-specific networks based on networks identified at the group level.</p>
+<p>Many large-scale functional brain networks have been shown to be reproducible across subjects (Smith et al, 2009; Yeo et al, 2011). Dual Regression (Beckman et al, 2009; Filippini et al, 2009) allows researchers to investigate individual and group differences in the structure of these networks, as well as to identify subject-specific networks based on networks identified at the group level.</p>
 </div>
 <div class="section" id="computation-and-analysis-considerations">
 <h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline">¶</a></h2>
@@ -48,7 +61,7 @@
 </div>
 <div class="section" id="configuring-cpac-to-run-dual-regression">
 <h2>Configuring CPAC to Run Dual Regression<a class="headerlink" href="#configuring-cpac-to-run-dual-regression" title="Permalink to this headline">¶</a></h2>
-<p>Spatial maps for use during Dual Regression must be specified on the Spatial Regression page of the CPAC GUI.</p>
+<p>Spatial maps for use during Dual Regression must be specified on the Spatial Regression page of the CPAC GUI under &#8220;Time Series Extraction (TSE)&#8221;.</p>
 <div class="figure">
 <img alt="_images/dr_spatial.png" src="_images/dr_spatial.png" />
 </div>
@@ -77,10 +90,21 @@
 </div>
 
 
-      </div>
-         <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>
