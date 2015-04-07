@@ -713,6 +713,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 fnirt_reg_anat_symm_mni = create_nonlinear_register('anat_symmetric_mni_fnirt_register_%d' % num_strat)
 
                 try:
+                
                     node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                     workflow.connect(node, out_file,
                                      fnirt_reg_anat_symm_mni, 'inputspec.input_brain')
@@ -801,7 +802,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                             logger.info(err_msg)
                             raise Exception
 
-                        # get the reorient skull-on anatomical from resource pool
+                        # get the skullstripped anatomical from resource pool
                         node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
 
                         # pass the anatomical to the workflow
@@ -826,7 +827,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     else:
 
-                        node, out_file = strat.get_leaf_properties()
+                        # get the skullstripped anatomical from resource pool
+                        node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
 
                         workflow.connect(node, out_file, ants_reg_anat_symm_mni,
                             'inputspec.anatomical_brain')
