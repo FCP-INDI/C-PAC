@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Anatomical Preprocessing &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,17 +25,27 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Data Preprocessing" href="preproc.html" />
     <link rel="next" title="Functional Preprocessing" href="func.html" />
-    <link rel="prev" title="Data Preprocessing" href="preproc.html" /> 
+    <link rel="prev" title="Data Preprocessing" href="preproc.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-          
-      <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="anatomical-preprocessing">
 <h1>Anatomical Preprocessing<a class="headerlink" href="#anatomical-preprocessing" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="anatomical-registration">
@@ -42,11 +54,12 @@
 <div class="figure">
 <img alt="_images/registration.png" src="_images/registration.png" />
 </div>
-<p>CPAC provides the option of either using FSL (<a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT">FLIRT</a> and <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT">FNIRT</a>) or <a class="reference external" href="http://stnava.github.io/ANTs/">Advanced Normalization Tools (ANTS)</a> to register images. Although the use of ANTS requires an extra step during the CPAC install process, we have found its results to be significantly better than those produced by FSL (a conclusion supported by a <a class="reference external" href="http://mindboggle.info/papers/evaluation_NeuroImage2010.php">recent systematic analysis by Klein et al.</a> )</p>
+<p>CPAC provides the option of either using FSL (<a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT">FLIRT</a> and <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FNIRT">FNIRT</a>) or <a class="reference external" href="http://stnava.github.io/ANTs/">Advanced Normalization Tools (ANTS)</a> to register images. Although the use of ANTS requires an extra step during the CPAC install process, we have found its results to be significantly better than those produced by FSL (a conclusion supported by a <a class="reference external" href="http://mindboggle.info/papers/Evaluation_Klein_NeuroImage2010.pdf">recent systematic analysis by Klein et al.</a>).</p>
 <p>During registration, individual anatomical images are first transformed to match the common template. Then, the functional data for each subject is registered to their own transformed anatomical image. Finally, functional derivative files are transformed to the common template. For more detail on how CPAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.io/docs/developer/workflows/registration.html">Registration Page of the developer documentation</a>.</p>
 <p>By default, CPAC will register subject brains to the MNI152 template included with FSL. Users wishing to register their data to a different template (such as a group specific template) can specify alternative template files.</p>
+</div>
 <div class="section" id="configuring-cpac-to-run-anatomical-registration">
-<h3>Configuring CPAC to run Anatomical Registration<a class="headerlink" href="#configuring-cpac-to-run-anatomical-registration" title="Permalink to this headline">¶</a></h3>
+<h2>Configuring CPAC to Run Anatomical Registration<a class="headerlink" href="#configuring-cpac-to-run-anatomical-registration" title="Permalink to this headline">¶</a></h2>
 <div class="figure">
 <img alt="_images/anat_reg_gui.png" src="_images/anat_reg_gui.png" />
 </div>
@@ -56,9 +69,23 @@
 <li><strong>Anatomical Template (Brain Only) - [path]:</strong> Template to be used during registration. It is not necessary to change this path unless you intend to use a non-standard template.</li>
 <li><strong>Anatomical Template (With Skull) - [path]:</strong> Template to be used during registration. It is not necessary to change this path unless you intend to use a non-standard template.</li>
 <li><strong>Registration Method - [ANTS, FSL, ANTS &amp; FSL]:</strong> Registration methods to be used. Options are <a class="reference external" href="http://stnava.github.io/ANTs/">ANTS</a> and <a class="reference external" href="http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/reg/">FSL</a>.</li>
-<li><strong>FNIRT Configuration File - [path]:</strong> Configuration file specifying settings used during registration. Required if FSL is selected as the registration method. This file can be found in the <tt class="file docutils literal"><span class="pre">/etc/flirtsch</span></tt> directory of your FSL install.</li>
+<li><strong>FSL FNIRT Configuration File - [path]:</strong> Configuration file specifying settings used during registration. Required if FSL is selected as the registration method. This file can be found in the <code class="file docutils literal"><span class="pre">/etc/flirtsch</span></code> directory of your FSL install.</li>
+<li><strong>FSL FNIRT Reference Mask - [path]:</strong> A reference mask to be used by FNIRT.</li>
 <li><strong>Use skull-on image to calculate transform? (ANTS only) - [Off, On]:</strong> Register skull-on anatomical image to template. Calculating the transform with skull-stripped images is reported to be better, but it requires very high-quality skull-stripping. If skull-stripping is imprecise, registration with skull is preferred. Note: This option only affects ANTS due to the fact that FNIRT already uses skull-on images for calculating warps.</li>
 </ol>
+<div class="section" id="configuration-using-a-yaml-file">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
+<p>To configure the anatomical registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runRegistrationPreprocessing : [1]
+resolution_for_anat : 2mm
+template_brain_only_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
+template_skull_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
+regOption : [&#39;ANTS&#39;]
+fnirtConfig : T1_2_MNI152_2mm
+ref_mask : $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_symmetric_dil.nii.gz
+regWithSkull : [0]
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="anatomical-tissue-segmentation">
@@ -83,8 +110,9 @@ threshold=0.5
 fslmaths avg152T1_${tissue}.nii.gz -thr $threshold -bin avg152T1_${tissue}_2mm_bin
 </pre></div>
 </div>
+</div>
 <div class="section" id="configuring-cpac-to-run-anatomical-tissue-segmentation">
-<h3>Configuring CPAC to run Anatomical Tissue Segmentation<a class="headerlink" href="#configuring-cpac-to-run-anatomical-tissue-segmentation" title="Permalink to this headline">¶</a></h3>
+<h2>Configuring CPAC to Run Anatomical Tissue Segmentation<a class="headerlink" href="#configuring-cpac-to-run-anatomical-tissue-segmentation" title="Permalink to this headline">¶</a></h2>
 <div class="figure">
 <img alt="_images/seg_gui.png" src="_images/seg_gui.png" />
 </div>
@@ -98,15 +126,39 @@ fslmaths avg152T1_${tissue}.nii.gz -thr $threshold -bin avg152T1_${tissue}_2mm_b
 <li><strong>Gray Matter Prior Probability Map - [path]:</strong> Full path to a binarized Gray Matter prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.</li>
 <li><strong>CSF Prior Probability Map - [path]:</strong> Full path to a binarized CSF prior probability map. It is not necessary to change this path unless you intend to use non-standard priors.</li>
 </ol>
+<div class="section" id="id1">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To configure the timeseries options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runSegmentationPreprocessing : [1]
+whiteMatterThreshold : [0.98]
+grayMatterThreshold : [0.7]
+cerebralSpinalFluidThreshold : [0.98]
+priors_path : /usr/share/fsl/5.0/data/standard/tissuepriors/${resolution_for_anat}
+PRIORS_WHITE : $priors_path/avg152T1_white_bin.nii.gz
+PRIORS_GRAY : $priors_path/avg152T1_gray_bin.nii.gz
+PRIORS_CSF : $priors_path/avg152T1_csf_bin.nii.gz
+</pre></div>
+</div>
 </div>
 </div>
 </div>
 
 
-      </div>
-    <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

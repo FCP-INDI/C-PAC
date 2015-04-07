@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Seed-based Correlation Analysis (SCA) &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,16 +25,27 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Outputs and Measures" href="derivs.html" />
     <link rel="next" title="Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)" href="alff.html" />
-    <link rel="prev" title="Outputs and Measures" href="derivs.html" /> 
+    <link rel="prev" title="Outputs and Measures" href="derivs.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-     <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="seed-based-correlation-analysis-sca">
 <h1>Seed-based Correlation Analysis (SCA)<a class="headerlink" href="#seed-based-correlation-analysis-sca" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="connectivity-in-the-brain">
@@ -53,11 +66,37 @@
 </div>
 <div class="section" id="configuring-c-pac">
 <h2>Configuring C-PAC<a class="headerlink" href="#configuring-c-pac" title="Permalink to this headline">¶</a></h2>
-<p><strong>Before SCA can be calculated, one must first extract a seed time series from which to calculate correlation.</strong> This is done by configuring and running <a class="reference internal" href="tse.html"><em>Time Series Extraction</em></a>.</p>
-<p>As such, many of the steps required to configure SCA (such as specifying an ROI) are found under <a class="reference internal" href="tse.html"><em>Time Series Extraction</em></a>. The following setting in <tt class="file docutils literal"><span class="pre">config.yml</span></tt> is used to turn on/off SCA:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Run Seed-based Correlation Analysis</span>
-<span class="n">runSCA</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<p>Before SCA can be calculated, you <strong>must</strong> first extract a seed time series from which to calculate correlations. This is done by configuring and running <a class="reference internal" href="tse.html"><em>Time Series Extraction</em></a>.  <strong>You will not be able to proceed in the GUI without first entering in an ROI Specification, and will receive an error if the specification is not defined.</strong></p>
+<div class="figure">
+<img alt="_images/sca_gui_1.png" src="_images/sca_gui_1.png" />
+</div>
+<ol class="arabic simple">
+<li><strong>Run Seed-based Correlation Analysis (SCA) - [Off, On]:</strong>  For each extracted ROI Average and/or ROI Voxelwise time series, CPAC will generate a whole-brain correlation map. It should be noted that for a given seed/ROI, SCA maps for ROI Average and ROI Voxelwise time series will be the same.</li>
+</ol>
+<div class="figure">
+<img alt="_images/sca_gui_2.png" src="_images/sca_gui_2.png" />
+</div>
+<ol class="arabic simple">
+<li><strong>Run Multiple Regression SCA - [Off, On]:</strong>  CPAC will enter all extracted time series from ROI Average TSE, ROI Voxelwise TSE, and Spatial Regression into a single multiple regression model and output a single correlation map.</li>
+<li><strong>Demean Time Series - [True, False]:</strong>  Demean each time series before running Multiple Regression SCA.</li>
+<li><strong>Normalize Time Series - [True, False]:</strong>  Normalize each time series before running Multiple Regression SCA.</li>
+</ol>
+<p>You must also define at least one ROI mask containing the voxels you would like to correlate your seed with.  To do this perform the following steps after you have saved your YAML pipeline configuration file:</p>
+<ol class="arabic simple">
+<li>Create a text file named &#8216;mask_specs.txt&#8217; (or any other reasonable name of your choosing).</li>
+<li>For each line in &#8216;mask_specs.txt&#8217;, type in a full path to a binary-valued NifTI file that represents your ROI.</li>
+<li>Within your pipeline configuration .yml file, set maskSpecificationFileForSCA to the full path to &#8216;mask_specs.txt&#8217; (see &#8216;Configuration Using a YAML File&#8217; below).</li>
+</ol>
+<div class="section" id="configuration-using-a-yaml-file">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
+<p>To configure seed-based correlation analysis options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>maskSpecificationFileForSCA : /home/user/run/resources/mask_specs.txt
+runSCA = [0]
+runMultRegSCA : [1]
+mrsDemean : True
+mrsNorm : True
 </pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="external-resources">
@@ -70,10 +109,21 @@
 </div>
 
 
-      </div>
-    <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

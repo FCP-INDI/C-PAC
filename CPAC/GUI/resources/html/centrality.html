@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Network Centrality &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,21 +25,32 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Outputs and Measures" href="derivs.html" />
     <link rel="next" title="Connectome-wide Association Studies (CWAS)" href="cwas.html" />
-    <link rel="prev" title="Regional Homogeneity" href="reho.html" /> 
+    <link rel="prev" title="Regional Homogeneity" href="reho.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-     <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="network-centrality">
 <h1>Network Centrality<a class="headerlink" href="#network-centrality" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="introduction-background">
 <h2>Introduction &amp; Background<a class="headerlink" href="#introduction-background" title="Permalink to this headline">¶</a></h2>
-<p>Nodes are the basic units of a network, and are connected by edges. Among the many nodes that form the whole-brain network (also known as the functional connectome), some play a crucial role and may be considered &amp;#8220;central&amp;#8221; within the network. These central nodes can be identified by applying various graph-theory based network analysis techniques which provide a measure of the &amp;#8220;centrality&amp;#8221; or functional importance of each node (Koschutzki et al. 2005). Different centrality measures capture different aspects of connectivity (Joyce et al., 2010; Zuo et al., 2011). CPAC is able to calculate three commonly used centrality indices: Degree Centrality (DC), Eigenvector Centrality (EC), and local Functional Connectivity Density (lFCD). Unlike traditional functional connectivity analyses, centrality measures capture the complexity of the entire functional connectome, and do not require the selection of any &lt;em&gt;a priori&lt;/em&gt; regions of interest.</p>
+<p>Nodes are the basic units of a network, and are connected by edges. Among the many nodes that form the whole-brain network (also known as the functional connectome), some play a crucial role and may be considered &amp;#8220;central&amp;#8221; within the network. These central nodes can be identified by applying various graph-theory based network analysis techniques which provide a measure of the &amp;#8220;centrality&amp;#8221; or functional importance of each node (Koschutzki et al. 2005). Different centrality measures capture different aspects of connectivity (Joyce et al., 2010; Zuo et al., 2011). CPAC is able to calculate three commonly used centrality indices: Degree Centrality (DC), Eigenvector Centrality (EC), and local Functional Connectivity Density (lFCD). Unlike traditional functional connectivity analyses, centrality measures capture the complexity of the entire functional connectome, and do not require the selection of any <strong>a priori</strong> regions of interest.</p>
 <p><strong>Degree centrality</strong> is a measure of local network connectivity and identifies the most connected nodes by counting the number of direct connections (edges) to all other nodes. As such, a node with high DC will have direct connections to many other nodes in the network. Degree centrality analysis tends to emphasize higher order cortical association areas while showing reduced sensitivity for paralimbic and subcortical regions (Zuo et al., 2012).</p>
 <p><strong>Eigenvector centrality</strong> is a measure of global network connectivity. The EC of a given node reflects the number of direct connections it has with other nodes that have high centrality. Thus, the EC of a given node depends not only on its own centrality, but the centrality of the nodes it connects to. A node with high EC has connections to many other nodes that are themselves highly connected and central within the network. In contrast to DC, EC is more sensitive to paralimbic and subcortical regions (Zuo et al., 2012).</p>
 <p>The figure below (taken from Zuo et al., 2012) shows differences in centrality across the brain, as well as differences between EC and DC measures.</p>
@@ -58,8 +71,9 @@
 <img alt="_images/centrality_zuo_cover.png" src="_images/centrality_zuo_cover.png" />
 </div>
 <p>Beyond detecting functional hubs, both DC and EC have been used as a way of characterizing information flow through the functional connectome at the voxel level. These voxel-wise centrality analyses (depicted in the figure above, taken from Zuo et al., 2012) showed both short and long-term test-retest reliability, and appear to be modulated by age and sex (Zuo et al., 2012). Additionally, EC has been shown to be modulated by subjects&#8217; states of hunger or satiety (Lohmann et al. 2010).</p>
+</div>
 <div class="section" id="configuring-cpac-to-run-network-centrality">
-<h3>Configuring CPAC to run Network Centrality<a class="headerlink" href="#configuring-cpac-to-run-network-centrality" title="Permalink to this headline">¶</a></h3>
+<h2>Configuring CPAC to Run Network Centrality<a class="headerlink" href="#configuring-cpac-to-run-network-centrality" title="Permalink to this headline">¶</a></h2>
 <div class="figure">
 <img alt="_images/centrality_gui.png" src="_images/centrality_gui.png" />
 </div>
@@ -72,6 +86,23 @@
 <li><strong>Threshold Value - [decimal]:</strong> Based on the Threshold Type selected above, enter a Threshold Value. P-value for Significance Threshold, Sparsity value for Sparsity Threshold, Pearson&#8217;s r value for Correlation Threshold.</li>
 <li><strong>Maximum RAM Use (GB) - [decimal]:</strong> Maximum amount of RAM (in GB) to be used when calculating Degree Centrality and local Functional Connectivity Density. Calculating Eigenvector Centrality will require additional memory based on the size of the mask or number of ROI nodes. Setting this measure is still recommended as a way to check whether your machine has enough memory to run Eigenvector Centrality.</li>
 </ol>
+<div class="section" id="configuration-using-a-yaml-file">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
+<p>To configure network centrality options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runNetworkCentrality : [0]
+templateSpecificationFile : /path/to/centrality/specs
+degWeightOptions : [True, True]
+degCorrelationThresholdOption : 0
+degCorrelationThreshold : 0.001
+eigWeightOptions : [False, False]
+eigCorrelationThresholdOption : 0
+eigCorrelationThreshold : 0.001
+lfcdWeightOptions : [True, True]
+lfcdCorrelationThresholdOption : 0
+lfcdCorrelationThreshold : 0.001
+memoryAllocatedForDegreeCentrality : 2.0
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="references">
@@ -90,10 +121,21 @@
 </div>
 
 
-      </div>
-    <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

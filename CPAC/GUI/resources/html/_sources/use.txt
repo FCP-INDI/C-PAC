@@ -12,7 +12,7 @@ This page will guide you through the process of:
 
 Open CPAC
 ---------
-To open the CPAC GUI, simply enter the command ``cpac_gui`` in a terminal window. You will be presented with the main CPAC window.
+To open the CPAC GUI, simply enter the command ``cpac_gui`` in a terminal window. You will be presented with the main CPAC window.  **Note: You may receive an error about a 'known incorrect sRGB profile' if you are running the GUI within Anaconda/Miniconda on some machines.  This will not affect C-PAC performance and can be ignored.**
 
 .. figure:: /_images/main_gui.png
 
@@ -20,7 +20,8 @@ Specify a Subject List
 ----------------------
 The first step in running CPAC is to generate a list of subjects and data to process. For detailed instructions on how to do this, as well as how to configure :doc:`Slice Timing Correction </slice>`, please see the :doc:`Subject List Setup Page</data_config>`.
 
-If you would like to use a previously generated subject list, click the Load button and select the appropriate ``.yml`` subject list file. If you have loaded multiple subject lists, use the checkboxes to select which subject lists you would like to run.
+If you would like to use a previously generated subject list, click the Load button and select the appropriate ``.yml`` subject list file. If you have loaded multiple subject lists, use the checkboxes to select which subject lists you would like to run.  **Note: Do not confuse the 'Load' button on this window with the 'Load Settings' button on the Subject List Setup window.  The latter button is intended to reload configuration files that the subject list setup dialogue can use to create subject lists.  It will not work with other YAML files.**
+
 
 Configure a Pipeline
 --------------------
@@ -43,8 +44,7 @@ Once you have specified a subject list, you are ready to create a new analysis p
 
 When you have finished configuring your pipeline, click Save. You will be asked to specify a location to save a configuration file containing information about the pipeline, and to specify a name for the pipeline.
 
-To modify an existing pipeline, select it and click Edit. To use a previously configured pipeline, click Load and select the appropriate ``.yml`` configuration file. If you have loaded multiple pipelines, use the checkboxes to select which pipelines you would like to run.
-
+To modify an existing pipeline, select it and click Edit. To use a previously configured pipeline, click Load and select the appropriate ``.yml`` configuration file. If you have loaded multiple pipelines, use the checkboxes to select which pipelines you would like to run. 
 
 Running Preprocessing and Individual-Level Analysis
 ---------------------------------------------------

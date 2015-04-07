@@ -19,17 +19,25 @@ The results of ReHo analysis have been shown to vary significantly depending on 
 
 Applications and Recommendations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Reho as an index of ongoing activity has been widely used in the resting-state literature. ReHo in the Default Mode Network (DMN) has been observed to increase during rest (Long et al., 2008) and decrease during task engagement (Zang et al., 2004), findings that fit well with the existing literature. In healthy subjects, ReHo measures are associated with individual differences in behavioral inhibition (Tian et al., 2012) and normal aging (Wu et al., 2007). In patient populations, alterated ReHo has been observed in multiple conditions, including Alzheimer's Disease (Liu et al., 2008), ADHD (Cao et al., 2006), and schizophrenia (Liu et al., 2006).
+ReHo as an index of ongoing activity has been widely used in the resting-state literature. ReHo in the Default Mode Network (DMN) has been observed to increase during rest (Long et al., 2008) and decrease during task engagement (Zang et al., 2004), findings that fit well with the existing literature. In healthy subjects, ReHo measures are associated with individual differences in behavioral inhibition (Tian et al., 2012) and normal aging (Wu et al., 2007). In patient populations, alterated ReHo has been observed in multiple conditions, including Alzheimer's Disease (Liu et al., 2008), ADHD (Cao et al., 2006), and schizophrenia (Liu et al., 2006).
 
 ReHo analysis can also be applied to task evoked fMRI data and is appropriate for application in block-based and slow event-related designs, but may not provide reliable results in rapid event-related studies. In such paradigms, the hemodynamic signal for a given timepoint is the result of multiple trials, and ReHo is unable to account for this overlapping of signals.
 
-Configuring CPAC to run ReHo
-""""""""""""""""""""""""""""
+Configuring CPAC to Run ReHo
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/reho_gui.png
 
 #. **Calculate Regional Homogeneity (ReHo) - [Off, On]:** Calculate Regional Homogeneity (ReHo) for all voxels.
 
 #. **Voxel Cluster Size - [7,19,27]:** Number of neighboring voxels used when calculating ReHo. 7 (Faces), 19 (Faces + Edges), or 27 (Faces + Edges + Corners).
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure ReHo options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runReHo : [1]
+    clusterSize : 27
 
 References
 ^^^^^^^^^^

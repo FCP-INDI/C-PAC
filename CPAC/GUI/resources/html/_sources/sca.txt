@@ -1,5 +1,6 @@
 ﻿Seed-based Correlation Analysis (SCA)
--------------------------------------
+=====================================
+
 Connectivity in the Brain
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Brain connectivity can refer to multiple distinct concepts, and it is important to understand the differences between them. When referring to anatomy, connectivity may refer to physical connections between brain areas, such as the long-distance fiber tracts revealed through methods such as Diffusion Tensor Imaging. Another form of connectivity that is commonly discussed in the literature is "functional connectivity", which is what we will be focusing on here.
@@ -18,12 +19,39 @@ Astute readers will note that the pattern of connectivity mapped above closely r
 
 Configuring C-PAC
 ^^^^^^^^^^^^^^^^^
-**Before SCA can be calculated, one must first extract a seed time series from which to calculate correlation.** This is done by configuring and running :doc:`Time Series Extraction </tse>`.
+Before SCA can be calculated, you **must** first extract a seed time series from which to calculate correlations. This is done by configuring and running :doc:`Time Series Extraction </tse>`.  **You will not be able to proceed in the GUI without first entering in an ROI Specification, and will receive an error if the specification is not defined.** 
 
-As such, many of the steps required to configure SCA (such as specifying an ROI) are found under :doc:`Time Series Extraction </tse>`. The following setting in :file:`config.yml` is used to turn on/off SCA::
+.. figure:: /_images/sca_gui_1.png
 
-    # Run Seed-based Correlation Analysis
+#. **Run Seed-based Correlation Analysis (SCA) - [Off, On]:**  For each extracted ROI Average and/or ROI Voxelwise time series, CPAC will generate a whole-brain correlation map. It should be noted that for a given seed/ROI, SCA maps for ROI Average and ROI Voxelwise time series will be the same.
+
+.. figure:: /_images/sca_gui_2.png
+
+#. **Run Multiple Regression SCA - [Off, On]:**  CPAC will enter all extracted time series from ROI Average TSE, ROI Voxelwise TSE, and Spatial Regression into a single multiple regression model and output a single correlation map.
+
+#. **Demean Time Series - [True, False]:**  Demean each time series before running Multiple Regression SCA.
+
+#. **Normalize Time Series - [True, False]:**  Normalize each time series before running Multiple Regression SCA.
+
+
+You must also define at least one ROI mask containing the voxels you would like to correlate your seed with.  To do this perform the following steps after you have saved your YAML pipeline configuration file:
+
+#. Create a text file named 'mask_specs.txt' (or any other reasonable name of your choosing).
+#. For each line in 'mask_specs.txt', type in a full path to a binary-valued NifTI file that represents your ROI.
+#. Within your pipeline configuration .yml file, set maskSpecificationFileForSCA to the full path to 'mask_specs.txt' (see 'Configuration Using a YAML File' below). 
+
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure seed-based correlation analysis options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    maskSpecificationFileForSCA : /home/user/run/resources/mask_specs.txt
     runSCA = [0]
+    runMultRegSCA : [1]
+    mrsDemean : True
+    mrsNorm : True
+
 
 External Resources
 ^^^^^^^^^^^^^^^^^^

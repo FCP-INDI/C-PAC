@@ -1,5 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -8,8 +7,11 @@
     
     <title>Nuisance Signal Regression &mdash; C-PAC 0.3.9 Alpha documentation</title>
     
-    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,19 +25,67 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
     <link rel="up" title="Data Preprocessing" href="preproc.html" />
     <link rel="next" title="Temporal Filtering" href="temporal.html" />
-    <link rel="prev" title="Motion Correction" href="motion.html" /> 
+    <link rel="prev" title="Motion Correction" href="motion.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
   </head>
-  <body>
-     <div class="content">
-        
-        
+  <body role="document">
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      
   <div class="section" id="nuisance-signal-regression">
 <h1>Nuisance Signal Regression<a class="headerlink" href="#nuisance-signal-regression" title="Permalink to this headline">¶</a></h1>
 <p>A key step in preparing fMRI data for statistical analysis is the removal of nusiance signals and noise. C-PAC provides a number of options for removing nuisance signals. These methods can be combined as desired by the user, and are described below.</p>
+<div class="section" id="white-matter-csf-regression">
+<h2>White Matter / CSF Regression<a class="headerlink" href="#white-matter-csf-regression" title="Permalink to this headline">¶</a></h2>
+<p>Signal changes in the white matter (WM) and cerebrospinal fluid (CSF) primarily reflect non-neural fluctuations such as scanner instabilities, subject motion, and physiological artifacts (e.g. respiration and cardiac effects) (Dagli et al., 1999; Windischberger et al., 2002). These signals are largely independent from the BOLD signal fluctuations recorded in gray matter, and may introduce temporal coherences that lead to an overestimation of functional connectivity strength. Successful estimation and correction for this non-neural noise allows for the exclusion such confounding effects.</p>
+<div class="section" id="mean-white-matter-csf">
+<h3>Mean White Matter / CSF<a class="headerlink" href="#mean-white-matter-csf" title="Permalink to this headline">¶</a></h3>
+<p>The mean WM and CSF time series are calculated by averaging signal over all voxels within a WM or CSF mask for each time point. Mean WM and CSF time series are then used as temporal covariates and removed from the raw data through linear regression.</p>
+<p><strong>Note:</strong> The <strong>Lateral Ventricles Mask</strong> in standard space is provided for isolating signal changes in the CSF. This mask is based off of the HarvardOxford atlas that is in standard MNI space. If you wish to use your own standard and lateral ventricles mask, and wish to run CSF nuisance regression, you must provide it here.</p>
+</div>
+<div class="section" id="compcor">
+<h3>CompCor<a class="headerlink" href="#compcor" title="Permalink to this headline">¶</a></h3>
+<p>The term &#8220;noise region-of-interest&#8221; (noise ROI) refers to areas such as white matter (WM) and cerebral spinal fluid (CSF) in which temporal fluctuations are unlikely to be modulated by neural activity, and thus primarily reflect physiological noise (Behzadi et al., 2007). Based on the assumption that signal from a noise ROI can be used to accurately model physiological fluctuations in gray matter regions, a novel component based noise reduction method (CompCor) was proposed to correct for physiological noise by regressing out principal components from noise ROIs (Behzadi et al., 2007). Compared to the average signal from WM and CSF regions (i.e. WM/CSF regression methods), signals captured by principal components derived from these noise ROIs can better account for voxel-specific phase differences in physiological noise due to the potential of principle component analysis to identify temporal pattern of physiological noise (Tomas et al., 2002). Thus, preprocessing with CompCor can significantly reduce physiological noise as well as noise from other sources (Behzadi et al., 2007; Chai et al., 2012).</p>
+<p>The first step of CompCor is to determine noise ROIs. This can be done either by using anatomical data to identify voxels that consist primarily of either WM or CSF, or by defining noise ROIs as voxels with high temporal standard deviation. A principal component analysis (PCA) is then applied to characterize the time series data from the noise ROIs. Significant principal components are then introduced as covariates in a general linear model (GLM) as an estimate of the physiological noise signal space (Behzadi et al., 2007).</p>
+</div>
+</div>
+<div class="section" id="global-signal-regression">
+<h2>Global Signal Regression<a class="headerlink" href="#global-signal-regression" title="Permalink to this headline">¶</a></h2>
+<p>Global signal, the average signal across all voxels in the brain, is assumed to reflect a combination of resting-state fluctuations, physiological noise (e.g. respiratory and cardiac noise), and other noise signals with non-neural origin. Global signal regression (GSR) is a preprocessing technique for removing the spontaneous BOLD fluctuations common to the whole brain using a general linear model (GLM). Although GSR can potentially change functional connectivity distributions and result in increased negative correlations (Murphy et al., 2009; Saad et al., 2012; Weissenbacher et al., 2009), this technique has been shown to facilitate the detection of localized neuronal signals and improve the specificity of functional connectivity analysis (Fox et al., 2005; Fox et al., 2009). Thus, GSR remains a common and useful processing technique in some situations.</p>
+<div class="section" id="global-mean">
+<h3>Global Mean<a class="headerlink" href="#global-mean" title="Permalink to this headline">¶</a></h3>
+<p>A global mean (defined as the average signal over all voxels for each time point) is used as a temporal covariate and regressed out using linear regression.</p>
+</div>
+<div class="section" id="first-principle-component-removal-pc1">
+<h3>First Principle Component Removal (PC1)<a class="headerlink" href="#first-principle-component-removal-pc1" title="Permalink to this headline">¶</a></h3>
+<p>Performs a Principal Components Analysis and regresses out the first principal component, which is assumed to be the global mean signal.</p>
+</div>
+<div class="section" id="median-angle-correction">
+<h3>Median Angle Correction<a class="headerlink" href="#median-angle-correction" title="Permalink to this headline">¶</a></h3>
+<p>Median angle correction is another global signal correction approach. It is assumed that the global signal in resting-state fMRI can be viewed as the sum of two components: a component that reflects the intrinsic correlations of resting state fMRI signals between regions, and a nuisance component that reflects an additive global signal confound. Unlike the GSR method which removes both components, median angle correction can characterize the properties of the global signal and effectively minimize the effects of the additive global signal confound while preserving the desired components.</p>
+<p>Principal component analysis (PCA) is used to decompose the resting-state data. Median angle is computed by taking the inverse cosine of each voxel’s time series vector&#8217;s projection onto the first principal component (i.e. the global mean signal) and then calculating the median over the angles from all the vectors. If an inverse relation is found between the median angle and the mean BOLD signal amplitude, then an additive signal confound is present. As resting-state data sets with high median angles and low mean BOLD magnitudes are likely to be the least contaminated by an additive global confound (He and Liu, 2011), the inverse relation between median angle and mean BOLD magnitude is used to correct for differences in the additive confound. Specifically, the angular distributions of datasets with small median angles can be shifted to attain a larger target median angle to effectively minimize the effects of the global signal confound. The calculation of target angle for median angle correction is described in He and Liu (2011).</p>
+</div>
+</div>
+<div class="section" id="linear-and-quadratic-detrending">
+<h2>Linear and Quadratic Detrending<a class="headerlink" href="#linear-and-quadratic-detrending" title="Permalink to this headline">¶</a></h2>
+<p>Removes linear or quadratic trends in the timeseries. The linear trend is likely due to the scanner heating up as the scan progresses, while the quadratic trend is possibly due to slow movement-related effects.</p>
+</div>
+<div class="section" id="configuring-nuisance-signal-correction-options">
+<h2>Configuring Nuisance Signal Correction Options<a class="headerlink" href="#configuring-nuisance-signal-correction-options" title="Permalink to this headline">¶</a></h2>
 <div class="figure">
 <img alt="_images/nuisance.png" src="_images/nuisance.png" />
 </div>
@@ -45,34 +95,43 @@
 <li><strong>Corrections: - [compcor, wm, csf, global, pc1, motion, linear, quadratic, gm]:</strong> The nuisance regressors to covary out.</li>
 <li><strong>CompCor Components - [integer]:</strong> Number of principle components to calculate when running CompCor.  5 or 6 is recommended.</li>
 </ol>
-<div class="section" id="white-matter-csf-regression">
-<h2>White Matter / CSF Regression<a class="headerlink" href="#white-matter-csf-regression" title="Permalink to this headline">¶</a></h2>
-<p>Signal changes in the white matter (WM) and cerebrospinal fluid (CSF) primarily reflect non-neural fluctuations such as scanner instabilities, subject motion, and physiological artifacts (e.g. respiration and cardiac effects) (Dagli et al., 1999; Windischberger et al., 2002). These signals are largely independent from the BOLD signal fluctuations recorded in gray matter, and may introduce temporal coherences that lead to an overestimation of functional connectivity strength. Successful estimation and correction for this non-neural noise allows for the exclusion such confounding effects.</p>
-<p>The mean WM and CSF time series are calculated by averaging signal over all voxels within a WM or CSF mask for each time point. Mean WM and CSF time series are then used as temporal covariates and removed from the raw data through linear regression.</p>
-<p><strong>Note:</strong> The <strong>Lateral Ventricles Mask</strong> in standard space is provided for isolating signal changes in the CSF. This mask is based off of the HarvardOxford atlas that is in standard MNI space. If you wish to use your own standard and lateral ventricles mask, and wish to run CSF nuisance regression, you must provide it here.</p>
+<div class="section" id="configuration-using-a-yaml-file">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
+<p>To configure the nuisance signal options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runNuisance : [1]
+lateral_ventricles_mask : /usr/share/fsl/5.0/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
+Corrections :
+    - compcor : 0
+      wm : 0
+      csf : 0
+      global : 0
+      pc1 : 0
+      motion : 0
+      linear : 0
+      quadratic : 0
+      gm : 0
+nComponents : [5]
+</pre></div>
 </div>
-<div class="section" id="compcor">
-<h2>CompCor<a class="headerlink" href="#compcor" title="Permalink to this headline">¶</a></h2>
-<p>The term &#8220;noise region-of-interest&#8221; (noise ROI) refers to areas such as white matter (WM) and cerebral spinal fluid (CSF) in which temporal fluctuations are unlikely to be modulated by neural activity, and thus primarily reflect physiological noise (Behzadi et al., 2007). Based on the assumption that signal from a noise ROI can be used to accurately model physiological fluctuations in gray matter regions, a novel component based noise reduction method (CompCor) was proposed to correct for physiological noise by regressing out principal components from noise ROIs (Behzadi et al., 2007). Compared to the average signal from WM and CSF regions (i.e. WM/CSF regression methods), signals captured by principal components derived from these noise ROIs can better account for voxel-specific phase differences in physiological noise due to the potential of principle component analysis to identify temporal pattern of physiological noise (Tomas et al., 2002). Thus, preprocessing with CompCor can significantly reduce physiological noise as well as noise from other sources (Behzadi et al., 2007; Chai et al., 2012).</p>
-<p>The first step of CompCor is to determine noise ROIs. This can be done either by using anatomical data to identify voxels that consist primarily of either WM or CSF, or by defining noise ROIs as voxels with high temporal standard deviation. A principal component analysis (PCA) is then applied to characterize the time series data from the noise ROIs. Significant principal components are then introduced as covariates in a general linear model (GLM) as an estimate of the physiological noise signal space (Behzadi et al., 2007).</p>
 </div>
-<div class="section" id="global-signal-regression">
-<h2>Global Signal Regression<a class="headerlink" href="#global-signal-regression" title="Permalink to this headline">¶</a></h2>
-<p>Global signal, the average signal across all voxels in the brain, is assumed to reflect a combination of resting-state fluctuations, physiological noise (e.g. respiratory and cardiac noise), and other noise signals with non-neural origin. Global signal regression (GSR) is a preprocessing technique for removing the spontaneous BOLD fluctuations common to the whole brain using a general linear model (GLM). Although GSR can potentially change functional connectivity distributions and result in increased negative correlations (Murphy et al., 2009; Saad et al., 2012; Weissenbacher et al., 2009), this technique has been shown to facilitate the detection of localized neuronal signals and improve the specificity of functional connectivity analysis (Fox et al., 2005; Fox et al., 2009). Thus, GSR remains a common and useful processing technique in some situations.</p>
-<p>A global mean (defined as the average signal over all voxels for each time point) is used as a temporal covariate and regressed out using linear regression.</p>
 </div>
-<div class="section" id="first-principle-commponent-removal-pc1">
-<h2>First Principle Commponent Removal (PC1)<a class="headerlink" href="#first-principle-commponent-removal-pc1" title="Permalink to this headline">¶</a></h2>
-<p>Performs a Principal Components Analysis and regresses out the first principal component, which is assumed to be the global mean signal.</p>
+<div class="section" id="configuring-median-angle-correction">
+<h2>Configuring Median Angle Correction<a class="headerlink" href="#configuring-median-angle-correction" title="Permalink to this headline">¶</a></h2>
+<div class="figure">
+<img alt="_images/median_angle.png" src="_images/median_angle.png" />
 </div>
-<div class="section" id="linear-and-quadratic-detrending">
-<h2>Linear and Quadratic Detrending<a class="headerlink" href="#linear-and-quadratic-detrending" title="Permalink to this headline">¶</a></h2>
-<p>Removes linear or quadratic trends in the timeseries. The linear trend is likely due to the scanner heating up as the scan progresses, while the quadratic trend is possibly due to slow movement-related effects.</p>
+<ol class="arabic simple">
+<li><strong>Run Median Angle Correction - [Off, On, On/Off]:</strong>  Correct for the global signal using Median Angle Correction.</li>
+<li><strong>Target Angle (degrees) - [numerical value]:</strong> Target angle used during Median Angle Correction.</li>
+</ol>
+<div class="section" id="id1">
+<h3>Configuration Using a YAML File<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To configure the median angle options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
+<div class="highlight-python"><div class="highlight"><pre>runMedianAngleCorrection : [0]
+targetAngleDeg : [90]
+</pre></div>
 </div>
-<div class="section" id="median-angle-correction">
-<h2>Median Angle Correction<a class="headerlink" href="#median-angle-correction" title="Permalink to this headline">¶</a></h2>
-<p>Median angle correction is a global signal correction approach. It is assumed that the global signal in resting-state fMRI can be viewed as the sum of two components: a component that reflects the intrinsic correlations of resting state fMRI signals between regions, and a nuisance component that reflects an additive global signal confound. Unlike the GSR method which removes both components, median angle correction can characterize the properties of the global signal and effectively minimize the effects of the additive global signal confound while preserving the desired components.</p>
-<p>Principal component analysis (PCA) is used to decompose the resting-state data. Median angle is computed by taking the inverse cosine of each voxel’s time series vector&#8217;s projection onto the first principal component (i.e. the global mean signal) and then calculating the median over the angles from all the vectors. If an inverse relation is found between the median angle and the mean BOLD signal amplitude, then an additive signal confound is present. As resting-state data sets with high median angles and low mean BOLD magnitudes are likely to be the least contaminated by an additive global confound (He and Liu, 2011), the inverse relation between median angle and mean BOLD magnitude is used to correct for differences in the additive confound. Specifically, the angular distributions of datasets with small median angles can be shifted to attain a larger target median angle to effectively minimize the effects of the global signal confound. The calculation of target angle for median angle correction is described in He and Liu (2011).</p>
+</div>
 </div>
 <div class="section" id="references">
 <h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
@@ -94,10 +153,21 @@ change in fMRI</a>. NeuroImage 9, 407–415.</p>
 </div>
 
 
-      </div>
-    <div class="footer">
-        &copy; Copyright 2015, C-PAC Team.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, C-PAC Team.<br/>
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
+    </p>
+  </div>
+</footer>
   </body>
 </html>

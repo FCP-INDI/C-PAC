@@ -1,6 +1,55 @@
 Release Notes
 -------------
 
+Version 0.3.9 Alpha - 2015.04.02
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Major group analysis model builder upgrades:
+
+    * F-tests are now fully integrated into the new model builder GUI.
+
+    * Users can now provide their own custom, hand-coded contrasts matrix if they do not wish to use the model builder's contrast dialog.
+
+    * The "mean of measure" regressor option can now be calculated using a specified mask, in addition to the option of using an automatically created mask for each individual.
+
+    * A custom ROI mask file can now be provided with one or more ROIs - the mean of these ROIs will then be calculated and included as regressors in the model. This will enable for example, including seperate regressors for white matter and CSF.
+
+    * The statistical derivatives to be analyzed can now be specified for each group model, allowing the user more flexibility for using different group models (i.e. include different nuisance regressors) for different derivatives. 
+
+    * Better error checking and more informative error and warning messages have been added.
+
+#. New AWS functionality, which contain utilities for interacting with Amazon Web Services' S3 storage service, including upload, download, renaming files. Additionally, it provides some tools for local file MD5 sums and AWS credentials fetching.
+
+#. Scrubbing now works properly.
+
+#. Pipeline speed-ups gained by ensuring ANTS-based symmetric anatomical registration only runs when necessary.
+
+#. Moved to Jenkinson's Mean Framewise Displacement (Mean FD) calculation for MeanFD-related measures.
+
+#. Made the output file structure for SCA outputs more clear.
+
+#. Changed the working directory structure for group analysis so that it is more clear.
+
+#. Fixed a bug where the skull-stripped brain was actually being used when the user selected to calculate the ANTS anatomical-to-template registration with the skull on.
+
+#. Fixed a bug in group analysis where not all of the selected derivatives would run in some cases.
+
+#. Fixed a bug where the pipeline would crash if the segmentation thresholds were set too high. This will now result in a easy to understand error message.
+
+#. Fixed a bug where the cluster size for ReHo would not be properly saved in the pipeline configuration file.
+
+#. Updated the ANTS registration workflow to work with newer versions of ANTs and ITK.
+
+#. Fixed a bug where CPAC group-level analysis would not run on a single cluster node, even with "Run CPAC on a Cluster/Grid" turned off.
+
+#. Introduced more checks and error messages for improper subject-list formatting and inputs.
+
+#. Introduced checks to determine whether the user has the required software packages installed before starting a pipeline run.
+
+#. Fixed some bugs where users would run into obstacles when trying to run CPAC on certain installations.
+
+#. Fixed a bug where AFNI outputs would be written out in the wrong format resulting in a CPAC crash.
+
 Version 0.3.8 Alpha - 2014.12.10
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #. Fixed a bug in which ANTS registration transforms were applied in the wrong order.

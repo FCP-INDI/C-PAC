@@ -25,6 +25,14 @@ Configuring CPAC to run Temporal Filtering
 
 #. **Band-Pass Filters - [decimal, decimal]:** Define one or more band-pass filters by clicking the + button.
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure the temporal filtering options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    runFrequencyFiltering : [1]
+    nuisanceBandpassFreq : [[0.009, 0.1]]
+
 External Resources
 ^^^^^^^^^^^^^^^^^^
 

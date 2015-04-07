@@ -1,36 +1,51 @@
 Installing CPAC
 ----------------
 
+Requirements
+^^^^^^^^^^^^
+
 System Requirements
-^^^^^^^^^^^^^^^^^^^
-CPAC is **designed to run in a Unix-like environment** such as Linux or Mac OS X, and thus does not support Windows.
+""""""""""""""""""
+CPAC is **designed to run in a \*nix-like environment** and thus does not support Windows.  The CPAC team actively tests CPAC in Ubuntu Linux, although older versions of that distribution and other \*nixes (such as Mac OS X) should work as well.   As a general rule, CPAC can operate on any machine capable of reliably running `AFNI <http://afni.nimh.nih.gov/afni>`_ and `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_. 
 
-Although CPAC should run on most computers made in the past few years, **we highly recommend using a system with multiple cores or multiple processors**, as many of the analyses carried out by CPAC are computationally intensive. As a general rule, CPAC will run on any machine capable of reliably running `AFNI <http://afni.nimh.nih.gov/afni>`_ or `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_.
+Hardware Requirements
+""""""""""""""""""""
+* A multiprocessor/multicore system (highly recommended)
+* 8 GB of RAM (for computationally-intensive processes such as anatomical registration using ANTS)
 
-Additionally, CPAC **requires at least 8 GB of RAM** to run certain computationally-intensive processes such as anatomical registration using ANTS.
+A Note About the \*nix Command Line
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**This user guide assumes a basic level of experience using the command line.** If you are new to the command line (also known as the terminal), the resources below will help you get started:
 
+* `Getting to Know the Command Line <http://www.davidbaumgold.com/tutorials/command-line/>`_
+* Terminals for Absolute Beginners (`Part 1 <http://glennstovall.com/blog/2012/02/15/terminals-for-absolute-beginners/>`_) (`Part 2 <http://glennstovall.com/blog/2012/03/07/terminals-for-absolute-beginners-part-2/>`_)
+* `Learning the Shell <http://linuxcommand.org/lc3_learning_the_shell.php>`_
+* `Unix Tutorial for Beginners <http://www.ee.surrey.ac.uk/Teaching/Unix/index.html>`_
+* `Unix for the Beginning Mage <http://unixmages.com/>`_
 
 Installation Overview
 ^^^^^^^^^^^^^^^^^^^^^
-If you are using Ubuntu (version 12.04 or newer) you can download, unzip, and run `cpac_install_ubuntu.tar.gz <https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install_ubuntu.tar.gz?raw=true>`_ with the following terminal commands
+If you are using Ubuntu (version 12.04 or newer) you can download  and run `cpac_install.sh <https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install.sh?raw=true>`_ with the following terminal commands:
 
 .. code-block:: bash
 
-    wget https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install_ubuntu.tar.gz?raw=true
-    tar -xzvf cpac_install_ubuntu.tar.gz
-    sudo -i ./cpac_install.sh
-    
-This will install all of the prerequisites and resources listed below. If you have previously installed versions of these, they will not be reinstalled, and the script will not check the release version to match the requirements of CPAC.
-
-**Note**: this is only rigorously tested on Ubuntu 12.04 and newer, but it may work for older releases of Ubuntu if the prerequisite packages are up to date.
+    wget https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install.sh?raw=true
+    mv cpac_install.sh?raw=true cpac_install.sh
+    sudo -i
+    ./cpac_install.sh
+   
+This will install all of the prerequisites and resources listed below. If you have previously installed versions of these, they will not be reinstalled, and the script will not check the release version to match the requirements of CPAC. 
+ 
+**Note**: This script is intended for Ubuntu Linux 12.04,  but it may work for older releases of Ubuntu.
 
 **For other operating systems**, this page will guide you through the following CPAC installation steps:
 
-* Installing the required Python dependencies (either manually or through Canopy).
-* Installing Nibabel and Nipype.
-* Installing AFNI and FSL.
-* Installing required CPAC Image Resources.
-* Installing CPAC itself.
+* Installing the required system-level dependencies
+* Installing the required Python dependencies 
+* Installing AFNI and FSL
+* Installing C3D and ANTS (optional, but recommended)
+* Installing the required CPAC image resources
+* Installing CPAC itself
 
 It will also provide information on how to:
 
@@ -38,107 +53,99 @@ It will also provide information on how to:
 * Upgrade CPAC to a new version.
 * Run CPAC without installing.
 
+Installing System-Level Dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A Note About the Command Line
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-**This User Guide assumes a basic level of experience using the command line.** If you are new to the command line (also known as the terminal), the resources below can help you get started.
+A complete installation of CPAC requires that the following dependencies be installed on your OS (and possibly other packages depending on your configuration):
 
-* `Getting to Know the Command Line <http://www.davidbaumgold.com/tutorials/command-line/>`_
-* Terminals for Aboslute Beginners (`Part 1 <http://glennstovall.com/blog/2012/02/15/terminals-for-absolute-beginners/>`_) (`Part 2 <http://glennstovall.com/blog/2012/03/07/terminals-for-absolute-beginners-part-2/>`_)
-* `Learning the Shell <http://linuxcommand.org/lc3_learning_the_shell.php>`_
-* `Unix Tutorial for Beginners <http://www.ee.surrey.ac.uk/Teaching/Unix/index.html>`_
-* `Unix for the Beginning Mage <http://unixmages.com/>`_
+* cmake
+* make
+* build
+* git
+* unzip
+* libxp
+* netpbm
+* gcc (with Fortran and C++ compilers and libgfortran)
+* The Python developer libraries
+* lapack and its developer libraries
+* libcanberra (under Linux)
+* The Mesa OpenGL utility library
+* gsl
+* zlib and its developer libraries
+* `Graphviz <http://www.graphviz.org/>`_ (optional; required for workflow graphs)
 
+The command to install all of these on Ubuntu is:
 
-Platform Specific Instructions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The following instructions provide additional information about the peculiarities of installing CPAC and it's dependencies on various operating systems.
+.. code-block:: bash
+    
+    sudo apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential
+
+OS-Specific Instructions 
+""""""""""""""""""""""""
 
 **Mac OS X:** 
 
-* Before installing python dependencies, please download and install the `Xcode Command Line Tools from Apple <https://developer.apple.com/downloads/index.action>`_ (requires a free Apple account).
-* Manually installing wxPython, SciPy and NumPy on OS X can be difficult. We therefore strongly recommend you use Canopy or Anaconda, which have user-friendly install-managers for these packages. (see tip_ below)
+* Installing system-level and Python dependencies will be made much easier if you download the `Xcode Command Line Tools from Apple <https://developer.apple.com/downloads/index.action>`_ (requires a free Apple account), which includes (among other things) Git and gcc.
+* You may want to consider using a package manager such as `Homebrew <http://brew.sh/>`_, `Macports <https://www.macports.org/>`_, or `Fink <http://www.finkproject.org/>`_.
 
-
-**Ubuntu, Debian-based systems:**
-
-* wxPython should also be installed through ``apt`` unless you are using Enthought Canopy or Anaconda (see tip_ below).
-
-Install Python Dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Python is the glue (Bloom, 2012) that ties all the pieces of CPAC together. Please ensure that you are using Python 2.7 and above, but not Python 3 (since it is not backwards-compatible). Though many computers come with Python pre-installed, CPAC relies on a number of special-purpose packages, which are listed below. Packages with an asterisk (*) can be installed through `setuptools <https://pythonhosted.org/setuptools/easy_install.html>`_ by running the command ``easy_install package`` (for example, ``easy_install networkx``).
+Installing Python Dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Please ensure that you are using Python 2.7 and above, but not Python 3 (since it is not backwards-compatible). Though many computers come with Python pre-installed, CPAC relies on a number of special-purpose packages, which are listed below. Packages with an asterisk can be installed through `easy_install <https://pythonhosted.org/setuptools/easy_install.html>`_ or pip.  Installing `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ (**64-bit version only**), `Miniconda <http://conda.pydata.org/miniconda.html>`_ or  `Enthought Canopy <https://www.enthought.com/products/canopy/>`_ and using a package manager can simplify installation greatly.  Instructions for Miniconda are given below.
 
 * `SciPy and NumPy <http://www.scipy.org/install.html>`_ 
-* `NetworkX <http://networkx.lanl.gov/>`_ * (``easy_install networkx``)
-* `Traits <https://github.com/enthought/traits>`_ * (``easy_install traits``)
-* `Matplotlib <http://matplotlib.sourceforge.net/>`_ * (``easy_install matplotlib``)
+* Nipype (version 0.10 for versions of CPAC after 0.3.7, `version 0.9.2 <https://github.com/FCP-INDI/nipype/releases/tag/v0.9.2_cpac_tested>`_ for CPAC versions 0.3.4b, 0.3.5, and 0.3.6)
+* Nibabel
+* `NetworkX <http://networkx.lanl.gov/>`_ * 
+* `Traits <https://github.com/enthought/traits>`_ * 
+* `Matplotlib <http://matplotlib.sourceforge.net/>`_ *
 * `wxPython <http://www.wxpython.org/>`_
-* `PyYAML <http://pyyaml.org/wiki/PyYAML>`_ * (``easy_install pyyaml``)
-* `Jinja2 <http://jinja.pocoo.org/docs/intro/#installation>`_ * (``easy_install jinja2``)
-* `PyLockfile <https://code.google.com/p/pylockfile/>`_ * (``easy_install lockfile``)
-* `Cython <http://www.cython.org/>`_ (version 12.1 or greater)  * (``easy_install Cython``)
+* `PyYAML <http://pyyaml.org/wiki/PyYAML>`_ * 
+* `Jinja2 <http://jinja.pocoo.org/docs/intro/#installation>`_ *
+* `PyLockfile <https://code.google.com/p/pylockfile/>`_ *
+* `Cython <http://www.cython.org/>`_ (version 12.1 or greater)  *
 * `iPython <http://ipython.org/>`_ (optional)
-* `Graphviz <http://www.graphviz.org/>`_ (optional; required for workflow graphs)
+* `PyGraphviz <http://www.graphviz.org/>`_ (optional; required for workflow graphs)
+* `Patsy <https://patsy.readthedocs.org/en/latest/>`_
 
-.. _tip: 
+Miniconda
+""""""""
 
-**TIP**: It is possible to install many of these packages (all but PyLockfile) automatically by using `Enthought Canopy <https://www.enthought.com/products/canopy/>`_. If you chose to use Canopy, you must download the **64-bit version**. Likewise, `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ is an alternative Python distribution which allows you to install the above packages with the `conda command <http://docs.continuum.io/anaconda/faq.html#install-packages>`_.
-    ex: ``conda install -c https://conda.binstar.org/travis wxpython``
-
-Install Nibabel and Nipype
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-CPAC relies heavily on tools developed as part of the `Neuroimaging in Python project <http://nipy.sourceforge.net/nipy/stable/index.html>`_. Specifically, `Nipype <http://nipy.sourceforge.net/nipype/>`_ and `Nibabel <http://nipy.sourceforge.net/nibabel/>`_ must be installed for CPAC to run.
-
-Nibabel
-"""""""
-To install Nibabel, run the command ``easy_install nibabel``.
-
-Nipype
-""""""
-To install Nipype, first download the package from Github:
-
-**CPAC Version 0.3.7 and up:** Download Nipype v0.10.0 `here <https://github.com/nipy/nipype/releases/tag/0.10.0>`_
-
-**CPAC Versions 0.3.4b, 0.3.5, and 0.3.6:** Download Nipype `here <https://github.com/FCP-INDI/nipype/releases/tag/v0.9.2_cpac_tested>`_
-
-Open a terminal window and unpack the file using the following command
+The following commands will install all the Python dependencies within a Miniconda environment:
 
 .. code-block:: bash
 
-    tar -xzvf filename.tar.gz
+   wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
+   chmod +x Miniconda-3.8.3-Linux-x86_64.sh
+   ./Miniconda-3.8.3-Linux-x86_64.sh -b
+   export PATH=~/miniconda/bin:${PATH}
+   echo 'export PATH=~/miniconda/bin:${PATH}' >> ~/.bashrc
+   conda create -y -n cpac python
+   source activate cpac
+   conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython
+   pip install lockfile pygraphviz nibabel nipype patsy
+   source deactivate
+ 
+OS-Specific Instructions 
+""""""""""""""""""""""""
 
-Where :file:`filename.tar.gz` is the name of the file you just downloaded.
+**Mac OS X:** 
 
-This will result in a new directory containing Nipype files. Navigate to this directory and run the following command to install Nipype
+* It is highly recommended that you use either Canopy or Anaconda/Miniconda to install Python packages such as wxPython, SciPy and NumPy.  Manually installing these packages on OS X can be difficult and error-prone.  If you use Anaconda/Conda, the commands above should install all packages seamlessly (assuming you download the Mac OS X Miniconda install script instead of the Linux script).  
 
-.. code-block:: bash
-
-    python setup.py install
-
-Install AFNI and FSL
-^^^^^^^^^^^^^^^^^^^^
+Installing AFNI and FSL
+^^^^^^^^^^^^^^^^^^^^^^^
 CPAC harnesses the power of two leading neuroimaging software packages (`AFNI <http://afni.nimh.nih.gov/>`_ and `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_) to perform key analyses. These packages must be installed before running CPAC. 
 
-For instructions on how to install AFNI, `click here <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/>`_. Downloading AFNI should take approximately 5 minutes on a standard broadband connection. **Mac Users:** If you are using OS X 10.7 or greater, we recommend doing a 
+For instructions on how to install AFNI, `click here <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/>`_. 
 
-For instructions on how to install FSL, `click here <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`_. Users should ensure they download and install FSL -5.0. Downloading FSL should take approximately 15 minutes on a standard broadband connection. 
-
-**Mac OS X:**
-
-* FSL - Follow the instructions on the `FSL Download Page <http://fsl.fmrib.ox.ac.uk/fsldownloads/fsldownloadmain.html>`_.
-* AFNI - Follow the instructions to do a `Basic Install <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/mac_10.78.html>`_.
-
-**Ubuntu and NeuroDebian:**
-
-* FSL - ``apt-get install fsl-5.0``
-* AFNI - ``apt-get install afni``
+For instructions on how to install FSL, `click here <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`_. Users should ensure they download and install FSL -5.0. 
 
 
 Check AFNI and FSL Paths
 """"""""""""""""""""""""
 Application paths for AFNI and FSL should have been added to your user profile when they were installed, but it is useful to double-check this before continuing (as the absence of these paths is a common cause of CPAC errors). If the application paths have been set properly, you should be able to open AFNI and FSL by running the commands ``afni`` and ``fsl`` in a new terminal window.
 
-If either of these commands fail, you will have to add the AFNI and FSL application paths manually. To do this, run the command ``nano ~/.bashrc``. This will open your :file:`.bashrc` file in the `nano text editor <http://mintaka.sdsu.edu/reu/nano.html>`_. Scroll to the bottom of the file (navigate using the arrow keys on your keyboard) and paste the following text
+If either of these commands fail, you will have to add the AFNI and FSL application paths manually. To do this, run the command ``nano ~/.bashrc``. This will open your :file:`.bashrc` file in the `nano text editor <http://mintaka.sdsu.edu/reu/nano.html>`_.  If you are using the C shell instead of bash, replace ``.bashrc`` with ``.cshrc``. Scroll to the bottom of the file (navigate using the arrow keys on your keyboard) and paste the following text
 
 .. code-block:: bash
 
@@ -154,63 +161,39 @@ If either of these commands fail, you will have to add the AFNI and FSL applicat
 
 Where :file:`/path/to/fsl` and :file:`/path/to/afni` are the locations where FSL and AFNI are installed (by default, these are :file:`/usr/local/fsl` for FSL and :file:`~/abin` for AFNI). When you have added the paths, save your changes (control + O) and exit nano (control + X).
 
-**Mac Users:** You must also add these paths to your :file:`.bash_profile` file. Simply follow the same instructions above but replace ``nano ~/.bashrc`` with ``nano ~/.bash_profile``.
-
-**tcsh Users:** Add these paths to your ``.cshrc`` file.
-
 To confirm that the changes have worked, open a new terminal window and try again to open AFNI and FSL.
 
-Install ANTS (Optional)
-^^^^^^^^^^^^^^^^^^^^^^^
-If you wish to use ANTS for anatomical registration, follow the instructions below. It is also possible to skip this step now and choose to install ANTS later.
+OS-Specific Instructions 
+""""""""""""""""""""""""
 
-**ANTS:**
+**Ubuntu/Neurodebian:**
 
-Download ANTS from GitHub and switch the repository branch to the version tested with C-PAC by running these commands from terminal:
+* Installing the key for the Neurodebian repository (must have superuser privileges or use sudo)::
 
-.. code-block:: bash
+    wget -O- http://neuro.debian.net/lists/$(lsb_release -cs).us-nh.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
+    apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
+    apt-get update
 
-    git clone https://github.com/stnava/ANTs.git ANTS_repository
-    cd ANTS_repository
-    git branch v2.1.0rc2
+* FSL : ``apt-get install -y fsl-5.0-complete``
+* AFNI : ``apt-get install -y afni``
 
-This will create a folder named "ANTS_repository" in the directory where you ran the command from.
+**Mac OS X:**
 
-Next, create a new directory in a location of your choosing and navigate to it:
+* FSL - Follow the instructions on the `FSL Download Page <http://fsl.fmrib.ox.ac.uk/fsldownloads/fsldownloadmain.html>`_.
+* AFNI - Follow the instructions to do a `Basic Install <http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht00_inst/html/mac_10.78.html>`_.
+* Checking the AFNI and FSL paths - You must also add these paths to your :file:`.bash_profile` file. Simply follow the same instructions above but replace ``nano ~/.bashrc`` with ``nano ~/.bash_profile``.
 
-.. code-block:: bash
+Installing C3D and ANTS (optional, but recommended) 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ANTS is an optional, but recommended package for performing image registration / normalization.  ANTS depends upon C3D, which can be installed by following the steps below.  If you do not want to install ANTS, you may skip this step.  You can always install ANTS later.
 
-    mkdir <path>/ants_install
-    cd <path>/ants_install
+Installing C3D
+"""""""""""""
 
-Next, run these commands from this directory to build your ANTS install:
+#. Download C3D from `here <http://sourceforge.net/projects/c3d/>`_ or `here <http://www.nitrc.org/frs/downloadlink.php/1327>`_ (for Mac users). 
+#. Unzip the downloaded archive, and place the extracted folder in the location of your choosing. 
 
-.. code-block:: bash
-
-    cmake -c -g <path to the ANTS repository>/ANTS_repository
-    make -j <number>
-
-Where <number> is how many cores you wish to dedicate to building your install - the more you use, the sooner it will complete. For example, if you want to use four cores, you would run 'make -j 4'.
-
-Once this is complete, you will need to modify your environment. Add the following text to your :file:`.bashrc` file (Mac Users: You must also add this text to your :file:`.bash_profile`.)
-
-.. code-block:: bash
-
-    export ANTSPATH=/<path>/ants_install/bin
-    export PATH=/<path>/ants_install/bin:$PATH
-
-:file:`/<path>/ants_install` would be the path to the :file:`ants_install` folder you created earlier. You can test the installation by opening a new terminal window and running this command:
-
-.. code-block:: bash
-
-    antsApplyTransforms
-
-If this returns a help page with a list of parameters, your ANTS installation was a success.
-
-
-**C3D:**
-
-In order to use ANTS, you must also install C3D (found `here <http://sourceforge.net/projects/c3d/>`_ or `here for macs <http://www.nitrc.org/frs/downloadlink.php/1327>`_). Unzip the downloaded archive, and place the extracted folder in the location of your choosing. Add the following text to your :file:`.bashrc` file (Mac Users: You must also add this text to your :file:`.bash_profile`.)
+#. Add the following text to your :file:`.bashrc` file: 
 
 .. code-block:: bash
 
@@ -218,7 +201,7 @@ In order to use ANTS, you must also install C3D (found `here <http://sourceforge
 
 Where :file:`/path_to/C3D` is the location of the extracted folder.
 
-Open a new terminal window. Test your installation by running :file:`c3d_affine_tool`. If this fails, see the Troubleshooting section below.
+#. Open a new terminal window. Test your installation by running :file:`c3d_affine_tool`. If this fails, see the Troubleshooting section below.
 
 **Troubleshooting:**
 
@@ -226,45 +209,122 @@ Open a new terminal window. Test your installation by running :file:`c3d_affine_
 
 * If you have added the paths to your :file:`.bashrc` (and :file:`.bash_profile` if necessary) but you are still unable to run the commands above, try adding or removing a trailing / from the paths (e.g. :file:`../bin` vs. :file:`../bin/`). We are working to compile a list of which platforms require the slash and which do not.
 
-Install CPAC Image Resources
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-During preprocessing and analysis, CPAC utilizes many of the standard brain atlases and tissue maps provided by FSL. Additionally, CPAC requires the following non-standard files in order to run properly.
+
+Installing ANTS
+""""""""""""""
+
+To install ANTS, follow the instructions below. Note: All paths used in the instructions are examples.  Custom paths may be used  according to your needs.
+
+
+Download ANTS from Github and switch the repository branch to the version tested with C-PAC by running these commands from terminal:
+
+.. code-block:: bash
+    cd /tmp
+    git clone https://github.com/stnava/ANTs.git 
+
+This will create a folder named "ANTS" in the directory where you ran the command from.
+
+Next, create a new directory in a location of your choosing and navigate to it:
+
+.. code-block:: bash
+
+    mkdir /opt/ants
+    cd /opt/ants
+
+Next, run these commands from this directory to build your ANTS install:
+
+.. code-block:: bash
+
+    cmake -c -g /tmp/ANTS
+    make -j <number>
+
+Where <number> is how many cores you wish to dedicate to building your install - the more you use, the sooner it will complete. For example, if you want to use four cores, you would run 'make -j 4'.
+
+Once this is complete, you will need to modify your environment. Add the following text to your :file:`.bashrc` file: 
+
+.. code-block:: bash
+
+    export ANTSPATH=/opt/ants/bin
+    export PATH=/opt/ants/bin:$PATH
+
+You can test the installation by opening a new terminal window and running this command:
+
+.. code-block:: bash
+
+    antsApplyTransforms
+
+If this returns a help page with a list of parameters, your ANTS installation was a success.
+
+OS-Specific Instructions 
+""""""""""""""""""""""""
+
+**Mac OS X:**
+
+* Similar to the AFNI and FSL path setup, you must also add the C3D and ANTS paths to your :file:`.bash_profile` file. 
+
+Installing CPAC Image Resources
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+During preprocessing and analysis, CPAC utilizes many of the standard brain atlases and tissue maps provided by FSL. Additionally, CPAC requires the following non-standard files in order to run properly:
 
 * Binarized tissue prior probability maps (used during :doc:`tissue segmentation </anat>`)
 * Symmetric versions of the MNI152 brain template and masks (used when calculating :doc:`VMHC </vmhc>`)
 
-These files are included in the CPAC Image Resources package, available `for download here <http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz>`_. As above, this file can be unpacked by running the ``tar -xzvf`` command. 
+These files are included in the CPAC Image Resources package, available `here <http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz>`_. You may install these files using the following commands or use the included script (install_resources.sh):
 
-Included in the package is a ``install_resources.sh`` script that when run will copy the resource files to your FSL directory (which is where CPAC looks for them by default). To run this script, navigate to the CPAC Image Resources directory and run the command ``sudo bash install_resources.sh``.
+.. code-block:: bash
 
-Users wishing to manually install these files can do so by following the directions below.
+    cd /tmp
+    wget http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz
+    tar xfz cpac_resources.tgz
+    cd cpac_image_resources
+    cp -n MNI_3mm/* $FSLDIR/data/standard
+    cp -n symmetric/* $FSLDIR/data/standard
+    cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors
+    cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
+    cp -n HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz $FSLDIR/data/atlases/HarvardOxford
+ 
+These commands perform the following steps:
 
-* Files located in the :file:`/symmetric` folder of the CPAC Image Resources directory should be copied to the :file:`/data/standard` directory of your FSL installation.
+* The image resources are downloaded.
 
-* The :file:`/2mm` and :file:`/3mm` folders located in CPAC Image Resources directory should be copied to :file:`/data/standard/tissuepriors` directory of your FSL installation.
+* Files located in the :file:`/symmetric` folder of the CPAC Image Resources directory are copied to the :file:`/data/standard` directory of your FSL installation.
 
+* The :file:`/2mm` and :file:`/3mm` folders located in CPAC Image Resources directory are copied to :file:`/data/standard/tissuepriors` directory of your FSL installation.
 
-Install CPAC
-^^^^^^^^^^^^
+Installing CPAC
+^^^^^^^^^^^^^^^
 Congratulations, you are now ready to install CPAC itself!
 
-CPAC is available for download from the `CPAC Homepage <http://fcp-indi.github.com/>`_. Click the button labeled "Download as tar.gz". As above, unpack the downloaded archive and navigate to the new directory. To install CPAC, run the command ``sudo python setup.py install``. CPAC will be installed alongside your other python packages. If this fails, make sure you have all the dependencies installed.
+CPAC is available for download from the `CPAC Homepage <http://fcp-indi.github.com/>`_. Click the button labeled "Download as tar.gz". Unpack the downloaded archive and navigate to the new directory. To install CPAC, run the command ``sudo python setup.py install``. CPAC will be installed alongside your other python packages. If this fails, check to make sure that you have all the dependencies installed.  You may also install CPAC using the commands below:
 
+ .. code-block:: bash
+   
+   cd /tmp
+   git clone https://github.com/FCP-INDI/C-PAC.git
+   cd C-PAC
+   python setup.py install
 
-Test CPAC Installation
-""""""""""""""""""""""
-In a new terminal window, open iPython (or Python) and enter the command ``import CPAC``. If installation was successful, this will execute without an error and present you with a blank new line. If you encounter an error (e.g. ``no module named CPAC``), try re-running the CPAC install command above. If this does not work, see the :doc:`Troubleshooting and Help Page </help>`.
+Testing Your CPAC Installation
+""""""""""""""""""""""""""""""
+In a new terminal window, open iPython (or Python) and enter the command ``import CPAC``. If installation was successful, this will execute without an error and present you with a blank new line. If you encounter an error (e.g. ``no module named CPAC``), try re-running the CPAC install command above. If this does not work, see the :doc:`Troubleshooting and Help Page </help>`.  Note that if you do not open a new terminal window and are still within the CPAC installation directory ('C-PAC'), you may encounter errors that can be alleviated by leaving the 'C-PAC' directory.
 
 Once you are able to successfully ``import CPAC`` it is safe to delete any setup files downloaded during the install process (e.g. Nipype and CPAC downloads, FSL install scripts, etc.), as they are no longer needed.
 
 **Note:** The test process described here only acts to confirm that the CPAC python package has been correctly installed. To fully test CPAC on your system, please see the :doc:`Benchmark Page </benchmark>`.
 
-Updating CPAC
-^^^^^^^^^^^^^
-CPAC is being actively developed, and new versions (containing bug fixes and new features) are released approximately once a month. To update to the latest version, simply download it from the `CPAC Homepage <http://fcp-indi.github.com/>`_ and repeat the instructions in the "Install CPAC" section above. A list of previous versions and the changes they contain is available on the :doc:`Release Notes Page </rnotes>`.
+Updating CPAC 
+^^^^^^^^^^^^^^
+CPAC is being actively developed, and new versions (containing bug fixes and new features) are often released. To update to the latest version, simply download it from the `CPAC Homepage <http://fcp-indi.github.com/>`_ and repeat the instructions in the "Installing CPAC" section above. A list of previous versions and the changes they contain is available on the :doc:`Release Notes Page </rnotes>`.
+
+**Note: If you are using Anaconda/Miniconda you may also use the following command (replacing 'cpac' with your environment name) to remove an old environment before creating a new environment to replace it.**
+
+ .. code-block:: bash
+
+    conda remove --all -n cpac
 
 Running CPAC Without Installing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Users wishing to run CPAC without installing it can do so by copying the downloaded CPAC directory to the location of their choice. CPAC can then be run by opening iPython (or Python) from within this directory. This is useful in cases where a user does not have sufficient privledges to install Python packages, but is running on a machine that already contains all CPAC dependencies.
 
 Some network centrality features will not be available without compiling the C-based elements. In order to do this without installing the rest of CPAC, simply use the following command
@@ -274,32 +334,3 @@ Some network centrality features will not be available without compiling the C-b
     python setup.py build_ext --inplace
 
 **Note:** Unfortunately, it is not possible at this time to use the CPAC GUI without installing CPAC.
-
-Isolated Nipype and CPAC Installs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You can install an "isolated" version of Nipype and/or CPAC (i.e. a non-global version) if you want to have multiple versions installed, if you want to test out a new installation of CPAC that may rely on a new version of Nipype, or if you want another version of Nipype or CPAC to develop and experiment with. Simply do the following:
-
-.. code-block:: bash
-
-    python setup.py install --prefix='/custom/path/here'
-
-This will create a folder structure in '/custom/path/here' (whatever you may select) containing your Nipype or CPAC install, and will not affect any global Nipype or CPAC install you may have. This folder structure will mirror the usual structure found as part of your Python path and package installations, and will look something like this: :file:`lib/python2.7/site-packages`, with a :file:`Nipype` or :file:`CPAC` folder within the :file:`site-packages` folder. In order to properly import these isolated versions, you simply add this path up until the :file:`site-packages` folder (i.e. not including the :file:`Nipype` or :file:`CPAC` folder) in Python's :file:`sys.path`, making sure to insert it at the beginning of the :file:`sys.path` list.
-
-For example, in order to invoke an isolated install of Nipype and CPAC, open Python and run the following:
-
-.. code-block:: python
-
-    import sys
-    sys.path.insert(0,'/custom/path/to/isolated_nipype/site-packages')
-    sys.path.insert(0,'/custom/path/to/isolated_CPAC/site-packages')
-
-    import nipype
-    import CPAC
-
-    CPAC.GUI.run()
-
-If you wish to use this method, you may find it easier to save this into a Python script that can easily be run from the command line.
-
-References
-^^^^^^^^^^
-Bloom, J. `Python as Super Glue for the Modern Scientific Workflow <http://www.youtube.com/watch?v=mLuIB8aW2KA>`_, video of a talk given at the SciPy2012 conference.

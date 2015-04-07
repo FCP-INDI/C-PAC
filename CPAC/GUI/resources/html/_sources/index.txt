@@ -3,11 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to C-PAC's documentation!
+Welcome to C-PAC's Documentation!
 =================================
 Once a distant goal, discovery science for the human connectome is now a reality. Researchers who previously struggled to obtain neuroimaging data from 20-30 participants are now exploring the functional connectome using data acquired from thousands of participants, made publicly available through the `1000 Functional Connectomes Project and the International Neuroimaging Data-sharing Initiative (INDI) <http://fcon_1000.projects.nitrc.org/>`_. However, in addition to access to data, scientists need access to tools that will facilitate data exploration. Such tools are particularly important for those who are inexperienced with the nuances of fMRI image analysis, or those who lack the programming support necessary for handling and analyzing large-scale datasets.
 
-The Configurable Pipeline for the Analysis of Connectomes (C-PAC) is a configurable, open-source, Nipype-based, automated processing pipeline for resting state functional MRI (R-fMRI) data, for use by both novice and expert users. C-PAC was designed to bring the power, flexibility and elegance of the `Nipype platform <http://nipy.sourceforge.net/nipype/>`_ to users in a plug and play fashion—without requiring the ability to program. Using an easy to read, text-editable configuration file, C-PAC users can rapidly orchestrate automated R-fMRI processing procedures, including:
+The Configurable Pipeline for the Analysis of Connectomes (C-PAC) is a configurable, open-source, Nipype-based, automated processing pipeline for resting state functional MRI (R-fMRI) data, for use by both novice and expert users. C-PAC was designed to bring the power, flexibility and elegance of the `Nipype platform <http://nipy.sourceforge.net/nipype/>`_ to users in a plug and play fashion—without requiring the ability to program. Using an easy to read, text-editable configuration file or a graphical user interface, C-PAC users can rapidly orchestrate automated R-fMRI processing procedures, including:
 
 * standard quality assurance measurements
 * standard image :doc:`preprocessing </preproc>` based upon user specified preferences
@@ -39,6 +39,7 @@ The C-PAC Team
    Daniel Clark (Developer)
    
    **Other Contributors:**
+   John Pellman
    Daniel Lurie
    Zarrar Shezhad
    Aimi Watanabe

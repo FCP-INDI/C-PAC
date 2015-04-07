@@ -31,24 +31,37 @@ As C-PAC is one of the first public software packages to implement CWAS, it has 
 
 As CWAS examines connectivity across the whole brain, it may have reduced sensitivity to highly-localized sets of connections related to a phenotype. This issue can be addressed by limiting analysis to connectivity between specific anatomical regions (Shehzad et al., 2014), which can be accomplished by defining an ROI mask during C-PAC setup.
 
-Configuring C-PAC
+Configuring CWAS
 ^^^^^^^^^^^^^^^^^
-The following settings in :file:`config.yml` are used to configure CWAS::
-    
-    # Run CWAS
+
+Using the GUI
+"""""""""""""
+
+.. figure:: /_images/cwas.png
+
+#. **Run CWAS - [Off, On]:** Used to determine if CWAS will be added to the pipeline or not.
+
+#. **CWAS ROI File - [path]:** Path to a mask file. Voxels outside of the mask will be excluded from CWAS.
+
+#. **CWAS Regressor File - [path]:** Path to a text file containing the phenotypic regressor.
+
+#. **CWAS FSamples - [integer]:** Number of permutation tests to run on the Pseudo-F statistics.
+
+#. **CWAS Parallel Nodes - [integer]:** Number of Nipype nodes created while computing CWAS.  Dependent upon computing resources.
+
+#. **Column Number with Regressor of Interest - [integer]:** The index for the regressor of interest.  Indexing starts at 0.
+
+#. **CWAS Regressor Strata - [list]:** A list with length equal to the total number of rows in your regressor file. Each element of the list, indicates that elements group. Leave it as None. if you have a between-subject design and give it a value if not.  For instance, if you have multiple scans per subject, then you would want to do a permutation within-subject between scans. For this to occur, the list below could be something like ['s1', 's1', 's2', 's2', 's3', 's3', ...], indicating what subject each element/scan is associated with and permutations would only be done between scans within each subject.
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure CWAS options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+ 
     runCWAS = [0]
-
-    # Path to a mask file. Voxels outside this mask will be excluded from CWAS.
     cwasROIFile = '/path/to/cwas_mask_file'
-
-    # Number of permutation tests to run on the Pseudo-F statistic
     cwasFSamples = 5000
-
-    # Number of NiPype nodes to be created while computing CWAS.
-    # This number depends on computing resources
     cwasParallelNodes = 10
-
-    # Path to a text file containing phenotypic regressor.
     cwasRegressorFile = '/path/to/cwas_regressor_file'
     
 References

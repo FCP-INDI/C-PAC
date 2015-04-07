@@ -11,39 +11,77 @@ Users can easily define new spherical seeds (for use in Time Series Extraction a
     1 -28 -40 -12 2 3mm
     2 -4 48 24 3 2mm 
 
-If multiple seeds are specified with the same resolution, they will be grouped into a single file containing multiple seeds, with the values within each seed ROI set to the seed label number. Note that CPAC does not check for overlapping seeds. In the event that a voxel is present in multiple seeds defined here, the value of that voxel will be set to the sum of the two seed label numbers (effectively resulting in a new seed). Users should confirm the seeds they define do not overlap before running CPAC.
+If multiple seeds are specified with the same resolution, they will be grouped into a single file containing multiple seeds, with the values within each seed ROI set to the seed label number. Note that CPAC does not check for overlapping seeds. In the event that a voxel is present in multiple seeds defined here, the value of that voxel will be set to the sum of the two seed label numbers (effectively resulting in a new seed). **You will need to confirm that the seeds you define define do not overlap before running CPAC.**
+
+.. figure:: /_images/tse_define_seeds.png
+
+#. **Seed Specification File - [path]:** A path to the text file defining seeds (see above).
+
+#. **Seed Output Directory - [path]:** The directory where CPAC should write NIfTI files containing new seeds.
+
+#. **Use New Seeds In - [checkboxes]:** Select the analyses that will use the seeds.  "ROI Average Time Series Extraction" must be selected for seed-based correlation analyses.  Select "None" if you just want to save the seeds.
 
 ROI Timeseries Extraction
 =========================
 
-.. figure:: /_images/sca_average.png
+ROI Timeseries Extraction allows you to export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by the user.
 
-ROI Timeseries Extraction allows you export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by the user.
-
-.. figure:: /_images/roi_tse.png
+.. figure:: /_images/roi_timeseries.png
 
 When an ROI is placed within a functionally homogeneous area, averaging signals in this way can produce a timeseries which may more accurately reflect the overall activity pattern in the region than does the timeseries of any individual voxel. 
+
+.. figure:: /_images/tse_average.png
+
+#. **Extract ROI Average Time Series - [Off, On]:**  Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run seed-based correlation analysis.
+
+#. **ROI Specification File (TSE only) - [path]:** A path to a text file containing the paths pointing to NifTIs withe ROIs.  This text file must have one NifTI per line.  If this is set to "None", C-PAC will use the seeds created in "Define New Seeds".
+
+#. **ROI Specification File (for use in SCA) - [path]** The same as "ROI Specification File", but for seed-based correlation analysis. Note: This must be defined or SCA will not be able to run.
+
+#. **Output Options - [CSV, NUMPY]:** Choose to save outputs as a csv file or Numpy array.  Outputs are saved as a text file and 1D file by default.
 
 Voxel Timeseries Extraction
 ===========================
 
-.. figure:: /_images/sca_voxel.png
-
 Voxel Timeseries Extraction will export the individual timeseries of all voxels within one or more masks.
 
-.. figure:: /_images/voxel_tse.png
+.. figure:: /_images/voxel_timeseries.png
+
+.. figure:: /_images/tse_voxel.png
+
+#. **Extract ROI Voxelwise Time Series - [Off, On]:**  Extract the average time series of all voxels within one or more ROIs/seeds.
+
+#. **ROI Specification File (TSE only) - [path]:** A path to a text file containing the paths pointing to NifTIs withe ROIs.  This text file must have one NifTI per line.  If this is set to "None", C-PAC will use the seeds created in "Define New Seeds".
+
+#. **ROI Specification File (for use in SCA) - [path]** The same as "ROI Specification File", but for seed-based correlation analysis. Note: This must be defined or SCA will not be able to run.
+
+#. **Output Options - [CSV, NUMPY]:** Choose to save outputs as a csv file or Numpy array.  Outputs are saved as a text file and 1D file by default.
 
 Vertex Timeseries Extraction
 ============================
-Voxel Timeseries Extraction uses FreeSurfer to generate a 2-dimensional model of the cortical surface. Activation data is transformed and registered to points (vertices) on the surface model, each with its own activation timeseries. These timeseries can then be extracted. 
 
-Output Options
-==============
-Timeseries can be exported as either a standard .csv file or as a `Numpy Array <http://scipy-lectures.github.com/intro/numpy/array_object.html?>`_
+Voxel Timeseries Extraction uses FreeSurfer to generate a 2-dimensional model of the cortical surface. Activation data is transformed and registered to points (vertices) on the surface model, each with its own activation timeseries. These timeseries can then be extracted. **Note: Vertex Timeseries Extraction is currently not fully implemented in C-PAC.  This section documents the current state of the graphical user interface for reference purposes only.**
 
-Configuring C-PAC
-=================
-The following settings in :file:`config.yml` are used to configure Time Series Extraction::
+.. figure:: /_images/tse_vertex.png
+
+#. **Run Surface Registration - [Off, On]:** Register timeseries data to a surface model built by FreeSurfer. Required to run vertex timeseries extraction.  **Note: CPAC currently doesn't fully support surface extraction.**
+
+#. **Recon Subject Directory - [path]:** The directory where FreeSurfer outputs surface data.
+
+#. **Run Vertices Timeseries - [Off, On]:** Extract timeseries data for surface vertices. **Note: CPAC currently doesn't fully support surface extraction.**
+
+#. **Vertices Timeseries Output Formats - [CSV, NUMPY]:** Choose to save outputs as a csv file or Numpy array.
+
+Spatial Regression
+===================
+
+See: :doc:`Dual Regression </dual_reg>`.
+
+
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure time series extraction options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
     
     # Extract an average timeseries for each ROI
     # Required if you wish to run ROI-based SCA

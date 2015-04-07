@@ -19,12 +19,18 @@ The amount of smoothing applied should be the minimum necessary to achive the de
 
 Care must be taken when utilizing methods such as Regional Homogeneity (ReHo) and Multi-voxel Pattern Analysis (MVPA) which are sensitive to the activation of individual voxels, as smoothing prior to analysis may bias results by introducing artificial spatial correlation. In these cases, if smoothing is desired, such as in order to correct for multiple comparisons using Gaussian Random Field Theory, it must be applied after the fact.
 
-Configuring CPAC to run Smoothing
-"""""""""""""""""""""""""""""""""
+Configuring CPAC to Run Smoothing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. figure:: /_images/smoothing_gui.png
 
 #. **Kernel FWHM (in mm) [integer/decimal]:** Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing. Can be a single value or multiple values separated by commas. Note that spatial smoothing is run as the last step in the individual-level analysis pipeline, such that all derivatives are output both smoothed and unsmoothed.
 
+Configuration Using a YAML File
+""""""""""""""""""""""""""""""""
+
+To configure the smoothing options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
+
+    fwhm : [6]
 
 External Resources
 ^^^^^^^^^^^^^^^^^^
