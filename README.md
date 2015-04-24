@@ -27,7 +27,7 @@ Documentation
 
 User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
 
-Developer documention can ne found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
 
 Discussion Forum
