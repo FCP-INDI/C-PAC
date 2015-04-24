@@ -30,23 +30,23 @@ from build_helpers import INFO_VARS
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
- 
+
     config = Configuration(None, parent_package, top_path)
     config.set_options(ignore_setup_xxx_py=True,
                        assume_default_configuration=True,
                        delegate_options_to_subpackages=True,
                        quiet=True)
-        
+
     config.get_version('CPAC/__init__.py')
     config.add_subpackage('CPAC')
-     
+
     # cython
-    config.add_extension('CPAC.network_centrality.thresh_and_sum', 
-                         sources=['CPAC/network_centrality/thresh_and_sum.pyx'], 
+    config.add_extension('CPAC.network_centrality.thresh_and_sum',
+                         sources=['CPAC/network_centrality/thresh_and_sum.pyx'],
                          include_dirs=[get_numpy_include_dirs()])
-    
+
     return config
- 
+
 
 ################################################################################
 # For some commands, use setuptools
@@ -72,19 +72,19 @@ package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
 
 
 def main(**extra_args):
-    from numpy.distutils.core import setup    
+    from numpy.distutils.core import setup
     from glob import glob
-    
+
     # monkey-patch numpy distutils to use Cython instead of Pyrex
     from numpy.distutils.command.build_ext import build_ext
     from numpy.distutils.command.build_src import build_src
     from build_helpers import generate_a_pyrex_source
     build_src.generate_a_pyrex_source = generate_a_pyrex_source
     cmdclass = {
-        'build_src': build_src, 
+        'build_src': build_src,
         'build_ext': build_ext
     }
-    
+
     setup(name=INFO_VARS['NAME'],
           maintainer=INFO_VARS['MAINTAINER'],
           maintainer_email=INFO_VARS['MAINTAINER_EMAIL'],
@@ -101,8 +101,8 @@ def main(**extra_args):
           requires=INFO_VARS['REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
-          scripts = glob('scripts/*'), 
-          #script_args = ['build_ext', '--inplace'], 
+          scripts = glob('scripts/*'),
+          #script_args = ['build_ext', '--inplace'],
           **extra_args)
 
 # Run main by default
