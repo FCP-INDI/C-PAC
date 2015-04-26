@@ -14,7 +14,7 @@ from CPAC.corr.utils import *
 def create_corr():
 
     """
-    Simple Network Correlation Matrix calculation
+    Simple Network Correlation Matrix calculation for ROIs in the mask file
 
     This workflow computes the ReHo map, z-score on map
 
@@ -64,8 +64,9 @@ def create_corr():
     --------
     >>> from CPAC import corr
     >>> wf = corr.create_corr()
-    >>> wf.inputs.inputspec.rest_res_filt = '/home/data/Project/subject/func/rest_res_filt.nii.gz'
-    >>> wf.inputs.inputspec.rest_mask = '/home/data/Project/subject/func/rest_mask.nii.gz'
+    >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
+    >>> wf.inputs.inputspec.mask = '/home/data/Project/subject/func/mask.nii.gz'
+    >>> wf.inputs.inputspec.TR = 3
     >>> wf.run()
     """
 
@@ -74,8 +75,9 @@ def create_corr():
 
     corr = pe.Workflow(name='corr')
     inputNode = pe.Node(util.IdentityInterface(fields=[
-                                                'rest_res_filt',
-                                                'rest_mask'
+                                                'in_file',
+                                                'mask',
+                                                'TR'
                                                 ]),
                         name='inputspec')
 
@@ -85,17 +87,16 @@ def create_corr():
                         name='outputspec')
 
 
-    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask','TR'],
                                    output_names=['out_file'],
                      function=compute_corr),
                      name='corr_mat')
 
 
-    corr.connect(inputNode, 'rest_res_filt',
+    corr.connect(inputNode, 'in_file',
                     corr_mat, 'in_file')
-    corr.connect(inputNode, 'rest_mask',
-                    corr_mat, 'mask_file')
-
+    corr.connect(inputNode, 'mask',
+                    corr_mat, 'mask')
     corr.connect(corr_mat, 'out_file',
                  outputNode, 'corr_mat')
 
