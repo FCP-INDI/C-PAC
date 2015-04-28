@@ -1,5 +1,3 @@
-
-
 def compute_corr(in_file, mask_file, TR):
 
     """
@@ -13,25 +11,22 @@ def compute_corr(in_file, mask_file, TR):
 
     mask_file : nifti file
         Mask of the EPI File(Only Compute Correlation of voxels in the mask)
+        Must be 3D
 
     Returns
     -------
 
-    out_file : nifti file
-        ReHo map of the input EPI image
+    out_file : correlation matrix
 
     """
 
-    import nibabel as nb
     import numpy as np
-    import os
-    import sys
+    from matplotlib.mlab import csv2rec
     
     from cpac.timeseries import gen_roi_timeseries  
     
     #from http://nipy.org/nitime/examples/resting_state_fmri.html    
     
-    import nitime
     #Import the time-series objects:
     from nitime.timeseries import TimeSeries
     #Import the analysis objects:
@@ -39,20 +34,16 @@ def compute_corr(in_file, mask_file, TR):
     #Import utility functions:
     from nitime.utils import percent_change
     
-    res_fname = (in_file)
-    res_mask_fname = (mask_file) 
-    out_file = None
+    output_type = [True,False] #list of boolean for csv and npz file formats
     
+    data = gen_roi_timeseries(in_file, mask_file, output_type)
     #from this files gen_roi_timeseries
     #once we have the time series:
-    
-    #data_path = os.path.join(nitime.__path__[0], 'data')
-    #data_rec = csv2rec(os.path.join(data_path, 'fmri_timeseries.csv'))
+    data_rec = csv2rec(data[2])
     
     #Extract information:
     roi_names = np.array(data_rec.dtype.names)
     n_samples = data_rec.shape[0]
-    
     
     #Make an empty container for the data
     data = np.zeros((len(roi_names), n_samples))
@@ -68,16 +59,8 @@ def compute_corr(in_file, mask_file, TR):
     #Initialize the correlation analyzer
     C = CorrelationAnalyzer(T)    
     
-    
-    
-    
+    #fig01 = drawmatrix_channels(C.corrcoef, roi_names, size=[10., 10.], color_anchor=0)
 
-
-    #create corr_file with C.Corrcoeff
-    #ROI-names needed?
-
-    out_file = corr_file
-
-    return out_file
+    return  C.corrcoef
 
 
