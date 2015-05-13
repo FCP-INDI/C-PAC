@@ -23,7 +23,7 @@ def compute_corr(in_file, mask_file, TR):
     import numpy as np
     from matplotlib.mlab import csv2rec
     
-    from cpac.timeseries import gen_roi_timeseries  
+    from CPAC.timeseries import gen_roi_timeseries  
     
     #from http://nipy.org/nitime/examples/resting_state_fmri.html    
     
@@ -96,7 +96,7 @@ def compute_te(in_file, mask_file, TR):
     import numpy as np
     from matplotlib.mlab import csv2rec
     
-    from cpac.timeseries import gen_roi_timeseries  
+    from CPAC.timeseries import gen_roi_timeseries  
     
     #from http://nipy.org/nitime/examples/granger_fmri.html 
     
@@ -104,11 +104,7 @@ def compute_te(in_file, mask_file, TR):
     import nitime.analysis as nta
     import nitime.timeseries as ts
     import nitime.utils as tsu
-    
-    #freq band of interest (these could be an input paramenter)
-    f_ub = 0.15
-    f_lb = 0.02
-    
+        
     output_type = [True,False] #list of boolean for csv and npz file formats
     
     data = gen_roi_timeseries(in_file, mask_file, output_type)
@@ -141,7 +137,10 @@ def compute_te(in_file, mask_file, TR):
     G = nta.GrangerAnalyzer(time_series, order=1)  
     
     #We are only interested in the physiologically relevant frequency band
-    freq_idx_G = np.where((G.frequencies > f_lb) * (G.frequencies < f_ub))[0]
-    g1 = np.mean(G.causality_xy[:, :, freq_idx_G], -1) #is this what we are looking for? ?¿ ask
+    
+    g1 = np.mean(G.causality_xy, -1) #is this what we are looking for
     
     return  g1
+    
+    
+    
