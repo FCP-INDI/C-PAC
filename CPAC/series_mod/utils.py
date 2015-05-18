@@ -143,4 +143,50 @@ def compute_te(in_file, mask_file, TR):
     return  g1
     
     
+# Same function for entropy as for joint entropy    
+def entropy(*X):
+
+    import numpy as np
+    import itertools 
     
+    n_insctances = len(X[0])
+    H = 0
+    for classes in itertools.product(*[set(x) for x in X]):
+        v = np.array([True] * n_insctances)
+        for predictions, c in zip(X, classes):
+            v = np.logical_and(v, predictions == c)
+        p = np.mean(v)
+        H += -p * np.log2(p) if p > 0 else 0
+    return H  
+    
+def mutual_information(X,Y):
+
+    Hx = entropy(X)
+    Hy = entropy(Y)
+    Hxy = entropy(X,Y)
+    MI = Hx + Hy - Hxy
+    
+    return MI
+
+# conditional entropy H(X|Y) = H(Y,X) - H(Y). X conditioned on Y
+def cond_entropy(X,Y):
+
+    Hy = entropy(Y)
+    Hyx = entropy(Y,X)
+    CE = Hyx - Hy    
+    
+    return CE
+    
+#def entropy(*X):
+#    n_insctances = len(X[0])
+#    H = 0
+#    for classes in itertools.product(*[set(x) for x in X]):
+#        v = reduce(np.logical_and, (predictions, c for predictions, c in zip(X, classes)))
+#        p = np.mean(v)
+#        H += -p * np.log2(p) if p > 0 else 0
+#    return H   
+#   
+#def entropy(*X):
+#    return = np.sum(-p * np.log2(p) if p > 0 else 0 for p in \
+#    (np.mean(reduce(np.logical_and, (predictions == c for predictions, c in zip(X, classes)))) for classes in itertools.product (*[set(x) for x in X])))
+#                
