@@ -1,4 +1,4 @@
-def compute_corr(in_file, mask_file, TR):
+def compute_corr(in_file, mask_file):
 
     """
     Computes the Network Correlation Matrix for ROIs in the mask
@@ -34,6 +34,13 @@ def compute_corr(in_file, mask_file, TR):
     #Import utility functions:
     from nitime.utils import percent_change
     
+    import nibabel as nib
+    
+    #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    n1_img = nib.load(in_file)
+    TR = n1_img.header['pixdim'][4]
+    
+    
     output_type = [True,False] #list of boolean for csv and npz file formats
     
     data = gen_roi_timeseries(in_file, mask_file, output_type)
@@ -68,7 +75,7 @@ def compute_corr(in_file, mask_file, TR):
     return  C.corrcoef
 
 
-def compute_te(in_file, mask_file, TR):
+def compute_te(in_file, mask_file):
 
     """
     Computes the Pairwise Transfer Entropy Matrix for ROIs in the mask
@@ -104,9 +111,34 @@ def compute_te(in_file, mask_file, TR):
     import nitime.analysis as nta
     import nitime.timeseries as ts
     import nitime.utils as tsu
+    
+    import nibabel as nib
+    
+    #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    #mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+    n1_img = nib.load(in_file)
+    TR = n1_img.header['pixdim'][4]
+    
+    
+#    res_fname = (in_file)
+#    res_mask_fname = (mask_file)
+#
+#    res_img = nb.load(res_fname)
+#    res_mask_img = nb.load(res_mask_fname)
+#
+#    res_data = res_img.get_data()
+#    res_mask_data = res_mask_img.get_data()
+#
+#    print res_data.shape
+#    (n_x, n_y, n_z, n_t) = res_data.shape
+#
+#    res_data = np.reshape(res_data, (n_x*n_y*n_z, n_t), order='F').T
+#
+#    Ranks_res_data = np.tile((np.zeros((1, (res_data.shape)[1]))), [(res_data.shape)[0], 1])
+    
+    
         
     output_type = [True,False] #list of boolean for csv and npz file formats
-    
     data = gen_roi_timeseries(in_file, mask_file, output_type)
     #from this files gen_roi_timeseries
     #once we have the time series:
@@ -143,8 +175,12 @@ def compute_te(in_file, mask_file, TR):
     return  g1
     
     
-# Same function for entropy as for joint entropy    
+
 def entropy(*X):
+    
+    """
+    Same function for entropy as for joint entropy
+    """
 
     import numpy as np
     import itertools 
@@ -168,8 +204,11 @@ def mutual_information(X,Y):
     
     return MI
 
-# conditional entropy H(X|Y) = H(Y,X) - H(Y). X conditioned on Y
 def cond_entropy(X,Y):
+    
+    """
+    Conditional entropy H(X|Y) = H(Y,X) - H(Y). X conditioned on Y
+    """
 
     Hy = entropy(Y)
     Hyx = entropy(Y,X)

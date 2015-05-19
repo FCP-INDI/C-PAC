@@ -64,7 +64,6 @@ def create_corr():
     >>> wf = series_mod.create_corr()
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
     >>> wf.inputs.inputspec.mask = '/home/data/Project/subject/func/mask.nii.gz'
-    >>> wf.inputs.inputspec.TR = 3
     >>> wf.run()
     """
 
@@ -74,8 +73,7 @@ def create_corr():
     corr = pe.Workflow(name='corr')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask',
-                                                'TR'
+                                                'mask'
                                                 ]),
                         name='inputspec')
 
@@ -85,7 +83,7 @@ def create_corr():
                         name='outputspec')
 
 
-    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask','TR'],
+    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask'],
                                    output_names=['out_file'],
                      function=compute_corr),
                      name='corr_mat')
@@ -94,9 +92,7 @@ def create_corr():
     corr.connect(inputNode, 'in_file',
                     corr_mat, 'in_file')
     corr.connect(inputNode, 'mask',
-                    corr_mat, 'mask')
-    corr.connect(inputNode, 'TR',
-                    corr_mat, 'TR')                   
+                    corr_mat, 'mask')                  
     corr.connect(corr_mat, 'out_file',
                  outputNode, 'corr_mat')
 
@@ -167,8 +163,7 @@ def create_te():
     te = pe.Workflow(name='te')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask',
-                                                'TR'
+                                                'mask'
                                                 ]),
                         name='inputspec')
 
@@ -178,7 +173,7 @@ def create_te():
                         name='outputspec')
 
 
-    te_mat = pe.Node(util.Function(input_names=['in_file', 'mask','TR'],
+    te_mat = pe.Node(util.Function(input_names=['in_file', 'mask'],
                                    output_names=['out_file'],
                      function=compute_te),
                      name='te_mat')
@@ -187,9 +182,7 @@ def create_te():
     te.connect(inputNode, 'in_file',
                     te_mat, 'in_file')
     te.connect(inputNode, 'mask',
-                    te_mat, 'mask')
-    te.connect(inputNode, 'TR',
-                    te_mat, 'TR')                
+                    te_mat, 'mask')              
     te.connect(corr_mat, 'out_file',
                  outputNode, 'te_mat')
                  
