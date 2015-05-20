@@ -174,7 +174,6 @@ def compute_te(in_file, mask_file):
     
     return  g1
     
-    
 
 def entropy(*X):
     
@@ -229,3 +228,40 @@ def cond_entropy(X,Y):
 #    return = np.sum(-p * np.log2(p) if p > 0 else 0 for p in \
 #    (np.mean(reduce(np.logical_and, (predictions == c for predictions, c in zip(X, classes)))) for classes in itertools.product (*[set(x) for x in X])))
 #                
+    
+    
+#    def pearson_correlation(x, y):
+#    '''Computes pearson correlations on matrices
+#    Parameters
+#    ----------
+#    x: np.ndarray or Dataset
+#        PxM array
+#    y: np.ndarray or Dataset or None (the default).
+#        PxN array. If None, then y=x.
+#    Returns
+#    -------
+#    c: np.ndarray
+#        MxN array with c[i,j]=r(x[:,i],y[:,j])
+#    Notes
+#    -----
+#    Unlike numpy. this function behaves like matlab's 'corr' function.
+#    Its numerical precision is slightly lower than numpy's correlate function.
+#    Unlike scipy's 'pearsonr' function it does not return p values.
+#    TODO integrate with CorrCoef
+#    '''
+#
+#
+#    xd = x - np.mean(x, axis=0)
+#    yd = y - np.mean(y, axis=0)
+#
+#    if xd.shape[0] != yd.shape[0]:
+#        raise ValueError("Shape mismatch: %s != %s" % (xd.shape, yd.shape))
+#
+#    # normalize
+#    n = 1. / (x.shape[0] - 1) # normalize
+#
+#    # standard deviation
+#    xs = (n * np.sum(xd * xd, axis=0)) ** -.5
+#    ys = (n * np.sum(yd * yd, axis=0)) ** -.5
+#
+#    return n * np.dot(xd.T, yd) * np.tensordot(xs, ys, 0)
