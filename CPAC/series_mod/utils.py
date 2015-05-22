@@ -34,10 +34,10 @@ def compute_corr(in_file, mask_file):
     #Import utility functions:
     from nitime.utils import percent_change
     
-    import nibabel as nib
+    import nibabel as nb
     
     #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
-    n1_img = nib.load(in_file)
+    n1_img = nb.load(in_file)
     TR = n1_img.header['pixdim'][4]
     
     
@@ -112,11 +112,11 @@ def compute_te(in_file, mask_file):
     import nitime.timeseries as ts
     import nitime.utils as tsu
     
-    import nibabel as nib
+    import nibabel as nb
     
     #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
     #mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
-    n1_img = nib.load(in_file)
+    n1_img = nb.load(in_file)
     TR = n1_img.header['pixdim'][4]
     
     
@@ -135,32 +135,36 @@ def compute_te(in_file, mask_file):
 #    res_data = np.reshape(res_data, (n_x*n_y*n_z, n_t), order='F').T
 #
 #    Ranks_res_data = np.tile((np.zeros((1, (res_data.shape)[1]))), [(res_data.shape)[0], 1])
-    
-    
-        
-    output_type = [True,False] #list of boolean for csv and npz file formats
-    data = gen_roi_timeseries(in_file, mask_file, output_type)
-    #from this files gen_roi_timeseries
-    #once we have the time series:
-    data_rec = csv2rec(data[2])
-    
-    #Extract information:
-    roi_names = np.array(data_rec.dtype.names)
-    nseq = len(roi_names)
-    n_samples = data_rec.shape[0]
-    
-    #Make an empty container for the data
-    data = np.zeros((nseq, n_samples))
-    
-    
-    
-    
-    for n_idx, roi in enumerate(roi_names):
-        data[n_idx] = data_rec[roi]
+   
+
+    unit_data = nb.load(mask_file).get_data()
+    # Cast as rounded-up integer
+    unit_data = np.int64(np.ceil(unit_data))
+    datafile = nb.load(in_file)
+    img_data = datafile.get_data()
+    n_samples = img_data.shape[3]
+
+    if unit_data.shape != img_data.shape[:3]:
+        raise Exception('Invalid Shape Error.'\
+                        'Please check the voxel dimensions.'\
+                        'Data and roi should have'\
+                        'same shape')
+
+    nodes = np.unique(unit_data).tolist()
+    roi_data = np.zeros((len(nodes)-1,n_samples)) #,dtype=float change?
+
+    # Be carefull with number of ROIs and np-arrays
+    nodes.sort()
+    for n in nodes:
+        if n > 0:
+            node_array = img_data[unit_data == n]
+            avg = np.mean(node_array, axis=0)
+            roi_data[n-1] = np.round(avg, 6)
+ 
     
     #Normalize the data in each of the ROIs to be in units 
     #of % change and initialize the TimeSeries object:
-    pdata = tsu.percent_change(data)
+    pdata = tsu.percent_change(roi_data)
     time_series = ts.TimeSeries(pdata, sampling_interval=TR)
     #We initialize the GrangerAnalyzer object, while specifying 
     #the order of the autoregressive model to be 1 
@@ -171,6 +175,10 @@ def compute_te(in_file, mask_file):
     #We are only interested in the physiologically relevant frequency band
     
     g1 = np.mean(G.causality_xy, -1) #is this what we are looking for
+    
+    # Need of replacing nitime dependency:
+    # https://github.com/nipy/nitime/blob/master/nitime/analysis/granger.py
+    
     
     return  g1
     
@@ -265,3 +273,18 @@ def cond_entropy(X,Y):
 #    ys = (n * np.sum(yd * yd, axis=0)) ** -.5
 #
 #    return n * np.dot(xd.T, yd) * np.tensordot(xs, ys, 0)
+    
+    
+    
+    
+#    def seed_corrcoef(seed, target):
+#    """Compute seed-based correlation coefficient"""
+#
+#    x = target - np.mean(target, -1)[..., np.newaxis]
+#    y = seed - np.mean(seed)
+#    xx = np.sum(x ** 2, -1)
+#    yy = np.sum(y ** 2, -1)
+#    xy = np.dot(x, y)
+#    r = xy / np.sqrt(xx * yy)
+#
+#    return r
