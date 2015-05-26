@@ -1,17 +1,100 @@
-def compute_corr(in_file, mask_file):
+#in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+#mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+
+def gen_voxel_timeseries(in_file):
 
     """
-    Computes the Network Correlation Matrix for ROIs in the mask
-
+    Extracts voxelwise timeseries and return a np array with them.
+    
     Parameters
     ----------
 
     in_file : nifti file
         4D EPI File 
 
+    Returns
+    -------
+
+    data_array =  voxel(x,y,z) * timepoints
+
+    """
+    import numpy as np    
+    import nibabel as nb
+    
+    img_data = nb.load(in_file).get_data()
+    #TR = datafile.header['pixdim'][4]
+    n_samples = img_data.shape[3]
+
+    #print img_data.shape
+    (n_x, n_y, n_z, n_t) = img_data.shape
+    voxel_data_array = np.reshape(img_data, (n_x*n_y*n_z, n_t), order='F')
+    
+    
+return  voxel_data_array
+
+def gen_voxel_timeseries(in_file, mask_file):
+
+    """
+    Extracts ROI timeseries and return a np array with them.
+    
+
+    Parameters
+    ----------
+
+    in_file : nifti file
+        4D EPI File 
+        
     mask_file : nifti file
         Mask of the EPI File(Only Compute Correlation of voxels in the mask)
-        Must be 3D
+        Must be 3D    
+
+    Returns
+    -------
+
+    data_array = ROI_number * timepoints
+
+    """
+    import numpy as np    
+    import nibabel as nb
+    
+    img_data = nb.load(in_file).get_data()
+    #TR = datafile.header['pixdim'][4]
+    #n_samples = img_data.shape[3]
+
+    mask_data = nb.load(mask_file).get_data()
+    # Cast as rounded-up integer
+    mask_data = np.int64(np.ceil(mask_data)) #ROI numbers, int64 is enough
+
+    if mask_data.shape != img_data.shape[:3]:
+        raise Exception('Invalid Shape Error.'\
+                        'Please check the voxel dimensions.'\
+                        'Data and roi should have'\
+                        'same shape')
+
+    nodes = np.unique(mask_data).tolist()
+    nodes.remove(0) #quits the ROI number '0'
+    roi_data_array = np.zeros((len(nodes),n_samples)) #,dtype=float change?
+
+    # Be carefull with number of ROIs and np-arrays
+    nodes.sort()
+    for n in nodes:
+        node_array = img_data[mask_data == n]
+        avg = np.mean(node_array, axis=0)
+        roi_data_array[n-1] = np.round(avg, 6)
+    
+return  roi_data_array
+
+def compute_corr(timeseries):
+
+    """
+    Computes the Network Correlation Matrix for a timeseries * timepoints
+    nparray
+
+    Parameters
+    ----------
+
+    in_file : nparray: timeseries * timepoints
+
 
     Returns
     -------
@@ -20,59 +103,15 @@ def compute_corr(in_file, mask_file):
 
     """
 
-    import numpy as np
-    from matplotlib.mlab import csv2rec
-    
-    from CPAC.timeseries import gen_roi_timeseries  
-    
-    #from http://nipy.org/nitime/examples/resting_state_fmri.html    
-    
-    #Import the time-series objects:
-    from nitime.timeseries import TimeSeries
-    #Import the analysis objects:
-    from nitime.analysis import CorrelationAnalyzer
-    #Import utility functions:
-    from nitime.utils import percent_change
-    
-    import nibabel as nb
-    
-    #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
-    n1_img = nb.load(in_file)
-    TR = n1_img.header['pixdim'][4]
-    
-    
-    output_type = [True,False] #list of boolean for csv and npz file formats
-    
-    data = gen_roi_timeseries(in_file, mask_file, output_type)
-    #from this files gen_roi_timeseries
-    #once we have the time series:
-    data_rec = csv2rec(data[2])
-    
-    #Extract information:
-    roi_names = np.array(data_rec.dtype.names)
-    n_samples = data_rec.shape[0]
-    
-    #Make an empty container for the data
-    data = np.zeros((len(roi_names), n_samples))
-    
-    for n_idx, roi in enumerate(roi_names):
-        data[n_idx] = data_rec[roi]
-    
-    #Normalize the data:
-    data = percent_change(data)
-    
-    T = TimeSeries(data, sampling_interval=TR)
-    T.metadata['roi'] = roi_names    
-    #Initialize the correlation analyzer
-    C = CorrelationAnalyzer(T)    
-    
-    #fig01 = drawmatrix_channels(C.corrcoef, roi_names, size=[10., 10.], color_anchor=0)
+    import numpy as np    
+ 
+    corr_matrix=np.corrcoef(timeseries)
     
     
     ## IN CASE WE WOULD LIKE TO ADD A THRESHOLD FEATURE (set inside the function 
     # or from input)
     # C.corrcoef[C.corrcoef<0.7] = 0
-    return  C.corrcoef
+    return  corr_matrix
 
 
 def compute_te(in_file, mask_file):
@@ -101,84 +140,9 @@ def compute_te(in_file, mask_file):
     """
 
     import numpy as np
-    from matplotlib.mlab import csv2rec
-    
-    from CPAC.timeseries import gen_roi_timeseries  
-    
-    #from http://nipy.org/nitime/examples/granger_fmri.html 
-    
-    #Import the time-series objects:
-    import nitime.analysis as nta
-    import nitime.timeseries as ts
-    import nitime.utils as tsu
-    
     import nibabel as nb
     
-    #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
-    #mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
-    n1_img = nb.load(in_file)
-    TR = n1_img.header['pixdim'][4]
-    
-    
-#    res_fname = (in_file)
-#    res_mask_fname = (mask_file)
-#
-#    res_img = nb.load(res_fname)
-#    res_mask_img = nb.load(res_mask_fname)
-#
-#    res_data = res_img.get_data()
-#    res_mask_data = res_mask_img.get_data()
-#
-#    print res_data.shape
-#    (n_x, n_y, n_z, n_t) = res_data.shape
-#
-#    res_data = np.reshape(res_data, (n_x*n_y*n_z, n_t), order='F').T
-#
-#    Ranks_res_data = np.tile((np.zeros((1, (res_data.shape)[1]))), [(res_data.shape)[0], 1])
-   
-
-    unit_data = nb.load(mask_file).get_data()
-    # Cast as rounded-up integer
-    unit_data = np.int64(np.ceil(unit_data))
-    datafile = nb.load(in_file)
-    img_data = datafile.get_data()
-    n_samples = img_data.shape[3]
-
-    if unit_data.shape != img_data.shape[:3]:
-        raise Exception('Invalid Shape Error.'\
-                        'Please check the voxel dimensions.'\
-                        'Data and roi should have'\
-                        'same shape')
-
-    nodes = np.unique(unit_data).tolist()
-    roi_data = np.zeros((len(nodes)-1,n_samples)) #,dtype=float change?
-
-    # Be carefull with number of ROIs and np-arrays
-    nodes.sort()
-    for n in nodes:
-        if n > 0:
-            node_array = img_data[unit_data == n]
-            avg = np.mean(node_array, axis=0)
-            roi_data[n-1] = np.round(avg, 6)
- 
-    
-    #Normalize the data in each of the ROIs to be in units 
-    #of % change and initialize the TimeSeries object:
-    pdata = tsu.percent_change(roi_data)
-    time_series = ts.TimeSeries(pdata, sampling_interval=TR)
-    #We initialize the GrangerAnalyzer object, while specifying 
-    #the order of the autoregressive model to be 1 
-    #(predict the current behavior of the time-series 
-    #based on one time-point back).
-    G = nta.GrangerAnalyzer(time_series, order=1)  
-    
-    #We are only interested in the physiologically relevant frequency band
-    
-    g1 = np.mean(G.causality_xy, -1) #is this what we are looking for
-    
-    # Need of replacing nitime dependency:
-    # https://github.com/nipy/nitime/blob/master/nitime/analysis/granger.py
-    
+    #NEED TO  WORK ON THIS
     
     return  g1
     
@@ -235,56 +199,5 @@ def cond_entropy(X,Y):
 #def entropy(*X):
 #    return = np.sum(-p * np.log2(p) if p > 0 else 0 for p in \
 #    (np.mean(reduce(np.logical_and, (predictions == c for predictions, c in zip(X, classes)))) for classes in itertools.product (*[set(x) for x in X])))
-#                
+
     
-    
-#    def pearson_correlation(x, y):
-#    '''Computes pearson correlations on matrices
-#    Parameters
-#    ----------
-#    x: np.ndarray or Dataset
-#        PxM array
-#    y: np.ndarray or Dataset or None (the default).
-#        PxN array. If None, then y=x.
-#    Returns
-#    -------
-#    c: np.ndarray
-#        MxN array with c[i,j]=r(x[:,i],y[:,j])
-#    Notes
-#    -----
-#    Unlike numpy. this function behaves like matlab's 'corr' function.
-#    Its numerical precision is slightly lower than numpy's correlate function.
-#    Unlike scipy's 'pearsonr' function it does not return p values.
-#    TODO integrate with CorrCoef
-#    '''
-#
-#
-#    xd = x - np.mean(x, axis=0)
-#    yd = y - np.mean(y, axis=0)
-#
-#    if xd.shape[0] != yd.shape[0]:
-#        raise ValueError("Shape mismatch: %s != %s" % (xd.shape, yd.shape))
-#
-#    # normalize
-#    n = 1. / (x.shape[0] - 1) # normalize
-#
-#    # standard deviation
-#    xs = (n * np.sum(xd * xd, axis=0)) ** -.5
-#    ys = (n * np.sum(yd * yd, axis=0)) ** -.5
-#
-#    return n * np.dot(xd.T, yd) * np.tensordot(xs, ys, 0)
-    
-    
-    
-    
-#    def seed_corrcoef(seed, target):
-#    """Compute seed-based correlation coefficient"""
-#
-#    x = target - np.mean(target, -1)[..., np.newaxis]
-#    y = seed - np.mean(seed)
-#    xx = np.sum(x ** 2, -1)
-#    yy = np.sum(y ** 2, -1)
-#    xy = np.dot(x, y)
-#    r = xy / np.sqrt(xx * yy)
-#
-#    return r
