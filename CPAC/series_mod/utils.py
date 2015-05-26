@@ -112,8 +112,16 @@ def compute_corr(timeseries):
     # or from input)
     # C.corrcoef[C.corrcoef<0.7] = 0
     return  corr_matrix
-    
+  
 
+  
+#def autocorr(timeseries):
+#    
+#    from scipy.signal import correlation   
+#    
+#    autocorr_matrix = numpy.corrcoef(timeseries,'full')
+#    
+#    return result[autocorr_matrix.size/2:]
 
  
 
