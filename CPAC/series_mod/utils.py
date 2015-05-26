@@ -32,7 +32,7 @@ def gen_voxel_timeseries(in_file):
     
 return  voxel_data_array
 
-def gen_voxel_timeseries(in_file, mask_file):
+def gen_roi_timeseries(in_file, mask_file):
 
     """
     Extracts ROI timeseries and return a np array with them.
