@@ -1,6 +1,17 @@
 #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
 #mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
 
+
+def compute_ROI_corr(in_file, mask_file):
+
+    from CPAC.series_mod.utils import gen_roi_timeseries
+    from CPAC.series_mod.utils import corr
+
+    ROI_data = gen_roi_timeseries(in_file, mask_file)
+    corr_mat = corr(ROI_data)
+
+    return corr_mat
+
 def gen_voxel_timeseries(in_file):
 
     """
@@ -23,14 +34,13 @@ def gen_voxel_timeseries(in_file):
     
     img_data = nb.load(in_file).get_data()
     #TR = datafile.header['pixdim'][4]
-    n_samples = img_data.shape[3]
 
     #print img_data.shape
     (n_x, n_y, n_z, n_t) = img_data.shape
     voxel_data_array = np.reshape(img_data, (n_x*n_y*n_z, n_t), order='F')
     
     
-return  voxel_data_array
+    return  voxel_data_array
 
 def gen_roi_timeseries(in_file, mask_file):
 
@@ -82,9 +92,9 @@ def gen_roi_timeseries(in_file, mask_file):
         avg = np.mean(node_array, axis=0)
         roi_data_array[n-1] = np.round(avg, 6)
     
-return  roi_data_array
+    return  roi_data_array
 
-def compute_corr(timeseries):
+def corr(timeseries):
 
     """
     Computes the Network Correlation Matrix for a timeseries * timepoints

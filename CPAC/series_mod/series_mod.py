@@ -8,10 +8,9 @@
 import nipype.pipeline.engine as pe
 #import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-from CPAC.series_mod.utils import * #this import is wrong... ?¿
+from CPAC.series_mod.utils import compute_ROI_corr 
 
-
-def create_corr():
+def create_ROI_corr():
 
     """
     Simple Network Correlation Matrix calculation for ROIs in the mask file
@@ -41,7 +40,7 @@ def create_corr():
 
     Workflow Outputs: ::
 
-        outputspec.corr_matrix : string (nifti file)
+        outputspec.corr_matrix : ROI_number * ROI_number array
 
 
     Corr Workflow Procedure:
@@ -61,19 +60,27 @@ def create_corr():
     Examples
     --------
     >>> from CPAC import series_mod
-    >>> wf = series_mod.create_corr()
+    >>> wf = series_mod.create_ROI_corr()
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
-    >>> wf.inputs.inputspec.mask = '/home/data/Project/subject/func/mask.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/Project/subject/func/mask.nii.gz'
     >>> wf.run()
+    
+    in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+    from CPAC import series_mod
+    wf = series_mod.create_ROI_corr()
+    wf.inputs.inputspec.in_file = in_file
+    wf.inputs.inputspec.mask_file = mask_file
+    wf.run()
+
     """
 
 
 
-
-    corr = pe.Workflow(name='corr')
+    ROI_corr = pe.Workflow(name='ROI_corr')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask'
+                                                'mask_file'
                                                 ]),
                         name='inputspec')
 
@@ -83,107 +90,20 @@ def create_corr():
                         name='outputspec')
 
 
-    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask'],
-                                   output_names=['out_file'],
-                     function=compute_corr),
+    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+                                   output_names=['corr_mat'],
+                     function=compute_ROI_corr),
                      name='corr_mat')
 
 
-    corr.connect(inputNode, 'in_file',
+    ROI_corr.connect(inputNode, 'in_file',
                     corr_mat, 'in_file')
-    corr.connect(inputNode, 'mask',
-                    corr_mat, 'mask')                  
-    corr.connect(corr_mat, 'out_file',
+    ROI_corr.connect(inputNode, 'mask_file',
+                    corr_mat, 'mask_file')  
+                    
+    ROI_corr.connect(corr_mat, 'corr_mat',
                  outputNode, 'corr_mat')
 
 
 
-    return corr
-
-def create_te():
-
-    """
-    Simple Pairwise Transfer Entropy Matrix calculation for ROIs in the mask file
-
-    Parameters
-    ----------
-
-    None
-
-    Returns
-    -------
-    te : workflow
-        Transfer Entropy Workflow
-
-    Notes
-    -----
-
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/series_mod/series_mod.py>`_
-
-    Workflow Inputs: ::
-
-        inputspec.rest_res_filt : string (existing nifti file)
-            Input EPI 4D Volume
-
-        inputspec.rest_mask : string (existing nifti file)
-            Input Whole Brain Mask of EPI 4D Volume
-
-    Workflow Outputs: ::
-
-        outputspec.te_matrix : string (nifti file)
-
-
-    Corr Workflow Procedure:
-
-    1. Generate Pairwise Transfer Entropy Matrix from the input EPI 4D volume and EPI mask.
-
-
-    Workflow Graph:
-
-
-    Detailed Workflow Graph:
-
-        
-    References
-    ---------- 
-
-    Examples
-    --------
-    >>> from CPAC import series_mod
-    >>> wf = series_mod.create_te()
-    >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
-    >>> wf.inputs.inputspec.mask = '/home/data/Project/subject/func/mask.nii.gz'
-    >>> wf.inputs.inputspec.TR = 3
-    >>> wf.run()
-    """
-
-
-
-
-    te = pe.Workflow(name='te')
-    inputNode = pe.Node(util.IdentityInterface(fields=[
-                                                'in_file',
-                                                'mask'
-                                                ]),
-                        name='inputspec')
-
-
-    outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'te_mat']),
-                        name='outputspec')
-
-
-    te_mat = pe.Node(util.Function(input_names=['in_file', 'mask'],
-                                   output_names=['out_file'],
-                     function=compute_te),
-                     name='te_mat')
-
-
-    te.connect(inputNode, 'in_file',
-                    te_mat, 'in_file')
-    te.connect(inputNode, 'mask',
-                    te_mat, 'mask')              
-    te.connect(corr_mat, 'out_file',
-                 outputNode, 'te_mat')
-                 
-    return te
+    return ROI_corr
