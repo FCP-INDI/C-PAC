@@ -1,9 +1,13 @@
-from series_mod import create_ROI_corr
+from series_mod import create_ROI_corr, \
+                create_MI
+
 
 from utils import compute_ROI_corr, \
             gen_roi_timeseries, \
-            corr
+            corr, \
+            compute_MI, \
+            transform
                 
 
-__all__ = ['create_ROI_corr','compute_ROI_corr', \
-            'gen_roi_timeseries','corr'] # , \
+__all__ = ['create_ROI_corr','create_MI','compute_ROI_corr', \
+            'gen_roi_timeseries','corr','compute_MI','transform'] # , \

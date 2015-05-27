@@ -11,6 +11,29 @@ def compute_ROI_corr(in_file, mask_file):
     corr_mat = corr(ROI_data)
 
     return corr_mat
+    
+def compute_MI(in_file, mask_file, bins):
+
+    from CPAC.series_mod.utils import gen_roi_timeseries
+    from CPAC.series_mod import transform
+    from CPAC.series_mod import mutual_information
+    
+    import numpy as np
+
+    ROI_data = gen_roi_timeseries(in_file, mask_file)    
+    ROI_data = transform(voxel_data,bins)
+    
+    n_var = ROI_data.shape[0];
+    
+    MI_mat = np.zeros((n_var,n_var))    
+    
+    for i_ in range(n_var):
+        for j_ in range(n_var):
+            MI_mat[i_,j_] = mutual_information(ROI_data[i_,:],ROI_data[j_,:])
+        
+    ## CHECK THE MATRICES SHAPE AND RESULTS
+
+    return MI_mat
 
 def gen_voxel_timeseries(in_file):
 
@@ -238,6 +261,38 @@ def compute_te(in_file, mask_file):
     
     return  g1
     
+def transform(x_old, Nbins):
+     '''
+     TRANSFORM This funcion computes transforms in a matrix
+     to obtain a matrix scaled between the especified number     of bins
+     INPUT:
+       x_old: nobservations * nvariables matrix
+       Nbins: Number of bins of the transformed matrix (NBins=2 values betwen
+      -1, NBins=3 values between 0-2...)
+    
+    OUTPUT:  
+    x_new: New scaled matrix
+
+    x_old is column vector
+    Nbins is the given number of bins to discretize x_old
+    '''
+     
+    import numpy as np
+
+    [npoints, num_vals] = x_old.shape
+    xmax = Nbins-1
+    xmin = 0
+    ymax = x_old.max()
+    ymin = x_old.min()
+    
+    #x_new = ((xmax - xmin)/(ymax - ymin) )* x_old - ( (xmax - xmin) / (ymax - ymin) ) * ymin + xmin;
+    
+    x = (xmax-xmin)/(ymax-ymin)
+    x_new = x * x_old
+    x_new = x_new - (x*ymin+xmin)
+    x_new = np.round(x_new)
+    
+    return x_new
 
 def entropy(*X):
     
