@@ -4,8 +4,8 @@
 
 def compute_ROI_corr(in_file, mask_file):
 
-    from CPAC.series_mod.utils import gen_roi_timeseries
-    from CPAC.series_mod.utils import corr
+    from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import corr
 
     ROI_data = gen_roi_timeseries(in_file, mask_file)
     corr_mat = corr(ROI_data)
@@ -14,14 +14,14 @@ def compute_ROI_corr(in_file, mask_file):
     
 def compute_MI(in_file, mask_file, bins):
 
-    from CPAC.series_mod.utils import gen_roi_timeseries
+    from CPAC.series_mod import gen_roi_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import mutual_information
     
     import numpy as np
 
     ROI_data = gen_roi_timeseries(in_file, mask_file)    
-    ROI_data = transform(voxel_data,bins)
+    ROI_data = transform(ROI_data,bins).astype(int)
     
     n_var = ROI_data.shape[0];
     
@@ -252,8 +252,6 @@ def compute_te(in_file, mask_file):
 
     out_file : Transfer Entropy matrix
 
-    """
-
     import numpy as np
     import nibabel as nb
     
@@ -261,20 +259,20 @@ def compute_te(in_file, mask_file):
     
     return  g1
     
-def transform(x_old, Nbins):
-     '''
-     TRANSFORM This funcion computes transforms in a matrix
-     to obtain a matrix scaled between the especified number     of bins
-     INPUT:
-       x_old: nobservations * nvariables matrix
-       Nbins: Number of bins of the transformed matrix (NBins=2 values betwen
-      -1, NBins=3 values between 0-2...)
+    """
     
+def transform(x_old, Nbins):
+    
+    '''
+    TRANSFORM This funcion computes transforms in a matrix
+    to obtain a matrix scaled between the especified number of bins
+    INPUT:
+      x_old: nobservations * nvariables matrix
+      Nbins: Number of bins of the transformed matrix (NBins=2 values betwen
+     -1, NBins=3 values between 0-2...)
+
     OUTPUT:  
     x_new: New scaled matrix
-
-    x_old is column vector
-    Nbins is the given number of bins to discretize x_old
     '''
      
     import numpy as np
@@ -315,6 +313,8 @@ def entropy(*X):
     
 def mutual_information(X,Y):
 
+    from CPAC.series_mod import entropy
+
     Hx = entropy(X)
     Hy = entropy(Y)
     Hxy = entropy(X,Y)
@@ -327,6 +327,7 @@ def cond_entropy(X,Y):
     """
     Conditional entropy H(X|Y) = H(Y,X) - H(Y). X conditioned on Y
     """
+    from CPAC.series_mod import entropy
 
     Hy = entropy(Y)
     Hyx = entropy(Y,X)

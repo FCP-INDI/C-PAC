@@ -93,7 +93,7 @@ def create_ROI_corr():
 
     corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
                                    output_names=['corr_mat'],
-                     function=compute_MI ),
+                     function=compute_ROI_corr),
                      name='corr_mat')
 
 
@@ -168,9 +168,10 @@ def create_MI():
     in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
     mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
     from CPAC import series_mod
-    wf = series_mod.create_ROI_corr()
+    wf = series_mod.create_MI()
     wf.inputs.inputspec.in_file = in_file
     wf.inputs.inputspec.mask_file = mask_file
+    wf.inputs.inputspec.bins = 10
     wf.run()
 
     """
