@@ -348,6 +348,23 @@ def cond_entropy(X,Y):
     
     return CE
     
+def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
+    
+    """
+    Entropy correlation coefficient p(H) = sqrt(I(X,Y)/0.5*(H(X)+H(Y)))
+    """
+    import numpy as np
+    from CPAC.series_mod import entropy
+    from CPAC.series_mod import mutual_information
+    
+    Hx = entropy(X)
+    Hy = entropy(Y)
+    Ixy = mutual_information(Y,X)
+    ECC = np.sqrt(Ixy/(0.5*(Hx+Hy)))
+    
+    return ECC   
+    
+    
 #def entropy(*X):
 #    n_insctances = len(X[0])
 #    H = 0
