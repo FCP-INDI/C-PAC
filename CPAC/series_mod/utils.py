@@ -377,4 +377,25 @@ def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
 #    return = np.sum(-p * np.log2(p) if p > 0 else 0 for p in \
 #    (np.mean(reduce(np.logical_and, (predictions == c for predictions, c in zip(X, classes)))) for classes in itertools.product (*[set(x) for x in X])))
 
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
     
+    from scipy.signal import butter    
+    
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    
+    from scipy.signal import lfilter 
+    
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, data)
+    
+    return y
+    
+
