@@ -5,10 +5,21 @@
 def compute_ROI_corr(in_file, mask_file):
 
     from CPAC.series_mod import gen_roi_timeseries
-    from CPAC.series_mod import corr
-
+    from CPAC.series_mod import corr  
+    import numpy as np
+    
     ROI_data = gen_roi_timeseries(in_file, mask_file)
     corr_mat = corr(ROI_data)
+    
+    np.savetxt(in_file[:-7]+'_corr.txt', corr_mat)
+
+#    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
+#
+#    reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
+#
+#    img.to_filename(reho_file)
+#
+#    out_file = reho_file
 
     return corr_mat
     
@@ -30,6 +41,8 @@ def compute_MI(in_file, mask_file, bins):
     for i_ in range(n_var):
         for j_ in range(n_var):
             MI_mat[i_,j_] = mutual_information(ROI_data[i_,:],ROI_data[j_,:])
+        
+    np.savetxt(in_file[:-7]+'_MI.txt', MI_mat)    
         
     ## CHECK THE MATRICES SHAPE AND RESULTS
 
@@ -334,6 +347,22 @@ def cond_entropy(X,Y):
     CE = Hyx - Hy    
     
     return CE
+    
+def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
+    
+    """
+    Entropy correlation coefficient p(H) = sqrt(I(X,Y)/0.5*(H(X)+H(Y)))
+    """
+    import numpy as np
+    from CPAC.series_mod import entropy
+    from CPAC.series_mod import mutual_information
+    
+    Hx = entropy(X)
+    Hy = entropy(Y)
+    Ixy = mutual_information(Y,X)
+    ECC = np.sqrt(Ixy/(0.5*(Hx+Hy)))
+    
+    return ECC   
     
 #def entropy(*X):
 #    n_insctances = len(X[0])

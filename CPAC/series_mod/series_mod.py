@@ -72,6 +72,7 @@ def create_ROI_corr():
     wf = series_mod.create_ROI_corr()
     wf.inputs.inputspec.in_file = in_file
     wf.inputs.inputspec.mask_file = mask_file
+    wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
     wf.run()
 
     """
@@ -91,18 +92,19 @@ def create_ROI_corr():
                         name='outputspec')
 
 
-    corr_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+
+    corr_matNode = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
                                    output_names=['corr_mat'],
                      function=compute_ROI_corr),
-                     name='corr_mat')
+                     name='corr_calc')
 
 
     ROI_corr.connect(inputNode, 'in_file',
-                    corr_mat, 'in_file')
+                    corr_matNode, 'in_file')
     ROI_corr.connect(inputNode, 'mask_file',
-                    corr_mat, 'mask_file')  
+                    corr_matNode, 'mask_file')  
                     
-    ROI_corr.connect(corr_mat, 'corr_mat',
+    ROI_corr.connect(corr_matNode, 'corr_mat',
                  outputNode, 'corr_mat')
 
 
@@ -172,6 +174,7 @@ def create_MI():
     wf.inputs.inputspec.in_file = in_file
     wf.inputs.inputspec.mask_file = mask_file
     wf.inputs.inputspec.bins = 10
+    wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
     wf.run()
 
     """
