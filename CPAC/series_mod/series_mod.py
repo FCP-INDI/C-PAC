@@ -93,6 +93,7 @@ def create_ROI_corr():
                         name='outputspec')
 
 
+
     corr_matNode = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
                                    output_names=['corr_mat'],
                      function=compute_ROI_corr),
@@ -209,7 +210,7 @@ def create_ROI_pcorr():
 
 
 
-    return ROI_corr    
+    return ROI_pcorr    
     
 def create_MI():
 
