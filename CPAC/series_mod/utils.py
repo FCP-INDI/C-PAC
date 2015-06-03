@@ -3,6 +3,12 @@
 
 # THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
 
+#from matplotlib.pylab import *
+#matshow(corr_mat);colorbar();clim(-1,1);show()
+#matshow(pcorr_mat);colorbar();clim(-1,1);show()
+#matshow(MI_mat);colorbar();clim(0,np.max(MI_mat));show()
+
+
 def compute_ROI_corr(in_file, mask_file):
 
     from CPAC.series_mod import gen_roi_timeseries
