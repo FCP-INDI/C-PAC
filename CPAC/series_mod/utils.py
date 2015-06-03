@@ -1,6 +1,7 @@
 #in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
 #mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
 
+# THIS SCRIPT USES Nvar * Ntimepoints LIKE MATRIX STRUCTURES
 
 def compute_ROI_corr(in_file, mask_file):
 
@@ -22,6 +23,27 @@ def compute_ROI_corr(in_file, mask_file):
 #    out_file = reho_file
 
     return corr_mat
+    
+def compute_ROI_pcorr(in_file, mask_file):
+
+    from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import partial_corr  
+    import numpy as np
+    
+    ROI_data = gen_roi_timeseries(in_file, mask_file)
+    corr_mat = partial_corr(ROI_data)
+    
+    np.savetxt(in_file[:-7]+'partial_corr.txt', corr_mat)
+
+#    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
+#
+#    reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
+#
+#    img.to_filename(reho_file)
+#
+#    out_file = reho_file
+
+    return corr_mat    
     
 def compute_MI(in_file, mask_file, bins):
 
@@ -181,7 +203,7 @@ def partial_corr(C):
     Parameters
     ----------
     C : array-like, shape (n, p)
-        Array with the different variables. Each column of C is taken as a variable
+        Array with the different variables. Each row of C is taken as a variable !!
 
 
     Returns
@@ -220,7 +242,7 @@ def partial_corr(C):
     from scipy import stats, linalg
     
     C = np.asarray(C)
-    C = C.T ## HERE PROBLEM SOLVED, but take this in mind !!
+    C = C.T ## HERE PROBLEM SOLVED, but take this in mind !! Now, row = variable
     p = C.shape[1]
     P_corr = np.zeros((p, p), dtype=np.float)
     for i in range(p):

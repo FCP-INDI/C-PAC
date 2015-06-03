@@ -9,6 +9,7 @@ import nipype.pipeline.engine as pe
 #import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.series_mod.utils import compute_ROI_corr
+from CPAC.series_mod.utils import compute_ROI_pcorr  
 from CPAC.series_mod.utils import compute_MI  
 
 def create_ROI_corr():
@@ -109,7 +110,106 @@ def create_ROI_corr():
 
 
     return ROI_corr
+
+
+def create_ROI_pcorr():
+
+    """
+    Simple Network Partial Correlation Matrix calculation for ROIs in the mask file
+
+    Parameters
+    ----------
+
+    None
+
+    Returns
+    -------
+    pcorr : workflow
+        Partial Correlation Workflow
+
+    Notes
+    -----
+
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/series_mod/series_mod.py>`_
+
+    Workflow Inputs: ::
+
+        inputspec.in_file : string (existing nifti file)
+            Input EPI 4D Volume
+
+        inputspec.mask_file : string (existing nifti file)
+            Input Whole Brain Mask of EPI 4D Volume
+
+    Workflow Outputs: ::
+
+        outputspec.pcorr_matrix : ROI_number * ROI_number array
+
+
+    Corr Workflow Procedure:
+
+    1. Generate Partial Correlation Matrix from the input EPI 4D volume and EPI mask.
+
+
+    Workflow Graph:
+
+
+    Detailed Workflow Graph:
+
+        
+    References
+    ---------- 
+
+    Examples
+    --------
+    >>> from CPAC import series_mod
+    >>> wf = series_mod.create_ROI_corr()
+    >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/Project/subject/func/mask.nii.gz'
+    >>> wf.run()
     
+    in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+    from CPAC import series_mod
+    wf = series_mod.create_ROI_corr()
+    wf.inputs.inputspec.in_file = in_file
+    wf.inputs.inputspec.mask_file = mask_file
+    wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
+    wf.run()
+
+    """
+
+
+
+    ROI_pcorr = pe.Workflow(name='ROI_pcorr')
+    inputNode = pe.Node(util.IdentityInterface(fields=[
+                                                'in_file',
+                                                'mask_file'
+                                                ]),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=[
+                                                    'pcorr_mat']),
+                        name='outputspec')
+
+
+    pcorr_matNode = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+                                   output_names=['pcorr_mat'],
+                     function=compute_ROI_pcorr),
+                     name='pcorr_calc')
+
+
+    ROI_pcorr.connect(inputNode, 'in_file',
+                    pcorr_matNode, 'in_file')
+    ROI_pcorr.connect(inputNode, 'mask_file',
+                    pcorr_matNode, 'mask_file')  
+                    
+    ROI_pcorr.connect(pcorr_matNode, 'pcorr_mat',
+                 outputNode, 'pcorr_mat')
+
+
+
+    return ROI_corr    
     
 def create_MI():
 
