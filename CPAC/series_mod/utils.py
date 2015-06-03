@@ -31,9 +31,9 @@ def compute_ROI_pcorr(in_file, mask_file):
     import numpy as np
     
     ROI_data = gen_roi_timeseries(in_file, mask_file)
-    corr_mat = partial_corr(ROI_data)
+    pcorr_mat = partial_corr(ROI_data)
     
-    np.savetxt(in_file[:-7]+'partial_corr.txt', corr_mat)
+    np.savetxt(in_file[:-7]+'partial_corr.txt', pcorr_mat)
 
 #    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
 #
@@ -43,7 +43,7 @@ def compute_ROI_pcorr(in_file, mask_file):
 #
 #    out_file = reho_file
 
-    return corr_mat    
+    return pcorr_mat    
     
 def compute_MI(in_file, mask_file, bins):
 
