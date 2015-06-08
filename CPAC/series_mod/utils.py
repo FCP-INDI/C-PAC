@@ -75,6 +75,42 @@ def compute_MI(in_file, mask_file, bins):
     ## CHECK THE MATRICES SHAPE AND RESULTS
 
     return MI_mat
+    
+def compute_ApEn(in_file, m_param, r_param):
+
+    from CPAC.series_mod import gen_voxel_timeseries
+    from CPAC.series_mod import ap_entropy 
+    import numpy as np
+    
+    data = gen_voxel_timeseries(in_file)
+    ApEn_vector = ap_entropy(data,m_param,r_param)
+    
+    np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
+
+    return ApEn_vector
+
+
+
+
+#
+#
+#
+#
+# _          _                    __                  _   _                 
+#| |        | |                  / _|                | | (_)                
+#| |__   ___| |_ __   ___ _ __  | |_ _   _ _ __   ___| |_ _  ___  _ __  ___ 
+#| '_ \ / _ \ | '_ \ / _ \ '__| |  _| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
+#| | | |  __/ | |_) |  __/ |    | | | |_| | | | | (__| |_| | (_) | | | \__ \
+#|_| |_|\___|_| .__/ \___|_|    |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
+#             | |                                                           
+#             |_|      
+#
+#
+#
+#
+
+
+
 
 def gen_voxel_timeseries(in_file):
 
@@ -404,6 +440,66 @@ def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
 #def entropy(*X):
 #    return = np.sum(-p * np.log2(p) if p > 0 else 0 for p in \
 #    (np.mean(reduce(np.logical_and, (predictions == c for predictions, c in zip(X, classes)))) for classes in itertools.product (*[set(x) for x in X])))
+
+
+
+
+def ap_entropy(X, M, R):
+        
+    import numpy as np
+	
+    N = len(X)
+    
+    Em = embed_seq(X, 1, M)	
+    Emp = embed_seq(X, 1, M + 1)
+    
+    Cm, Cmp = np.zeros(N - M + 1), np.zeros(N - M)
+
+    for i in xrange(0, N - M):
+        for j in xrange(i, N - M):
+            if in_range(Em[i].any(), Em[j].any(), R):
+                Cm[i] += 1												
+                Cm[j] += 1
+                if abs(Emp[i][-1] - Emp[j][-1]) <= R:
+                    Cmp[i] += 1
+                    Cmp[j] += 1
+        if in_range(Em[i].any(), Em[N-M].any(), R):
+            Cm[i] += 1
+            Cm[N-M] += 1
+	
+    Cm[N - M] += 1 
+    Cm /= (N - M +1 )
+    Cmp /= ( N - M )
+    Phi_m, Phi_mp = sum(np.log(Cm)),  sum(np.log(Cmp))
+
+    ApEn = (Phi_m - Phi_mp) / (N - M)
+
+    return ApEn
+
+def embed_seq(X,Tau,D):
+    
+    import numpy as np
+    
+    N = len(X)
+
+    Y=np.zeros((N - (D - 1) * Tau, D))
+    for i in xrange(0, N - (D - 1) * Tau):
+        for j in xrange(0, D):
+            Y[i][j] = X[i + j * Tau]
+    return Y
+
+
+def in_range(i,j,k):
+    """
+    Returns True if i in [j, k[
+    * 0 <= i, j, k < MAX
+    * no order is assumed between j and k: we can have k < j
+    """
+    if j <= k:
+        return j <= i < k
+    # j > k :
+    return j <= i or i < k
+
 
 
 def butter_bandpass(lowcut, highcut, fs, order=5):

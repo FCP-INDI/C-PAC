@@ -11,6 +11,8 @@ import nipype.interfaces.utility as util
 from CPAC.series_mod.utils import compute_ROI_corr
 from CPAC.series_mod.utils import compute_ROI_pcorr  
 from CPAC.series_mod.utils import compute_MI  
+#from CPAC.series_mod.utils import compute_ApEn
+
 
 def create_ROI_corr():
 
@@ -311,6 +313,89 @@ def create_MI():
     MI.connect(MI_mat, 'MI_mat',
                  outputNode, 'MI_mat')
 
-
-
     return MI
+    
+    
+#def create_ApEn():
+#
+#    """
+#    ApEn calculation for fMRI file
+#
+#    Parameters
+#    ----------
+#
+#    None
+#
+#    Returns
+#    -------
+#    corr : workflow
+#        Correlation Workflow
+#
+#    Notes
+#    -----
+#
+#    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/series_mod/series_mod.py>`_
+#
+#    Workflow Inputs: ::
+#
+#        inputspec.in_file : string (existing nifti file)
+#            Input EPI 4D Volume
+#
+#	inputspec.m_param : parameter m, time series size
+#
+#        inputspec.r_param : parameter r - factor?¿
+#
+#    Workflow Outputs: ::
+#
+#        outputspec.result_vector : ApEn value
+#        
+#    References
+#    ---------- 
+#
+#    Examples
+#    --------
+#    >>> from CPAC import series_mod
+#    >>> wf = series_mod.create_ApEn()
+#    >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
+#    >>> wf.inputs.inputspec.m_param = 30
+#    >>> wf.inputs.inputspec.m_param = 4
+#    >>> wf.run()
+#
+#    """
+#
+#
+#
+#    ApEn = pe.Workflow(name='ApEn')
+#    inputNode = pe.Node(util.IdentityInterface(fields=[
+#                                                'in_file',
+#                                                'm_param',
+#						'r_param'
+#                                                ]),
+#                        name='inputspec')
+#
+#
+#    outputNode = pe.Node(util.IdentityInterface(fields=[
+#                                                    'result_vector']),
+#                        name='outputspec')
+#
+#
+#
+#    ApEn_calc_Node = pe.Node(util.Function(input_names=['in_file', 'm_param','r_param'],
+#                                   output_names=['result_vector'],
+#                     function=compute_ApEn),
+#                     name='ApEn_calc')
+#
+#
+#    ApEn.connect(inputNode, 'in_file',
+#                    ApEn_calc_Node, 'in_file')
+#    ApEn.connect(inputNode, 'm_param',
+#                    ApEn_calc_Node, 'm_param')  
+#    ApEn.connect(inputNode, 'r_param',
+#                    ApEn_calc_Node, 'r_param')  
+#                    
+#    ApEn.connect(ApEn_calc_Node, 'result_vector',
+#                 outputNode, 'result_vector')
+#
+#
+#
+#    return ApEn    

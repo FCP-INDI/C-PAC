@@ -11,7 +11,7 @@ These are function nodes of sorts that compute a centrality measure.
 import numpy as np
 #import pyximport
 #pyximport.install(setup_args={'include_dirs': [np.get_include()]})
-from CPAC.network_centrality.thresh_and_sum import *
+#from CPAC.network_centrality.thresh_and_sum import *
 
 
 
