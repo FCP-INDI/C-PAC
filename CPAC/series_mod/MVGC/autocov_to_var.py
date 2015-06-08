@@ -1,14 +1,3 @@
-
-import numpy as np
-import scipy
-import matcompat
-
-# if available import pylab (from matlibplot)
-try:
-    import matplotlib.pylab as plt
-except ImportError:
-    pass
-
 #%% autocov_to_var
 #%
 #% Calculate VAR parameters from autocovariance sequence
@@ -86,49 +75,53 @@ except ImportError:
 #% (C) Lionel Barnett and Anil K. Seth, 2012. See file license.txt in
 #% installation directory for licensing terms.
 #%
-#%%
-def autocov_to_var(G):
 
+
+def autocov_to_var(G):
+    
+    import numpy as np
+    import scipy
+    
     # Local Variables: kb, AB, kf, G, G0, AFPREV, ABPREV, k, AF, AAB, q, GF, r, SIG, GB, AAF, qn
     # Function calls: q1, autocov_to_var, reshape, nargout, n, zeros, flipdim, permute
-    #%[n,~,q1] = size(G);
+    [n,~,q1] = size(G); 
     q = q0.
     qn = np.dot(q, n)
     G0 = G[:,:,0]
     #% covariance
     GF = np.reshape(G[:,:,1:], n, qn).conj().T
     #% forward  autocov sequence
-    GB = np.reshape(permute(flipdim(G[:,:,1:], 3.), np.array(np.hstack((1., 3., 2.)))), qn, n)
+    GB = np.reshape(permute(flipdim(G[:,:,1:], 3), np.array(np.hstack((1, 3, 2)))), qn, n)
     #% backward autocov sequence
     AF = np.zeros(n, qn)
     #% forward  coefficients
     AB = np.zeros(n, qn)
     #% backward coefficients (reversed compared with Whittle's treatment)
     #% initialise recursion
-    k = 1.
+    k = 1
     #% model order
     r = q-k
-    kf = np.arange(1., (np.dot(k, n))+1)
+    kf = np.arange(1, (np.dot(k, n))+1)
     #% forward  indices
-    kb = np.arange(np.dot(r, n)+1., (qn)+1)
+    kb = np.arange(np.dot(r, n)+1, (qn)+1)
     #% backward indices
-    AF[:,int(kf)-1] = matdiv(GB[int(kb)-1,:], G0)
-    AB[:,int(kb)-1] = matdiv(GF[int(kf)-1,:], G0)
+    AF[:,kf-1] = matdiv(GB[kb-1,:], G0)
+    AB[:,kb-1] = matdiv(GF[kf-1,:], G0)
     #% and loop
-    for k in np.arange(2., (q)+1):
-        AAF = matdiv(GB[int(np.dot(r-1., n)+1.)-1:np.dot(r, n),:]-np.dot(AF[:,int(kf)-1], GB[int(kb)-1,:]), G0-np.dot(AB[:,int(kb)-1], GB[int(kb)-1,:]))
+    for k in np.arange(2, (q)+1):
+        AAF = matdiv(GB[np.dot(r-1, n)+1)-1:np.dot(r, n),:]-np.dot(AF[:,kf-1], GB[kb-1,:]), G0-np.dot(AB[:,kb-1], GB[kb-1,:]))
         #% DF/VB
-        AAB = matdiv(GF[int(np.dot(k-1., n)+1.)-1:np.dot(k, n),:]-np.dot(AB[:,int(kb)-1], GF[int(kf)-1,:]), G0-np.dot(AF[:,int(kf)-1], GF[int(kf)-1,:]))
+        AAB = matdiv(GF[np.dot(k-1, n)+1)-1:np.dot(k, n),:]-np.dot(AB[:,kb-1], GF[kf-1,:]), G0-np.dot(AF[:,kf-1], GF[kf-1,:]))
         #% DB/VF
-        AFPREV = AF[:,int(kf)-1]
-        ABPREV = AB[:,int(kb)-1]
+        AFPREV = AF[:,kf-1]
+        ABPREV = AB[:,kb-1]
         r = q-k
-        kf = np.arange(1., (np.dot(k, n))+1)
-        kb = np.arange(np.dot(r, n)+1., (qn)+1)
-        AF[:,int(kf)-1] = np.array(np.hstack((AFPREV-np.dot(AAF, ABPREV), AAF)))
-        AB[:,int(kb)-1] = np.array(np.hstack((AAB, ABPREV-np.dot(AAB, AFPREV))))
+        kf = np.arange(1, (np.dot(k, n))+1)
+        kb = np.arange(np.dot(r, n)+1, (qn)+1)
+        AF[:,kf-1] = np.array(np.hstack((AFPREV-np.dot(AAF, ABPREV), AAF)))
+        AB[:,kb-1] = np.array(np.hstack((AAB, ABPREV-np.dot(AAB, AFPREV))))
         
-    if nargout > 1.:
+    if nargout > 1:
         SIG = G0-np.dot(AF, GF)
     
     

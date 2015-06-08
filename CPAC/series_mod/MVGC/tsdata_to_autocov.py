@@ -78,5 +78,5 @@ def tsdata_to_autocov(X, q):
     for k in np.arange(0., (q)+1):
         M = np.dot(N, m-k)
         G[:,:,(k+1)-1] = np.dot(np.reshape(X[:,int(k+1.)-1:m,:], n, M), np.reshape(X[:,0:m-k,:], n, M).conj().T) / M-1
-        
+        #c = numpy.linalg.lstsq(b.T, a.T)[0].T
     return [G]
