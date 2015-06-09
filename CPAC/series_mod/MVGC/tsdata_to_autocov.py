@@ -58,8 +58,7 @@
 #% <var_to_autocov.html |var_to_autocov|> |
 #% <tsdata_to_autocov_debias.html |tsdata_to_autocov_debias|>
 #%
-#% (C) Lionel Barnett and Anil K. Seth, 2012. See file license.txt in
-#% installation directory for licensing terms.
+#% (C) Lionel Barnett and Anil K. Seth, 2012. 
 
 
 
@@ -71,12 +70,17 @@ def tsdata_to_autocov(X, q):
 
     # Local Variables: G, M, k, m, N, q, X, n
     # Function calls: zeros, tsdata_to_autocov, demean, reshape, size
-    [n, m, N] = np.shape(X)
+    if len(X.shape) == 2:
+        X = np.expand_dims(X, axis=2)
+        [n, m, N] = np.shape(X)
+    else:
+        [n, m, N] = np.shape(X)
     #%assert(q < m-1,'too many lags');
-    X = pylab.demean(X, axis=1) ### BE CAREFUL
-    G = np.zeros(n, n, (q+1))
-    for k in np.arange(0., (q)+1):
-        M = np.dot(N, m-k)
-        G[:,:,(k+1)-1] = np.dot(np.reshape(X[:,int(k+1.)-1:m,:], n, M), np.reshape(X[:,0:m-k,:], n, M).conj().T) / M-1
+    X = pylab.demean(X, axis=1) ## This is correct
+    G = np.zeros((n, n, (q+1)))
+    
+    for k in range(0,q+1):
+        M = N * m-k
+        G[:,:,k] = np.dot(np.reshape(X[:,k:m,:], (n, M)), np.reshape(X[:,0:m-k,:], (n, M)).conj().T) / M-1
         #c = numpy.linalg.lstsq(b.T, a.T)[0].T
     return [G]
