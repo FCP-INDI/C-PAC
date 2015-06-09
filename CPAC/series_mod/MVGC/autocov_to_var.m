@@ -79,7 +79,7 @@
 
 function [AF,SIG] = autocov_to_var(G)
 
-%[n,~,q1] = size(G);
+[n,~,q1] = size(G);
 q = q1-1;
 qn = q*n;
 

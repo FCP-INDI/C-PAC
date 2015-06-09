@@ -76,15 +76,20 @@ def autocov_to_mvgc(G, x, y):
     F = NaN
     #% full regression
     #%owstate = warn_supp;
-    [~,SIG] = autocov_to_var(G[xzy-1,xzy-1,:])
+    [~,SIG] = autocov_to_var(G[xzy,xzy,:])
     #%warn_test(owstate,    'in full regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIG),'in full regression - regression failed'), return; end % show-stopper!
     #% reduced regression
     #%owstate = warn_supp;
-    [~,SIGR] = autocov_to_var(G[xz-1,xz-1,:])
+    [~,SIGR] = autocov_to_var(G[xz,xz,:])
     #% reduced regression
     #%warn_test(owstate,     'in reduced regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIGR),'in reduced regression - regression failed'), return; end % show-stopper!
     x = np.arange(1, (length(x))+1)
-    F = np.log(plt.det(SIGR[x-1,x-1]))-np.log(plt.det(SIG[x-1,x-1]))
+    
+    ###########
+    F = np.log(plt.det(SIGR[x-1,x-1]))-np.log(plt.det(SIG[x-1,x-1])) 
+    #####   not probed
+    
+    
     return [F]

@@ -84,32 +84,38 @@ def autocov_to_var(G):
     
     # Local Variables: kb, AB, kf, G, G0, AFPREV, ABPREV, k, AF, AAB, q, GF, r, SIG, GB, AAF, qn
     # Function calls: q1, autocov_to_var, reshape, nargout, n, zeros, flipdim, permute
-    [n,~,q1] = size(G); 
-    q = q0.
-    qn = np.dot(q, n)
+    [n,m,q1] = G.shape; 
+    q = q1 - 1
+    qn = q * n
     G0 = G[:,:,0]
     #% covariance
-    GF = np.reshape(G[:,:,1:], n, qn).conj().T
+    GF = np.reshape(G[:,:,1:], (n, qn)).conj().T
+  
+
+    ## SOLVE FLIPDIM
     #% forward  autocov sequence
-    GB = np.reshape(permute(flipdim(G[:,:,1:], 3), np.array(np.hstack((1, 3, 2)))), qn, n)
-    #% backward autocov sequence
-    AF = np.zeros(n, qn)
+    GB = np.reshape(np.transpose(flipdim(G[:,:,1:], 2), (0, 2, 1)), (qn, n))
+    #GB = np.reshape(np.transpose(G[:,:,1:], (0, 2, 1)), (qn, n))
+   
+   
+    #% backward autocov sequence np.transpose(x, (1, 0, 2))
+    AF = np.zeros([n, qn])
     #% forward  coefficients
-    AB = np.zeros(n, qn)
+    AB = np.zeros([n, qn])
     #% backward coefficients (reversed compared with Whittle's treatment)
     #% initialise recursion
     k = 1
     #% model order
     r = q-k
-    kf = np.arange(1, (np.dot(k, n))+1)
+    kf = np.arange(k*n)
     #% forward  indices
-    kb = np.arange(np.dot(r, n)+1, (qn)+1)
+    kb = np.arange(r*n, qn)
     #% backward indices
-    AF[:,kf-1] = matdiv(GB[kb-1,:], G0)
-    AB[:,kb-1] = matdiv(GF[kf-1,:], G0)
+    AF[:,kf] = numpy.linalg.lstsq(G0.T, GB[kb,:].T)[0].T
+    AB[:,kb] = numpy.linalg.lstsq(G0.T, GB[kb,:].T)[0].T
     #% and loop
     for k in np.arange(2, (q)+1):
-        AAF = matdiv(GB[np.dot(r-1, n)+1)-1:np.dot(r, n),:]-np.dot(AF[:,kf-1], GB[kb-1,:]), G0-np.dot(AB[:,kb-1], GB[kb-1,:]))
+        AAF = matdiv(GB[r-1*n+1-1:r*n,:]-np.dot(AF[:,kf-1], GB[kb-1,:]), G0-np.dot(AB[:,kb-1], GB[kb-1,:]))
         #% DF/VB
         AAB = matdiv(GF[np.dot(k-1, n)+1)-1:np.dot(k, n),:]-np.dot(AB[:,kb-1], GF[kf-1,:]), G0-np.dot(AF[:,kf-1], GF[kf-1,:]))
         #% DB/VF
