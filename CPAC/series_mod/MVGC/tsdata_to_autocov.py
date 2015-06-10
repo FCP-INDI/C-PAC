@@ -79,8 +79,7 @@ def tsdata_to_autocov(X, q):
     X = pylab.demean(X, axis=1) ## This is correct
     G = np.zeros((n, n, (q+1)))
     
-    for k in range(0,q+1):
-        M = N * m-k
+    for k in range(q+1):
+        M = N * (m-k)
         G[:,:,k] = np.dot(np.reshape(X[:,k:m,:], (n, M)), np.reshape(X[:,0:m-k,:], (n, M)).conj().T) / M-1
-        #c = numpy.linalg.lstsq(b.T, a.T)[0].T
-    return [G]
+    return G

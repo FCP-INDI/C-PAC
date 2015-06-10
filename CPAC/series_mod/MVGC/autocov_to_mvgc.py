@@ -56,16 +56,17 @@
 def autocov_to_mvgc(G, x, y):
     
     import numpy as np
-    import scipy
 
     # Local Variables: G, F, xzy, n, xz, SIGR, SIG, y, x, z
     # Function calls: autocov_to_var, log, det, NaN, length, autocov_to_mvgc, size
     n = G.shape[0]
     
-    x = x.flatten(0).conj() #be carefull for multi variate case
-    #% vectorise
-    y = y.flatten(0).conj()
-    #% vectorise
+    
+    #WARNING PART 1!!
+#    x = x.flatten(0).conj() #be carefull for multi variate case
+#    #% vectorise
+#    y = y.flatten(0).conj()
+#    #% vectorise
     
     
     z = np.arange(n)
@@ -73,23 +74,28 @@ def autocov_to_mvgc(G, x, y):
     #% indices of other variables (to condition out)
     xz = np.array(np.hstack((x, z)))
     xzy = np.array(np.hstack((xz, y)))
-    F = NaN
+    F = 0
     #% full regression
     #%owstate = warn_supp;
-    [~,SIG] = autocov_to_var(G[xzy,xzy,:])
+    ixgrid1 = np.ix_(xzy,xzy)
+    [AF,SIG] = autocov_to_var(G[ixgrid1]) #G[ixgrid1,:])
     #%warn_test(owstate,    'in full regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIG),'in full regression - regression failed'), return; end % show-stopper!
     #% reduced regression
     #%owstate = warn_supp;
-    [~,SIGR] = autocov_to_var(G[xz,xz,:])
+    ixgrid2 = np.ix_(xz,xz)
+    [AF,SIGR] = autocov_to_var(G[ixgrid2]) #G[ixgrid2,:])
     #% reduced regression
     #%warn_test(owstate,     'in reduced regression - bad autocovariance matrix? Check output of ''var_info''');
     #%if warn_if(isbad(SIGR),'in reduced regression - regression failed'), return; end % show-stopper!
-    x = np.arange(1, (length(x))+1)
+    
+    #WARNING PART 2!!
+    #x = np.arange(np.size(x,axis=1)+1)
     
     ###########
-    F = np.log(plt.det(SIGR[x-1,x-1]))-np.log(plt.det(SIG[x-1,x-1])) 
+    ixgrid3 = np.ix_(x,x)
+    F = np.log(np.linalg.det(SIGR[ixgrid3]))-np.log(np.linalg.det(SIG[ixgrid3])) 
     #####   not probed
     
     
-    return [F]
+    return F
