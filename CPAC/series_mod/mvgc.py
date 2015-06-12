@@ -109,7 +109,7 @@ def autocov_to_pwcgc(G):
         LSIGj = np.log(np.diag(SIGj))
     
         for ii_ in range(n-1):
-            i_ = jo(ii_)
+            i_ = jo[ii_]
             F[i_,j_] = LSIGj[ii_]-LSIG[i_]
         
     return F
