@@ -56,13 +56,14 @@
 def autocov_to_mvgc(G, x, y):
     
     import numpy as np
+    #import autocov_to_var
 
     # Local Variables: G, F, xzy, n, xz, SIGR, SIG, y, x, z
     # Function calls: autocov_to_var, log, det, NaN, length, autocov_to_mvgc, size
     n = G.shape[0]
     
     
-    #WARNING PART 1!!
+     #WARNING PART 1!!
 #    x = x.flatten(0).conj() #be carefull for multi variate case
 #    #% vectorise
 #    y = y.flatten(0).conj()
@@ -96,6 +97,4 @@ def autocov_to_mvgc(G, x, y):
     ixgrid3 = np.ix_(x,x)
     F = np.log(np.linalg.det(SIGR[ixgrid3]))-np.log(np.linalg.det(SIG[ixgrid3])) 
     #####   not probed
-    
-    
     return F

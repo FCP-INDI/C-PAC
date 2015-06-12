@@ -115,12 +115,23 @@ def autocov_to_var(G):
     kb = np.arange(r*n, qn)
     # backward indices
     AF[:,kf] = np.dot(GB[kb,:],np.linalg.inv(G0))
-    AB[:,kb] = np.dot(GF[kf,:],np.linalg.inv(G0)) 
+    AB[:,kb] = np.dot(GF[kf,:],np.linalg.inv(G0))
     
-    # TO DO: Test if this loop computes the same as the equivalent in Matlab
-    # for lag>1 cases
-    # and loop for lag>1
-#    for k in np.arange(2, q+1):
+    AFa = np.linalg.lstsq(G0.T,GB.T)[0].T
+    AFb = np.dot(GB,np.linalg.inv(G0))
+    
+    SIG = G0-np.dot(AF, GF)
+    AF = np.reshape(AF, (n, n, q))
+    return AF, SIG
+    
+    
+    
+    
+    
+# TO DO: Test if this loop computes the same as the equivalent in Matlab
+# for lag>1 cases
+# and loop for lag>1
+#   for k in np.arange(2, q+1):
 #        
 #        
 #        DF = GB[(r-1)*n+1:r*n,:] - np.dot(AF[:,kf],GB[kb,:])
@@ -140,8 +151,3 @@ def autocov_to_var(G):
 #        kb = np.arange(np.dot(r, n)+1, (qn)+1)
 #        AF[:,kf-1] = np.array(np.hstack((AFPREV-np.dot(AAF, ABPREV), AAF)))
 #        AB[:,kb-1] = np.array(np.hstack((AAB, ABPREV-np.dot(AAB, AFPREV))))
-        
-    
-    SIG = G0-np.dot(AF, GF)
-    AF = np.reshape(AF, (n, n, q))
-    return [AF, SIG]

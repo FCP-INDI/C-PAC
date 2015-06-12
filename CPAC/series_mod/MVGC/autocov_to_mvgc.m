@@ -74,14 +74,14 @@ F = NaN;
 % full regression
 
 %owstate = warn_supp;
-[SIG] = autocov_to_var(G(xzy,xzy,:));
+[AF,SIG] = autocov_to_var(G(xzy,xzy,:));
 %warn_test(owstate,    'in full regression - bad autocovariance matrix? Check output of ''var_info''');
 %if warn_if(isbad(SIG),'in full regression - regression failed'), return; end % show-stopper!
 
 % reduced regression
 
 %owstate = warn_supp;
-[SIGR] = autocov_to_var(G(xz,xz,:));    % reduced regression
+[AF,SIGR] = autocov_to_var(G(xz,xz,:));    % reduced regression
 %warn_test(owstate,     'in reduced regression - bad autocovariance matrix? Check output of ''var_info''');
 %if warn_if(isbad(SIGR),'in reduced regression - regression failed'), return; end % show-stopper!
 
