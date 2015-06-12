@@ -266,7 +266,6 @@ def create_MI():
     >>> wf = series_mod.create_MI()
     >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
     >>> wf.inputs.inputspec.mask_file = '/home/data/Project/subject/func/mask.nii.gz'
-    >>> wf.inputs.inputspec.bins = 4
     >>> wf.run()
     
     in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
@@ -275,7 +274,6 @@ def create_MI():
     wf = series_mod.create_MI()
     wf.inputs.inputspec.in_file = in_file
     wf.inputs.inputspec.mask_file = mask_file
-    wf.inputs.inputspec.bins = 10
     wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
     wf.run()
 
@@ -286,8 +284,7 @@ def create_MI():
     MI = pe.Workflow(name='MI_comp')
     inputNode = pe.Node(util.IdentityInterface(fields=[
                                                 'in_file',
-                                                'mask_file',
-                                                'bins'
+                                                'mask_file'
                                                 ]),
                         name='inputspec')
 
@@ -297,7 +294,7 @@ def create_MI():
                         name='outputspec')
 
 
-    MI_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file','bins'],
+    MI_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
                                    output_names=['MI_mat'],
                      function=compute_MI),
                      name='MI_mat')
@@ -307,8 +304,6 @@ def create_MI():
                     MI_mat, 'in_file')
     MI.connect(inputNode, 'mask_file',
                     MI_mat, 'mask_file') 
-    MI.connect(inputNode, 'bins',
-                    MI_mat, 'bins')
                     
     MI.connect(MI_mat, 'MI_mat',
                  outputNode, 'MI_mat')

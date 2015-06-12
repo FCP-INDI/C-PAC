@@ -51,18 +51,28 @@ def compute_ROI_pcorr(in_file, mask_file):
 
     return pcorr_mat    
     
-def compute_MI(in_file, mask_file, bins):
+def compute_MI(in_file, mask_file):
 
     from CPAC.series_mod import gen_roi_timeseries
     from CPAC.series_mod import transform
     from CPAC.series_mod import mutual_information
-    
     import numpy as np
+    import math
+    
+
 
     ROI_data = gen_roi_timeseries(in_file, mask_file)    
+    
+    n_var = ROI_data.shape[0]
+    points = ROI_data.shape[1]
+    bins = math.pow(points, 1/3.) #to the 3rd due to Equiquantization formula
+    # Proposed by Milan Palus. n+1 where n is the number of vars in the computation
+    # as it is pairwise, n+1 is 3
+    bins = np.round(bins)
+    
     ROI_data = transform(ROI_data,bins).astype(int)
     
-    n_var = ROI_data.shape[0];
+ 
     
     MI_mat = np.zeros((n_var,n_var))    
     
