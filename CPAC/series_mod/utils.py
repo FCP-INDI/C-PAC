@@ -100,6 +100,38 @@ def compute_ApEn(in_file, m_param, r_param):
     return ApEn_vector
 
 
+def compute_te(in_file, mask_file):
+
+    from CPAC.series_mod import gen_roi_timeseries
+    from CPAC.series_mod import transform
+    from CPAC.series_mod import transfer_entropy
+    import numpy as np
+    import math
+    
+
+
+    ROI_data = gen_roi_timeseries(in_file, mask_file)    
+    
+    n_var = ROI_data.shape[0]
+    points = ROI_data.shape[1]
+    bins = math.pow(points, 1/3.) #to the 3rd due to Equiquantization formula
+    # Proposed by Milan Palus. n+1 where n is the number of vars in the computation
+    # as it is pairwise, n+1 is 3
+    bins = np.round(bins)
+    
+    ROI_data = transform(ROI_data,bins).astype(int)
+    
+ 
+    
+    TE_mat = np.zeros((n_var,n_var))    
+    
+    for i_ in range(n_var):
+        for j_ in range(n_var):
+            TE_mat[i_,j_] = transfer_entropy(ROI_data[i_,:],ROI_data[j_,:],1)
+        
+    np.savetxt(in_file[:-7]+'_TE.txt', TE_mat)  
+    
+    return TE_mat
 
 
 #
@@ -315,38 +347,6 @@ def partial_corr(C):
         
     return P_corr
 
-
-def compute_te(in_file, mask_file):
-
-    """
-    Computes the Pairwise Transfer Entropy Matrix for ROIs in the mask
-    For now, we are computing GC, since GC and TE are equivalent for Gaussian
-    signals.
-    https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.103.238701
-
-    Parameters
-    ----------
-
-    in_file : nifti file
-        4D EPI File 
-
-    mask_file : nifti file
-        Mask of the EPI File(Only Compute Correlation of voxels in the mask)
-        Must be 3D
-
-    Returns
-    -------
-
-    out_file : Transfer Entropy matrix
-
-    import numpy as np
-    import nibabel as nb
-    
-    #NEED TO  WORK ON THIS
-    
-    return  g1
-    
-    """
     
 def transform(x_old, Nbins):
     
@@ -437,6 +437,42 @@ def entropy_cc(X,Y): #ENTROPY CORRELATION COEFFICIENT
     ECC = np.sqrt(Ixy/(0.5*(Hx+Hy)))
     
     return ECC   
+    
+
+def transfer_entropy(X, Y, lag):
+    #========================================================
+    # TRANSFER_ENTROPY This funcion computes the transfer entropy for two given 
+    # signals
+    #  te =transfer_entropy(data,lag)
+    #  INPUT:
+    #   X: target (points of the signal)
+    #   Y: source (points of the signal)
+    #   lag: The number of samples to lag to obtain future series
+    #  OUTPUT:  
+    #   te: Raw Transfer entropy 
+
+    import numpy as np
+    from CPAC.series_mod import cond_entropy
+    
+    # future of i
+    Fi = np.roll(X, -lag)
+    # past of i
+    Pi = X
+    # past of j
+    Pj = Y
+    
+    #Transfer entropy
+    Inf_from_Pi_to_Fi = cond_entropy(Fi, Pi)
+
+    # same as cond_entropy(Fi, Pi_Pj)
+    Hy = entropy(Pi,Pj)
+    Hyx = entropy(Fi,Pj,Pi)  
+    Inf_from_Pi_Pj_to_Fi = Hyx - Hy     
+
+    TE_from_j_to_i = Inf_from_Pi_to_Fi-Inf_from_Pi_Pj_to_Fi         
+        
+    return TE_from_j_to_i    
+    
     
 #def entropy(*X):
 #    n_insctances = len(X[0])
