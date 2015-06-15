@@ -342,6 +342,8 @@ def autocov_to_var(G):
     AF[:,kf] = np.dot(GB[kb,:],np.linalg.inv(G0))
     AB[:,kb] = np.dot(GF[kf,:],np.linalg.inv(G0))
     
+    a= np.linalg.lstsq(G0.T,GB.T)[0].T
+    b= np.dot(GB,np.linalg.pinv(G0))
     
     
     SIG = G0-np.dot(AF, GF)
