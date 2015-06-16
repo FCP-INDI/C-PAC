@@ -86,21 +86,7 @@ def compute_MI(in_file, mask_file):
 
     return MI_mat
     
-def compute_ApEn(in_file, m_param, r_param):
-
-    from CPAC.series_mod import gen_voxel_timeseries
-    from CPAC.series_mod import ap_entropy 
-    import numpy as np
-    
-    data = gen_voxel_timeseries(in_file)
-    ApEn_vector = ap_entropy(data,m_param,r_param)
-    
-    np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
-
-    return ApEn_vector
-
-
-def compute_te(in_file, mask_file):
+def compute_TE(in_file, mask_file):
 
     from CPAC.series_mod import gen_roi_timeseries
     from CPAC.series_mod import transform
@@ -121,8 +107,6 @@ def compute_te(in_file, mask_file):
     
     ROI_data = transform(ROI_data,bins).astype(int)
     
- 
-    
     TE_mat = np.zeros((n_var,n_var))    
     
     for i_ in range(n_var):
@@ -132,6 +116,22 @@ def compute_te(in_file, mask_file):
     np.savetxt(in_file[:-7]+'_TE.txt', TE_mat)  
     
     return TE_mat
+
+    
+def compute_ApEn(in_file, m_param, r_param):
+
+    from CPAC.series_mod import gen_voxel_timeseries
+    from CPAC.series_mod import ap_entropy 
+    import numpy as np
+    
+    data = gen_voxel_timeseries(in_file)
+    ApEn_vector = ap_entropy(data,m_param,r_param)
+    
+    np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
+
+    return ApEn_vector
+
+
 
 
 #

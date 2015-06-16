@@ -11,6 +11,7 @@ import nipype.interfaces.utility as util
 from CPAC.series_mod.utils import compute_ROI_corr
 from CPAC.series_mod.utils import compute_ROI_pcorr  
 from CPAC.series_mod.utils import compute_MI  
+from CPAC.series_mod.utils import compute_TE
 #from CPAC.series_mod.utils import compute_ApEn
 
 
@@ -310,6 +311,101 @@ def create_MI():
 
     return MI
     
+    
+def create_TE():
+
+    """
+    Simple Network Correlation Matrix calculation for ROIs in the mask file
+
+    Parameters
+    ----------
+
+    None
+
+    Returns
+    -------
+    corr : workflow
+        Correlation Workflow
+
+    Notes
+    -----
+
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/series_mod/series_mod.py>`_
+
+    Workflow Inputs: ::
+
+        inputspec.in_file : string (existing nifti file)
+            Input EPI 4D Volume
+
+        inputspec.bins : integer
+            How many states do you want to be the data transformed to
+
+    Workflow Outputs: ::
+
+        outputspec.TE_matrix : [ROI_number * ROI_number] array
+
+    Corr Workflow Procedure:
+
+    1. Generate TE Matrix from the input EPI 4D volume and EPI mask.
+
+
+    Workflow Graph:
+
+
+    Detailed Workflow Graph:
+
+        
+    References
+    ---------- 
+
+    Examples
+    --------
+    >>> from CPAC import series_mod
+    >>> wf = series_mod.create_TE()
+    >>> wf.inputs.inputspec.in_file = '/home/data/Project/subject/func/in_file.nii.gz'
+    >>> wf.inputs.inputspec.mask_file = '/home/data/Project/subject/func/mask.nii.gz'
+    >>> wf.run()
+    
+    in_file = ('/home/asier/git/C-PAC/CPAC/series_mod/Standard-clean_func_preproc.nii.gz')
+    mask_file = ('/home/asier/git/C-PAC/CPAC/series_mod/AAL_Contract_90_3MM.nii.gz')
+    wf = series_mod.create_TE()
+    wf.inputs.inputspec.in_file = in_file
+    wf.inputs.inputspec.mask_file = mask_file
+    wf.base_dir = '/home/asier/git/C-PAC/CPAC/series_mod'
+    wf.run()
+
+    """
+
+
+
+    TE = pe.Workflow(name='TE_comp')
+    inputNode = pe.Node(util.IdentityInterface(fields=[
+                                                'in_file',
+                                                'mask_file'
+                                                ]),
+                        name='inputspec')
+
+
+    outputNode = pe.Node(util.IdentityInterface(fields=[
+                                                    'TE_mat']),
+                        name='outputspec')
+
+
+    TE_mat = pe.Node(util.Function(input_names=['in_file', 'mask_file'],
+                                   output_names=['MI_mat'],
+                     function=compute_TE),
+                     name='MI_mat')
+
+
+    TE.connect(inputNode, 'in_file',
+                    TE_mat, 'in_file')
+    TE.connect(inputNode, 'mask_file',
+                    TE_mat, 'mask_file') 
+                    
+    TE.connect(TE_mat, 'TE_mat',
+                 outputNode, 'TE_mat')
+
+    return TE
     
 #def create_ApEn():
 #
