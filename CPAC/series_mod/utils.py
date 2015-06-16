@@ -568,4 +568,31 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     
     return y
     
+def phase_sync(X):   
+    
+    # Computes the PS_value as explained in Ponce et al. 2015
+        
+    import numpy as np
+    import scipy.signal.signaltools as sigtool
+    import math
+    
+    
+    n_points = len(X)
+    ht = sigtool.hilbert(X)
 
+    # Calculate phase between -2pi and 2pi
+    # No vectorial calc for atan2
+    # TO DO: Find a way of doing cos(atan2(signal)) in 1 statement
+    arctan_value = np.zeros(n_points)
+    for i_ in range(n_points):
+        arctan_value[i_] = math.atan2(np.imag(ht[i_]),np.real(ht[i_]))
+        
+    # PS value in range [-1,1] as in the paper    
+    PS = np.zeros(n_points)
+    PS = np.cos(arctan_value) #vectorial calculation
+
+    PS_value = np.mean(PS)    
+    
+    return PS_value
+
+   
