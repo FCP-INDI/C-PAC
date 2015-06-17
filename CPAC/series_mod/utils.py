@@ -568,31 +568,39 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     
     return y
     
-def phase_sync(X):   
+def phase_sync(X):
     
     # Computes the PS_value as explained in Ponce et al. 2015
-        
     import numpy as np
     import scipy.signal.signaltools as sigtool
-    import math
-    
-    
-    n_points = len(X)
-    ht = sigtool.hilbert(X)
 
-    # Calculate phase between -2pi and 2pi
-    # No vectorial calc for atan2
-    # TO DO: Find a way of doing cos(atan2(signal)) in 1 statement
-    arctan_value = np.zeros(n_points)
-    for i_ in range(n_points):
-        arctan_value[i_] = math.atan2(np.imag(ht[i_]),np.real(ht[i_]))
+    htx = sigtool.hilbert(X)
+    # This converts (real, imag) to an angle
+    px = np.angle(htx)
         
-    # PS value in range [-1,1] as in the paper    
-    PS = np.zeros(n_points)
-    PS = np.cos(arctan_value) #vectorial calculation
-
-    PS_value = np.mean(PS)    
+    return np.sqrt(np.mean(np.cos(px))**2 + np.mean(np.sin(px))**2) #PS_value      
     
-    return PS_value
+    
+def PLV(X, Y):
+    """
+    FUNC: phasediff - phase locking value
+    DESCR: Compute the phase difference using the hilbert transform of s0
+    and s1 and then the phase lock
 
-   
+    return
+        PLV    : the phase difference
+    
+    """
+    import numpy as np
+    import scipy.signal.signaltools as sigtool
+
+
+    htx = sigtool.hilbert(X)
+    hty = sigtool.hilbert(Y)
+    px = np.angle(htx)
+    py = np.angle(hty)
+    
+    psi = px - py
+    
+    return np.sqrt(np.mean(np.cos(psi))**2 + np.mean(np.sin(psi))**2) #PLV_value
+
