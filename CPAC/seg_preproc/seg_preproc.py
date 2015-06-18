@@ -16,7 +16,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
 
     """
-    Segment the Subject's Anatomical brain into cerebral spinal fluids, white matter and gray matter.
+    Segment the subject's snatomical brain into cerebral spinal fluids, white matter and gray matter.
     Threshold and binarize them.
 
     Parameters
@@ -120,7 +120,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
     Order of commands:
 
-    - Segment the Anatomical brain. For details see `fast <http://www.fmrib.ox.ac.uk/fsl/fast4/index.html>`_::
+    - Segment the Anatomical brain. For details see `fast <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FAST>`_::
 
         fast
         -t 1
@@ -129,7 +129,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
         -o segment
         mprage_brain.nii.gz
     
-    - Register CSF template in MNI space to t1 space. For details see `flirt <http://www.fmrib.ox.ac.uk/fsl/flirt/index.html>`_::
+    - Register CSF template in MNI space to t1 space. For details see `flirt <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT>`_::
     
         flirt
         -in PRIOR_CSF
@@ -138,7 +138,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
         -init standard2highres_inv.mat
         -out csf_mni2t1
 
-    - Find overlap between csf probability map and csf_mni2t1. For details see  `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm>`_::
+    - Find overlap between csf probability map and csf_mni2t1. For details see  `fslmaths <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils>_::
 
         fslmaths
         segment_prob_0.nii.gz
