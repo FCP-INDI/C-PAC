@@ -573,8 +573,8 @@ def calculate_FD_P(in_file):
     rows = [[float(x) for x in line.split()] for line in lines]
     cols = np.array([list(col) for col in zip(*rows)])
     
-    translations = np.transpose(np.abs(np.diff(cols[0:3, :])))
-    rotations = np.transpose(np.abs(np.diff(cols[3:6, :])))
+    translations = np.transpose(np.abs(np.diff(cols[3:6, :])))
+    rotations = np.transpose(np.abs(np.diff(cols[0:3, :])))
 
     FD_power = np.sum(translations, axis = 1) + (50*3.141/180)*np.sum(rotations, axis =1)
     
