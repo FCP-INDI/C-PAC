@@ -183,9 +183,9 @@ def run(output_path, scrubbing):
     return threshold
 
 
-if __name__ == "__main__":
+def main():
     import sys
     if (len(sys.argv) == 2):
         grab(sys.argv[1])
     else:
-        print 'Usage: ./extract_parameters.py /path/to/datasink_dir'
+        print 'Usage: cpac_extract_parameters /path/to/datasink_dir'

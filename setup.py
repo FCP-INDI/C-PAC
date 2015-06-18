@@ -54,7 +54,10 @@ def configuration(parent_package='', top_path=None):
 if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
             'bdist_wininst', 'install_egg_info', 'egg_info', 'easy_install',
             )).intersection(sys.argv)) > 0:
-    from setup_egg import extra_setuptools_args
+    try:
+        from setup_egg import extra_setuptools_args
+    except ImportError:
+        pass
 
 # extra_setuptools_args can be defined from the line above, but it can
 # also be defined here because setup.py has been exec'ed from
@@ -101,7 +104,12 @@ def main(**extra_args):
           requires=INFO_VARS['REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
-          scripts = glob('scripts/*'), 
+          scripts = glob('scripts/*'),
+          entry_points={
+            'console_scripts': [
+                'cpac_extract_parameters=CPAC.utils.extract_parameters:main'
+                ]
+            },
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
