@@ -453,6 +453,7 @@ def transfer_entropy(X, Y, lag):
 
     import numpy as np
     from CPAC.series_mod import cond_entropy
+    from CPAC.series_mod import entropy
     
     # future of i
     Fi = np.roll(X, -lag)
@@ -473,6 +474,32 @@ def transfer_entropy(X, Y, lag):
         
     return TE_from_j_to_i    
     
+def gtetruncated(Y,X,Z):
+
+    # X=N x 1  Y=N x m  Z=N x m'
+    # te = gaussian tranfer entropy  Y-> X | Z
+#    Y=series[:,:,0].T
+#    X=Y[:,0].copy()
+#    Z=series[:,:,1].T
+
+    import numpy as np
+
+    Z = Z.T
+    Y = Y.T
+    
+    [Nobs, nvar] = np.shape(Z)
+    xzy = np.dot(X.T, np.array(np.hstack((Y, Z)))) / (Nobs-1)
+
+    
+    sigmazy = np.var(X) - xzy / np.dot(np.cov(np.array(np.hstack((Y, Z))).T), xzy.T)
+    ## HERE RIGHT DIVISION MATRIX PROBLEM AGAIN!! xzy / restofthematrix
+    xz = np.dot(X.T, Z) / (Nobs-1)
+
+    sigmaz = np.var(X)-np.dot( xz / np.cov(Z), xz.T )
+    ## HERE RIGHT DIVISION MATRIX PROBLEM AGAIN!! xz / restofthematrix
+    te = np.dot(0.5, np.log(sigmaz / sigmazy))
+    
+    return te, sigmaz, sigmazy   
     
 #def entropy(*X):
 #    n_insctances = len(X[0])
