@@ -209,7 +209,7 @@ def autocov_to_mvgc(G, x, y):
     
     ###########
     ixgrid3 = np.ix_(x,x)
-    F = np.log(np.linalg.det(SIGR[ixgrid3]))-np.log(np.linalg.det(SIG[ixgrid3])) 
+    F = np.log(abs(np.linalg.det(SIGR[ixgrid3])))-np.log(abs(np.linalg.det(SIG[ixgrid3]))) 
     #####   not probed
     return F
     
@@ -339,13 +339,12 @@ def autocov_to_var(G):
     # forward  indices
     kb = np.arange(r*n, qn)
     # backward indices
-    AF[:,kf] = np.dot(GB[kb,:],np.linalg.inv(G0))
-    AB[:,kb] = np.dot(GF[kf,:],np.linalg.inv(G0))
+    AF[:,kf] = np.linalg.lstsq(G0.T,GB.T)[0].T
+    AB[:,kb] = np.linalg.lstsq(G0.T,GF.T)[0].T
     
 #    a= np.linalg.lstsq(G0.T,GB.T)[0].T
 #    b= np.dot(GB,np.linalg.pinv(G0))
-    
-    
+        
     SIG = G0-np.dot(AF, GF)
     AF = np.reshape(AF, (n, n, q))
     return AF, SIG

@@ -477,27 +477,41 @@ def transfer_entropy(X, Y, lag):
 def gtetruncated(Y,X,Z):
 
     # X=N x 1  Y=N x m  Z=N x m'
-    # te = gaussian tranfer entropy  Y-> X | Z
-#    Y=series[:,:,0].T
-#    X=Y[:,0].copy()
-#    Z=series[:,:,1].T
+    # te = gaussian tranfer entropy  Y -> X | Z
+    # Y=series[:,:,0].T
+    # X=Y[:,0].copy()
+    # Z=series[:,:,1].T
 
     import numpy as np
 
-    Z = Z.T
-    Y = Y.T
+    #Z = Z.T
+    #Y = Y.T
     
     [Nobs, nvar] = np.shape(Z)
-    xzy = np.dot(X.T, np.array(np.hstack((Y, Z)))) / (Nobs-1)
-
     
-    sigmazy = np.var(X) - xzy / np.dot(np.cov(np.array(np.hstack((Y, Z))).T), xzy.T)
-    ## HERE RIGHT DIVISION MATRIX PROBLEM AGAIN!! xzy / restofthematrix
-    xz = np.dot(X.T, Z) / (Nobs-1)
+    
+    
+    xzy = np.dot(X.T, np.array(np.hstack((Y, Z)))) / (Nobs-1)
+    #xzy = np.expand_dims(xzy,0)
+    
+    covxy = np.cov(np.array(np.hstack((Y, Z))).T)    
+    xzy_lstsq_covxy = np.linalg.lstsq(covxy.T,xzy.T)[0].T
+    xzy_lstsq_covxy_dot_zxy = np.dot(xzy_lstsq_covxy,xzy.T)
+        
+    sigmazy = np.var(X) - xzy_lstsq_covxy_dot_zxy
+    #sigmazy=var(X)-xzy/cov([Y Z])*xzy';
 
-    sigmaz = np.var(X)-np.dot( xz / np.cov(Z), xz.T )
-    ## HERE RIGHT DIVISION MATRIX PROBLEM AGAIN!! xz / restofthematrix
-    te = np.dot(0.5, np.log(sigmaz / sigmazy))
+    xz = np.dot(X.T, Z) / (Nobs-1)
+    #xz = np.expand_dims(xz,0)
+
+    covz = np.cov(Z.T)   
+    xz_lstsq_covz = np.linalg.lstsq(covz.T,xz.T)[0].T
+    xz_lstsq_covz_dot_xz = np.dot(xz_lstsq_covz,xz.T)
+    
+    sigmaz = (np.var(X) - xz_lstsq_covz_dot_xz)
+    #sigmaz=var(X)-xz/cov(Z)*xz'; 
+    
+    te = 0.5 * np.log(sigmaz / sigmazy)
     
     return te, sigmaz, sigmazy   
     
