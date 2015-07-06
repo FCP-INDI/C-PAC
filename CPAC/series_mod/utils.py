@@ -19,7 +19,8 @@ def compute_ROI_corr(in_file, mask_file):
     corr_mat = corr(ROI_data)
     
     np.savetxt(in_file[:-7]+'_corr.txt', corr_mat)
-
+    make_image_from_bin( in_file, corr_mat, mask_file) 
+    
 #    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
 #
 #    reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
@@ -40,14 +41,7 @@ def compute_ROI_pcorr(in_file, mask_file):
     pcorr_mat = partial_corr(ROI_data)
     
     np.savetxt(in_file[:-7]+'partial_corr.txt', pcorr_mat)
-
-#    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
-#
-#    reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
-#
-#    img.to_filename(reho_file)
-#
-#    out_file = reho_file
+    make_image_from_bin( in_file, pcorr_mat, mask_file)    
 
     return pcorr_mat    
     
@@ -80,7 +74,8 @@ def compute_MI(in_file, mask_file):
         for j_ in range(n_var):
             MI_mat[i_,j_] = mutual_information(ROI_data[i_,:],ROI_data[j_,:])
         
-    np.savetxt(in_file[:-7]+'_MI.txt', MI_mat)    
+    np.savetxt(in_file[:-7]+'_MI.txt', MI_mat)
+    make_image_from_bin( in_file, MI_mat, mask_file)    
         
     ## CHECK THE MATRICES SHAPE AND RESULTS
 
@@ -112,8 +107,10 @@ def compute_TE(in_file, mask_file):
     for i_ in range(n_var):
         for j_ in range(n_var):
             TE_mat[i_,j_] = transfer_entropy(ROI_data[i_,:],ROI_data[j_,:],1)
-        
+    
+    
     np.savetxt(in_file[:-7]+'_TE.txt', TE_mat)  
+    make_image_from_bin( in_file, TE_mat, mask_file)
     
     return TE_mat
 
@@ -128,6 +125,8 @@ def compute_ApEn(in_file, m_param, r_param):
     ApEn_vector = ap_entropy(data,m_param,r_param)
     
     np.savetxt(in_file[:-7]+'_ApEn.txt', ApEn_vector)
+    #make_image_from_bin( in_file, ApEn_vector, mask_file )    
+
 
     return ApEn_vector
 
@@ -235,6 +234,41 @@ def gen_roi_timeseries(in_file, mask_file):
         roi_data_array[n-1] = np.round(avg, 6)
     
     return  roi_data_array
+
+def make_image_from_bin( image, binfile, mask ):
+
+    import numpy as np 
+    import nibabel as nb
+
+    # read in the mask
+    nim=nb.load(mask)
+
+    # read in the binary data    
+    if( binfile.endswith(".npy") ):
+        print "Reading",binfile,"as a npy filetype"
+        a = np.load(binfile)
+    else:
+        print "Reading",binfile,"as a binary file of doubles"
+        a = np.fromfile(binfile)
+
+    imdat=nim.get_data()
+    print "shape",np.shape(a)
+    print "sum",sum(imdat)
+
+    # map the binary data to mask
+    mask_voxels=(imdat.flatten()>0).sum()
+    print "shape2",np.shape(a[0:mask_voxels])
+    imdat[imdat>0]=np.short(a[0:mask_voxels].flatten())
+
+    # write out the image as nifti
+    thdr=nim.get_header()
+    thdr['scl_slope']=1
+    
+    nim_aff = nim.get_affine()
+
+    nim_out = nb.Nifti1Image(imdat, nim_aff, thdr)
+    #nim_out.set_data_dtype('int16')
+    nim_out.to_filename(image)
 
 def corr(timeseries):
 

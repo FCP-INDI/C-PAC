@@ -87,11 +87,11 @@ def autocov_to_pwcgc(G):
     import numpy as np
 
     n = G.shape[0]
-    F = 0
+    F = np.zeros([n,n])
     
     # full regression   
     [AF,SIG] = autocov_to_var(G)    
-    LSIG = np.log(np.diag(SIG))
+    LSIG = np.log(abs(np.diag(SIG)))
     
     for j_ in range(n):
     
@@ -103,7 +103,7 @@ def autocov_to_pwcgc(G):
         ixgrid1 = np.ix_(jo,jo)
         [AF,SIGj] = autocov_to_var(G[ixgrid1])
           
-        LSIGj = np.log(np.diag(SIGj))
+        LSIGj = np.log(abs(np.diag(SIGj)))
     
         for ii_ in range(n-1):
             i_ = jo[ii_]
