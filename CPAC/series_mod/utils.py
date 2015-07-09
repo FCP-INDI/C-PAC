@@ -228,10 +228,16 @@ def gen_roi_timeseries(in_file, mask_file):
 
     # Be carefull with number of ROIs and np-arrays
     nodes.sort()
-    for n in nodes:
+    for index, n in enumerate(nodes):
         node_array = img_data[mask_data == n]
         avg = np.mean(node_array, axis=0)
-        roi_data_array[n-1] = np.round(avg, 6)
+        roi_data_array[index] = np.round(avg, 6)
+        
+#    for n in nodes:
+#        node_array = img_data[mask_data == n]
+#        avg = np.mean(node_array, axis=0)
+#        roi_data_array[n-1] = np.round(avg, 6)        
+        
     
     return  roi_data_array
 
