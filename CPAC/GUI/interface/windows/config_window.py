@@ -16,7 +16,8 @@ from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreproces
     SpatialRegression, GenerateSeeds, VerticesTimeSeries,\
     GroupAnalysis, GPASettings, BASCSettings,\
     BASC, CWAS, CWASSettings,\
-    DualRegression, DualRegressionOptions, TimeSeriesOptions
+    DualRegression, DualRegressionOptions, TimeSeriesOptions,\
+    NonLinearTimeSeriesAnalysis, InformationTheory, Causality 
 
 
 ID_SUBMIT = 6
@@ -93,6 +94,10 @@ class Mybook(wx.Treebook):
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
+        
+        page48 = NonLinearTimeSeriesAnalysis(self)
+        page49 = InformationTheory(self)
+        page50 = Causality(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -158,6 +163,10 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page45, "Group Analysis", wx.ID_ANY)
         self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
+        
+        self.AddPage(page48, "Non Linear TS Analysis", wx.ID_ANY)
+        self.AddSubPage(page49, "Information Theory", wx.ID_ANY)
+        self.AddSubPage(page50, "Causality", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
