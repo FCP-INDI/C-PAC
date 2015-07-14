@@ -15,19 +15,14 @@ The C-PAC website is located here:  http://fcp-indi.github.com/
 Installation
 ------------
 
-If you are running ubuntu >=12.04:
-1. Download: `C-PAC/scripts/cpac_install.sh`
-2. Make the script executable: `chmod +x /path/to/cpac_install.sh`
-3. Run as super-user: `sudo /path/to/cpac_install.sh`
-
-Otherwise, follow the installation documentation here: http://fcp-indi.github.io/docs/user/install.html
+Installation instructions can be found within the user documentation: http://fcp-indi.github.io/docs/user/install.html
 
 Documentation
 -------------
 
 User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
 
-Developer documention can ne found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
 
 Discussion Forum

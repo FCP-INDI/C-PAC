@@ -24,12 +24,18 @@ queue :  all.q
 
 
 # Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.
-# IMPORTANT: Number of Cores Per Subject multiplied by Number of Subjects to Run Simultaneously must not be greater than the total number of cores.
+# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
 numCoresPerSubject :  1
 
 
 # This number depends on computing resources.
+# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
 numSubjectsAtOnce :  1
+
+
+# This number depends on computing resources.
+# IMPORTANT: 'Number of Cores Per Subject' multiplied by 'Number of Subjects to Run Simultaneously' multiplied by 'Number of Cores for Anatomical Registration (ANTS only)' must not be greater than the total number of cores.
+num_ants_threads :  1
 
 
 # Name for this pipeline configuration - useful for identification.
@@ -82,8 +88,8 @@ runFunctionalDataGathering :  [1]
 runAnatomicalPreprocessing :  [1]
 
 
-# Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to yes if your input images are already skull-stripped.
-already_skullstripped :  [2]
+# Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.
+already_skullstripped :  [0]
 
 
 # Runs the functional preprocessing workflow.
@@ -125,6 +131,11 @@ regOption :  ['ANTS']
 # Configuration file to be used by FSL to set FNIRT parameters.
 # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
 fnirtConfig :  T1_2_MNI152_2mm
+
+
+# Configuration file to be used by FSL to set FNIRT parameters.
+# It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
+ref_mask :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
 
 
 # Register skull-on anatomical image to a template.
@@ -202,6 +213,24 @@ runRegisterFuncToAnat :  [1]
 runBBReg :  [1]
 
 
+# Standard FSL 5.0 Scheduler used for Boundary Based Registration.
+# It is not necessary to change this path unless you intend to use non-standard MNI registration.
+boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
+
+
+# Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
+func_reg_input :  ['Mean Functional']
+
+
+# Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'. Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
+func_reg_input_volume :  0
+
+
+# Register functional images to a standard MNI152 template.
+# This option must be enabled if you wish to calculate any derivatives.
+runRegisterFuncToMNI :  [1]
+
+
 # The resolution (in mm) to which functional images are transformed during registration
 resolution_for_func :  2mm
 
@@ -214,19 +243,9 @@ template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${res
 template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func}.nii.gz
 
 
-# Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives.
-runRegisterFuncToMNI :  [1]
-
-
 # Matrix containing all 1's. Used as an identity matrix during registration.
 # It is not necessary to change this path unless you intend to use non-standard MNI registration.
 identityMatrix :  /usr/share/fsl/5.0/etc/flirtsch/ident.mat
-
-
-# Standard FSL 5.0 Scheduler used for Boundary Based Registration.
-# It is not necessary to change this path unless you intend to use non-standard MNI registration.
-boundaryBasedRegistrationSchedule :  /usr/share/fsl/5.0/etc/flirtsch/bbr.sch
 
 
 # Run Nuisance Signal Correction
@@ -320,7 +339,7 @@ seedSpecificationFile :  None
 
 
 # Directory where CPAC should write NIfTI files containing new seeds.
-seedOutputLocation :  /home/likewise-open/CHILDMIND/steven.giavasis/run/035
+seedOutputLocation :  /path/to/seed/output
 
 
 # It is possible to use the newly generated seeds when running a number of the analyses included in CPAC. Note that these analyses will be run using all new seeds.
@@ -616,29 +635,7 @@ cwasRegressorStrata :  None
 numGPAModelsAtOnce :  2
 
 
-# Select which derivatives you would like to include when running group analysis.
-# When including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.
-# When including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.
-derivativeList :  ['sca_roi_Z_to_standard_smooth_fisher_zstd', 'sca_seed_to_standard_smooth_fisher_zstd', 'vmhc_fisher_z_std_z_stat_map', 'alff_to_standard_smooth_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_smooth_zstd', 'centrality_outputs_zstd']
-
-
 # Use the + to add FSL model configuration to be run.
 modelConfigs :  []
-
-
-# Set this option to True if any of the models specified above contain F-tests.
-fTest :  False
-
-
-# Only voxels with a Z-score higher than this value will be considered significant.
-zThreshold :  2.3
-
-
-# Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.
-pThreshold :  0.05
-
-
-# Run repeated measures to compare different scans (must use the group analysis subject list and phenotypic file formatted for repeated measures.
-repeatedMeasures :  False
 
 
