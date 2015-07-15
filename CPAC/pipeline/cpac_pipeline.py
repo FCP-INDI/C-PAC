@@ -14,11 +14,11 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 from nipype.interfaces.afni import preprocess
 from   nipype.pipeline.utils import format_dot
-import nipype.interfaces.ants as ants
-import nipype.interfaces.c3 as c3
+import nipype.interfaces.ants as ants #maybe not neccesary
+import nipype.interfaces.c3 as c3 #maybe not neccesary
 from nipype import config
 from nipype import logging
-from CPAC import network_centrality
+#from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
 logger = logging.getLogger('workflow')
 import pkg_resources as p
@@ -63,8 +63,8 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
-import zlib
-import linecache
+#import zlib
+#import linecache
 import csv
 import pickle
 
@@ -1563,7 +1563,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 func_to_anat_bbreg.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
 
                 try:
-                    def pick_wm(seg_prob_list):
+                    def pick_wm(seg_prob_list): #redefinition of pick_wm, line 1481
                         seg_prob_list.sort()
                         return seg_prob_list[-1]
 
@@ -5697,7 +5697,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             scan_ids.append('scan_'+ str(scanID))
         
         pipes = []
-        origStrat = 0
+        #origStrat = 0
         
         for strat in strat_list:
             rp = strat.get_resource_pool()
@@ -5847,7 +5847,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 
 
-        pipeline_start_date = strftime("%Y-%m-%d")
+        #pipeline_start_date = strftime("%Y-%m-%d")
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
         pipeline_starttime_string = pipeline_start_datetime.replace(' ','_')
         pipeline_starttime_string = pipeline_starttime_string.replace(':','-')
@@ -6142,7 +6142,7 @@ def run(config, subject_list_file, indx, strategies,
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         print 'Using data from S3 bucket: %s' % bucket_name
         # Check to see if outputs are already uploaded
-        upl_files = [str(k.name) for k in bucket.list(prefix=bucket_upload_prefix)]
+        #upl_files = [str(k.name) for k in bucket.list(prefix=bucket_upload_prefix)]
 
         aws_utils.build_download_sublist(bucket,
                                          bucket_prefix,

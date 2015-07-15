@@ -1,10 +1,10 @@
 # coding: utf-8
-import os
-import sys
-import re
-import commands
+#import os
+#import sys
+#import re
+#import commands
 import nipype.pipeline.engine as pe
-import nipype.interfaces.fsl as fsl
+#import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from CPAC.reho.utils import *
 

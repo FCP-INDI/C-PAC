@@ -1,15 +1,15 @@
 import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
+#import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 
 import re
 import os
-import sys
-import glob
+#import sys
+#import glob
 
 from CPAC.utils.datasource import create_grp_analysis_dataflow
 from CPAC.utils import Configuration
-from CPAC.utils.utils import prepare_gp_links
+#from CPAC.utils.utils import prepare_gp_links
 from CPAC.group_analysis import create_group_analysis
 
 
@@ -260,7 +260,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     group_conf.update('subject_list',new_sub_file)
 
-    sub_id_label = group_conf.subject_id_label
+    #sub_id_label = group_conf.subject_id_label
 
 
     # Run 'create_fsl_model' script to extract phenotypic data from
@@ -666,11 +666,11 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
 def run(config, subject_infos, resource):
-    import re
+    #import re
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
-    import sys
+    #import sys
     import pickle
     import yaml
     

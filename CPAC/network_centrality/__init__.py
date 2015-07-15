@@ -30,6 +30,8 @@ __all__ = ['create_resting_state_graphs',\
            'calc_centrality', \
            'convert_pvalue_to_r',\
            'calc_blocksize',\
+           'cluster_data',\
+           'merge_lists',\
            'degree_centrality',\
            'fast_degree_centrality',\
            'eigenvector_centrality',\

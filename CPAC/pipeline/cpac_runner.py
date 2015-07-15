@@ -3,7 +3,7 @@ import os
 from CPAC.utils.utils import create_seeds_, create_group_log_template
 from CPAC.utils import Configuration
 import yaml
-import time
+#import time
 from time import strftime
 
 
@@ -71,7 +71,7 @@ def get_vectors(strat):
 def make_entries(paths, path_iterables):
 
     entries = []
-    idx = 1
+    #idx = 1
     for path in sorted(paths):
 
         sub_entries = []
@@ -106,16 +106,16 @@ def make_entries(paths, path_iterables):
 
 def build_strategies(configuration):
 
-    import collections
+    #import collections
 
     ### make paths shorter
     path_iterables = ['_gm_threshold', '_wm_threshold', '_csf_threshold', '_threshold', '_compcor', '_target_angle_deg']
-    non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
+    #non_strategy_iterables = ['_fwhm', '_hp', '_lp', '_bandpass_freqs']
 
-    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
-                    '_gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
-                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
+#    proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
+#                    '_gm_threshold':'Gray Matter Threshold = ',
+#                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+#                    '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
     config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}

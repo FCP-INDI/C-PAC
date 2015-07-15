@@ -17,9 +17,9 @@ from .dualreg import DualRegression, DualRegressionOptions
 
 __all__ = ['DerivativesConfig', 'WorkflowConfig', 'AnatomicalPreprocessing', \
            'Segmentation',  'Registration', 'FunctionalPreProcessing',\
-           'MotionOptions', 'Scrubbing','AnatToFuncRegistration, FuncToMNIRegistration',\
+           'MotionOptions', 'Scrubbing','AnatToFuncRegistration', 'FuncToMNIRegistration',\
            'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings','TimeSeriesOptions', \
-           'SCA', 'SCASettings', 'MultipleRegressionSCA'\
+           'SCA', 'SCASettings', 'MultipleRegressionSCA',\
            'Settings', 'ComputerSettings', 'Motion', 'DirectorySettings', \
            'Nuisance', 'NuisanceCorrection', 'MedianAngleCorrection',\
            'CentralitySettings', 'Centrality',\

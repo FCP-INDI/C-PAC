@@ -1,7 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.c3 as c3
+#import nipype.interfaces.c3 as c3
 
 
 def create_nonlinear_register(name='nonlinear_register'):
@@ -578,11 +578,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
         :width: 500      
     '''
 
-    import nipype.interfaces.ants as ants
-    from nipype.interfaces.utility import Function
+    #import nipype.interfaces.ants as ants
+    #from nipype.interfaces.utility import Function
     from CPAC.registration.utils import seperate_warps_list, \
-                                        combine_inputs_into_list, \
-                                        hardcoded_reg
+                                        hardcoded_reg #combine_inputs_into_list, \
+                                        
 
 
     calc_ants_warp_wf = pe.Workflow(name=name)
@@ -970,7 +970,7 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
     """
 
     import nipype.interfaces.c3 as c3
-    from nipype.interfaces.utility import Function
+    #from nipype.interfaces.utility import Function
     from CPAC.registration.utils import change_itk_transform_type
     from nipype.interfaces.afni import preprocess
 

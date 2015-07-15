@@ -81,7 +81,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
         dimension of each file corresponds to each subject.
     
     """
-    import os
+    #import os
     import numpy as np
     from CPAC.basc import cluster_matrix_average, ndarray_to_vol
     

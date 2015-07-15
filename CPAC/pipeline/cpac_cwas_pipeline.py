@@ -1,11 +1,11 @@
-import nipype.interfaces.utility as util
+#import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
 
-import re
+#import re
 import os
-import sys
-import glob
+#import sys
+#import glob
 from CPAC.utils import Configuration
 
 def prep_cwas_workflow(c, subject_infos):
@@ -46,11 +46,11 @@ def prep_cwas_workflow(c, subject_infos):
 
 
 def run(config, subject_infos):
-    import re
+    #import re
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
-    import sys
+    #import sys
     import pickle
     import yaml
 

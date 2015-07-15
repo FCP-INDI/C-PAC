@@ -155,7 +155,7 @@ def merge_cwas_batches(cwas_batches, mask_file):
 
 def create_cwas_batches(mask_file, batches):
     import nibabel as nb
-    import numpy as np
+    #import numpy as np
     mask = nb.load(mask_file).get_data().astype('bool')
     nVoxels = mask.sum()
     

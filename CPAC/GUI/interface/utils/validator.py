@@ -37,7 +37,7 @@ class NotEmptyValidator(wx.PyValidator):
         
 
 class CharValidator(wx.PyValidator):
-    import string
+    #import string
     def __init__(self, flag):
         wx.PyValidator.__init__(self)
         self.flag = flag
@@ -56,10 +56,10 @@ class CharValidator(wx.PyValidator):
         return True
     
     def OnChar(self, evt):
-        import string
+        from string import letters, digits
         key = chr(evt.GetKeyCode())
-        if self.flag == "no-alpha" and key in string.letters:
+        if self.flag == "no-alpha" and key in letters:
             return
-        if self.flag == "no-digit" and key in string.digits:
+        if self.flag == "no-digit" and key in digits:
             return
         evt.Skip()

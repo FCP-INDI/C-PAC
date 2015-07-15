@@ -1,5 +1,5 @@
 import numpy as np
-from hats import *
+from hats import gen_h2, gen_h, check_rank
 
 def permuted_index(n, strata=None):
     if strata is None:
@@ -133,7 +133,7 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     """
     check_rank(x)
     
-    ntests  = ys.shape[1]
+    #ntests  = ys.shape[1]
     nobs    = x.shape[0]
     if nobs != np.sqrt(ys.shape[0]):
         raise Exception("# of observations incompatible between x and ys")
@@ -146,13 +146,13 @@ def mdmr(ys, x, cols, perms, strata=None, debug_output=False):
     # Degrees of freedom
     df_among = len(cols)
     df_resid = nobs - x.shape[1]
-    df_total = nobs - 1
+    #df_total = nobs - 1
     
     # Permutations
     if type(perms) is int:
         perms = gen_perms(perms, nobs, strata)
     perms  = add_original_index(perms)
-    nperms = perms.shape[0]
+    #nperms = perms.shape[0]
     
     # Permuted versions of H2 and IH
     H2perms = gen_h2_perms(x, cols, perms)

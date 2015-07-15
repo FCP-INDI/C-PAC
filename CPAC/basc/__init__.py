@@ -14,6 +14,8 @@ from basc import create_basc, \
 __all__ = ['create_basc', \
            'nifti_individual_stability', \
            'group_stability_matrix', \
+           'ndarray_to_vol', \
+           'individual_group_clustered_maps', \
            'timeseries_bootstrap', \
            'standard_bootstrap', \
            'cluster_timeseries', \

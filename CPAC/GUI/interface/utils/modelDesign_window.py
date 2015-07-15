@@ -397,7 +397,7 @@ class ModelDesign(wx.Frame):
         self.collect_input()
 
         config_list = []
-        config_map = {}
+        #config_map = {}
 
         vals = self.gpa_settings
 
