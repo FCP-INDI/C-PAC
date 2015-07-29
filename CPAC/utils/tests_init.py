@@ -201,6 +201,91 @@ def return_resource_subfolder(subfolder):
     return resource_subfolder
 
 
+# Get subject for individual tests
+def return_test_subj():
+    '''
+    Function to return the subject id; note the
+    CPAC_RESOURCE_DIR environment variable must be set
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    resource_dir : string
+        the file path on disk where the cpac resources folder is
+    '''
+
+    # Import packages
+    import os
+
+    # Init variables
+    test_subj = os.getenv('CPAC_TEST_SUBJ')
+
+    # Get cpac resource directory and get a list of subject folders
+    input_dir = return_resource_subfolder('input')
+    site_dir = os.path.join(input_dir, 'site_1')
+
+    # Get list of subject directories
+    subs = os.listdir(site_dir)
+
+    # Check if set and exists
+    if not test_subj:
+        err_msg = 'CPAC_TEST_SUBJ environment variable not set!\n' \
+                  'Set this to the subject id of the desired subject to test' \
+                  'from the cpac_resources folder.'
+        raise Exception(err_msg)
+    elif test_subj not in subs:
+        err_msg = 'Test subject %s is not in the cpac_resources subject ' \
+                  'directory %s. Please specify different CPAC_TEST_SUBJ.' \
+                  %(test_subj, site_dir)
+    else:
+        return test_subj
+
+
+# Return the test subjects measure directories
+def return_subj_measure_dirs(measure):
+    '''
+    Function to grab the base directories of the test subject's output
+    files for a given measure or workflow
+
+    Parameters
+    ----------
+    measure : string
+        the measure or workflow or derivative of interest to parse for;
+        this must be the folder name where all of the subject's test
+        outputs are located (e.g. 'network_centrality')
+
+    Returns
+    -------
+    subj_measure_dirs : list
+        a list of strings of the base directories for each instance of
+        the desired measure folder within the test subjects outputs
+    '''
+
+    # Import packages
+    import glob
+    import os
+
+    # Init variables
+    test_subj = return_test_subj()
+    tests_dir = return_resource_subfolder('outputs')
+
+    # Root directories
+    subj_measure_dirs = \
+        glob.glob(os.path.join(tests_dir, '%s*' % test_subj,
+                               '*', '*', measure))
+
+    # Check to see if the directories exist
+    if len(subj_measure_dirs) == 0:
+        err_msg = 'Unable to find any subject directories for the %s measure.'
+        raise Exception(err_msg)
+
+    # Return base directories for test measures outputs
+    return subj_measure_dirs
+
+
 # Get the AWS credentials
 def return_aws_creds():
     '''
