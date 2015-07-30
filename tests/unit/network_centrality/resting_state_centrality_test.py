@@ -63,7 +63,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         output_dirs = tests_init.return_subj_measure_dirs('network_centrality')
 
         # Get template file path
-        settings_dir = tests_init.return_resource_subfolder('resources')
+        settings_dir = tests_init.return_resource_subfolder('settings')
         mask_template = os.path.join(settings_dir, 'resources', 'centrality',
                                      'benchmark_centrality_mask.nii.gz')
 
@@ -75,16 +75,15 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
             # Grab functional mni as subject input for that strategy
             func_mni_dir = out_dir.replace('network_centrality', 'functional_mni')
-            func_mni = os.path.join(func_mni_dir, 'functional_mni.nii.gz')
+            func_mni = os.path.join(func_mni_dir, 'functional_mni_centrality.nii.gz')
 
             # Set up workflow parameters
             wflow.base_dir = out_dir.replace('output', 'tests')
             wflow.inputs.inputspec.subject = func_mni
             wflow.inputs.inputspec.template = mask_template
-            wflow.inputs.inputspec.weight_options = [True, True]
 
-            # Make the key the strategy being used (2nd-to-last folder)
-            wflow_strat = out_dir.split('/')[-2]
+            # Make the key the strategy being used (last folder)
+            wflow_strat = out_dir.split('/')[-1]
             test_wflows[wflow_strat] = wflow
 
         # Set centrality TestCase instance attributes
@@ -98,6 +97,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
         # Import packages
         import copy
+        import os
 
         # Init variables
         ants_deg_wflow = self.test_wflows['ants']
@@ -105,9 +105,31 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         ants_lfcd_wflow = copy.deepcopy(ants_deg_wflow)
 
         # Set up workflows and run each
+        ants_deg_wflow.base_dir = os.path.join(ants_deg_wflow.base_dir, 'deg')
         ants_deg_wflow.inputs.inputspec.method_option = 0
+        ants_deg_wflow.inputs.inputspec.weight_options = [True, True]
         ants_deg_wflow.inputs.inputspec.threshold_option = 0
         ants_deg_wflow.inputs.inputspec.threshold = 0.001
+        print 'running degree centrality...'
+        ants_deg_wflow.run()
+
+        # Set up workflows and run each
+        ants_eig_wflow.base_dir = os.path.join(ants_eig_wflow.base_dir, 'eig')
+        ants_eig_wflow.inputs.inputspec.method_option = 1
+        ants_eig_wflow.inputs.inputspec.weight_options = [True, True]
+        ants_eig_wflow.inputs.inputspec.threshold_option = 0
+        ants_eig_wflow.inputs.inputspec.threshold = 0.001
+        print 'running eigenvector centrality...'
+        ants_eig_wflow.run()
+
+        # Set up workflows and run each
+        ants_lfcd_wflow.base_dir = os.path.join(ants_lfcd_wflow.base_dir, 'lfcd')
+        ants_lfcd_wflow.inputs.inputspec.method_option = 2
+        ants_lfcd_wflow.inputs.inputspec.weight_options = [True, False]
+        ants_lfcd_wflow.inputs.inputspec.threshold_option = 0
+        ants_lfcd_wflow.inputs.inputspec.threshold = 0.6
+        print 'running lfcd...'
+        ants_lfcd_wflow.run()
 
 
 # Command-line run-able unittest module

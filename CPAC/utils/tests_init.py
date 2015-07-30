@@ -270,16 +270,17 @@ def return_subj_measure_dirs(measure):
 
     # Init variables
     test_subj = return_test_subj()
-    tests_dir = return_resource_subfolder('outputs')
+    outputs_dir = return_resource_subfolder('output')
 
     # Root directories
     subj_measure_dirs = \
-        glob.glob(os.path.join(tests_dir, '%s*' % test_subj,
-                               '*', '*', measure))
+        glob.glob(os.path.join(outputs_dir, '%s*' % test_subj,
+                               '*', measure, '*'))
 
     # Check to see if the directories exist
     if len(subj_measure_dirs) == 0:
-        err_msg = 'Unable to find any subject directories for the %s measure.'
+        err_msg = 'Unable to find any subject directories for the %s measure.' \
+                  % measure
         raise Exception(err_msg)
 
     # Return base directories for test measures outputs
