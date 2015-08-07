@@ -93,44 +93,90 @@ class CentralityWorkflowTestCase(unittest.TestCase):
     # Test the ants registration strategy
     def test_ants_strategy(self):
         '''
+        Function to run the centrality workflows for the ANTS
+        registration strategy
         '''
 
         # Import packages
-        import copy
         import os
 
         # Init variables
-        ants_deg_wflow = self.test_wflows['ants']
-        ants_eig_wflow = copy.deepcopy(ants_deg_wflow)
-        ants_lfcd_wflow = copy.deepcopy(ants_deg_wflow)
+        ants_wflow = self.test_wflows['ants']
 
         # Set up workflows and run each
-        ants_deg_wflow.base_dir = os.path.join(ants_deg_wflow.base_dir, 'deg')
-        ants_deg_wflow.inputs.inputspec.method_option = 0
-        ants_deg_wflow.inputs.inputspec.weight_options = [True, True]
-        ants_deg_wflow.inputs.inputspec.threshold_option = 0
-        ants_deg_wflow.inputs.inputspec.threshold = 0.001
+        ants_wflow.base_dir = os.path.join(ants_wflow.base_dir, 'deg')
+        ants_wflow.inputs.inputspec.method_option = 0
+        ants_wflow.inputs.inputspec.weight_options = [True, True]
+        ants_wflow.inputs.inputspec.threshold_option = 0
+        ants_wflow.inputs.inputspec.threshold = 0.001
         print 'running degree centrality...'
-        ants_deg_wflow.run()
+        ants_wflow.run()
 
         # Set up workflows and run each
-        ants_eig_wflow.base_dir = os.path.join(ants_eig_wflow.base_dir, 'eig')
-        ants_eig_wflow.inputs.inputspec.method_option = 1
-        ants_eig_wflow.inputs.inputspec.weight_options = [True, True]
-        ants_eig_wflow.inputs.inputspec.threshold_option = 0
-        ants_eig_wflow.inputs.inputspec.threshold = 0.001
+        ants_wflow.base_dir = ants_wflow.base_dir.replace('deg', 'eig')
+        ants_wflow.inputs.inputspec.method_option = 1
+        ants_wflow.inputs.inputspec.weight_options = [True, True]
+        ants_wflow.inputs.inputspec.threshold_option = 0
+        ants_wflow.inputs.inputspec.threshold = 0.001
         print 'running eigenvector centrality...'
-        ants_eig_wflow.run()
+        ants_wflow.run()
 
         # Set up workflows and run each
-        ants_lfcd_wflow.base_dir = os.path.join(ants_lfcd_wflow.base_dir, 'lfcd')
-        ants_lfcd_wflow.inputs.inputspec.method_option = 2
-        ants_lfcd_wflow.inputs.inputspec.weight_options = [True, False]
-        ants_lfcd_wflow.inputs.inputspec.threshold_option = 0
-        ants_lfcd_wflow.inputs.inputspec.threshold = 0.6
+        ants_wflow.base_dir = ants_wflow.base_dir.replace('eig', 'lfcd')
+        ants_wflow.inputs.inputspec.method_option = 2
+        ants_wflow.inputs.inputspec.weight_options = [True, False]
+        ants_wflow.inputs.inputspec.threshold_option = 2
+        ants_wflow.inputs.inputspec.threshold = 0.6
         print 'running lfcd...'
-        ants_lfcd_wflow.run()
+        ants_wflow.run()
 
+    # Collect test outputs and compare
+    def test_collect_and_compare(self):
+        '''
+        '''
+
+        # Import packages
+        import glob
+        import os
+        import nibabel as nb
+        import numpy as np
+
+        # Init variables
+        outputs_to_test = {}
+
+        # Grab golden outputs and corresponding test outputs
+        for out_dir in self.output_dirs:
+            test_dir = out_dir.replace('output', 'tests')
+            niis = glob.glob(os.path.join(out_dir, '*.nii.gz'))
+            for nii in niis:
+                nii_file = os.path.basename(nii)
+                f_list = []
+                for root, dirs, files in os.walk(test_dir):
+                    if files:
+                        f_list.extend([os.path.join(root, file) for file in files \
+                                  if file == nii_file])
+                if len(f_list) > 1:
+                    err_msg = 'More than one file found for %s in %s; '\
+                              'please use only one' % (nii_file, str(f_list))
+                    raise Exception(err_msg)
+                elif len(f_list) == 0:
+                    print 'No test outputs found for %s, skipping comparison' \
+                          % nii_file
+                else:
+                    strat = os.path.basename(out_dir)
+                    if not outputs_to_test.has_key(strat):
+                        outputs_to_test[strat] = {nii : f_list[0]}
+                    else:
+                        outputs_to_test[strat][nii] = f_list[0]
+
+        # Iterate through dictionary and assert correlations
+        for strat, golden_vs_test in outputs_to_test.items():
+            for golden, test in golden_vs_test.items():
+                img1 = nb.load(golden).get_data()
+                img2 = nb.load(test).get_data()
+                corr = np.corrcoef(img1.flatten(), img2.flatten())
+                
+                self.assertEqual(corr[0,1], 1.0)
 
 # Command-line run-able unittest module
 if __name__ == '__main__':
