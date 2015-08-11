@@ -126,7 +126,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         ants_wflow.inputs.inputspec.method_option = 2
         ants_wflow.inputs.inputspec.weight_options = [True, False]
         ants_wflow.inputs.inputspec.threshold_option = 2
-        ants_wflow.inputs.inputspec.threshold = 0.6
+        ants_wflow.inputs.inputspec.threshold = 0.001
         print 'running lfcd...'
         ants_wflow.run()
 
@@ -169,14 +169,23 @@ class CentralityWorkflowTestCase(unittest.TestCase):
                     else:
                         outputs_to_test[strat][nii] = f_list[0]
 
-        # Iterate through dictionary and assert correlations
+        # Iterate through dictionary and assert correlations\
+        pass_thr = 0.98
+        err_msg = 'Test failed: correlation < %.3f' % pass_thr
         for strat, golden_vs_test in outputs_to_test.items():
             for golden, test in golden_vs_test.items():
+                # Load in golden and test images for comparison
                 img1 = nb.load(golden).get_data()
                 img2 = nb.load(test).get_data()
-                corr = np.corrcoef(img1.flatten(), img2.flatten())
-                
-                self.assertEqual(corr[0,1], 1.0)
+
+                # Compute pearson correlation on flattened 4D images
+                print 'Comparing %s outputs...' % \
+                      (os.path.basename(test.rstrip('.nii.gz')))
+                corr = np.corrcoef(img1.flatten(), img2.flatten())[0,1]
+                print 'Correlation = %.3f' % corr
+
+                # Asser the correlatoin is >= pass_threshold
+                self.assertGreaterEqual(corr, pass_thr, err_msg)
 
 # Command-line run-able unittest module
 if __name__ == '__main__':
