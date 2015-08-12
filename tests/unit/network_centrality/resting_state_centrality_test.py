@@ -126,13 +126,15 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         ants_wflow.inputs.inputspec.method_option = 2
         ants_wflow.inputs.inputspec.weight_options = [True, False]
         ants_wflow.inputs.inputspec.threshold_option = 2
-        ants_wflow.inputs.inputspec.threshold = 0.001
+        ants_wflow.inputs.inputspec.threshold = 0.6
         print 'running lfcd...'
         ants_wflow.run()
 
     # Collect test outputs and compare
     def test_collect_and_compare(self):
         '''
+        Function to collect the precomputed and test outputs and
+        compare the images
         '''
 
         # Import packages
@@ -184,7 +186,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
                 corr = np.corrcoef(img1.flatten(), img2.flatten())[0,1]
                 print 'Correlation = %.3f' % corr
 
-                # Asser the correlatoin is >= pass_threshold
+                # Assert the correlatoin is >= pass_threshold
                 self.assertGreaterEqual(corr, pass_thr, err_msg)
 
 # Command-line run-able unittest module
