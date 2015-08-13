@@ -7,7 +7,7 @@ import pkg_resources as p
 
 class GroupAnalysis(wx.html.HtmlWindow):
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+        #from urllib2 import urlopen
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         
@@ -63,7 +63,7 @@ class GPASettings(wx.ScrolledWindow):
         
 class BASC(wx.html.HtmlWindow):
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+        #from urllib2 import urlopen
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         
@@ -148,7 +148,7 @@ class BASCSettings(wx.ScrolledWindow):
         
 class CWAS(wx.html.HtmlWindow):
     def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+        #from urllib2 import urlopen
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         

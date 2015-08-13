@@ -1,13 +1,13 @@
-import sys
+#import sys
 #from CPAC.interfaces.afni import preprocess
 from nipype.interfaces.afni import preprocess
-import os
-import commands
+#import os
+#import commands
 import nipype.pipeline.engine as pe
-import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
+#import nipype.algorithms.rapidart as ra
+#import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
+#import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from CPAC.sca.utils import *
 

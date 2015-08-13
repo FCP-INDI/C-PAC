@@ -1,13 +1,13 @@
 import os
-import sys
-import commands
+#import sys
+#import commands
 import nipype.pipeline.engine as pe
-import nipype.algorithms.rapidart as ra
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
+#import nipype.algorithms.rapidart as ra
+#import nipype.interfaces.fsl as fsl
+#import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from CPAC.alff.alff import *
-from CPAC.alff.utils import *
+from CPAC.alff.alff import get_operand_string
+from CPAC.alff.utils import get_opt_string
 from nipype.interfaces.afni import preprocess
 
 def create_alff(wf_name = 'alff_workflow'):

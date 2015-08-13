@@ -1,18 +1,17 @@
-import sys
-import os
-import commands
+#import sys
+#import os
+#import commands
 import nipype.pipeline.engine as pe
-import nipype.algorithms.rapidart as ra
+#import nipype.algorithms.rapidart as ra
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
+#import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 from utils import *
 from CPAC.vmhc import *
 from nipype.interfaces.afni import preprocess
-from CPAC.registration import create_wf_calculate_ants_warp, \
-                              create_wf_c3d_fsl_to_itk, \
+from CPAC.registration import create_wf_c3d_fsl_to_itk, \
                               create_wf_collect_transforms, \
-                              create_wf_apply_ants_warp
+                              create_wf_apply_ants_warp #create_wf_calculate_ants_warp, \
 
 def create_vmhc(use_ants, name='vmhc_workflow'):
 

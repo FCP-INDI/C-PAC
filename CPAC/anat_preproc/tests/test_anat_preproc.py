@@ -1,7 +1,7 @@
 import os
-import sys
+#import sys
 from  .. import anat_preproc
-from nose.tools import *
+#from nose.tools import *
 import nibabel as nib
 import numpy as np
 

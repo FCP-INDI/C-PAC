@@ -1,5 +1,5 @@
 from utils import calc_cwas, \
-                  mdmr
+                  mdmr #something wrong here, since mdmr is not in utils
 
 from cwas import joint_mask, \
                  nifti_cwas, \

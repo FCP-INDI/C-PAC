@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-import csv
+#import csv
 import yaml
 
 
@@ -441,7 +441,7 @@ def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesD
 
     lst = data.tolist()
 
-    ftst = []
+    #ftst = []
     fts_columns = []
     contrasts = []
     contrast_names = []
@@ -647,7 +647,7 @@ class Configuration(object):
 def pandas_alternate_organize_data(data, c):
 
     import pandas as ps
-    import csv
+    #import csv
 
     df = ps.DataFrame(data)
 
@@ -1568,7 +1568,7 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
         parsed_contrast = contrast.replace(' ', '')
 
 
-        EVs_in_contrast = []
+        #EVs_in_contrast = []
         parsed_EVs_in_contrast = []
 
         if '>' in parsed_contrast:

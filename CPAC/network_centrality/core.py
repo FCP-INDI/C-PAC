@@ -55,9 +55,9 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
 
 
 def fast_degree_centrality(m):
-    from numpy import linalg as LA
+    import numpy as np
     
-    ntpts = m.shape[0]
+    #ntpts = m.shape[0]
     nvoxs = m.shape[1]
     
     wts   = np.ones((nvoxs,1))/np.sqrt(nvoxs)   # node weights
@@ -90,7 +90,7 @@ def eigenvector_centrality(corr_matrix,
     >>> eigenvector = slow_eigenvector_centrality(mm)
     """
     from scipy.sparse import linalg as LA
-    from scipy.sparse import csc_matrix
+    #from scipy.sparse import csc_matrix
     
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
@@ -157,7 +157,7 @@ def fast_eigenvector_centrality(m, maxiter=99, verbose=True):
     """
     from numpy import linalg as LA
     
-    ntpts = m.shape[0]
+    #ntpts = m.shape[0]
     nvoxs = m.shape[1]
     
     # Initialize eigenvector estimate
