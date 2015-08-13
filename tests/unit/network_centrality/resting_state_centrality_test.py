@@ -99,9 +99,11 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
         # Import packages
         import os
+        from CPAC.utils import tests_init
 
         # Init variables
         ants_wflow = self.test_wflows['ants']
+        smooth_dict = {}
 
         # Set up workflows and run each
         ants_wflow.base_dir = os.path.join(ants_wflow.base_dir, 'deg')
@@ -111,6 +113,10 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         ants_wflow.inputs.inputspec.threshold = 0.001
         print 'running degree centrality...'
         ants_wflow.run()
+
+        # Get raw outputs for smoothing and z-score calculations
+        deg_niis = tests_init.return_all_niis(ants_wflow.base_dir)
+        
 
         # Set up workflows and run each
         ants_wflow.base_dir = ants_wflow.base_dir.replace('deg', 'eig')
@@ -130,6 +136,36 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         print 'running lfcd...'
         ants_wflow.run()
 
+    # Smooth nifti file
+    def smooth_nii_output(self, nii_file):
+        '''
+        '''
+
+        # Import packages
+        import nibabel as nib
+        import numpy as np
+        import scipy as sp
+
+        # Init variables
+        mask_file = self.test_wflows['ants'].inputs.inputspec.template
+        smooth_arr = np.zeros(mask_file.shape, dtype=float)
+
+        # Grab niftis as numpy arrays
+        raw_arr = nib.load(nii_file).get_data()
+        mask_arr = nib.load(mask_file).get_data()
+
+        # Smooth input
+        smooth_out = sp.ndimage.gaussian_filter(raw_arr, sig, order=0)
+
+        # Get mask coordinates
+        coords = np.argwhere(mask_arr)
+        idx = 0
+        for xyz in coords:
+            x, y, z = xyz
+            smooth_arr[x, y, z] = smooth_out[idx]
+            idx += 1
+
+
     # Collect test outputs and compare
     def test_collect_and_compare(self):
         '''
@@ -146,10 +182,12 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         # Init variables
         outputs_to_test = {}
 
-        # Grab golden outputs and corresponding test outputs
+        # Grab precomputed outputs and corresponding test outputs
+        # For each (strategy) precomputed output directory
         for out_dir in self.output_dirs:
-            test_dir = out_dir.replace('output', 'tests')
             niis = glob.glob(os.path.join(out_dir, '*.nii.gz'))
+            test_dir = out_dir.replace('output', 'tests')
+            # For each precomputed output nifti
             for nii in niis:
                 nii_file = os.path.basename(nii)
                 f_list = []
@@ -186,7 +224,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
                 corr = np.corrcoef(img1.flatten(), img2.flatten())[0,1]
                 print 'Correlation = %.3f' % corr
 
-                # Assert the correlatoin is >= pass_threshold
+                # Assert the correlation is >= pass_threshold
                 self.assertGreaterEqual(corr, pass_thr, err_msg)
 
 # Command-line run-able unittest module

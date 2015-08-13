@@ -341,3 +341,24 @@ def return_bucket_name():
 
     # Return bucket name
     return bucket_name
+
+
+# Grab all nifti files within directory
+def return_all_niis(base_dir):
+    '''
+    '''
+
+    # Import packages
+    import os
+
+    # Init variables
+    nii_list = []
+
+    # Collect computed outputs
+    for root, dirs, files in os.walk(base_dir):
+        if files:
+            nii_list.extend([os.path.join(root, file) for file in files \
+                           if file.endswith('.nii.gz')])
+
+    # Return the list of files
+    return nii_list
