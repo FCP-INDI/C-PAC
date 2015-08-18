@@ -6,8 +6,7 @@ import nipype.pipeline.engine as pe
 #import nipype.interfaces.fsl as fsl
 #import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
-from CPAC.alff.alff import get_operand_string
-from CPAC.alff.utils import get_opt_string
+from CPAC.alff.utils import get_opt_string, get_operand_string
 from nipype.interfaces.afni import preprocess
 
 def create_alff(wf_name = 'alff_workflow'):
