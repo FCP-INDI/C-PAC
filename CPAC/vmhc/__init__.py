@@ -6,6 +6,5 @@ from utils import set_gauss, \
 
 
 __all__ = ['create_vmhc', \
-           'set_gauss',\
            'get_img_nvols', \
            'get_operand_expression']

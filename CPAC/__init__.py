@@ -29,6 +29,7 @@ import anat_preproc, \
        generate_motion_statistics, \
        alff, \
        qc, \
+       seg_preproc, \
        vmhc, \
        median_angle, \
        timeseries, \
@@ -43,8 +44,8 @@ import anat_preproc, \
 
 __all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
 
-#from subprocess import Popen, PIPE
-#import re
+from subprocess import Popen, PIPE
+import re
 #__version__ = '0.1-git'
 
 try:

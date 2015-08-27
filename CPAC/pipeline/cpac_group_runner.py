@@ -1,18 +1,18 @@
-#import nipype.pipeline.engine as pe
-#import nipype.interfaces.utility as util
-#import nipype.interfaces.io as nio
-#from time import strftime
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
+import nipype.interfaces.io as nio
+from time import strftime
 
 from multiprocessing import Process
 
-#import re
+import re
 import os
-#import sys
-#import glob
-#import time
-#import csv
+import sys
+import glob
+import time
+import csv
 
-#from nipype import logging
+from nipype import logging
 
 from CPAC.utils import Configuration
 
@@ -244,7 +244,7 @@ def run(config_file, subject_list_file, output_path_file):
 
 
     #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
-    #base_path = c.outputDirectory
+    base_path = c.outputDirectory
 
 
     from collections import defaultdict

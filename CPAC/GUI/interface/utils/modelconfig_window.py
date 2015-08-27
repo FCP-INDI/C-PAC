@@ -412,7 +412,7 @@ class ModelConfig(wx.Frame):
 
                 name = ctrl.get_name()
                 value = config_map.get(name)
-                #dtype = ctrl.get_datatype()
+                dtype = ctrl.get_datatype()
 
                 # the model setup checkbox grid is the only one that doesn't
                 # get repopulated the standard way. instead it is repopulated
@@ -774,7 +774,7 @@ class ModelConfig(wx.Frame):
         # validate design formula and build Available Contrasts list
         var_list_for_contrasts = []
         EVs_to_test = []
-        #EVs_to_include = []
+        EVs_to_include = []
 
         # take the user-provided design formula and break down the included
         # terms into a list, and use this to create the list of available

@@ -1,5 +1,5 @@
 #import CPAC.interfaces.afni.preprocess as e_afni
-#import nipype.interfaces.afni.preprocess as e_afni
+import nipype.interfaces.afni.preprocess as e_afni
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 

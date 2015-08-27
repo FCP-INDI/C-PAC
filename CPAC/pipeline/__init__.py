@@ -6,5 +6,3 @@ from cpac_basc_pipeline import run
 from cpac_cwas_pipeline import run
 
 __all__ = ['run']
-
-# redefinition of 'run' in each import!

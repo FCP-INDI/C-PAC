@@ -1,6 +1,6 @@
 import numpy as np
-from mdmr import mdmr
-from subdist import norm_subjects, ncor_subjects, fischers_transform, compute_distances
+from mdmr import *
+from subdist import *
 
 def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
     """

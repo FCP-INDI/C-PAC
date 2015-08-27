@@ -1,10 +1,10 @@
 # Import packages
-#import os
-#import sys
-#import re
-#import commands
-#import nipype.pipeline.engine as pe
-#import nipype.interfaces.utility as util
+import os
+import sys
+import re
+import commands
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
 
 
 def pick_wm_0(probability_maps):
@@ -26,8 +26,8 @@ def pick_wm_0(probability_maps):
 
     """
 
-    #import sys
-    #import os
+    import sys
+    import os
 
     if(isinstance(probability_maps, list)):
 
@@ -59,8 +59,8 @@ def pick_wm_1(probability_maps):
         Path to segment_prob_1.nii.gz is returned
 
     """
-    #import sys
-    #import os
+    import sys
+    import os
 
     if(isinstance(probability_maps, list)):
 
@@ -92,8 +92,8 @@ def pick_wm_2(probability_maps):
         Path to segment_prob_2.nii.gz is returned
 
     """
-    #import sys
-    #import os
+    import sys
+    import os
     if(isinstance(probability_maps, list)):
 
         if(len(probability_maps) == 1):

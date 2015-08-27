@@ -2,7 +2,7 @@ import wx
 import wx.combo
 import os
 from wx.lib.masked import NumCtrl
-import modelconfig_window #, modelDesign_window
+import modelconfig_window, modelDesign_window
 import wx.lib.agw.balloontip as BT
 import pkg_resources as p
 
@@ -449,7 +449,7 @@ class ListBoxCombo(wx.Panel):
             # the list
             if values:
 
-                #selected_contrasts = []
+                selected_contrasts = []
 
                 for val in values:
 
@@ -474,7 +474,7 @@ class ListBoxCombo(wx.Panel):
             # the list
             if values:
 
-                #selected_ftests = []
+                selected_ftests = []
 
                 for val in values:
 
@@ -654,11 +654,11 @@ class CheckBoxGrid(wx.Panel):
         self.values = values
         
         #wx.StaticText(self, label="Include EV", pos=(250,0))
-        #cat_label = wx.StaticText(self, label="Categorical", pos=(300,0))
-        #demean_label = wx.StaticText(self, label="Demean", pos=(400,0))
+        cat_label = wx.StaticText(self, label="Categorical", pos=(300,0))
+        demean_label = wx.StaticText(self, label="Demean", pos=(400,0))
         
 
-        #j = 0
+        j = 0
         self.idx = 100
         self.includeCBList = []
         self.categoricalCBList = []
@@ -731,7 +731,7 @@ class CheckBoxGrid(wx.Panel):
         for name in value_list:
            
             # set up the label of each header item
-            #EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
+            EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
                   
 
             # Categorical checkbox for header item
@@ -769,13 +769,13 @@ class CheckBoxGrid(wx.Panel):
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
 
-        #meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
         
-        #meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
+        meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
 
-        #measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
+        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
 
-        #custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
+        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
 
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know

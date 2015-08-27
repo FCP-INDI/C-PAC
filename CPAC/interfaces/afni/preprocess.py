@@ -2,18 +2,18 @@
 #coding: utf-8
 import warnings
 import os
-#import nibabel as nb
-#import numpy as np
-#import commands
+import nibabel as nb
+import numpy as np
+import commands
 from string import Template
 from nipype.utils.filemanip import split_filename
 from nipype.interfaces.matlab import MatlabCommand
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec
 from nipype.interfaces.fsl.base import FSLCommand, FSLCommandInputSpec
 from nipype.interfaces.afni.base import AFNITraitedSpec, AFNICommand, Info
-from nipype.interfaces.base import  TraitedSpec, File, Directory, traits, isdefined #, Bunch
+from nipype.interfaces.base import Bunch, TraitedSpec, File, Directory, traits, isdefined
 from nipype.interfaces.base import (CommandLineInputSpec, CommandLine, TraitedSpec, traits, isdefined, File)
-from nipype.utils.filemanip import load_json, save_json, fname_presuffix
+from nipype.utils.filemanip import load_json, save_json, split_filename, fname_presuffix
 warn = warnings.warn
 warnings.filterwarnings('always', category=UserWarning)
 
@@ -650,7 +650,7 @@ For complete details, see the `3dAutomask Documentation.
         return None
 
     def _list_outputs(self):
-        #import sys
+        import sys
         outputs = self.output_spec().get()
         outputs['brain_file'] = self.inputs.apply_mask
         #outputs['out_file'] = self.inputs.out_file
@@ -1381,7 +1381,7 @@ For complete details, see the `3dcalc Documentation.
     output_spec = ThreedcalcOutputSpec
 
     def _list_outputs(self):
-        #import sys
+        import sys
         outputs = self.output_spec().get()
         if not isdefined(self.inputs.out_file):
             outputs['out_file'] = os.path.abspath(self._gen_filename('out_file'))
@@ -1430,8 +1430,8 @@ For complete details, see the `3dcalc Documentation.
     def _gen_filename(self, name):
         """Generate output file name
         """
-        #import tempfile
-        #import commands
+        import tempfile
+        import commands
         if name == 'out_file':
             _, fname, ext = split_filename(self.inputs.infile_a)
             #d_name = tempfile.mkdtemp()

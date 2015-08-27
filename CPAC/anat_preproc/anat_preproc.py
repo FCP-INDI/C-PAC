@@ -1,6 +1,6 @@
 from nipype.interfaces.afni import preprocess
 import nipype.pipeline.engine as pe
-#import nipype.interfaces.afni as afni
+import nipype.interfaces.afni as afni
 import nipype.interfaces.utility as util
 
 

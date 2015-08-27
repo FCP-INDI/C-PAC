@@ -4,7 +4,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.freesurfer as fs
 
-#from nipype import logging
+from nipype import logging
 
 
 def create_surface_registration(wf_name='surface_registration'):
