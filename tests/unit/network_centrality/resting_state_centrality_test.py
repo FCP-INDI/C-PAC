@@ -144,18 +144,24 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         # Import packages
         import nibabel as nib
         import numpy as np
-        import scipy as sp
+        import scipy.ndimage
 
         # Init variables
         mask_file = self.test_wflows['ants'].inputs.inputspec.template
         smooth_arr = np.zeros(mask_file.shape, dtype=float)
+        fwhm_mm = 6
 
         # Grab niftis as numpy arrays
-        raw_arr = nib.load(nii_file).get_data()
+        raw_nii = nib.load(nii_file)
+        raw_arr = raw_nii.get_data()
         mask_arr = nib.load(mask_file).get_data()
 
+        # Calculate sigma for smoothing
+        mm_res = np.abs(raw_nii.affine[0][0])
+        sigma = fwhm_mm/2.3548/mm_res
+
         # Smooth input
-        smooth_out = sp.ndimage.gaussian_filter(raw_arr, sig, order=0)
+        smooth_out = scipy.ndimage.gaussian_filter(raw_arr, sigma, order=0)
 
         # Get mask coordinates
         coords = np.argwhere(mask_arr)
