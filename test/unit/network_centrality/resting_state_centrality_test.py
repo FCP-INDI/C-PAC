@@ -1,4 +1,4 @@
-# test/unit/network_centrality/test_resting_state_centrality.py
+# test/unit/network_centrality/resting_state_centrality_test.py
 #
 # Contributing authors (please append):
 # Daniel Clark
@@ -47,6 +47,8 @@ class CentralityWorkflowTestCase(unittest.TestCase):
             this function does not return any values, but populates the
             instance attributes for:
 
+            self.mask_template : string
+                filepath to the centrality mask template
             self.output_dirs : list
                 a list of filepath strings of output base directories
             self.test_wflows : list
@@ -55,43 +57,55 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
         # Import packages
         import os
+        import yaml
         from CPAC.network_centrality import resting_state_centrality
-        from CPAC.utils import tests_init
+        from CPAC.utils import test_init
 
         # Init variables
+        config_path = test_init.populate_template_config('pipline_config')
+        pipeline_config = yaml.load(open(config_path, 'r'))
         test_wflows = {}
-        output_dirs = tests_init.return_subj_measure_dirs('network_centrality')
 
-        # Get template file path
-        settings_dir = tests_init.return_resource_subfolder('settings')
-        mask_template = os.path.join(settings_dir, 'resources', 'centrality',
-                                     'benchmark_centrality_mask.nii.gz')
+        # Get workflow configuration parameters
+        fwhm = pipeline_config['fwhm'][0]
+        mask_txt_path = pipeline_config['templateSpecificationFile']
+        memory_gb = pipeline_config['memoryAllocatedForDegreeCentrality']
 
-        # Init workflows for each centrality output directory
-        for out_dir in output_dirs:
-            # Init workflows
-            wflow = resting_state_centrality.\
-                    create_resting_state_graphs(allocated_memory=1.0)
+        # Get centrality mask path from txt file
+        mask_template = []
+        with open(mask_txt_path, 'r') as txt_f:
+            mask_template.extend([line for line in txt_f])
+        mask_template = mask_template[0].rstrip('\n')
 
-            # Grab functional mni as subject input for that strategy
-            func_mni_dir = out_dir.replace('network_centrality', 'functional_mni')
-            func_mni = os.path.join(func_mni_dir, 'functional_mni_centrality.nii.gz')
+        # Get precomputed centrality files directory
+        output_dirs = test_init.return_subj_measure_dirs('network_centrality')
+        # Just grab the ants one
+        out_dir = output_dirs[0]
 
-            # Set up workflow parameters
-            wflow.base_dir = out_dir.replace('output', 'tests')
-            wflow.inputs.inputspec.subject = func_mni
-            wflow.inputs.inputspec.template = mask_template
+        # Init workflows
+        wflow = resting_state_centrality.\
+                create_resting_state_graphs(allocated_memory=memory_gb)
 
-            # Make the key the strategy being used (last folder)
-            wflow_strat = out_dir.split('/')[-1]
-            test_wflows[wflow_strat] = wflow
+        # Grab functional mni as subject input for that strategy
+        func_mni_dir = out_dir.replace('network_centrality', 'functional_mni')
+        func_mni = os.path.join(func_mni_dir, 'functional_mni_centrality.nii.gz')
+
+        # Set up workflow parameters
+        wflow.base_dir = out_dir.replace('output', 'tests')
+        wflow.inputs.inputspec.subject = func_mni
+        wflow.inputs.inputspec.template = mask_template
+
+        # Make the key the strategy being used (last folder)
+        wflow_strat = out_dir.split('/')[-1]
+        test_wflows[wflow_strat] = wflow
 
         # Set centrality TestCase instance attributes
+        self.mask_template = mask_template
         self.output_dirs = output_dirs
         self.test_wflows = test_wflows
 
     # Test the ants registration strategy
-    def test_ants_strategy(self):
+    def run_p_value_thresh(self):
         '''
         Function to run the centrality workflows for the ANTS
         registration strategy
@@ -99,7 +113,7 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
         # Import packages
         import os
-        from CPAC.utils import tests_init
+        from CPAC.utils import test_init
 
         # Init variables
         ants_wflow = self.test_wflows['ants']
@@ -114,10 +128,6 @@ class CentralityWorkflowTestCase(unittest.TestCase):
         print 'running degree centrality...'
         ants_wflow.run()
 
-        # Get raw outputs for smoothing and z-score calculations
-        deg_niis = tests_init.return_all_niis(ants_wflow.base_dir)
-        
-
         # Set up workflows and run each
         ants_wflow.base_dir = ants_wflow.base_dir.replace('deg', 'eig')
         ants_wflow.inputs.inputspec.method_option = 1
@@ -129,48 +139,12 @@ class CentralityWorkflowTestCase(unittest.TestCase):
 
         # Set up workflows and run each
         ants_wflow.base_dir = ants_wflow.base_dir.replace('eig', 'lfcd')
-        ants_wflow.inputs.inputspec.method_option = 2
+        ants_wflow.inputs.inputspec.method_option = 0
         ants_wflow.inputs.inputspec.weight_options = [True, False]
         ants_wflow.inputs.inputspec.threshold_option = 2
         ants_wflow.inputs.inputspec.threshold = 0.6
         print 'running lfcd...'
         ants_wflow.run()
-
-    # Smooth nifti file
-    def smooth_nii_output(self, nii_file):
-        '''
-        '''
-
-        # Import packages
-        import nibabel as nib
-        import numpy as np
-        import scipy.ndimage
-
-        # Init variables
-        mask_file = self.test_wflows['ants'].inputs.inputspec.template
-        smooth_arr = np.zeros(mask_file.shape, dtype=float)
-        fwhm_mm = 6
-
-        # Grab niftis as numpy arrays
-        raw_nii = nib.load(nii_file)
-        raw_arr = raw_nii.get_data()
-        mask_arr = nib.load(mask_file).get_data()
-
-        # Calculate sigma for smoothing
-        mm_res = np.abs(raw_nii.affine[0][0])
-        sigma = fwhm_mm/2.3548/mm_res
-
-        # Smooth input
-        smooth_out = scipy.ndimage.gaussian_filter(raw_arr, sigma, order=0)
-
-        # Get mask coordinates
-        coords = np.argwhere(mask_arr)
-        idx = 0
-        for xyz in coords:
-            x, y, z = xyz
-            smooth_arr[x, y, z] = smooth_out[idx]
-            idx += 1
-
 
     # Collect test outputs and compare
     def test_collect_and_compare(self):

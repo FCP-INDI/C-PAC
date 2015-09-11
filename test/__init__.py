@@ -1,4 +1,4 @@
-# tests/__init__.py
+# test/__init__.py
 #
 # Contributing authors (please append):
 # Daniel Clark
