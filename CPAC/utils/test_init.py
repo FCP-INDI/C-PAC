@@ -45,7 +45,7 @@ def populate_template_config(config_type):
         out_name = 'resources'
     else:
         # Check if it's supported, otherwise raise an Exception
-        err_msg = 'config_type parameter: %s is unsupported'
+        err_msg = 'config_type parameter: %s is unsupported' % config_type
         raise Exception(err_msg)
 
     # Get template and output paths
@@ -461,3 +461,50 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
     # Return the smoothed array
     return smooth_arr
 
+# Setup log file
+def setup_test_logger(logger_name, log_file, level, to_screen=False):
+    '''
+    Function to initialize and configure a logger that can write to file
+    and (optionally) the screen.
+
+    Parameters
+    ----------
+    logger_name : string
+        name of the logger
+    log_file : string
+        file path to the log file on disk
+    level : integer
+        indicates the level at which the logger should log; this is
+        controlled by integers that come with the python logging
+        package. (e.g. logging.INFO=20, logging.DEBUG=10)
+    to_screen : boolean (optional)
+        flag to indicate whether to enable logging to the screen
+
+    Returns
+    -------
+    logger : logging.Logger object
+        Python logging.Logger object which is capable of logging run-
+        time information about the program to file and/or screen
+    '''
+
+    # Import packages
+    import logging
+
+    # Init logger, formatter, filehandler, streamhandler
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s : %(message)s')
+
+    # Write logs to file
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    # Write to screen, if desired
+    if to_screen:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
+    # Return the logger
+    return logger
