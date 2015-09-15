@@ -3032,11 +3032,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     new_strat_list = []
     num_strat = 0
 
-
+    # If we're running centrality
     if 1 in c.runNetworkCentrality:
+
         # For each desired strategy
         for strat in strat_list:
-            
+
             # Resample the functional mni to the centrality mask resolution
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
@@ -3054,28 +3055,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           threshold,
                                           weightOptions,
                                           mList):
+
                 # Create centrality workflow
                 network_centrality = create_resting_state_graphs(\
                                      c.memoryAllocatedForDegreeCentrality,
                                      'network_centrality_%d-%d' \
-                                     %(num_strat,methodOption))
-                # Connect registered function input image to inputspec
+                                     %(num_strat, methodOption))
+
+                # Connect resampled (to template/mask resolution)
+                # functional_mni to inputspec
                 workflow.connect(resample_functional_to_template, 'out_file',
                                  network_centrality, 'inputspec.subject')
-                # Subject mask/parcellation image
+
+                # Connect template input mask/parcellation image
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  network_centrality, 'inputspec.template')
+
                 # Give which method we're doing (0 - deg, 1 - eig, 2 - lfcd)
                 network_centrality.inputs.inputspec.method_option = \
                 methodOption
+
                 # Type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
                 network_centrality.inputs.inputspec.threshold_option = \
                 thresholdOption
+
                 # Connect threshold value (float)
                 network_centrality.inputs.inputspec.threshold = threshold
+
                 # List of two booleans, first for binary, second for weighted
                 network_centrality.inputs.inputspec.weight_options = \
                 weightOptions
+
                 # Merge output with others via merge_node connection
                 workflow.connect(network_centrality,
                                  'outputspec.centrality_outputs',
@@ -3087,7 +3097,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 create_log_node(network_centrality,
                                 'outputspec.centrality_outputs',
                                 num_strat)
-                
+
             # Init merge node for appending method output lists to one another
             merge_node = pe.Node(util.Function(input_names=['deg_list',
                                                             'eig_list',
@@ -3095,7 +3105,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           output_names = ['merged_list'],
                                           function = merge_lists),
                             name = 'merge_node_%d' % num_strat)
-            
+
             # If we're calculating degree centrality
             if c.degWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(0,
@@ -3111,7 +3121,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           c.eigCorrelationThreshold,
                                           c.eigWeightOptions,
                                           'eig_list')
-            
+
             # If we're calculating lFCD
             if c.lfcdWeightOptions.count(True) > 0:
                 connectCentralityWorkflow(2,

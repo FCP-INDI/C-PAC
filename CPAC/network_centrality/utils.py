@@ -211,14 +211,14 @@ def convert_pvalue_to_r(scans, threshold):
     '''
 
     # Import packages
-    import scipy.stats as s
+    import scipy.stats
     import math
 
     print "p_value ->", threshold
     x = 1-threshold/2
     dof = scans-2
-    #Inverse Survival Function (Inverse of SF)
-    tvalue = s.t.isf(x, dof)
+    # Inverse Survival Function (Inverse of SF)
+    tvalue = scipy.stats.t.isf(x, dof)
     rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
 
     return rvalue
