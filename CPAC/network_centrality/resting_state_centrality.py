@@ -797,8 +797,8 @@ def calc_centrality(datafile,
     out_list = []
     ts, aff, mask, t_type, scans = load(datafile, template)
     
-    # If we're doing eigenvectory centrality, need entire correlation matrix
-    if method_option == 0 and threshold_option == 1:
+    # If we're doing eigenvector centrality, need entire correlation matrix
+    if threshold_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
                                     sparsity_thresh=threshold)
     elif method_option == 1:
