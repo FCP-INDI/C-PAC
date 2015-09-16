@@ -193,35 +193,51 @@ def cluster_data(img, thr, xyz_a, k=26):
 
 
 # Convert probability threshold value to correlation threshold
-def convert_pvalue_to_r(scans, threshold):
+def convert_pvalue_to_r(p_value, scans, two_tailed=False):
     '''
     Method to calculate correlation threshold from p_value
 
     Parameters
     ----------
+    p_value : float
+        significance threshold p-value
     scans : int
         Total number of scans in the data
-    threshold : float
-        input p_value
+    two_tailed : boolean (optional); default=False
+        flag to indicate whether to calculate the two-tailed t-test
+        threshold for the returned correlation value
 
     Returns
     -------
-    rvalue : float
+    r_value : float
         correlation threshold value 
     '''
 
     # Import packages
+    import numpy as np
     import scipy.stats
-    import math
+    #import math
 
-    print "p_value ->", threshold
-    x = 1-threshold/2
-    dof = scans-2
+    # Init variables
+    # Get two-tailed distribution
+    if two_tailed:
+        p_value = p_value/2
+
+    # N-2 degrees of freedom with Pearson correlation (two sample means)
+    deg_freedom = scans-2
+
     # Inverse Survival Function (Inverse of SF)
-    tvalue = scipy.stats.t.isf(x, dof)
-    rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
+    # Note: survival function (SF) is also known as the complementary
+    # cumulative distribution function (CCDF): F_(x) = p = P(X > x) = 1 - F(x)
+    # The inverse will yield: x = F_^-1(p) = F_^-1(P(X > x))
+    # where x is a value under the distribution of the random variable X
+    # such that the probability of getting greater than x, is p
+    t_value = scipy.stats.t.isf(p_value, deg_freedom)
+    r_value = np.sqrt(t_value**2/(deg_freedom+t_value**2))
+    #r_value = math.sqrt(math.pow(t_value, 2)/(deg_freedom+ math.pow(t_value,2)))
 
-    return rvalue
+    # Return correlation coefficient
+    return r_value
 
 
 # Borrowed from nipy.graph.graph
