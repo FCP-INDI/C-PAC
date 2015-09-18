@@ -1277,7 +1277,6 @@ def run(config, fTest, param_file, derivative_means_dict, pipeline_path, current
 
     import patsy
 
-
     # drop pickles of the inputs meant for Patsy so you can manually test it
     # later if needed
     #import pickle

@@ -1074,7 +1074,7 @@ class ModelConfig(wx.Frame):
 
 
 
-        def read_phenotypic(pheno_file, ev_selections, subject_id_label):
+        def read_phenotypic(pheno_file, ev_selections, formula, subject_id_label):
 
             import csv
             import numpy as np
@@ -1099,29 +1099,39 @@ class ModelConfig(wx.Frame):
 
                 for key in line.keys():
 
-                    if key not in pheno_data_dict.keys():
-                        pheno_data_dict[key] = []
+                    if (key in formula) and (key != ""):
 
-                    # create a list within one of the dictionary values for that
-                    # EV if it is categorical; formats this list into a form
-                    # Patsy can understand regarding categoricals:
-                    #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
-                    #                instead of just [1, 1, 0, 1], etc.
-                    if 'categorical' in ev_selections.keys():
-                        if key in ev_selections['categorical']:
-                            pheno_data_dict[key].append(key + str(line[key]))
+                        if key not in pheno_data_dict.keys():
+                            pheno_data_dict[key] = []
+
+                        # create a list within one of the dictionary values for that
+                        # EV if it is categorical; formats this list into a form
+                        # Patsy can understand regarding categoricals:
+                        #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                        #                instead of just [1, 1, 0, 1], etc.
+                        if 'categorical' in ev_selections.keys():
+                            if key in ev_selections['categorical']:
+                                pheno_data_dict[key].append(key + str(line[key]))
+
+                            elif key == subject_id_label:
+                                pheno_data_dict[key].append(line[key])
+
+                            else:
+                                try:
+                                    pheno_data_dict[key].append(float(line[key]))
+                                except:
+                                    print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
+                                    raise Exception
 
                         elif key == subject_id_label:
                             pheno_data_dict[key].append(line[key])
 
                         else:
-                            pheno_data_dict[key].append(float(line[key]))
-
-                    elif key == subject_id_label:
-                        pheno_data_dict[key].append(line[key])
-
-                    else:
-                        pheno_data_dict[key].append(float(line[key]))
+                            try:
+                                pheno_data_dict[key].append(float(line[key]))
+                            except:
+                                print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
+                                raise Exception
 
 
 
@@ -1166,7 +1176,7 @@ class ModelConfig(wx.Frame):
             return pheno_data_dict
 
 
-        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
+        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['design_formula'], self.gpa_settings['subject_id_label'])
 
 
         # let's create dummy columns for MeanFD, Measure_Mean, and
@@ -1234,12 +1244,15 @@ class ModelConfig(wx.Frame):
         # columns are going to be 
         try:
             dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
-        except:
+        except Exception as e:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
                     'correspond to the EVs listed in your phenotype file?\n'
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
+            print "Formula: %s" % formula
+            print "Patsy-format pheno: %s" % patsy_formatted_pheno
+            print "Patsy error: %s" % e
             raise Exception
 
 
@@ -1456,6 +1469,7 @@ class ModelConfig(wx.Frame):
         if "," in group_pheno_lines[0]:
             pheno_subs = get_pheno_subjects(",")
 
+        '''
         # now make sure the group sublist and pheno subject IDs match, at least
         # for the ones that exist (i.e. may be less sub IDs in the sublist)
         for sublist_subID, pheno_subID in zip(group_sublist, pheno_subs):
@@ -1488,6 +1502,7 @@ class ModelConfig(wx.Frame):
                 errSubID.Destroy()
 
                 raise Exception
+        '''
 
 
 
