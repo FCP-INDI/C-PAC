@@ -534,16 +534,16 @@ def create_con_ftst_file(con_file, model_name, current_output, outputModelFilesD
         raise Exception(err_string)
 
 
-    for design_mat_col, con_csv_col in zip(column_names, evs):
+    for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
 
-        if design_mat_col != con_csv_col:
+        if con_csv_col not in design_mat_col:
 
             errmsg = "\n\n[!] CPAC says: The names of the EVs in your " \
                      "custom contrasts .csv file do not match the names or " \
                      "order of the EVs in the design matrix. Please make " \
                      "sure these are consistent.\nDesign matrix EV columns: " \
                      "%s\nYour contrasts matrix columns: %s\n\n" \
-                     % (column_names, evs)
+                     % (column_names, evs[1:])
 
             raise Exception(errmsg)        
 
