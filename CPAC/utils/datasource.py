@@ -1,6 +1,22 @@
+# CPAC/utils/datasource.py
+#
+#
+
+'''
+'''
+
+# Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+import nipype.interfaces.io as nio
 
+# Custom DataSink class
+class DataSink(nio.DataSink):
+    '''
+    '''
+
+    # Init variables
+    s3_flg = False
 
 def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
@@ -274,5 +290,3 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
         return wf
-
-

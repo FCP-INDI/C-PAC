@@ -1,6 +1,11 @@
 # CPAC/network_centrality/utils.py
 #
-# Network centrality utilities
+# Contributing authors (please append):
+#
+
+'''
+Network centrality utilities
+'''
 
 # Method to return recommended block size based on memory restrictions 
 def calc_blocksize(timeseries, memory_allocated=None, 

@@ -20,7 +20,7 @@ def create_resting_state_graphs(allocated_memory = None,
     Workflow to calculate degree and eigenvector centrality as well as 
     local functional connectivity density (lfcd) measures for the 
     resting state data.
-    
+
     Parameters
     ----------
     allocated_memory : float
@@ -28,7 +28,7 @@ def create_resting_state_graphs(allocated_memory = None,
     wf_name : string
         name of the workflow
 
-    Returns 
+    Returns
     -------
     wf : workflow object
         resting state graph workflow object
