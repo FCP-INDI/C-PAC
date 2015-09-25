@@ -3,12 +3,22 @@
 #
 
 '''
+This module contains classes and functions used to interface with data
+access
 '''
 
 # Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
+
+
+# Custom DataSinkInputSpec class
+class DataSinkInputSpec(nio.DataSinkInputSpec):
+    '''
+    '''
+
+    
 
 # Custom DataSink class
 class DataSink(nio.DataSink):

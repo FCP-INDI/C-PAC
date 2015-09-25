@@ -34,11 +34,11 @@ def return_aws_keys(creds_path):
 
     # Init variables
     csv_reader = csv.reader(open(creds_path, 'r'))
-    
+
     # Grab csv rows
     row1 = csv_reader.next()[0]
     row2 = csv_reader.next()[0]
-    
+
     # And split out for keys
     aws_access_key_id = row1.split('=')[1]
     aws_secret_access_key = row2.split('=')[1]
@@ -157,7 +157,7 @@ def return_rds_vars(creds_path):
 
     # Init variables
     csv_reader = csv.reader(open(creds_path, 'r'))
-    
+
     # Grab csv rows
     row1 = csv_reader.next()[0]
     row2 = csv_reader.next()[0]

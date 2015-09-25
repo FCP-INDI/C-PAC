@@ -107,8 +107,8 @@ def populate_all_templates():
 # Get the AWS credentials
 def return_aws_creds():
     '''
-    Function to return the AWS credentials files located in the
-    CPAC_RESOURCE_DIR
+    Function to return the AWS credentials file given by the
+    CPAC_AWS_CREDS environment variable
 
     Parameters
     ----------
@@ -119,23 +119,21 @@ def return_aws_creds():
     aws_creds : string
         filepath to the AWS credentials with access key id and secret
         access key
-    db_creds: string
-        filepath to the AWS database credentials with the username
-        and password along with other details to connect to database
     '''
 
     # Import packages
     import os
 
     # Init variables
-    creds_dir = return_resource_subfolder('creds')
+    creds_path = os.getenv('CPAC_AWS_CREDS')
 
-    # Get credentials path
-    aws_creds = os.path.join(creds_dir, 'aws_creds.csv')
-    db_creds = os.path.join(creds_dir, 'db_creds.csv')
-
-    # Return the aws creds and databse creds
-    return aws_creds, db_creds
+    # Check if set
+    if not creds_path:
+        err_msg = 'CPAC_AWS_CREDS environment variable not set!\n' \
+                  'Set this to the filepath location of your AWS credentials.'
+        raise Exception(err_msg)
+    else:
+        return creds_path
 
 
 # Get the default test bucket name
@@ -460,6 +458,7 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
 
     # Return the smoothed array
     return smooth_arr
+
 
 # Setup log file
 def setup_test_logger(logger_name, log_file, level, to_screen=False):
