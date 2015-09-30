@@ -2,6 +2,7 @@
 #
 # Contributing authors (please append):
 # Daniel Clark
+from boto.exception import S3ResponseError
 
 '''
 This module contains functions which return sensitive information from 
@@ -45,7 +46,7 @@ def return_aws_keys(creds_path):
 
     # Return keys
     return aws_access_key_id,\
-           aws_secret_access_key,\
+           aws_secret_access_key
 
 
 # Function to return an AWS S3 bucket
@@ -74,15 +75,26 @@ def return_bucket(creds_path, bucket_name):
     import boto
     import boto.s3.connection
 
-    # Get AWS credentials
-    aws_access_key_id, aws_secret_access_key = return_aws_keys(creds_path)
-
-    # Init connection
+    # Init variables
     cf = boto.s3.connection.OrdinaryCallingFormat()
-    s3_conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key,
-                              calling_format=cf)
+
+    # Get AWS credentials if a creds_path is specified
+    if creds_path:
+        aws_access_key_id, aws_secret_access_key = return_aws_keys(creds_path)
+        # Init connection
+        s3_conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key,
+                                  calling_format=cf)
+    else:
+        s3_conn= boto.connect_s3(anon=True, calling_format=cf)
+
     # And fetch the bucket with the name argument
-    bucket = s3_conn.get_bucket(bucket_name)
+    try:
+        bucket = s3_conn.get_bucket(bucket_name)
+    except S3ResponseError as exc:
+        err_msg = 'Unable to connect to bucket: %s; check credentials or ' \
+                  'bucket name spelling and try again. Error message: %s' \
+                  % (bucket_name, exc)
+        raise Exception(err_msg)
 
     # Return bucket
     return bucket

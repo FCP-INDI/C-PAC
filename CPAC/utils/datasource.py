@@ -25,8 +25,266 @@ class DataSink(nio.DataSink):
     '''
     '''
 
-    # Init variables
-    s3_flg = False
+    # Init start-up method
+    def __init__(self, infields=None, force_run=True, **kwargs):
+        """
+        Parameters
+        ----------
+        infields : list of str
+            Indicates the input fields to be dynamically created
+        """
+
+        # Import packages
+        import os
+        import sys
+        import nipype.interfaces.traits_extension as nit
+
+        # Init variables
+        s3_str = 's3://'
+        sep = os.path.sep
+        base_directory = self.base_directory
+
+        # Check if 's3://' in base dir
+        if base_directory.startswith(s3_str):
+            try:
+                bucket_name = base_directory.split(s3_str)[1].split(sep)[0]
+                self.bucket = self._fetch_bucket(bucket_name)
+            except Exception as exc:
+                err_msg = 'Unable to access S3 bucket. Error:\n%s. Exiting...'\
+                          % exc
+                print err_msg
+                sys.exit()
+            # Bucket access was a success, set flag
+            self.s3_flag = True
+        # Otherwise it's just a normal datasink
+        else:
+            self.s3_flag = False
+
+        super(DataSink, self).__init__(**kwargs)
+        undefined_traits = {}
+        # used for mandatory inputs check
+        self._infields = infields
+        if infields:
+            for key in infields:
+                self.inputs.add_trait(key, nit.traits.Any)
+                self.inputs._outputs[key] = nit.Undefined
+                undefined_traits[key] = nit.Undefined
+        self.inputs.trait_set(trait_change_notify=False, **undefined_traits)
+        if force_run:
+            self._always_run = True
+
+    # Function to return AWS secure environment variables
+    def _return_aws_keys(self, creds_path):
+        '''
+        Method to return AWS access key id and secret access key using
+        credentials found in a local file.
+    
+        Parameters
+        ----------
+        creds_path : string (filepath)
+            path to the csv file with 'AWSAccessKeyId=' followed by access
+            key in the first row and 'AWSSecretAccessKey=' followed by
+            secret access key in the second row
+    
+        Returns
+        -------
+        aws_access_key_id : string
+            string of the AWS access key ID
+        aws_secret_access_key : string
+            string of the AWS secret access key
+        '''
+
+        # Import packages
+        import csv
+
+        # Init variables
+        csv_reader = csv.reader(open(creds_path, 'r'))
+
+        # Grab csv rows
+        row1 = csv_reader.next()[0]
+        row2 = csv_reader.next()[0]
+
+        # And split out for keys
+        aws_access_key_id = row1.split('=')[1]
+        aws_secret_access_key = row2.split('=')[1]
+
+        # Return keys
+        return aws_access_key_id,\
+               aws_secret_access_key
+
+    def _fetch_bucket(self, bucket_name):
+        '''
+        Method to a return a bucket object which can be used to interact
+        with an AWS S3 bucket using credentials found in a local file.
+
+        Parameters
+        ----------
+        bucket_name : string
+            string corresponding to the name of the bucket on S3
+        creds_path : string (optional); default=None
+            path to the csv file with 'Access Key Id' as the header and the
+            corresponding ASCII text for the key underneath; same with the
+            'Secret Access Key' string and ASCII text
+
+        Returns
+        -------
+        bucket : boto.s3.bucket.Bucket
+            a boto s3 Bucket object which is used to interact with files
+            in an S3 bucket on AWS
+        '''
+
+        # Import packages
+        import logging
+
+        try:
+            import boto
+            import boto.s3.connection
+        except ImportError as exc:
+            err_msg = 'Boto package is not installed - install boto and '\
+                      'try again.'
+            raise Exception(err_msg)
+
+        # Init variables
+        cf = boto.s3.connection.OrdinaryCallingFormat()
+        creds_path = self.creds_path
+        iflogger = logging.getLogger('interface')
+
+        # Try and get AWS credentials if a creds_path is specified
+        if creds_path:
+            try:
+                aws_access_key_id, aws_secret_access_key = \
+                    self._return_aws_keys(creds_path)
+            except Exception as exc:
+                err_msg = 'There was a problem extracting the AWS credentials '\
+                          'from the credentials file provided: %s. Error:\n%s'\
+                          % (creds_path, exc)
+                raise Exception(err_msg)
+            # Init connection
+            iflogger.info('Connecting to S3 bucket: %s with credentials from '\
+                          '%s ...' % (bucket_name, creds_path))
+            s3_conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key,
+                                      calling_format=cf)
+        # Otherwise, connect anonymously
+        else:
+            iflogger.info('Connecting to S3 bucket: %s anonymously...'\
+                          % bucket_name)
+            s3_conn = boto.connect_s3(anon=True, calling_format=cf)
+
+        # And try fetch the bucket with the name argument
+        try:
+            bucket = s3_conn.get_bucket(bucket_name)
+        except Exception as exc:
+            err_msg = 'Unable to connect to bucket: %s; check credentials or '\
+                      'bucket name spelling and try again. Error message: %s'\
+                      % (bucket_name, exc)
+            raise Exception(err_msg)
+
+        # Return bucket
+        return bucket
+
+
+    # Send up to S3 method
+    def _upload_to_s3(self, src_file):
+        '''
+        Method to upload outputs to S3 bucket instead of on local disk
+        '''
+
+        # Import packages
+
+        # Init variables
+        
+
+    # List outputs, main run routine
+    def _list_outputs(self):
+        """Execute this module.
+        """
+
+        # Import packages
+        import logging
+        import os
+        import shutil
+
+        import nipype.utils.filemanip as nuf
+        import nipype.utils.misc as num
+        from nipype import config
+
+        # Init variables
+        iflogger = logging.getLogger('interface')
+        outputs = self.output_spec().get()
+        out_files = []
+        outdir = self.inputs.base_directory
+        use_hardlink = num.str2bool(config.get('execution',
+                                               'try_hard_link_datasink'))
+
+        # If base directory isn't given, assume current directory
+        if not nuf.isdefined(outdir):
+            outdir = '.'
+        outdir = os.path.abspath(outdir)
+
+        # If container input is given, append that to outdir
+        if nuf.isdefined(self.inputs.container):
+            outdir = os.path.join(outdir, self.inputs.container)
+        # Create the directory if it doesn't exist
+        if not os.path.exists(outdir):
+            try:
+                os.makedirs(outdir)
+            except OSError, inst:
+                if 'File exists' in inst:
+                    pass
+                else:
+                    raise(inst)
+
+        # Iterate through outputs attributes {key : path(s)}
+        for key, files in self.inputs._outputs.items():
+            if not nuf.isdefined(files):
+                continue
+            iflogger.debug("key: %s files: %s" % (key, str(files)))
+            files = nuf.filename_to_list(files)
+            tempoutdir = outdir
+            for d in key.split('.'):
+                if d[0] == '@':
+                    continue
+                tempoutdir = os.path.join(tempoutdir, d)
+
+            # flattening list
+            if isinstance(files, list):
+                if isinstance(files[0], list):
+                    files = [item for sublist in files for item in sublist]
+
+            # Iterate through passed-in source files
+            for src in nuf.filename_to_list(files):
+                src = os.path.abspath(src)
+                if not os.path.isfile(src):
+                    src = os.path.join(src, '')
+                dst = self._get_dst(src)
+                dst = os.path.join(tempoutdir, dst)
+                dst = self._substitute(dst)
+                path, _ = os.path.split(dst)
+                if not os.path.exists(path):
+                    try:
+                        os.makedirs(path)
+                    except OSError, inst:
+                        if 'File exists' in inst:
+                            pass
+                        else:
+                            raise(inst)
+                if os.path.isfile(src):
+                    iflogger.debug("copyfile: %s %s" % (src, dst))
+                    nuf.copyfile(src, dst, copy=True, hashmethod='content',
+                             use_hardlink=use_hardlink)
+                    out_files.append(dst)
+                elif os.path.isdir(src):
+                    if os.path.exists(dst) and self.inputs.remove_dest_dir:
+                        iflogger.debug("removing: %s" % dst)
+                        shutil.rmtree(dst)
+                    iflogger.debug("copydir: %s %s" % (src, dst))
+                    nio.copytree(src, dst)
+                    out_files.append(dst)
+
+        # Return outputs dictionary
+        outputs['out_file'] = out_files
+
+        return outputs
 
 def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
