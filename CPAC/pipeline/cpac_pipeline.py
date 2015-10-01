@@ -111,7 +111,7 @@ class strategy:
 
     
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin=None, plugin_args=None):
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -5875,9 +5875,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         subject_info_pickle.close()
         
+        if plugin_args is None:
+            plugin_args={'n_procs': c.numCoresPerSubject}
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        workflow.run(plugin=plugin, plugin_args=plugin_args)
         
 
         subject_info['status'] = 'Completed'
@@ -6156,9 +6158,12 @@ def run(config, subject_list_file, indx, strategies,
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
+    plugin = 'MultiProc' if 'plugin' not in kwargs else kwargs.get('plugin')
+    p_args = None if 'plugin_args' not in kwargs else kwargs.get('plugin_args')
+
     try:
         # Build and run the pipeline
-        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args= p_args)
     except Exception as e:
         print 'Could not complete cpac run for subject: %s!' % sub_id
         print 'Error: %s' % e
