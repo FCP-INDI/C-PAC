@@ -490,7 +490,7 @@ def run(config_file, subject_list_file, p_name = None, **kwargs):
         # Init variables
         procss = [Process(target=prep_workflow,
                           args=(sub, c, strategies, 1,
-                                pipeline_timing_info, p_name, plugin=plugin, plugin_args=p_args)) \
+                                pipeline_timing_info, p_name, plugin, p_args)) \
                   for sub in sublist]
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
         # Init job queue
