@@ -47,7 +47,9 @@ class DataSink(nio.DataSink):
         # Check if 's3://' in base dir
         if base_directory.startswith(s3_str):
             try:
+                # Expects bucket name to be 's3://bucket_name/base_dir/..'
                 bucket_name = base_directory.split(s3_str)[1].split(sep)[0]
+                # Get the actual bucket object
                 self.bucket = self._fetch_bucket(bucket_name)
             except Exception as exc:
                 err_msg = 'Unable to access S3 bucket. Error:\n%s. Exiting...'\
@@ -109,8 +111,7 @@ class DataSink(nio.DataSink):
         aws_secret_access_key = row2.split('=')[1]
 
         # Return keys
-        return aws_access_key_id,\
-               aws_secret_access_key
+        return aws_access_key_id, aws_secret_access_key
 
     def _fetch_bucket(self, bucket_name):
         '''
@@ -253,6 +254,7 @@ class DataSink(nio.DataSink):
 
             # Iterate through passed-in source files
             for src in nuf.filename_to_list(files):
+                # Format src and dst files
                 src = os.path.abspath(src)
                 if not os.path.isfile(src):
                     src = os.path.join(src, '')
@@ -260,6 +262,8 @@ class DataSink(nio.DataSink):
                 dst = os.path.join(tempoutdir, dst)
                 dst = self._substitute(dst)
                 path, _ = os.path.split(dst)
+
+                # Create output directory if it doesnt exist
                 if not os.path.exists(path):
                     try:
                         os.makedirs(path)
@@ -268,18 +272,25 @@ class DataSink(nio.DataSink):
                             pass
                         else:
                             raise(inst)
-                if os.path.isfile(src):
-                    iflogger.debug("copyfile: %s %s" % (src, dst))
-                    nuf.copyfile(src, dst, copy=True, hashmethod='content',
-                             use_hardlink=use_hardlink)
+
+                # If we're uploading to S3 (flag set during __init__)
+                if self.s3_flag:
+                    dst = self._upload_to_s3(src, dst)
                     out_files.append(dst)
-                elif os.path.isdir(src):
-                    if os.path.exists(dst) and self.inputs.remove_dest_dir:
-                        iflogger.debug("removing: %s" % dst)
-                        shutil.rmtree(dst)
-                    iflogger.debug("copydir: %s %s" % (src, dst))
-                    nio.copytree(src, dst)
-                    out_files.append(dst)
+                # Otherwise, copy locally src -> dst
+                else:
+                    if os.path.isfile(src):
+                        iflogger.debug('copyfile: %s %s' % (src, dst))
+                        nuf.copyfile(src, dst, copy=True, hashmethod='content',
+                                     use_hardlink=use_hardlink)
+                        out_files.append(dst)
+                    elif os.path.isdir(src):
+                        if os.path.exists(dst) and self.inputs.remove_dest_dir:
+                            iflogger.debug('removing: %s' % dst)
+                            shutil.rmtree(dst)
+                        iflogger.debug('copydir: %s %s' % (src, dst))
+                        nio.copytree(src, dst)
+                        out_files.append(dst)
 
         # Return outputs dictionary
         outputs['out_file'] = out_files
