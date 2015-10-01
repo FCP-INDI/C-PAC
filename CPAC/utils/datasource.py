@@ -18,31 +18,71 @@ class DataSinkInputSpec(nio.DataSinkInputSpec):
     '''
     '''
 
+    # Import packages
+    import traits.api as tap
+    import nipype.interfaces.traits_extension as nit
+    import nipype.interfaces.base as nib
     
+    # Add the AWS credentials path to inputspec
+    base_directory = nit.Directory(
+        desc='Path to the base directory for storing data.')
+    container = tap.Str(
+        desc='Folder within base directory in which to store output')
+    parameterization = tap.Bool(True, usedefault=True,
+                                   desc='store output in parametrized structure')
+    strip_dir = nit.Directory(desc='path to strip out of filename')
+    substitutions = nib.InputMultiPath(tap.Tuple(tap.Str, tap.Str),
+                                   desc=('List of 2-tuples reflecting string '
+                                         'to substitute and string to replace '
+                                         'it with'))
+    regexp_substitutions = nib.InputMultiPath(tap.Tuple(tap.Str, tap.Str),
+                                          desc=('List of 2-tuples reflecting a pair '
+                                                'of a Python regexp pattern and a '
+                                                'replacement string. Invoked after '
+                                                'string `substitutions`'))
+
+    _outputs = tap.Dict(tap.Str, value={}, usedefault=True)
+    remove_dest_dir = tap.Bool(False, usedefault=True,
+                                  desc='remove dest directory when copying dirs')
+
+    creds_path = tap.Str(desc='Filepath to AWS credentials file for S3 bucket access')
+
+    def __setattr__(self, key, value):
+        import nipype.interfaces.traits_extension as nit
+
+        if key not in self.copyable_trait_names():
+            if not nit.isdefined(value):
+                super(DataSinkInputSpec, self).__setattr__(key, value)
+            self._outputs[key] = value
+        else:
+            if key in self._outputs:
+                self._outputs[key] = value
+            super(DataSinkInputSpec, self).__setattr__(key, value)
+
+
 
 # Custom DataSink class
 class DataSink(nio.DataSink):
     '''
     '''
 
-    # Init start-up method
-    def __init__(self, infields=None, force_run=True, **kwargs):
-        """
-        Parameters
-        ----------
-        infields : list of str
-            Indicates the input fields to be dynamically created
-        """
+    # Give obj .inputs and .outputs
+    input_spec = DataSinkInputSpec
+    output_spec = nio.DataSinkOutputSpec
+
+    # Check for s3 in base directory
+    def _check_s3(self):
+        '''
+        '''
 
         # Import packages
         import os
         import sys
-        import nipype.interfaces.traits_extension as nit
 
         # Init variables
         s3_str = 's3://'
         sep = os.path.sep
-        base_directory = self.base_directory
+        base_directory = self.inputs.base_directory
 
         # Check if 's3://' in base dir
         if base_directory.startswith(s3_str):
@@ -57,37 +97,27 @@ class DataSink(nio.DataSink):
                 print err_msg
                 sys.exit()
             # Bucket access was a success, set flag
-            self.s3_flag = True
+            s3_flag = True
         # Otherwise it's just a normal datasink
         else:
-            self.s3_flag = False
+            s3_flag = False
 
-        super(DataSink, self).__init__(**kwargs)
-        undefined_traits = {}
-        # used for mandatory inputs check
-        self._infields = infields
-        if infields:
-            for key in infields:
-                self.inputs.add_trait(key, nit.traits.Any)
-                self.inputs._outputs[key] = nit.Undefined
-                undefined_traits[key] = nit.Undefined
-        self.inputs.trait_set(trait_change_notify=False, **undefined_traits)
-        if force_run:
-            self._always_run = True
+        # Return s3_flag
+        return s3_flag
 
     # Function to return AWS secure environment variables
     def _return_aws_keys(self, creds_path):
         '''
         Method to return AWS access key id and secret access key using
         credentials found in a local file.
-    
+
         Parameters
         ----------
         creds_path : string (filepath)
             path to the csv file with 'AWSAccessKeyId=' followed by access
             key in the first row and 'AWSSecretAccessKey=' followed by
             secret access key in the second row
-    
+
         Returns
         -------
         aws_access_key_id : string
@@ -113,6 +143,7 @@ class DataSink(nio.DataSink):
         # Return keys
         return aws_access_key_id, aws_secret_access_key
 
+    # Fetch bucket object
     def _fetch_bucket(self, bucket_name):
         '''
         Method to a return a bucket object which can be used to interact
@@ -147,7 +178,7 @@ class DataSink(nio.DataSink):
 
         # Init variables
         cf = boto.s3.connection.OrdinaryCallingFormat()
-        creds_path = self.creds_path
+        creds_path = self.inputs.creds_path
         iflogger = logging.getLogger('interface')
 
         # Try and get AWS credentials if a creds_path is specified
@@ -185,15 +216,53 @@ class DataSink(nio.DataSink):
 
 
     # Send up to S3 method
-    def _upload_to_s3(self, src_file):
+    def _upload_to_s3(self, src, dst):
         '''
         Method to upload outputs to S3 bucket instead of on local disk
         '''
 
         # Import packages
+        import logging
+        import os
 
         # Init variables
-        
+        bucket = self.bucket
+        iflogger = logging.getLogger('interface')
+        s3_str = 's3://'
+        s3_prefix = os.path.join(s3_str, bucket.name)
+
+        # If src is a directory, collect files (this assumes dst is a dir too)
+        if os.path.isdir(src):
+            src_files = []
+            for root, dirs, files in os.walk(src):
+                src_files.extend([os.path.join(root, fil) for fil in files])
+            # Make the dst files have the dst folder as base dir
+            dst_files = [src_f.replace(src, dst) for src_f in src_files]
+        else:
+            src_files = [src]
+            dst_files = [dst]
+
+        # Iterate over src and copy to dst
+        for src_idx, src_f in enumerate(src_files):
+            dst_f = dst_files[src_idx]
+            dst_k = bucket.new_key(dst_f.replace(s3_prefix, ''))
+            iflogger.info('Copying %s to S3 bucket, %s, as %s...'\
+                          % (src_f, bucket.name, dst_f))
+            dst_k.set_contents_from_filename(src_f, cb=self._callback,
+                                             replace=True)
+
+    # Callback function for upload progress update
+    def _callback(self, complete, total):
+        '''
+        Method to illustrate file uploading and progress updates
+        '''
+
+        # Import packages
+        import sys
+
+        # Write ...'s to the output for loading progress
+        sys.stdout.write('.')
+        sys.stdout.flush()
 
     # List outputs, main run routine
     def _list_outputs(self):
@@ -220,7 +289,11 @@ class DataSink(nio.DataSink):
         # If base directory isn't given, assume current directory
         if not nuf.isdefined(outdir):
             outdir = '.'
-        outdir = os.path.abspath(outdir)
+
+        # Check if base directory reflects S3-bucket upload
+        s3_flag = self._check_s3()
+        if not s3_flag:
+            outdir = os.path.abspath(outdir)
 
         # If container input is given, append that to outdir
         if nuf.isdefined(self.inputs.container):
@@ -273,17 +346,19 @@ class DataSink(nio.DataSink):
                         else:
                             raise(inst)
 
-                # If we're uploading to S3 (flag set during __init__)
-                if self.s3_flag:
-                    dst = self._upload_to_s3(src, dst)
+                # If we're uploading to S3
+                if s3_flag:
+                    self._upload_to_s3(src, dst)
                     out_files.append(dst)
                 # Otherwise, copy locally src -> dst
                 else:
+                    # If src is a file, copy it to dst
                     if os.path.isfile(src):
                         iflogger.debug('copyfile: %s %s' % (src, dst))
                         nuf.copyfile(src, dst, copy=True, hashmethod='content',
                                      use_hardlink=use_hardlink)
                         out_files.append(dst)
+                    # If src is a directory, copy entire contents to dst dir
                     elif os.path.isdir(src):
                         if os.path.exists(dst) and self.inputs.remove_dest_dir:
                             iflogger.debug('removing: %s' % dst)
@@ -296,6 +371,7 @@ class DataSink(nio.DataSink):
         outputs['out_file'] = out_files
 
         return outputs
+
 
 def create_func_datasource(rest_dict, wf_name='func_datasource'):
 

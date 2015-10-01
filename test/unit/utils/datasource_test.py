@@ -134,7 +134,7 @@ class DataSinkTestCase(unittest.TestCase):
         return ds_out_exists, data_sink_outpath
 
     # Check to see if datasink output was produced
-    def check_output_exists_s3(self, creds_path, container, attr_folder):
+    def check_output_exists_s3(self, data_sink):
         '''
         Method to check for the existence of a datasink output
 
@@ -143,11 +143,6 @@ class DataSinkTestCase(unittest.TestCase):
         self : unittest.TestCase
             instance method inherits self automatically; instance
             variables are used in the method
-        container : string
-            the datasink container sub-folder of its base directory
-        attr_folder : string
-            the datasink attribute, which generates a sub-folder of the
-            container to store the output file value assigned
 
         Returns
         -------
@@ -160,22 +155,65 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Import packages
         import os
-        import boto
+        import hashlib
 
         # Init variables
-        data_sink_outpath = os.path.join(self.base_dir, container,
-                                         attr_folder,
-                                         os.path.basename(self.in_file))
+        src_s3_dict = {}
+        s3_prefix = os.path.join(data_sink.inputs.base_directory,
+                                 data_sink.inputs.container)
+        # Isolate 's3://fcp-indi/' to strip out later
+        s3_strip = '/'.join(s3_prefix.split('/')[:3])
 
-        # Check existence
-        ds_out_exists = os.path.exists(data_sink_outpath)
+        # Iterate over defined attribute keys and input sources
+        for attr_key, src_f in data_sink.inputs._outputs.items():
+            # If src is directory
+            if os.path.isdir(src_f):
+                src_files = []
+                # Build a list of files
+                for root, dirs, files in os.walk(src_f):
+                    src_files.extend([os.path.join(root, fil) for fil in files])
+                s3_root = os.path.join(s3_prefix, attr_key)
+                # Build a list of corresponding s3 files
+                s3_files = [fil.replace(src_f, s3_root) for fil in src_files]
+                # Populate src -> s3 dictionary
+                for idx, fil in enumerate(src_files):
+                    s3_file = s3_files[idx]
+                    src_s3_dict[fil] = s3_file
+            # Else - src is a file
+            else:
+                # Map each source with s3 directory
+                s3_file = os.path.join(s3_prefix, attr_key,
+                                       os.path.basename(src_f))
+                src_s3_dict[src_f] = os.path.join(s3_file)
 
-        # Remove if it exists to free disk space
-        if ds_out_exists:
-            os.remove(data_sink_outpath)
+        # Iterate over src -> s3 dictionary mapping and compare
+        for src_f, s3_f in src_s3_dict.items():
+            src_read = open(src_f, 'r').read()
+            s3_key_path = s3_f.replace(s3_strip, '')
+            dst_read = data_sink.bucket.get_key(s3_key_path)
+            src_md5 = hashlib.md5(src_read).hexdigest()
 
-        # Return if it exists or not as boolean and output path
-        return ds_out_exists, data_sink_outpath
+            # If key doesn't exist, break with False and err message
+            if not dst_read:
+                dst_out_exists = False
+                err_msg = '%s is not on S3' % s3_f
+                break
+            dst_md5 = dst_read.etag.strip('"')
+
+            # Test MD5 sums
+            if src_md5 != dst_md5:
+                dst_out_exists = False
+                err_msg = 'MD5 sums from %s and %s do not match, S3 file is '\
+                          'somehow corrupted.\nTry re-uploading'
+                break
+            else:
+                # It exists and matches, delete key
+                dst_out_exists = True
+                err_msg = 'File(s) uploaded successfully!'
+                data_sink.bucket.delete_key(s3_key_path)
+
+        # Return flag and err msg
+        return dst_out_exists, err_msg
 
     # Test datasink node will write to base directory
     def test_datasink_node(self):
@@ -299,10 +337,8 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Import packages
         import os
-        import sys
 
         from CPAC.utils import test_init
-        from CPAC.AWS import fetch_creds
 
         # Init variables
         attr_folder = 'input_scan'
@@ -311,6 +347,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Init AWS variables
         bucket_name = test_init.return_bucket_name()
+        creds_path = self.creds_path
         s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
 
         # Set up datasink
@@ -325,11 +362,10 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink.run()
 
         # Check if output exists
-        ds_out_exists = self.check_output_exists_s3(container, attr_folder)
+        s3_out_exists, s3_out_msg = self.check_output_exists_s3(data_sink)
 
         # Assert the output was produced as expected
-        err_msg = 'Could not find output of datasink on disk'
-        self.assertTrue(ds_out_exists, msg=err_msg)
+        self.assertTrue(s3_out_exists, msg=s3_out_msg)
 
 
 # Make module executable
