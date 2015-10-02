@@ -111,7 +111,7 @@ class strategy:
 
     
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin=None, plugin_args=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin='MultiProc', plugin_args=None):
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -6076,7 +6076,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 # Run the prep_workflow function with specific arguments
 def run(config, subject_list_file, indx, strategies,
         maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
-        p_name=None, **kwargs):
+        p_name=None, plugin=None, plugin_args=None):
     '''
     Function to build and execute the complete workflow
 
@@ -6098,6 +6098,10 @@ def run(config, subject_list_file, indx, strategies,
         filepath to the template-specification file
     p_name : string (optional)
         name of the pipeline configuration
+    plugin : string (optional)
+        name of the plugin  used to schedule nodes
+    plugin_args : dict (optional)
+        arguments of plugin
     creds_path : string (optional)
         filepath to the AWS keys credentials file
     bucket_name : string (optional)
@@ -6158,8 +6162,6 @@ def run(config, subject_list_file, indx, strategies,
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
-    plugin = 'MultiProc' if 'plugin' not in kwargs else kwargs.get('plugin')
-    p_args = None if 'plugin_args' not in kwargs else kwargs.get('plugin_args')
 
     try:
         # Build and run the pipeline

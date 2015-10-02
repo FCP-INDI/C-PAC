@@ -365,7 +365,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 
-def run(config_file, subject_list_file, p_name = None, **kwargs):
+def run(config_file, subject_list_file, p_name = None, plugin=None, plugin_args=None):
     
     # Import packages
     import time
@@ -484,13 +484,10 @@ def run(config_file, subject_list_file, p_name = None, **kwargs):
         # Import packages
         from CPAC.pipeline.cpac_pipeline import prep_workflow
 
-        plugin = 'MultiProc' if 'plugin' not in kwargs else kwargs.get('plugin')
-        p_args = None if 'plugin_args' not in kwargs else kwargs.get('plugin_args')
-
         # Init variables
         procss = [Process(target=prep_workflow,
                           args=(sub, c, strategies, 1,
-                                pipeline_timing_info, p_name, plugin, p_args)) \
+                                pipeline_timing_info, p_name, plugin, plugin_args)) \
                   for sub in sublist]
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
         # Init job queue
