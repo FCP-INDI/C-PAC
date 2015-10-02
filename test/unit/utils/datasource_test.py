@@ -119,9 +119,23 @@ class DataSinkTestCase(unittest.TestCase):
         import os
 
         # Init variables
-        data_sink_outpath = os.path.join(self.base_dir, container,
-                                         attr_folder,
-                                         os.path.basename(self.in_file))
+        data_sink = self.data_sink
+        inputs = data_sink.inputs._outputs.values()
+
+        # Build list of input path
+        in_files = []
+        for in_f in inputs:
+            if os.path.isdir(in_f):
+                for root, dirs, files in os.walk(in_f):
+                    in_files.extend([os.path.join(root, fil) for fil in files])
+            else:
+                in_files.extend(in_f)
+
+        # Build list of output paths based on inputs
+        for in_f in in_files:
+            data_sink_outpath = os.path.join(self.base_dir, container,
+                                             attr_folder,
+                                             os.path.basename(self.in_file))
 
         # Check existence
         ds_out_exists = os.path.exists(data_sink_outpath)
@@ -166,15 +180,16 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Iterate over defined attribute keys and input sources
         for attr_key, src_f in data_sink.inputs._outputs.items():
+            s3_output = os.path.join(s3_prefix, attr_key,
+                                     os.path.basename(src_f))
             # If src is directory
             if os.path.isdir(src_f):
                 src_files = []
                 # Build a list of files
                 for root, dirs, files in os.walk(src_f):
                     src_files.extend([os.path.join(root, fil) for fil in files])
-                s3_root = os.path.join(s3_prefix, attr_key)
                 # Build a list of corresponding s3 files
-                s3_files = [fil.replace(src_f, s3_root) for fil in src_files]
+                s3_files = [fil.replace(src_f, s3_output) for fil in src_files]
                 # Populate src -> s3 dictionary
                 for idx, fil in enumerate(src_files):
                     s3_file = s3_files[idx]
@@ -182,23 +197,22 @@ class DataSinkTestCase(unittest.TestCase):
             # Else - src is a file
             else:
                 # Map each source with s3 directory
-                s3_file = os.path.join(s3_prefix, attr_key,
-                                       os.path.basename(src_f))
+                s3_file = os.path.join(s3_output)
                 src_s3_dict[src_f] = os.path.join(s3_file)
 
         # Iterate over src -> s3 dictionary mapping and compare
         for src_f, s3_f in src_s3_dict.items():
             src_read = open(src_f, 'r').read()
-            s3_key_path = s3_f.replace(s3_strip, '')
-            dst_read = data_sink.bucket.get_key(s3_key_path)
+            s3_key_path = s3_f.replace(s3_strip, '').lstrip('/')
+            dst_key = data_sink.bucket.Object(s3_key_path)
             src_md5 = hashlib.md5(src_read).hexdigest()
 
             # If key doesn't exist, break with False and err message
-            if not dst_read:
+            if not dst_key:
                 dst_out_exists = False
                 err_msg = '%s is not on S3' % s3_f
                 break
-            dst_md5 = dst_read.etag.strip('"')
+            dst_md5 = dst_key.e_tag.strip('"')
 
             # Test MD5 sums
             if src_md5 != dst_md5:
@@ -210,7 +224,7 @@ class DataSinkTestCase(unittest.TestCase):
                 # It exists and matches, delete key
                 dst_out_exists = True
                 err_msg = 'File(s) uploaded successfully!'
-                data_sink.bucket.delete_key(s3_key_path)
+                dst_key.delete()
 
         # Return flag and err msg
         return dst_out_exists, err_msg
@@ -246,6 +260,50 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink.inputs.container = container
         # Feed input to input_file
         setattr(data_sink.inputs, attr_folder, self.in_file)
+
+        # Run data_sink
+        data_sink.run()
+
+        # Check if output exists
+        ds_out_exists, out_path = \
+            self.check_output_exists(container, attr_folder)
+
+        # Assert the output was produced as expected
+        err_msg = 'Could not find output of datasink on disk: %s' % out_path
+        self.assertTrue(ds_out_exists, msg=err_msg)
+
+    # Test datasink node will write to base directory
+    def test_datasink_node_folder(self):
+        '''
+        Method to test the datasink running as its own node is working
+        as producing the expected output
+
+        Paramters
+        ---------
+        self : unittest.TestCase
+            instance method inherits self automatically; instance
+            variables are used in the method
+
+        Returns
+        -------
+        None
+            this method does not return any value, but performs an
+            assertion on whether the expected output exists or not
+        '''
+
+        # Import packages
+        import os
+
+        # Init variables
+        attr_folder = 'input_scan'
+        container = 'test_datasink'
+        data_sink = self.data_sink
+
+        # Set up datasink
+        data_sink.inputs.base_directory = self.base_dir
+        data_sink.inputs.container = container
+        # Feed input to input_file
+        setattr(data_sink.inputs, attr_folder, os.path.dirname(self.in_file))
 
         # Run data_sink
         data_sink.run()
@@ -367,6 +425,57 @@ class DataSinkTestCase(unittest.TestCase):
         # Assert the output was produced as expected
         self.assertTrue(s3_out_exists, msg=s3_out_msg)
 
+    # Test datasink node writes to S3
+    def test_datasink_node_s3_folder(self):
+        '''
+        Method to test the datasink running as its own node is working
+        as producing the expected output
+
+        Paramters
+        ---------
+        self : unittest.TestCase
+            instance method inherits self automatically; instance
+            variables are used in the method
+
+        Returns
+        -------
+        None
+            this method does not return any value, but performs an
+            assertion on whether the expected output exists or not on
+            AWS S3
+        '''
+
+        # Import packages
+        import os
+
+        from CPAC.utils import test_init
+
+        # Init variables
+        attr_folder = 'input_scan'
+        container = 'test_datasink'
+        data_sink = self.data_sink
+
+        # Init AWS variables
+        bucket_name = test_init.return_bucket_name()
+        creds_path = self.creds_path
+        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+
+        # Set up datasink
+        data_sink.inputs.base_directory = s3_output_dir
+        data_sink.inputs.container = container
+        data_sink.inputs.creds_path = creds_path
+
+        # Feed input to input_file
+        setattr(data_sink.inputs, attr_folder, os.path.dirname(self.in_file))
+
+        # Run data_sink
+        data_sink.run()
+
+        # Check if output exists
+        s3_out_exists, s3_out_msg = self.check_output_exists_s3(data_sink)
+
+        # Assert the output was produced as expected
+        self.assertTrue(s3_out_exists, msg=s3_out_msg)
 
 # Make module executable
 if __name__ == '__main__':

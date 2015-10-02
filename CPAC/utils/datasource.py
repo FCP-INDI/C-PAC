@@ -12,6 +12,45 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 import nipype.interfaces.io as nio
 
+# Class to track percentage of S3 file upload
+class ProgressPercentage(object):
+    '''
+    Call-able class instsance (via __call__ method) that displays
+    upload percentage of a file to S3
+    '''
+
+    def __init__(self, filename):
+        '''
+        '''
+
+        # Import packages
+        import threading
+        import os
+
+        # Initialize data attributes
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        '''
+        '''
+
+        # Import packages
+        import sys
+
+        # With the lock on, print upload status
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            progress_str = '%d / %d (%.2f%%)\r'\
+                           % (self._seen_so_far, self._size, percentage)
+
+            # Write to stdout
+            sys.stdout.write(progress_str)
+            sys.stdout.flush()
+
 
 # Custom DataSinkInputSpec class
 class DataSinkInputSpec(nio.DataSinkInputSpec):
@@ -22,8 +61,8 @@ class DataSinkInputSpec(nio.DataSinkInputSpec):
     import traits.api as tap
     import nipype.interfaces.traits_extension as nit
     import nipype.interfaces.base as nib
-    
-    # Add the AWS credentials path to inputspec
+
+    # Init inputspec data attributes
     base_directory = nit.Directory(
         desc='Path to the base directory for storing data.')
     container = tap.Str(
@@ -35,18 +74,23 @@ class DataSinkInputSpec(nio.DataSinkInputSpec):
                                    desc=('List of 2-tuples reflecting string '
                                          'to substitute and string to replace '
                                          'it with'))
-    regexp_substitutions = nib.InputMultiPath(tap.Tuple(tap.Str, tap.Str),
-                                          desc=('List of 2-tuples reflecting a pair '
-                                                'of a Python regexp pattern and a '
-                                                'replacement string. Invoked after '
-                                                'string `substitutions`'))
+    regexp_substitutions = \
+        nib.InputMultiPath(tap.Tuple(tap.Str, tap.Str),
+                           desc=('List of 2-tuples reflecting a pair of a '\
+                                 'Python regexp pattern and a replacement '\
+                                 'string. Invoked after string `substitutions`'))
 
     _outputs = tap.Dict(tap.Str, value={}, usedefault=True)
     remove_dest_dir = tap.Bool(False, usedefault=True,
                                   desc='remove dest directory when copying dirs')
 
-    creds_path = tap.Str(desc='Filepath to AWS credentials file for S3 bucket access')
+    # AWS S3 data attributes
+    creds_path = tap.Str(desc='Filepath to AWS credentials file for S3 bucket '\
+                              'access')
+    encrypt_bucket_keys = tap.Bool(desc='Flag indicating whether to use S3 '\
+                                        'server-side AES-256 encryption')
 
+    # Set call-able inputs attributes
     def __setattr__(self, key, value):
         import nipype.interfaces.traits_extension as nit
 
@@ -60,7 +104,6 @@ class DataSinkInputSpec(nio.DataSinkInputSpec):
             super(DataSinkInputSpec, self).__setattr__(key, value)
 
 
-
 # Custom DataSink class
 class DataSink(nio.DataSink):
     '''
@@ -71,7 +114,7 @@ class DataSink(nio.DataSink):
     output_spec = nio.DataSinkOutputSpec
 
     # Check for s3 in base directory
-    def _check_s3(self):
+    def _check_s3_base_dir(self):
         '''
         '''
 
@@ -153,15 +196,11 @@ class DataSink(nio.DataSink):
         ----------
         bucket_name : string
             string corresponding to the name of the bucket on S3
-        creds_path : string (optional); default=None
-            path to the csv file with 'Access Key Id' as the header and the
-            corresponding ASCII text for the key underneath; same with the
-            'Secret Access Key' string and ASCII text
 
         Returns
         -------
-        bucket : boto.s3.bucket.Bucket
-            a boto s3 Bucket object which is used to interact with files
+        bucket : boto3.resources.factory.s3.Bucket
+            boto3 s3 Bucket object which is used to interact with files
             in an S3 bucket on AWS
         '''
 
@@ -169,15 +208,14 @@ class DataSink(nio.DataSink):
         import logging
 
         try:
-            import boto
-            import boto.s3.connection
+            import boto3
+            import botocore
         except ImportError as exc:
-            err_msg = 'Boto package is not installed - install boto and '\
+            err_msg = 'Boto3 package is not installed - install boto3 and '\
                       'try again.'
             raise Exception(err_msg)
 
         # Init variables
-        cf = boto.s3.connection.OrdinaryCallingFormat()
         creds_path = self.inputs.creds_path
         iflogger = logging.getLogger('interface')
 
@@ -194,24 +232,43 @@ class DataSink(nio.DataSink):
             # Init connection
             iflogger.info('Connecting to S3 bucket: %s with credentials from '\
                           '%s ...' % (bucket_name, creds_path))
-            s3_conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key,
-                                      calling_format=cf)
+            # Use individual session for each instance of DataSink
+            # Better when datasinks are being used in multi-threading, see:
+            # http://boto3.readthedocs.org/en/latest/guide/resources.html#multithreading
+            session = boto3.session.Session(aws_access_key_id=aws_access_key_id,
+                                            aws_secret_access_key=aws_secret_access_key)
         # Otherwise, connect anonymously
         else:
-            iflogger.info('Connecting to S3 bucket: %s anonymously...'\
+            iflogger.info('Connecting to AWS: %s anonymously...'\
                           % bucket_name)
-            s3_conn = boto.connect_s3(anon=True, calling_format=cf)
+            session = boto3.session.Session()
+
+        # Explicitly declare a secure SSL connection for bucket object
+        s3_resource = session.resource('s3', use_ssl=True)
+        bucket = s3_resource.Bucket(bucket_name)
 
         # And try fetch the bucket with the name argument
         try:
-            bucket = s3_conn.get_bucket(bucket_name)
+            s3_resource.meta.client.head_bucket(Bucket=bucket_name)
+        except botocore.exceptions.ClientError as exc:
+            error_code = int(exc.response['Error']['Code'])
+            if error_code == 403:
+                err_msg = 'Access to bucket: %s is denied; check credentials'\
+                          % bucket_name
+                raise Exception(err_msg)
+            elif error_code == 404:
+                err_msg = 'Bucket: %s does not exist; check spelling and try '\
+                          'again' % bucket_name
+                raise Exception(err_msg)
+            else:
+                err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+                          % (bucket_name, exc)
         except Exception as exc:
-            err_msg = 'Unable to connect to bucket: %s; check credentials or '\
-                      'bucket name spelling and try again. Error message: %s'\
+            err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
                       % (bucket_name, exc)
             raise Exception(err_msg)
 
-        # Return bucket
+        # Return the bucket
         return bucket
 
 
@@ -237,32 +294,28 @@ class DataSink(nio.DataSink):
             for root, dirs, files in os.walk(src):
                 src_files.extend([os.path.join(root, fil) for fil in files])
             # Make the dst files have the dst folder as base dir
-            dst_files = [src_f.replace(src, dst) for src_f in src_files]
+            dst_files = [os.path.join(dst, src_f.split(src)[1]) \
+                         for src_f in src_files]
         else:
             src_files = [src]
             dst_files = [dst]
 
         # Iterate over src and copy to dst
         for src_idx, src_f in enumerate(src_files):
+            # Get destination filename/keyname
             dst_f = dst_files[src_idx]
-            dst_k = bucket.new_key(dst_f.replace(s3_prefix, ''))
+            dst_k = dst_f.replace(s3_prefix, '').lstrip('/')
+
+            # Copy file up to S3 (either encrypted or not)
             iflogger.info('Copying %s to S3 bucket, %s, as %s...'\
                           % (src_f, bucket.name, dst_f))
-            dst_k.set_contents_from_filename(src_f, cb=self._callback,
-                                             replace=True)
-
-    # Callback function for upload progress update
-    def _callback(self, complete, total):
-        '''
-        Method to illustrate file uploading and progress updates
-        '''
-
-        # Import packages
-        import sys
-
-        # Write ...'s to the output for loading progress
-        sys.stdout.write('.')
-        sys.stdout.flush()
+            if self.inputs.encrypt_bucket_keys:
+                extra_args = {'ServerSideEncryption' : 'AES256'}
+                bucket.upload_file(src_f, dst_k, ExtraArgs=extra_args,
+                                   Callback=ProgressPercentage(src_f))
+            else:
+                bucket.upload_file(src_f, dst_k,
+                                   Callback=ProgressPercentage(src_f))
 
     # List outputs, main run routine
     def _list_outputs(self):
@@ -291,7 +344,7 @@ class DataSink(nio.DataSink):
             outdir = '.'
 
         # Check if base directory reflects S3-bucket upload
-        s3_flag = self._check_s3()
+        s3_flag = self._check_s3_base_dir()
         if not s3_flag:
             outdir = os.path.abspath(outdir)
 
