@@ -44,7 +44,7 @@ class SCASettings(wx.ScrolledWindow):
                       name = "sca_roi_paths",
                       type = 9,
                       values = '',
-                      selections = ["Avg","PC1","DualReg","MultReg"],
+                      selections = ["Avg","DualReg","MultReg"],
                       comment="Enter paths to region-of-interest (ROI) " \
                               "NIFTI files (.nii,.nii.gz) to be used for " \
                               "time-series extraction, and then select " \

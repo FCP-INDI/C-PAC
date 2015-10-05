@@ -1642,49 +1642,52 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     num_strat = 0
 
     workflow_counter += 1
-    if 1 in c.runGenerateMotionStatistics:
-        workflow_bit_id['gen_motion_stats'] = workflow_counter
-        for strat in strat_list:
 
-            gen_motion_stats = motion_power_statistics('gen_motion_stats_%d' % num_strat)
-            gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
-            gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
-            gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
-            gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold', c.scrubbingThreshold)
+    #if 1 in c.runGenerateMotionStatistics:
 
-            try:
-                # #**special case where the workflow is not getting outputs from resource pool
-                # but is connected to functional datasource
-                workflow.connect(funcFlow, 'outputspec.subject',
+    workflow_bit_id['gen_motion_stats'] = workflow_counter
+    for strat in strat_list:
+
+        gen_motion_stats = motion_power_statistics('gen_motion_stats_%d' % num_strat)
+        gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
+        gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
+        gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
+        gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold', c.scrubbingThreshold)
+
+        try:
+            # #**special case where the workflow is not getting outputs from resource pool
+            # but is connected to functional datasource
+            workflow.connect(funcFlow, 'outputspec.subject',
                              gen_motion_stats, 'inputspec.subject_id')
 
-                workflow.connect(funcFlow, 'outputspec.scan',
+            workflow.connect(funcFlow, 'outputspec.scan',
                              gen_motion_stats, 'inputspec.scan_id')
 
-                node, out_file = strat.get_node_from_resource_pool('motion_correct')
-                workflow.connect(node, out_file,
-                                 gen_motion_stats, 'inputspec.motion_correct')
+            node, out_file = strat.get_node_from_resource_pool('motion_correct')
+            workflow.connect(node, out_file,
+                                gen_motion_stats, 'inputspec.motion_correct')
 
-                node, out_file = strat.get_node_from_resource_pool('movement_parameters')
-                workflow.connect(node, out_file,
-                                 gen_motion_stats, 'inputspec.movement_parameters')
+            node, out_file = strat.get_node_from_resource_pool('movement_parameters')
+            workflow.connect(node, out_file,
+                                gen_motion_stats, 'inputspec.movement_parameters')
 
-                node, out_file = strat.get_node_from_resource_pool('max_displacement')
-                workflow.connect(node, out_file,
-                                 gen_motion_stats, 'inputspec.max_displacement')
+            node, out_file = strat.get_node_from_resource_pool('max_displacement')
+            workflow.connect(node, out_file,
+                                gen_motion_stats, 'inputspec.max_displacement')
 
-                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                workflow.connect(node, out_file,
-                                 gen_motion_stats, 'inputspec.mask')
+            node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+            workflow.connect(node, out_file,
+                                gen_motion_stats, 'inputspec.mask')
 
-                node, out_file = strat.get_node_from_resource_pool('coordinate_transformation')
-                workflow.connect(node, out_file,
-                                 gen_motion_stats, 'inputspec.oned_matrix_save')
+            node, out_file = strat.get_node_from_resource_pool('coordinate_transformation')
+            workflow.connect(node, out_file,
+                                gen_motion_stats, 'inputspec.oned_matrix_save')
 
-            except:
-                logConnectionError('Generate Motion Statistics', num_strat, strat.get_resource_pool(), '0009')
-                raise
+        except:
+            logConnectionError('Generate Motion Statistics', num_strat, strat.get_resource_pool(), '0009')
+            raise
 
+        '''
             if 0 in c.runGenerateMotionStatistics:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -1693,17 +1696,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
+        '''
 
-            strat.append_name(gen_motion_stats.name)
+        strat.append_name(gen_motion_stats.name)
 
-            strat.update_resource_pool({'frame_wise_displacement':(gen_motion_stats, 'outputspec.FD_1D'),
+        strat.update_resource_pool({'frame_wise_displacement':(gen_motion_stats, 'outputspec.FD_1D'),
                                         'scrubbing_frames_excluded':(gen_motion_stats, 'outputspec.frames_ex_1D'),
                                         'scrubbing_frames_included':(gen_motion_stats, 'outputspec.frames_in_1D'),
                                         'power_params':(gen_motion_stats, 'outputspec.power_params'),
                                         'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
             
-            create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat)
-            num_strat += 1
+        create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat)
+        num_strat += 1
 
     strat_list += new_strat_list
 
@@ -1737,7 +1741,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 else:
                     nuisance = create_nuisance(True, 'nuisance_%d' % num_strat)
 
-                nuisance.get_node('residuals').iterables = ([('selector', c.Corrections),
+                nuisance.get_node('residuals').iterables = ([('selector', c.Regressors),
                                                              ('compcor_ncomponents', c.nComponents)])
 
                 nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
@@ -2466,6 +2470,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat += 1
     strat_list += new_strat_list
 
+
+
+    '''
+    Timeseries and SCA config selections processing
+    '''
+
+    if 1 in c.runROITimeseries:
+
+        print c.tsa_roi_paths
+
+        raise Exception
 
 
     '''

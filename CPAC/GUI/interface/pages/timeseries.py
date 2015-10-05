@@ -91,7 +91,7 @@ class ROITimeseries(wx.ScrolledWindow):
                       name = "tsa_roi_paths",
                       type = 9,
                       values = '',
-                      selections = ["Avg","Voxel","PC1","SpatialReg"],
+                      selections = ["Avg","Voxel","SpatialReg"],
                       comment="Enter paths to region-of-interest (ROI) " \
                               "NIFTI files (.nii,.nii.gz) to be used for " \
                               "time-series extraction, and then select " \

@@ -554,6 +554,17 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
                             return
+
+                    elif (option_name == "tsa_roi_paths") or \
+                             (option_name == "sca_roi_paths"):
+
+                        # fires if the control is the checkbox grid for
+                        # multiple paths assigned to multiple options
+                        # (i.e. timeseries analysis)
+
+                        config_list.append(ctrl)
+                        continue
+
                     else:
                         value = str(ctrl.get_selection())
 
@@ -674,20 +685,20 @@ class MainFrame(wx.Frame):
         testFile(c.identityMatrix,'identityMatrix',c.runRegisterFuncToMNI)
         testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule',c.runRegisterFuncToAnat)
         testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask',c.runNuisance)
-        testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
-        testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
-        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
-        testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
-        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
-        testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
+        #testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
+        #testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
+        #testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
+        #testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
+        #testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
+        #testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
         testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only',c.runVMHC)
         testFile(c.template_symmetric_skull,'template_symmetric_skull',c.runVMHC)
         testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask',c.runVMHC)
         testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
         testFile(c.templateSpecificationFile,'templateSpecificationFile',c.runNetworkCentrality)
-        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
-        testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
-        testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
+        #testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
+        #testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
+        #testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
              
             
         try:
@@ -782,7 +793,8 @@ class MainFrame(wx.Frame):
                                 win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
                             return
 
-                    elif option_name == "tsa_roi_paths":
+                    elif (option_name == "tsa_roi_paths") or \
+                             (option_name == "sca_roi_paths"):
 
                         # fires if the control is the checkbox grid for
                         # multiple paths assigned to multiple options
@@ -791,34 +803,6 @@ class MainFrame(wx.Frame):
                         config_list.append(ctrl)
                         continue
 
-                        '''
-                        paths_dict = ctrl.get_selection()
-
-                        for tsa_type in paths_dict.keys():
-
-                            if tsa_type == "Avg":
-                                tsa_name = "roi_average_paths"
-                            elif tsa_type == "Voxel":
-                                tsa_name = "roi_voxelwise_paths"
-                            elif tsa_type == "PC1":
-                                tsa_name = "first_principal_component_paths"
-                            elif tsa_type == "Mult Regression":
-                                tsa_name = "multiple_regression_paths"
-
-                            tsa_paths_list = paths_dict[tsa_type]
-
-                            new_ctrl = ctrl
-
-                            new_ctrl.set_name(tsa_name)
-                            new_ctrl.set_new_selection(tsa_paths_list)
-
-                            config_list.append(new_ctrl)
-
-
-                        # don't append the original ctrl to config_list
-                        # (happens below)
-                        continue
-                        '''
 
                     else:
 
@@ -838,11 +822,6 @@ class MainFrame(wx.Frame):
                             return
 
                 config_list.append(ctrl)
-
-        #############################
-        #for config in config_list:
-        #    print config.get_name()
-        #    print config.get_selection()
 
 
         # Get the user's CPAC pipeline name for use in this script

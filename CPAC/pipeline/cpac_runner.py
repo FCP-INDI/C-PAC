@@ -114,11 +114,11 @@ def build_strategies(configuration):
 
     proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
                     '_gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
 
     """
@@ -127,11 +127,11 @@ def build_strategies(configuration):
 
     proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
                     '_gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
     """
 
     ### This is really dirty code and ordering of corrections in 
