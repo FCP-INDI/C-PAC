@@ -20,7 +20,6 @@ runAnatomicalPreprocessing,Run Anatomical Preprocessing,Preprocessing Workflow O
 already_skullstripped,Inputs Already Skull-stripped?,Preprocessing Workflow Options
 runFunctionalPreprocessing,Run Functional Preprocessing,Preprocessing Workflow Options
 functionalMasking,Functional Masking,Preprocessing Workflow Options
-runZScoring,Z-score Standardize Derivatives,Derivatives Settings
 runRegistrationPreprocessing,Run Anatomical Registration,Anatomical Registration
 resolution_for_anat,Anatomical Template Resolution,Anatomical Registration
 template_brain_only_for_anat,Anatomical Template (Brain Only),Anatomical Registration
@@ -52,16 +51,15 @@ resolution_for_func,Functional Standard Resolution,Functional to MNI Registratio
 template_brain_only_for_func,Standard Brain only Template (functional resolution),Functional to MNI Registration
 template_skull_for_func,Standard Template with Skull (functional resolution),Functional to MNI Registration
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration
-runNuisance,Run Nuisance Signal Correction,Nuisance Correction
-lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Correction
-Corrections,Corrections,Nuisance Correction
-nComponents,CompCor Components,Nuisance Correction
-runMedianAngleCorrection,Run Median Angle Correction,Nuisance Correction
-targetAngleDeg,Target Angle (degrees),Nuisance Correction
+runNuisance,Run Nuisance Signal Regression,Nuisance Regression
+lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regression
+Regressors,Regressors,Nuisance Regression
+nComponents,CompCor Components,Nuisance Regression
+runFristonModel,Use Friston 24-Parameter Model,Nuisance Regression
+runMedianAngleCorrection,Run Median Angle Correction,Median Angle Correction
+targetAngleDeg,Target Angle (degrees),Median Angle Correction
 runFrequencyFiltering,Run Temporal Filtering,Temporal Filtering Options
 nuisanceBandpassFreq,Band-Pass Filters,Temporal Filtering Options
-runFristonModel,Use Friston 24-Parameter Model,Motion Correction Options
-runGenerateMotionStatistics,Calculate Motion Statistics,Motion Correction Options
 runScrubbing,Run Scrubbing,Scrubbing Options
 scrubbingThreshold,Framewise Displacement (FD) Threshold (mm),Scrubbing Options
 numRemovePrecedingFrames,Number of Preceeding Volumes to Remove,Scrubbing Options
@@ -77,19 +75,10 @@ runVoxelTimeseries,Extract ROI Voxelwise Time Series,ROI Voxelwise TSE
 maskSpecificationFile,ROI Specification File (TSE only),ROI Voxelwise TSE
 maskSpecificationFileForSCA,ROI Specification File (for use in SCA),ROI Voxelwise TSE
 voxelTSOutputs,Output Options,ROI Voxelwise TSE
-runSurfaceRegistraion,Run Surface Registration,Surface Vertices TSE
-reconSubjectsDirectory,Recon Subject Directory,Surface Vertices TSE
-runVerticesTimeSeries,Run Vertices Timeseries,Surface Vertices TSE
-verticesTSOutputs,Vertices Timeseries Output Formats,Surface Vertices TSE
 runSpatialRegression,Run Spatial Regression,Spatial Regression
 spatialPatternMaps,Spatial Map Specification File,Spatial Regression
 spatialDemean,Demean Spatial Maps,Spatial Regression
 runSCA,Run Seed-based Correlation Analysis (SCA),SCA Options
-runMultRegSCA,Run Multiple Regression SCA,SCA Options
-mrsDemean,Demean Time Series,SCA Options
-mrsNorm,Normalize Time Series,SCA Options
-runDualReg,Run Dual Regression,Dual Regression Options
-drNorm,Normalize Time Series,Dual Regression Options
 runVMHC,Calculate VMHC,VMHC Settings
 template_symmetric_brain_only,Symmetric Template (Brain Only),VMHC Settings
 template_symmetric_skull,Symmetric Template (With Skull),VMHC Settings
@@ -112,19 +101,7 @@ lfcdWeightOptions,Local Functional Connectivity Density Weight Options,Network C
 lfcdCorrelationThresholdOption,Local Functional Connectivity Density Threshold Type,Network Centrality Options
 lfcdCorrelationThreshold,Local Functional Connectivity Density Threshold Value,Network Centrality Options
 memoryAllocatedForDegreeCentrality,Maximum RAM Use (GB),Network Centrality Options
-fwhm,Kernel FWHM (in mm),Spatial Smoothing Options
-runBASC,Run BASC,BASC Settings
-bascROIFile,Mask File,BASC Settings
-bascTimeseriesBootstraps,Number of Time Series Bootstraps,BASC Settings
-bascDatasetBootstraps,Number of Dataset Bootstraps,BASC Settings
-bascAffinityThresholdFile,Correlation Threshold File,BASC Settings
-bascClusters,Number of Clusters,BASC Settings
-runCWAS,Run CWAS,CWAS Settings
-cwasROIFile,CWAS ROI File,CWAS Settings
-cwasRegressorFile,CWAS Regressor File,CWAS Settings
-cwasFSamples,CWAS FSamples,CWAS Settings
-cwasParallelNodes,CWAS Parallel Nodes,CWAS Settings
-cwasRegressorCols,Column Number with Regressor of Interest,CWAS Settings
-cwasRegressorStrata,CWAS Regressor Strata,CWAS Settings
+fwhm,Kernel FWHM (in mm),After Warping Options
+runZScoring,Z-score Standardize Derivatives,After Warping Options
 numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings
 modelConfigs,Models to Run,Group Analysis Settings

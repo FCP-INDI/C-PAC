@@ -236,30 +236,3 @@ class WorkflowConfig(wx.ScrolledWindow):
     def get_counter(self):
         return self.counter
 
-
-
-
-class DerivativesConfig(wx.ScrolledWindow):
-
-    def __init__(self, parent, counter=0):
-        wx.ScrolledWindow.__init__(self, parent)
-        self.counter = counter
-
-        self.page = GenericClass(self, "Derivatives Settings")
-
-        self.page.add(label="Z-score Standardize Derivatives ",
-                      control=control.CHOICE_BOX,
-                      name='runZScoring',
-                      type=dtype.LSTR,
-                      comment="Decides format of outputs. Off will produce" \
-                              " non-z-scored outputs, On will produce" \
-                              " z-scores of outputs, and On/Off will" \
-                              " produce both.",
-                      values=["On", "Off"])
-
-        self.page.set_sizer()
-        parent.get_page_list().append(self)
-
-    def get_counter(self):
-        return self.counter
-

@@ -39,12 +39,15 @@ class FSLModelSelectorCombo(wx.combo.ComboCtrl):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
         bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder3.gif')))
         self.SetButtonBitmaps(bmp, False)
+        self.filetype = filetype
         
     # Overridden from ComboCtrl, called when the combo button is clicked
     def OnButtonClick(self):
         path = ""
         name = ""
+
         wildcard = "YAML files (*.yml,*.yaml)|*.yml;*.yaml"
+
         if self.GetValue():
             path, name = os.path.split(self.GetValue())
         
@@ -118,6 +121,7 @@ class CheckBox(wx.Frame):
             self.Close()
         
 
+
 class TextBoxFrame(wx.Frame):
 
     def __init__(self, parent, values):
@@ -169,7 +173,45 @@ class TextBoxFrame(wx.Frame):
                 val = [self.box1.GetValue() , self.box2.GetValue()]
                 parent.listbox.Append(str(val))
                 self.Close()
-                          
+
+
+
+class FilepathBoxFrame(wx.Frame):
+
+    def __init__(self, parent):
+        wx.Frame.__init__(self, parent, title="Enter File Path", size=(520,90))
+        
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15) 
+        
+        label1 = wx.StaticText(panel, -1, label = 'File Path')
+        self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY, size = (420, -1))
+        
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
+              
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+    
+    def onButtonClick(self,event):
+        parent = self.Parent
+        
+        if self.box1.GetValue():
+            
+            val = self.box1.GetValue()
+            parent.add_checkbox_grid_value(val)
+            self.Close()
+                  
+
     
 class ConfigFslFrame(wx.Frame):
     
@@ -258,7 +300,6 @@ class ConfigFslFrame(wx.Frame):
         elif flag == 2:
             #wx.TipWindow(self, "Full path to a subject list to be used with this model.\n\nThis should be a text file with one subject per line.", 500)
             wx.TipWindow(self, "Full path to a CPAC FSL model configuration file to be used.\n\nFor more information, please refer to the user guide.", 500)
-
 
 
 
@@ -415,8 +456,6 @@ class f_test_frame(wx.Frame):
 
 
 
-
-
 class ListBoxCombo(wx.Panel):
     
     def __init__(self, parent, size, validator, style, values, combo_type):
@@ -564,7 +603,7 @@ class ListBoxCombo(wx.Panel):
     #def get_listbox_selections(self):
     #    return self.listbox_selections
             
-            
+
             
 class ParametersCheckBox(wx.Frame):
     
@@ -601,33 +640,7 @@ class ParametersCheckBox(wx.Frame):
             self.Close()
     
             
-# class TextBoxCombo(wx.Panel):
-#     def __init__(self, parent, size, validator, style, values):
-#         wx.Panel.__init__(self, parent)
-#                
-#         sizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
-#         self.values = values
-#         
-#         self.ctrl1 = wx.TextCtrl(parent, 
-#                                 id = wx.ID_ANY, 
-#                                 style= style, 
-#                                 validator = validator, 
-#                                 size = wx.DefaultSize)
-#         
-#         bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/plus12.jpg'), wx.BITMAP_TYPE_ANY)
-#         self.button = wx.BitmapButton(self, -1, bmp,size = (bmp.GetWidth(), bmp.GetHeight()))
-#         self.button.Bind(wx.EVT_BUTTON, self.onButtonClick)
-#         sizer.Add(self.ctrl1)#, wx.EXPAND | wx.ALL, 10)
-#         sizer.Add(self.button)
-#         self.SetSizer(sizer)
-#         
-#     def onButtonClick(self, event):
-#         print "calling config Fsl Frame"
-#         ParametersCheckBox(self, self.values)
-# 
-#     def GetTextCtrl(self):
-#         return self.ctrl1
-    
+
 class TextBoxCombo(wx.combo.ComboCtrl):
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
@@ -638,6 +651,374 @@ class TextBoxCombo(wx.combo.ComboCtrl):
     def OnButtonClick(self):
         ParametersCheckBox(self)
         
+
+
+class NEWCheckBoxGrid(wx.Panel):
+
+    def __init__(self, parent, idx, selections, values, size):
+
+        wx.Panel.__init__(self, parent, id=idx, size=size)
+
+        all_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        window_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(500,205), \
+                             style=wx.VSCROLL)
+        self.scrollWin.SetBackgroundColour(wx.WHITE)
+
+        self.selections = selections
+        self.values = values
+
+        # y-axis position of each new row (each new entry) in the checkbox
+        # grid - this will change as entries are added
+        self.y_pos = 0
+
+        self.num_entries = 0
+
+        # this sets the column names at the top of the checkbox grid
+        #x_pos = 300
+        x_pos = 5
+        self.x_pos_increments = []
+
+        for selection in self.selections:
+
+            wx.StaticText(self, label=selection, pos=(x_pos,0))
+
+            spacing = 50 + (len(selection)*2) # adapt the spacing to
+                                              # label length
+            x_pos += spacing
+
+            self.x_pos_increments.append(spacing)
+
+
+        self.idx = 100
+
+        #window_sizer.Add(self.scrollWin, proportion=200, flag=wx.EXPAND | wx.ALL)
+        #button_sizer.Add(self.button, proportion=0)
+
+        #all_sizer.Add(self.scrollWin, flag=wx.EXPAND | wx.ALL) #window_sizer)
+        #all_sizer.Add(button_sizer)
+
+        #self.SetSizer(all_sizer)
+
+        self.grid_sizer = wx.GridBagSizer(wx.VERTICAL)
+
+        self.scrollWin.SetSizer(self.grid_sizer)
+        self.scrollWin.SetScrollRate(10,10)
+        self.scrollWin.EnableScrolling(True,True)
+
+        self.row_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        self.row_panel.SetBackgroundColour(wx.WHITE)
+        
+        bmp = wx.Bitmap(p.resource_filename('CPAC', \
+                            'GUI/resources/images/plus12.jpg'), \
+                            wx.BITMAP_TYPE_ANY)
+        self.button = wx.BitmapButton(self, -1, bmp, \
+                                      size=(bmp.GetWidth(), bmp.GetHeight()),\
+                                      pos=(505,25))
+        self.button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+
+        self.cbValuesDict = {}
+        
+        # this is for saving checkbox states during operation
+        # for returning previous values when boxes come out from
+        # being grayed out
+        self.tempChoiceDict = {}
+        
+        # dictionary of 3 lists, each list is a list of chars
+        # of either '1' or '0', a list for include, categorical,
+        # demean
+        self.choiceDict = {}
+
+        # this dictionary holds all of the GUI controls associated with each
+        # entry (row) in the checkbox grid. this will be used to appropriately
+        # delete rows the user selects to delete
+        self.entry_controls = {}
+
+
+    def onButtonClick(self, event):
+
+        FilepathBoxFrame(self)
+
+
+    def onMinusClick(self, event, entry):
+        
+        for control in self.entry_controls[entry]:
+            control.Destroy()
+
+        del self.entry_controls[entry]
+
+        self.cbValuesDict = {}
+
+        self.onCheck_UpdateValue()
+
+        del self.choiceDict[entry]
+
+        for row in self.entry_controls:
+            for control in self.entry_controls[row]:
+                control.Destroy()
+
+        self.entry_controls = {}
+
+        self.idx = 100
+        self.y_pos = 0
+
+        self.onReload_set_selections(self.choiceDict, internal=True)
+
+        #self.y_pos = self.y_pos - 30
+
+
+    def add_checkbox_grid_value(self, entry):
+
+        # set up the label of each header item
+        #wx.StaticText(self.row_panel, label=entry, pos=(5,self.y_pos))
+        
+        #x_pos = 300
+        x_pos = 5
+
+        if entry not in self.entry_controls.keys():
+            self.entry_controls[entry] = []
+
+        for selection, spacing in zip(self.selections, self.x_pos_increments):
+
+            # checkbox for possible selection
+            self.cb = wx.CheckBox(self.row_panel, id=self.idx+1, \
+                                      pos=(x_pos,self.y_pos))
+            self.cb.SetValue(False)
+
+            self.cbValuesDict[self.idx+1] = [entry, selection, False]
+
+            self.cb.Bind(wx.EVT_CHECKBOX, \
+                             lambda event: self.onCheck_UpdateValue(event))
+
+            self.entry_controls[entry].append(self.cb)
+
+            # increment IDs
+            self.idx += 1
+
+            x_pos += spacing
+
+
+        bmp = wx.Bitmap(p.resource_filename('CPAC', \
+                        'GUI/resources/images/minus9.jpg'), \
+                        wx.BITMAP_TYPE_ANY)
+        self.button = wx.BitmapButton(self.row_panel, -1, bmp, \
+                                      #size=(bmp.GetWidth(), bmp.GetHeight()),\
+                                      pos=(x_pos,self.y_pos))
+        self.button.Bind(wx.EVT_BUTTON, \
+                             lambda event: self.onMinusClick(event, entry))
+
+        self.path_text = wx.StaticText(self.row_panel, label=entry, \
+                                           pos=(x_pos+30,self.y_pos))
+
+        self.entry_controls[entry].append(self.button)
+        self.entry_controls[entry].append(self.path_text)
+
+                         
+        # just a nice amount to space the rows out by
+        self.y_pos += 30
+
+        self.num_entries += 1
+
+        # add the panel that contains all of the rows (labels and checkboxes)
+        # to the grid sizer. the grid sizer is necessary for wxPython to know
+        # when to provide a scrollbar in the scrollWin object
+        self.grid_sizer.Add(self.row_panel, pos=(0,0))
+
+        w,h = self.grid_sizer.GetMinSize()
+        self.scrollWin.SetVirtualSize((w,h))
+            
+
+    def setup_checkbox_grid_values_for_gpa(self, value_list):
+
+        # this is for when all of the checkbox grid row entries get populated
+        # all at once from a pre-created list (i.e. group analysis model
+        # builder)
+
+        j = 0
+        self.idx = 100
+        self.includeCBList = []
+        self.categoricalCBList = []
+        self.demeanCBList = []
+        
+        self.includeCBValues = []
+        self.categoricalCBValues = []
+        self.demeanCBValues = []
+
+        self.maxIDNum = (len(value_list)*2)+101
+
+        # clear the checkbox grid panel in case its already populated
+        self.scrollWin.DestroyChildren()
+
+
+        self.grid_sizer = wx.GridBagSizer(wx.VERTICAL)
+
+        self.scrollWin.SetSizer(self.grid_sizer)
+        self.scrollWin.SetScrollRate(10,10)
+        self.scrollWin.EnableScrolling(True,True)
+
+
+        row_panel = wx.Panel(self.scrollWin,wx.HORIZONTAL)
+        row_panel.SetBackgroundColour(wx.WHITE)
+
+        # iterate over each phenotype header item
+        for name in value_list:
+           
+            # set up the label of each header item
+            EV_label = wx.StaticText(row_panel, label=name, pos=(5,j))
+
+            # Categorical checkbox for header item
+            self.cb = wx.CheckBox(row_panel, id=self.idx+1, pos=(300,j))
+            self.cb.SetValue(False)
+            self.categoricalCBList.append(self.cb)
+            
+            self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
+            
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+            
+            # Demean checkbox for header item
+            self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))
+            self.cb.SetValue(False)
+            self.demeanCBList.append(self.cb)
+
+            
+            self.cbValuesDict[self.idx+2] = [name, 'demean', False]
+            
+            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+                      
+                
+            # just a nice amount to space the checkboxes out by
+            j += 30
+            
+            # increment IDs
+            self.idx += 2
+
+
+        # automatically include some of the pre-calculated measures from
+        # individual-level analysis as labels in the Model Setup checkbox
+        # to remind users that they can include these into the design formula
+
+        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        
+        meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
+
+        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
+
+        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
+
+        # add the panel that contains all of the rows (labels and checkboxes)
+        # to the grid sizer. the grid sizer is necessary for wxPython to know
+        # when to provide a scrollbar in the scrollWin object
+        self.grid_sizer.Add(row_panel, pos=(0,0))
+
+        w,h = self.grid_sizer.GetMinSize()
+        self.scrollWin.SetVirtualSize((w,h))
+
+
+    def onCheck_UpdateValue(self, event=None):
+
+        # somehow take in the self.cbValuesDict[idx] (name, column, value)
+        # and then GetValue from all idx, and update value for that idx
+
+        for selection in self.selections:
+
+            if selection not in self.choiceDict.keys():
+                self.choiceDict[selection] = []
+               
+
+        for idNum in range(101,self.idx+1):
+
+            try:
+                self.cbValuesDict[idNum][2] = \
+                    wx.FindWindowById(idNum).GetValue()
+            except:
+                pass
+        
+
+        for idNum in range(101,self.idx+1):
+
+            try:
+                entry_name = self.cbValuesDict[idNum][0]
+                selection = self.cbValuesDict[idNum][1]
+                value = self.cbValuesDict[idNum][2]
+
+                if value == True:
+
+                    if entry_name not in self.choiceDict.keys():
+                        self.choiceDict[entry_name] = []
+
+                    if selection not in self.choiceDict[entry_name]:
+                        self.choiceDict[entry_name].append(selection)
+
+                else:
+
+                    if entry_name in self.choiceDict.keys():
+
+                        if selection in self.choiceDict[entry_name]:
+                            self.choiceDict[entry_name].remove(selection)
+
+            except:
+                pass
+
+
+            for roi_path in self.choiceDict.keys():
+
+                if len(self.choiceDict[roi_path]) == 0:
+                    del self.choiceDict[roi_path]
+
+            # after this is done, self.choiceDict will be a dictionary with a
+            # format similar to:
+            #     {"/path/to/ROI1.nii.gz": ["Avg","Voxel"],
+            #      "/path/to/ROI2.nii.gz": ["PC1","Mult Reg"]}
+
+
+    def onReload_set_selections(self, choice_dict, internal=False):
+
+        for entry in choice_dict.keys():
+
+            # re-populate the box with entries (but not selections)
+            self.add_checkbox_grid_value(entry)
+
+            if not internal:
+
+                # file_selections is the string of digits loaded from the pipeline
+                # config YAML file denoting the user's choices for each ROI path
+                # entry, ex. "1,1,0,0"
+                file_selections = choice_dict[entry]
+                file_selections = file_selections.split(",")
+
+                choice_dict[entry] = []
+
+                # convert the digits back into the string names of the selections
+                # for each ROI path
+                for digit,option in zip(file_selections,self.selections):
+                    if digit == "1":
+                        choice_dict[entry].append(option)
+
+        # re-populate selections
+        for cb_id in self.cbValuesDict.keys():
+            
+            # path to file
+            cb_name = self.cbValuesDict[cb_id][0]
+
+            # selection name (ex. Avg, Voxel, PC1, etc..)
+            cb_option = self.cbValuesDict[cb_id][1]
+
+            if cb_option in choice_dict[cb_name]:
+                try:
+                    cb = wx.FindWindowById(cb_id)
+                    cb.SetValue(True)
+                except:
+                    pass
+
+        # update the choiceDict
+        self.onCheck_UpdateValue()
+
+        
+    def GetGridSelection(self):
+        return self.choiceDict
+
         
         
 class CheckBoxGrid(wx.Panel):

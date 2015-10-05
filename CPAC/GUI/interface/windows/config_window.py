@@ -1,22 +1,22 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
-from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreprocessing, \
-    DerivativesConfig, Segmentation,  Registration, FunctionalPreProcessing,\
-    MotionOptions, Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
+from CPAC.GUI.interface.pages import WorkflowConfig, AnatomicalPreprocessing, \
+    Segmentation, Registration, FunctionalPreProcessing,\
+    Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
-    SCA, SCASettings, MultipleRegressionSCA,\
+    SCA, SCASettings, \
     Settings, ComputerSettings, DirectorySettings, \
-    Nuisance, NuisanceCorrection, MedianAngleCorrection,\
+    Nuisance, NuisanceRegression, MedianAngleCorrection,\
     CentralitySettings, Centrality,\
     ALFF, ALFFSettings,\
-    Smoothing, SmoothingSettings,\
-    Filtering, FilteringSettings,\
-    TimeSeries, ROITimeseries, VOXELTimeseries, \
-    SpatialRegression, GenerateSeeds, VerticesTimeSeries,\
-    GroupAnalysis, GPASettings, BASCSettings,\
-    BASC, CWAS, CWASSettings,\
-    DualRegression, DualRegressionOptions, TimeSeriesOptions
+    AfterWarping, AfterWarpingOptions,\
+    FilteringSettings,\
+    TimeSeries, ROITimeseries, \
+    GenerateSeeds, \
+    GroupAnalysis, GPASettings, TimeSeriesOptions
+    #BASC, CWAS, CWASSettings,\
+    #DualRegression, DualRegressionOptions
 
 
 ID_SUBMIT = 6
@@ -34,7 +34,7 @@ class Mybook(wx.Treebook):
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
         page4 = WorkflowConfig(self)
-        page47 = DerivativesConfig(self)
+        #page47 = DerivativesConfig(self)
 
         page5 = AnatomicalPreprocessing(self)
         page6 = Registration(self, 1)
@@ -46,29 +46,29 @@ class Mybook(wx.Treebook):
         page11 = FuncToMNIRegistration(self, 6)
 
         page12 = Nuisance(self)
-        page13 = NuisanceCorrection(self, 7)
+        page13 = NuisanceRegression(self, 7)
         page14 = MedianAngleCorrection(self, 8)
 
-        page15 = Filtering(self)
+        #page15 = Filtering(self)
         page16 = FilteringSettings(self, 9)
 
-        page17 = Motion(self)
-        page18 = MotionOptions(self)
+        #page17 = Motion(self)
+        #page18 = MotionOptions(self)
         page19 = Scrubbing(self, 4)
 
         page20 = TimeSeries(self)
         page21 = GenerateSeeds(self)
         page22 = ROITimeseries(self)
-        page23 = VOXELTimeseries(self)
-        page24 = VerticesTimeSeries(self)
-        page25 = SpatialRegression(self)
+        #page23 = VOXELTimeseries(self)
+        #page24 = VerticesTimeSeries(self)
+        #page25 = SpatialRegression(self)
 
         page26 = SCA(self)
         page27 = SCASettings(self)
-        page28 = MultipleRegressionSCA(self)
+        #page28 = MultipleRegressionSCA(self)
 
-        page29 = DualRegression(self)
-        page30 = DualRegressionOptions(self)
+        #page29 = DualRegression(self)
+        #page30 = DualRegressionOptions(self)
 
         page31 = VMHC(self)
         page32 = VMHCSettings(self)
@@ -82,14 +82,14 @@ class Mybook(wx.Treebook):
         page37 = Centrality(self)
         page38 = CentralitySettings(self)
         
-        page39 = Smoothing(self)
-        page40 = SmoothingSettings(self)
+        page39 = AfterWarping(self)
+        page40 = AfterWarpingOptions(self)
 
-        page41 = BASC(self)
-        page42 = BASCSettings(self)
+        #page41 = BASC(self)
+        #page42 = BASCSettings(self)
 
-        page43 = CWAS(self)
-        page44 = CWASSettings(self)
+        #page43 = CWAS(self)
+        #page44 = CWASSettings(self)
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
@@ -99,7 +99,6 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
         self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
-        self.AddSubPage(page47, "Derivatives Settings", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
@@ -111,29 +110,29 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page11, "Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page12, "Nuisance", wx.ID_ANY)
-        self.AddSubPage(page13, "Nuisance Correction", wx.ID_ANY)
+        self.AddSubPage(page13, "Nuisance Regression", wx.ID_ANY)
         self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
 
-        self.AddPage(page15, "Temporal Filtering", wx.ID_ANY)
+        #self.AddPage(page15, "Temporal Filtering", wx.ID_ANY)
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
 
-        self.AddPage(page17, "Motion Correction", wx.ID_ANY)
-        self.AddSubPage(page18, "Motion Correction Options", wx.ID_ANY)
+        #self.AddPage(page17, "Motion Correction", wx.ID_ANY)
+        #self.AddSubPage(page18, "Motion Correction Options", wx.ID_ANY)
         self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page21, "Define New Seeds", wx.ID_ANY)
-        self.AddSubPage(page22, "ROI Average TSE", wx.ID_ANY)
-        self.AddSubPage(page23, "ROI Voxelwise TSE", wx.ID_ANY)
-        self.AddSubPage(page24, "Surface Vertices TSE", wx.ID_ANY)
-        self.AddSubPage(page25, "Spatial Regression", wx.ID_ANY)
+        self.AddSubPage(page22, "ROI TSE Options", wx.ID_ANY)
+        #self.AddSubPage(page23, "ROI Voxelwise TSE", wx.ID_ANY)
+        #self.AddSubPage(page24, "Surface Vertices TSE", wx.ID_ANY)
+        #self.AddSubPage(page25, "Spatial Regression", wx.ID_ANY)
 
         self.AddPage(page26, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page27, "SCA Options", wx.ID_ANY)
-        self.AddSubPage(page28, "Mutiple Regression SCA Options", wx.ID_ANY)
+        #self.AddSubPage(page28, "Mutiple Regression SCA Options", wx.ID_ANY)
 
-        self.AddPage(page29, "Dual Regression", wx.ID_ANY)
-        self.AddSubPage(page30, "Dual Regression Options", wx.ID_ANY)
+        #self.AddPage(page29, "Dual Regression", wx.ID_ANY)
+        #self.AddSubPage(page30, "Dual Regression Options", wx.ID_ANY)
 
         self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
         self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
@@ -147,14 +146,14 @@ class Mybook(wx.Treebook):
         self.AddPage(page37, "Network Centrality", wx.ID_ANY)
         self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
         
-        self.AddPage(page39, "Spatial Smoothing", wx.ID_ANY)
-        self.AddSubPage(page40, "Spatial Smoothing Options", wx.ID_ANY)
+        self.AddPage(page39, "After Warping", wx.ID_ANY)
+        self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
-        self.AddPage(page41, "Bootstrap Analysis of Stable Clusters", wx.ID_ANY)
-        self.AddSubPage(page42, "BASC Settings", wx.ID_ANY)
+        #self.AddPage(page41, "Bootstrap Analysis of Stable Clusters", wx.ID_ANY)
+        #self.AddSubPage(page42, "BASC Settings", wx.ID_ANY)
 
-        self.AddPage(page43, "CWAS", wx.ID_ANY)
-        self.AddSubPage(page44, "CWAS Settings", wx.ID_ANY)
+        #self.AddPage(page43, "CWAS", wx.ID_ANY)
+        #self.AddSubPage(page44, "CWAS Settings", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis", wx.ID_ANY)
         self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
@@ -249,11 +248,8 @@ class MainFrame(wx.Frame):
             raise Exception("Error importing file - %s , Make"
                       " sure it is in correct yaml format")
 
-
         #for config in config_file_map:
         #    print "\n\n config: ", config, " selection: ", config_file_map[config]
-
-
 
         for page in self.nb.get_page_list():
 
@@ -265,9 +261,8 @@ class MainFrame(wx.Frame):
 
                 val = config_file_map.get(str(name))
 
-                #print "loading ctrl ->", name, "->", val
                 sample_list = ctrl.get_values()
-                #print "sample_list -->", sample_list
+
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
                 if val:
@@ -312,6 +307,22 @@ class MainFrame(wx.Frame):
                                 
                         elif ctrl.get_datatype() == 5 and ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
+
+                        elif ctrl.get_datatype() == 9:
+                            value = val[0] # pass the dictionary straight up
+                            '''
+                            value = []
+                            for item in val:
+                                data = ""
+                                for k, v in item.iteritems():
+                                    if data:
+                                        data = data + "," + k
+                                    else:
+                                        data = k
+                                print data
+                                raise Exception
+                                value.append(data)
+                            '''
                                 
                         else:
                             value = None
@@ -716,6 +727,7 @@ class MainFrame(wx.Frame):
 
 
     def submit_item(self, event):
+
         import os
         import linecache
 
@@ -739,8 +751,9 @@ class MainFrame(wx.Frame):
             validate = False
 
             if switch:
+
                 switch_val = str(switch.get_selection()).lower()
-                #print "switch_val ---->", switch_val
+
                 if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
                     validate = True
                     wf_counter.append(page.get_counter())
@@ -750,6 +763,7 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
+
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
@@ -767,7 +781,47 @@ class MainFrame(wx.Frame):
                             display(
                                 win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
                             return
+
+                    elif option_name == "tsa_roi_paths":
+
+                        # fires if the control is the checkbox grid for
+                        # multiple paths assigned to multiple options
+                        # (i.e. timeseries analysis)
+
+                        config_list.append(ctrl)
+                        continue
+
+                        '''
+                        paths_dict = ctrl.get_selection()
+
+                        for tsa_type in paths_dict.keys():
+
+                            if tsa_type == "Avg":
+                                tsa_name = "roi_average_paths"
+                            elif tsa_type == "Voxel":
+                                tsa_name = "roi_voxelwise_paths"
+                            elif tsa_type == "PC1":
+                                tsa_name = "first_principal_component_paths"
+                            elif tsa_type == "Mult Regression":
+                                tsa_name = "multiple_regression_paths"
+
+                            tsa_paths_list = paths_dict[tsa_type]
+
+                            new_ctrl = ctrl
+
+                            new_ctrl.set_name(tsa_name)
+                            new_ctrl.set_new_selection(tsa_paths_list)
+
+                            config_list.append(new_ctrl)
+
+
+                        # don't append the original ctrl to config_list
+                        # (happens below)
+                        continue
+                        '''
+
                     else:
+
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
@@ -776,12 +830,19 @@ class MainFrame(wx.Frame):
 
                     if '/' in value and '$' not in value and not isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
+                        if not os.path.exists(ctrl.get_selection()) and \
+                            value != 'On/Off':
+
                             display(
                                 win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
                             return
 
                 config_list.append(ctrl)
+
+        #############################
+        #for config in config_list:
+        #    print config.get_name()
+        #    print config.get_selection()
 
 
         # Get the user's CPAC pipeline name for use in this script
@@ -885,9 +946,11 @@ class MainFrame(wx.Frame):
 
 
     def write(self, path, config_list):
+
         import ast
 
         try:
+
             f = open(path, 'w')
 
             for item in config_list:
@@ -899,6 +962,7 @@ class MainFrame(wx.Frame):
                 
 
                 sample_list = item.get_values()
+
                 comment = item.get_help()
 
                 for line in comment.split("\n"):
@@ -922,7 +986,8 @@ class MainFrame(wx.Frame):
 
                     # Add check for ReHo cluster
                     if label == 'clusterSize':
-                        print 'Using ReHo cluster size of ', value
+                        #print 'Using ReHo cluster size of ', value
+                        pass
                     elif item_type == 0:
                         value = sample_list.index(value)
                     else:
@@ -1045,6 +1110,42 @@ class MainFrame(wx.Frame):
                                 print>>f, space, sample, ": ", 1
                             else:
                                 print>>f, space, sample, ": ", 0
+
+                    print >>f, "\n"
+
+
+                elif dtype == 9:
+
+                    print>>f, label,":"
+
+                    f.write("  - ")
+
+                    flag = 0
+
+                    for entry in value.keys():
+
+                        if flag == 0:
+                            string = ""
+                            flag = 1
+                        else:
+                            string = "    "
+
+                        string = string + entry + ": "
+
+                        firstnum = 0
+
+                        for tsa_type in sample_list:
+
+                            if firstnum > 0:
+                                string = string + ","
+                            firstnum = 1
+
+                            if tsa_type in value[entry]:
+                                string = string + "1"
+                            else:
+                                string = string + "0"
+
+                        print >>f, string
 
                     print >>f, "\n"
 

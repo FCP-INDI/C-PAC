@@ -1,4 +1,4 @@
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, NEWCheckBoxGrid
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -59,7 +59,7 @@ class GenericClass(wx.ScrolledWindow):
     def add(self, label, control, name, type = 0, 
             comment="", values="", style=0, size= wx.DefaultSize, 
             validator=wx.DefaultValidator, wkf_switch= False,
-            validation_req = True, combo_type = None):
+            validation_req = True, combo_type = None, selections=None):
         
             
         label = wx.StaticText(self.parent, -1, label)
@@ -84,7 +84,8 @@ class GenericClass(wx.ScrolledWindow):
                       wkf_switch = wkf_switch,
                       help = comment, 
                       validation_req = validation_req,
-                      combo_type = combo_type)
+                      combo_type = combo_type,
+                      selections = selections)
         
         self.ctrl_list.append(ctrl)
         
@@ -208,7 +209,7 @@ class Control(wx.Control):
                  style=0, size= wx.DefaultSize, 
                  validator=wx.DefaultValidator, 
                  wkf_switch=False, help="", validation_req = True, 
-                 combo_type = None):
+                 combo_type = None, selections=None):
         
         self.name=name
         self.default_values = values
@@ -237,7 +238,7 @@ class Control(wx.Control):
             self.ctrl= FileSelectorCombo(parent, id= wx.ID_ANY, 
                                          size=size, style=style,
                                          validator = validator,
-                                         value = values)  
+                                         value = values)
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
@@ -317,11 +318,22 @@ class Control(wx.Control):
 
          
         elif type == 9:
-            self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
+            self.ctrl = NEWCheckBoxGrid(parent, idx= wx.ID_ANY,
+                                     selections = selections,
                                      values = values,
                                      size= wx.DefaultSize)
             
+            self.default_values = selections
             self.selection = self.ctrl.GetGridSelection()
+
+            add_string = "\n\nAvailable analyses: %s.\nDenote which " \
+                         "analyses to run for each ROI path by listing 1's " \
+                         "or 0's. For example, if you wish to run %s and " \
+                         "%s, you would enter: '/path/to/ROI.nii.gz': " \
+                         "1,0,1,0" % (selections, selections[0], \
+                         selections[2])
+
+            self.help = self.help + add_string
             
                 
         self.set_id()
@@ -356,6 +368,9 @@ class Control(wx.Control):
     
     def get_name(self):
         return self.name
+
+    def set_name(self, name):
+        self.name = name
 
     def get_type(self):
         return self.type
@@ -405,13 +420,15 @@ class Control(wx.Control):
     def get_selection(self):
         return self.selection
 
+    def set_new_selection(self, selection):
+        self.selection = selection
+
     def get_switch(self):
         return self.wfk_switch
         
     def set_value(self, val):
     
         import ast
-        #print "self.get_name(), self.get_type() , val -->", self.get_name(), self.get_type(), val
 
         if val == None or val =="":
             val = self.get_values()
@@ -440,7 +457,8 @@ class Control(wx.Control):
                     self.set_selection(s, sample_list.index(s))
 
             elif self.get_type() == 9:
-                self.ctrl.set_checkbox_grid_values(val)
+                self.ctrl.onReload_set_selections(val)
+
             else:
                 if self.get_type() == 0:
                     if isinstance(val, list):
