@@ -10,23 +10,6 @@ access
 # Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-import nipype.interfaces.io as nio
-from nipype.interfaces.base import BaseInterface, TraitedSpec
-
-# Base interface class
-class IOBase(BaseInterface):
-
-    def _run_interface(self, runtime):
-        return runtime
-
-    def _list_outputs(self):
-        raise NotImplementedError
-
-    def _outputs(self):
-        return self._add_output_traits(super(IOBase, self)._outputs())
-
-    def _add_output_traits(self, base):
-        return base
 
 
 def create_func_datasource(rest_dict, wf_name='func_datasource'):
