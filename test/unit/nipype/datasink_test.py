@@ -92,7 +92,7 @@ class DataSinkTestCase(unittest.TestCase):
         self.in_file = in_file
 
     # Collect the input file paths and form expected output files
-    def collect_inputs_outputs(self, data_sink):
+    def _collect_inputs_outputs(self, data_sink):
         '''
         Method to collect input filepaths and return the expected
         output filepaths
@@ -163,7 +163,7 @@ class DataSinkTestCase(unittest.TestCase):
         return in_out_dict
 
     # Check to see if datasink output was produced
-    def check_output_exists(self, data_sink):
+    def _check_output_exists(self, data_sink):
         '''
         Method to check for the existence of a datasink output
 
@@ -189,7 +189,7 @@ class DataSinkTestCase(unittest.TestCase):
         import hashlib
 
         # Get in_files/md5sums and expected outputs
-        in_out_dict = self.collect_inputs_outputs(data_sink)
+        in_out_dict = self._collect_inputs_outputs(data_sink)
 
         # Init outputs to positive
         ds_out_exists = True
@@ -226,7 +226,7 @@ class DataSinkTestCase(unittest.TestCase):
         return ds_out_exists, ds_out_msg
 
     # Check to see if datasink output was produced
-    def check_output_exists_s3(self, data_sink, bucket):
+    def _check_output_exists_s3(self, data_sink, bucket):
         '''
         Method to check for the existence of a datasink output
 
@@ -251,7 +251,7 @@ class DataSinkTestCase(unittest.TestCase):
         # Init variables
 
         # Get in_files/md5sums and expected outputs
-        in_out_dict = self.collect_inputs_outputs(data_sink)
+        in_out_dict = self._collect_inputs_outputs(data_sink)
 
         # Init outputs to positive
         s3_out_exists = True
@@ -331,7 +331,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Check if output exists
         ds_out_exists, out_path = \
-            self.check_output_exists(data_sink)
+            self._check_output_exists(data_sink)
 
         # Assert the output was produced as expected
         err_msg = 'Could not find output of datasink on disk: %s' % out_path
@@ -375,7 +375,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Check if output exists
         ds_out_exists, out_path = \
-            self.check_output_exists(data_sink)
+            self._check_output_exists(data_sink)
 
         # Assert the output was produced as expected
         err_msg = 'Could not find output of datasink on disk: %s' % out_path
@@ -432,7 +432,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Check if output exists
         ds_out_exists, out_path = \
-            self.check_output_exists(data_sink)
+            self._check_output_exists(data_sink)
 
         # Assert the output was produced as expected
         err_msg = 'Could not find output of datasink on disk: %s' % out_path
@@ -488,7 +488,7 @@ class DataSinkTestCase(unittest.TestCase):
         bucket = data_sink._fetch_bucket(bucket_name)
 
         # Check if output exists
-        s3_out_exists, s3_out_msg = self.check_output_exists_s3(data_sink, bucket)
+        s3_out_exists, s3_out_msg = self._check_output_exists_s3(data_sink, bucket)
 
         # Assert the output was produced as expected
         self.assertTrue(s3_out_exists, msg=s3_out_msg)
@@ -544,7 +544,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Check if output exists
         s3_out_exists, s3_out_msg = \
-            self.check_output_exists_s3(data_sink, bucket)
+            self._check_output_exists_s3(data_sink, bucket)
 
         # Assert the output was produced as expected
         self.assertTrue(s3_out_exists, msg=s3_out_msg)
