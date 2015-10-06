@@ -1,4 +1,4 @@
-from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, NEWCheckBoxGrid
+from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, GPAModelCheckBoxGrid
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -120,6 +120,9 @@ class GenericClass(wx.ScrolledWindow):
             self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
         elif control == 9:
+            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
+            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
+        elif control == 10:
             self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
@@ -318,7 +321,7 @@ class Control(wx.Control):
 
          
         elif type == 9:
-            self.ctrl = NEWCheckBoxGrid(parent, idx= wx.ID_ANY,
+            self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
                                      selections = selections,
                                      values = values,
                                      size= wx.DefaultSize)
@@ -334,6 +337,14 @@ class Control(wx.Control):
                          selections[2])
 
             self.help = self.help + add_string
+
+
+        elif type == 10:
+            self.ctrl = GPAModelCheckBoxGrid(parent, idx= wx.ID_ANY,
+                                             values = values,
+                                             size= wx.DefaultSize)
+            
+            self.selection = self.ctrl.GetGridSelection()
             
                 
         self.set_id()
@@ -400,8 +411,11 @@ class Control(wx.Control):
                 self.selection.append(value)
 
                 
-        elif self.get_type()==9:
+        elif self.get_type() == 9:
             self.ctrl.onReload_set_selections(value)
+
+        elif self.get_type() == 10:
+            self.ctrl.onReload_set_selections(value)    
 
         elif isinstance(self.selection, dict):
             if remove:
@@ -458,6 +472,9 @@ class Control(wx.Control):
 
             elif self.get_type() == 9:
                 self.ctrl.onReload_set_selections(val)
+
+            elif self.get_type() == 10:
+                self.ctrl.set_checkbox_grid_values(val)
 
             else:
                 if self.get_type() == 0:

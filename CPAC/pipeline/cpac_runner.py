@@ -448,6 +448,7 @@ def run(config_file, subject_list_file, p_name = None):
         except:
             raise IOError('Problem in seedSpecificationFile')
 
+    '''
     if 1 in c.runVoxelTimeseries:
 
         if 'roi_voxelwise' in c.useSeedInAnalysis:
@@ -471,6 +472,7 @@ def run(config_file, subject_list_file, p_name = None):
         if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:
 
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
+    '''
 
 
     pipeline_timing_info = []

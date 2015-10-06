@@ -699,7 +699,13 @@ class MainFrame(wx.Frame):
         #testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
         #testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
         #testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
-             
+    
+        for roi_path in c.tsa_roi_paths[0].keys():
+            testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
+
+        for roi_path in c.sca_roi_paths[0].keys():
+            testFile(roi_path, "sca_roi_paths", c.runSCA)
+            
             
         try:
             

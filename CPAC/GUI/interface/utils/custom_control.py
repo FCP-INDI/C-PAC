@@ -39,7 +39,6 @@ class FSLModelSelectorCombo(wx.combo.ComboCtrl):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
         bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder3.gif')))
         self.SetButtonBitmaps(bmp, False)
-        self.filetype = filetype
         
     # Overridden from ComboCtrl, called when the combo button is clicked
     def OnButtonClick(self):
@@ -203,13 +202,28 @@ class FilepathBoxFrame(wx.Frame):
         self.Show()
     
     def onButtonClick(self,event):
+
+        import os
+
         parent = self.Parent
         
         if self.box1.GetValue():
             
             val = self.box1.GetValue()
-            parent.add_checkbox_grid_value(val)
-            self.Close()
+
+            # check the file just in case. you have to be safe, you just
+            # gotta be safe man
+
+            if not os.path.isfile(str(val)):
+                errmsg = "That is not a valid filepath."
+                errCon = wx.MessageDialog(self, errmsg, "Invalid Filepath",
+                         wx.OK | wx.ICON_ERROR)
+                errCon.ShowModal()
+                errCon.Destroy()
+
+            else:
+                parent.add_checkbox_grid_value(val)
+                self.Close()
                   
 
     
@@ -653,7 +667,7 @@ class TextBoxCombo(wx.combo.ComboCtrl):
         
 
 
-class NEWCheckBoxGrid(wx.Panel):
+class CheckBoxGrid(wx.Panel):
 
     def __init__(self, parent, idx, selections, values, size):
 
@@ -1021,7 +1035,7 @@ class NEWCheckBoxGrid(wx.Panel):
 
         
         
-class CheckBoxGrid(wx.Panel):
+class GPAModelCheckBoxGrid(wx.Panel):
     
     def __init__(self, parent, idx, values, size):
         wx.Panel.__init__(self, parent, id=idx, size=size)

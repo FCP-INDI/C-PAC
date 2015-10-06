@@ -67,8 +67,11 @@ numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Scrubbing Optio
 seedSpecificationFile,Seed Specification File,Define New Seeds
 seedOutputLocation,Seed Output Directory,Define New Seeds
 useSeedInAnalysis,Use New Seeds In,Define New Seeds
-runROITimeseries,Extract ROI Average Time Series,ROI Average TSE
-runSCA,Run Seed-based Correlation Analysis (SCA),SCA Options
+runROITimeseries,Extract ROI Average Time Series,ROI TSE Options
+tsa_roi_paths,TSE ROI Paths,ROI TSE Options
+runSCA,Run Seed-based Correlation Analysis,SCA Options
+sca_roi_paths,SCA ROI Paths,SCA Options
+mrsNorm,Normalize Time Series,SCA Options
 runVMHC,Calculate VMHC,VMHC Settings
 template_symmetric_brain_only,Symmetric Template (Brain Only),VMHC Settings
 template_symmetric_skull,Symmetric Template (With Skull),VMHC Settings

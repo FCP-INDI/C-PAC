@@ -87,12 +87,11 @@ class ModelConfig(wx.Frame):
         self.page.add_pheno_load_panel(load_panel_sizer)
 
 
-
         # experimental checkbox row stuff
         self.page.add(label = "Model Setup ",
-                      control = control.CHECKBOX_GRID,
+                      control = control.GPA_CHECKBOX_GRID,
                       name = "model_setup",
-                      type = 9,#dtype.LBOOL,
+                      type = 10,
                       values = '',
                       comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD', 'MeanFD_Jenkinson', 'Measure Mean', and 'Custom_ROI_Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
                       size = (450, -1))
@@ -148,8 +147,7 @@ class ModelConfig(wx.Frame):
                               'Multiple Regression SCA (smoothed)',
                               'Network Centrality',
                               'Network Centrality (smoothed)',
-                              'VMHC (z-score std only)',
-                              'VMHC z-stat (z-score std only)'],
+                              'VMHC'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
                     size = (350,160))
 
