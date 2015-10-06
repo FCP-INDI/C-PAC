@@ -237,14 +237,18 @@ class DataSink(nio.DataSink):
             # http://boto3.readthedocs.org/en/latest/guide/resources.html#multithreading
             session = boto3.session.Session(aws_access_key_id=aws_access_key_id,
                                             aws_secret_access_key=aws_secret_access_key)
+            s3_resource = session.resource('s3', use_ssl=True)
+
         # Otherwise, connect anonymously
         else:
             iflogger.info('Connecting to AWS: %s anonymously...'\
                           % bucket_name)
             session = boto3.session.Session()
+            s3_resource = session.resource('s3', use_ssl=True)
+            s3_resource.meta.client.meta.events.register('choose-signer.s3.*',
+                                                         botocore.handlers.disable_signing)
 
         # Explicitly declare a secure SSL connection for bucket object
-        s3_resource = session.resource('s3', use_ssl=True)
         bucket = s3_resource.Bucket(bucket_name)
 
         # And try fetch the bucket with the name argument
