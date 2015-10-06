@@ -2,7 +2,6 @@
 #
 # Contributing authors (please append):
 # Daniel Clark
-from boto.exception import S3ResponseError
 
 '''
 This module contains functions which return sensitive information from 
@@ -72,31 +71,67 @@ def return_bucket(creds_path, bucket_name):
     '''
 
     # Import packages
-    import boto
-    import boto.s3.connection
-
-    # Init variables
-    cf = boto.s3.connection.OrdinaryCallingFormat()
-
-    # Get AWS credentials if a creds_path is specified
-    if creds_path:
-        aws_access_key_id, aws_secret_access_key = return_aws_keys(creds_path)
-        # Init connection
-        s3_conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key,
-                                  calling_format=cf)
-    else:
-        s3_conn= boto.connect_s3(anon=True, calling_format=cf)
-
-    # And fetch the bucket with the name argument
     try:
-        bucket = s3_conn.get_bucket(bucket_name)
-    except S3ResponseError as exc:
-        err_msg = 'Unable to connect to bucket: %s; check credentials or ' \
-                  'bucket name spelling and try again. Error message: %s' \
+        import boto3
+        import botocore
+    except ImportError as exc:
+        err_msg = 'Boto3 package is not installed - install boto3 and '\
+                  'try again.'
+        raise Exception(err_msg)
+
+    # Try and get AWS credentials if a creds_path is specified
+    if creds_path:
+        try:
+            aws_access_key_id, aws_secret_access_key = \
+                return_aws_keys(creds_path)
+        except Exception as exc:
+            err_msg = 'There was a problem extracting the AWS credentials '\
+                      'from the credentials file provided: %s. Error:\n%s'\
+                      % (creds_path, exc)
+            raise Exception(err_msg)
+        # Init connection
+        print 'Connecting to S3 bucket: %s with credentials from %s ...'\
+              % (bucket_name, creds_path)
+        # Use individual session for each instance of DataSink
+        # Better when datasinks are being used in multi-threading, see:
+        # http://boto3.readthedocs.org/en/latest/guide/resources.html#multithreading
+        session = boto3.session.Session(aws_access_key_id=aws_access_key_id,
+                                        aws_secret_access_key=aws_secret_access_key)
+        s3_resource = session.resource('s3', use_ssl=True)
+
+    # Otherwise, connect anonymously
+    else:
+        print 'Connecting to AWS: %s anonymously...' % bucket_name
+        session = boto3.session.Session()
+        s3_resource = session.resource('s3', use_ssl=True)
+        s3_resource.meta.client.meta.events.register('choose-signer.s3.*',
+                                                     botocore.handlers.disable_signing)
+
+    # Explicitly declare a secure SSL connection for bucket object
+    bucket = s3_resource.Bucket(bucket_name)
+
+    # And try fetch the bucket with the name argument
+    try:
+        s3_resource.meta.client.head_bucket(Bucket=bucket_name)
+    except botocore.exceptions.ClientError as exc:
+        error_code = int(exc.response['Error']['Code'])
+        if error_code == 403:
+            err_msg = 'Access to bucket: %s is denied; check credentials'\
+                      % bucket_name
+            raise Exception(err_msg)
+        elif error_code == 404:
+            err_msg = 'Bucket: %s does not exist; check spelling and try '\
+                      'again' % bucket_name
+            raise Exception(err_msg)
+        else:
+            err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+                      % (bucket_name, exc)
+    except Exception as exc:
+        err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
                   % (bucket_name, exc)
         raise Exception(err_msg)
 
-    # Return bucket
+    # Return the bucket
     return bucket
 
 

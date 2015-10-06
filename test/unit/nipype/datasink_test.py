@@ -29,12 +29,11 @@ class DataSinkTestCase(unittest.TestCase):
     # setUp method - init the input file
     def setUp(self):
         '''
-        Method to instantiate input arguments for the
-        AWS.fetch_creds() method via instance attributes
+        Method to instantiate the TestCase
 
         Parameters
         ----------
-        self : FetchCredsTestCase
+        self : DatSinkTestCase
             a unittest.TestCase-inherited class
 
         Returns
@@ -180,8 +179,8 @@ class DataSinkTestCase(unittest.TestCase):
         ds_out_exists : boolean
             flag indicating whether the expected output file exists
             from the datasink or not
-        data_sink_output : string
-            filepath of expected output file from data sink
+        ds_out_msg : string
+            message to forecast the status of the datasink output
         '''
 
         # Import packages
@@ -238,11 +237,11 @@ class DataSinkTestCase(unittest.TestCase):
 
         Returns
         -------
-        ds_out_exists : boolean
+        s3_out_exists : boolean
             flag indicating whether the expected output file exists
             from the datasink or not
-        data_sink_output : string
-            filepath of expected output file from data sink
+        s3_out_msg : string
+            message to forecast the status of the datasink output
         '''
 
         # Import packages
@@ -565,8 +564,9 @@ class DataSinkTestCase(unittest.TestCase):
         -------
         None
             this method does not return any value, but performs an
-            assertion on whether the expected output exists or not on
-            AWS S3
+            assertion on whether the datasink will raise a ClientError
+            if one tries to access an S3 bucket to write without
+            credentials
         '''
 
         # Import packages
