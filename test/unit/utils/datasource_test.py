@@ -61,7 +61,9 @@ class DataSinkTestCase(unittest.TestCase):
         import sys
 
         import nipype.pipeline.engine as pe
-        from CPAC.utils import datasource, test_init
+        import nipype.interfaces.io as nio
+
+        from CPAC.utils import test_init
 
         # Init variables
         try:
@@ -80,8 +82,8 @@ class DataSinkTestCase(unittest.TestCase):
                                'anat_1', 'mprage.nii.gz')
 
         # Init the datasinks
-        data_sink = datasource.DataSink()
-        ds_node = pe.Node(datasource.DataSink(), name='sinker_0')
+        data_sink = nio.DataSink()
+        ds_node = pe.Node(nio.DataSink(), name='sinker_0')
 
         # Add instance variables to TestCase
         self.base_dir = base_dir
@@ -438,7 +440,7 @@ class DataSinkTestCase(unittest.TestCase):
         self.assertTrue(ds_out_exists, msg=err_msg)
 
     # Test datasink node writes to S3
-    def test_datasink_node_s3(self):
+    def test_s3_datasink_node(self):
         '''
         Method to test the datasink running as its own node is working
         as producing the expected output
@@ -493,7 +495,7 @@ class DataSinkTestCase(unittest.TestCase):
         self.assertTrue(s3_out_exists, msg=s3_out_msg)
 
     # Test datasink node writes to S3
-    def test_datasink_node_s3_folder(self):
+    def test_s3_datasink_node_folder(self):
         '''
         Method to test the datasink running as its own node is working
         as producing the expected output
@@ -547,6 +549,51 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Assert the output was produced as expected
         self.assertTrue(s3_out_exists, msg=s3_out_msg)
+
+    # Test datasink node writes to S3
+    def test_s3_datasink_rejects_anon(self):
+        '''
+        Method to test the datasink raises the proper error when trying
+        to write to a non-public-writeable bucket with no credentials
+
+        Paramters
+        ---------
+        self : unittest.TestCase
+            instance method inherits self automatically; instance
+            variables are used in the method
+
+        Returns
+        -------
+        None
+            this method does not return any value, but performs an
+            assertion on whether the expected output exists or not on
+            AWS S3
+        '''
+
+        # Import packages
+        import os
+        from botocore.exceptions import ClientError
+        from CPAC.utils import test_init
+
+        # Init variables
+        attr_folder = 'input_scan'
+        container = 'test_datasink'
+        data_sink = self.data_sink
+
+        # Init AWS variables
+        bucket_name = test_init.return_bucket_name()
+        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+
+        # Set up datasink
+        data_sink.inputs.base_directory = s3_output_dir
+        data_sink.inputs.container = container
+
+        # Feed input to input_file
+        setattr(data_sink.inputs, attr_folder, self.in_file)
+
+        # Run data_sink
+        self.assertRaises(ClientError, data_sink.run)
+
 
 # Make module executable
 if __name__ == '__main__':
