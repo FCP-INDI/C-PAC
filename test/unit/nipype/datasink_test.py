@@ -1,10 +1,9 @@
-# test/unit/utils/datasource_test.py
+# test/unit/nipype/datasource_test.py
 #
 #
 
 '''
-This module performs unit testing on the functions and classes from
-the CPAC/utils/datasource.py module
+This module performs unit testing on the DataSink class from nipype
 '''
 
 # Import packages
