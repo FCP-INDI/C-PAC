@@ -108,9 +108,6 @@ def extract_data(c, param_map):
                   %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
             logging.exception(msg)
             raise Exception(msg)
-        
-
-        
 
     def create_site_subject_mapping(base, relative):
 

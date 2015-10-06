@@ -1,9 +1,9 @@
-# test/unit/AWS/build_s3_sublist_test.py
+# test/unit/AWS/s3_sublist_test.py
 #
 # Author(s): Daniel Clark, 2015
 
 '''
-This module performs unit testing on functions in the build_s3_sublist
+This module performs unit testing on functions in the s3_sublist
 module in the CPAC/AWS subpackage
 '''
 
@@ -13,7 +13,7 @@ import unittest
 # Tets case for cpac datasink
 class DataSinkTestCase(unittest.TestCase):
     '''
-    This class is a test case for the build_s3_sublist module in
+    This class is a test case for the s3_sublist module in
     CPAC/AWS
 
     Inherits

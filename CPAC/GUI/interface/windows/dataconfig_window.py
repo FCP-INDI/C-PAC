@@ -170,9 +170,7 @@ class DataConfig(wx.Frame):
             wx.TipWindow(self, comment, 500)
         
     def run(self, config):
-            
-        try:  
-
+        try:
             try:
                 config_map = yaml.load(open(config, 'r'))
                 out_location = os.path.join(\
