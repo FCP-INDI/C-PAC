@@ -780,8 +780,6 @@ class CheckBoxGrid(wx.Panel):
 
         self.onReload_set_selections(self.choiceDict, internal=True)
 
-        #self.y_pos = self.y_pos - 30
-
 
     def add_checkbox_grid_value(self, entry):
 
@@ -793,6 +791,13 @@ class CheckBoxGrid(wx.Panel):
 
         if entry not in self.entry_controls.keys():
             self.entry_controls[entry] = []
+        else:
+            errmsg = "This file path has already been entered."
+            errCon = wx.MessageDialog(self, errmsg, "ROI Path Exists",
+                        wx.OK | wx.ICON_ERROR)
+            errCon.ShowModal()
+            errCon.Destroy()
+            return -1
 
         for selection, spacing in zip(self.selections, self.x_pos_increments):
 

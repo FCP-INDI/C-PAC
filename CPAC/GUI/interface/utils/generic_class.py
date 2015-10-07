@@ -371,7 +371,7 @@ class Control(wx.Control):
         if self.id==None:
             self.id = self.ctrl.GetId()
     
-    def get_id (self): 
+    def get_id (self):
         return self.id
         
     def get_ctrl(self):

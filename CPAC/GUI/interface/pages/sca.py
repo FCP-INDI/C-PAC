@@ -1,5 +1,6 @@
 import wx
 import wx.html
+import os
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 from ..utils.validator import CharValidator
@@ -25,6 +26,9 @@ class SCA(wx.html.HtmlWindow):
 class SCASettings(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
+
+        import os
+
         wx.ScrolledWindow.__init__(self, parent)
                 
         self.counter = counter

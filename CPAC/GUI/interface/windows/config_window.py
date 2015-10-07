@@ -1,7 +1,7 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
-from CPAC.GUI.interface.pages import WorkflowConfig, AnatomicalPreprocessing, \
+from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
     Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
@@ -33,7 +33,7 @@ class Mybook(wx.Treebook):
         page1 = Settings(self)
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
-        page4 = WorkflowConfig(self)
+        #page4 = WorkflowConfig(self)
         #page47 = DerivativesConfig(self)
 
         page5 = AnatomicalPreprocessing(self)
@@ -98,7 +98,7 @@ class Mybook(wx.Treebook):
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
-        self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
+        #self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
@@ -309,6 +309,7 @@ class MainFrame(wx.Frame):
                                 value = [sample_list[v] for v in val]
 
                         elif ctrl.get_datatype() == 9:
+
                             value = val[0] # pass the dictionary straight up
                             '''
                             value = []
@@ -343,6 +344,7 @@ class MainFrame(wx.Frame):
                 #print "setting value in ctrl -->", value
                 #print "type -->", type(value)
                 ctrl.set_value(value)
+
 
     # Test the subject list
     def test_sublist(self, sublist):
@@ -1103,14 +1105,12 @@ class MainFrame(wx.Frame):
 
                     print>>f, label,":"
 
-                    f.write("  - ")
-
                     flag = 0
 
                     for entry in value.keys():
 
                         if flag == 0:
-                            string = ""
+                            string = "  - "
                             flag = 1
                         else:
                             string = "    "
@@ -1131,6 +1131,9 @@ class MainFrame(wx.Frame):
                                 string = string + "0"
 
                         print >>f, string
+
+                    if flag == 0:
+                        print >>f, "None"
 
                     print >>f, "\n"
 

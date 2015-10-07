@@ -3,7 +3,7 @@ from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFu
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
 from .sca import SCA, SCASettings #, MultipleRegressionSCA
-from .settings import Settings, ComputerSettings, WorkflowConfig, DirectorySettings# , DerivativesConfig
+from .settings import Settings, ComputerSettings, DirectorySettings #WorkflowConfig, DerivativesConfig
 from .nuisance import Nuisance, NuisanceRegression, MedianAngleCorrection, FilteringSettings, Scrubbing
 #from .motion import Motion, MotionOptions, Scrubbing
 from .centrality import CentralitySettings, Centrality
@@ -14,11 +14,11 @@ from .timeseries import TimeSeries, ROITimeseries, GenerateSeeds #VOXELTimeserie
 from .group_analysis import GroupAnalysis, GPASettings #, BASCSettings, BASC, CWAS, CWASSettings
 
 
-__all__ = ['WorkflowConfig', 'AnatomicalPreprocessing', \
-           'Segmentation',  'Registration', 'FunctionalPreProcessing',\
-           'MotionOptions', 'Scrubbing','AnatToFuncRegistration, FuncToMNIRegistration',\
+__all__ = ['AnatomicalPreprocessing', 'Segmentation', \
+           'Registration', 'FunctionalPreProcessing',\
+           'MotionOptions', 'Scrubbing','AnatToFuncRegistration',\
            'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings','TimeSeriesOptions', \
-           'SCA', 'SCASettings', \
+           'SCA', 'SCASettings', 'FuncToMNIRegistration', \
            'Settings', 'ComputerSettings', 'DirectorySettings', \
            'Nuisance', 'NuisanceRegression', 'MedianAngleCorrection',\
            'CentralitySettings', 'Centrality',\

@@ -83,7 +83,7 @@ class NuisanceRegression(wx.ScrolledWindow):
                       name='runFristonModel',
                       type=dtype.LSTR,
                       comment="Use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
-                      values=["On", "Off"])
+                      values=["On", "Off", "On/Off"])
 
 
         self.page.set_sizer()

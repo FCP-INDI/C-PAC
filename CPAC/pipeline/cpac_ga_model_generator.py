@@ -270,48 +270,28 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # get the parameter file so it can be passed to create_fsl_model.py
     # so MeanFD or other measures can be included in the design matrix
 
-    measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+    measure_list = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
 
     for measure in measure_list:
     
         if (measure in group_conf.design_formula):    
 
-            parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+            parameter_file = os.path.join(c.outputDirectory, p_id[0], \
+                                          '%s%s_all_params.csv' % \
+                                          (scan_ids[0].strip('_'),\
+                                          threshold_val))
 
-            if 1 in c.runGenerateMotionStatistics:
-
-                if not os.path.exists(parameter_file):
-                    print '\n\n[!] CPAC says: Could not find or open the motion ' \
-                          'parameter file. This is necessary if you have included ' \
-                          'any of the MeanFD measures in your group model.\n\n' \
-                          'If Generate Motion Statistics is enabled, this file can ' \
-                          'usually be found in the output directory of your ' \
-                          'individual-level analysis runs. If it is not there, ' \
-                          'double-check to see if individual-level analysis had ' \
-                          'completed successfully.\n'
-                    print 'Path not found: ', parameter_file, '\n\n'
-                    raise Exception
-
-            else:
-
-                def no_measures_error(measure):
-                    print '\n\n[!] CPAC says: The measure %s was included in ' \
-                          'your group analysis design matrix formula, but ' \
-                          'Generate Motion Statistics was not run during ' \
-                          'individual-level analysis.\n' % measure
-                    print 'Please run Generate Motion Statistics if you wish ' \
-                          'to include this measure in your model.\n'
-                    print 'If you HAVE completed a run with this option ' \
-                          'enabled, then you are seeing this error because ' \
-                          'the motion parameter file normally created by this ' \
-                          'option is missing.\n\n'
-                    raise Exception
-
-                for measure in measure_list:
-                    if (measure in group_conf.design_formula):
-                        no_measures_error(measure)
-
-                parameter_file = None
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not find or open the motion ' \
+                      'parameter file. This is necessary if you have included ' \
+                      'any of the MeanFD measures in your group model.\n\n' \
+                      'If Generate Motion Statistics is enabled, this file can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs. If it is not there, ' \
+                      'double-check to see if individual-level analysis had ' \
+                      'completed successfully.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
                 
             break
             
@@ -481,8 +461,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     ''' run create_fsl_model.py to generate the group analysis models '''
     
     from CPAC.utils import create_fsl_model
-    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, model_out_dir, roi_means_dict, True)
-
+    create_fsl_model.run(group_conf, current_output, parameter_file, \
+                             derivative_means_dict, roi_means_dict, True)
 
 
     ''' begin GA workflow setup '''
