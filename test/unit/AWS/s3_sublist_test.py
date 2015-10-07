@@ -82,6 +82,19 @@ class S3SublistTestCase(unittest.TestCase):
     # Get the filepaths in a list from the subject list
     def _return_filepaths(self, sublist):
         '''
+        Method to extract filepaths from a C-PAC subject list
+
+        Parameters
+        ----------
+        self : S3SublistTestCase
+            a unittest.TestCase-inherited class
+        sublist : list
+            a list of sub dictionaries (C-PAC subject list)
+
+        Returns
+        -------
+        file_paths : list
+            a list of filepaths as strings
         '''
 
         # Import packages
@@ -156,6 +169,13 @@ class S3SublistTestCase(unittest.TestCase):
     # Test for including specific sites
     def test_sublist_include_sites(self):
         '''
+        Method to test that the subject list builder includes only
+        desired sites
+
+        Parameters
+        ----------
+        self : S3SublistTestCase
+            a unittest.TestCase-inherited class
         '''
 
         # Import packages
@@ -190,6 +210,13 @@ class S3SublistTestCase(unittest.TestCase):
     # Test for including specific subs
     def test_sublist_include_subs(self):
         '''
+        Method to test that the subject list builder includes only
+        desired subjects
+
+        Parameters
+        ----------
+        self : S3SublistTestCase
+            a unittest.TestCase-inherited class
         '''
 
         # Import packages
@@ -224,6 +251,13 @@ class S3SublistTestCase(unittest.TestCase):
     # Test for excluding specific subs
     def test_sublist_exclude_subs(self):
         '''
+        Method to test that the subject list builder excludes only
+        non-desired subjects
+
+        Parameters
+        ----------
+        self : S3SublistTestCase
+            a unittest.TestCase-inherited class
         '''
 
         # Import packages
@@ -255,20 +289,6 @@ class S3SublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=err_msg)
-
-    # Include subjects test
-#     def test_include_subs_sublist(self):
-#         '''
-#         '''
-# 
-#         # Import packages
-#         import yaml
-#         from CPAC.AWS import s3_sublist
-# 
-#         # Init variables
-#         include_subs = ['0050142', '0050143', '0050144']
-# 
-#         # Write data config yaml file
 
 
 # Make module executable
