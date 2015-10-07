@@ -460,6 +460,27 @@ def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
     return smooth_arr
 
 
+# Download test resource from S3 bucket
+def download_resource_from_s3(s3_url_path):
+    '''
+    '''
+
+    # Import packages
+    import os
+    import urllib
+
+    # Init variables
+    url_open = urllib.URLopener()
+    base_name = os.path.basename(s3_url_path)
+    dl_path = os.path.join('/tmp', base_name)
+
+    # Download file to /tmp
+    url_open.retrieve(s3_url_path, os.path.join('/tmp', dl_path))
+
+    # Return the downloaded path
+    return dl_path
+
+
 # Setup log file
 def setup_test_logger(logger_name, log_file, level, to_screen=False):
     '''
