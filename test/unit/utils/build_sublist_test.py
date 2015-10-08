@@ -69,7 +69,7 @@ class BuildSublistTestCase(unittest.TestCase):
                             'scanParametersCSV' : scan_params_csv,
                             'outputSubjectListLocation' : sublist_outpath,
                             'subjectListName' : sublist_name,
-                            'credentialsPath' : None}
+                            'awsCredentialsFile' : None}
 
 
         # Add instance variables to TestCase

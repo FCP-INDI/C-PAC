@@ -310,7 +310,19 @@ def build_sublist(data_config_yml):
     scan_params_csv = data_config_dict['scanParametersCSV']
     sublist_outdir = data_config_dict['outputSubjectListLocation']
     sublist_name = data_config_dict['subjectListName']
-    creds_path = data_config_dict['credentialsPath']
+    creds_path = data_config_dict['awsCredentialsFile']
+
+    # Change any 'None' to None of optional arguments
+    if include_subs == 'None':
+        include_subs = None
+    if exclude_subs == 'None':
+        exclude_subs = None
+    if include_sites == 'None':
+        include_sites = None
+    if scan_params_csv == 'None':
+        scan_params_csv = None
+    if creds_path == 'None':
+        creds_path = None
 
     # See if the templates are s3 files
     if s3_str in anat_template and s3_str in func_template:
@@ -346,14 +358,19 @@ def build_sublist(data_config_yml):
 
     # Filter out unwanted anat and func filepaths
     anat_paths = filter_sub_paths(anat_paths, include_sites,
-                                     include_subs, exclude_subs,
-                                     anat_site_idx, anat_ppant_idx)
+                                  include_subs, exclude_subs,
+                                  anat_site_idx, anat_ppant_idx)
     print 'Filtered down to %d anatomical files' % len(anat_paths)
 
     func_paths = filter_sub_paths(func_paths, include_sites,
-                                     include_subs, exclude_subs,
-                                     func_site_idx, func_ppant_idx)
+                                  include_subs, exclude_subs,
+                                  func_site_idx, func_ppant_idx)
     print 'Filtered down to %d functional files' % len(func_paths)
+
+    if len(anat_paths) == 0 or len(func_paths) == 0:
+        err_msg = 'Unable to find any files after filtering sites and '\
+                  'subjects! Check site and subject inclusion/exclusion fields!'
+        raise Exception(err_msg)
 
     # Read in scan parameters and return site-based dictionary
     if scan_params_csv is not None:
@@ -403,7 +420,7 @@ def build_sublist(data_config_yml):
 
     # Write subject list out to out location
     sublist_out_yml = os.path.join(sublist_outdir,
-                                   sublist_name + '_subject_list.yml')
+                                   'CPAC_subject_list_%s.yml' % sublist_name)
     with open(sublist_out_yml, 'w') as out_sublist:
         # Make sure YAML doesn't dump aliases (so it's more human read-able)
         noalias_dumper = yaml.dumper.SafeDumper
