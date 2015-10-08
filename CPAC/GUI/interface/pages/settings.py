@@ -144,6 +144,25 @@ class DirectorySettings(wx.ScrolledWindow):
                       comment="Directory where CPAC should place processed data.",
                       validation_req=False)
 
+        self.page.add(label="AWS Input Bucket Credentials (optional) ",
+                      control=control.DIR_COMBO_BOX,
+                      name='awsInputBucketCredentials',
+                      type=dtype.STR,
+                      comment="If setting the subject list being used with "\
+                              "this pipeline configuration is using files "\
+                              "stored on a private S3 bucket, put the path to "\
+                              "your AWS credentials file here ",
+                      validation_req=False)
+
+        self.page.add(label="AWS Output Bucket Credentials (optional) ",
+                      control=control.DIR_COMBO_BOX,
+                      name='awsOutputBucketCredentials',
+                      type=dtype.STR,
+                      comment="If setting the \'Output Directory\' to an S3 "\
+                              "bucket, insert the path to your AWS credentials "\
+                              "file here.",
+                      validation_req=False)
+
         self.page.add(label="Create Symbolic Links ",
                       control=control.CHOICE_BOX,
                       name='runSymbolicLinks',

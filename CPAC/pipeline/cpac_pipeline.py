@@ -373,6 +373,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     strat_initial = None
 
+    # Extract credentials path if it exists
+    creds_path = str(c.awsInputBucketCredentials)
+    if os.path.exists(creds_path):
+        # Insert creds path to the workflow
+        input_creds_path = creds_path
+    else:
+        input_creds_path = None
+
     for gather_anat in c.runAnatomicalDataGathering:
         strat_initial = strategy()
 
@@ -380,6 +388,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             flow = create_anat_datasource()
             flow.inputs.inputnode.subject = subject_id
             flow.inputs.inputnode.anat = sub_dict['anat']
+            flow.inputs.inputnode.creds_path = input_creds_path
 
             anat_flow = flow.clone('anat_gather_%d' % num_strat)
 
@@ -1012,6 +1021,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             try: 
                 funcFlow = create_func_datasource(sub_dict['rest'], 'func_gather_%d' % num_strat)
                 funcFlow.inputs.inputnode.subject = subject_id
+                funcFlow.inputs.inputnode.creds_path = input_creds_path
             except Exception as xxx:
                 logger.info( "Error create_func_datasource failed."+\
                       " (%s:%d)" % dbg_file_lineno() )
@@ -5782,11 +5792,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: %s, ---- %s, ---- %s' % (strat_tag, hash_val, pipeline_id))
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
-    
+
+            # Extract credentials path for output if it exists
+            creds_path = str(c.awsOutputBucketCredentials)
+            if os.path.exists(creds_path):
+                creds_path = os.path.abspath(creds_path)
+            else:
+                creds_path = None
             for key in sorted(rp.keys()):
-    
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 ds.inputs.base_directory = c.outputDirectory
+                ds.inputs.creds_path = creds_path
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
