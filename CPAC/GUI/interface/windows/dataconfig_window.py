@@ -191,7 +191,8 @@ class DataConfig(wx.Frame):
     def onHelp(self, event):
             comment = "Check the box only if the scans have different slice timing infomation."
             wx.TipWindow(self, comment, 500)
-        
+
+    # Generate the subject list from config
     def run(self, config):
         '''
         '''
@@ -199,21 +200,31 @@ class DataConfig(wx.Frame):
         # Import packages
         import CPAC
 
+        # Try to build subject list from config
         try:
-            try:
-                config_map = yaml.load(open(config, 'r'))
-                out_location = os.path.join(\
-                               os.path.realpath(config_map.get('outputSubjectListLocation')),\
-                               'CPAC_subject_list_%s.yml' % config_map.get('subjectListName'))
-            except Exception, e:
-                print "Error loading data config file", e
-                raise 
+            # Load in configuration file
+            config_map = yaml.load(open(config, 'r'))
+            # Get subject list output path
+            out_location = os.path.join(\
+                           os.path.realpath(config_map.get('outputSubjectListLocation')),\
+                           'CPAC_subject_list_%s.yml' % config_map.get('subjectListName'))
 
-            print "executing extract data"
+            # Extract multiscan checkbox status
             multiscan = self.multiscan.IsChecked()
 
+            # Check if multiscan is checked
             if multiscan:
+                # Didn't set up s3-ification for multiscan yet...
+                if 's3://' in config_map.get('anatomicalTemplate') or \
+                   's3://' in config_map.get('functionalTemplate'):
+                    err_msg = 'S3 interaction currently not setup for multiscan '\
+                              'subject lists'
+                    raise Exception(err_msg)
+
+                # Build subject list from multiscan data
                 CPAC.utils.extract_data_multiscan.run(config)
+
+            # Otherwise, no build non-multiscan subject list
             else:
                 # Build the subject list from the data config
                 CPAC.utils.build_sublist.build_sublist(config)
@@ -229,6 +240,7 @@ class DataConfig(wx.Frame):
                 # Generate group analysis files and such
                 CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
 
+            # Prompt user with naming subject list for main GUI
             while True:
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a name for the Subject List',
                                                  'Sublist Name', '%s' % sublist_name)
@@ -246,26 +258,29 @@ class DataConfig(wx.Frame):
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
-
+            # Return value
             return 1
 
-
-        
-        except ImportError, e:
+        # Import error if CPAC not available
+        except ImportError as exc:
             wx.MessageBox("Error importing CPAC. Unable to run extract data tool.", "Error") 
             print "Error importing CPAC"
-            print e
+            print exc
             return -1
-        
-        except Exception, e:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%e,
+        # Problem reading in data from disk
+        except IOError as exc:
+            print "Error loading data config file", exc
+            return -1
+        # Catch any other exceptions
+        except Exception as exc:
+            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%exc,
                                'Error!',
                            wx.OK | wx.ICON_ERROR)
             dlg2.ShowModal()
             dlg2.Destroy()
             return -1
-         
 
+    # Save data config
     def save(self, event, flag):
         
         config_list =[]
@@ -295,10 +310,6 @@ class DataConfig(wx.Frame):
                     display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
-#                     if value.count('%s') != 2:
-#                         display(win,"Incorrect template, two \'%s\' values are required. One for site and another for"\
-#                                 " subject location in the path. Please refer to example!")
-                        
                     if value.startswith('%s'):
                         display(win, "Template cannot start with %s")
                         
