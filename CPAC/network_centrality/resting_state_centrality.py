@@ -139,6 +139,8 @@ def create_resting_state_graphs(allocated_memory = None,
                                                  function = calc_centrality),
                                    name = 'calculate_centrality')
     
+    calculate_centrality.interface.memory = allocated_memory
+
     # Connect inputspec node to main function node
     wf.connect(inputspec, 'subject', 
                calculate_centrality, 'datafile')

@@ -8,7 +8,7 @@ from CPAC.easy_thresh import easy_thresh
 
 def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     """
-    FSL `FEAT <http://www.fmrib.ox.ac.uk/fsl/feat5/index.html>`_
+    FSL `FEAT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT>`_
     BASED Group Analysis
 
     Parameters
@@ -117,7 +117,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     
     Order of commands:
 
-    - Merge all the Z-map 3D images into 4D image file.  For details see `fslmerge <http://www.fmrib.ox.ac.uk/fsl/avwutils/index.html>`_::
+    - Merge all the Z-map 3D images into 4D image file.  For details see `fslmerge <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils>`_::
     
         fslmerge -t sub01/sca/seed1/sca_Z_FWHM_merged.nii 
                     sub02/sca/seed1/sca_Z_FWHM.nii.gz ....  
@@ -126,7 +126,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
         arguments 
             -t : concatenate images in time
             
-    - Create mask specific for analysis. For details see `fslmaths <http://www.fmrib.ox.ac.uk/fslcourse/lectures/practicals/intro/index.htm#fslutils>`_::
+    - Create mask specific for analysis. For details see `fslmaths <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils>`_::
     
         fslmaths merged.nii.gz 
                 -abs -Tmin -bin mean_mask.nii.gz
@@ -136,7 +136,7 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
              -abs   : absolute value
              -bin   : use (current image>0) to binarise
     
-    - FSL FLAMEO to perform higher level analysis.  For details see `flameo <http://www.fmrib.ox.ac.uk/fsl/feat5/index.html>`_::
+    - FSL FLAMEO to perform higher level analysis.  For details see `flameo <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT>`_::
         
         flameo --copefile = merged.nii.gz --covsplitfile = anova_with_meanFD.grp --designfile = anova_with_meanFD.mat 
                --fcontrastsfile = anova_with_meanFD.fts --ld=stats --maskfile = mean_mask.nii.gz --runmode=ols 
