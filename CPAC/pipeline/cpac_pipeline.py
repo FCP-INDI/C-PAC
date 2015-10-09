@@ -539,7 +539,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     ('anat_mni_fnirt_register' not in nodes):
 
                 ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                        '_ants_register_%d' % num_strat, c.regWithSkull[0])
+                        '_ants_register_%d' % num_strat, c.regWithSkull[0], 
+                                            num_threads=c.num_ants_threads)
 
                 try:
 
@@ -5877,6 +5878,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         
         if plugin_args is None:
             plugin_args={'n_procs': c.numCoresPerSubject}
+
+
+
+        #set memory and num_threads of critical nodes if running ResourceMultiProcPlugin
+
+
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
