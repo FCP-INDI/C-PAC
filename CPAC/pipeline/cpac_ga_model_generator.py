@@ -233,15 +233,20 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     model_out_dir = os.path.join(group_conf.output_dir, 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
 
-    mod_path = os.path.join(out_dir, 'model_files')
-
+    mod_path = os.path.join(model_out_dir, 'model_files')
 
     if not os.path.isdir(mod_path):
         os.makedirs(mod_path)
 
+    current_mod_path = os.path.join(mod_path, resource)
+
+    if not os.path.isdir(current_mod_path):
+        os.makedirs(current_mod_path)
+
         
     ''' write the new subject list '''
-    new_sub_file = os.path.join(mod_path, os.path.basename(group_conf.subject_list))
+    new_sub_file = os.path.join(current_mod_path, \
+                                    os.path.basename(group_conf.subject_list))
 
     try:
 
@@ -415,7 +420,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                     
                     commands.getoutput("flirt -in %s -ref %s -o %s -applyxfm -init %s -interp nearestneighbour" % (group_conf.custom_roi_mask, derivative_path, resampled_roi_mask, c.identityMatrix))
                     
-                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))       
+                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))
                     
                 else:    
                         
@@ -462,7 +467,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     
     from CPAC.utils import create_fsl_model
     create_fsl_model.run(group_conf, current_output, parameter_file, \
-                             derivative_means_dict, roi_means_dict, True)
+                             derivative_means_dict, roi_means_dict, \
+                                 current_mod_path, True)
 
 
     ''' begin GA workflow setup '''
@@ -492,7 +498,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # directory and sends them to the create_group_analysis workflow gpa_wf
 
     gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
-    gp_flow.inputs.inputspec.grp_model = os.path.join(model_out_dir, "model_files", current_output)
+    gp_flow.inputs.inputspec.grp_model = os.path.join(mod_path, current_output)
     gp_flow.inputs.inputspec.model_name = group_conf.model_name
     gp_flow.inputs.inputspec.ftest = fTest
   

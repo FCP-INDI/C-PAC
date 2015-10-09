@@ -139,8 +139,6 @@ class ModelConfig(wx.Frame):
                               'ReHo (smoothed)',
                               'ROI Average SCA',
                               'ROI Average SCA (smoothed)',
-                              'Voxelwise SCA',
-                              'Voxelwise SCA (smoothed)',
                               'Dual Regression',
                               'Dual Regression (smoothed)',
                               'Multiple Regression SCA',
@@ -342,12 +340,7 @@ class ModelConfig(wx.Frame):
         win.SetFocus()
         win.Refresh()
         raise ValueError
-
-
-    def load_pheno(self,event):
-        pass
-
-    
+   
 
     ''' button: LOAD SETTINGS '''
     def load(self, event):
@@ -716,7 +709,7 @@ class ModelConfig(wx.Frame):
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
-                
+
             elif name == 'group_sep':
 
                 self.gpa_settings['group_sep'] = ctrl.get_selection()
@@ -871,7 +864,7 @@ class ModelConfig(wx.Frame):
                 for interaction_EV in both_EVs_in_interaction:
 
                     if (interaction_EV not in self.pheno_data_dict.keys()) and \
-                        interaction_EV != 'MeanFD' and \
+                        interaction_EV != 'MeanFD_Power' and \
                         interaction_EV != 'MeanFD_Jenkinson' and \
                         interaction_EV != 'Measure_Mean' and \
                         interaction_EV != 'Custom_ROI_Mean':
@@ -894,7 +887,7 @@ class ModelConfig(wx.Frame):
 
             else:
 
-                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
+                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD_Power' \
                     and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
                     and EV != 'Custom_ROI_Mean':
 
@@ -1199,8 +1192,8 @@ class ModelConfig(wx.Frame):
             patsy_formatted_pheno[regressor] = regressor_list
 
 
-        if 'MeanFD' in formula:
-            create_regressor_column('MeanFD')
+        if 'MeanFD_Power' in formula:
+            create_regressor_column('MeanFD_Power')
         if 'MeanFD_Jenkinson' in formula:
             create_regressor_column('MeanFD_Jenkinson')
         if 'Measure_Mean' in formula:
@@ -1227,7 +1220,6 @@ class ModelConfig(wx.Frame):
             formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
 
 
-
         if 'categorical' in self.gpa_settings['ev_selections']:
             for EV_name in self.gpa_settings['ev_selections']['categorical']:
 
@@ -1239,7 +1231,7 @@ class ModelConfig(wx.Frame):
 
 
         # create the dmatrix in Patsy just to see what the design matrix
-        # columns are going to be 
+        # columns are going to be
         try:
             dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
         except Exception as e:
@@ -1252,6 +1244,7 @@ class ModelConfig(wx.Frame):
             print "Patsy-format pheno: %s" % patsy_formatted_pheno
             print "Patsy error: %s" % e
             raise Exception
+
 
 
         column_names = dmatrix.design_info.column_names

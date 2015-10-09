@@ -333,7 +333,7 @@ class Control(wx.Control):
                          "analyses to run for each ROI path by listing 1's " \
                          "or 0's. For example, if you wish to run %s and " \
                          "%s, you would enter: '/path/to/ROI.nii.gz': " \
-                         "1,0,1,0" % (selections, selections[0], \
+                         "1,0,1" % (selections, selections[0], \
                          selections[2])
 
             self.help = self.help + add_string

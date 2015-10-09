@@ -1567,8 +1567,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     workflow_counter += 1
 
-    #if 1 in c.runGenerateMotionStatistics:
-
     workflow_bit_id['gen_motion_stats'] = workflow_counter
     for strat in strat_list:
 
@@ -1610,17 +1608,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         except:
             logConnectionError('Generate Motion Statistics', num_strat, strat.get_resource_pool(), '0009')
             raise
-
-        '''
-            if 0 in c.runGenerateMotionStatistics:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-        '''
 
         strat.append_name(gen_motion_stats.name)
 
@@ -3648,7 +3635,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             workflow.connect(node, out_file, calc_average, 'in_file')
             
             workflow.connect(calc_average, 'out_file', \
-                mean_to_csv, 'in_file')      
+                mean_to_csv, 'in_file')
         
         
         except:

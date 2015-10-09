@@ -438,6 +438,7 @@ def run(config_file, subject_list_file, p_name = None):
     create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
  
 
+    '''
     seeds_created = []
     if not (c.seedSpecificationFile is None):
 
@@ -448,7 +449,7 @@ def run(config_file, subject_list_file, p_name = None):
         except:
             raise IOError('Problem in seedSpecificationFile')
 
-    '''
+
     if 1 in c.runVoxelTimeseries:
 
         if 'roi_voxelwise' in c.useSeedInAnalysis:

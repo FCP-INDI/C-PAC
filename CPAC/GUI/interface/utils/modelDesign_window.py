@@ -144,12 +144,6 @@ class ModelDesign(wx.Frame):
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-#         run = wx.Button(btnPanel, ID_RUN, "Create Model", (
-#             280, -1), wx.DefaultSize, 0)
-#         self.Bind(wx.EVT_BUTTON, lambda event: self.save(
-#             event, 'run'), id=ID_RUN)
-#         hbox.Add(run, 0, flag=wx.LEFT | wx.ALIGN_LEFT, border=10)
-
         buffer1 = wx.StaticText(btnPanel, label="\t\t\t\t\t\t")
         hbox.Add(buffer1)
 

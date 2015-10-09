@@ -47,8 +47,6 @@ def merge(output_dir, scan_name, threshold, motion_f, power_f, flag):
         if flag:
             f = open(outfile, 'w')
 
-            print "Combining motion and power parameters into one CSV file: " \
-                  "%s\n" % outfile
             print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
             "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
             "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
@@ -106,10 +104,7 @@ def grab(output_dir, scrubbing):
 
     pipelines = glob.glob(os.path.join(output_dir, 'pipeline*'))
 
-    print "number of pipelines ", len(pipelines)
-
     for p in pipelines:
-        print "inside pipeline ->", os.path.basename(p)
         scan_list = []
         threshold_list = []
 
@@ -136,7 +131,6 @@ def grab(output_dir, scrubbing):
 
         for scan in scan_list:
             for threshold in threshold_list:
-                print "running for...", scan, threshold
                 Flag = 1
                 #merge files for each subject
                 for sub in os.listdir(p):
@@ -170,9 +164,6 @@ def grab(output_dir, scrubbing):
                             power_file, Flag)
 
                         Flag = 0
-                
-
-    print "Motion and Power parameters extraction process finished...\n"
 
     return threshold
 

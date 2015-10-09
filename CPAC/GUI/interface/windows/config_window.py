@@ -13,7 +13,6 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
     TimeSeries, ROITimeseries, \
-    GenerateSeeds, \
     GroupAnalysis, GPASettings, TimeSeriesOptions
     #BASC, CWAS, CWASSettings,\
     #DualRegression, DualRegressionOptions
@@ -57,7 +56,7 @@ class Mybook(wx.Treebook):
         page19 = Scrubbing(self, 4)
 
         page20 = TimeSeries(self)
-        page21 = GenerateSeeds(self)
+        #page21 = GenerateSeeds(self)
         page22 = ROITimeseries(self)
         #page23 = VOXELTimeseries(self)
         #page24 = VerticesTimeSeries(self)
@@ -121,8 +120,8 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
-        self.AddSubPage(page21, "Define New Seeds", wx.ID_ANY)
-        self.AddSubPage(page22, "ROI TSE Options", wx.ID_ANY)
+        #self.AddSubPage(page21, "Define New Seeds", wx.ID_ANY)
+        self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
         #self.AddSubPage(page23, "ROI Voxelwise TSE", wx.ID_ANY)
         #self.AddSubPage(page24, "Surface Vertices TSE", wx.ID_ANY)
         #self.AddSubPage(page25, "Spatial Regression", wx.ID_ANY)

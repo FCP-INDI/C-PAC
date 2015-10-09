@@ -10,7 +10,7 @@ from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 #from .filtering import Filtering, FilteringSettings
-from .timeseries import TimeSeries, ROITimeseries, GenerateSeeds #VOXELTimeseries, SpatialRegression, GenerateSeeds #, VerticesTimeSeries
+from .timeseries import TimeSeries, ROITimeseries #GenerateSeeds, VOXELTimeseries, SpatialRegression, GenerateSeeds, VerticesTimeSeries
 from .group_analysis import GroupAnalysis, GPASettings #, BASCSettings, BASC, CWAS, CWASSettings
 
 
@@ -26,6 +26,5 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GenerateSeeds', \
            'GroupAnalysis', 'GPASettings'] #, 'BASCSettings',\
            #'BASC', 'CWAS', 'CWASSettings']

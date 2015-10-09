@@ -759,7 +759,7 @@ class CheckBoxGrid(wx.Panel):
     def onMinusClick(self, event, entry):
         
         for control in self.entry_controls[entry]:
-            control.Destroy()
+            self.entry_controls[entry][control].Destroy()
 
         del self.entry_controls[entry]
 
@@ -771,11 +771,11 @@ class CheckBoxGrid(wx.Panel):
 
         for row in self.entry_controls:
             for control in self.entry_controls[row]:
-                control.Destroy()
+                self.entry_controls[row][control].Destroy()
 
         self.entry_controls = {}
 
-        self.idx = 100
+        #self.idx = 100
         self.y_pos = 0
 
         self.onReload_set_selections(self.choiceDict, internal=True)
@@ -790,7 +790,7 @@ class CheckBoxGrid(wx.Panel):
         x_pos = 5
 
         if entry not in self.entry_controls.keys():
-            self.entry_controls[entry] = []
+            self.entry_controls[entry] = {}
         else:
             errmsg = "This file path has already been entered."
             errCon = wx.MessageDialog(self, errmsg, "ROI Path Exists",
@@ -804,6 +804,7 @@ class CheckBoxGrid(wx.Panel):
             # checkbox for possible selection
             self.cb = wx.CheckBox(self.row_panel, id=self.idx+1, \
                                       pos=(x_pos,self.y_pos))
+
             self.cb.SetValue(False)
 
             self.cbValuesDict[self.idx+1] = [entry, selection, False]
@@ -811,7 +812,7 @@ class CheckBoxGrid(wx.Panel):
             self.cb.Bind(wx.EVT_CHECKBOX, \
                              lambda event: self.onCheck_UpdateValue(event))
 
-            self.entry_controls[entry].append(self.cb)
+            self.entry_controls[entry][selection] = self.cb
 
             # increment IDs
             self.idx += 1
@@ -823,7 +824,7 @@ class CheckBoxGrid(wx.Panel):
                         'GUI/resources/images/minus9.jpg'), \
                         wx.BITMAP_TYPE_ANY)
         self.button = wx.BitmapButton(self.row_panel, -1, bmp, \
-                                      #size=(bmp.GetWidth(), bmp.GetHeight()),\
+                                    #size=(bmp.GetWidth(), bmp.GetHeight()),\
                                       pos=(x_pos,self.y_pos))
         self.button.Bind(wx.EVT_BUTTON, \
                              lambda event: self.onMinusClick(event, entry))
@@ -831,8 +832,8 @@ class CheckBoxGrid(wx.Panel):
         self.path_text = wx.StaticText(self.row_panel, label=entry, \
                                            pos=(x_pos+30,self.y_pos))
 
-        self.entry_controls[entry].append(self.button)
-        self.entry_controls[entry].append(self.path_text)
+        self.entry_controls[entry]["minus_button"] = self.button
+        self.entry_controls[entry]["filepath_label"] = self.path_text
 
                          
         # just a nice amount to space the rows out by
@@ -849,6 +850,7 @@ class CheckBoxGrid(wx.Panel):
         self.scrollWin.SetVirtualSize((w,h))
             
 
+    '''
     def setup_checkbox_grid_values_for_gpa(self, value_list):
 
         # this is for when all of the checkbox grid row entries get populated
@@ -865,7 +867,7 @@ class CheckBoxGrid(wx.Panel):
         self.categoricalCBValues = []
         self.demeanCBValues = []
 
-        self.maxIDNum = (len(value_list)*2)+101
+        #self.maxIDNum = (len(value_list)*2)+101
 
         # clear the checkbox grid panel in case its already populated
         self.scrollWin.DestroyChildren()
@@ -933,6 +935,7 @@ class CheckBoxGrid(wx.Panel):
 
         w,h = self.grid_sizer.GetMinSize()
         self.scrollWin.SetVirtualSize((w,h))
+    '''
 
 
     def onCheck_UpdateValue(self, event=None):
@@ -945,7 +948,29 @@ class CheckBoxGrid(wx.Panel):
             if selection not in self.choiceDict.keys():
                 self.choiceDict[selection] = []
                
+            for filepath in self.entry_controls.keys():
 
+                # self.entry_controls[filepath] is another dictionary
+
+                # and this is a checkbox
+                cb_val = self.entry_controls[filepath][selection].GetValue()
+
+                if cb_val == True:
+
+                    if filepath not in self.choiceDict.keys():
+                        self.choiceDict[filepath] = []
+
+                    if selection not in self.choiceDict[filepath]:
+                        self.choiceDict[filepath].append(selection)
+
+                else:
+
+                    if filepath in self.choiceDict.keys():
+
+                        if selection in self.choiceDict[filepath]:
+                            self.choiceDict[filepath].remove(selection)
+
+        '''
         for idNum in range(101,self.idx+1):
 
             try:
@@ -979,17 +1004,18 @@ class CheckBoxGrid(wx.Panel):
 
             except:
                 pass
+        '''
 
 
-            for roi_path in self.choiceDict.keys():
+        for roi_path in self.choiceDict.keys():
 
-                if len(self.choiceDict[roi_path]) == 0:
-                    del self.choiceDict[roi_path]
+            if len(self.choiceDict[roi_path]) == 0:
+                del self.choiceDict[roi_path]
 
-            # after this is done, self.choiceDict will be a dictionary with a
-            # format similar to:
-            #     {"/path/to/ROI1.nii.gz": ["Avg","Voxel"],
-            #      "/path/to/ROI2.nii.gz": ["PC1","Mult Reg"]}
+        # after this is done, self.choiceDict will be a dictionary with a
+        # format similar to:
+        #     {"Avg": ["/path/to/ROI1.nii.gz","/path/to/ROI2.nii.gz"],
+        #      "Voxel": ["/path/to/ROI1.nii.gz","/path/to/ROI3.nii.gz"]}
 
 
     def onReload_set_selections(self, choice_dict, internal=False):
@@ -1001,21 +1027,23 @@ class CheckBoxGrid(wx.Panel):
 
             if not internal:
 
-                # file_selections is the string of digits loaded from the pipeline
-                # config YAML file denoting the user's choices for each ROI path
-                # entry, ex. "1,1,0,0"
+                # file_selections is the string of digits loaded from the
+                # pipeline config YAML file denoting the user's choices for
+                # each ROI path entry, ex. "1,1,0,0"
                 file_selections = choice_dict[entry]
                 file_selections = file_selections.split(",")
 
                 choice_dict[entry] = []
 
-                # convert the digits back into the string names of the selections
-                # for each ROI path
+                # convert the digits back into the string names of the
+                # selections for each ROI path
                 for digit,option in zip(file_selections,self.selections):
                     if digit == "1":
                         choice_dict[entry].append(option)
 
         # re-populate selections
+
+        '''
         for cb_id in self.cbValuesDict.keys():
             
             # path to file
@@ -1025,11 +1053,20 @@ class CheckBoxGrid(wx.Panel):
             cb_option = self.cbValuesDict[cb_id][1]
 
             if cb_option in choice_dict[cb_name]:
-                try:
-                    cb = wx.FindWindowById(cb_id)
+                #try:
+                cb = wx.FindWindowById(cb_id)
+                cb.SetValue(True)
+                #except:
+                #    pass
+        '''
+
+        for entry in self.entry_controls:
+
+            for ctrl in self.entry_controls[entry]:
+
+                if ctrl in choice_dict[entry]:
+                    cb = self.entry_controls[entry][ctrl]
                     cb.SetValue(True)
-                except:
-                    pass
 
         # update the choiceDict
         self.onCheck_UpdateValue()
@@ -1038,8 +1075,8 @@ class CheckBoxGrid(wx.Panel):
     def GetGridSelection(self):
         return self.choiceDict
 
-        
-        
+
+
 class GPAModelCheckBoxGrid(wx.Panel):
     
     def __init__(self, parent, idx, values, size):
@@ -1075,6 +1112,9 @@ class GPAModelCheckBoxGrid(wx.Panel):
         # for returning previous values when boxes come out from
         # being grayed out
         self.tempChoiceDict = {}
+
+        # dictionary of checkbox controls
+        self.cb_dict = {}
         
         # dictionary of 3 lists, each list is a list of chars
         # of either '1' or '0', a list for include, categorical,
@@ -1089,29 +1129,19 @@ class GPAModelCheckBoxGrid(wx.Panel):
         self.cbDict['categorical'] = self.categoricalCBList
         self.cbDict['demean'] = self.demeanCBList
 
-
-        '''
-        for idNum in range(100,self.maxIDNum):
-        
-            self.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event, idNum, wx.FindWindowById(idNum)), wx.FindWindowById(idNum))
-        '''
-
-
-
         
     def set_checkbox_grid_values(self, value_list):
 
         j = 0
         self.idx = 100
-        self.includeCBList = []
+
         self.categoricalCBList = []
         self.demeanCBList = []
         
-        self.includeCBValues = []
         self.categoricalCBValues = []
         self.demeanCBValues = []
 
-        self.maxIDNum = (len(value_list)*2)+101
+        #self.maxIDNum = (len(value_list)*2)+101
 
         # clear the checkbox grid panel in case its already populated
         self.scrollWin.DestroyChildren()
@@ -1144,6 +1174,11 @@ class GPAModelCheckBoxGrid(wx.Panel):
             
             self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
 
+            if name not in self.cb_dict.keys():
+                self.cb_dict[name] = {}
+
+            self.cb_dict[name]["categorical"] = self.cb
+
             
             
             # Demean checkbox for header item
@@ -1155,6 +1190,9 @@ class GPAModelCheckBoxGrid(wx.Panel):
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
             self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+
+
+            self.cb_dict[name]["demean"] = self.cb
                       
                 
             # just a nice amount to space the checkboxes out by
@@ -1169,7 +1207,7 @@ class GPAModelCheckBoxGrid(wx.Panel):
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
 
-        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        meanFDP_label = wx.StaticText(row_panel, label='MeanFD_Power (demeaned)', pos=(5,j))
         
         meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
 
@@ -1186,46 +1224,28 @@ class GPAModelCheckBoxGrid(wx.Panel):
         self.scrollWin.SetVirtualSize((w,h))
 
 
-
-
     def onReload_set_selections(self, ev_selections):
 
-        self.choiceCategoricalList = []
-        self.choiceDemeanList = []
+        self.choiceDict["categorical"] = []
+        self.choiceDict["demean"] = []
 
-        for cb_id in self.cbValuesDict.keys():
-            
-            cb_name = self.cbValuesDict[cb_id][0]
+        for ev_name in self.cb_dict:
 
+            if "categorical" in ev_selections.keys():
 
-            if 'categorical' in ev_selections.keys():
+                if ev_name in ev_selections["categorical"]:
 
-                if (cb_name in ev_selections['categorical']) and (cb_id % 2 != 0):
+                    self.cb_dict[ev_name]["categorical"].SetValue(True)
 
-                    cb = wx.FindWindowById(cb_id)
-                    cb.SetValue(True)
+                    self.choiceDict["categorical"].append(ev_name)
 
-                    self.choiceCategoricalList.append(cb_name)
+            if "demean" in ev_selections.keys():
 
+                if ev_name in ev_selections["demean"]:
 
-            if 'demean' in ev_selections.keys():
+                    self.cb_dict[ev_name]["demean"].SetValue(True)
 
-                if (cb_name in ev_selections['demean']) and (cb_id % 2 == 0):
-
-                    cb = wx.FindWindowById(cb_id)
-                    cb.SetValue(True)
-
-                    self.choiceDemeanList.append(cb_name)
-
-
-
-        self.choiceDict['categorical'] = self.choiceCategoricalList                
-        self.choiceDict['demean'] = self.choiceDemeanList
-
-
-        
-
-
+                    self.choiceDict["demean"].append(ev_name)     
 
         
     def onCheck_UpdateValue(self, event):#, idNum):
@@ -1234,17 +1254,51 @@ class GPAModelCheckBoxGrid(wx.Panel):
         # and then GetValue from all idx, and update value for that idx
         
         # then have another function which returns this entire dict
-               
+
+        for ev_name in self.cb_dict:
+
+            for selection in self.cb_dict[ev_name]:
+
+                cb = self.cb_dict[ev_name][selection]
+                cb_val = cb.GetValue()
+
+                if selection == "categorical":
+
+                    if cb_val == True:
+
+                        self.choiceDict["categorical"].append(ev_name)
+
+                        if (ev_name,"demean") not in self.tempChoiceDict.keys():
+                            self.tempChoiceDict[(ev_name, "demean")] = self.cb_dict[ev_name]["demean"].GetValue()
+
+                        # set demean to N/A
+                        self.cb_dict[ev_name]["demean"].Set3StateValue(2)
+
+                    else:
+
+                        if (ev_name,"demean") in self.tempChoiceDict.keys():
+                            self.cb_dict[ev_name]["demean"].SetValue(self.tempChoiceDict[(ev_name,"demean")])
+                            del self.tempChoiceDict[(ev_name,"demean")]
+
+                elif selection == "demean":
+
+                    if cb_val == True:
+                        self.choiceDict["demean"].append(ev_name)
+
+
+
+
+        '''
         self.choiceCategoricalList = []
         self.choiceDemeanList = []
 
 
-        for idNum in range(101,self.maxIDNum):
+        for idNum in range(101,self.idx+1):
                
             self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()
         
 
-        for idNum in range(101,self.maxIDNum):           
+        for idNum in range(101,self.idx+1):           
      
             if self.cbValuesDict[idNum][1] == 'categorical':
                 
@@ -1277,6 +1331,7 @@ class GPAModelCheckBoxGrid(wx.Panel):
                              
         self.choiceDict['categorical'] = self.choiceCategoricalList                
         self.choiceDict['demean'] = self.choiceDemeanList
+        '''
 
 
         

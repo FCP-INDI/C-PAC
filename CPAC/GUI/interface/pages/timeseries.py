@@ -22,7 +22,7 @@ class TimeSeries(wx.html.HtmlWindow):
         return self.counter
 
 
-
+'''
 class GenerateSeeds(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
@@ -64,7 +64,7 @@ class GenerateSeeds(wx.ScrolledWindow):
 
     def get_counter(self):
             return self.counter
-
+'''
 
 
 class ROITimeseries(wx.ScrolledWindow):

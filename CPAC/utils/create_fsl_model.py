@@ -191,7 +191,7 @@ def insert_new_regressor(pheno_data_dict, measure_dict, sub_id_label, \
                 idx = np.where(pheno_data_dict[sub_id_label]==subID)[0][0]
 
                 # insert value in the proper point
-                measure_list[idx] = float(measure_dict[subID][measure_name])
+                measure_list[idx] = float(measure_dict[subID])#[measure_name])
 
 
     # time to demean the values
@@ -417,6 +417,9 @@ def check_multicollinearity(matrix):
 def write_mat_file(design_matrix, output_dir, model_name, \
                        depatsified_EV_names, current_output=None):
 
+    import os
+    import numpy as np
+
     dimx = None
     dimy = None
 
@@ -436,15 +439,14 @@ def write_mat_file(design_matrix, output_dir, model_name, \
     ppstring += '\n'
 
 
-    if current_output == None:
-        # if running this script alone outside of CPAC
-        out_path = os.path.join(output_dir, model_name + ".mat")
-    else:
-        out_path = os.path.join(output_dir, "model_files", current_output, \
-                                    model_name + '.mat')
+    filename = model_name + ".mat"
+
+    out_file = os.path.join(output_dir, filename)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
 
-    with open(out_path, 'wt') as f:
+    with open(out_file, 'wt') as f:
 
         print >>f, '/NumWaves\t%d' %dimy
         print >>f, '/NumPoints\t%d' %dimx
@@ -467,6 +469,9 @@ def write_mat_file(design_matrix, output_dir, model_name, \
 def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
                         model_name, current_output=None):
 
+    import os
+    import numpy as np
+
     dimx = None
     dimy = None
 
@@ -488,15 +493,14 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
             i += 1
 
 
-    if current_output == None:
-        # if running this script alone outside of CPAC
-        out_path = os.path.join(output_dir, model_name + ".grp")
-    else:
-        out_path = os.path.join(output_dir, "model_files", current_output, \
-                                    model_name + '.grp')
+    filename = model_name + ".grp"
+
+    out_file = os.path.join(output_dir, filename)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
 
-    with open(out_path, "wt") as f:
+    with open(out_file, "wt") as f:
 
         print >>f, '/NumWaves\t1'
         print >>f, '/NumPoints\t%d\n' %dimx
@@ -596,9 +600,6 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
 
 
     # start adding additional created EVs
-
-    ''' MeanFD MUST BE CHANGED TO MeanFD_Power FOR THIS!!! '''
-
     if new_regressor_dict:
 
         for measure in new_regressor_dict.keys():
@@ -609,7 +610,7 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
                 measure_dict = new_regressor_dict[measure]
 
                 pheno_data_dict = insert_new_regressor(pheno_data_dict, \
-                                                       measure_dict, \
+                                                       measure_dict,\
                                                        subject_id_label, \
                                                        measure)
 
@@ -627,13 +628,14 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
 
         roi_dict_dict = get_custom_roi_info(roi_means_dict)
 
-
         add_formula_string = ""
 
         for roi_column in roi_dict_dict.keys():
 
+            roi_dict = roi_dict_dict[roi_column]
+
             pheno_data_dict = insert_new_regressor(pheno_data_dict, \
-                                                   roi_dict_dict[roi_column],\
+                                                   roi_dict,\
                                                    subject_id_label,
                                                    roi_column)
 
@@ -691,6 +693,8 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
                 'correspond to the EVs listed in your phenotype file?\n'
         print 'Phenotype file provided: '
         print pheno_file, '\n\n'
+        print "Phenotypic data columns (regressors): ", pheno_data_dict.keys()
+        print "Formula: %s" % formula
         raise Exception
 
 
@@ -762,20 +766,23 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
 
 
     # write the .mat file finally
-    write_mat_file(design_matrix, current_output, output_dir, model_name, \
-                       depatsified_EV_names)
+    write_mat_file(design_matrix, output_dir, model_name, \
+                       depatsified_EV_names, current_output)
 
 
     # write the .grp file also
-    create_grp_file(design_matrix, grouping_var_id_dict, current_output, \
-                        output_dir, model_name)
+    create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
+                        model_name, current_output)
 
 
-    return design_matrix, depatsified_EV_names
+    # return the PATSY OBJECT of dmatrix, not the Numpy array "design_matrix"
+    return dmatrix, depatsified_EV_names
 
 
 
 def positive(dmat, a, coding, group_sep, grouping_var):
+
+    import numpy as np
 
     # this is also where the "Intercept" column gets introduced into
     # the contrasts columns, for when the user uses the model builder's
@@ -875,8 +882,9 @@ def create_dummy_string(length):
 
 def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
 
-    with open(os.path.join(out_dir, "model_files", current_output, \
-                  file_name) + ".con",'w+') as f:
+    import os
+
+    with open(os.path.join(out_dir, file_name) + ".con",'w+') as f:
 
         # write header
         num = 1
@@ -911,13 +919,15 @@ def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
 def create_fts_file(ftest_list, con_dict, model_name, current_output, \
                         out_dir):
 
+    import os
+    import numpy as np
+
     try:
 
         print "\nFound f-tests in your model, writing f-tests file " \
               "(.fts)..\n"
 
-        with open(os.path.join(out_dir, "model_files", current_output, \
-                      model_name + '.fts'), 'w') as f:
+        with open(os.path.join(out_dir, model_name + '.fts'), 'w') as f:
 
             print >>f, '/NumWaves\t', len(con_dict)
             print >>f, '/NumContrasts\t', len(ftest_list)
@@ -976,6 +986,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     """
 
     import os
+    import numpy as np
 
     with open(con_file,"r") as f:
         evs = f.readline()
@@ -1098,8 +1109,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
 
 
-    out_dir = os.path.join(output_dir, "model_files", current_output, \
-                               model_name + '.con')
+    out_dir = os.path.join(output_dir, model_name + '.con')
 
     with open(out_dir,"wt") as f:
 
@@ -1134,8 +1144,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
         print "\nFound f-tests in your model, writing f-tests file (.fts)..\n"
 
-        ftest_out_dir = os.path.join(output_dir, "model_files", \
-                                         current_output, model_name + '.fts')
+        ftest_out_dir = os.path.join(output_dir, model_name + '.fts')
 
         with open(ftest_out_dir,"wt") as f:
 
@@ -1237,7 +1246,8 @@ def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
 
 
 def run(group_config, current_output, param_file=None, \
-            derivative_means_dict=None, roi_means_dict=None, CPAC_run=True):
+            derivative_means_dict=None, roi_means_dict=None, \
+                model_out_dir=None, CPAC_run=True):
 
     import os
     import csv
@@ -1267,13 +1277,13 @@ def run(group_config, current_output, param_file=None, \
 
     formula = c.design_formula
 
-    coding_scheme = c.coding_scheme
+    coding_scheme = c.coding_scheme[0]
 
     group_sep = c.group_sep
 
     grouping_var = c.grouping_var
 
-    contrasts = c.constrasts
+    contrasts = c.contrasts
 
     f_tests = c.f_tests
 
@@ -1295,6 +1305,9 @@ def run(group_config, current_output, param_file=None, \
         raise Exception
 
 
+
+    measure_dict = {}
+
     # extract motion measures
     if param_file != None:
 
@@ -1310,36 +1323,33 @@ def run(group_config, current_output, param_file=None, \
 
         measures = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
 
-        try:
 
-            with open(param_file,"r") as f:
+        with open(param_file,"r") as f:
 
-                measure_dict = {}
+            param_dictreader = csv.DictReader(f)
 
-                for line in f:
-                    measure_map = {}
-                    for m in measures:
-                        if line.get(m):
-                            measure_map[m] = line[m]
+            motion_param_lines = []
 
-                measure_dict[line['Subject']] = measure_map
+            for line in param_dictreader:
+                # each "line" is a dictionary
+                motion_param_lines.append(line)
 
-        except:
+            for m in measures:
 
-            err = "[!] CPAC says: I couldn't read the motion parameters " \
-                  "CSV file! Failed to extract the motion parameters needed "\
-                  "to insert into the group model as new regressors.\n" \
-                  "CSV file that didn't work: %s" % param_file
-            raise Exception(err)
+                measure_map = {}
+                for sub in motion_param_lines:
 
-        # combine the motion measures dictionary with the measure_mean
-        # dictionary (if it exists)
-        if derivative_means_dict:
-            measure_dict.update(derivative_means_dict)
+                    if m in sub.keys():
+                        measure_map[sub["Subject"]] = sub[m]
 
-    elif param_file == None:
+                measure_dict[m] = measure_map
 
-        measure_dict = derivative_means_dict
+
+
+    # combine the motion measures dictionary with the measure_mean
+    # dictionary (if it exists)
+    if derivative_means_dict:
+        measure_dict["Measure_Mean"] = derivative_means_dict
 
 
     # create the .mat and .grp files for FLAME
@@ -1347,7 +1357,7 @@ def run(group_config, current_output, param_file=None, \
                                          ev_selections, formula, \
                                          subject_id_label, coding_scheme, \
                                          grouping_var, measure_dict, \
-                                         roi_means_dict, output_dir, \
+                                         roi_means_dict, model_out_dir, \
                                          model_name, current_output)
            
 
@@ -1490,12 +1500,12 @@ def run(group_config, current_output, param_file=None, \
         print "Writing contrasts file (.con) based on contrasts provided " \
               "using the group analysis model builder's contrasts editor.."
 
-        create_con_file(contrasts_dict, depatsified_EV_names, model_name,\
-                            current_output, output_dir)         
+        create_con_file(contrasts_dict, regressor_names, model_name, \
+                            current_output, model_out_dir)         
         
         if f_tests:
             create_fts_file(f_tests, contrasts_dict, model_name, \
-                                current_output, output_dir)
+                                current_output, model_out_dir)
     
 
     else:
@@ -1504,7 +1514,7 @@ def run(group_config, current_output, param_file=None, \
               "with a custom contrasts matrix CSV file..\n"
 
         create_con_ftst_file(custom_contrasts, model_name, current_output, \
-                                 output_dir, depatsified_EV_names, \
+                                 model_out_dir, regressor_names, \
                                  coding_scheme, group_sep)
 
 

@@ -59,9 +59,6 @@ runScrubbing,Run Scrubbing,Scrubbing Options
 scrubbingThreshold,Framewise Displacement (FD) Threshold (mm),Scrubbing Options
 numRemovePrecedingFrames,Number of Preceeding Volumes to Remove,Scrubbing Options
 numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Scrubbing Options
-seedSpecificationFile,Seed Specification File,Define New Seeds
-seedOutputLocation,Seed Output Directory,Define New Seeds
-useSeedInAnalysis,Use New Seeds In,Define New Seeds
 runROITimeseries,Extract ROI Average Time Series,ROI TSE Options
 tsa_roi_paths,TSE ROI Paths,ROI TSE Options
 runSCA,Run Seed-based Correlation Analysis,SCA Options

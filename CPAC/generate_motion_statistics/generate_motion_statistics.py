@@ -1,6 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+
 def calc_friston_twenty_four(in_file):
     """
     Method to calculate friston twenty four parameters
@@ -356,20 +357,21 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            output_names=['out_file'],
                                            function=calculate_DVARS),
                              name='cal_DVARS')
+
     ##calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
     
     ###Calculating mean Framewise Displacement as per power et al., 2012
-    calculate_FD = pe.Node(util.Function(input_names=['in_file'],
+    calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_P),
                              name='calculate_FD')
     
     pm.connect(inputNode, 'movement_parameters', 
-               calculate_FD, 'in_file' )
+               calculate_FDP, 'in_file' )
     
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                outputNode, 'FD_1D')
     
     ###Calculating mean Framewise Displacement as per jenkinson et al., 2002   
@@ -393,7 +395,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            function=set_frames_ex),
                              name='exclude_frames')
 
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                exclude_frames, 'in_file')
     pm.connect(scrubbing_input, 'threshold', 
                exclude_frames, 'threshold')
@@ -412,7 +414,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            output_names=['out_file'],
                                            function=set_frames_in),
                              name='include_frames')
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                include_frames, 'in_file')
     pm.connect(scrubbing_input, 'threshold', 
                include_frames, 'threshold')
@@ -458,8 +460,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                calc_power_parameters, 'scan_id')
     pm.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'DVARS')
-    pm.connect(calculate_FD, 'out_file',
-               calc_power_parameters, 'FD_1D')
+    pm.connect(calculate_FDP, 'out_file',
+               calc_power_parameters, 'FDP_1D')
     pm.connect(calculate_FDJ, 'out_file',
                calc_power_parameters, 'FDJ_1D')
     pm.connect(scrubbing_input, 'threshold',
