@@ -516,14 +516,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         if ('ANTS' in c.regOption) and \
                 ('anat_mni_fnirt_register' not in nodes):
 
-<<<<<<< HEAD
             ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                    '_ants_register_%d' % num_strat, c.regWithSkull[0])
-=======
-                ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                        '_ants_register_%d' % num_strat, c.regWithSkull[0], 
+                    '_ants_register_%d' % num_strat, c.regWithSkull[0], 
                                             num_threads=c.num_ants_threads)
->>>>>>> 58f0a19c64ce01a95f6b9c19dad02e9b6247552e
+
 
             try:
 
