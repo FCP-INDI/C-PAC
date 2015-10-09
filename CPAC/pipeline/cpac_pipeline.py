@@ -111,7 +111,7 @@ class strategy:
 
     
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin='MultiProc', plugin_args=None):
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -516,8 +516,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         if ('ANTS' in c.regOption) and \
                 ('anat_mni_fnirt_register' not in nodes):
 
+<<<<<<< HEAD
             ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
                     '_ants_register_%d' % num_strat, c.regWithSkull[0])
+=======
+                ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
+                        '_ants_register_%d' % num_strat, c.regWithSkull[0], 
+                                            num_threads=c.num_ants_threads)
+>>>>>>> 58f0a19c64ce01a95f6b9c19dad02e9b6247552e
 
             try:
 
@@ -5955,9 +5961,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         subject_info_pickle.close()
         
+        if plugin_args is None:
+            plugin_args={'n_procs': c.numCoresPerSubject}
+
+
+
+        #set memory and num_threads of critical nodes if running ResourceMultiProcPlugin
+
+
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        workflow.run(plugin=plugin, plugin_args=plugin_args)
         
 
         subject_info['status'] = 'Completed'
@@ -6154,7 +6168,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 # Run the prep_workflow function with specific arguments
 def run(config, subject_list_file, indx, strategies,
         maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
-        p_name=None, **kwargs):
+        p_name=None, plugin=None, plugin_args=None):
     '''
     Function to build and execute the complete workflow
 
@@ -6176,6 +6190,10 @@ def run(config, subject_list_file, indx, strategies,
         filepath to the template-specification file
     p_name : string (optional)
         name of the pipeline configuration
+    plugin : string (optional)
+        name of the plugin  used to schedule nodes
+    plugin_args : dict (optional)
+        arguments of plugin
     creds_path : string (optional)
         filepath to the AWS keys credentials file
     bucket_name : string (optional)
@@ -6236,9 +6254,10 @@ def run(config, subject_list_file, indx, strategies,
     c.roiSpecificationFile = roiSpecificationFile
     c.templateSpecificationFile = templateSpecificationFile
 
+
     try:
         # Build and run the pipeline
-        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name)
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args= p_args)
     except Exception as e:
         print 'Could not complete cpac run for subject: %s!' % sub_id
         print 'Error: %s' % e
