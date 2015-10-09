@@ -2,16 +2,15 @@ from .anatomical import AnatomicalPreprocessing, Segmentation,  Registration
 from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, FuncToMNIRegistration
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
-from .sca import SCA, SCASettings #, MultipleRegressionSCA
-from .settings import Settings, ComputerSettings, DirectorySettings #WorkflowConfig, DerivativesConfig
-from .nuisance import Nuisance, NuisanceRegression, MedianAngleCorrection, FilteringSettings, Scrubbing
-#from .motion import Motion, MotionOptions, Scrubbing
+from .sca import SCA, SCASettings
+from .settings import Settings, ComputerSettings, DirectorySettings
+from .nuisance import Nuisance, NuisanceRegression, MedianAngleCorrection, \
+                          FilteringSettings, Scrubbing
 from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
-#from .filtering import Filtering, FilteringSettings
-from .timeseries import TimeSeries, ROITimeseries #GenerateSeeds, VOXELTimeseries, SpatialRegression, GenerateSeeds, VerticesTimeSeries
-from .group_analysis import GroupAnalysis, GPASettings #, BASCSettings, BASC, CWAS, CWASSettings
+from .timeseries import TimeSeries, ROITimeseries
+from .group_analysis import GroupAnalysis, GPASettings
 
 
 __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
@@ -26,5 +25,4 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings'] #, 'BASCSettings',\
-           #'BASC', 'CWAS', 'CWASSettings']
+           'GroupAnalysis', 'GPASettings']

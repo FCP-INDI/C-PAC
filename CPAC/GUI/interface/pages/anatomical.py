@@ -6,6 +6,7 @@ from ..utils.validator import CharValidator
 import os
 import pkg_resources as p
 
+
 class AnatomicalPreprocessing(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
@@ -14,21 +15,12 @@ class AnatomicalPreprocessing(wx.html.HtmlWindow):
         self.SetStandardFonts()
         
         self.counter = counter
-        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/anat.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/anat.html')
-#            else:
-#                self.LoadFile('html/anat.html')
-#        except:
-#            self.LoadFile('html/anat.html')
-            
+        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))            
             
     def get_counter(self):
         return self.counter
             
+
 
 class Segmentation(wx.ScrolledWindow):
 
@@ -109,6 +101,8 @@ class Segmentation(wx.ScrolledWindow):
 
     def get_counter(self):
         return self.counter
+    
+
     
 class Registration(wx.ScrolledWindow):
     def __init__(self, parent, counter = 0):

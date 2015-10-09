@@ -10,14 +10,16 @@ import pkg_resources as p
 class FileSelectorCombo(wx.combo.ComboCtrl):
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
-        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder3.gif')))
+        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', \
+                                     'GUI/resources/images/folder3.gif')))
         self.SetButtonBitmaps(bmp, False)
         
     # Overridden from ComboCtrl, called when the combo button is clicked
     def OnButtonClick(self):
         path = ""
         name = ""
-        wildcard = "CPAC files (*.gz,*.nii,*.txt,*.mat.*.cnf,*.sch,*.csv)|*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv"
+        wildcard = "CPAC files (*.gz,*.nii,*.txt,*.mat.*.cnf,*.sch,*.csv)|" \
+                   "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv"
         if self.GetValue():
             path, name = os.path.split(self.GetValue())
         
@@ -37,7 +39,8 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
 class FSLModelSelectorCombo(wx.combo.ComboCtrl):
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
-        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder3.gif')))
+        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', \
+                                     'GUI/resources/images/folder3.gif')))
         self.SetButtonBitmaps(bmp, False)
         
     # Overridden from ComboCtrl, called when the combo button is clicked
@@ -67,7 +70,8 @@ class DirSelectorCombo(wx.combo.ComboCtrl):
     
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
-        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/folder7.gif')))
+        bmp = wx.BitmapFromImage(wx.Image(p.resource_filename('CPAC', \
+                                     'GUI/resources/images/folder7.gif')))
         self.SetButtonBitmaps(bmp, False)
         
     # Overridden from ComboCtrl, called when the combo button is clicked
@@ -93,7 +97,8 @@ class DirSelectorCombo(wx.combo.ComboCtrl):
 class CheckBox(wx.Frame):
     
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, title="Select Corrections", size = (200,230))
+        wx.Frame.__init__(self, parent, title="Select Regressors", \
+                              size = (200,230))
         sizer = wx.BoxSizer(wx.VERTICAL)
         
         panel = wx.Panel(self)
@@ -124,7 +129,9 @@ class CheckBox(wx.Frame):
 class TextBoxFrame(wx.Frame):
 
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, title="Enter Frequency Cutoffs (in Hz)", size = (300,140))
+        wx.Frame.__init__(self, parent, \
+                              title="Enter Frequency Cutoffs (in Hz)", \
+                              size = (300,140))
         
         panel = wx.Panel(self)
         
@@ -163,7 +170,8 @@ class TextBoxFrame(wx.Frame):
         if self.box1.GetValue() and self.box2.GetValue():
             
             if self.box1.GetValue() >= self.box2.GetValue():
-                dlg = wx.MessageDialog(self, 'Lower Bound should be less than Upper Bound',
+                dlg = wx.MessageDialog(self, "Lower Bound should be less " \
+                                       "than Upper Bound',
                                        'Error!',
                                    wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()
@@ -178,7 +186,8 @@ class TextBoxFrame(wx.Frame):
 class FilepathBoxFrame(wx.Frame):
 
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title="Enter File Path", size=(520,90))
+        wx.Frame.__init__(self, parent, title="Enter File Path", \
+                              size=(520,90))
         
         panel = wx.Panel(self)
         
@@ -230,37 +239,31 @@ class FilepathBoxFrame(wx.Frame):
 class ConfigFslFrame(wx.Frame):
     
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, title="Specify FSL Model and Subject List", size = (680,200))
+        wx.Frame.__init__(self, parent, \
+                              title="Specify FSL Model and Subject List", \
+                              size = (680,200))
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
         
-        button1 = wx.Button(panel, -1, 'Create or Load FSL Model', size= (210,50))
+        button1 = wx.Button(panel, -1, 'Create or Load FSL Model', \
+                                size= (210,50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(button1, 0, wx.ALIGN_CENTER|wx.TOP, border = 15)
         
         flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
-        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-#         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-#         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-#         help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
-#                                  pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
-#         help1.Bind(wx.EVT_BUTTON, lambda event: \
-#                          self.OnShowDoc(event, 1))
-        
-#         label1 = wx.StaticText(panel, -1, label = 'Model Directory ')
-#         self.box1 = DirSelectorCombo(panel, id = wx.ID_ANY, size = (500, -1))
-#         hbox1.Add(label1)
-#         hbox1.Add(help1)
-# 
-#         flexsizer.Add(hbox1)
-#         flexsizer.Add(self.box1,flag = wx.EXPAND | wx.ALL)
+        img = wx.Image(p.resource_filename('CPAC', \
+                                           'GUI/resources/images/help.png'),\
+                                         wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+
         
         label2 = wx.StaticText(panel, -1, label = 'FSL Model Config')
-        self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
+        self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY, \
+                                          size = (500, -1))
         
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         help2 = wx.BitmapButton(panel, id=-1, bitmap=img,
-                                 pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
+                                pos=(10, 20), size = (img.GetWidth()+5, \
+                                img.GetHeight()+5))
         help2.Bind(wx.EVT_BUTTON, lambda event: \
                          self.OnShowDoc(event, 2))
         
@@ -299,21 +302,20 @@ class ConfigFslFrame(wx.Frame):
             parent.listbox.Append(val)
             self.Close()
         else:
-             wx.MessageBox("Please provide the path to the fsl model config file.")
-        
-#         if self.box1.GetValue() and self.box2.GetValue():
-#                 val = [str(self.box1.GetValue()) , str(self.box2.GetValue())]
-#                 parent.listbox.Append(str(val))
-#                 self.Close()
-#         else:
-#             wx.MessageBox("Please provide the path for the model directory and subject list.")
+             wx.MessageBox("Please provide the path to the fsl model " \
+                               "config file.")
 
     def OnShowDoc(self, event, flag):
         if flag == 1:
-            wx.TipWindow(self, "Full path to a directory containing files for a single FSL model. All models must include .con, .mat, and .grp files. Models in which an F-Test is specified must also include a .fts file.", 500)
+            wx.TipWindow(self, "Full path to a directory containing files " \
+                               "for a single FSL model. All models must " \
+                               "include .con, .mat, and .grp files. Models " \
+                               "in which an F-Test is specified must also " \
+                               "include a .fts file.", 500)
         elif flag == 2:
-            #wx.TipWindow(self, "Full path to a subject list to be used with this model.\n\nThis should be a text file with one subject per line.", 500)
-            wx.TipWindow(self, "Full path to a CPAC FSL model configuration file to be used.\n\nFor more information, please refer to the user guide.", 500)
+            wx.TipWindow(self, "Full path to a CPAC FSL model configuration "\
+                               "file to be used.\n\nFor more information, " \
+                               "please refer to the user guide.", 500)
 
 
 
@@ -429,7 +431,8 @@ class ContrastsFrame(wx.Frame):
 class f_test_frame(wx.Frame):
     
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, title="Select Contrasts for f-Test", size = (280,200))
+        wx.Frame.__init__(self, parent, title="Select Contrasts for f-Test", \
+                              size = (280,200))
         sizer = wx.BoxSizer(wx.VERTICAL)
         
         panel = wx.Panel(self)
@@ -481,10 +484,14 @@ class ListBoxCombo(wx.Panel):
         
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.values = values
-        self.listbox = wx.CheckListBox(self, id = wx.ID_ANY, size = size, style = wx.LB_HSCROLL)
+        self.listbox = wx.CheckListBox(self, id = wx.ID_ANY, size = size, \
+                                           style = wx.LB_HSCROLL)
         self.listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.onHover)
-        bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/plus12.jpg'), wx.BITMAP_TYPE_ANY)
-        self.button = wx.BitmapButton(self, -1, bmp,size = (bmp.GetWidth(), bmp.GetHeight()))# size= (30,30))
+        bmp = wx.Bitmap(p.resource_filename('CPAC', \
+                                          'GUI/resources/images/plus12.jpg'),\
+                                          wx.BITMAP_TYPE_ANY)
+        self.button = wx.BitmapButton(self, -1, bmp,size = (bmp.GetWidth(), \
+                                                            bmp.GetHeight()))
         self.button.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(self.listbox,wx.EXPAND | wx.ALL, 10)
         sizer.Add(self.button)
@@ -516,7 +523,8 @@ class ListBoxCombo(wx.Panel):
                 #     because the GUI only saves the ones that are checked
                 self.listbox.SetCheckedStrings(values)
 
-                # have to do this to make sure the f-test option list populates
+                # have to do this to make sure the f-test option list
+                # populates
                 self.raise_listbox_options()
 
 
@@ -553,8 +561,8 @@ class ListBoxCombo(wx.Panel):
             ContrastsFrame(self, self.values, self.avail_cons)
         elif self.ctype == 5:         
 
-            # here: get the contrasts.csv and populate "self.parent.input_contrasts"
-            # if custom_contrasts is a thing:
+            # here: get the contrasts.csv and populate 
+            # "self.parent.input_contrasts" if custom_contrasts is a thing:
 
             input_contrasts = self.parent.input_contrasts
 
@@ -567,8 +575,8 @@ class ListBoxCombo(wx.Panel):
 
                 errmsg = "Please input at least two contrasts before " \
                              "attempting to enter f-test selections."
-                errCon = wx.MessageDialog(self, errmsg, "Not Enough Contrasts",
-                         wx.OK | wx.ICON_ERROR)
+                errCon = wx.MessageDialog(self, errmsg, \
+                         "Not Enough Contrasts", wx.OK | wx.ICON_ERROR)
                 errCon.ShowModal()
                 errCon.Destroy()
 
@@ -589,11 +597,15 @@ class ListBoxCombo(wx.Panel):
             tip.SetTarget(self)
             tip.SetBalloonColour(wx.WHITE)
             # Set the font for the balloon title
-            tip.SetTitleFont(wx.Font(15, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False))
+            tip.SetTitleFont(wx.Font(15, wx.FONTFAMILY_SWISS, \
+                                         wx.FONTSTYLE_NORMAL, \
+                                         wx.FONTWEIGHT_BOLD, False))
             # Set the colour for the balloon title
             tip.SetTitleColour(wx.BLACK)
             # Leave the message font as default
-            tip.SetMessageFont(wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False))
+            tip.SetMessageFont(wx.Font(9, wx.FONTFAMILY_SWISS, \
+                                       wx.FONTSTYLE_NORMAL, \
+                                       wx.FONTWEIGHT_BOLD, False))
             # Set the message (tip) foreground colour
             tip.SetMessageColour(wx.BLUE)
 
@@ -622,12 +634,15 @@ class ListBoxCombo(wx.Panel):
 class ParametersCheckBox(wx.Frame):
     
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title="Select EV as measures from CPAC", size = (300,130))
+        wx.Frame.__init__(self, parent, \
+                              title = "Select EV as measures from CPAC", \
+                              size = (300,130))
         sizer = wx.BoxSizer(wx.VERTICAL)
         
         panel = wx.Panel(self)
         self.ctrl = wx.CheckListBox(panel, id = wx.ID_ANY,
-                                    choices = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS'])
+                                    choices = ['MeanFD', 'MeanFD_Jenkinson', \
+                                                   'MeanDVARS'])
         button = wx.Button(panel, -1, 'OK', size= (90,30))
         button.Bind(wx.EVT_BUTTON, self.onButtonClick)
         sizer.Add(self.ctrl, 1, wx.EXPAND | wx.ALL, 10)
@@ -658,7 +673,9 @@ class ParametersCheckBox(wx.Frame):
 class TextBoxCombo(wx.combo.ComboCtrl):
     def __init__(self, *args, **kw):
         wx.combo.ComboCtrl.__init__(self, *args, **kw)
-        bmp = wx.Bitmap(p.resource_filename('CPAC', 'GUI/resources/images/plus12.jpg'), wx.BITMAP_TYPE_ANY)
+        bmp = wx.Bitmap(p.resource_filename('CPAC', \
+                                          'GUI/resources/images/plus12.jpg'),\
+                                          wx.BITMAP_TYPE_ANY)
         self.SetButtonBitmaps(bmp, False)
         
     # Overridden from ComboCtrl, called when the combo button is clicked
@@ -707,14 +724,6 @@ class CheckBoxGrid(wx.Panel):
 
 
         self.idx = 100
-
-        #window_sizer.Add(self.scrollWin, proportion=200, flag=wx.EXPAND | wx.ALL)
-        #button_sizer.Add(self.button, proportion=0)
-
-        #all_sizer.Add(self.scrollWin, flag=wx.EXPAND | wx.ALL) #window_sizer)
-        #all_sizer.Add(button_sizer)
-
-        #self.SetSizer(all_sizer)
 
         self.grid_sizer = wx.GridBagSizer(wx.VERTICAL)
 
@@ -896,7 +905,8 @@ class CheckBoxGrid(wx.Panel):
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+            self.cb.Bind(wx.EVT_CHECKBOX, \
+                             lambda event: self.onCheck_UpdateValue(event))
             
             # Demean checkbox for header item
             self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))
@@ -906,7 +916,8 @@ class CheckBoxGrid(wx.Panel):
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+            self.cb.Bind(wx.EVT_CHECKBOX, \
+                             lambda event: self.onCheck_UpdateValue(event))
                       
                 
             # just a nice amount to space the checkboxes out by
@@ -920,13 +931,21 @@ class CheckBoxGrid(wx.Panel):
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
 
-        meanFD_label = wx.StaticText(row_panel, label='MeanFD (demeaned)', pos=(5,j))
+        meanFDP_label = wx.StaticText(row_panel, \
+                                      label='MeanFD_Power (demeaned)', \
+                                      pos=(5,j))
         
-        meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
+        meanFDJ_label = wx.StaticText(row_panel, \
+                                      label='MeanFD_Jenkinson (demeaned)', \
+                                      pos=(5,j+30))
 
-        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
+        measure_mean_label = wx.StaticText(row_panel, \
+                                           label='Measure_Mean (demeaned)', \
+                                           pos=(5,j+60))
 
-        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
+        custom_roi_mean_label = wx.StaticText(row_panel, \
+                                          label='Custom_ROI_Mean (demeaned)',\
+                                          pos=(5,j+90))
 
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know
@@ -969,42 +988,6 @@ class CheckBoxGrid(wx.Panel):
 
                         if selection in self.choiceDict[filepath]:
                             self.choiceDict[filepath].remove(selection)
-
-        '''
-        for idNum in range(101,self.idx+1):
-
-            try:
-                self.cbValuesDict[idNum][2] = \
-                    wx.FindWindowById(idNum).GetValue()
-            except:
-                pass
-        
-
-        for idNum in range(101,self.idx+1):
-
-            try:
-                entry_name = self.cbValuesDict[idNum][0]
-                selection = self.cbValuesDict[idNum][1]
-                value = self.cbValuesDict[idNum][2]
-
-                if value == True:
-
-                    if entry_name not in self.choiceDict.keys():
-                        self.choiceDict[entry_name] = []
-
-                    if selection not in self.choiceDict[entry_name]:
-                        self.choiceDict[entry_name].append(selection)
-
-                else:
-
-                    if entry_name in self.choiceDict.keys():
-
-                        if selection in self.choiceDict[entry_name]:
-                            self.choiceDict[entry_name].remove(selection)
-
-            except:
-                pass
-        '''
 
 
         for roi_path in self.choiceDict.keys():
@@ -1080,10 +1063,11 @@ class CheckBoxGrid(wx.Panel):
 class GPAModelCheckBoxGrid(wx.Panel):
     
     def __init__(self, parent, idx, values, size):
+
         wx.Panel.__init__(self, parent, id=idx, size=size)
-        #wx.ScrolledWindow.__init__(self, parent, id=idx, size=size, style=wx.VSCROLL)
         
-        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), style=wx.VSCROLL)  #wx.SUNKEN_BORDER) #wx.SUNKEN_BORDER | wx.VSCROLL)
+        self.scrollWin = wx.ScrolledWindow(self, pos=(0,25), size=(450,205), \
+                                               style=wx.VSCROLL)
         self.scrollWin.SetBackgroundColour(wx.WHITE)
 
 
@@ -1172,7 +1156,8 @@ class GPAModelCheckBoxGrid(wx.Panel):
             
             self.cbValuesDict[self.idx+1] = [name, 'categorical', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+            self.cb.Bind(wx.EVT_CHECKBOX, \
+                             lambda event: self.onCheck_UpdateValue(event))
 
             if name not in self.cb_dict.keys():
                 self.cb_dict[name] = {}
@@ -1182,14 +1167,15 @@ class GPAModelCheckBoxGrid(wx.Panel):
             
             
             # Demean checkbox for header item
-            self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))#, style=wx.CHK_3STATE)
+            self.cb = wx.CheckBox(row_panel, id=self.idx+2, pos=(400,j))
             self.cb.SetValue(False)
             self.demeanCBList.append(self.cb)
 
             
             self.cbValuesDict[self.idx+2] = [name, 'demean', False]
             
-            self.cb.Bind(wx.EVT_CHECKBOX, lambda event: self.onCheck_UpdateValue(event))
+            self.cb.Bind(wx.EVT_CHECKBOX, \
+                             lambda event: self.onCheck_UpdateValue(event))
 
 
             self.cb_dict[name]["demean"] = self.cb
@@ -1207,13 +1193,21 @@ class GPAModelCheckBoxGrid(wx.Panel):
         # individual-level analysis as labels in the Model Setup checkbox
         # to remind users that they can include these into the design formula
 
-        meanFDP_label = wx.StaticText(row_panel, label='MeanFD_Power (demeaned)', pos=(5,j))
+        meanFDP_label = wx.StaticText(row_panel, \
+                                          label='MeanFD_Power (demeaned)', \
+                                          pos=(5,j))
         
-        meanFDJ_label = wx.StaticText(row_panel, label='MeanFD_Jenkinson (demeaned)', pos=(5,j+30))
+        meanFDJ_label = wx.StaticText(row_panel, \
+                                         label='MeanFD_Jenkinson (demeaned)',\
+                                         pos=(5,j+30))
 
-        measure_mean_label = wx.StaticText(row_panel, label='Measure_Mean (demeaned)', pos=(5,j+60))
+        measure_mean_label = wx.StaticText(row_panel, \
+                                             label='Measure_Mean (demeaned)',\
+                                             pos=(5,j+60))
 
-        custom_roi_mean_label = wx.StaticText(row_panel, label='Custom_ROI_Mean (demeaned)', pos=(5,j+90))
+        custom_roi_mean_label = wx.StaticText(row_panel, \
+                                          label='Custom_ROI_Mean (demeaned)',\
+                                          pos=(5,j+90))
 
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know
@@ -1269,7 +1263,8 @@ class GPAModelCheckBoxGrid(wx.Panel):
                         self.choiceDict["categorical"].append(ev_name)
 
                         if (ev_name,"demean") not in self.tempChoiceDict.keys():
-                            self.tempChoiceDict[(ev_name, "demean")] = self.cb_dict[ev_name]["demean"].GetValue()
+                            self.tempChoiceDict[(ev_name, "demean")] = \
+                                self.cb_dict[ev_name]["demean"].GetValue()
 
                         # set demean to N/A
                         self.cb_dict[ev_name]["demean"].Set3StateValue(2)
@@ -1277,7 +1272,8 @@ class GPAModelCheckBoxGrid(wx.Panel):
                     else:
 
                         if (ev_name,"demean") in self.tempChoiceDict.keys():
-                            self.cb_dict[ev_name]["demean"].SetValue(self.tempChoiceDict[(ev_name,"demean")])
+                            val = self.tempChoiceDict[(ev_name,"demean")]
+                            self.cb_dict[ev_name]["demean"].SetValue(val)
                             del self.tempChoiceDict[(ev_name,"demean")]
 
                 elif selection == "demean":
@@ -1285,59 +1281,8 @@ class GPAModelCheckBoxGrid(wx.Panel):
                     if cb_val == True:
                         self.choiceDict["demean"].append(ev_name)
 
-
-
-
-        '''
-        self.choiceCategoricalList = []
-        self.choiceDemeanList = []
-
-
-        for idNum in range(101,self.idx+1):
-               
-            self.cbValuesDict[idNum][2] = wx.FindWindowById(idNum).GetValue()
-        
-
-        for idNum in range(101,self.idx+1):           
-     
-            if self.cbValuesDict[idNum][1] == 'categorical':
-                
-                if self.cbValuesDict[idNum][2] == True:
-                    self.choiceCategoricalList.append(self.cbValuesDict[idNum][0])
-                    
-                    if ('demean',idNum+1) not in self.tempChoiceDict.keys():
-                        self.tempChoiceDict[('demean',idNum+1)] = wx.FindWindowById(idNum+1).GetValue()
-
-                    wx.FindWindowById(idNum+1).Set3StateValue(2)  # set demean to N/A
-
-                else:
-                    #self.choiceCategoricalList.append('0')
-                    
-                    #wx.FindWindowById(idNum+1).Set3StateValue(0)  # undo demean as N/A
-                    if ('demean',idNum+1) in self.tempChoiceDict.keys():
-                        wx.FindWindowById(idNum+1).SetValue(self.tempChoiceDict[('demean',idNum+1)])
-                        del self.tempChoiceDict[('demean',idNum+1)]
-                        #wx.FindWindowById(idNum+1).Set3StateValue(0)  # undo demean as N/A
-                        #wx.FindWindowById(idNum+1).SetValue(self.tempChoiceDict[('demean',idNum+1)])
-                    
-            elif self.cbValuesDict[idNum][1] == 'demean':
-                
-                if self.cbValuesDict[idNum][2] == True:
-                    self.choiceDemeanList.append(self.cbValuesDict[idNum][0])
-                #else:
-                    #self.choiceDemeanList.append('0')
-                     
-        
-                             
-        self.choiceDict['categorical'] = self.choiceCategoricalList                
-        self.choiceDict['demean'] = self.choiceDemeanList
-        '''
-
-
         
     def GetGridSelection(self):
         return self.choiceDict
-
-
 
 
