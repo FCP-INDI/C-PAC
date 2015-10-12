@@ -171,7 +171,7 @@ class TextBoxFrame(wx.Frame):
             
             if self.box1.GetValue() >= self.box2.GetValue():
                 dlg = wx.MessageDialog(self, "Lower Bound should be less " \
-                                       "than Upper Bound',
+                                       "than Upper Bound",
                                        'Error!',
                                    wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()

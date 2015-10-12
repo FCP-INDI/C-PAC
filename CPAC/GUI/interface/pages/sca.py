@@ -39,7 +39,11 @@ class SCASettings(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='runSCA', 
                      type=dtype.LSTR, 
-                     comment="For each extracted ROI Average and/or ROI Voxelwise time series, CPAC will generate a whole-brain correlation map.\n\nIt should be noted that for a given seed/ROI, SCA maps for ROI Average and ROI Voxelwise time series will be the same.", 
+                     comment="For each extracted ROI Average time series, " \
+                             "CPAC will generate a whole-brain correlation " \
+                             "map.\n\nIt should be noted that for a given " \
+                             "seed/ROI, SCA maps for ROI Average time " \
+                             "series will be the same.", 
                      values=["Off","On"],
                      wkf_switch = True)
 
@@ -50,7 +54,7 @@ class SCASettings(wx.ScrolledWindow):
                       values = '',
                       selections = ["Avg","DualReg","MultReg"],
                       comment="Enter paths to region-of-interest (ROI) " \
-                              "NIFTI files (.nii,.nii.gz) to be used for " \
+                              "NIFTI files (.nii or .nii.gz) to be used for "\
                               "time-series extraction, and then select " \
                               "which types of analyses to run.",
                       size = (450, -1))

@@ -928,53 +928,62 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     import numpy as np
     from numpy import loadtxt
 
-    out_file = os.path.join(os.getcwd(), 'pow_params.txt')
-
-    f= open(out_file,'w')
-    print >>f, "Subject,Scan,MeanFD,MeanFD_Jenkinson," \
-    "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
-    "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
-
-    f.write("%s," % subject_id)
-    f.write("%s," % scan_id)
-
     powersFD_data = loadtxt(FD_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
     #Mean (across time/frames) of the absolute values 
     #for Framewise Displacement (FD)
-    meanFD  = np.mean(powersFD_data)
-    f.write('%.4f,' % meanFD)
+    meanFD_Power  = np.mean(powersFD_data)
     
     #Mean FD Jenkinson
     meanFD_Jenkinson = np.mean(jenkFD_data)
-    f.write('%.4f,' % meanFD_Jenkinson)
     
     #Number of frames (time points) where movement 
     #(FD) exceeded threshold
     numFD = float(jenkFD_data[jenkFD_data > threshold].size)
-    f.write('%.4f,' % numFD)
     
     #Root mean square (RMS; across time/frames) 
     #of the absolute values for FD
     rmsFD = np.sqrt(np.mean(jenkFD_data))
-    f.write('%.4f,' % rmsFD)
 
     #Mean of the top quartile of FD is $FDquartile
     quat=int(len(jenkFD_data)/4)
     FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
-    f.write('%.4f,' % FDquartile)
 
     ##NUMBER OF FRAMES >threshold FD as percentage of total num frames
     count = np.float(jenkFD_data[jenkFD_data>threshold].size)
     percentFD = (count*100/(len(jenkFD_data)+1))
-    f.write('%.4f,' %percentFD)
 
     #Mean DVARS 
     meanDVARS = np.mean(np.load(DVARS))
-    f.write('%.4f,' % meanDVARS)
+
+
+    out_file = os.path.join(os.getcwd(), 'pow_params.txt')
+
+    with open(out_file,'w') as f:
+      
+        print >>f, "Subject,Scan,MeanFD_Power,MeanFD_Jenkinson," \
+        "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
+        "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
+
+        f.write("%s," % subject_id)
+        f.write("%s," % scan_id)
+
+        f.write('%.4f,' % meanFD_Power)
+
+        f.write('%.4f,' % meanFD_Jenkinson)
+
+        f.write('%.4f,' % numFD)
+
+        f.write('%.4f,' % rmsFD)
+
+        f.write('%.4f,' % FDquartile)
+
+        f.write('%.4f,' % percentFD)
+
+        f.write('%.4f' % meanDVARS)
+
     
-    f.close()
     return out_file
 
 

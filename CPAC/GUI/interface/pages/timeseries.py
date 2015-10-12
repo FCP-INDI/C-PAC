@@ -70,6 +70,7 @@ class GenerateSeeds(wx.ScrolledWindow):
 class ROITimeseries(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
+
         import os
 
         wx.ScrolledWindow.__init__(self, parent)
@@ -82,7 +83,9 @@ class ROITimeseries(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='runROITimeseries',
                       type=dtype.LSTR,
-                      comment="Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.",
+                      comment="Extract the average time series of one or " \
+                              "more ROIs/seeds. Must be enabled if you wish "\
+                              "to run Seed-based Correlation Analysis.",
                       values=["Off", "On"],
                       wkf_switch=True)
 
@@ -93,7 +96,7 @@ class ROITimeseries(wx.ScrolledWindow):
                       values = '',
                       selections = ["Avg","Voxel","SpatialReg"],
                       comment="Enter paths to region-of-interest (ROI) " \
-                              "NIFTI files (.nii,.nii.gz) to be used for " \
+                              "NIFTI files (.nii or .nii.gz) to be used for "\
                               "time-series extraction, and then select " \
                               "which types of analyses to run.",
                       size = (450, -1))
@@ -131,7 +134,10 @@ class ROITimeseries(wx.ScrolledWindow):
                       name="roiTSOutputs",
                       type=dtype.LBOOL,
                       values=['CSV', 'NUMPY'],
-                      comment="By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.")
+                      comment="By default, extracted time series are " \
+                              "written as both a text file and a 1D file. " \
+                              "Additional output formats are as a .csv " \
+                              "spreadsheet or a Numpy array.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
