@@ -382,7 +382,7 @@ def build_sublist(data_config_yml):
         site = anat_sp[anat_site_idx]
         subj = anat_sp[anat_ppant_idx]
         sess = anat_sp[anat_sess_idx]
-        subj_d = {'anat' : anat, 'rest' : {},
+        subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
                   'subject_id' : subj, 'unique_id' : sess}
         if scan_params_csv is not None:
             try:

@@ -374,10 +374,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     strat_initial = None
 
     # Extract credentials path if it exists
-    creds_path = str(c.awsInputBucketCredentials)
-    if os.path.exists(creds_path):
-        # Insert creds path to the workflow
-        input_creds_path = creds_path
+    creds_path = sub_dict['creds_path']
+    if creds_path and os.path.exists(creds_path):
+        input_creds_path = os.path.abspath(creds_path)
     else:
         input_creds_path = None
 
@@ -397,8 +396,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         num_strat += 1
 
         strat_list.append(strat_initial)
-
-
 
     '''
     Inserting Anatomical Preprocessing workflow
