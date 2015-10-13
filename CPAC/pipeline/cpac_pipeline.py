@@ -5900,7 +5900,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+        workflow.run(plugin='ResourceMultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
         
 
         subject_info['status'] = 'Completed'

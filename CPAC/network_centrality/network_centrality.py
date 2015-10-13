@@ -84,12 +84,107 @@ class afniDegreeCentrality(CommandLine):
 
 
 # Calculate eigenvector centrality from one_d file
-def calc_eigen_from_1d(one_d_file, num_threads=1):
+def parse_and_return_mats(one_d_file):
+    '''
+    '''
+
+    # Import packages
+    import re
+    import numpy as np
+    import scipy.sparse as sparse
+
+    # Init variables
+    # Capture all positive/negative floats/ints
+    reg_pattern = r'[-+]?\d*\.\d+|[-+]?\d+'
+
+    # Parse one_d file
+    print 'Reading 1D file...'
+    with open(one_d_file, 'r') as fopen:
+        lines = fopen.readlines()
+
+    # Store line and build a list of numbers
+    affine_line = lines[2]
+    affine_elements = re.findall(reg_pattern, affine_line)
+    # Store into numpy array and reshape, grab only 3x3 and
+    # cast as floating point
+    affine_matrix = np.array(affine_elements)
+    affine_matrix = affine_matrix.reshape((4,4))[:3,:3].astype('float32')
+
+    # Store line and build a list of numbers
+    extents_line = lines[4]
+    extents_elements = re.findall(reg_pattern, extents_line)
+    # Store as tuple of integers
+    img_dims = tuple([int(el) for el in extents_elements])
+    # Get the one-dim size of matrix
+    one_d = np.prod(img_dims)
+
+    # Parse out numbers
+    print 'Parsing contents...'
+    graph = [re.findall(reg_pattern, line) for line in lines[6:]]
+
+    # Cast as numpy arrays and extract i, j, w
+    print 'Creating arrays...'
+    graph_arr = np.array(graph)
+    i_array = graph_arr[:,0].astype('int32')
+    j_array = graph_arr[:,1].astype('int32')
+    w_array = graph_arr[:,-1].astype('float32')
+
+    # Construct the sparse matrix
+    print 'Constructing sparse matrix...'
+    mat_upper_tri = sparse.coo_matrix((w_array, (i_array, j_array)),
+                                      shape=(one_d, one_d))
+
+    # Make symmetric
+    similarity_matrix = mat_upper_tri + mat_upper_tri.T
+
+    # Return the symmetric matrix
+    return similarity_matrix, affine_matrix
+
+
+# Calculate eigenvector centrality from one_d file
+def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     '''
     '''
 
     # Import packages
     import os
+
+    import nibabel as nib
+    import numpy as np
+    import scipy.sparse.linalg as linalg
+
+    from CPAC.network_centrality import utils
+
+    # Init variables
+    num_eigs = 1
+    which_eigs = 'LM'
+    max_iter = 1000
+
+    # See if mask was ROI atlas or mask file
+    mask_img = nib.load(mask_file).get_data()
+    if len(np.unique(mask_img) > 2):
+        template_type = 1
+    else:
+        template_type = 0
+
+    # Temporarily set MKL threads to num_threads for this process only
+    os.system('export MKL_NUM_THREADS=%d' % num_threads)
+
+    # Get the similarity matrix from the 1D file
+    sim_matrix, affine_matrix = parse_and_return_mats(one_d_file)
+
+    # Use scipy's sparse linalg library to get eigen-values/vectors
+    eig_val, eig_vect = linalg.eigsh(sim_matrix, k=num_eigs, which=which_eigs,
+                                     maxiter=max_iter)
+
+    # Create eigenvector tuple
+    centrality_tuple = ('eigenvector_centrality', np.abs(eig_vect))
+
+    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, affine_matrix,
+                                                mask_file, template_type)
+
+    # Return the eigenvector output file
+    return eigen_outfile
 
 
 # Return the network centrality workflow
@@ -107,7 +202,8 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
 
     # Define main input/function node
     afni_centrality_node = \
-        pe.Node(interface=afniDegreeCentrality(environ={'OMP_NUM_THREADS' : num_threads}),
+        pe.Node(interface=\
+                afniDegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
                 name='afni_degree_centrality')
 
     # Limit its num_threads and memory via ResourceMultiProc plugin
