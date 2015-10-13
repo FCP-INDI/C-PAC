@@ -247,3 +247,6 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
                           output_node, 'degree_output')
     centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                           output_node, 'one_d_output')
+
+    # Return the centrality workflow
+    return centrality_wf
