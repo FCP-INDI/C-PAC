@@ -222,7 +222,8 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
         # Init run eigenvector centrality node
         run_eigen_node = \
             pe.Node(interface=util.Function(input_names=['one_d_file',
-                                                         'num_threads'],
+                                                         'num_threads',
+                                                         'mask_file'],
                                             output_names=['eigen_outfile'],
                                             function=calc_eigen_from_1d),
                     name='run_eigen_node')
@@ -236,6 +237,8 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
         # Connect in the run eigenvector node to the workflow 
         centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                               run_eigen_node, 'one_d_file')
+        centrality_wf.connect(afni_centrality_node, 'inputs.mask',
+                              run_eigen_node, 'mask_file')
         centrality_wf.connect(run_eigen_node, 'eigen_outfile',
                               output_node, 'eigen_output')
 
