@@ -81,64 +81,6 @@ class afniDegreeCentrality(CommandLine):
 
 
 # Calculate eigenvector centrality from one_d file
-def parse_and_return_mats(one_d_file):
-    '''
-    '''
-
-    # Import packages
-    import re
-    import numpy as np
-    import scipy.sparse as sparse
-
-    # Init variables
-    # Capture all positive/negative floats/ints
-    reg_pattern = r'[-+]?\d*\.\d+|[-+]?\d+'
-
-    # Parse one_d file
-    print 'Reading 1D file...'
-    with open(one_d_file, 'r') as fopen:
-        lines = fopen.readlines()
-
-    # Store line and build a list of numbers
-    affine_line = lines[2]
-    affine_elements = re.findall(reg_pattern, affine_line)
-    # Store into numpy array and reshape, grab only 3x3 and
-    # cast as floating point
-    affine_matrix = np.array(affine_elements)
-    affine_matrix = affine_matrix.reshape((4,4))[:3,:3].astype('float32')
-
-    # Store line and build a list of numbers
-    extents_line = lines[4]
-    extents_elements = re.findall(reg_pattern, extents_line)
-    # Store as tuple of integers
-    img_dims = tuple([int(el) for el in extents_elements])
-    # Get the one-dim size of matrix
-    one_d = np.prod(img_dims)
-
-    # Parse out numbers
-    print 'Parsing contents...'
-    graph = [re.findall(reg_pattern, line) for line in lines[6:]]
-
-    # Cast as numpy arrays and extract i, j, w
-    print 'Creating arrays...'
-    graph_arr = np.array(graph)
-    i_array = graph_arr[:,0].astype('int32')
-    j_array = graph_arr[:,1].astype('int32')
-    w_array = graph_arr[:,-1].astype('float32')
-
-    # Construct the sparse matrix
-    print 'Constructing sparse matrix...'
-    mat_upper_tri = sparse.coo_matrix((w_array, (i_array, j_array)),
-                                      shape=(one_d, one_d))
-
-    # Make symmetric
-    similarity_matrix = mat_upper_tri + mat_upper_tri.T
-
-    # Return the symmetric matrix
-    return similarity_matrix, affine_matrix
-
-
-# Calculate eigenvector centrality from one_d file
 def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     '''
     '''
@@ -168,7 +110,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     os.system('export MKL_NUM_THREADS=%d' % num_threads)
 
     # Get the similarity matrix from the 1D file
-    sim_matrix, affine_matrix = parse_and_return_mats(one_d_file)
+    sim_matrix, affine_matrix = utils.parse_and_return_mats(one_d_file)
 
     # Use scipy's sparse linalg library to get eigen-values/vectors
     eig_val, eig_vect = linalg.eigsh(sim_matrix, k=num_eigs, which=which_eigs,
@@ -237,8 +179,6 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
         # Connect in the run eigenvector node to the workflow 
         centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                               run_eigen_node, 'one_d_file')
-        centrality_wf.connect(afni_centrality_node, 'inputs.mask',
-                              run_eigen_node, 'mask_file')
         centrality_wf.connect(run_eigen_node, 'eigen_outfile',
                               output_node, 'eigen_output')
 
