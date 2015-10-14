@@ -399,7 +399,7 @@ def merge_lists(deg_list=[],eig_list=[],lfcd_list=[]):
 
 
 # Calculate eigenvector centrality from one_d file
-def parse_and_return_mats(one_d_file):
+def parse_and_return_mats(one_d_file, mask_arr):
     '''
     '''
 
@@ -423,15 +423,15 @@ def parse_and_return_mats(one_d_file):
     # Store into numpy array and reshape, grab only 3x3 and
     # cast as floating point
     affine_matrix = np.array(affine_elements)
-    affine_matrix = affine_matrix.reshape((4,4))[:3,:3].astype('float32')
+    affine_matrix = affine_matrix.reshape((4,4)).astype('float32')
 
-    # Store line and build a list of numbers
-    extents_line = lines[4]
-    extents_elements = re.findall(reg_pattern, extents_line)
-    # Store as tuple of integers
-    img_dims = tuple([int(el) for el in extents_elements])
-    # Get the one-dim size of matrix
-    one_d = np.prod(img_dims)
+#     # Store line and build a list of numbers
+#     extents_line = lines[4]
+#     extents_elements = re.findall(reg_pattern, extents_line)
+#     # Store as tuple of integers
+#     img_dims = tuple([int(el) for el in extents_elements])
+#     # Get the one-dim size of matrix
+#     one_d = np.prod(img_dims)
 
     # Parse out numbers
     print 'Parsing contents...'
@@ -440,14 +440,26 @@ def parse_and_return_mats(one_d_file):
     # Cast as numpy arrays and extract i, j, w
     print 'Creating arrays...'
     graph_arr = np.array(graph)
-    i_array = graph_arr[:,0].astype('int32')
-    j_array = graph_arr[:,1].astype('int32')
-    w_array = graph_arr[:,-1].astype('float32')
+
+    # Extract 3d indices
+    ijk1 = graph_arr[:,2:5].astype('int32')
+    ijk2 = graph_arr[:, 5:8].astype('int32')
+
+    # Non-zero elements from mask is size of similarity matrix
+    mask_idx = np.argwhere(mask_arr)
+    mat_dim = mask_idx.shape[0]
+
+    #
+    i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
+             for ii in range(len(mask_idx))]
+#     i_array = graph_arr[:,0].astype('int32')
+#     j_array = graph_arr[:,1].astype('int32')
+#     w_array = graph_arr[:,-1].astype('float32')
 
     # Construct the sparse matrix
     print 'Constructing sparse matrix...'
     mat_upper_tri = sparse.coo_matrix((w_array, (i_array, j_array)),
-                                      shape=(one_d, one_d))
+                                      shape=(mat_dim, mat_dim))
 
     # Make symmetric
     similarity_matrix = mat_upper_tri + mat_upper_tri.T
