@@ -3041,7 +3041,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     # If we're running centrality
     if 1 in c.runNetworkCentrality:
-
+        # Check for the existence of AFNI 3dDegreeCentrality binary
+        import subprocess
+        try:
+            ret_code = subprocess.check_call(['which', '3dDegreeCentrality'])
+            if ret_code == 0:
+                centrality_bin_exists = True
+                print 'Using AFNI centrality function'
+        except subprocess.CalledProcessError as exc:
+                centrality_bin_exists = False
+                print 'Using C-PAC centrality function'
         # For each desired strategy
         for strat in strat_list:
 
@@ -3056,7 +3065,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                                          'Network Centrality',
                                                          'template_dataflow_%d' % num_strat)
 
-            # Connect in each workflow for the centrality method of interest
+            # Function to connect the CPAC centrality python workflow
+            # into pipeline
             def connectCentralityWorkflow(methodOption,
                                           thresholdOption,
                                           threshold,
@@ -3105,6 +3115,45 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                 'outputspec.centrality_outputs',
                                 num_strat)
 
+            # Function to connect the afni 3dDegreeCentrality workflow
+            # into pipeline
+            def connect_afni_centrality_wf(run_eigen=False, threshold,
+                                           thresh_type):
+                '''
+                '''
+
+                # Import pacakges
+                from CPAC.network_centrality.network_centrality \
+                    import create_network_centrality_wf
+                from CPAC.network_centrality.utils import convert_pvalue_to_r
+                # Init variables
+                wf_name = 'afni_centrality_%d_%s' % (num_strat, method_name)
+                num_threads = c.numCoresPerSubject
+                memory = c.memoryAllocatedForDegreeCentrality
+
+                # Init the workflow
+                afni_centrality_wf = \
+                    create_network_centrality_wf(wf_name, num_threads, memory, run_eigen)
+
+                # Send in variables to workflow
+                # Mask
+                workflow.connect(template_dataflow, 'outputspec.out_file',
+                                 afni_centrality_wf, 'afni_degree_centrality.mask')
+                workflow.connect(resample_functional_to_template, 'outputspec.out_file',
+                                 afni_centrality_wf, 'afni_degree_centrality.dataset')
+                if thresh_type == 'pval':
+                    r_thresh = convert_pvalue_to_r(threshold, scans,
+                                                   two_tailed=False)
+                    afni_centrality_wf.inputs.afni_degree_centrality.thresh = \
+                        r_thresh
+                elif thresh_type == 'sparsity':
+                    # Convert thresh into % for afni function
+                    afni_centrality_wf.inputs.afni_degree_centrality.sparsity = \
+                        threshold*100.0
+                elif thresh_type == 'rval':
+                    afni_centrality_wf.inputs.afni_degree_centrality.thresh = \
+                        threshold
+
             # Init merge node for appending method output lists to one another
             merge_node = pe.Node(util.Function(input_names=['deg_list',
                                                             'eig_list',
@@ -3113,44 +3162,61 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                           function = merge_lists),
                             name = 'merge_node_%d' % num_strat)
 
-            # If we're calculating degree centrality
-            if c.degWeightOptions.count(True) > 0:
-                connectCentralityWorkflow(0,
-                                          c.degCorrelationThresholdOption,
-                                          c.degCorrelationThreshold,
-                                          c.degWeightOptions,
-                                          'deg_list')
-
-            # If we're calculating eigenvector centrality
-            if c.eigWeightOptions.count(True) > 0:
-                connectCentralityWorkflow(1,
-                                          c.eigCorrelationThresholdOption,
-                                          c.eigCorrelationThreshold,
-                                          c.eigWeightOptions,
-                                          'eig_list')
-
-            # If we're calculating lFCD
-            if c.lfcdWeightOptions.count(True) > 0:
-                connectCentralityWorkflow(2,
-                                          2,
-                                          c.lfcdCorrelationThreshold,
-                                          c.lfcdWeightOptions,
-                                          'lfcd_list')
+            # If 3dDegreeCentrality is found, run it
+            if centrality_bin_exists:
+                # If we're calculating eigenvector centrality first
+                # This calculates degree centrality first anyway
+                if c.eigWeightOptions.count(True) > 0:
+                    connect_afni_centrality_wf(run_eigen=True)
+                # Else if it's just degree centrality, turn off eigen
+                elif c.degWeightOptions.count(True) > 0:
+                    connect_afni_centrality_wf(run_eigen=False)
+                # If we're calculating lFCD
+                if c.lfcdWeightOptions.count(True) > 0:
+                    connectCentralityWorkflow(2,
+                                              2,
+                                              c.lfcdCorrelationThreshold,
+                                              c.lfcdWeightOptions,
+                                              'lfcd_list')
+            # Otherwise run the CPAC python workflow
+            else:
+                # If we're calculating degree centrality
+                if c.degWeightOptions.count(True) > 0:
+                    connectCentralityWorkflow(0,
+                                              c.degCorrelationThresholdOption,
+                                              c.degCorrelationThreshold,
+                                              c.degWeightOptions,
+                                              'deg_list')
+                # If we're calculating eigenvector centrality
+                if c.eigWeightOptions.count(True) > 0:
+                    connectCentralityWorkflow(1,
+                                              c.eigCorrelationThresholdOption,
+                                              c.eigCorrelationThreshold,
+                                              c.eigWeightOptions,
+                                              'eig_list')
+                # If we're calculating lFCD
+                if c.lfcdWeightOptions.count(True) > 0:
+                    connectCentralityWorkflow(2,
+                                              2,
+                                              c.lfcdCorrelationThreshold,
+                                              c.lfcdWeightOptions,
+                                              'lfcd_list')
 
             try:
 
+                # Get nipype  node and out file of the func mni img
                 node, out_file = strat.get_node_from_resource_pool('functional_mni')
-
-                # resample the input functional file to template(roi/mask)
+                # Resample the input functional file to template(roi/mask)
                 workflow.connect(node, out_file,
                                  resample_functional_to_template, 'in_file')
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  resample_functional_to_template, 'reference')
+
+                # Update resource pool with centrality outputs
                 strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
                 if c.fwhm != None :
-
                     z_score = get_cent_zscore('centrality_zscore_%d' % num_strat)
 
                     smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
@@ -3161,7 +3227,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                        name='network_centrality_zstd_smooth_%d' % num_strat,
                                        iterfield=['in_file'])
 
-
                     # calculate zscores
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      z_score, 'inputspec.mask_file')
@@ -3170,7 +3235,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     workflow.connect(merge_node, 'merged_list',
                                      z_score, 'inputspec.input_file')
 
-
                     # connecting raw centrality outputs to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      smoothing, 'operand_files')
@@ -3178,7 +3242,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                     smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                      smoothing, 'op_string')
-
 
                     # connecting zscores to smoothing
                     workflow.connect(template_dataflow, 'outputspec.out_file',

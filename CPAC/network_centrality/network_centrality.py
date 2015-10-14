@@ -10,14 +10,12 @@ centrality nipype workflow
 # Import packages
 from nipype.interfaces.base import (CommandLine, CommandLineInputSpec,
                                     TraitedSpec)
+from nipype.interfaces.base import traits, File
 
 # Input spec class
 class afniDegreeCentralityInputSpec(CommandLineInputSpec):
     '''
     '''
-
-    # Import packages
-    from nipype.interfaces.base import traits, File
 
     # Define class variables
     prefix = traits.Str(exists=True, argstr='-prefix %s', position=0,
@@ -36,15 +34,14 @@ class afniDegreeCentralityInputSpec(CommandLineInputSpec):
                                                     'regions in the dataset')
     automask = traits.Bool(argstr='-automask', desc='Mask the dataset to target '\
                                                     'brain-only voxels')
+    dataset = File(argstr='%s', exists=True, position=-1,
+                   desc='Functional input dataset to use')
 
 
 # Output spec class
 class afniDegreeCentralityOutputSpec(TraitedSpec):
     '''
     '''
-
-    # Import packages
-    from nipype.interfaces.base import File
 
     # Define command outputs
     degree_outfile = File(desc='The binarized and weighted degree centrality '\

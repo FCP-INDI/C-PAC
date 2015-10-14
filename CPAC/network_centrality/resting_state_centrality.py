@@ -806,17 +806,6 @@ def calc_centrality(datafile,
     out_list = []
     ts, aff, mask, t_type, scans = load(datafile, template)
 
-    # Check for the existence of AFNI 3dDegreeCentrality binary
-    import subprocess
-    try:
-        ret_code = subprocess.check_call(['which', '3dDegreeCentrality'])
-        if ret_code == 0:
-            centrality_bin_exists = True
-            print 'Using AFNI centrality function'
-    except CalledProcessError as exc:
-            centrality_bin_exists = False
-            print 'Using C-PAC centrality function'
-
     # If we're doing eigenvector centrality, need entire correlation matrix
     if threshold_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
