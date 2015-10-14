@@ -3117,8 +3117,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # Function to connect the afni 3dDegreeCentrality workflow
             # into pipeline
-            def connect_afni_centrality_wf(run_eigen=False, threshold,
-                                           thresh_type):
+            def connect_afni_centrality_wf(threshold, thresh_type,
+                                           run_eigen=False):
                 '''
                 '''
 
