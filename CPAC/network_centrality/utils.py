@@ -406,7 +406,6 @@ def sep_nifti_subbriks(nifti_file, out_names):
     # Import packages
     import os
     import nibabel as nib
-    import numpy as np
 
     # Init variables
     output_niftis = []
@@ -418,7 +417,7 @@ def sep_nifti_subbriks(nifti_file, out_names):
     nii_dims = nii_arr.shape
 
     # Make sure there are as many names as dims
-    if nii_dims != len(out_names):
+    if nii_dims[-1] != len(out_names):
         err_msg = 'out_names must have same number of elements as '\
                   'nifti sub-briks'
         raise Exception(err_msg)
@@ -458,7 +457,6 @@ def parse_and_return_mats(one_d_file, mask_arr):
     '''
 
     # Import packages
-    import re
     import numpy as np
     import scipy.sparse as sparse
 
@@ -471,21 +469,12 @@ def parse_and_return_mats(one_d_file, mask_arr):
     with open(one_d_file, 'r') as fopen:
         lines = fopen.readlines()
 
-    # Store line and build a list of numbers
-    affine_line = lines[2]
-    affine_elements = re.findall(reg_pattern, affine_line)
-    # Store into numpy array and reshape, grab only 3x3 and
-    # cast as floating point
-    affine_matrix = np.array(affine_elements)
-    affine_matrix = affine_matrix.reshape((4,4)).astype('float32')
-
     # Parse out numbers
     print 'Parsing contents...'
-    graph = [re.findall(reg_pattern, line) for line in lines[6:]]
+    graph_arr = np.loadtxt(one_d_file, skiprows=6)
 
     # Cast as numpy arrays and extract i, j, w
     print 'Creating arrays...'
-    graph_arr = np.array(graph)
     one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
@@ -520,4 +509,4 @@ def parse_and_return_mats(one_d_file, mask_arr):
     b_similarity_matrix = bmat_upper_tri + bmat_upper_tri.T
 
     # Return the symmetric matrices and affine
-    return b_similarity_matrix, w_similarity_matrix, affine_matrix
+    return b_similarity_matrix, w_similarity_matrix

@@ -3151,6 +3151,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 if run_eigen:
                     method_name = method_name + '_and_eigen'
 
+                # Set thresh_type
+                if thresh_type == 0:
+                    thresh_option = 'pval'
+                elif thresh_type == 1:
+                    thresh_option = 'sparse'
+                elif thresh_type == 2:
+                    thresh_option = 'rval'
+                else:
+                    thresh_option = 'None'
+
                 # Init workflow name and resource limits
                 wf_name = 'afni_centrality_%d_%s' % (num_strat, method_name)
                 num_threads = c.numCoresPerSubject
@@ -3162,7 +3172,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                 # Connect pipeline resources to workflow
                     # Dataset
-                workflow.connect(resample_functional_to_template, 'outputspec.out_file',
+                workflow.connect(resample_functional_to_template, 'out_file',
                                  afni_centrality_wf, 'afni_degree_centrality.dataset')
                 # Mask
                 workflow.connect(template_dataflow, 'outputspec.out_file',
@@ -3174,7 +3184,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # 1D out
                 afni_centrality_wf.inputs.afni_degree_centrality.out_1d = 'sim_matrix.1D'
                 # Thresh/sparsity
-                if thresh_type == 'pval':
+                if thresh_option == 'pval':
                     # Unfortunately, just to get number of scans, gotta do this
                     # whole sub-workflow
                     pval_to_rval_node = pe.Node(util.Function(input_names=['dataset',
@@ -3182,18 +3192,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                                                            'p_val',
                                                                            'two_tailed'],
                                                               output_names=['r_val'],
-                                                              function=get_rval_from_pval))
-                    workflow.connect(resample_functional_to_template, 'outputspec.out_file',
+                                                              function=get_rval_from_pval),
+                                                name='pval_to_rval_%d_%s' % (num_strat, method_name))
+                    workflow.connect(resample_functional_to_template, 'out_file',
                                      pval_to_rval_node, 'dataset')
                     workflow.connect(template_dataflow, 'outputspec.out_file',
                                      pval_to_rval_node, 'mask')
+                    pval_to_rval_node.inputs.p_val = threshold
                     pval_to_rval_node.inputs.two_tailed = False
-                    workflow.connect(pval_to_rval_node, 'r_val', afni_centrality_wf, 'inputs.afni_degree_centrality.thresh')
-                elif thresh_type == 'sparsity':
+                    workflow.connect(pval_to_rval_node, 'r_val', afni_centrality_wf, 'afni_degree_centrality.thresh')
+                elif thresh_option == 'sparsity':
                     # Convert thresh into % for afni function
                     afni_centrality_wf.inputs.afni_degree_centrality.sparsity = \
                         threshold*100.0
-                elif thresh_type == 'rval':
+                elif thresh_option == 'rval':
                     afni_centrality_wf.inputs.afni_degree_centrality.thresh = \
                         threshold
 
@@ -3203,6 +3215,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                  merge_node,
                                  'deg_list')
                 if run_eigen:
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     afni_centrality_wf, 'afni_eigen_centrality.mask_file')
                     workflow.connect(afni_centrality_wf,
                                      'output_node.eigen_outfile_list',
                                      merge_node,
@@ -3213,10 +3227,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # If we're calculating eigenvector centrality first
                 # This calculates degree centrality first anyway
                 if c.eigWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(run_eigen=True)
+                    connect_afni_centrality_wf(c.degCorrelationThreshold,
+                                               c.degCorrelationThresholdOption,
+                                               run_eigen=True)
                 # Else if it's just degree centrality, turn off eigen
                 elif c.degWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(run_eigen=False)
+                    connect_afni_centrality_wf(c.degCorrelationThreshold,
+                                               c.degCorrelationThresholdOption,
+                                               run_eigen=False)
                 # If we're calculating lFCD
                 if c.lfcdWeightOptions.count(True) > 0:
                     connectCentralityWorkflow(2,
@@ -5893,10 +5911,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
             # Extract credentials path for output if it exists
             creds_path = str(c.awsOutputBucketCredentials)
-            if os.path.exists(creds_path):
+            try:
+                # Import packages
+                from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
-            else:
-                creds_path = None
+                s3_write_access = test_bucket_access(creds_path, c.outputDirectory)
+                if not s3_write_access:
+                    raise Exception('Not able to write to bucket!')
+            except Exception as exc:
+                if 's3://' in c.outputDirectory:
+                    err_msg = 'There was an error processing credentials or '\
+                              'accessing the S3 bucket. Check and try again.\n'\
+                              'Error: %s' % exc
+                    raise Exception(err_msg)
+        
             for key in sorted(rp.keys()):
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 ds.inputs.base_directory = c.outputDirectory

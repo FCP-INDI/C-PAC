@@ -100,7 +100,9 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     max_iter = 1000
 
     # See if mask was ROI atlas or mask file
-    mask_arr = nib.load(mask_file).get_data()
+    mask_img = nib.load(mask_file)
+    mask_arr = mask_img.get_data()
+    mask_affine = mask_img.get_affine()
     if len(np.unique(mask_arr)) > 2:
         template_type = 1
     else:
@@ -110,7 +112,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     os.system('export MKL_NUM_THREADS=%d' % num_threads)
 
     # Get the similarity matrix from the 1D file
-    bin_sim_matrix, wght_sim_matrix, affine_matrix = \
+    bin_sim_matrix, wght_sim_matrix = \
         utils.parse_and_return_mats(one_d_file, mask_arr)
 
     # Use scipy's sparse linalg library to get eigen-values/vectors
@@ -121,11 +123,11 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
     # Create eigenvector tuple
     centrality_tuple = ('eigenvector_centrality_binarized', np.abs(bin_eig_vect))
-    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, affine_matrix,
+    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
                                                 mask_arr, template_type)
 
     centrality_tuple = ('eigenvector_centrality_weighted', np.abs(wght_eig_vect))
-    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, affine_matrix,
+    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
                                                 mask_arr, template_type)
     # Return the eigenvector output file
     return eigen_outfile
@@ -143,7 +145,7 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
     import CPAC.network_centrality.utils as utils
 
     # Init variables
-    centrality_wf = pe.Workflow(name='afni_centrality')
+    centrality_wf = pe.Workflow(name=wf_name)
 
     # Define main input/function node
     afni_centrality_node = \
