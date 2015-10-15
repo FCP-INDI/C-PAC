@@ -347,7 +347,7 @@ def build_sublist(data_config_yml):
         print 'Gathering anatomical files...'
         anat_paths = return_local_filepaths(anat_template)
         # Get functional filepaths
-        print 'Gathering anatomical files...'
+        print 'Gathering functional files...'
         func_paths = return_local_filepaths(func_template)
 
     # Get directory indicies
@@ -400,7 +400,10 @@ def build_sublist(data_config_yml):
         site = func_sp[func_site_idx]
         subj = func_sp[func_ppant_idx]
         sess = func_sp[func_sess_idx]
-        scan = func_sp[-2]
+        if func_sess_idx == -2:
+            scan = func_sp[-1].split('.nii')[0]
+        else:
+            scan = func_sp[-2]
         # Build tmp key and get subject dictionary from tmp dictionary
         tmp_key = '_'.join([subj, site, sess])
         # Try and find the associated anat scan
