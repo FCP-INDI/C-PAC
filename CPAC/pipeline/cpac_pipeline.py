@@ -374,10 +374,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     strat_initial = None
 
     # Extract credentials path if it exists
-    creds_path = sub_dict['creds_path']
-    if creds_path and os.path.exists(creds_path):
-        input_creds_path = os.path.abspath(creds_path)
-    else:
+    try:
+        creds_path = sub_dict['creds_path']
+        if creds_path and os.path.exists(creds_path):
+            input_creds_path = os.path.abspath(creds_path)
+        else:
+            input_creds_path = None
+    except KeyError:
         input_creds_path = None
 
     for gather_anat in c.runAnatomicalDataGathering:
