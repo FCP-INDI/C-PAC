@@ -110,18 +110,23 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     os.system('export MKL_NUM_THREADS=%d' % num_threads)
 
     # Get the similarity matrix from the 1D file
-    sim_matrix, affine_matrix = utils.parse_and_return_mats(one_d_file, mask_arr)
+    bin_sim_matrix, wght_sim_matrix, affine_matrix = \
+        utils.parse_and_return_mats(one_d_file, mask_arr)
 
     # Use scipy's sparse linalg library to get eigen-values/vectors
-    eig_val, eig_vect = linalg.eigsh(sim_matrix, k=num_eigs, which=which_eigs,
-                                     maxiter=max_iter)
+    bin_eig_val, bin_eig_vect = linalg.eigsh(bin_sim_matrix, k=num_eigs,
+                                             which=which_eigs, maxiter=max_iter)
+    wght_eig_val, wght_eig_vect = linalg.eigsh(wght_sim_matrix, k=num_eigs,
+                                               which=which_eigs, maxiter=max_iter)
 
     # Create eigenvector tuple
-    centrality_tuple = ('eigenvector_centrality', np.abs(eig_vect))
-
+    centrality_tuple = ('eigenvector_centrality_binarized', np.abs(bin_eig_vect))
     eigen_outfile = utils.map_centrality_matrix(centrality_tuple, affine_matrix,
                                                 mask_arr, template_type)
 
+    centrality_tuple = ('eigenvector_centrality_weighted', np.abs(wght_eig_vect))
+    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, affine_matrix,
+                                                mask_arr, template_type)
     # Return the eigenvector output file
     return eigen_outfile
 
@@ -135,6 +140,7 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
     # Import packages
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
+    import CPAC.network_centrality.utils as utils
 
     # Init variables
     centrality_wf = pe.Workflow(name='afni_centrality')
@@ -149,10 +155,23 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
     afni_centrality_node.interface.num_threads = num_threads
     afni_centrality_node.interface.memory = memory
 
+    # Define degree seperate bin/wght node
+    sep_subbriks_node = \
+        pe.Node(interface=util.Function(input_names=['nifti_file', 'out_names'],
+                                        output_names=['output_niftis'],
+                                        function=utils.sep_nifti_subbriks),
+                name='sep_nifti_subbriks')
+
+    # Connect the degree centrality output image to seperate subbriks node
+    centrality_wf.connect(afni_centrality_node, 'degree_outfile',
+                          sep_subbriks_node, 'nifti_file')
+    sep_subbriks_node.inputs.out_names = ('degree_centrality_binarize',
+                                          'degree_centrality_weighted')
+
     # Define outputs node
     output_node = \
-        pe.Node(interface=util.IdentityInterface(fields=['degree_output',
-                                                         'eigen_output',
+        pe.Node(interface=util.IdentityInterface(fields=['degree_outfile_list',
+                                                         'eigen_outfile_list',
                                                          'one_d_output']),
                 name='output_node')
 
@@ -166,7 +185,7 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
             pe.Node(interface=util.Function(input_names=['one_d_file',
                                                          'num_threads',
                                                          'mask_file'],
-                                            output_names=['eigen_outfile'],
+                                            output_names=['eigen_outfiles'],
                                             function=calc_eigen_from_1d),
                     name='afni_eigen_centrality')
         # And pass in the number of threads for it to use
@@ -179,12 +198,12 @@ def create_network_centrality_wf(wf_name='network_centrality', num_threads=1,
         # Connect in the run eigenvector node to the workflow 
         centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                               run_eigen_node, 'one_d_file')
-        centrality_wf.connect(run_eigen_node, 'eigen_outfile',
-                              output_node, 'eigen_output')
+        centrality_wf.connect(run_eigen_node, 'eigen_outfiles',
+                              output_node, 'eigen_outfile_list')
 
     # Connect the degree centrality outputs to output_node
-    centrality_wf.connect(afni_centrality_node, 'degree_outfile',
-                          output_node, 'degree_output')
+    centrality_wf.connect(sep_subbriks_node, 'output_niftis',
+                          output_node, 'degree_outfile_list')
     centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                           output_node, 'one_d_output')
 

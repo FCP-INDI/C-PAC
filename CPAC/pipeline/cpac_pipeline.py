@@ -3046,10 +3046,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         try:
             ret_code = subprocess.check_call(['which', '3dDegreeCentrality'])
             if ret_code == 0:
-                centrality_bin_exists = True
+                afni_centrality_found = True
                 print 'Using AFNI centrality function'
         except subprocess.CalledProcessError as exc:
-                centrality_bin_exists = False
+                afni_centrality_found = False
                 print 'Using C-PAC centrality function'
         # For each desired strategy
         for strat in strat_list:
@@ -3064,6 +3064,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
                                                          'Network Centrality',
                                                          'template_dataflow_%d' % num_strat)
+            # Get nipype  node and out file of the func mni img
+            node, out_file = strat.get_node_from_resource_pool('functional_mni')
+
+            # Resample the input functional file to template(roi/mask)
+            workflow.connect(node, out_file,
+                             resample_functional_to_template, 'in_file')
+            workflow.connect(template_dataflow, 'outputspec.out_file',
+                             resample_functional_to_template, 'reference')
+
+            # Init merge node for appending method output lists to one another
+            merge_node = pe.Node(util.Function(input_names=['deg_list',
+                                                            'eig_list',
+                                                            'lfcd_list'],
+                                          output_names = ['merged_list'],
+                                          function = merge_lists),
+                            name = 'merge_node_%d' % num_strat)
 
             # Function to connect the CPAC centrality python workflow
             # into pipeline
@@ -3125,8 +3141,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # Import pacakges
                 from CPAC.network_centrality.network_centrality \
                     import create_network_centrality_wf
-                from CPAC.network_centrality.utils import convert_pvalue_to_r
+                from CPAC.network_centrality.utils import get_rval_from_pval
+
                 # Init variables
+                method_name = 'degree'
+                if run_eigen:
+                    method_name = method_name + '_and_eigen'
+
+                # Init workflow name and resource limits
                 wf_name = 'afni_centrality_%d_%s' % (num_strat, method_name)
                 num_threads = c.numCoresPerSubject
                 memory = c.memoryAllocatedForDegreeCentrality
@@ -3135,17 +3157,35 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 afni_centrality_wf = \
                     create_network_centrality_wf(wf_name, num_threads, memory, run_eigen)
 
-                # Send in variables to workflow
+                # Connect pipeline resources to workflow
+                    # Dataset
+                workflow.connect(resample_functional_to_template, 'outputspec.out_file',
+                                 afni_centrality_wf, 'afni_degree_centrality.dataset')
                 # Mask
                 workflow.connect(template_dataflow, 'outputspec.out_file',
                                  afni_centrality_wf, 'afni_degree_centrality.mask')
-                workflow.connect(resample_functional_to_template, 'outputspec.out_file',
-                                 afni_centrality_wf, 'afni_degree_centrality.dataset')
+
+                # Send in variables to workflow
+                # Prefix out
+                afni_centrality_wf.inputs.afni_degree_centrality.prefix = 'degree_centrality.nii.gz'
+                # 1D out
+                afni_centrality_wf.inputs.afni_degree_centrality.out_1d = 'sim_matrix.1D'
+                # Thresh/sparsity
                 if thresh_type == 'pval':
-                    r_thresh = convert_pvalue_to_r(threshold, scans,
-                                                   two_tailed=False)
-                    afni_centrality_wf.inputs.afni_degree_centrality.thresh = \
-                        r_thresh
+                    # Unfortunately, just to get number of scans, gotta do this
+                    # whole sub-workflow
+                    pval_to_rval_node = pe.Node(util.Function(input_names=['dataset',
+                                                                           'mask',
+                                                                           'p_val',
+                                                                           'two_tailed'],
+                                                              output_names=['r_val'],
+                                                              function=get_rval_from_pval))
+                    workflow.connect(resample_functional_to_template, 'outputspec.out_file',
+                                     pval_to_rval_node, 'dataset')
+                    workflow.connect(template_dataflow, 'outputspec.out_file',
+                                     pval_to_rval_node, 'mask')
+                    pval_to_rval_node.inputs.two_tailed = False
+                    workflow.connect(pval_to_rval_node, 'r_val', afni_centrality_wf, 'inputs.afni_degree_centrality.thresh')
                 elif thresh_type == 'sparsity':
                     # Convert thresh into % for afni function
                     afni_centrality_wf.inputs.afni_degree_centrality.sparsity = \
@@ -3154,16 +3194,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     afni_centrality_wf.inputs.afni_degree_centrality.thresh = \
                         threshold
 
-            # Init merge node for appending method output lists to one another
-            merge_node = pe.Node(util.Function(input_names=['deg_list',
-                                                            'eig_list',
-                                                            'lfcd_list'],
-                                          output_names = ['merged_list'],
-                                          function = merge_lists),
-                            name = 'merge_node_%d' % num_strat)
+                # Connect outputs to merge node
+                workflow.connect(afni_centrality_wf,
+                                 'output_node.degree_outfile_list',
+                                 merge_node,
+                                 'deg_list')
+                if run_eigen:
+                    workflow.connect(afni_centrality_wf,
+                                     'output_node.eigen_outfile_list',
+                                     merge_node,
+                                     'eig_list')
 
             # If 3dDegreeCentrality is found, run it
-            if centrality_bin_exists:
+            if afni_centrality_found:
                 # If we're calculating eigenvector centrality first
                 # This calculates degree centrality first anyway
                 if c.eigWeightOptions.count(True) > 0:
@@ -3203,14 +3246,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                               'lfcd_list')
 
             try:
-
-                # Get nipype  node and out file of the func mni img
-                node, out_file = strat.get_node_from_resource_pool('functional_mni')
-                # Resample the input functional file to template(roi/mask)
-                workflow.connect(node, out_file,
-                                 resample_functional_to_template, 'in_file')
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 resample_functional_to_template, 'reference')
 
                 # Update resource pool with centrality outputs
                 strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})

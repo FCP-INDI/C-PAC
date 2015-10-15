@@ -310,7 +310,11 @@ def build_sublist(data_config_yml):
     scan_params_csv = data_config_dict['scanParametersCSV']
     sublist_outdir = data_config_dict['outputSubjectListLocation']
     sublist_name = data_config_dict['subjectListName']
-    creds_path = data_config_dict['awsCredentialsFile']
+    # Older data configs won't have this field
+    try:
+        creds_path = data_config_dict['awsCredentialsFile']
+    except KeyError:
+        creds_path = None
 
     # Change any 'None' to None of optional arguments
     if include_subs == 'None':
@@ -400,8 +404,11 @@ def build_sublist(data_config_yml):
         site = func_sp[func_site_idx]
         subj = func_sp[func_ppant_idx]
         sess = func_sp[func_sess_idx]
-        if func_sess_idx == -2:
+        # If there is no scan sub-folder under session, make scan
+        # the name of the image itself without extension
+        if func_sess_idx == len(func_sp)-2:
             scan = func_sp[-1].split('.nii')[0]
+        # Othwerwise, there use scan sub folder
         else:
             scan = func_sp[-2]
         # Build tmp key and get subject dictionary from tmp dictionary
