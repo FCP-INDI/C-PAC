@@ -87,6 +87,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
     # Import packages
     import os
+    import logging
 
     import nibabel as nib
     import numpy as np
@@ -98,6 +99,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     num_eigs = 1
     which_eigs = 'LM'
     max_iter = 1000
+    logger = logging.getLogger('workflow')
 
     # See if mask was ROI atlas or mask file
     mask_img = nib.load(mask_file)
@@ -132,6 +134,10 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
     # Grab outfile paths
     eigen_outfiles = [bin_outfile, wght_outfile]
+
+    # Record eigenvalues in logger just in case
+    logger.info('Eigenvalues for %s are - bin: %.5f, wght: %.5f' \
+                % (one_d_file, bin_eig_val, wght_eig_val))
 
     # Return the eigenvector output file
     return eigen_outfiles
