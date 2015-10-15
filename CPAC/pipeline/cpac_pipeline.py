@@ -3141,6 +3141,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 '''
                 '''
 
+                # First check for errors
+                if threshold < 0 or threshold > 1:
+                    err_msg = 'threshold value of : %.3f not in range!' \
+                              % threshold
+                    raise Exception(err_msg)
+
                 # Import pacakges
                 from CPAC.network_centrality.network_centrality \
                     import create_network_centrality_wf
@@ -3201,7 +3207,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                     pval_to_rval_node.inputs.p_val = threshold
                     pval_to_rval_node.inputs.two_tailed = False
                     workflow.connect(pval_to_rval_node, 'r_val', afni_centrality_wf, 'afni_degree_centrality.thresh')
-                elif thresh_option == 'sparsity':
+                elif thresh_option == 'sparse':
                     # Convert thresh into % for afni function
                     afni_centrality_wf.inputs.afni_degree_centrality.sparsity = \
                         threshold*100.0

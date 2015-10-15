@@ -123,14 +123,18 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
     # Create eigenvector tuple
     centrality_tuple = ('eigenvector_centrality_binarized', np.abs(bin_eig_vect))
-    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
+    bin_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
                                                 mask_arr, template_type)
 
     centrality_tuple = ('eigenvector_centrality_weighted', np.abs(wght_eig_vect))
-    eigen_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
+    wght_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
                                                 mask_arr, template_type)
+
+    # Grab outfile paths
+    eigen_outfiles = [bin_outfile, wght_outfile]
+
     # Return the eigenvector output file
-    return eigen_outfile
+    return eigen_outfiles
 
 
 # Return the network centrality workflow
