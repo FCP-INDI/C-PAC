@@ -87,12 +87,11 @@ class ModelConfig(wx.Frame):
         self.page.add_pheno_load_panel(load_panel_sizer)
 
 
-
         # experimental checkbox row stuff
         self.page.add(label = "Model Setup ",
-                      control = control.CHECKBOX_GRID,
+                      control = control.GPA_CHECKBOX_GRID,
                       name = "model_setup",
-                      type = 9,#dtype.LBOOL,
+                      type = 10,
                       values = '',
                       comment="A list of EVs from your phenotype file will populate in this window. From here, you can select whether the EVs should be treated as categorical or if they should be demeaned (continuous/non-categorical EVs only). 'MeanFD', 'MeanFD_Jenkinson', 'Measure Mean', and 'Custom_ROI_Mean' will also appear in this window automatically as options to be used as regressors that can be included in your model design. Note that the MeanFD and mean of measure values are automatically calculated and supplied by C-PAC via individual-level analysis.",
                       size = (450, -1))
@@ -140,16 +139,13 @@ class ModelConfig(wx.Frame):
                               'ReHo (smoothed)',
                               'ROI Average SCA',
                               'ROI Average SCA (smoothed)',
-                              'Voxelwise SCA',
-                              'Voxelwise SCA (smoothed)',
                               'Dual Regression',
                               'Dual Regression (smoothed)',
                               'Multiple Regression SCA',
                               'Multiple Regression SCA (smoothed)',
                               'Network Centrality',
                               'Network Centrality (smoothed)',
-                              'VMHC (z-score std only)',
-                              'VMHC z-stat (z-score std only)'],
+                              'VMHC'],
                     comment = "Select which derivatives you would like to include when running group analysis.\n\nWhen including Dual Regression, make sure to correct your P-value for the number of maps you are comparing.\n\nWhen including Multiple Regression SCA, you must have more degrees of freedom (subjects) than there were time series.",
                     size = (350,160))
 
@@ -344,12 +340,7 @@ class ModelConfig(wx.Frame):
         win.SetFocus()
         win.Refresh()
         raise ValueError
-
-
-    def load_pheno(self,event):
-        pass
-
-    
+   
 
     ''' button: LOAD SETTINGS '''
     def load(self, event):
@@ -718,7 +709,7 @@ class ModelConfig(wx.Frame):
                 # it to the custom GetGridSelection() function in the
                 # checkbox_grid class in custom_control.py
                 self.gpa_settings['ev_selections'] = ctrl.get_selection()
-                
+
             elif name == 'group_sep':
 
                 self.gpa_settings['group_sep'] = ctrl.get_selection()
@@ -873,7 +864,7 @@ class ModelConfig(wx.Frame):
                 for interaction_EV in both_EVs_in_interaction:
 
                     if (interaction_EV not in self.pheno_data_dict.keys()) and \
-                        interaction_EV != 'MeanFD' and \
+                        interaction_EV != 'MeanFD_Power' and \
                         interaction_EV != 'MeanFD_Jenkinson' and \
                         interaction_EV != 'Measure_Mean' and \
                         interaction_EV != 'Custom_ROI_Mean':
@@ -896,7 +887,7 @@ class ModelConfig(wx.Frame):
 
             else:
 
-                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD' \
+                if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD_Power' \
                     and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
                     and EV != 'Custom_ROI_Mean':
 
@@ -1074,7 +1065,7 @@ class ModelConfig(wx.Frame):
 
 
 
-        def read_phenotypic(pheno_file, ev_selections, subject_id_label):
+        def read_phenotypic(pheno_file, ev_selections, formula, subject_id_label):
 
             import csv
             import numpy as np
@@ -1099,29 +1090,39 @@ class ModelConfig(wx.Frame):
 
                 for key in line.keys():
 
-                    if key not in pheno_data_dict.keys():
-                        pheno_data_dict[key] = []
+                    if (key in formula) and (key != ""):
 
-                    # create a list within one of the dictionary values for that
-                    # EV if it is categorical; formats this list into a form
-                    # Patsy can understand regarding categoricals:
-                    #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
-                    #                instead of just [1, 1, 0, 1], etc.
-                    if 'categorical' in ev_selections.keys():
-                        if key in ev_selections['categorical']:
-                            pheno_data_dict[key].append(key + str(line[key]))
+                        if key not in pheno_data_dict.keys():
+                            pheno_data_dict[key] = []
+
+                        # create a list within one of the dictionary values for that
+                        # EV if it is categorical; formats this list into a form
+                        # Patsy can understand regarding categoricals:
+                        #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
+                        #                instead of just [1, 1, 0, 1], etc.
+                        if 'categorical' in ev_selections.keys():
+                            if key in ev_selections['categorical']:
+                                pheno_data_dict[key].append(key + str(line[key]))
+
+                            elif key == subject_id_label:
+                                pheno_data_dict[key].append(line[key])
+
+                            else:
+                                try:
+                                    pheno_data_dict[key].append(float(line[key]))
+                                except:
+                                    print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
+                                    raise Exception
 
                         elif key == subject_id_label:
                             pheno_data_dict[key].append(line[key])
 
                         else:
-                            pheno_data_dict[key].append(float(line[key]))
-
-                    elif key == subject_id_label:
-                        pheno_data_dict[key].append(line[key])
-
-                    else:
-                        pheno_data_dict[key].append(float(line[key]))
+                            try:
+                                pheno_data_dict[key].append(float(line[key]))
+                            except:
+                                print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
+                                raise Exception
 
 
 
@@ -1166,7 +1167,7 @@ class ModelConfig(wx.Frame):
             return pheno_data_dict
 
 
-        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['subject_id_label'])
+        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['design_formula'], self.gpa_settings['subject_id_label'])
 
 
         # let's create dummy columns for MeanFD, Measure_Mean, and
@@ -1191,8 +1192,8 @@ class ModelConfig(wx.Frame):
             patsy_formatted_pheno[regressor] = regressor_list
 
 
-        if 'MeanFD' in formula:
-            create_regressor_column('MeanFD')
+        if 'MeanFD_Power' in formula:
+            create_regressor_column('MeanFD_Power')
         if 'MeanFD_Jenkinson' in formula:
             create_regressor_column('MeanFD_Jenkinson')
         if 'Measure_Mean' in formula:
@@ -1219,7 +1220,6 @@ class ModelConfig(wx.Frame):
             formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
 
 
-
         if 'categorical' in self.gpa_settings['ev_selections']:
             for EV_name in self.gpa_settings['ev_selections']['categorical']:
 
@@ -1231,16 +1231,20 @@ class ModelConfig(wx.Frame):
 
 
         # create the dmatrix in Patsy just to see what the design matrix
-        # columns are going to be 
+        # columns are going to be
         try:
             dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
-        except:
+        except Exception as e:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
                     'correspond to the EVs listed in your phenotype file?\n'
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
+            print "Formula: %s" % formula
+            print "Patsy-format pheno: %s" % patsy_formatted_pheno
+            print "Patsy error: %s" % e
             raise Exception
+
 
 
         column_names = dmatrix.design_info.column_names
@@ -1456,6 +1460,7 @@ class ModelConfig(wx.Frame):
         if "," in group_pheno_lines[0]:
             pheno_subs = get_pheno_subjects(",")
 
+        '''
         # now make sure the group sublist and pheno subject IDs match, at least
         # for the ones that exist (i.e. may be less sub IDs in the sublist)
         for sublist_subID, pheno_subID in zip(group_sublist, pheno_subs):
@@ -1488,6 +1493,7 @@ class ModelConfig(wx.Frame):
                 errSubID.Destroy()
 
                 raise Exception
+        '''
 
 
 

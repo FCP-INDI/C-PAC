@@ -114,11 +114,11 @@ def build_strategies(configuration):
 
     proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
                     '_gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
 
     """
@@ -127,11 +127,11 @@ def build_strategies(configuration):
 
     proper_names = {'_threshold':'Scrubbing Threshold = ', '_csf_threshold':'Cerebral Spinal Fluid Threshold = ',
                     '_gm_threshold':'Gray Matter Threshold = ',
-                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Corrections = ',
+                    'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Traget Angle in Degree = ', '_wm_threshold':'White Matter Threshold = '}
 
 
-    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Corrections'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
+    config_iterables = {'_gm_threshold': eval('configuration.grayMatterThreshold'), '_wm_threshold': eval('configuration.whiteMatterThreshold'), '_csf_threshold': eval('configuration.cerebralSpinalFluidThreshold'), '_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
     """
 
     ### This is really dirty code and ordering of corrections in 
@@ -365,7 +365,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 
-def run(config_file, subject_list_file, p_name = None):
+def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=None):
     
     # Import packages
     import time
@@ -438,6 +438,7 @@ def run(config_file, subject_list_file, p_name = None):
     create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
  
 
+    '''
     seeds_created = []
     if not (c.seedSpecificationFile is None):
 
@@ -447,6 +448,7 @@ def run(config_file, subject_list_file, p_name = None):
                 print 'seeds created %s -> ' % seeds_created
         except:
             raise IOError('Problem in seedSpecificationFile')
+
 
     if 1 in c.runVoxelTimeseries:
 
@@ -471,6 +473,7 @@ def run(config_file, subject_list_file, p_name = None):
         if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:
 
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
+    '''
 
 
     pipeline_timing_info = []
@@ -487,7 +490,7 @@ def run(config_file, subject_list_file, p_name = None):
         # Init variables
         procss = [Process(target=prep_workflow,
                           args=(sub, c, strategies, 1,
-                                pipeline_timing_info, p_name)) \
+                                pipeline_timing_info, p_name, plugin, plugin_args)) \
                   for sub in sublist]
         pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
         # Init job queue

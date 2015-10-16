@@ -6,6 +6,7 @@ from ..utils.validator import CharValidator
 import os
 import pkg_resources as p
 
+
 class AnatomicalPreprocessing(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
@@ -14,21 +15,12 @@ class AnatomicalPreprocessing(wx.html.HtmlWindow):
         self.SetStandardFonts()
         
         self.counter = counter
-        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/anat.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/anat.html')
-#            else:
-#                self.LoadFile('html/anat.html')
-#        except:
-#            self.LoadFile('html/anat.html')
-            
+        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))            
             
     def get_counter(self):
         return self.counter
             
+
 
 class Segmentation(wx.ScrolledWindow):
 
@@ -110,6 +102,8 @@ class Segmentation(wx.ScrolledWindow):
     def get_counter(self):
         return self.counter
     
+
+    
 class Registration(wx.ScrolledWindow):
     def __init__(self, parent, counter = 0):
         wx.ScrolledWindow.__init__(self, parent)
@@ -121,15 +115,7 @@ class Registration(wx.ScrolledWindow):
         fsl = os.environ.get('FSLDIR')
         if not fsl:
             fsl = "$FSLDIR"
-        
-        self.page.add(label="Run Anatomical Registration ", 
-                     control=control.CHOICE_BOX, 
-                     name='runRegistrationPreprocessing', 
-                     type=dtype.LSTR, 
-                     comment="Register anatomical images to a template.", 
-                     values=["On","Off","On/Off"],
-                     wkf_switch = True)
-        
+               
         self.page.add(label="Anatomical Template Resolution ", 
                       control=control.CHOICE_BOX, 
                       name='resolution_for_anat', 
@@ -180,6 +166,13 @@ class Registration(wx.ScrolledWindow):
                      comment="Register skull-on anatomical image to a template.", 
                      values=["Off","On"],
                      wkf_switch = True)
+
+        self.page.add(label="Inputs Already Skull-stripped? ",
+                      control=control.CHOICE_BOX,
+                      name='already_skullstripped',
+                      type=dtype.LSTR,
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
+                      values=["Off", "On"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
