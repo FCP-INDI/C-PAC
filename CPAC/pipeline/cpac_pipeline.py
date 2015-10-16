@@ -111,7 +111,7 @@ class strategy:
 
     
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin='MultiProc', plugin_args=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin='ResourceMultiProc', plugin_args=None):
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -5875,15 +5875,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         pickle.dump(subject_info, subject_info_pickle)
 
         subject_info_pickle.close()
-        
+
+        #TODO:set memory and num_threads of critical nodes if running ResourceMultiProcPlugin
+
+        #create callback logger
+        import logging as cb_logging
+        cb_log_filename = 'callback.log'
+        cb_logger = cb_logging.getLogger('callback')
+        cb_logger.setLevel(cb_logging.DEBUG)
+        handler = cb_logging.FileHandler(cb_log_filename)
+        cb_logger.addHandler(handler)
+
+        #add status callback function that writes in callback log
+        from nipype.pipeline.plugins.callback_log import log_nodes_cb
+
         if plugin_args is None:
-            plugin_args={'n_procs': c.numCoresPerSubject}
-
-
-
-        #set memory and num_threads of critical nodes if running ResourceMultiProcPlugin
-
-
+            plugin_args = {}
+        plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
@@ -6172,7 +6180,7 @@ def run(config, subject_list_file, indx, strategies,
 
     try:
         # Build and run the pipeline
-        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args= p_args)
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args= plugin_args)
     except Exception as e:
         print 'Could not complete cpac run for subject: %s!' % sub_id
         print 'Error: %s' % e

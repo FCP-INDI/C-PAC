@@ -231,7 +231,13 @@ class ListBox(wx.Frame):
         try:
             
             import CPAC
-            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+            from CPAC.utils import Configuration
+            c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+            plugin_args = {'num_threads': c.numCoresPerSubject, 
+                            'memory': c.memoryAllocatedForDegreeCentrality}
+
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p, 
+                plugin='ResourceMultiProc', plugin_args=plugin_args)
         
         except ImportError, e:
             wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
