@@ -145,7 +145,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       validation_req=False)
 
         self.page.add(label="AWS Output Bucket Credentials (optional) ",
-                      control=control.DIR_COMBO_BOX,
+                      control=control.COMBO_BOX,
                       name='awsOutputBucketCredentials',
                       type=dtype.STR,
                       comment="If setting the \'Output Directory\' to an S3 "\
