@@ -6008,7 +6008,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
         #create callback logger
         import logging as cb_logging
-        cb_log_filename = 'callback.log'
+
+        cb_log_filename = os.path.join(c.outputDirectory, 'callback_logs',
+                                       'callback_%s.log' % sub_dict['subject_id'])
+
+        try:
+            if not os.path.exists(os.path.dirname(cb_log_filename)):
+                os.makedirs(os.path.dirname(cb_log_filename))
+                
+        except IOError:
+            pass
+        
         cb_logger = cb_logging.getLogger('callback')
         cb_logger.setLevel(cb_logging.DEBUG)
         handler = cb_logging.FileHandler(cb_log_filename)
