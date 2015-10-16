@@ -365,7 +365,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 
-def run(config_file, subject_list_file, p_name = None, plugin=None, plugin_args=None):
+def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=None):
     
     # Import packages
     import time

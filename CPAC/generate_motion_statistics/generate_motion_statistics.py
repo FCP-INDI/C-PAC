@@ -447,7 +447,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
     calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
-                                                                "FD_1D",
+                                                                "FDP_1D",
                                                                 "FDJ_1D", 
                                                                 "threshold",
                                                                 "DVARS"],
@@ -897,7 +897,8 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 1.0):
+def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS, \
+                             threshold = 1.0):
     
     """
     Method to generate Power parameters for scrubbing
@@ -928,7 +929,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     import numpy as np
     from numpy import loadtxt
 
-    powersFD_data = loadtxt(FD_1D)
+    powersFD_data = loadtxt(FDP_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
     #Mean (across time/frames) of the absolute values 

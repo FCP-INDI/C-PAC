@@ -14,8 +14,6 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     FilteringSettings,\
     TimeSeries, ROITimeseries, \
     GroupAnalysis, GPASettings, TimeSeriesOptions
-    #BASC, CWAS, CWASSettings,\
-    #DualRegression, DualRegressionOptions
 
 
 ID_SUBMIT = 6
@@ -32,8 +30,6 @@ class Mybook(wx.Treebook):
         page1 = Settings(self)
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
-        #page4 = WorkflowConfig(self)
-        #page47 = DerivativesConfig(self)
 
         page5 = AnatomicalPreprocessing(self)
         page6 = Registration(self, 1)
@@ -48,26 +44,15 @@ class Mybook(wx.Treebook):
         page13 = NuisanceRegression(self, 7)
         page14 = MedianAngleCorrection(self, 8)
 
-        #page15 = Filtering(self)
         page16 = FilteringSettings(self, 9)
 
-        #page17 = Motion(self)
-        #page18 = MotionOptions(self)
         page19 = Scrubbing(self, 4)
 
         page20 = TimeSeries(self)
-        #page21 = GenerateSeeds(self)
         page22 = ROITimeseries(self)
-        #page23 = VOXELTimeseries(self)
-        #page24 = VerticesTimeSeries(self)
-        #page25 = SpatialRegression(self)
 
         page26 = SCA(self)
         page27 = SCASettings(self)
-        #page28 = MultipleRegressionSCA(self)
-
-        #page29 = DualRegression(self)
-        #page30 = DualRegressionOptions(self)
 
         page31 = VMHC(self)
         page32 = VMHCSettings(self)
@@ -84,12 +69,6 @@ class Mybook(wx.Treebook):
         page39 = AfterWarping(self)
         page40 = AfterWarpingOptions(self)
 
-        #page41 = BASC(self)
-        #page42 = BASCSettings(self)
-
-        #page43 = CWAS(self)
-        #page44 = CWASSettings(self)
-
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
 
@@ -97,7 +76,6 @@ class Mybook(wx.Treebook):
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
-        #self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
@@ -112,26 +90,15 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page13, "Nuisance Regression", wx.ID_ANY)
         self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
 
-        #self.AddPage(page15, "Temporal Filtering", wx.ID_ANY)
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
 
-        #self.AddPage(page17, "Motion Correction", wx.ID_ANY)
-        #self.AddSubPage(page18, "Motion Correction Options", wx.ID_ANY)
         self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
-        #self.AddSubPage(page21, "Define New Seeds", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-        #self.AddSubPage(page23, "ROI Voxelwise TSE", wx.ID_ANY)
-        #self.AddSubPage(page24, "Surface Vertices TSE", wx.ID_ANY)
-        #self.AddSubPage(page25, "Spatial Regression", wx.ID_ANY)
 
         self.AddPage(page26, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page27, "SCA Options", wx.ID_ANY)
-        #self.AddSubPage(page28, "Mutiple Regression SCA Options", wx.ID_ANY)
-
-        #self.AddPage(page29, "Dual Regression", wx.ID_ANY)
-        #self.AddSubPage(page30, "Dual Regression Options", wx.ID_ANY)
 
         self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
         self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
@@ -147,12 +114,6 @@ class Mybook(wx.Treebook):
         
         self.AddPage(page39, "After Warping", wx.ID_ANY)
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
-
-        #self.AddPage(page41, "Bootstrap Analysis of Stable Clusters", wx.ID_ANY)
-        #self.AddSubPage(page42, "BASC Settings", wx.ID_ANY)
-
-        #self.AddPage(page43, "CWAS", wx.ID_ANY)
-        #self.AddSubPage(page44, "CWAS Settings", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis", wx.ID_ANY)
         self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
@@ -194,7 +155,8 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id=""):
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC Pipeline Configuration", size=(1200, 520))
+            self, parent=parent, title="CPAC Pipeline Configuration", \
+            size=(1200, 520))
 
         # Here we create a panel and a notebook on the panel
         self.p = wx.Panel(self)
@@ -207,18 +169,18 @@ class MainFrame(wx.Frame):
         btnPanel = wx.Panel(self.p, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", (
-            280, 10), wx.DefaultSize, 0)
+        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", \
+            (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
         
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration", (
-            350, 10), wx.DefaultSize, 0)
+        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",\
+            (350, 10), wx.DefaultSize, 0)
         hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
-        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", (
-            220, 10), wx.DefaultSize, 0)
+        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", \
+            (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
@@ -246,9 +208,6 @@ class MainFrame(wx.Frame):
         except:
             raise Exception("Error importing file - %s , Make"
                       " sure it is in correct yaml format")
-
-        #for config in config_file_map:
-        #    print "\n\n config: ", config, " selection: ", config_file_map[config]
 
         for page in self.nb.get_page_list():
 
@@ -304,25 +263,13 @@ class MainFrame(wx.Frame):
                                 value = [ str(item) for item in val]
                             
                                 
-                        elif ctrl.get_datatype() == 5 and ctrl.get_type() == 6:
+                        elif ctrl.get_datatype() == 5 and \
+                            ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
 
                         elif ctrl.get_datatype() == 9:
 
                             value = val[0] # pass the dictionary straight up
-                            '''
-                            value = []
-                            for item in val:
-                                data = ""
-                                for k, v in item.iteritems():
-                                    if data:
-                                        data = data + "," + k
-                                    else:
-                                        data = k
-                                print data
-                                raise Exception
-                                value.append(data)
-                            '''
                                 
                         else:
                             value = None
@@ -332,16 +279,15 @@ class MainFrame(wx.Frame):
                                 else:
                                     value = str(v)
                     else:
-                        if ctrl.get_datatype() == 2 and ctrl.get_type() == 0 and\
-                        str(val) not in sample_list:
+                        if ctrl.get_datatype() == 2 and \
+                            ctrl.get_type() == 0 and \
+                                str(val) not in sample_list:
                                 value = sample_list[val]
                         else:
                             value = str(val)
                 else:
                     value = ""
 
-                #print "setting value in ctrl -->", value
-                #print "type -->", type(value)
                 ctrl.set_value(value)
 
 
@@ -380,8 +326,8 @@ class MainFrame(wx.Frame):
             subInfo = sublist[0]
         except:
             errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
+                self, 'ERROR: Subject list file not in proper format - ' \
+                      'check if you loaded the correct file? \n\n' \
                         'Error name: config_window_0001',
                 'Subject List Error',
                 wx.OK | wx.ICON_ERROR)
@@ -394,8 +340,8 @@ class MainFrame(wx.Frame):
         # properly and that it will work
         if 'subject_id' not in subInfo:
             errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
+                self, 'ERROR: Subject list file not in proper format - '
+                      'check if you loaded the correct file? \n\n' \
                         'Error name: config_window_0002',
                 'Subject List Error',
                 wx.OK | wx.ICON_ERROR)
@@ -494,8 +440,9 @@ class MainFrame(wx.Frame):
         
         # Collect a sample subject list and parse it in
         testDlg0 = wx.MessageDialog(
-            self, 'This tool will run a quick check on the current pipeline configuration.' \
-                  ' Click OK to provide a subject list you will be using with this setup.',
+            self, 'This tool will run a quick check on the current pipeline '\
+                  'configuration. Click OK to provide a subject list you ' \
+                  'will be using with this setup.',
             'Subject List',
             wx.OK | wx.ICON_INFORMATION)
         testDlg0.ShowModal()
@@ -533,7 +480,9 @@ class MainFrame(wx.Frame):
             if switch:
                 switch_val = str(switch.get_selection()).lower()
 
-                if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
+                if switch_val == 'on' or switch_val == 'true' or \
+                    switch_val == '1':
+
                     validate = True
                     wf_counter.append(page.get_counter())
 
@@ -545,7 +494,8 @@ class MainFrame(wx.Frame):
                 
                 #validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                    and (option_name != 'derivativeList') and \
+                        (option_name != 'modelConfigs'):
 
                     win = ctrl.get_ctrl()
                     
@@ -553,7 +503,8 @@ class MainFrame(wx.Frame):
                         value = ctrl.get_selection()
                         if not value:
                             display(
-                                win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
+                                win, "%s field is empty or the items are " \
+                                     "not checked!" % ctrl.get_name(), False)
                             return
 
                     elif (option_name == "tsa_roi_paths") or \
@@ -573,11 +524,15 @@ class MainFrame(wx.Frame):
                         display(win, "%s field is empty!" % ctrl.get_name())
                         return
                         
-                    if '/' in value and '$' not in value and not isinstance(value, list):
+                    if '/' in value and '$' not in value and not \
+                        isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
+                        if not os.path.exists(ctrl.get_selection()) and \
+                            value != 'On/Off':
+
                             display(
-                                win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
+                                win, "%s field contains incorrect path. " \
+                                "Please update the path!" % ctrl.get_name())
                             return
                     
                 config_list.append(ctrl)
@@ -665,8 +620,8 @@ class MainFrame(wx.Frame):
                         break
                     
                 errDlgFileTest = wx.MessageDialog(
-                    self, 'Error reading file - either it does not exist or you' \
-                          ' do not have read access. \n\n' \
+                    self, 'Error reading file - either it does not exist or '\
+                          'you do not have read access. \n\n' \
                           'Parameter: %s \n' \
                           'In tab: %s \n\n' \
                           'Path: %s' % (paramTitle, paramGroup, filepath),
@@ -676,30 +631,31 @@ class MainFrame(wx.Frame):
                 errDlgFileTest.Destroy()
         
         
-        testFile(c.template_brain_only_for_anat,'template_brain_only_for_anat',c.runRegistrationPreprocessing)
-        testFile(c.template_skull_for_anat,'template_skull_for_anat',c.runRegistrationPreprocessing)
+        testFile(c.template_brain_only_for_anat, \
+                     'template_brain_only_for_anat',[1])
+        testFile(c.template_skull_for_anat,'template_skull_for_anat',[1])
         testFile(c.PRIORS_WHITE,'PRIORS_WHITE',c.runSegmentationPreprocessing)
         testFile(c.PRIORS_GRAY,'PRIORS_GRAY',c.runSegmentationPreprocessing)
         testFile(c.PRIORS_CSF,'PRIORS_CSF',c.runSegmentationPreprocessing)
-        testFile(c.template_brain_only_for_func,'template_brain_only_for_func',c.runRegisterFuncToMNI)
-        testFile(c.template_skull_for_func,'template_skull_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_brain_only_for_func, \
+                     'template_brain_only_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_skull_for_func,'template_skull_for_func', \
+                     c.runRegisterFuncToMNI)
         testFile(c.identityMatrix,'identityMatrix',c.runRegisterFuncToMNI)
-        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule',c.runRegisterFuncToAnat)
-        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask',c.runNuisance)
-        #testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
-        #testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
-        #testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
-        #testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
-        #testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
-        #testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
-        testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only',c.runVMHC)
-        testFile(c.template_symmetric_skull,'template_symmetric_skull',c.runVMHC)
-        testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask',c.runVMHC)
+        testFile(c.boundaryBasedRegistrationSchedule, \
+                     'boundaryBasedRegistrationSchedule', \
+                     c.runRegisterFuncToAnat)
+        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask', \
+                     c.runNuisance)
+        testFile(c.template_symmetric_brain_only, \
+                     'template_symmetric_brain_only',c.runVMHC)
+        testFile(c.template_symmetric_skull,'template_symmetric_skull', \
+                     c.runVMHC)
+        testFile(c.dilated_symmetric_brain_mask, \
+                     'dilated_symmetric_brain_mask',c.runVMHC)
         testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
-        testFile(c.templateSpecificationFile,'templateSpecificationFile',c.runNetworkCentrality)
-        #testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
-        #testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
-        #testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
+        testFile(c.templateSpecificationFile,'templateSpecificationFile', \
+                     c.runNetworkCentrality)
     
         for roi_path in c.tsa_roi_paths[0].keys():
             testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
@@ -735,8 +691,8 @@ class MainFrame(wx.Frame):
             testDlg1.Destroy()
             
             okDlg1 = wx.MessageDialog(
-                self, 'The current configuration will run successfully. You can safely' \
-                      ' save and run this setup!',
+                self, 'The current configuration will run successfully. You '\
+                      'can safely save and run this setup!',
                 'Pipeline Ready',
                 wx.OK | wx.ICON_INFORMATION)
             okDlg1.ShowModal()
@@ -772,7 +728,9 @@ class MainFrame(wx.Frame):
 
                 switch_val = str(switch.get_selection()).lower()
 
-                if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
+                if switch_val == 'on' or switch_val == 'true' or \
+                    switch_val == '1':
+
                     validate = True
                     wf_counter.append(page.get_counter())
 
@@ -784,7 +742,8 @@ class MainFrame(wx.Frame):
 
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                    and (option_name != 'derivativeList') and \
+                        (option_name != 'modelConfigs'):
                 
                     win = ctrl.get_ctrl()
                     
@@ -797,7 +756,8 @@ class MainFrame(wx.Frame):
 
                         if not value:
                             display(
-                                win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
+                                win, "%s field is empty or the items are " \
+                                     "not checked!" % ctrl.get_name(), False)
                             return
 
                     elif (option_name == "tsa_roi_paths") or \
@@ -819,13 +779,16 @@ class MainFrame(wx.Frame):
                         display(win, "%s field is empty!" % ctrl.get_name())
                         return
 
-                    if '/' in value and '$' not in value and not isinstance(value, list):
+                    if '/' in value and '$' not in value and \
+                        not isinstance(value, list):
 
                         if not os.path.exists(ctrl.get_selection()) and \
                             value != 'On/Off':
 
                             display(
-                                win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
+                                win, "%s field contains incorrect path. " \
+                                     "Please update the path!" \
+                                     % ctrl.get_name())
                             return
 
                 config_list.append(ctrl)

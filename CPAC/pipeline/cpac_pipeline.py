@@ -24,7 +24,8 @@ logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
-from CPAC.func_preproc.func_preproc import create_func_preproc, create_wf_edit_func
+from CPAC.func_preproc.func_preproc import create_func_preproc, \
+                                           create_wf_edit_func
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.registration import create_nonlinear_register, \
@@ -111,7 +112,8 @@ class strategy:
 
     
 
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_name=None, plugin='MultiProc', plugin_args=None):
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
+                      p_name=None, plugin='MultiProc', plugin_args=None):
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -151,7 +153,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         max_core_usage = int(c.numCoresPerSubject) * \
                              int(c.numSubjectsAtOnce) * int(numThreads)
 
-    cores_msg = cores_msg + '\n\nSetting number of cores per subject to %s\n' \
+    cores_msg = cores_msg + '\n\nSetting number of cores per subject to %s\n'\
                             % c.numCoresPerSubject
 
     cores_msg = cores_msg + 'Setting number of subjects at once to %s\n' \
@@ -243,7 +245,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         print '\nPlease double-check your pipeline configuration file.\n\n'
 
         # VERY TEMPORARY
-        if (len(wrong_filepath_list) == 1) and (wrong_filepath_list[0][0] == "dilated_symmetric_brain_mask"):
+        if (len(wrong_filepath_list) == 1) and \
+            (wrong_filepath_list[0][0] == "dilated_symmetric_brain_mask"):
             pass
         else:
             raise Exception
@@ -356,8 +359,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
     workflow_bit_id = {}
     workflow_counter = 0
-
-
 
 
 
@@ -3109,10 +3110,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.interp = 'trilinear'
             resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
-
-            template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
-                                                         'Network Centrality',
-                                                         'template_dataflow_%d' % num_strat)
+            resample_functional_to_template.inputs.reference = \
+            c.templateSpecificationFile
 
             # Connect in each workflow for the centrality method of interest
             def connectCentralityWorkflow(methodOption,
@@ -3129,8 +3128,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 workflow.connect(resample_functional_to_template, 'out_file',
                                  network_centrality, 'inputspec.subject')
                 # Subject mask/parcellation image
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 network_centrality, 'inputspec.template')
+                network_centrality.inputs.inputspec.template = \
+                c.templateSpecificationFile
                 # Give which method we're doing (0 - deg, 1 - eig, 2 - lfcd)
                 network_centrality.inputs.inputspec.method_option = \
                 methodOption
@@ -3193,8 +3192,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # resample the input functional file to template(roi/mask)
                 workflow.connect(node, out_file,
                                  resample_functional_to_template, 'in_file')
-                workflow.connect(template_dataflow, 'outputspec.out_file',
-                                 resample_functional_to_template, 'reference')
                 strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
@@ -3202,27 +3199,30 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
                     z_score = get_cent_zscore('centrality_zscore_%d' % num_strat)
 
+                    z_score.inputs.inputspec.mask_file = \
+                    c.templateSpecificationFile
+
                     smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
                                        name='network_centrality_smooth_%d' % num_strat,
                                        iterfield=['in_file'])
+
+                    smoothing.inputs.operand_files = \
+                    c.templateSpecificationFile
 
                     zstd_smoothing = pe.MapNode(interface=fsl.MultiImageMaths(),
                                        name='network_centrality_zstd_smooth_%d' % num_strat,
                                        iterfield=['in_file'])
 
+                    zstd_smoothing.inputs.operand_files = \
+                    c.templateSpecificationFile
+
 
                     # calculate zscores
-                    workflow.connect(template_dataflow, 'outputspec.out_file',
-                                     z_score, 'inputspec.mask_file')
-# workflow.connect(network_centrality, 'outputspec.centrality_outputs',
-# z_score, 'inputspec.input_file')
                     workflow.connect(merge_node, 'merged_list',
                                      z_score, 'inputspec.input_file')
 
 
                     # connecting raw centrality outputs to smoothing
-                    workflow.connect(template_dataflow, 'outputspec.out_file',
-                                     smoothing, 'operand_files')
                     workflow.connect(merge_node, 'merged_list',
                                     smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -3230,8 +3230,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
                     # connecting zscores to smoothing
-                    workflow.connect(template_dataflow, 'outputspec.out_file',
-                                     zstd_smoothing, 'operand_files')
                     workflow.connect(z_score, 'outputspec.z_score_img',
                                     zstd_smoothing, 'in_file')
                     workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -3736,28 +3734,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-    '''
-    Transforming SCA Voxel outputs to MNI
-    '''
-
-    '''
-    new_strat_list = []
-    num_strat = 0
-
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and ("roi_vox" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
-        for strat in strat_list:
-
-            output_to_standard('sca_seed', 'sca_seed_correlation_files', strat, num_strat)
-            
-            num_strat += 1
-    
-    strat_list += new_strat_list
-    '''
-
-
-
-
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      SMOOTHING NORMALIZED OUTPUTS
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -3782,18 +3758,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                                               name='sca_tempreg_maps_zstat_stack_smooth_%d' % num_strat, iterfield=['in_file'])
             sc_temp_reg_maps_Z_files_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                                               name='sca_tempreg_maps_zstat_files_smooth_%d' % num_strat, iterfield=['in_file'])
-                             
-            '''                 
-            sc_temp_output_smooth_average = pe.MapNode(interface=preprocess.Maskave(),
-                    name='sca_tempreg_maps_smooth_mean_%d' % num_strat, \
-                    iterfield=['in_file'])
-
-            mean_to_csv = pe.MapNode(util.Function(input_names=['in_file', 'output_name'],
-                    output_names=['output_mean'],
-                    function=extract_output_mean),
-                    name='%s_smooth_mean_to_txt_%d' % (output_name, \
-                    num_strat), iterfield=['in_file'])
-            '''           
+                                   
 
             try:
                 node, out_file = strat.get_node_from_resource_pool('sca_tempreg_maps_stack')
@@ -3965,8 +3930,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     new_strat_list = []
     num_strat = 0
 
-    #if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
-
     if "dual_reg" in sca_analysis_dict.keys():
     
         for strat in strat_list:
@@ -3986,8 +3949,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat += 1
             
     strat_list += new_strat_list
-
-
 
 
 
@@ -4085,7 +4046,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-
     '''
     Smoothing ReHo outputs and or possibly ReHo outputs in MNI 
     '''
@@ -4135,7 +4095,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
 
 
-
     '''
     z-standardize ReHo MNI-standardized outputs
     '''
@@ -4157,7 +4116,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     strat_list += new_strat_list
 
 
-    
 
     '''
     Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
@@ -4181,7 +4139,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     new_strat_list = []
     num_strat = 0
 
-    if (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()): #(1 in c.runROITimeseries):
+    if (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()):
     
         for strat in strat_list:
     
@@ -4205,7 +4163,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
     
 
 
-
     '''
     fisher-z-standardize SCA ROI MNI-standardized outputs
     '''
@@ -4227,85 +4184,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             num_strat += 1
 
     strat_list += new_strat_list
-
-
-
-    '''
-    Smoothing SCA seed based Z scores and or possibly Z scores in MNI 
-    '''
-
-    '''
-    new_strat_list = []
-    num_strat = 0
-
-    if (1 in c.runSCA) and ("roi_vox" in ts_analysis_dict.keys()) and c.fwhm != None:
-        for strat in strat_list:
-
-            output_smooth('sca_seed', 'sca_seed_correlation_files', strat, num_strat)
-
-            num_strat += 1
-
-    strat_list += new_strat_list
-    '''
-    
-    
-    
-    '''
-    calc averages of SCA seed outputs
-    '''
-    
-    '''
-    new_strat_list = []
-    num_strat = 0
-
-    if (1 in c.runSCA) and ("roi_vox" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
-    
-        for strat in strat_list:
-    
-            calc_avg("sca_seed_correlation_files", strat, num_strat)
-            
-            if c.fwhm != None:
-            
-                calc_avg("sca_seed_smooth", strat, num_strat)
-            
-            if 1 in c.runRegisterFuncToMNI:
-            
-                calc_avg("sca_seed_to_standard", strat, num_strat)
-                
-                if c.fwhm != None:
-                
-                    calc_avg("sca_seed_to_standard_smooth", strat, num_strat)              
-            
-            num_strat += 1
-            
-    strat_list += new_strat_list
-    '''
-
-
-
-    '''
-    fisher-z-standardize SCA seed MNI-standardized outputs
-    '''
-
-    '''
-    new_strat_list = []
-    num_strat = 0
-
-    if 1 in c.runZScoring and (1 in c.runSCA) and ("roi_vox" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
-
-        for strat in strat_list:
-
-            if c.fwhm != None:
-                fisher_z_score_standardize('sca_seed_fisher_zstd', 'sca_seed_to_standard_smooth', 'voxel_timeseries_for_SCA', strat, num_strat)
-            
-            fisher_z_score_standardize('sca_seed', 'sca_seed_to_standard', 'voxel_timeseries_for_SCA', strat, num_strat)
-
-            num_strat += 1
-
-    strat_list += new_strat_list
-    '''
-
-
 
 
 
@@ -5922,10 +5800,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
         # creates the HTML files used to represent the logging-based status
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
     
-    
 
-
-    
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 
 
@@ -5951,12 +5826,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 
         subject_info['status'] = 'Running'
 
+        '''
         subject_info_pickle = open(os.getcwd() + '/subject_info.p', 'wb')
 
         pickle.dump(subject_info, subject_info_pickle)
 
         subject_info_pickle.close()
-        
+        '''
+
         if plugin_args is None:
             plugin_args={'n_procs': c.numCoresPerSubject}
 
@@ -6165,6 +6042,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
 def run(config, subject_list_file, indx, strategies,
         maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
         p_name=None, plugin=None, plugin_args=None):
+
     '''
     Function to build and execute the complete workflow
 
@@ -6275,3 +6153,4 @@ def run(config, subject_list_file, indx, strategies,
             os.remove(wfile)
         for ofile in output_list:
             os.remove(ofile)
+

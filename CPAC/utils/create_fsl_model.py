@@ -1,29 +1,33 @@
 
-
-def create_pheno_dict(pheno_file, ev_selections, subject_id_label):
+def read_pheno_file(pheno_file):
 
     import os
     import csv
-    import numpy as np
 
-    ph = pheno_file
+    pheno_file_rows = []
 
-    # Read in the phenotypic CSV file into a dictionary named pheno_dict
-    # while preserving the header fields as they correspond to the data
-    p_reader = csv.DictReader(open(os.path.abspath(ph), 'r'), \
-                                  skipinitialspace=True)
-        
-    # dictionary to store the data in a format Patsy can use
-    # i.e. a dictionary where each header is a key, and the value is a
-    # list of all of that header's values
-    pheno_data_dict = {}
+    with open(os.path.abspath(pheno_file),"r") as f:
 
-    for line in p_reader:
+        p_reader = csv.DictReader(f, skipinitialspace=True)
 
-        # here, each instance of 'line' is really a dictionary where the
-        # keys are the pheno headers, and their values are the values of
-        # each EV for that one subject - each iteration of this loop is
-        # one subject
+        for line in p_reader:
+
+            pheno_file_rows.append(line)
+
+
+    return pheno_file_rows
+
+
+
+def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
+
+    import os
+    import csv
+    import numpy as- np
+
+    pheno_data_dick = {}
+
+    for line in pheno_file_rows:
             
         for val in line.values():
             
@@ -44,11 +48,11 @@ def create_pheno_dict(pheno_file, ev_selections, subject_id_label):
                 if key not in pheno_data_dict.keys():
                     pheno_data_dict[key] = []
 
-                # create a list within one of the dictionary values for that
-                # EV if it is categorical; formats this list into a form
-                # Patsy can understand regarding categoricals:
-                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
-                #                instead of just [1, 1, 0, 1], etc.
+                # create a list within one of the dictionary values for
+                # that EV if it is categorical; formats this list into a
+                # form Patsy can understand regarding categoricals:
+                #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0'] }
+                #                instead of just [1, 1, 0], etc.
                 if 'categorical' in ev_selections.keys():
                     if key in ev_selections['categorical']:
                         pheno_data_dict[key].append(key + str(line[key]))
@@ -64,7 +68,6 @@ def create_pheno_dict(pheno_file, ev_selections, subject_id_label):
 
                 else:
                     pheno_data_dict[key].append(float(line[key]))
-
 
 
     # this needs to run after each list in each key has been fully
@@ -586,7 +589,9 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     #                 - numerical EVs (non-categorical) are in a list which
     #                   have been converted into a NumPy array
 
-    pheno_data_dict = create_pheno_dict(pheno_file, ev_selections, \
+    pheno_file_rows = read_pheno_file(pheno_file)
+
+    pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
                                             subject_id_label)
 
 

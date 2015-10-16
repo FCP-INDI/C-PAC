@@ -1260,6 +1260,9 @@ class GPAModelCheckBoxGrid(wx.Panel):
 
                     if cb_val == True:
 
+                        if "categorical" not in self.choiceDict.keys():
+                            self.choiceDict["categorical"] = []
+
                         self.choiceDict["categorical"].append(ev_name)
 
                         if (ev_name,"demean") not in self.tempChoiceDict.keys():
@@ -1279,6 +1282,10 @@ class GPAModelCheckBoxGrid(wx.Panel):
                 elif selection == "demean":
 
                     if cb_val == True:
+                        
+                        if "demean" not in self.choiceDict.keys():
+                            self.choiceDict["demean"] = []
+
                         self.choiceDict["demean"].append(ev_name)
 
         
