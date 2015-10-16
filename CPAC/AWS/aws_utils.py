@@ -398,7 +398,7 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, overwrite=False):
 
 
 # Test write-access to bucket first
-def test_bucket_access(creds_path, output_directory):
+def test_bucket_access(creds_path, output_directory, subject_id):
     '''
     '''
 
@@ -425,7 +425,7 @@ def test_bucket_access(creds_path, output_directory):
     # Formulate test ouput key in bucket path output directory
     rel_key_path = output_directory.replace(\
                    os.path.join(s3_str, bucket_name), '').lstrip('/')
-    write_test_key = os.path.join(rel_key_path, 'test-output.txt')
+    write_test_key = os.path.join(rel_key_path, 'test-output_%s.txt' % subject_id)
 
     # Attempt a write to bucket
     try:

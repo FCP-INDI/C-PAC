@@ -5923,7 +5923,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # Import packages
                 from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
-                s3_write_access = test_bucket_access(creds_path, c.outputDirectory)
+                s3_write_access = test_bucket_access(creds_path, c.outputDirectory, sub_dict['subject_id'])
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:
