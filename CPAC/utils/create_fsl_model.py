@@ -23,7 +23,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
 
     import os
     import csv
-    import numpy as- np
+    import numpy as np
 
     pheno_data_dick = {}
 
