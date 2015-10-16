@@ -1,6 +1,11 @@
 # CPAC/network_centrality/utils.py
 #
-# Network centrality utilities
+# Contributing authors (please append):
+#
+
+'''
+Network centrality utilities
+'''
 
 # Method to return recommended block size based on memory restrictions 
 def calc_blocksize(timeseries, memory_allocated=None, 
@@ -193,35 +198,51 @@ def cluster_data(img, thr, xyz_a, k=26):
 
 
 # Convert probability threshold value to correlation threshold
-def convert_pvalue_to_r(scans, threshold):
+def convert_pvalue_to_r(p_value, scans, two_tailed=False):
     '''
     Method to calculate correlation threshold from p_value
 
     Parameters
     ----------
+    p_value : float
+        significance threshold p-value
     scans : int
         Total number of scans in the data
-    threshold : float
-        input p_value
+    two_tailed : boolean (optional); default=False
+        flag to indicate whether to calculate the two-tailed t-test
+        threshold for the returned correlation value
 
     Returns
     -------
-    rvalue : float
+    r_value : float
         correlation threshold value 
     '''
 
     # Import packages
-    import scipy.stats as s
-    import math
+    import numpy as np
+    import scipy.stats
+    #import math
 
-    print "p_value ->", threshold
-    x = 1-threshold/2
-    dof = scans-2
-    #Inverse Survival Function (Inverse of SF)
-    tvalue = s.t.isf(x, dof)
-    rvalue = math.sqrt(math.pow(tvalue, 2)/(dof+ math.pow(tvalue,2)))
+    # Init variables
+    # Get two-tailed distribution
+    if two_tailed:
+        p_value = p_value/2
 
-    return rvalue
+    # N-2 degrees of freedom with Pearson correlation (two sample means)
+    deg_freedom = scans-2
+
+    # Inverse Survival Function (Inverse of SF)
+    # Note: survival function (SF) is also known as the complementary
+    # cumulative distribution function (CCDF): F_(x) = p = P(X > x) = 1 - F(x)
+    # The inverse will yield: x = F_^-1(p) = F_^-1(P(X > x))
+    # where x is a value under the distribution of the random variable X
+    # such that the probability of getting greater than x, is p
+    t_value = scipy.stats.t.isf(p_value, deg_freedom)
+    r_value = np.sqrt(t_value**2/(deg_freedom+t_value**2))
+    #r_value = math.sqrt(math.pow(t_value, 2)/(deg_freedom+ math.pow(t_value,2)))
+
+    # Return correlation coefficient
+    return r_value
 
 
 # Borrowed from nipy.graph.graph
@@ -376,3 +397,116 @@ def merge_lists(deg_list=[],eig_list=[],lfcd_list=[]):
 
     return merged_list
 
+
+# Separate sub-briks of niftis and save
+def sep_nifti_subbriks(nifti_file, out_names):
+    '''
+    '''
+
+    # Import packages
+    import os
+    import nibabel as nib
+
+    # Init variables
+    output_niftis = []
+
+    # Read in nifti and get dimensions
+    nii_img = nib.load(nifti_file)
+    nii_arr = nii_img.get_data()
+    nii_affine = nii_img.get_affine()
+    nii_dims = nii_arr.shape
+
+    # Make sure there are as many names as dims
+    if nii_dims[-1] != len(out_names):
+        err_msg = 'out_names must have same number of elements as '\
+                  'nifti sub-briks'
+        raise Exception(err_msg)
+
+    # Iterate through last dimension
+    for brik, out_name in enumerate(out_names):
+        brik_arr = nii_arr[:, :, :, 0, brik]
+        out_file = os.path.join(os.getcwd(), out_name+'.nii.gz')
+        out_img = nib.Nifti1Image(brik_arr, nii_affine)
+        out_img.to_filename(out_file)
+        output_niftis.append(out_file)
+
+    # Return separated nifti filepaths
+    return output_niftis
+
+
+def get_rval_from_pval(dataset, mask, p_val, two_tailed=False):
+    '''
+    '''
+
+    # Import packages
+    from CPAC.network_centrality import load, convert_pvalue_to_r
+
+    # Get info
+    timeseries, aff, final_mask, template_type, scans = load(dataset, mask)
+
+    # Convert pval thresh to rval
+    r_val = convert_pvalue_to_r(p_val, scans, two_tailed)
+
+    # Return scans
+    return r_val
+
+
+# Calculate eigenvector centrality from one_d file
+def parse_and_return_mats(one_d_file, mask_arr):
+    '''
+    '''
+
+    # Import packages
+    import numpy as np
+    import scipy.sparse as sparse
+
+    # Init variables
+    # Capture all positive/negative floats/ints
+    reg_pattern = r'[-+]?\d*\.\d+|[-+]?\d+'
+
+    # Parse one_d file
+    print 'Reading 1D file...'
+    with open(one_d_file, 'r') as fopen:
+        lines = fopen.readlines()
+
+    # Parse out numbers
+    print 'Parsing contents...'
+    graph_arr = np.loadtxt(one_d_file, skiprows=6)
+
+    # Cast as numpy arrays and extract i, j, w
+    print 'Creating arrays...'
+    one_d_rows = graph_arr.shape[0]
+
+    # Extract 3d indices
+    ijk1 = graph_arr[:,2:5].astype('int32')
+    ijk2 = graph_arr[:, 5:8].astype('int32')
+
+    # Non-zero elements from mask is size of similarity matrix
+    mask_idx = np.argwhere(mask_arr)
+    mask_voxs = mask_idx.shape[0]
+
+    # Extract the ijw's from 1D file
+    i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    i_arr = np.array(i_arr, dtype='int32')
+    j_arr = np.array(j_arr, dtype='int32')
+
+    # Weighted array and binarized array
+    w_arr = graph_arr[:,-1].astype('float32')
+    b_arr = np.ones(w_arr.shape)
+
+    # Construct the sparse matrix
+    print 'Constructing sparse matrix...'
+    wmat_upper_tri = sparse.coo_matrix((w_arr, (i_arr, j_arr)),
+                                       shape=(mask_voxs, mask_voxs))
+    bmat_upper_tri = sparse.coo_matrix((b_arr, (i_arr, j_arr)),
+                                       shape=(mask_voxs, mask_voxs))
+
+    # Make symmetric
+    w_similarity_matrix = wmat_upper_tri + wmat_upper_tri.T
+    b_similarity_matrix = bmat_upper_tri + bmat_upper_tri.T
+
+    # Return the symmetric matrices and affine
+    return b_similarity_matrix, w_similarity_matrix
