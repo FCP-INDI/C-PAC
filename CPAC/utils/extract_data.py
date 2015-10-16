@@ -108,9 +108,6 @@ def extract_data(c, param_map):
                   %(scan_name.replace("_"+os.path.splitext(os.path.splitext(file_name)[0])[0], ''))
             logging.exception(msg)
             raise Exception(msg)
-        
-
-        
 
     def create_site_subject_mapping(base, relative):
 
@@ -399,7 +396,7 @@ def generate_supplementary_files(output_path, subject_list_name):
     from sets import Set
     import csv
 
-    subject_list_name = subject_list_name[0]
+    subject_list_name = subject_list_name
 
     try:
         subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_' \

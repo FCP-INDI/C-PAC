@@ -1,9 +1,16 @@
-# Import packages
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-# Import CPAC functions
-from CPAC.network_centrality import *
-from CPAC.network_centrality.core import *
+# CPAC/network_centrality/resting_state_centrality.py
+#
+# Contributing authors (please append):
+# Daniel Clark
+# Steve Giavasis
+# Zarrar Shezad
+# Sharad Sikka
+# Ranjit Khanuja
+
+'''
+This module contains all of the network centrality workflow functions
+used in C-PAC
+'''
 
 
 # Function to create the network centrality workflow
@@ -13,95 +20,89 @@ def create_resting_state_graphs(allocated_memory = None,
     Workflow to calculate degree and eigenvector centrality as well as 
     local functional connectivity density (lfcd) measures for the 
     resting state data.
-    
+
     Parameters
     ----------
-    generate_graph : boolean
-        when true the workflow plots the adjacency matrix graph 
-        and converts the adjacency matrix into compress sparse 
-        matrix and stores it in a .mat file. By default its False
+    allocated_memory : float
+        amount of memory allocated for the centrality workflow in GB
     wf_name : string
         name of the workflow
-        
-    Returns 
+
+    Returns
     -------
     wf : workflow object
         resting state graph workflow object
-          
+
     Notes
     -----
-    
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/resting_state_centrality.py>`_
-    
+
     Workflow Inputs::
-    
+
         inputspec.subject: string (nifti file)
             path to resting state input data for which centrality measure is to be calculated
-            
+
         inputspec.template : string (existing nifti file)
             path to mask/parcellation unit 
-        
+
         inputspec.method_option: string (int)
             0 for degree centrality, 1 for eigenvector centrality, 2 for lFCD
-        
+
         inputspec.threshold: string (float)
             pvalue/sparsity_threshold/threshold value
-        
+
         inputspec.threshold_option: string (int)
             threshold options:  0 for probability p_value, 1 for sparsity threshold, any other for threshold value
-           
+
         centrality_options.weight_options : string (list of boolean)
             list of two booleans for binarize and weighted options respectively
-        
+
         centrality_options.method_options : string (list of boolean)
             list of two booleans for Degree and Eigenvector centrality method options respectively
-        
+
     Workflow Outputs::
     
         outputspec.centrality_outputs : string (list of nifti files)
             path to list of centrality outputs for binarized or/and weighted and
             degree or/and eigen_vector 
-        
+
         outputspec.threshold_matrix : string (numpy file)
             path to file containing thresholded correlation matrix
-        
+
         outputspec.correlation_matrix : string (numpy file)
             path to file containing correlation matrix
-        
+
         outputspec.graph_outputs : string (mat and png files)
             path to matlab compatible sparse adjacency matrix files 
             and adjacency graph images 
-    
+
     Order of commands:
-    
+
     - load the data and template, based on template type (parcellation unit ar mask)
       extract timeseries
-    
+
     - Calculate the correlation matrix for the image data for each voxel in the mask or node
       in the parcellation unit
-    
+
     - Based on threshold option (p_value or sparsity_threshold), calculate the threshold value
-    
+
     - Threshold the correlation matrix
-     
+
     - Based on weight options for edges in the network (binarize or weighted), calculate Degree 
       or Vector Based centrality measures
-     
-    
+
     High Level Workflow Graph:
-    
+
     .. image:: ../images/resting_state_centrality.dot.png
        :width: 1000
-    
-    
+
     Detailed Workflow Graph:
-    
+
     .. image:: ../images/resting_state_centrality_detailed.dot.png
        :width: 1000
-    
+
     Examples
     --------
-    
     >>> import resting_state_centrality as graph
     >>> wflow = graph.create_resting_state_graphs()
     >>> wflow.inputs.centrality_options.method_options=[True, True]
@@ -112,12 +113,16 @@ def create_resting_state_graphs(allocated_memory = None,
     >>> wflow.inputs.inputspec.threshold = 0.0744
     >>> wflow.base_dir = 'graph_working_directory'
     >>> wflow.run()
-    
     '''
-    
+
+    # Import packages
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    # Init variables
     # Instantiate workflow with input name
     wf = pe.Workflow(name = wf_name)
-    
+
     # Instantiate inputspec node
     inputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                        'template',
@@ -126,7 +131,7 @@ def create_resting_state_graphs(allocated_memory = None,
                                                        'threshold',
                                                        'weight_options']),
                         name='inputspec')
-    
+
     # Instantiate calculate_centrality main function node
     calculate_centrality = pe.Node(util.Function(input_names = ['datafile',
                                                                 'template',
@@ -138,7 +143,7 @@ def create_resting_state_graphs(allocated_memory = None,
                                                  output_names = ['out_list'],
                                                  function = calc_centrality),
                                    name = 'calculate_centrality')
-    
+
     # Connect inputspec node to main function node
     wf.connect(inputspec, 'subject', 
                calculate_centrality, 'datafile')
@@ -152,21 +157,21 @@ def create_resting_state_graphs(allocated_memory = None,
                calculate_centrality, 'threshold')
     wf.connect(inputspec,'weight_options',
                calculate_centrality,'weight_options')
-    
+
     # Specify allocated memory from workflow input to function node
     calculate_centrality.inputs.allocated_memory = allocated_memory
-    
+
     # Instantiate outputspec node
     outputspec = pe.Node(util.IdentityInterface(fields=['centrality_outputs',
                                                         'threshold_matrix',
                                                         'correlation_matrix',
                                                         'graph_outputs']),
                          name = 'outputspec')
-    
+
     # Connect function node output list to outputspec node
     wf.connect(calculate_centrality, 'out_list',
                outputspec, 'centrality_outputs')
-    
+
     # Return the connected workflow
     return wf
 
@@ -174,14 +179,14 @@ def create_resting_state_graphs(allocated_memory = None,
 # Function to load in nifti files and extract info for centrality calculation
 def load(datafile, template=None):
     '''
-    Method to read data from datafile and mask/parcellation unit
+    Function to read data from datafile and mask/parcellation unit
     and store the mask data, timeseries, affine matrix, mask type
     and scans. The output of this method is used by all other nodes.
-    
+
     Note that this function also will internally compute it's own 
     brain mask by getting all voxels with non-zero variance in the
     timeseries.
-    
+
     Parameters
     ----------
     datafile : string (nifti file)
@@ -189,7 +194,7 @@ def load(datafile, template=None):
     template : string (nifti file) or None (default: None)
         path to mask/parcellation unit
         if none, then will be mask with all 1s
-        
+
     Returns
     -------
     timeseries_data : ndarray
@@ -202,13 +207,13 @@ def load(datafile, template=None):
         0 for mask, 1 for parcellation unit 
     scans : string (int)
         total no of scans in the input data
-        
+
     Raises
     ------
     Exception
     '''
 
-    import os
+    # Import packages
     import nibabel as nib
     import numpy as np
 
@@ -277,7 +282,7 @@ def get_centrality_by_rvalue(ts_normd,
                              r_value, 
                              block_size):
     '''
-    Method to calculate degree/eigenvector centrality and lFCD
+    Function to calculate degree/eigenvector centrality and lFCD
     via correlation (r-value) threshold
     
     Parameters
@@ -310,7 +315,9 @@ def get_centrality_by_rvalue(ts_normd,
     '''
     
     # Import packages
+    import numpy as np
     from CPAC.network_centrality.utils import cluster_data
+    import CPAC.network_centrality.core as core
     
     # Init variables
     out_list = []
@@ -376,10 +383,10 @@ def get_centrality_by_rvalue(ts_normd,
         # Degree centrality calculation
         if calc_degree:
             if weight_options[0]:
-                degree_centrality(rmat_block, r_value, method='binarize', 
+                core.degree_centrality(rmat_block, r_value, method='binarize', 
                                   out=degree_binarize[n:m])
             if weight_options[1]:
-                degree_centrality(rmat_block, r_value, method='weighted', 
+                core.degree_centrality(rmat_block, r_value, method='weighted', 
                                   out=degree_weighted[n:m])
         
         # Eigenvector centrality - append global corr. matrix
@@ -439,12 +446,12 @@ def get_centrality_by_rvalue(ts_normd,
         if calc_eigen:
             if out_binarize:
                 print '...calculating binarize eigenvector'
-                eigen_binarize[:] = eigenvector_centrality(r_matrix, 
+                eigen_binarize[:] = core.eigenvector_centrality(r_matrix, 
                                                            r_value, 
                                                            method='binarize').squeeze()
             if out_weighted:
                 print '...calculating weighted eigenvector'
-                eigen_weighted[:] = eigenvector_centrality(r_matrix, 
+                eigen_weighted[:] = core.eigenvector_centrality(r_matrix, 
                                                            r_value, 
                                                            method='weighted').squeeze()
             del r_matrix
@@ -493,7 +500,9 @@ def get_centrality_by_sparsity(ts_normd,
     '''
     
     # Import packages
+    import numpy as np
     import scipy as sp
+    import CPAC.network_centrality.core as core
 
     # Init variables
     out_list = []
@@ -646,11 +655,11 @@ def get_centrality_by_sparsity(ts_normd,
         # Finally compute centrality using full matrix and r_value
         if out_binarize:
             print '...calculating binarize eigenvector'
-            eigen_binarize[:] = eigenvector_centrality(r_matrix, r_value, 
+            eigen_binarize[:] = core.eigenvector_centrality(r_matrix, r_value, 
                                                        method='binarize').squeeze()
         if out_weighted:
             print '...calculating weighted eigenvector'
-            eigen_weighted[:] = eigenvector_centrality(r_matrix, r_value, 
+            eigen_weighted[:] = core.eigenvector_centrality(r_matrix, r_value, 
                                                        method='weighted').squeeze()
         del r_matrix
     
@@ -792,13 +801,13 @@ def calc_centrality(datafile,
                          'Check the pipline configuration has this setting')
     import time
     start = time.clock()
-    
+
     # Init variables
     out_list = []
     ts, aff, mask, t_type, scans = load(datafile, template)
-    
-    # If we're doing eigenvectory centrality, need entire correlation matrix
-    if method_option == 0 and threshold_option == 1:
+
+    # If we're doing eigenvector centrality, need entire correlation matrix
+    if threshold_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
                                     sparsity_thresh=threshold)
     elif method_option == 1:
