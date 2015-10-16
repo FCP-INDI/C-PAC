@@ -5887,8 +5887,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             wf_names.append(strat.get_name())
 
             # Extract credentials path for output if it exists
-            creds_path = str(c.awsOutputBucketCredentials)
             try:
+                creds_path = str(c.awsOutputBucketCredentials)
                 # Import packages
                 from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
@@ -5901,11 +5901,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                               'accessing the S3 bucket. Check and try again.\n'\
                               'Error: %s' % exc
                     raise Exception(err_msg)
-        
+            try:
+                encrypt_data = bool(c.s3Encryption[0])
+            except Exception as exc:
+                encrypt_data = False
             for key in sorted(rp.keys()):
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
+                ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
