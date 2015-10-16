@@ -144,23 +144,6 @@ class DirectorySettings(wx.ScrolledWindow):
                       comment="Directory where CPAC should place processed data.",
                       validation_req=False)
 
-        self.page.add(label="AWS Output Bucket Credentials (optional) ",
-                      control=control.DIR_COMBO_BOX,
-                      name='awsOutputBucketCredentials',
-                      type=dtype.STR,
-                      comment="If setting the \'Output Directory\' to an S3 "\
-                              "bucket, insert the path to your AWS credentials "\
-                              "file here.",
-                      validation_req=False)
-
-        self.page.add(label="S3 Encryption ",
-                      control=control.CHOICE_BOX,
-                      name='s3Encryption',
-                      type=dtype.LSTR,
-                      comment="Enable server-side 256-AES encryption on data "\
-                              "to the S3 bucket",
-                      values=["On", "Off"])
-
         self.page.add(label="Create Symbolic Links ",
                       control=control.CHOICE_BOX,
                       name='runSymbolicLinks',

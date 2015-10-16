@@ -1,12 +1,3 @@
-# CPAC/GUI/interface/windows/dataconfig_window.py
-#
-#
-
-'''
-This module starts the data configuration GUI for building a subject list
-'''
-
-# Import packages
 import wx
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
@@ -15,19 +6,15 @@ import yaml
 import pkg_resources as p
 import sys
 
-# Init variables
 ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
 
-# DataConfig wx.Frame class
 class DataConfig(wx.Frame):
-    '''
-    '''
-
-    # Init method
+        
+    
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,520))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,450))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -100,17 +87,7 @@ class DataConfig(wx.Frame):
                            "For instructions on how to create this file, see the User Guide.\n\n"
                            "If 'None' is specified, CPAC will skip Slice Timing Correction.",
                  values = "None")
-
-        # Add AWS credentials path
-        self.page.add(label='AWS credentials file (Optional) ',
-                 control=control.COMBO_BOX,
-                 name='awsCredentialsFile',
-                 type=dtype.COMBO,
-                 comment='Required if downloading data from a non-public S3 '\
-                         'bucket on Amazon Web Services instead of using '\
-                         'local files.',
-                 values='None')
-
+        
         self.page.add(label = "Output Directory ", 
                       control = control.DIR_COMBO_BOX, 
                       name = "outputSubjectListLocation", 
@@ -191,59 +168,35 @@ class DataConfig(wx.Frame):
     def onHelp(self, event):
             comment = "Check the box only if the scans have different slice timing infomation."
             wx.TipWindow(self, comment, 500)
-
-    # Generate the subject list from config
-    def run(self, config):
-        '''
-        '''
         
-        # Import packages
-        import CPAC
+    def run(self, config):
+            
+        try:  
 
-        # Try to build subject list from config
-        try:
-            # Load in configuration file
-            config_map = yaml.load(open(config, 'r'))
-            # Get subject list output path
-            out_location = os.path.join(\
-                           os.path.realpath(config_map.get('outputSubjectListLocation')),\
-                           'CPAC_subject_list_%s.yml' % config_map.get('subjectListName'))
-
-            # Extract multiscan checkbox status
+            try:
+                config_map = yaml.load(open(config, 'r'))
+                out_location = os.path.join(\
+                               os.path.realpath(config_map.get('outputSubjectListLocation')),\
+                               'CPAC_subject_list_%s.yml' % config_map.get('subjectListName')[0])
+            except Exception, e:
+                print "Error loading data config file", e
+                raise 
+            
+            
+            print "executing extract data"
             multiscan = self.multiscan.IsChecked()
-
-            # Check if multiscan is checked
+            
+            import CPAC
+            
             if multiscan:
-                # Didn't set up s3-ification for multiscan yet...
-                if 's3://' in config_map.get('anatomicalTemplate') or \
-                   's3://' in config_map.get('functionalTemplate'):
-                    err_msg = 'S3 interaction currently not setup for multiscan '\
-                              'subject lists'
-                    raise Exception(err_msg)
-
-                # Build subject list from multiscan data
                 CPAC.utils.extract_data_multiscan.run(config)
-
-            # Otherwise, no build non-multiscan subject list
             else:
-                # Build the subject list from the data config
-                CPAC.utils.build_sublist.build_sublist(config)
-
-                # Extract arguments for supplementary files
-                sublist_outdir = config_map.get('outputSubjectListLocation')
-                sublist_name = config_map.get('subjectListName')
-
-                # Make backwards-compatible
-                if type(sublist_name) == list:
-                    sublist_name = sublist_name[0]
-
-                # Generate group analysis files and such
-                CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
-
-            # Prompt user with naming subject list for main GUI
+                CPAC.utils.extract_data.run(config)
+            
             while True:
+                
                 dlg2 = wx.TextEntryDialog(self, 'Please enter a name for the Subject List',
-                                                 'Sublist Name', '%s' % sublist_name)
+                                                 'Sublist Name', 'CPAC_subject_list_%s.yml' % config_map.get('subjectListName')[0])
                 if dlg2.ShowModal() == wx.ID_OK:
                     if len(dlg2.GetValue()) >0:
                         parent = self.Parent
@@ -258,29 +211,26 @@ class DataConfig(wx.Frame):
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
-            # Return value
+            
             return 1
 
-        # Import error if CPAC not available
-        except ImportError as exc:
+
+        
+        except ImportError, e:
             wx.MessageBox("Error importing CPAC. Unable to run extract data tool.", "Error") 
             print "Error importing CPAC"
-            print exc
+            print e
             return -1
-        # Problem reading in data from disk
-        except IOError as exc:
-            print "Error loading data config file", exc
-            return -1
-        # Catch any other exceptions
-        except Exception as exc:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%exc,
+        
+        except Exception, e:
+            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%e,
                                'Error!',
                            wx.OK | wx.ICON_ERROR)
             dlg2.ShowModal()
             dlg2.Destroy()
             return -1
+         
 
-    # Save data config
     def save(self, event, flag):
         
         config_list =[]
@@ -310,6 +260,10 @@ class DataConfig(wx.Frame):
                     display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
+                    if value.count('%s') != 2:
+                        display(win,"Incorrect template, two \'%s\' values are required. One for site and another for"\
+                                " subject location in the path. Please refer to example!")
+                        
                     if value.startswith('%s'):
                         display(win, "Template cannot start with %s")
                         
@@ -346,8 +300,7 @@ class DataConfig(wx.Frame):
                 f = open(path, 'w')
                 for ctrl in config_list:
         
-                    if "/" in ctrl[1] or "%s" in ctrl[1] \
-                       or 'None' in ctrl[1] or ctrl[0] =='subjectListName': 
+                    if "/" in ctrl[1] or "%s" in ctrl[1] or 'None' in ctrl[1]: 
                         value = ctrl[1]
                     else:
                         value =[val.strip() for val in ctrl[1].split(',')]
@@ -364,74 +317,71 @@ class DataConfig(wx.Frame):
                     
             
 
-    # Load in data configuration file
     def load(self, event):
-        '''
-        '''
-
-        dlg = wx.FileDialog(
-        self, message="Choose the config yaml file",
-            defaultDir=os.getcwd(), 
-            defaultFile="",
-            wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
-            style=wx.OPEN | wx.CHANGE_DIR)
-        # Once user click's OK
-        if dlg.ShowModal() == wx.ID_OK:
-            # Try and load in the data config file to GUI
-            try:
-                path = dlg.GetPath()
-                # Try and load in file contents
+            dlg = wx.FileDialog(
+            self, message="Choose the config fsl yaml file",
+                defaultDir=os.getcwd(), 
+                defaultFile="",
+                wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+                style=wx.OPEN | wx.CHANGE_DIR)
+            # Once user click's OK
+            if dlg.ShowModal() == wx.ID_OK:
+                # Try and load in the data config file to GUI
                 try:
-                    config_map = yaml.load(open(os.path.realpath(path),'r'))
-                # Otherwise, report error
-                except IOError as exc:
-                    err_msg = 'File %s does not exist. Check and try again. '\
-                              'Error:\n%s' %(path, exc)
-                    raise Exception(err_msg)
-                except Exception as exc:
-                    err_msg = 'Unable to load in the specified file: %s'\
-                              'Error:\n%s' %(path, exc)
-                    raise Exception(err_msg)
-
-                # If it's a dictionary, check it has anat template key
-                if type(config_map) == dict:
-                    if not config_map.has_key('anatomicalTemplate'):
-                        err_msg = 'File is not a data configuration '\
-                                  'file. It might be a pipeline '\
-                                  'configuration file.'
-                        raise Exception(err_msg)
-                # It didn't load in as a dictionary, report error
-                else:
-                    err_msg = 'File is not a data configuration '\
-                              'file. It might be a subject list file.'
-                    raise Exception(err_msg)
-
-                # Populate GUI fields
-                for ctrl in self.page.get_ctrl_list():
-                    name = ctrl.get_name()
-                    value = config_map.get(name)
-                    dtype = ctrl.get_datatype()
-                    if isinstance(value, list):
-                        val = None
-                        for v in value:
-                            if val:
-                                val = val + ',' + str(v)
-                            else:
-                                val = str(v)
+                    path = dlg.GetPath()
+                    # Check for path existence
+                    if os.path.exists(path):
+                        path = os.path.realpath(path)
+                        # Try and load in file contents
+                        try:
+                            config_map = yaml.load(open(path, 'r'))
+                        except Exception as e:
+                            print 'Unable to load in the specified file: %s' \
+                                  % path
+                            print 'Error:\n%s' % e
+                        # If it's a dictionary, check it has anat template key
+                        if type(config_map) == dict:
+                            if not config_map.has_key('anatomicalTemplate'):
+                                err_msg = 'File is not a data configuration '\
+                                          'file. It might be a pipeline '\
+                                          'configuration file.'
+                                raise Exception(err_msg)
+                        # It didn't load in as a dictionary, report error
+                        else:
+                            err_msg = 'File is not a data configuration '\
+                                      'file. It might be a subject list file.'
+                            raise Exception(err_msg)
+                    # Otherwise, report error
                     else:
-                        val = value
+                        err_msg = 'File %s does not exist. Check and try '\
+                                  'again' % path
+                        raise Exception(err_msg)
+                    # Populate GUI fields
+                    for ctrl in self.page.get_ctrl_list():
+                        name = ctrl.get_name()
+                        value = config_map.get(name)
+                        dtype = ctrl.get_datatype()
+                        if isinstance(value, list):
+                            val = None
+                            for v in value:
+                                if val:
+                                    val = val + "," + str(v)
+                                else:
+                                    val = str(v)
+                        else:
+                            val = value
+                
+                        ctrl.set_value(str(val))
+                # There was an error loading parameters, report it
+                except Exception as e:
+                    errdlg = wx.MessageDialog(self, "CPAC could not load " \
+                               "your subject list information. Double-" \
+                               "check the formatting of your data_config " \
+                               "YAML file.\n\nIssue info:\n%s" % e,
+                               'Error!',
+                           wx.OK | wx.ICON_ERROR)
+                    errdlg.ShowModal()
+                    errdlg.Destroy()
 
-                    ctrl.set_value(str(val))
-
-            # There was an error loading parameters, report it
-            except Exception as exc:
-                err_msg = 'CPAC could not load your subject list information. '\
-                          'Check the formatting of your data_config YAML file.'\
-                          '\n\nIssue info:\n%s' % exc
-                errdlg = wx.MessageDialog(self, err_msg, 'Error!',
-                                          wx.OK | wx.ICON_ERROR)
-                errdlg.ShowModal()
-                errdlg.Destroy()
-
-            # Close dialog
-            dlg.Destroy()
+                # Close dialog
+                dlg.Destroy()
