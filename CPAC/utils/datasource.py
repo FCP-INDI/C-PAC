@@ -1,13 +1,3 @@
-# CPAC/utils/datasource.py
-#
-#
-
-'''
-This module contains classes and functions used to interface with data
-access
-'''
-
-# Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -21,7 +11,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path'],
+                                fields=['subject', 'scan'],
                                 mandatory_inputs=True),
                         name='inputnode')
     inputnode.iterables = [('scan', rest_dict.keys())]
@@ -32,13 +22,6 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
-                            name='check_for_s3')
-    wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
-    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
-
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                      'rest',
                                                      'scan' ]),
@@ -47,7 +30,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
+    wf.connect(selectrest, 'rest', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     return wf
@@ -57,41 +40,7 @@ def get_rest(scan, rest_dict):
     return rest_dict[scan]
 
 
-# Check if passed in file is on S3
-def check_for_s3(file_path, creds_path):
-    '''
-    '''
 
-    # Import packages
-    import os
-    from CPAC.AWS import fetch_creds
-
-    # Init variables
-    s3_str = 's3://'
-    local_download_dir = '/tmp'
-
-    # Check for s3 string in filepaths
-    if s3_str in file_path:
-        # Get bucket name and bucket object
-        bucket_name = file_path.replace(s3_str, '').split('/')[0]
-        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
-        # Extract relative key path from bucket and local path
-        s3_prefix = os.path.join(s3_str, bucket_name)
-        rel_path = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = file_path.replace(s3_prefix, local_download_dir)
-
-        # Download file
-        bucket.download_file(Key=rel_path, Filename=local_path)
-    # Otherwise just return what was passed in
-    else:
-        local_path = file_path
-
-    # Return the local path
-    return local_path
-
-
-# Anatomical datasource
 def create_anat_datasource(wf_name='anat_datasource'):
 
     import nipype.pipeline.engine as pe
@@ -100,29 +49,21 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'anat', 'creds_path'],
+                                fields=['subject', 'anat'],
                                 mandatory_inputs=True),
                         name='inputnode')
-
-    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
-                            name='check_for_s3')
-    wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
-    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                      'anat' ]),
                          name='outputspec')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(check_s3_node, 'local_path', outputnode, 'anat')
+    wf.connect(inputnode, 'anat', outputnode, 'anat')
 
-    # Return the workflow
     return wf
 
 
-# ROI mask dataflow
+
 def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask'):
 
     import nipype.interfaces.io as nio
@@ -333,3 +274,5 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
         return wf
+
+
