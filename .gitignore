@@ -33,3 +33,7 @@ pip-log.txt
 #Eclipse project files
 .project
 .pydevproject
+.settings
+
+# Vim swaps
+*.swp

@@ -16,7 +16,7 @@ from test import AWS_CREDS, BUCKET_NAME, DB_CREDS
 # Test case for the run function
 class FetchCredsTestCase(unittest.TestCase):
     '''
-    This class is a test case for the cpac_pipeline.run() function
+    This class is a test case for the fetch_creds.py module
 
     Inherits
     --------
