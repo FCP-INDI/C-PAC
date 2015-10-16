@@ -3233,11 +3233,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 # If we're calculating eigenvector centrality first
                 # This calculates degree centrality first anyway
                 if c.eigWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(c.degCorrelationThreshold,
-                                               c.degCorrelationThresholdOption,
+                    connect_afni_centrality_wf(c.eigCorrelationThreshold,
+                                               c.eigCorrelationThresholdOption,
                                                run_eigen=True)
-                # Else if it's just degree centrality, turn off eigen
-                elif c.degWeightOptions.count(True) > 0:
+                # If eigen thresholding is different of if it's just degree centrality
+                if (c.eigCorrelationThreshold != c.degCorrelationThreshold or \
+                    c.eigCorrelationThresholdOption != c.degCorrelationThresholdOption) and \
+                    c.degWeightOptions.count(True) > 0:
                     connect_afni_centrality_wf(c.degCorrelationThreshold,
                                                c.degCorrelationThresholdOption,
                                                run_eigen=False)
