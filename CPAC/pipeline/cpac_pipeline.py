@@ -6235,9 +6235,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 
 # Run the prep_workflow function with specific arguments
-def run(config, subject_list_file, indx, strategies,
-        maskSpecificationFile, roiSpecificationFile, templateSpecificationFile,
-        p_name=None, plugin=None, plugin_args=None):
+def run(config, subject_list_file, indx, strategies, p_name=None, \
+        plugin=None, plugin_args=None):
 
     '''
     Function to build and execute the complete workflow
@@ -6320,9 +6319,9 @@ def run(config, subject_list_file, indx, strategies,
         print 'Using local disk for input/output'
 
     # Load in the different spec files to Configuration object
-    c.maskSpecificationFile = maskSpecificationFile
-    c.roiSpecificationFile = roiSpecificationFile
-    c.templateSpecificationFile = templateSpecificationFile
+    #c.maskSpecificationFile = maskSpecificationFile
+    #c.roiSpecificationFile = roiSpecificationFile
+    #c.templateSpecificationFile = templateSpecificationFile
 
 
     try:
