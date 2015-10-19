@@ -975,6 +975,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         try: 
             funcFlow = create_func_datasource(sub_dict['rest'], 'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
+            funcFlow.inputs.inputnode.creds_path = input_creds_path
         except Exception as xxx:
             logger.info( "Error create_func_datasource failed."+\
                     " (%s:%d)" % dbg_file_lineno() )
@@ -5887,8 +5888,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             wf_names.append(strat.get_name())
 
             # Extract credentials path for output if it exists
-            creds_path = str(c.awsOutputBucketCredentials)
             try:
+                creds_path = str(c.awsOutputBucketCredentials)
                 # Import packages
                 from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
@@ -5901,11 +5902,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                               'accessing the S3 bucket. Check and try again.\n'\
                               'Error: %s' % exc
                     raise Exception(err_msg)
-        
+            try:
+                encrypt_data = bool(c.s3Encryption[0])
+            except Exception as exc:
+                encrypt_data = False
             for key in sorted(rp.keys()):
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
+                ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
@@ -6008,7 +6013,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
         #create callback logger
         import logging as cb_logging
-        cb_log_filename = 'callback.log'
+
+        cb_log_filename = os.path.join(c.outputDirectory, 'callback_logs',
+                                       'callback_%s.log' % sub_dict['subject_id'])
+
+        try:
+            if not os.path.exists(os.path.dirname(cb_log_filename)):
+                os.makedirs(os.path.dirname(cb_log_filename))
+                
+        except IOError:
+            pass
+        
         cb_logger = cb_logging.getLogger('callback')
         cb_logger.setLevel(cb_logging.DEBUG)
         handler = cb_logging.FileHandler(cb_log_filename)
