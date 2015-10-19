@@ -975,6 +975,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         try: 
             funcFlow = create_func_datasource(sub_dict['rest'], 'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
+            funcFlow.inputs.inputnode.creds_path = input_creds_path
         except Exception as xxx:
             logger.info( "Error create_func_datasource failed."+\
                     " (%s:%d)" % dbg_file_lineno() )
