@@ -232,7 +232,7 @@ class ListBox(wx.Frame):
             
             import CPAC
             from CPAC.utils import Configuration
-            c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
+            c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
             plugin_args = {'num_threads': c.numCoresPerSubject, 
                             'memory': c.memoryAllocatedForDegreeCentrality}
 
