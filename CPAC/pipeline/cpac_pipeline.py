@@ -6236,7 +6236,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 # Run the prep_workflow function with specific arguments
 def run(config, subject_list_file, indx, strategies, p_name=None, \
-        plugin=None, plugin_args=None):
+        plugin=None, plugin_args=None, **kwargs):
 
     '''
     Function to build and execute the complete workflow
