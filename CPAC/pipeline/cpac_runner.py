@@ -221,7 +221,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
                             'memory': c.memoryAllocatedForDegreeCentrality}
 
 #    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
-    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\", \\\"plugin=%s\\\", \\\"plugin_args=%s\\\") \" " % (str(config_file), \
+    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"$SGE_TASK_ID\\\" , \\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\", plugin=\\\"%s\\\", plugin_args=%s) \" " % (str(config_file), \
         subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name, 'ResourceMultiProc', plugin_args)
 
     f.close()
