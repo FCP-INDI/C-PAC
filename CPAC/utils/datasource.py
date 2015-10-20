@@ -81,6 +81,11 @@ def check_for_s3(file_path, creds_path):
         rel_path = file_path.replace(s3_prefix, '').lstrip('/')
         local_path = file_path.replace(s3_prefix, local_download_dir)
 
+        # Get local directory and create folders if they dont exist
+        local_dir = os.path.dirname(local_path)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+
         # Download file
         bucket.download_file(Key=rel_path, Filename=local_path)
     # Otherwise just return what was passed in

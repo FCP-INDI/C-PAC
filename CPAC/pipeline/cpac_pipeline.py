@@ -2437,7 +2437,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 ts_analysis_dict[analysis_type].append(roi_path)
 
 
-
+    sca_analysis_dict = {}
     if 1 in c.runSCA:
 
         sca_roi_dict = c.sca_roi_paths[0]
@@ -2460,7 +2460,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 
         # flip the dictionary
-        sca_analysis_dict = {}
+        #sca_analysis_dict = {}
 
         for roi_path in sca_roi_dict.keys():
 
@@ -6236,7 +6236,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 # Run the prep_workflow function with specific arguments
 def run(config, subject_list_file, indx, strategies, p_name=None, \
-        plugin=None, plugin_args=None):
+        plugin=None, plugin_args=None, **kwargs):
 
     '''
     Function to build and execute the complete workflow
