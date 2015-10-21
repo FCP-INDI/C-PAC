@@ -107,7 +107,7 @@ class GenericClass(wx.ScrolledWindow):
         elif control ==4:
             self.parent.Bind(masked.EVT_NUM, lambda event: self.TxtEnterBox(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl())
-        elif control ==5 :
+        elif control ==5:
             self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
         elif control ==6:
@@ -116,7 +116,7 @@ class GenericClass(wx.ScrolledWindow):
         elif control ==7:
             self.parent.Bind(wx.EVT_CHECKLISTBOX,lambda event: self.EvtListBoxCombo(event, ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl())
-        elif control == 8 :
+        elif control == 8:
             self.parent.Bind(wx.EVT_TEXT, lambda event: self.TxtEnterCombo(event,ctrl), id = ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), flag = wx.EXPAND)
         elif control == 9:
@@ -471,7 +471,8 @@ class Control(wx.Control):
                     self.set_selection(s, sample_list.index(s))
 
             elif self.get_type() == 9:
-                self.ctrl.onReload_set_selections(val)
+                if "None" not in val:
+                    self.ctrl.onReload_set_selections(val)
 
             elif self.get_type() == 10:
                 self.ctrl.set_checkbox_grid_values(val)
