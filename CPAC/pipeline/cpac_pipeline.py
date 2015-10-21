@@ -2405,7 +2405,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     if 1 in c.runROITimeseries:
 
-        tsa_roi_dict = c.tsa_roi_paths[0]
+        if c.tsa_roi_paths:
+            tsa_roi_dict = c.tsa_roi_paths[0]
+        else:
+            err = "\n\n[!] CPAC says: Time Series Extraction is " \
+                  "set to run, but no ROI NIFTI file paths were provided!" \
+                  "\n\n"
+            raise Exception(err)
 
         selections = ["roi_avg", "roi_vox", "spatial_reg"]
 
@@ -2440,7 +2446,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     sca_analysis_dict = {}
     if 1 in c.runSCA:
 
-        sca_roi_dict = c.sca_roi_paths[0]
+        if c.sca_roi_paths:
+            sca_roi_dict = c.sca_roi_paths[0]
+        else:
+            err = "\n\n[!] CPAC says: Seed-based Correlation Analysis is " \
+                  "set to run, but no ROI NIFTI file paths were provided!" \
+                  "\n\n"
+            raise Exception(err)
 
         selections = ["roi_avg", "dual_reg", "mult_reg"]
 
@@ -3114,6 +3126,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     # If we're running centrality
     if 1 in c.runNetworkCentrality:
+
+        # validate the mask file path
+        if not c.templateSpecificationFile.endswith(".nii") and \
+            not c.templateSpecificationFile.endswith(".nii.gz"):
+
+            err = "\n\n[!] CPAC says: The Network Centrality mask " \
+                  "specification file must be a NIFTI file (ending in .nii " \
+                  "or .nii.gz).\nFile path you provided: %s\n\n" \
+                  % c.templateSpecificationFile
+
+            raise Exception(err)
+
         # Check for the existence of AFNI 3dDegreeCentrality binary
         import subprocess
         try:

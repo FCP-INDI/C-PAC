@@ -658,8 +658,10 @@ class ListBox(wx.Frame):
                 try:
                     f_cfg = yaml.load(open(path, 'r'))
                 except Exception as e:
-                    print 'Unable to load in the specified file: %s' % path
-                    print 'Error:\n%s' % e
+                    print '\n\nUnable to load the specified file: %s' % path
+                    print "The YAML file may not be formatted properly."
+                    print 'Error:\n%s\n\n' % e
+                    raise Exception
                 if type(f_cfg) == dict:
                     if not f_cfg.has_key('pipelineName'):
                         err_msg = 'File is not a pipeline configuration '\

@@ -770,6 +770,17 @@ class MainFrame(wx.Frame):
                         config_list.append(ctrl)
                         continue
 
+                    elif option_name == "templateSpecificationFile":
+
+                        # let's make sure this is a NIFTI file
+                        if not ctrl.get_selection().endswith(".nii") and \
+                            not ctrl.get_selection().endswith(".nii.gz"):
+
+                            display(
+                                win, "The Mask Specification File field " \
+                                    "must contain a NIFTI file (ending in " \
+                                    ".nii or .nii.gz).", False)
+                            return
 
                     else:
 
@@ -1065,9 +1076,13 @@ class MainFrame(wx.Frame):
 
                 elif dtype == 9:
 
-                    print>>f, label,":"
+                    if len(value.keys()) == 0:
+                        print >>f, label,": None\n"
+                        continue
+                    else:
+                        print >>f, label,":"
 
-                    flag = 0
+                    flag = 0                  
 
                     for entry in value.keys():
 
@@ -1093,9 +1108,6 @@ class MainFrame(wx.Frame):
                                 string = string + "0"
 
                         print >>f, string
-
-                    if flag == 0:
-                        print >>f, "None"
 
                     print >>f, "\n"
 
