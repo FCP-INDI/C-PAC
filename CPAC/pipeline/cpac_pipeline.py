@@ -3900,7 +3900,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     num_strat = 0
 
 
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()): # in(1 in c.runROITimeseries):
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()): # in(1 in c.runROITimeseries):
         for strat in strat_list:
 
             output_to_standard('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat, input_image_type=3)
@@ -4298,7 +4298,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     '''
     Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
     '''
-    if (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()) and c.fwhm != None:
+    if (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()) and c.fwhm != None:
         for strat in strat_list:
 
             output_smooth('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat)
@@ -4317,7 +4317,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()):
+    if (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()):
     
         for strat in strat_list:
     
@@ -4348,7 +4348,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if 1 in c.runZScoring and (1 in c.runSCA) and ("roi_avg" in ts_analysis_dict.keys()): #(1 in c.runROITimeseries):
+    if 1 in c.runZScoring and (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()): #(1 in c.runROITimeseries):
 
         for strat in strat_list:
 
