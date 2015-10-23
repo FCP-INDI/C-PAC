@@ -2403,6 +2403,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     Timeseries and SCA config selections processing
     '''
 
+    ts_analysis_dict = {}
+    sca_analysis_dict = {}
+
     if 1 in c.runROITimeseries:
 
         if c.tsa_roi_paths:
@@ -2521,7 +2524,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_spatial_map_to_native_space_for_dr.inputs.apply_xfm = True
                 resample_spatial_map_to_native_space_for_dr.inputs.in_matrix_file = c.identityMatrix
 
-                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(ts_analysis_dict["spatial_reg"], 'spatial_map_dataflow_for_DR_%d' % num_strat)
+                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(sca_analysis_dict["dual_reg"], 'spatial_map_dataflow_for_DR_%d' % num_strat)
 
                 spatial_map_timeseries_for_dr = get_spatial_map_timeseries('spatial_map_timeseries_for_DR_%d' % num_strat)
                 spatial_map_timeseries_for_dr.inputs.inputspec.demean = True #c.spatialDemean
@@ -2557,7 +2560,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     # resample the input functional file and functional mask to spatial map
                     workflow.connect(node, out_file,
                                      resample_spatial_map_to_native_space_for_dr, 'reference')
-                    workflow.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
+                    workflow.connect(spatial_map_dataflow_for_dr, 'select_spatial_map.out_file',
                                      resample_spatial_map_to_native_space_for_dr, 'in_file')
                                
                     # connect it to the spatial_map_timeseries
