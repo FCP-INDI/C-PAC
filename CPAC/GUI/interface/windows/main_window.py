@@ -231,7 +231,13 @@ class ListBox(wx.Frame):
         try:
             
             import CPAC
-            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p)
+            from CPAC.utils import Configuration
+            c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
+            plugin_args = {'num_threads': c.numCoresPerSubject, 
+                            'memory': c.memoryAllocatedForDegreeCentrality}
+
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p, 
+                plugin='ResourceMultiProc', plugin_args=plugin_args)
         
         except ImportError, e:
             wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
@@ -292,24 +298,27 @@ class ListBox(wx.Frame):
     def runGroupLevelAnalysis(self, event):
 
         # Runs group analysis when user clicks "Run Group Level Analysis" in GUI
-
-        print ""
-        print "Running CPAC Group Analysis..."
-        print ""
-        
+       
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
             sublists = self.listbox2.GetCheckedStrings()
 
+            if len(sublists) < 1:
+                print '\n\nCPAC says: Please select a subject list ' \
+                        'before running group-level analysis. ' \
+                        'Thanks!\n\n'
+                raise Exception
+
+            print "\nRunning CPAC Group Analysis...\n"
+            
             for s in sublists:
 
                 sublist = self.sublist_map.get(s)
 
                 if not os.path.exists(sublist):
-                    print '\n\nCPAC says: Please select a subject list ' \
-                              'before running group-level analysis. ' \
-                              'Thanks!\n\n'
+                    print "\n\n[!] CPAC says: The subject list %s does not " \
+                          "exist!\n\n" % sublist
                     raise Exception
 
 
@@ -649,8 +658,10 @@ class ListBox(wx.Frame):
                 try:
                     f_cfg = yaml.load(open(path, 'r'))
                 except Exception as e:
-                    print 'Unable to load in the specified file: %s' % path
-                    print 'Error:\n%s' % e
+                    print '\n\nUnable to load the specified file: %s' % path
+                    print "The YAML file may not be formatted properly."
+                    print 'Error:\n%s\n\n' % e
+                    raise Exception
                 if type(f_cfg) == dict:
                     if not f_cfg.has_key('pipelineName'):
                         err_msg = 'File is not a pipeline configuration '\

@@ -145,7 +145,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       validation_req=False)
 
         self.page.add(label="AWS Output Bucket Credentials (optional) ",
-                      control=control.DIR_COMBO_BOX,
+                      control=control.COMBO_BOX,
                       name='awsOutputBucketCredentials',
                       type=dtype.STR,
                       comment="If setting the \'Output Directory\' to an S3 "\
@@ -226,13 +226,6 @@ class WorkflowConfig(wx.ScrolledWindow):
                       comment="Runs the anatomical preprocessing workflow.\n\nMust be enabled to run any subsequent processing or analysis workflows.",
                       values=["On", "Off"])
 
-        self.page.add(label="Inputs Already Skull-stripped? ",
-                      control=control.CHOICE_BOX,
-                      name='already_skullstripped',
-                      type=dtype.LSTR,
-                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
-                      values=["Off", "On"])
-
         self.page.add(label="Run Functional Preprocessing ",
                       control=control.CHOICE_BOX,
                       name='runFunctionalPreprocessing',
@@ -246,33 +239,6 @@ class WorkflowConfig(wx.ScrolledWindow):
                       type=dtype.LSTR,
                       comment="Choose which tool to be used in functional masking - AFNI 3dAutoMask or FSL BET.",
                       values=["3dAutoMask", "BET", "3dAutoMask & BET"])
-
-        self.page.set_sizer()
-        parent.get_page_list().append(self)
-
-    def get_counter(self):
-        return self.counter
-
-
-
-
-class DerivativesConfig(wx.ScrolledWindow):
-
-    def __init__(self, parent, counter=0):
-        wx.ScrolledWindow.__init__(self, parent)
-        self.counter = counter
-
-        self.page = GenericClass(self, "Derivatives Settings")
-
-        self.page.add(label="Z-score Standardize Derivatives ",
-                      control=control.CHOICE_BOX,
-                      name='runZScoring',
-                      type=dtype.LSTR,
-                      comment="Decides format of outputs. Off will produce" \
-                              " non-z-scored outputs, On will produce" \
-                              " z-scores of outputs, and On/Off will" \
-                              " produce both.",
-                      values=["On", "Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

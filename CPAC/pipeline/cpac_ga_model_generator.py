@@ -233,15 +233,20 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     model_out_dir = os.path.join(group_conf.output_dir, 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
 
-    mod_path = os.path.join(out_dir, 'model_files')
-
+    mod_path = os.path.join(model_out_dir, 'model_files')
 
     if not os.path.isdir(mod_path):
         os.makedirs(mod_path)
 
+    current_mod_path = os.path.join(mod_path, resource)
+
+    if not os.path.isdir(current_mod_path):
+        os.makedirs(current_mod_path)
+
         
     ''' write the new subject list '''
-    new_sub_file = os.path.join(mod_path, os.path.basename(group_conf.subject_list))
+    new_sub_file = os.path.join(current_mod_path, \
+                                    os.path.basename(group_conf.subject_list))
 
     try:
 
@@ -270,48 +275,28 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # get the parameter file so it can be passed to create_fsl_model.py
     # so MeanFD or other measures can be included in the design matrix
 
-    measure_list = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+    measure_list = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
 
     for measure in measure_list:
     
         if (measure in group_conf.design_formula):    
 
-            parameter_file = os.path.join(c.outputDirectory, p_id[0], '%s%s_all_params.csv'%(scan_ids[0].strip('_'),threshold_val))
+            parameter_file = os.path.join(c.outputDirectory, p_id[0], \
+                                          '%s%s_all_params.csv' % \
+                                          (scan_ids[0].strip('_'),\
+                                          threshold_val))
 
-            if 1 in c.runGenerateMotionStatistics:
-
-                if not os.path.exists(parameter_file):
-                    print '\n\n[!] CPAC says: Could not find or open the motion ' \
-                          'parameter file. This is necessary if you have included ' \
-                          'any of the MeanFD measures in your group model.\n\n' \
-                          'If Generate Motion Statistics is enabled, this file can ' \
-                          'usually be found in the output directory of your ' \
-                          'individual-level analysis runs. If it is not there, ' \
-                          'double-check to see if individual-level analysis had ' \
-                          'completed successfully.\n'
-                    print 'Path not found: ', parameter_file, '\n\n'
-                    raise Exception
-
-            else:
-
-                def no_measures_error(measure):
-                    print '\n\n[!] CPAC says: The measure %s was included in ' \
-                          'your group analysis design matrix formula, but ' \
-                          'Generate Motion Statistics was not run during ' \
-                          'individual-level analysis.\n' % measure
-                    print 'Please run Generate Motion Statistics if you wish ' \
-                          'to include this measure in your model.\n'
-                    print 'If you HAVE completed a run with this option ' \
-                          'enabled, then you are seeing this error because ' \
-                          'the motion parameter file normally created by this ' \
-                          'option is missing.\n\n'
-                    raise Exception
-
-                for measure in measure_list:
-                    if (measure in group_conf.design_formula):
-                        no_measures_error(measure)
-
-                parameter_file = None
+            if not os.path.exists(parameter_file):
+                print '\n\n[!] CPAC says: Could not find or open the motion ' \
+                      'parameter file. This is necessary if you have included ' \
+                      'any of the MeanFD measures in your group model.\n\n' \
+                      'If Generate Motion Statistics is enabled, this file can ' \
+                      'usually be found in the output directory of your ' \
+                      'individual-level analysis runs. If it is not there, ' \
+                      'double-check to see if individual-level analysis had ' \
+                      'completed successfully.\n'
+                print 'Path not found: ', parameter_file, '\n\n'
+                raise Exception
                 
             break
             
@@ -435,7 +420,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                     
                     commands.getoutput("flirt -in %s -ref %s -o %s -applyxfm -init %s -interp nearestneighbour" % (group_conf.custom_roi_mask, derivative_path, resampled_roi_mask, c.identityMatrix))
                     
-                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))       
+                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))
                     
                 else:    
                         
@@ -481,8 +466,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     ''' run create_fsl_model.py to generate the group analysis models '''
     
     from CPAC.utils import create_fsl_model
-    create_fsl_model.run(group_conf, fTest, parameter_file, derivative_means_dict, pipeline_path, current_output, model_out_dir, roi_means_dict, True)
-
+    create_fsl_model.run(group_conf, current_output, parameter_file, \
+                             derivative_means_dict, roi_means_dict, \
+                                 current_mod_path, True)
 
 
     ''' begin GA workflow setup '''
@@ -512,7 +498,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # directory and sends them to the create_group_analysis workflow gpa_wf
 
     gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
-    gp_flow.inputs.inputspec.grp_model = os.path.join(model_out_dir, "model_files", current_output)
+    gp_flow.inputs.inputspec.grp_model = os.path.join(mod_path, current_output)
     gp_flow.inputs.inputspec.model_name = group_conf.model_name
     gp_flow.inputs.inputspec.ftest = fTest
   

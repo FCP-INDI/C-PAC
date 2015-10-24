@@ -170,9 +170,10 @@ def run(config_file, subject_list_file, output_path_file):
     # accessed for below
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    except:
-        print "Subject list is not in proper YAML format. Please check your file"
-        raise Exception
+    except Exception as e:
+        err = "\n[!] CPAC says: Subject list is not in proper YAML format. " \
+              "Please check your file.\nError: %s" % e
+        raise Exception(err)
 
 
     subject_paths = []
@@ -183,11 +184,33 @@ def run(config_file, subject_list_file, output_path_file):
     #for file in glob.glob(os.path.abspath(output_path_file)):
     #    path_list = open(file, 'r').readlines()
     #    subject_paths.extend([s.rstrip('\r\n') for s in path_list])
-        
-           
-    ind_outputs = ['alff_to_standard_zstd', 'alff_to_standard_smooth_zstd', 'falff_to_standard_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_zstd', 'reho_to_standard_smooth_zstd', 'sca_roi_files_to_standard_fisher_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd', 'sca_seed_to_standard_fisher_zstd', 'sca_seed_to_standard_smooth_fisher_zstd', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_fisher_zstd', 'vmhc_fisher_zstd_zstat_map', 'centrality_outputs_zstd', 'centrality_outputs_smoothed_zstd', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth', 'alff_to_standard', 'alff_to_standard_smooth', 'falff_to_standard', 'falff_to_standard_smooth', 'reho_to_standard', 'reho_to_standard_smooth', 'sca_roi_files_to_standard', 'sca_roi_files_to_standard_smooth', 'sca_seed_to_standard', 'sca_seed_to_standard_smooth', 'sca_tempreg_maps_files', 'sca_tempreg_maps_files_smooth', 'sca_tempreg_maps_zstat_files', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_raw_score', 'centrality_outputs', 'centrality_outputs_smoothed', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth']
-            
-            
+    
+
+    # gather which outputs the user has selected to run group analysis for
+    ind_outputs = []
+
+    for group_config_file in c.modelConfigs:
+
+        try:
+            ga_config_path = os.path.realpath(group_config_file)
+            ga_config = Configuration(yaml.load(open(ga_config_path, 'r')))
+        except:
+            raise Exception("\n\nError in reading %s configuration file\n\n" \
+                            % group_config_file)
+
+        if len(ga_config.derivative_list) == 0:
+            print '[!] CPAC says: You do not have any derivatives selected ' \
+                  'to run for group-level analysis. Return to your group-' \
+                  'analysis configuration file and select at least one.'
+            print 'Group analysis configuration file: %s\n\n' \
+                  % group_config_file
+            raise Exception
+
+        for output_type in ga_config.derivative_list:
+            if output_type not in ind_outputs:
+                ind_outputs.append(output_type)
+         
+
     
     # collect all of the output paths
     
@@ -259,24 +282,6 @@ def run(config_file, subject_list_file, output_path_file):
     count = 0
 
     for subject_path in subject_paths:
-
-        # each 'subject_path' is a full filepath to one of the output files
-
-        # Remove the base bath offset
-        #rs_path = subject_path.replace(base_path, "", 1)
-        #rs_path = rs_path.lstrip('/')
-
-        # rs_path is now the path to the output file, except everything before
-        # the pipeline folder (named with the pipeline ID) is stripped from
-        # the path
-
-        #folders = split_folders(rs_path)
- 
-        #pipeline_id = folders[0]
-        #subject_unique_id = folders[1]
-        #resource_id = folders[2]
-        #scan_id = folders[3]
-
 
         split_output_dir_path = output_path_file.split("/")
         split_fullpath = subject_path.split("/")
@@ -355,7 +360,8 @@ def run(config_file, subject_list_file, output_path_file):
             if sub['subject_id'] in subject_unique_id:
                 subject_id = sub['subject_id']
 
-        # If subject_id never gets set for this specific subject, move on to next subject
+        # If subject_id never gets set for this specific subject, move on to
+        # next subject
         if not subject_id:
             continue
 
@@ -470,15 +476,10 @@ def run(config_file, subject_list_file, output_path_file):
         # except with the subject ID replaced with a wildcard (*)
                       
         #get all the motion parameters across subjects
-
-        print "Pulling motion parameters for all subjects..\n"
-
         from CPAC.utils import extract_parameters
         scrub_threshold = extract_parameters.run(c.outputDirectory, c.runScrubbing)
 
         if not c.runOnGrid:
-                    
-            print "Starting group analysis pipeline setup..\n"
 
             from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
             procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
