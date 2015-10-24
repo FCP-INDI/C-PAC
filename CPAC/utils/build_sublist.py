@@ -165,7 +165,7 @@ def return_dir_indices(path_template):
 
 
 # Return matching filepaths
-def return_local_filepaths(path_template):
+def return_local_filepaths(path_template, bids_flag=False):
     '''
     Function to return the filepaths from local directories given a
     file pattern template
@@ -175,6 +175,9 @@ def return_local_filepaths(path_template):
     path_template : string
         filepath template in the form of:
         '/base_dir/{site}/{participant}/{session}/../file.nii.gz'
+    bids_flag : boolean (optional); default=False
+        flag to indicate if the dataset to gather is organized to the
+        BIDS standard
 
     Returns
     -------
@@ -186,11 +189,11 @@ def return_local_filepaths(path_template):
     import glob
     import os
 
-    # Init variables
-    file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*')
-
     # Gather local files
+    if not bids_flag:
+        file_pattern = path_template.replace('{site}', '*').\
+                       replace('{participant}', '*').replace('{session}', '*')
+
     local_filepaths = glob.glob(file_pattern)
 
     # Get absolute paths
@@ -205,7 +208,7 @@ def return_local_filepaths(path_template):
 
 
 # Return matching filepaths
-def return_s3_filepaths(path_template, creds_path=None):
+def return_s3_filepaths(path_template, creds_path=None, bids_flag=False):
     '''
     Function to return the filepaths from an S3 bucket given a file
     pattern template and, optionally, credentials
@@ -215,10 +218,14 @@ def return_s3_filepaths(path_template, creds_path=None):
     path_template : string
         filepath template in the form of:
         's3://bucket_name/base_dir/{site}/{participant}/{session}/..
-        ../file.nii.gz'
+        ../file.nii.gz'; if bids_flag is set, path_template is just the
+        base directory of the BIDS data set
     creds_path : string (optional); default=None
         filepath to a credentials file containing the AWS credentials
         to access the S3 bucket objects
+    bids_flag : boolean (optional); default=False
+        flag to indicate if the dataset to gather is organized to the
+        BIDS standard
 
     Returns
     -------
@@ -232,16 +239,22 @@ def return_s3_filepaths(path_template, creds_path=None):
     from CPAC.AWS import fetch_creds
 
     # Check for errors
-    if not ('{site}' in path_template and '{participant}' in path_template):
-        err_msg = 'Please provide \'{site}\' and \'{particpant}\' in '\
-                  'filepath template where site and participant-level '\
-                  'directories are present'
-        raise Exception(err_msg)
+    if not bids_flag:
+        if not ('{site}' in path_template and '{participant}' in path_template):
+            err_msg = 'Please provide \'{site}\' and \'{particpant}\' in '\
+                      'filepath template where site and participant-level '\
+                      'directories are present'
+            raise Exception(err_msg)
 
     # Init variables
     bucket_name = path_template.split('/')[2]
     s3_prefix = '/'.join(path_template.split('/')[:3])
-    prefix = path_template.split('{site}')[0].replace(s3_prefix, '').lstrip('/')
+
+    # Extract base prefix to search through in S3
+    if bids_flag:
+        prefix = path_template.split('*')[0].replace(s3_prefix, '').lstrip('/')
+    else:
+        prefix = path_template.split('{site}')[0].replace(s3_prefix, '').lstrip('/')
 
     # Attempt to get bucket
     try:
@@ -261,8 +274,13 @@ def return_s3_filepaths(path_template, creds_path=None):
     s3_filepaths = [os.path.join(s3_prefix, s3_fp) for s3_fp in s3_filepaths]
 
     # File pattern filter
-    file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*')
+    if bids_flag:
+        file_pattern = path_template
+    else:
+        file_pattern = path_template.replace('{site}', '*').\
+                       replace('{participant}', '*').replace('{session}', '*')
+
+    # Get only matching s3 paths
     s3_filepaths = fnmatch.filter(s3_filepaths, file_pattern)
 
     # Print how many found
@@ -271,6 +289,93 @@ def return_s3_filepaths(path_template, creds_path=None):
 
     # Return the filepaths as a list
     return s3_filepaths
+
+
+# Get the pattern that captures scan type
+def return_bids_template(base_dir, scan_type, creds_path=None):
+    '''
+    Function that returns the path template of the desired scan type
+    from a BIDS dataset
+
+    Parameters
+    ----------
+    base_dir : string
+        base directory of the BIDS dataset
+    scan_type : string
+        type of scan; e.g. 'anat', 'func', etc.
+    creds_path : string (optional); default=None
+        filepath to a set of AWS credentials to access a BIDS dataset
+        stored on S3 that isn't public
+
+    Returns
+    -------
+    file_template : string
+        regular expression-compatible file template indicating data
+        path organization
+    '''
+
+    # Import packages
+    import fnmatch
+    import os
+    from CPAC.AWS import fetch_creds
+
+    # Init variables
+    s3_str = 's3://'
+    file_path = None
+
+    # If base directory is in S3
+    if base_dir.starts_with(s3_str):
+        bucket_name = path_template.split('/')[2]
+        s3_prefix = '/'.join(path_template.split('/')[:3])
+
+        # Extract base prefix to search through in S3
+        prefix = path_template.split('*')[0].replace(s3_prefix, '').lstrip('/')
+
+        # Attempt to get bucket
+        try:
+            bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+        except Exception as exc:
+            err_msg = 'There was an error in retrieving S3 bucket: %s.\nError: %s'\
+                      %(bucket_name, exc)
+            raise Exception(err_msg)
+
+        # Get filepaths from S3 with prefix
+        print 'Gathering files from S3 to parse...'
+        for s3_obj in bucket.objects.filter(Prefix=prefix):
+            file_path = s3_obj.key
+            scan_dir = file_path.split('/')[-2]
+            if scan_dir == scan_type:
+                break
+    # Else, the base directory is locally stored
+    else:
+        for root, dirs, files in os.walk(base_dir):
+            if files:
+                for fil in files:
+                    file_path = os.path.join(root, fil)
+                    scan_dir = file_path.split('/')[-2]
+                    if scan_dir == scan_type:
+                        break
+            # Still in directory, keep walking...
+            else:
+                continue
+            # Files were found and inner loop should have break'd
+            break
+
+    # Now replace file_path intermediate dirs with *
+    if file_path:
+        rel_path = file_path.replace(base_dir, '').lstrip('/')
+        interm_dirs = rel_path.split('/')[:-2]
+        for imd in interm_dirs:
+            file_path = file_path.replace(imd, '*')
+    else:
+        err_msg = 'Could not find any files in directory, check files!'
+        raise Exception(err_msg)
+
+    # Set template as any file *
+    file_template = os.path.join(os.path.dirname(file_path), '*')
+
+    # Return file pattern template
+    return file_template
 
 
 # Build the C-PAC subject list
@@ -302,6 +407,8 @@ def build_sublist(data_config_yml):
     data_config_dict = yaml.load(open(data_config_yml, 'r'))
 
     # Get inclusion, exclusion, scan csv parameters, and output location
+    data_format = data_config_dict['dataFormat']
+    bids_base_dir = data_config_dict['bidsBaseDir']
     anat_template = data_config_dict['anatomicalTemplate']
     func_template = data_config_dict['functionalTemplate']
     include_subs = data_config_dict['subjectList']
@@ -317,6 +424,8 @@ def build_sublist(data_config_yml):
         creds_path = None
 
     # Change any 'None' to None of optional arguments
+    if bids_base_dir == 'None':
+        bids_base_dir = None
     if include_subs == 'None':
         include_subs = None
     if exclude_subs == 'None':
@@ -328,14 +437,23 @@ def build_sublist(data_config_yml):
     if creds_path == 'None':
         creds_path = None
 
+    # Get dataformat if BIDS or not
+    if data_format == 'BIDS':
+        bids_flag = True
+        anat_template = return_bids_template(bids_base_dir, 'anat')
+        func_template = return_bids_template(bids_base_dir, 'func')
+    else:
+        bids_flag = False
+
     # See if the templates are s3 files
-    if s3_str in anat_template and s3_str in func_template:
+    if s3_str in anat_template and s3_str in func_template or \
+       s3_str in bids_base_dir:
         # Get anatomical filepaths from s3
         print 'Fetching anatomical files...'
-        anat_paths = return_s3_filepaths(anat_template, creds_path)
+        anat_paths = return_s3_filepaths(anat_template, creds_path, bids_flag)
         # Get functional filepaths from s3
         print 'Fetching functional files...'
-        func_paths = return_s3_filepaths(func_template, creds_path)
+        func_paths = return_s3_filepaths(func_template, creds_path, bids_flag)
 
     # If one is in S3 and the other is not, raise error - not supported
     elif (s3_str in anat_template and s3_str not in func_template) or \
@@ -349,23 +467,26 @@ def build_sublist(data_config_yml):
     else:
         # Get anatomical filepaths
         print 'Gathering anatomical files...'
-        anat_paths = return_local_filepaths(anat_template)
+        anat_paths = return_local_filepaths(anat_template, bids_flag)
         # Get functional filepaths
         print 'Gathering functional files...'
-        func_paths = return_local_filepaths(func_template)
+        func_paths = return_local_filepaths(func_template, bids_flag)
 
     # Get directory indicies
-    anat_site_idx, anat_ppant_idx, anat_sess_idx = \
-        return_dir_indices(anat_template)
-    func_site_idx, func_ppant_idx, func_sess_idx = \
-        return_dir_indices(func_template)
+    if bids_flag:
+        anat_site_idx = func_site_idx = None
+        anat_ppant_idx = func_ppant_idx = anat_template.split('/')
+    else:
+        anat_site_idx, anat_ppant_idx, anat_sess_idx = \
+            return_dir_indices(anat_template)
+        func_site_idx, func_ppant_idx, func_sess_idx = \
+            return_dir_indices(func_template)
 
     # Filter out unwanted anat and func filepaths
     anat_paths = filter_sub_paths(anat_paths, include_sites,
                                   include_subs, exclude_subs,
                                   anat_site_idx, anat_ppant_idx)
     print 'Filtered down to %d anatomical files' % len(anat_paths)
-
     func_paths = filter_sub_paths(func_paths, include_sites,
                                   include_subs, exclude_subs,
                                   func_site_idx, func_ppant_idx)
@@ -388,6 +509,7 @@ def build_sublist(data_config_yml):
         sess = anat_sp[anat_sess_idx]
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
                   'subject_id' : subj, 'unique_id' : sess}
+
         if scan_params_csv is not None:
             try:
                 subj_d['scan_parameters'] = site_scan_params[site]

@@ -125,6 +125,9 @@ class GenericClass(wx.ScrolledWindow):
         elif control == 10:
             self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
+        elif control == 11:
+            self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
+            self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
 
     def EvtChoice(self, event, ctrl):

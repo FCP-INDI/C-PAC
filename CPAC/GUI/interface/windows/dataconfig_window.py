@@ -27,7 +27,7 @@ class DataConfig(wx.Frame):
     # Init method
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,520))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -36,7 +36,25 @@ class DataConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel)
         
         self.page = GenericClass(self.window, "Subject List Setup")
-        
+
+        self.page.add(label="Data format ",
+                      control=control.CHOICE_BOX,
+                      name='dataFormat',
+                      type=dtype.BOOL,
+                      comment="Select if data is organized using BIDS standard "\
+                              "or custom format",
+                      values=["BIDS", "Custom"],
+                      wkf_switch=True)
+
+        self.page.add(label= "BIDS Base Directory ",
+                 control = control.TEXT_BOX,
+                 name = "bidsBaseDir",
+                 type = dtype.STR,
+                 comment = "Base directory of BIDS-organized data",
+                 values ="",
+                 style= wx.EXPAND | wx.ALL,
+                 size = (532,-1))
+
         self.page.add(label= "Anatomical File Path Template ",
                  control = control.TEXT_BOX,
                  name = "anatomicalTemplate",
