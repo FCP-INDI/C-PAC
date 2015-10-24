@@ -473,9 +473,16 @@ def build_sublist(data_config_yml):
         func_paths = return_local_filepaths(func_template, bids_flag)
 
     # Get directory indicies
+    # If data is BIDS
     if bids_flag:
         anat_site_idx = func_site_idx = None
-        anat_ppant_idx = func_ppant_idx = anat_template.split('/')
+        anat_temp_list = anat_template.split('/')
+        anat_ppant_idx = func_ppant_idx = anat_temp_list.index('*')
+        anat_sess_idx = func_sess_idx = len(anat_temp_list-3)
+        # If session index is ppant index, then no session dir
+        if anat_ppant_idx == anat_sess_idx:
+            anat_sess_idx = func_sess_idx = None
+    # Get indices from {site} {ppant} {session} identifiers
     else:
         anat_site_idx, anat_ppant_idx, anat_sess_idx = \
             return_dir_indices(anat_template)
