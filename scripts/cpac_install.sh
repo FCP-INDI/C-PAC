@@ -98,7 +98,7 @@ fi
 if [ $AFNIFLAG -eq 0 ]
 then
     echo '---------- INSTALLING AFNI... ----------'
-    wget --no-check-certificate https://afni.nimh.nih.gov/pub/dist/tgz/${AFNI_DOWNLOAD}.tgz
+    wget http://afni.nimh.nih.gov/pub/dist/tgz/${AFNI_DOWNLOAD}.tgz
     tar xfz ${AFNI_DOWNLOAD}.tgz
     mv $AFNI_DOWNLOAD /opt/afni
     echo '# Path to AFNI' >> $CPAC_ENV
