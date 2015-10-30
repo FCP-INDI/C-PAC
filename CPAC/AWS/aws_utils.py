@@ -411,6 +411,12 @@ def test_bucket_access(creds_path, output_directory, subject_id):
     s3_str = 's3://'
     test_file = '/tmp/test-output.txt'
 
+    # Explicitly lower-case the "s3"
+    if output_directory.lower().startswith(s3_str):
+        out_dir_sp = output_directory.split('/')
+        out_dir_sp[0] = out_dir_sp[0].lower()
+        output_directory = '/'.join(out_dir_sp)
+
     # Get bucket name
     bucket_name = output_directory.replace(s3_str, '').split('/')[0]
 

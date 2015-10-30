@@ -329,7 +329,7 @@ def build_sublist(data_config_yml):
         creds_path = None
 
     # See if the templates are s3 files
-    if s3_str in anat_template and s3_str in func_template:
+    if s3_str in anat_template.lower() and s3_str in func_template.lower():
         # Get anatomical filepaths from s3
         print 'Fetching anatomical files...'
         anat_paths = return_s3_filepaths(anat_template, creds_path)
@@ -338,8 +338,8 @@ def build_sublist(data_config_yml):
         func_paths = return_s3_filepaths(func_template, creds_path)
 
     # If one is in S3 and the other is not, raise error - not supported
-    elif (s3_str in anat_template and s3_str not in func_template) or \
-         (s3_str not in anat_template and s3_str in func_template):
+    elif (s3_str in anat_template.lower() and s3_str not in func_template.lower()) or \
+         (s3_str not in anat_template.lower() and s3_str in func_template.lower()):
         err_msg = 'Both anatomical and functional files should either be '\
                   'on S3 or local. Separating the files is currently not '\
                   'supported.'

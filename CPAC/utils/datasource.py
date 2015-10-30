@@ -70,8 +70,14 @@ def check_for_s3(file_path, creds_path):
     s3_str = 's3://'
     local_download_dir = '/tmp'
 
+    # Explicitly lower-case the "s3"
+    if file_path.lower().startswith(s3_str):
+        file_path_sp = file_path.split('/')
+        file_path_sp[0] = file_path_sp[0].lower()
+        file_path = '/'.join(file_path_sp)
+
     # Check for s3 string in filepaths
-    if s3_str in file_path:
+    if file_path.startswith(s3_str):
         # Get bucket name and bucket object
         bucket_name = file_path.replace(s3_str, '').split('/')[0]
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)

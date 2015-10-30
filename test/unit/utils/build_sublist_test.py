@@ -241,9 +241,9 @@ class BuildSublistTestCase(unittest.TestCase):
         include_subs = ['0050142', '0050143', '0050144']
 
         # Set up S3 templates
-        anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+        anat_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
                            'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
-        func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+        func_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
                            'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
 
         # Add include subs to data config dictionary
@@ -258,7 +258,7 @@ class BuildSublistTestCase(unittest.TestCase):
         properly_filtered, filter_msg = \
             self._check_filepaths(filepaths, include_subs, include=True)
 
-        # Assert resulting list is properly filtered
+        # Assert resulting lst is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
 
     # Test for excluding specific subs
