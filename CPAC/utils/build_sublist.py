@@ -190,7 +190,9 @@ def return_local_filepaths(path_template, bids_flag=False):
     import os
 
     # Gather local files
-    if not bids_flag:
+    if bids_flag:
+        file_pattern = path_template
+    else:
         file_pattern = path_template.replace('{site}', '*').\
                        replace('{participant}', '*').replace('{session}', '*')
 
@@ -315,7 +317,6 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
     '''
 
     # Import packages
-    import fnmatch
     import os
     from CPAC.AWS import fetch_creds
 
@@ -324,12 +325,12 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
     file_path = None
 
     # If base directory is in S3
-    if base_dir.starts_with(s3_str):
-        bucket_name = path_template.split('/')[2]
-        s3_prefix = '/'.join(path_template.split('/')[:3])
+    if base_dir.startswith(s3_str):
+        bucket_name = base_dir.split('/')[2]
+        s3_prefix = '/'.join(base_dir.split('/')[:3])
 
         # Extract base prefix to search through in S3
-        prefix = path_template.split('*')[0].replace(s3_prefix, '').lstrip('/')
+        prefix = base_dir.split('*')[0].replace(s3_prefix, '').lstrip('/')
 
         # Attempt to get bucket
         try:
@@ -349,17 +350,15 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
     # Else, the base directory is locally stored
     else:
         for root, dirs, files in os.walk(base_dir):
-            if files:
-                for fil in files:
-                    file_path = os.path.join(root, fil)
-                    scan_dir = file_path.split('/')[-2]
-                    if scan_dir == scan_type:
-                        break
-            # Still in directory, keep walking...
-            else:
-                continue
-            # Files were found and inner loop should have break'd
-            break
+            if file_path:
+                break
+            for fil in files:
+                file_path = os.path.join(root, fil)
+                scan_dir = file_path.split('/')[-2]
+                if fil.endswith('.nii.gz') and scan_dir == scan_type:
+                    break
+                else:
+                    file_path = None
 
     # Now replace file_path intermediate dirs with *
     if file_path:
@@ -372,7 +371,7 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
         raise Exception(err_msg)
 
     # Set template as any file *
-    file_template = os.path.join(os.path.dirname(file_path), '*')
+    file_template = os.path.join(os.path.dirname(file_path), '*.nii.gz')
 
     # Return file pattern template
     return file_template
@@ -399,6 +398,8 @@ def build_sublist(data_config_yml):
     import os
     import yaml
 
+    from CPAC.utils import bids_metadata
+
     # Init variables
     tmp_dict = {}
     s3_str = 's3://'
@@ -407,7 +408,7 @@ def build_sublist(data_config_yml):
     data_config_dict = yaml.load(open(data_config_yml, 'r'))
 
     # Get inclusion, exclusion, scan csv parameters, and output location
-    data_format = data_config_dict['dataFormat']
+    data_format = data_config_dict['dataFormat'][0]
     bids_base_dir = data_config_dict['bidsBaseDir']
     anat_template = data_config_dict['anatomicalTemplate']
     func_template = data_config_dict['functionalTemplate']
@@ -476,9 +477,9 @@ def build_sublist(data_config_yml):
     # If data is BIDS
     if bids_flag:
         anat_site_idx = func_site_idx = None
-        anat_temp_list = anat_template.split('/')
-        anat_ppant_idx = func_ppant_idx = anat_temp_list.index('*')
-        anat_sess_idx = func_sess_idx = len(anat_temp_list-3)
+        anat_path_dirs = anat_template.split('/')
+        anat_ppant_idx = func_ppant_idx = anat_path_dirs.index('*')
+        anat_sess_idx = func_sess_idx = len(anat_path_dirs)-3
         # If session index is ppant index, then no session dir
         if anat_ppant_idx == anat_sess_idx:
             anat_sess_idx = func_sess_idx = None
@@ -511,18 +512,15 @@ def build_sublist(data_config_yml):
     # Iterate through file paths and build subject list
     for anat in anat_paths:
         anat_sp = anat.split('/')
-        site = anat_sp[anat_site_idx]
         subj = anat_sp[anat_ppant_idx]
         sess = anat_sp[anat_sess_idx]
+        if bids_flag:
+            site = ''
+        else:
+            site = anat_sp[anat_site_idx]
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
-                  'subject_id' : subj, 'unique_id' : sess}
-
-        if scan_params_csv is not None:
-            try:
-                subj_d['scan_parameters'] = site_scan_params[site]
-            except KeyError as exc:
-                print 'Site %s missing from scan parameters csv, skipping...'\
-                      % site
+                  'subject_id' : subj, 'unique_id' : sess,
+                  'scan_parameters': {}}
         tmp_key = '_'.join([subj, site, sess])
         tmp_dict[tmp_key] = subj_d
 
@@ -530,9 +528,22 @@ def build_sublist(data_config_yml):
     for func in func_paths:
         # Extract info from filepath
         func_sp = func.split('/')
-        site = func_sp[func_site_idx]
         subj = func_sp[func_ppant_idx]
         sess = func_sp[func_sess_idx]
+        if bids_flag:
+            site = ''
+            scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
+                                                               func)
+        else:
+            site = func_sp[func_site_idx]
+            if scan_params_csv is not None:
+                try:
+                    scan_params = site_scan_params[site]
+                except KeyError as exc:
+                    print 'Site %s missing from scan parameters csv, skipping...'\
+                          % site
+                    scan_params = None
+
         # If there is no scan sub-folder under session, make scan
         # the name of the image itself without extension
         if func_sess_idx == len(func_sp)-2:

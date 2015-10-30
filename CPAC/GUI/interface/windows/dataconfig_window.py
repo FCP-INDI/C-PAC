@@ -47,13 +47,13 @@ class DataConfig(wx.Frame):
                       wkf_switch=True)
 
         self.page.add(label= "BIDS Base Directory ",
-                 control = control.TEXT_BOX,
+                 control = control.DIR_COMBO_BOX,
                  name = "bidsBaseDir",
                  type = dtype.STR,
                  comment = "Base directory of BIDS-organized data",
-                 values ="",
-                 style= wx.EXPAND | wx.ALL,
-                 size = (532,-1))
+                 values ="")#,
+                 #style= wx.EXPAND | wx.ALL,
+                 #size = (532,-1))
 
         self.page.add(label= "Anatomical File Path Template ",
                  control = control.TEXT_BOX,
@@ -62,7 +62,7 @@ class DataConfig(wx.Frame):
                  comment = "File Path Template for Anatomical Files\n\n"
                            "Replace the site- and subject-level directories with %s.\n\n"
                            "See User Guide for more detailed instructions.",
-                 values ="",
+                 values ="None",
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
         
@@ -73,7 +73,7 @@ class DataConfig(wx.Frame):
                  comment = "File Path Template for Functional Files\n\n"
                            "Replace the site- and subject-level directories with %s.\n\n"
                            "See User Guide for more detailed instructions.",
-                 values ="",
+                 values ="None",
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
@@ -233,8 +233,8 @@ class DataConfig(wx.Frame):
             # Check if multiscan is checked
             if multiscan:
                 # Didn't set up s3-ification for multiscan yet...
-                if 's3://' in config_map.get('anatomicalTemplate') or \
-                   's3://' in config_map.get('functionalTemplate'):
+                if 's3://' in config_map.get('anatomicalTemplate').lower() or \
+                   's3://' in config_map.get('functionalTemplate').lower():
                     err_msg = 'S3 interaction currently not setup for multiscan '\
                               'subject lists'
                     raise Exception(err_msg)
@@ -323,7 +323,7 @@ class DataConfig(wx.Frame):
 
                 if name == 'subjectListName':
                     subject_list_name = value
-                      
+
                 if len(value) == 0:
                     display(win,"%s field must contain some text!"%ctrl.get_name())
                             
