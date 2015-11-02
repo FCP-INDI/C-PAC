@@ -205,9 +205,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -242,9 +242,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add include subs to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -279,9 +279,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add excluded subs to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -298,7 +298,7 @@ class BuildSublistTestCase(unittest.TestCase):
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
 
-    # Test for including specific sites
+    # Test for regular expression matching
     def test_s3_sublist_regexp_match(self):
         '''
         Method to test that the subject list builder includes only
@@ -312,25 +312,24 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Init variables
         data_config_dict = self.data_config_dict
-        include_sites = ['Caltech', 'OHSU', 'UM_1']
+        sites_match_regex = ['CMU_a', 'CMU_b', 'Caltech', 'Yale']
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/[CY]*/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/[CY]*/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
         data_config_dict['functionalTemplate'] = func_s3_template
-        data_config_dict['siteList'] = include_sites
 
         # Return found filepaths from subject list
         filepaths = self._return_sublist_filepaths(data_config_dict)
 
         # And check them
         properly_filtered, filter_msg = \
-            self._check_filepaths(filepaths, include_sites, include=True)
+            self._check_filepaths(filepaths, sites_match_regex, include=True)
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
@@ -358,10 +357,10 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary
@@ -402,10 +401,10 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary
@@ -446,10 +445,10 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary

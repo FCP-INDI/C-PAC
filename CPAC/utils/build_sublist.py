@@ -250,6 +250,8 @@ def return_s3_filepaths(path_template, creds_path=None):
     # Import packages
     import fnmatch
     import os
+    import re
+
     from CPAC.AWS import fetch_creds
 
     # Check for errors
@@ -267,7 +269,26 @@ def return_s3_filepaths(path_template, creds_path=None):
     file_pattern = path_template.replace('{site}', '*').\
                    replace('{participant}', '*').replace('{session}', '*').\
                    replace('{series}', '*')
-    prefix = file_pattern.split('*')[0].replace(s3_prefix, '').lstrip('/')
+
+    # Find non regular expression patterns to get prefix
+    s3_rel_path = file_pattern.replace(s3_prefix, '').lstrip('/')
+    fp_split = s3_rel_path.split('/')
+    for idx, dir in enumerate(fp_split):
+        # Search for characters that we're permitting to be in folder names
+        ok_chars = [char in dir for char in ['_', '-', '^']]
+        if any(ok_chars):
+            continue
+
+        # Put escape '\' character in front of any non alphanumeric character
+        reg_dir = re.escape(dir)
+
+        # If we find a non alpha-numeric character in string, break
+        if reg_dir != dir:
+            break
+
+    # Use all dirs up to first directory with non alpha-numeric character
+    # as prefix
+    prefix = '/'.join(fp_split[:idx])
 
     # Attempt to get bucket
     try:
