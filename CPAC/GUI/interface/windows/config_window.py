@@ -656,12 +656,13 @@ class MainFrame(wx.Frame):
         testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
         testFile(c.templateSpecificationFile,'templateSpecificationFile', \
                      c.runNetworkCentrality)
-    
-        for roi_path in c.tsa_roi_paths[0].keys():
-            testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
 
-        for roi_path in c.sca_roi_paths[0].keys():
-            testFile(roi_path, "sca_roi_paths", c.runSCA)
+        if c.tsa_roi_paths and type(c.tsa_roi_paths[0]) == dict:
+            for roi_path in c.tsa_roi_paths[0].keys():
+                testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
+        if c.sca_roi_paths and type(c.sca_roi_paths[0]) == dict:
+            for roi_path in c.sca_roi_paths[0].keys():
+                testFile(roi_path, "sca_roi_paths", c.runSCA)
             
             
         try:

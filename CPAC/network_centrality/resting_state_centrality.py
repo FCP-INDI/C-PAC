@@ -810,7 +810,7 @@ def calc_centrality(datafile,
     ts, aff, mask, t_type, scans = load(datafile, template)
 
     # If we're doing eigenvector centrality, need entire correlation matrix
-    if threshold_option == 1:
+    if method_option == 0 and threshold_option == 1:
         block_size = calc_blocksize(ts, memory_allocated=allocated_memory,
                                     sparsity_thresh=threshold)
     elif method_option == 1:
@@ -822,10 +822,10 @@ def calc_centrality(datafile,
                                     include_full_matrix=False)
     # Normalize the timeseries for easy dot-product correlation calc.
     ts_normd = norm_cols(ts.T)
-    
+
     # P-value threshold centrality
     if threshold_option == 0:
-        r_value = convert_pvalue_to_r(scans, threshold)
+        r_value = convert_pvalue_to_r(threshold, scans)
         centrality_matrix = get_centrality_by_rvalue(ts_normd, 
                                                      mask, 
                                                      method_option, 
@@ -854,7 +854,7 @@ def calc_centrality(datafile,
     else:
         raise Exception('Option must be between 0-3 and not %s, check your '\
                         'pipeline config file' % str(threshold_option))
-    
+
     # Print timing info
     print 'Timing:', time.clock() - start
  
@@ -862,7 +862,7 @@ def calc_centrality(datafile,
     for mat in centrality_matrix:
         centrality_image = map_centrality_matrix(mat, aff, mask, t_type)
         out_list.append(centrality_image)
-    
+
     # Finally return
     return out_list
 

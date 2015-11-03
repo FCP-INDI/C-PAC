@@ -75,7 +75,7 @@ class DataSinkTestCase(unittest.TestCase):
         # Datasink parameters
         base_dir = '/tmp/'
 
-        # Get the input file as an anatomical scan from the CPAC_RESOURCES
+        # Get the input file as an anatomical scan from th     e CPAC_RESOURCES
         in_file = os.path.join(input_dir, 'site_1', subj_id, 'session_1',
                                'anat_1', 'mprage.nii.gz')
 
@@ -121,13 +121,20 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink_src_d = data_sink.inputs._outputs
         in_out_dict = {}
         out_files = []
+        s3_str = 's3://'
+
+        # Explicitly lower-case the "s3"
+        if base_directory.lower().startswith(s3_str):
+            base_dir_sp = base_directory.split('/')
+            base_dir_sp[0] = base_dir_sp[0].lower()
+            base_directory = '/'.join(base_dir_sp)
+            s3_strip = '/'.join(base_directory.split('/')[:3])
 
         # Get datasink out base
         out_prefix = os.path.join(base_directory, container)
 
         # If S3 in path, strip out s3_prefix (e.g. 's3://fcp-indi/')
-        if 's3://' in base_directory:
-            s3_strip = '/'.join(out_prefix.split('/')[:3])
+        if base_directory.startswith(s3_str):
             out_prefix = out_prefix.replace(s3_strip, '')
 
         # Iterate over defined attribute keys and input sources
@@ -470,7 +477,7 @@ class DataSinkTestCase(unittest.TestCase):
         # Init AWS variables
         bucket_name = test_init.return_bucket_name()
         creds_path = self.creds_path
-        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+        s3_output_dir = os.path.join('S3://', bucket_name, 'data/unittest')
 
         # Set up datasink
         data_sink.inputs.base_directory = s3_output_dir

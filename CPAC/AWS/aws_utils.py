@@ -12,7 +12,7 @@ services, including uploading/downloading data and file checking.
 def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
     '''
     Function to build and download a subject list from S3
-    
+
     Parameters
     ----------
     bucket : boto.s3.bucket.Bucket instance
@@ -23,17 +23,17 @@ def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
         the local disk prefix where all of the files should be downloaded to
     sub_list : list (dict)
         the C-PAC subject list that has inputs in local_prefix
-    
+
     Returns
     -------
     None
         this function does not return a value, it downloads the subjects from
         the C-PAC subject list to disk from S3
     '''
-    
+
     # Import packages
     import os
-    
+
     # Init variables
     local_list = []
     for sub_dict in sub_list:
@@ -60,7 +60,7 @@ def build_download_sublist(bucket, bucket_prefix, local_prefix, sub_list):
 
     # Download the data to the local prefix
     s3_download(bucket, s3_list, local_prefix, bucket_prefix=bucket_prefix)
-    
+
     # Check to see they all downloaded successfully
     for l in local_list:
         l_path = os.path.abspath(l)
@@ -74,7 +74,7 @@ def collect_subject_files(prefix_star, sub_id):
     '''
     Function to collect all of the files in a directory into a list of
     full paths
-    
+
     Parameters
     ----------
     prefix_star : string
@@ -83,7 +83,7 @@ def collect_subject_files(prefix_star, sub_id):
         '*' so that glob can collect the files via the pattern given
     sub_id : string
         the subject id to look for in the output folder
-    
+
     Returns
     -------
     src_list : list [str]
@@ -97,7 +97,7 @@ def collect_subject_files(prefix_star, sub_id):
     # Init variables
     bases = glob.glob(prefix_star)
     src_list = []
-    
+
     # For each pipeline
     for base in bases:
         # Iterate through directory
@@ -410,6 +410,12 @@ def test_bucket_access(creds_path, output_directory, subject_id):
     # Init variables
     s3_str = 's3://'
     test_file = '/tmp/test-output.txt'
+
+    # Explicitly lower-case the "s3"
+    if output_directory.lower().startswith(s3_str):
+        out_dir_sp = output_directory.split('/')
+        out_dir_sp[0] = out_dir_sp[0].lower()
+        output_directory = '/'.join(out_dir_sp)
 
     # Get bucket name
     bucket_name = output_directory.replace(s3_str, '').split('/')[0]

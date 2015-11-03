@@ -215,8 +215,8 @@ class DataConfig(wx.Frame):
             # Check if multiscan is checked
             if multiscan:
                 # Didn't set up s3-ification for multiscan yet...
-                if 's3://' in config_map.get('anatomicalTemplate') or \
-                   's3://' in config_map.get('functionalTemplate'):
+                if 's3://' in config_map.get('anatomicalTemplate').lower() or \
+                   's3://' in config_map.get('functionalTemplate').lower():
                     err_msg = 'S3 interaction currently not setup for multiscan '\
                               'subject lists'
                     raise Exception(err_msg)

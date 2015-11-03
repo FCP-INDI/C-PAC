@@ -138,7 +138,7 @@ def return_dir_indices(path_template):
     path_template : string
         filepath template in the form of:
         's3://bucket_name/base_dir/{site}/{participant}/{session}/..
-        ../file.nii.gz'
+        {series}/file.nii.gz'
 
     Returns
     -------
@@ -148,20 +148,33 @@ def return_dir_indices(path_template):
         the directory level of participant folders
     sess_idx : integer
         the directory level of the session folders
+    series_idx : integer
+        the directory level of the series folder
     '''
 
     # Get folder level indices of site and subject - anat
     fp_split = path_template.split('/')
-    site_idx = fp_split.index('{site}')
+
+    # Site level isn't required, but recommended
+    try:
+        site_idx = fp_split.index('{site}')
+    except ValueError as exc:
+        site_idx = -1
+
+    # Get required participant directory index
     ppant_idx = fp_split.index('{participant}')
+
     # Session level isn't required, but recommended
     try:
         sess_idx = fp_split.index('{session}')
     except ValueError as exc:
-        sess_idx = ppant_idx+1
+        sess_idx = -1
+
+    # Get required series directory index
+    series_idx = fp_split.index('{series}')
 
     # Return indices
-    return site_idx, ppant_idx, sess_idx
+    return site_idx, ppant_idx, sess_idx, series_idx
 
 
 # Return matching filepaths
@@ -186,9 +199,17 @@ def return_local_filepaths(path_template):
     import glob
     import os
 
+    # Check for errors
+    if not ('{participant}' in path_template and '{series}' in path_template):
+        err_msg = 'Please provide \'{particpant}\' and \'{series}\' level '\
+                  'directories in filepath template where participant and '\
+                  'series-level directories are present'
+        raise Exception(err_msg)
+
     # Init variables
     file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*')
+                   replace('{participant}', '*').replace('{session}', '*').\
+                   replace('{series}', '*')
 
     # Gather local files
     local_filepaths = glob.glob(file_pattern)
@@ -229,19 +250,45 @@ def return_s3_filepaths(path_template, creds_path=None):
     # Import packages
     import fnmatch
     import os
+    import re
+
     from CPAC.AWS import fetch_creds
 
     # Check for errors
-    if not ('{site}' in path_template and '{participant}' in path_template):
-        err_msg = 'Please provide \'{site}\' and \'{particpant}\' in '\
-                  'filepath template where site and participant-level '\
-                  'directories are present'
+    if not ('{participant}' in path_template and '{series}' in path_template):
+        err_msg = 'Please provide \'{particpant}\' and \'{series}\' level '\
+                  'directories in filepath template where participant and '\
+                  'series-level directories are present'
         raise Exception(err_msg)
 
     # Init variables
     bucket_name = path_template.split('/')[2]
     s3_prefix = '/'.join(path_template.split('/')[:3])
-    prefix = path_template.split('{site}')[0].replace(s3_prefix, '').lstrip('/')
+
+    # File pattern
+    file_pattern = path_template.replace('{site}', '*').\
+                   replace('{participant}', '*').replace('{session}', '*').\
+                   replace('{series}', '*')
+
+    # Find non regular expression patterns to get prefix
+    s3_rel_path = file_pattern.replace(s3_prefix, '').lstrip('/')
+    fp_split = s3_rel_path.split('/')
+    for idx, dir in enumerate(fp_split):
+        # Search for characters that we're permitting to be in folder names
+        ok_chars = [char in dir for char in ['_', '-', '^']]
+        if any(ok_chars):
+            continue
+
+        # Put escape '\' character in front of any non alphanumeric character
+        reg_dir = re.escape(dir)
+
+        # If we find a non alpha-numeric character in string, break
+        if reg_dir != dir:
+            break
+
+    # Use all dirs up to first directory with non alpha-numeric character
+    # as prefix
+    prefix = '/'.join(fp_split[:idx])
 
     # Attempt to get bucket
     try:
@@ -261,8 +308,6 @@ def return_s3_filepaths(path_template, creds_path=None):
     s3_filepaths = [os.path.join(s3_prefix, s3_fp) for s3_fp in s3_filepaths]
 
     # File pattern filter
-    file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*')
     s3_filepaths = fnmatch.filter(s3_filepaths, file_pattern)
 
     # Print how many found
@@ -329,7 +374,7 @@ def build_sublist(data_config_yml):
         creds_path = None
 
     # See if the templates are s3 files
-    if s3_str in anat_template and s3_str in func_template:
+    if s3_str in anat_template.lower() and s3_str in func_template.lower():
         # Get anatomical filepaths from s3
         print 'Fetching anatomical files...'
         anat_paths = return_s3_filepaths(anat_template, creds_path)
@@ -338,8 +383,8 @@ def build_sublist(data_config_yml):
         func_paths = return_s3_filepaths(func_template, creds_path)
 
     # If one is in S3 and the other is not, raise error - not supported
-    elif (s3_str in anat_template and s3_str not in func_template) or \
-         (s3_str not in anat_template and s3_str in func_template):
+    elif (s3_str in anat_template.lower() and s3_str not in func_template.lower()) or \
+         (s3_str not in anat_template.lower() and s3_str in func_template.lower()):
         err_msg = 'Both anatomical and functional files should either be '\
                   'on S3 or local. Separating the files is currently not '\
                   'supported.'
@@ -355,9 +400,9 @@ def build_sublist(data_config_yml):
         func_paths = return_local_filepaths(func_template)
 
     # Get directory indicies
-    anat_site_idx, anat_ppant_idx, anat_sess_idx = \
+    anat_site_idx, anat_ppant_idx, anat_sess_idx, anat_series_idx = \
         return_dir_indices(anat_template)
-    func_site_idx, func_ppant_idx, func_sess_idx = \
+    func_site_idx, func_ppant_idx, func_sess_idx, func_series_idx = \
         return_dir_indices(func_template)
 
     # Filter out unwanted anat and func filepaths
@@ -371,6 +416,7 @@ def build_sublist(data_config_yml):
                                   func_site_idx, func_ppant_idx)
     print 'Filtered down to %d functional files' % len(func_paths)
 
+    # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
         err_msg = 'Unable to find any files after filtering sites and '\
                   'subjects! Check site and subject inclusion/exclusion fields!'
@@ -379,40 +425,77 @@ def build_sublist(data_config_yml):
     # Read in scan parameters and return site-based dictionary
     if scan_params_csv is not None:
         site_scan_params = extract_scan_params(scan_params_csv)
+    else:
+        site_scan_params = {}
 
     # Iterate through file paths and build subject list
     for anat in anat_paths:
         anat_sp = anat.split('/')
-        site = anat_sp[anat_site_idx]
+        # Test for optional site folder
+        if anat_site_idx != -1:
+            site = anat_sp[anat_site_idx]
+        else:
+            site = ''
+
+        # Participant id
         subj = anat_sp[anat_ppant_idx]
-        sess = anat_sp[anat_sess_idx]
+
+        # Test for optional session folder
+        if anat_sess_idx != -1:
+            sess = anat_sp[anat_sess_idx]
+        else:
+            sess = ''
+
+        # Series id
+        series = anat_sp[anat_series_idx]
+
+        # Init dictionary
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
-                  'subject_id' : subj, 'unique_id' : sess}
+                  'subject_id' : subj, 'unique_id' : '_'.join([site, sess])}
+
+        # Check for scan parameters
         if scan_params_csv is not None:
             try:
                 subj_d['scan_parameters'] = site_scan_params[site]
             except KeyError as exc:
                 print 'Site %s missing from scan parameters csv, skipping...'\
                       % site
-        tmp_key = '_'.join([subj, site, sess])
+
+        # Test to make sure subject key isn't present already
+        # Should be a unique entry for every anatomical image
+        tmp_key = '_'.join([site, subj, sess])
+        if tmp_dict.has_key(tmp_key):
+            err_msg = 'Key for anatomical file already exists: %s\n'\
+                      'Either duplicate scan or data needs re-organization to '\
+                      'differentiate between subjects from different sites/sessions'
+            raise Exception(err_msg)
+
         tmp_dict[tmp_key] = subj_d
 
     # Now go through and populate functional scans dictionaries
     for func in func_paths:
         # Extract info from filepath
         func_sp = func.split('/')
-        site = func_sp[func_site_idx]
-        subj = func_sp[func_ppant_idx]
-        sess = func_sp[func_sess_idx]
-        # If there is no scan sub-folder under session, make scan
-        # the name of the image itself without extension
-        if func_sess_idx == len(func_sp)-2:
-            scan = func_sp[-1].split('.nii')[0]
-        # Othwerwise, there use scan sub folder
+        # Test for optional site folder
+        if func_site_idx != -1:
+            site = func_sp[func_site_idx]
         else:
-            scan = func_sp[-2]
+            site = ''
+
+        # Participant id
+        subj = func_sp[func_ppant_idx]
+
+        # Test for optional session folder
+        if func_sess_idx != -1:
+            sess = func_sp[func_sess_idx]
+        else:
+            sess = ''
+
+        # Series id
+        series = func_sp[func_series_idx]
+
         # Build tmp key and get subject dictionary from tmp dictionary
-        tmp_key = '_'.join([subj, site, sess])
+        tmp_key = '_'.join([site, subj, sess])
         # Try and find the associated anat scan
         try:
             subj_d = tmp_dict[tmp_key]
@@ -421,7 +504,7 @@ def build_sublist(data_config_yml):
                   % tmp_key
             continue
         # Set the rest dictionary with the scan
-        subj_d['rest'][scan] = func
+        subj_d['rest'][series] = func
         # And replace it back in the dictionary
         tmp_dict[tmp_key] = subj_d
 

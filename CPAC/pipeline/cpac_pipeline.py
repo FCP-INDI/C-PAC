@@ -5925,7 +5925,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:
-                if 's3://' in c.outputDirectory:
+                if 's3://' in c.outputDirectory.lower():
                     err_msg = 'There was an error processing credentials or '\
                               'accessing the S3 bucket. Check and try again.\n'\
                               'Error: %s' % exc
