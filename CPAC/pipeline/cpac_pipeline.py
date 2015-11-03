@@ -2475,7 +2475,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 
         # flip the dictionary
-        #sca_analysis_dict = {}
+        # sca_analysis_dict = {}
 
         for roi_path in sca_roi_dict.keys():
 
@@ -2519,7 +2519,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             if "dual_reg" in sca_analysis_dict.keys():
 
                 resample_spatial_map_to_native_space_for_dr = pe.Node(interface=fsl.FLIRT(),
-                                                             name='resample_spatial_map_to_native_space_for_DR%d' % num_strat)
+                                                             name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat)
                 resample_spatial_map_to_native_space_for_dr.inputs.interp = 'nearestneighbour'
                 resample_spatial_map_to_native_space_for_dr.inputs.apply_xfm = True
                 resample_spatial_map_to_native_space_for_dr.inputs.in_matrix_file = c.identityMatrix
@@ -2528,7 +2528,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                 spatial_map_timeseries_for_dr = get_spatial_map_timeseries('spatial_map_timeseries_for_DR_%d' % num_strat)
                 spatial_map_timeseries_for_dr.inputs.inputspec.demean = True #c.spatialDemean
-
 
             try:
 
@@ -2569,12 +2568,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     workflow.connect(node2, out_file2,
                                      spatial_map_timeseries_for_dr, 'inputspec.subject_mask')
                     workflow.connect(node, out_file,
-                                     spatial_map_timeseries_for_dr, 'inputspec.subject_rest')       
+                                     spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
 
 
-            except:
+            except Exception as e:
                 logConnectionError('Spatial map timeseries extraction', num_strat, strat.get_resource_pool(), '0029')
-                raise
+                print "\nError message: %s\n\n" % e
+                raise Exception
+
 
             '''
             if 0 in c.runSpatialRegression:

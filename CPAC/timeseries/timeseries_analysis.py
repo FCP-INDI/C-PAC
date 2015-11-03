@@ -598,10 +598,9 @@ def gen_roi_timeseries(data_file,
     vol = img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception('Invalid Shape Error.'\
-                        'Please check the voxel dimensions.'\
-                        'Data and roi should have'\
-                        'same shape')
+        raise Exception('\n\n[!] CPAC says: Invalid Shape Error.'\
+                        'Please check the voxel dimensions. '\
+                        'Data and roi should have the same shape.\n\n')
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
