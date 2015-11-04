@@ -536,28 +536,16 @@ class MainFrame(wx.Frame):
                             return
                     
                 config_list.append(ctrl)
-                
-        
 
-        # Get the user's CPAC output directory for use in this script
-        for config in config_list:
-
-            if config.get_name() == 'outputDirectory':
-                outDir = config.get_selection()
-        
-        
         # Write out a pipeline_config file, read it in and then delete it
         # (Will revise the data structure of the config files later so this
         # can just pass the data structure instead of doing it this way)
         try:
-            
-            self.write(outDir + 'testConfig.yml', config_list)
-            c = Configuration(yaml.load(open(os.path.realpath(outDir + 'testConfig.yml'), 'r')))
-        
-            os.remove(outDir + 'testConfig.yml')
-        
+            test_cfg_yml = '/tmp/test_config.yml'
+            self.write(test_cfg_yml, config_list)
+            c = Configuration(yaml.load(open(os.path.realpath(test_cfg_yml), 'r')))
+            os.remove(test_cfg_yml)
         except:
-        
             errDlg2 = wx.MessageDialog(
                 self, 'A problem occurred with preparing the pipeline test run. \n\n' \
                       'Please ensure you have rights access to the directories you' \

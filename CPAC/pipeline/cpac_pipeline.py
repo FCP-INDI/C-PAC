@@ -6264,7 +6264,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 # Run the prep_workflow function with specific arguments
 def run(config, subject_list_file, indx, strategies, p_name=None, \
-        plugin=None, plugin_args=None, **kwargs):
+        plugin=None, plugin_args=None):
 
     '''
     Function to build and execute the complete workflow
@@ -6291,32 +6291,12 @@ def run(config, subject_list_file, indx, strategies, p_name=None, \
         name of the plugin  used to schedule nodes
     plugin_args : dict (optional)
         arguments of plugin
-    creds_path : string (optional)
-        filepath to the AWS keys credentials file
-    bucket_name : string (optional)
-        name of the S3 bucket to pull data from
-    bucket_prefix : string (optional)
-        base directory where S3 inputs are stored and downloaded from
-    bucket_upload_prefix : string (optional)
-        base directory where local outputs are sent to in S3
-    local_prefix : string (optional)
-        base directory where the local subject list files were built
     '''
 
     # Import packages
     import commands
-    from CPAC.AWS import fetch_creds
-    from CPAC.AWS import aws_utils
     commands.getoutput('source ~/.bashrc')
-    import pickle
     import yaml
-
-    # Init variables
-    creds_path = kwargs.get('creds_path')
-    bucket_name = kwargs.get('bucket_name')
-    bucket_prefix = kwargs.get('bucket_prefix')
-    bucket_upload_prefix = kwargs.get('bucket_upload_prefix')
-    local_prefix = kwargs.get('local_prefix')
 
     # Import configuration file
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
@@ -6331,49 +6311,9 @@ def run(config, subject_list_file, indx, strategies, p_name=None, \
     sub_dict = sublist[int(indx)-1]
     sub_id = sub_dict['subject_id']
 
-    # Build and download subject's list
-    # If we're using AWS
-    if creds_path:
-        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-        print 'Using data from S3 bucket: %s' % bucket_name
-        # Check to see if outputs are already uploaded
-        upl_files = [str(k.name) for k in bucket.list(prefix=bucket_upload_prefix)]
-
-        aws_utils.build_download_sublist(bucket,
-                                         bucket_prefix,
-                                         local_prefix, [sub_dict])
-    # Otherwise, state use of local disk and move on
-    else:
-        print 'Using local disk for input/output'
-
-    # Load in the different spec files to Configuration object
-    #c.maskSpecificationFile = maskSpecificationFile
-    #c.roiSpecificationFile = roiSpecificationFile
-    #c.templateSpecificationFile = templateSpecificationFile
-
-
     try:
         # Build and run the pipeline
-        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args= plugin_args)
+        prep_workflow(sub_dict, c, pickle.load(open(strategies, 'r')), 1, p_name, plugin=plugin, plugin_args=plugin_args)
     except Exception as e:
         print 'Could not complete cpac run for subject: %s!' % sub_id
         print 'Error: %s' % e
-
-    # Now upload results to S3
-    if creds_path:
-        sub_output_dir = os.path.join(c.outputDirectory, 'pipeline_*')
-        sub_work_dir = os.path.join(c.workingDirectory, '*_' + sub_id + '_*')
-        output_list = aws_utils.collect_subject_files(sub_output_dir,
-                                                      sub_id)
-        working_list = aws_utils.collect_subject_files(sub_work_dir,
-                                                       sub_id)
-        dst_list = [o.replace(c.outputDirectory, bucket_upload_prefix)
-                    for o in output_list]
-        aws_utils.s3_upload(bucket, output_list, dst_list, make_public=True)
-
-        # Delete subject working/output directories
-        for wfile in working_list:
-            os.remove(wfile)
-        for ofile in output_list:
-            os.remove(ofile)
-

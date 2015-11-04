@@ -316,9 +316,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/[CY]*/{participant}/{session}/{series}/mprage.nii.gz'
+                           'RawData/[CY]*/{participant}/*/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/[CY]*/{participant}/{session}/{series}/rest.nii.gz'
+                           'RawData/[CY]*/{participant}/*/{series}/rest.nii.gz'
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
