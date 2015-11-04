@@ -189,10 +189,12 @@ def build_strategies(configuration):
     return strategy_entries
 
 
-
-
+# Create and run SGE script
 def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+    '''
+    '''
 
+    # Import packages
     import commands
     from time import strftime
 
@@ -206,6 +208,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
     subject_bash_file = os.path.join(temp_files_dir, 'submit_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
     f = open(subject_bash_file, 'w')
+
     print >>f, '#! %s' % shell
     print >>f, '#$ -cwd'
     print >>f, '#$ -S %s' % shell
@@ -218,8 +221,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print >>f, 'source ~/.bashrc'
     print >>f, 'source /etc/profile.d/cpac_env.sh'
 
-    plugin_args = {'num_threads': c.numCoresPerSubject, 
-                            'memory': c.memoryAllocatedForDegreeCentrality}
+    plugin_args = {'num_threads': c.numCoresPerSubject,
+                    'memory': c.memoryAllocatedForDegreeCentrality}
 
 #    print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), " -s ", subject_list_file, " -indx $SGE_TASK_ID  -strategies ", strategies_file
     print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\", \\\"%s\\\", \\\"$SGE_TASK_ID\\\", \\\"%s\\\", \\\"%s\\\", plugin=\\\"%s\\\", plugin_args=%s) \" " % (str(config_file), subject_list_file, strategies_file, p_name, 'ResourceMultiProc', plugin_args)
@@ -227,25 +230,32 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    p = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w') 
+    p = open(os.path.join(temp_files_dir, 'pid.txt'), 'w') 
 
     out = commands.getoutput('qsub  %s ' % (subject_bash_file))
 
     import re
     if re.search("(?<=Your job-array )\d+", out) == None:
-
-        print "Error: Running of 'qsub' command in terminal failed. Please troubleshoot your SGE configuration with your system administrator and then try again."
-	print "The command run was: qsub %s" % subject_bash_file
-        raise Exception
+        err_msg = 'Error: Running of \'qsub\' command in terminal failed. '\
+                  'Please troubleshoot your SGE configuration with your '\
+                  'system adminitrator and then try again.'
+        raise Exception(err_msg)
+    else:
+        print "The command run was: qsub %s" % subject_bash_file
 
     pid = re.search("(?<=Your job-array )\d+", out).group(0)
+
     print >> p, pid
     
     p.close()
 
+
+# Run condor jobs
 def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+    '''
+    '''
 
-
+    # Import packages
     import commands
     from time import strftime
 
@@ -278,13 +288,12 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print commands.getoutput("condor_submit %s " % (subject_bash_file))
 
 
-
-
-
+# Run PCB jobs
 def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+    '''
+    '''
 
-
-
+    # Import packages
     import commands
     from time import strftime
 
@@ -367,7 +376,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
         return f_name
 
 
-
+# Run in C-PAC subjects via job queue
 def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=None):
     
     # Import packages
@@ -495,7 +504,7 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
                           args=(sub, c, strategies, 1,
                                 pipeline_timing_info, p_name, plugin, plugin_args)) \
                   for sub in sublist]
-        pid = open(os.path.join(c.outputDirectory, 'pid.txt'), 'w')
+        pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
         # Init job queue
         jobQueue = []
 

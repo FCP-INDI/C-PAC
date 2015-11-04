@@ -334,7 +334,7 @@ class ListBox(wx.Frame):
                                 raise Exception("Error reading config file- %s", config)
                     
                         if config.get('outputDirectory'):
-                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName')) #, '*', 'path_files_here' , '*.txt')
+                            derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'))
                         else:
                             derv_path = ''
                     
