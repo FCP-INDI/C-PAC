@@ -36,7 +36,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
 
     try:
-        group_conf = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
+        with open(os.path.realpath(group_config_file),"r") as f:
+            group_conf = Configuration(yaml.load(f))
     except Exception as e:
         err_string = "\n\n[!] CPAC says: Could not read group model " \
                      "configuration YML file. Ensure you have read access " \
@@ -46,9 +47,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         raise Exception(err_string)
 
      
-    group_sublist_file = open(group_conf.subject_list, 'r')
-
-    group_sublist_items = group_sublist_file.readlines()
+    with open(group_conf.subject_list,"r") as f:
+        group_sublist_items = f.readlines()
+        
 
     group_sublist = [line.rstrip('\n') for line in group_sublist_items \
                           if not (line == '\n') and not line.startswith('#')]
@@ -250,13 +251,10 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     try:
 
-        f = open(new_sub_file, 'w')
-         
-        for sub in exist_paths:
-            print >>f, sub
+        with open(new_sub_file, 'w') as f:
+            for sub in exist_paths:
+                print >>f, sub
         
-        f.close()
-
     except:
 
         print "Error: Could not open subject list file: ", new_sub_file

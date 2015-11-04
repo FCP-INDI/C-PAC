@@ -1,10 +1,19 @@
 
-def read_pheno_file(pheno_file):
+def read_pheno_file(pheno_file, group_subject_list=None, \
+                    subject_id_label=None):
 
     import os
     import csv
 
+    pheno_file_all_rows = []
     pheno_file_rows = []
+
+    if not os.path.isfile(pheno_file):
+        err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
+              "provided does not exist!\nPath provided: %s\n\n" \
+              % pheno_file
+        raise Exception(err)
+
 
     with open(os.path.abspath(pheno_file),"r") as f:
 
@@ -12,7 +21,27 @@ def read_pheno_file(pheno_file):
 
         for line in p_reader:
 
-            pheno_file_rows.append(line)
+            pheno_file_all_rows.append(line)
+
+
+    if group_subject_list and subject_id_label:
+
+        if not os.path.isfile(group_subject_list):
+            err = "\n\n[!] CPAC says: The group-level analysis subject list "\
+                  "provided does not exist!\nPath provided: %s\n\n" \
+                  % group_subject_list
+            raise Exception(err)
+
+        with open(group_subject_list,"r") as f:
+            group_subs = f.read().splitlines()
+
+        for row in pheno_file_all_rows:
+            if row[subject_id_label] in group_subs:
+                pheno_file_rows.append(row)
+
+    else:
+
+        pheno_file_rows = pheno_file_all_rows
 
 
     return pheno_file_rows
@@ -25,7 +54,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
     import csv
     import numpy as np
 
-    pheno_data_dick = {}
+    pheno_data_dict = {}
 
     for line in pheno_file_rows:
             
@@ -589,7 +618,7 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     #                 - numerical EVs (non-categorical) are in a list which
     #                   have been converted into a NumPy array
 
-    pheno_file_rows = read_pheno_file(pheno_file)
+    pheno_file_rows = read_pheno_file(pheno_file, sub_list, subject_id_label)
 
     pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
                                             subject_id_label)

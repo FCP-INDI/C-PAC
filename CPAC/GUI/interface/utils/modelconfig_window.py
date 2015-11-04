@@ -594,7 +594,8 @@ class ModelConfig(wx.Frame):
                 
                         if sub in row:
                             break
-                            
+                
+                '''            
                 else:
                     errSubID = wx.MessageDialog(
                         self, "Your phenotype file contains a subject ID " \
@@ -607,6 +608,7 @@ class ModelConfig(wx.Frame):
                     errSubID.ShowModal()
                     errSubID.Destroy()
                     raise Exception
+                '''
 
 
         for ctrl in self.page.get_ctrl_list():

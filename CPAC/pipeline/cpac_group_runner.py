@@ -155,25 +155,26 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 
 
-def run(config_file, subject_list_file, output_path_file):
+def run(config_file, output_path_file): #subject_list_file, output_path_file):
     
     # Runs group analysis
 
     import yaml
 
     # Load the config file into 'c'
-    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+    with open(os.path.realpath(config_file),"r") as f:
+        c = Configuration(yaml.load(f))
 
 
     # load the subject list (in the main GUI window, not the group analysis
     # one), and parse the yaml so that the subIDs and session IDs can be
     # accessed for below
-    try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    except Exception as e:
-        err = "\n[!] CPAC says: Subject list is not in proper YAML format. " \
-              "Please check your file.\nError: %s" % e
-        raise Exception(err)
+    #try:
+    #    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    #except Exception as e:
+    #    err = "\n[!] CPAC says: Subject list is not in proper YAML format. " \
+    #          "Please check your file.\nError: %s" % e
+    #    raise Exception(err)
 
 
     subject_paths = []
@@ -193,7 +194,9 @@ def run(config_file, subject_list_file, output_path_file):
 
         try:
             ga_config_path = os.path.realpath(group_config_file)
-            ga_config = Configuration(yaml.load(open(ga_config_path, 'r')))
+
+            with open(ga_config_path,"r") as f:
+                ga_config = Configuration(yaml.load(f))
         except:
             raise Exception("\n\nError in reading %s configuration file\n\n" \
                             % group_config_file)
@@ -235,8 +238,7 @@ def run(config_file, subject_list_file, output_path_file):
             
                     if output_name == deriv_folder_name:
         
-                        subject_paths.append(fullpath)  
-        
+                        subject_paths.append(fullpath)
 
 
     if len(subject_paths) == 0:
@@ -350,20 +352,20 @@ def run(config_file, subject_list_file, output_path_file):
 
 
         # get list of all unique IDs (session IDs)
-        # loop through them and check subject_path for existence of any of the
-        # session IDs
+        # loop through them and check subject_path for existence of any
+        # of the session IDs
         # if it exists, load it into unique_id
 
         # init subject_id to None
-        subject_id = None
-        for sub in sublist:
-            if sub['subject_id'] in subject_unique_id:
-                subject_id = sub['subject_id']
+        #subject_id = None
+        #for sub in sublist:
+        #    if sub['subject_id'] in subject_unique_id:
+        #        subject_id = sub['subject_id']
 
         # If subject_id never gets set for this specific subject, move on to
         # next subject
-        if not subject_id:
-            continue
+        #if not subject_id:
+        #    continue
 
         # 'resource_id' is each type of output
         # 'key' is a path to each and every individual output file,
@@ -371,8 +373,8 @@ def run(config_file, subject_list_file, output_path_file):
 
         # loop here to replace the one below it:
         #     go through model configs, make a list of all ders included
-        #     enumerate list of selected derivatives and the models they are in
-        #     like: (resource_id, group_model, key)
+        #     enumerate list of selected derivatives and the models they are
+        #     in like: (resource_id, group_model, key)
         for group_config_file in c.modelConfigs:
 
             try:
@@ -387,29 +389,78 @@ def run(config_file, subject_list_file, output_path_file):
                 print 'Group analysis configuration file: %s\n\n' % group_config_file
                 raise Exception
 
+            # get the group subject list
+            if not ga_config.subject_list.endswith(".txt"):
+                err = "\n\n[!] CPAC says: The group-level analysis subject " \
+                      "list should be a text file (.txt) containing a " \
+                      "subject ID on each line.\nNote: If running repeated " \
+                      "measures analysis, each separate session or scan " \
+                      "should be included with each subject ID separated by "\
+                      "a comma (ex. sub001,session_1).\n\n"
+                raise Exception(err)
+
+            with open(ga_config.subject_list,"r") as f:
+                ga_sublist = f.read().splitlines()
+
+            subject_id = None
+            scans_and_or_sessions = None
+
+            # in the event that the subject ID and session ID are both within
+            # the same directory level (i.e. both in subject_unique_id), then
+            # separate them so we know which is the subject ID and which is
+            # the session ID
+            for sub in ga_sublist:
+                # if repeated measures formatting
+                if "," in sub:
+                    sub = sub.split(",")[0]
+                    scans_and_or_sessions = sub.split(",")[1:]
+                if sub in subject_unique_id:
+                    subject_id = sub
+                    break
+
+            # if this subject is not included in the group analysis subject
+            # list, go to the next one
+            if not subject_id:
+                continue
+
 
             if resource_id in ga_config.derivative_list:
 
                 # include all of the scans and sessions in one model if True
                 if ga_config.repeated_measures == True:
-                    key = subject_path.replace(subject_unique_id, '*')
-                    key = key.replace(scan_id, '*')
+
+                    # if there are only subject IDs (and no scans or sessions)
+                    # in the group analysis subject list
+                    if not scans_and_or_sessions:
+                        err = "\n\n[!] CPAC says: You have selected to run " \
+                              "repeated measures (or within-subject) " \
+                              "analysis, but the group subject list is not " \
+                              "formatted for repeated measures. Please " \
+                              "consult the User Guide for more information." \
+                              "\n\n"
+                        raise Exception(err)
+
+                    key = subject_path.replace(subject_id, '*')
+
+                    for item in scan_and_or_sessions:
+                        key = key.replace(item, '*')
+
                 else:
                     # each group of subjects from each session go into their own
                     # separate model, instead of combining all sessions into one
+                    #     i.e. session_1 will have its own set of group
+                    #          analysis outputs, session_2 will have another..
+                    #          they will be separated by session just like
+                    #          they would be separated by scan
                     try:
                         key = subject_path.replace(subject_id, '*')
                     except:
                         # this fires if 'subject_id' was never given a value basically
-                        print '\n\n[!] CPAC says: Either the derivative path file ' \
+                        print '\n\n[!] CPAC says: The derivative path file ' \
                               'you provided does not contain the output directory ' \
                               'given in the pipeline configuration file.\n'
                         print 'Derivative path file: ', output_path_file, '\n'
-                        print 'Output directory: ', c.outputDirectory, '\n'
-                        print '- OR -\n'
-                        print 'Your subject list does not contain all of the ' \
-                              'subjects you wish to run group-level analysis on.\n'
-                        print 'Please correct this and try again.\n\n\n'
+                        print 'Output directory: ', c.outputDirectory, '\n\n'
                         raise Exception
 
 
