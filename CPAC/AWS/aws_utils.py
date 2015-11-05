@@ -358,11 +358,11 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
         except ClientError as exc:
             print 'Uploading file because of: %s' % exc.message
             print 'Uploading...'
-            bucket.upload_file(src_file, dst_key, ExtraArgs=extra_args,
+            bucket.upload_file(src_file, dst_file, ExtraArgs=extra_args,
                                Callback=ProgressPercentage(src_file))
 
         per = 100*(float(idx+1)/num_files)
-        print 'finished file %d/%d\n%f%% complete\n' % (idx+1, num_files, per)
+        print 'finished file %d/%d\n\n%f%% complete\n' % (idx+1, num_files, per)
 
     # Print when finished
     print 'Done!'

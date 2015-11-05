@@ -288,7 +288,7 @@ def run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print commands.getoutput("condor_submit %s " % (subject_bash_file))
 
 
-# Run PCB jobs
+# Run PBS jobs
 def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     '''
     '''

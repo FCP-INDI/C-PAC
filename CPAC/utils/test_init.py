@@ -137,7 +137,7 @@ def return_aws_creds():
 
 
 # Get the default test bucket name
-def return_bucket_name():
+def default_bucket_name():
     '''
     Function to return the default S3 bucket name used in test suite
 
@@ -191,6 +191,56 @@ def return_all_niis(base_dir):
     return nii_list
 
 
+# Download the CPAC resource dir from S3
+def download_cpac_resources_from_s3(local_base):
+    '''
+    Function to download the CPAC testing resources directory from
+    S3
+
+    Parameters
+    ----------
+    local_base : string
+        the local directory to save the 'cpac_resources' folder to
+    '''
+
+    # Import packages
+    import os
+
+    from CPAC.AWS import aws_utils, fetch_creds
+
+    # Init variables
+    bucket_name = default_bucket_name()
+    resource_folder = 'cpac_resources'
+    s3_prefix = os.path.join('data/test_resources', resource_folder)
+
+    # Get bucket object
+    bucket = fetch_creds.return_bucket(None, bucket_name)
+
+    # Gather files from bucket
+    for obj in bucket.objects.filter(Prefix=s3_prefix):
+        bkey = obj.key
+        # If the object is just a folder, move on to next object
+        if bkey.endswith('/'):
+            continue
+
+        # Form local path from key
+        local_path = os.path.join(local_base, resource_folder, 
+                                  bkey.split(resource_folder)[-1].lstrip('/'))
+
+        # Make download directories
+        local_dir = os.path.dirname(local_path)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+
+        # Download file if it doesn't exist
+        if not os.path.exists(local_path):
+            bucket.download_file(bkey, local_path,
+                                 Callback=aws_utils.ProgressPercentage(obj))
+
+    # Print done
+    print 'CPAC resources folder in %s is complete!' % local_dir
+
+
 # Look for CPAC_RESOURCE_DIR to be in environment
 def return_resource_dir():
     '''
@@ -214,11 +264,24 @@ def return_resource_dir():
 
     # Check if set
     if not resource_dir:
-        err_msg = 'CPAC_RESOURCE_DIR environment variable not set!\n' \
-                  'Set this to the directory of the cpac_resources folder'
+        # Print notification of cpac resources directory
+        print_msg = 'CPAC_RESOURCE_DIR environment variable not set! Enter '\
+                    'directory of the cpac_resources folder.\n\n*If the folder '\
+                    'does not exist, it will be downloaded under the directory '\
+                    'specified.'
+        print print_msg
+        # Get user input
+        resource_dir = raw_input('Enter C-PAC resources directory: ')
+
+    # Check and download any new or missing resources from S3 copy
+    try:
+        download_cpac_resources_from_s3(resource_dir)
+    except Exception as exc:
+        err_msg = 'There was a problem downloading the cpac_resources '\
+                  'folder from S3.\nError: %s' % exc
         raise Exception(err_msg)
-    else:
-        return resource_dir
+
+    return resource_dir
 
 
 # Return any subfolder of the resource directory
