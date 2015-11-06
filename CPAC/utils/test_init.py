@@ -200,7 +200,7 @@ def download_cpac_resources_from_s3(local_base):
     Parameters
     ----------
     local_base : string
-        the local directory to save the 'cpac_resources' folder to
+        the local directory to save the 'cpac_resources' contents
     '''
 
     # Import packages
@@ -224,7 +224,7 @@ def download_cpac_resources_from_s3(local_base):
             continue
 
         # Form local path from key
-        local_path = os.path.join(local_base, resource_folder, 
+        local_path = os.path.join(local_base,
                                   bkey.split(resource_folder)[-1].lstrip('/'))
 
         # Make download directories

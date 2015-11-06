@@ -355,7 +355,7 @@ class BuildSublistTestCase(unittest.TestCase):
         include_sites = ['site_1']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -399,7 +399,7 @@ class BuildSublistTestCase(unittest.TestCase):
         include_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -443,7 +443,7 @@ class BuildSublistTestCase(unittest.TestCase):
         exclude_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -465,6 +465,53 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_local_sublist_regexp_match(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     'mprage_{participant}_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     'rest_{participant}_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
 
 # Make module executable
 if __name__ == '__main__':
