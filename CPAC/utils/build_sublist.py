@@ -50,11 +50,32 @@ def extract_scan_params(scan_params_csv):
 # Check format of filepath templates
 def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
     '''
+    Function to validate the file templalte contains all required
+    keywords
+
+    Parameters
+    ----------
+    file_template : string
+        the file pattern template to check
+    site_kw : string
+        the keyword indicating the site-level strings in the filepaths
+    ppant_kw : string
+        the keyword indicating the ppant-level strings in the filepaths
+    sess_kw : string
+        the keyword indicating the session-level strings in the filepaths
+    ser_kw : string
+        the keyword indicating the series-level strings in the filepaths
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    Exception
+        raises an exception if the filepaths don't contain the required
+        keywords or if the filepaths have repeated keywords
     '''
-
-    # Import pacakges
-
-    # Init variables
 
     # Check for ppant, series-level directories
     if not (ppant_kw in file_template and ser_kw in file_template):
@@ -65,7 +86,7 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
         raise Exception(err_msg)
 
     # Check to make sure all keywords are only used once in template
-    if file_template.count(site_kw) > 1 or file_template.count(ppant_kw) or \
+    if file_template.count(site_kw) > 1 or file_template.count(ppant_kw) > 1 or \
        file_template.count(sess_kw) > 1 or file_template.count(ser_kw) > 1:
         err_msg = 'There are multiple instances of key words in the provided '\
                   'file template: %s. Fix this and try again.' % file_template
@@ -73,11 +94,30 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
 
 
 # Extract keyword from filepath
-def extract_keyword_from_path(filepath, keyword, template):
+def extract_keyword_from_path(filepath, keyword, template, kw_strs):
     '''
+    Function to extract the key string from a filepath, given a
+    keyword and a file pattern template
+
+    Parameters
+    ----------
+    filepath : string
+        filepath to the file of interest
+    keyword : string
+        string of the keyword
+    template : string
+        file pattern template containing the keyword
+    kw_strs : list
+        a list of the keyword strings
+
+    Returns
+    -------
+    key_str : string
+        extracted string where the keyword was located in the filepath 
     '''
 
     # Import packages
+    import fnmatch
 
     # Init variables
     temp_split = template.split('/')
@@ -91,20 +131,88 @@ def extract_keyword_from_path(filepath, keyword, template):
         # Get the directory fullname from template, as well as any surrounding
         kw_dirname = kw_dirname[0]
         kw_idx = temp_split.index(kw_dirname)
-        # If the *'s straddle {keyword}, just include any found pattern as
-        # extracted key string
-        kw_prefix = kw_dirname.split(keyword)[0].replace('*', '')
-        kw_suffix = kw_dirname.split(keyword)[-1].replace('*', '')
-
         # Extract directory with key string in it from filepath
         key_str = fp_split[kw_idx]
-        # Strip out prefix/suffix
+
+        # If the *'s straddle {keyword}, just include any found pattern as
+        # extracted key string
+        kw_prefix = kw_dirname.split(keyword)[0]
+        kw_suffix = kw_dirname.split(keyword)[-1]
+
+        # Strip out potential keywords from prefix/suffix
+        for kw in kw_strs:
+            # If keyword was found, grab any text in that position to split out
+            if kw in kw_prefix:
+                kw_prefix = kw_prefix.replace(kw, '*')
+            if kw in kw_suffix:
+                kw_suffix = kw_suffix.replace(kw, '*')
+
+        # Strip out prefix patterns
+        # If it starts with a '*', get everything after it
+        while kw_prefix.startswith('*'):
+            kw_prefix = kw_prefix[1:]
+        # Make sure what is left is more than ''
         if kw_prefix != '':
-            key_str = key_str.split(kw_prefix)[-1]
+            # Find the next ..*
+            next_star_in_prefix = kw_prefix.find('*')
+            # If there is another '*', grab non-wildcards up until '*'
+            if next_star_in_prefix > 0:
+                prefix_delim = kw_prefix[:next_star_in_prefix]
+            # Otherwise, just use the whole prefix
+            else:
+                prefix_delim = kw_prefix
+            # Split the filepath by prefix delim
+            prefix_list = key_str.split(prefix_delim)
+            # If it was found and split-able, take everything past the first
+            # ocurrence of the delim (because delim could also be in suffix)
+            if len(prefix_list) > 1:
+                key_str = prefix_delim.join(prefix_list[1:])
+            # Othwerwise, it wasn't found or split-able, use what we had
+            else:
+                key_str = prefix_list[0]
+
+        # Strip out suffix patterns
+        # If it ends with a '*', get everything up to it
+        while kw_suffix.endswith('*'):
+            kw_suffix = kw_suffix[:-1]
+        # Make sure what is left is more than ''
         if kw_suffix != '':
-            key_str = key_str.split(kw_suffix)[0]
+            # Find the previous *..
+            prev_star_in_suffix = kw_suffix.rfind('*')
+            # If there is another '*', grab non-wildcards back until '*'
+            if prev_star_in_suffix > -1 and \
+               prev_star_in_suffix < len(kw_suffix):
+                suffix_delim = kw_suffix[prev_star_in_suffix+1:]
+            # Otherwise, just use the whole suffix
+            else:
+                suffix_delim = kw_suffix
+            # Split the filepath by suffix delim
+            suffix_list = key_str.split(suffix_delim)
+            # If it was found and split-able, take everything up to the last
+            # ocurrence of the delim (because delim could also be in prefix)
+            if len(suffix_delim) > 1:
+                key_str = suffix_delim.join(suffix_list[:-1])
+            # Otherwise, it wasn't found or split-able, use what we had
+            else:
+                key_str = suffix_list[0]
+
+        # Check to see if we split out everything, if so, just grab
+        # whole directory
+        if key_str == '':
+            print 'Could not distinguish %s from filepath %s using the file ' \
+                  'pattern template %s.\nInstead, using entire directory: %s ' \
+                  'for keyword %s.\nCheck data organization and file ' \
+                  'pattern template' % (keyword, filepath, template, keyword)
+            key_str = fp_split[kw_idx]
     else:
+        print 'Keyword %s not found in template %s' % (keyword, template)
         key_str = ''
+
+    # Remove any nifti extensions
+    key_str = key_str.rstrip('.gz').rstrip('nii')
+
+    # Return the key string
+    return key_str
 
 
 # Filter out unwanted sites/subjects
@@ -135,68 +243,59 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
         a list of the filepaths to use in the filtered subject list
     '''
 
-    # Init variables
-    path_split = path_template.split('/')
-
     # Check if {site} was specified
-    if site_kw in path_template:
-        # Find dir level with site_kw in it
-        site_level = [dir for dir in path_split if site_kw in dir][0]
-        site_idx = path_split.index(site_level)
-
+    if site_kw in path_template and include_sites is not None:
         # Filter out sites that are not included
-        if include_sites is not None:
-            keep_site_paths = []
-            if type(include_sites) is not list:
-                include_sites = [include_sites]
-            print 'Only including sites: %s' % include_sites
-            for site in include_sites:
-                site_matches = filter(lambda sp: sp.split('/')[site_idx] == \
-                                      site_level.replace(site_kw, site),
-                                      sub_paths)
-                keep_site_paths.extend(site_matches)
-                #sub_paths = [sp for sp in sub_paths if sp not in site_matches]
-        else:
-            keep_site_paths = sub_paths
+        keep_site_paths = []
+        if type(include_sites) is not list:
+            include_sites = [include_sites]
+        print 'Only including sites: %s' % include_sites
+        site_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        site_kw,
+                                                        path_template) in \
+                              include_sites, sub_paths)
+        keep_site_paths.extend(site_matches)
     else:
         print '{site} not specified, not filtering out any potential sites...'
-
-    # Find dir level with ppant_kw in it
-    ppant_level = [dir for dir in path_split if ppant_kw in dir][0]
-    ppant_idx = path_split.index(ppant_level)
+        keep_site_paths = sub_paths
 
     # Only keep subjects in inclusion list or remove those in exclusion list
     if include_subs is not None and exclude_subs is not None:
         err_msg = 'Please only populate subjects to include or exclude '\
                   '- not both!'
         raise Exception(err_msg)
-
     # Include only
     elif include_subs is not None:
         keep_subj_paths = []
         if type(include_subs) is not list:
             include_subs = [include_subs]
         print 'Only including subjects: %s' % include_subs
-        for inc_sub in include_subs:
-            sub_matches = filter(lambda sp: sp.split('/')[ppant_idx] == \
-                                 ppant_level.replace(ppant_kw, inc_sub),
-                                 keep_site_paths)
-            keep_subj_paths.extend(sub_matches)
-
+        subj_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        ppant_kw,
+                                                        path_template) in \
+                              include_subs, sub_paths)
+        keep_subj_paths.extend(subj_matches)
     # Or exclude only
     elif exclude_subs is not None:
         keep_subj_paths = []
         if type(exclude_subs) is not list:
             exclude_subs = [exclude_subs]
         print 'Including all subjects but: %s' % exclude_subs
-        for exc_sub in exclude_subs:
-            sub_matches = filter(lambda sp: sp.split('/')[ppant_idx] != \
-                                 ppant_level.replace(ppant_kw, exc_sub),
-                                 keep_site_paths)
-            keep_subj_paths.extend(sub_matches)
+        subj_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        ppant_kw,
+                                                        path_template) not in \
+                              exclude_subs, sub_paths)
+        keep_subj_paths.extend(subj_matches)
 
     else:
         keep_subj_paths = keep_site_paths
+
+    # Filter out any duplicates
+    keep_subj_paths = list(set(keep_subj_paths))
+    print 'Filtered down to %d files' % len(keep_subj_paths)
 
     # Return kept paths
     return keep_subj_paths
@@ -395,6 +494,7 @@ def build_sublist(data_config_yml):
     ppant_kw = '{participant}'
     sess_kw = '{session}'
     ser_kw = '{series}'
+    kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
     tmp_dict = {}
     s3_str = 's3://'
@@ -430,8 +530,8 @@ def build_sublist(data_config_yml):
         creds_path = None
 
     # Check templates for proper formatting
-    check_template_format(anat_template)
-    check_template_format(func_template)
+    check_template_format(anat_template, site_kw, ppant_kw, sess_kw, ser_kw)
+    check_template_format(func_template, site_kw, ppant_kw, sess_kw, ser_kw)
 
     # Replace keywords with glob regex wildcards
     anat_pattern = anat_template.replace(site_kw, '*').replace(ppant_kw, '*').\
@@ -465,22 +565,16 @@ def build_sublist(data_config_yml):
         print 'Gathering functional files...'
         func_paths = return_local_filepaths(func_pattern)
 
-    # Get directory indicies
-#     anat_site_idx, anat_ppant_idx, anat_sess_idx, anat_series_idx = \
-#         return_dir_indices(anat_template)
-#     func_site_idx, func_ppant_idx, func_sess_idx, func_series_idx = \
-#         return_dir_indices(func_template)
-
     # Filter out unwanted anat and func filepaths
+    print 'Filtering anatomical files...'
     anat_paths = filter_sub_paths(anat_paths, include_sites,
                                   include_subs, exclude_subs,
                                   site_kw, ppant_kw, anat_template)
-    print 'Filtered down to %d anatomical files' % len(anat_paths)
 
+    print 'Filtering functional files...'
     func_paths = filter_sub_paths(func_paths, include_sites,
                                   include_subs, exclude_subs,
                                   site_kw, ppant_kw, func_template)
-    print 'Filtered down to %d functional files' % len(func_paths)
 
     # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
@@ -496,29 +590,14 @@ def build_sublist(data_config_yml):
 
     # Iterate through file paths and build subject list
     for anat in anat_paths:
-        site = extract_keyword_from_path(anat, site_kw, anat_template)
-
-        # Test for optional site folder
-        if anat_site_idx != -1:
-            site = anat_sp[anat_site_idx]
-        else:
-            site = ''
-
-        # Participant id
-        subj = anat_sp[anat_ppant_idx]
-
-        # Test for optional session folder
-        if anat_sess_idx != -1:
-            sess = anat_sp[anat_sess_idx]
-        else:
-            sess = ''
-
-#         # Series id
-#         series = anat_sp[anat_series_idx]
+        site = extract_keyword_from_path(anat, site_kw, anat_template, kw_strs)
+        ppant = extract_keyword_from_path(anat, ppant_kw, anat_template, kw_strs)
+        session = extract_keyword_from_path(anat, sess_kw, anat_template, kw_strs)
+        series = extract_keyword_from_path(anat, ser_kw, anat_template, kw_strs)
 
         # Init dictionary
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
-                  'subject_id' : subj, 'unique_id' : '_'.join([site, sess])}
+                  'subject_id' : ppant, 'unique_id' : '_'.join([site, session])}
 
         # Check for scan parameters
         if scan_params_csv is not None:
@@ -530,7 +609,7 @@ def build_sublist(data_config_yml):
 
         # Test to make sure subject key isn't present already
         # Should be a unique entry for every anatomical image
-        tmp_key = '_'.join([site, subj, sess])
+        tmp_key = '_'.join([site, ppant, session])
         if tmp_dict.has_key(tmp_key):
             err_msg = 'Key for anatomical file already exists: %s\n'\
                       'Either duplicate scan or data needs re-organization to '\
@@ -541,28 +620,14 @@ def build_sublist(data_config_yml):
 
     # Now go through and populate functional scans dictionaries
     for func in func_paths:
-        # Extract info from filepath
-        func_sp = func.split('/')
-        # Test for optional site folder
-        if func_site_idx != -1:
-            site = func_sp[func_site_idx]
-        else:
-            site = ''
-
-        # Participant id
-        subj = func_sp[func_ppant_idx]
-
-        # Test for optional session folder
-        if func_sess_idx != -1:
-            sess = func_sp[func_sess_idx]
-        else:
-            sess = ''
-
-        # Series id
-        series = func_sp[func_series_idx]
+        site = extract_keyword_from_path(func, site_kw, func_template, kw_strs)
+        ppant = extract_keyword_from_path(func, ppant_kw, func_template, kw_strs)
+        session = extract_keyword_from_path(func, sess_kw, func_template, kw_strs)
+        series = extract_keyword_from_path(func, ser_kw, func_template, kw_strs)
 
         # Build tmp key and get subject dictionary from tmp dictionary
-        tmp_key = '_'.join([site, subj, sess])
+        tmp_key = '_'.join([site, ppant, session])
+
         # Try and find the associated anat scan
         try:
             subj_d = tmp_dict[tmp_key]
@@ -570,6 +635,7 @@ def build_sublist(data_config_yml):
             print 'Unable to find anatomical image for %s. Skipping...' \
                   % tmp_key
             continue
+
         # Set the rest dictionary with the scan
         subj_d['rest'][series] = func
         # And replace it back in the dictionary

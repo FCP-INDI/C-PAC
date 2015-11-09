@@ -486,7 +486,54 @@ class BuildSublistTestCase(unittest.TestCase):
         data_config_dict = self.data_config_dict
         subs_match_regex = ['0010042', '0010064', '0010128', '0023008',
                             '0023008', '0023012', '0027011', '0027018',
-                            '0027034', '0027037']
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '[mp]*{participant}_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     'r*t_{participant}_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+
+    # Test for regular expression matching
+    def test_local_sublist_reorg(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
 
         # Copy original inputs to all same folder with
         # {participant}_{series} in filenames
@@ -511,7 +558,6 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
-
 
 # Make module executable
 if __name__ == '__main__':
