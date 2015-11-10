@@ -14,6 +14,59 @@ sess_kw = '{session}'
 ser_kw = '{series}'
 kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
+# Check for glob-style patterns
+def check_for_glob_patterns(prefix_delim, filepath):
+    '''
+    Function to check the prefix delimeter for any glob patterns (?, []);
+    if some are found, they are replaced by the filepath's characters
+    in those locations - this allows for a more accurate keyword
+    extraction
+
+    Parameters
+    ----------
+    prefix_delim : string
+        the last non-wildcard characters before the desired keyword
+    filepath : string
+        filepath to the file of interest
+
+    Returns
+    -------
+    prefix_delim : string
+        the glob-matched prefix delimeter
+    '''
+
+    # Init variables
+    prefix_list = list(prefix_delim)
+    in_brak_flg = False
+    idx = 0
+    jdx = idx
+
+    # Iterate through prefix delimeter
+    for char in prefix_delim:
+        if in_brak_flg:
+            if char == ']':
+                in_brak_flg = False
+            prefix_list[jdx] = ''
+            jdx += 1
+            continue
+        filepath_test = filepath[idx:]
+        if char == '?':
+            char_match = filepath_test[0]
+            prefix_list[jdx] = char_match
+        elif char == '[' and not in_brak_flg:
+            in_brak_flg = True
+            char_match = filepath_test[0]
+            prefix_list[jdx] = char_match
+        idx += 1
+        jdx += 1
+
+    # Join list
+    prefix_delim = ''.join(prefix_list)
+
+    # Return the glob-matches prefix delimiter
+    return prefix_delim
+
+
 # Check format of filepath templates
 def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
     '''
@@ -123,6 +176,9 @@ def extract_keyword_from_path(filepath, keyword, template):
             # Otherwise, just use the whole prefix as delim
             else:
                 prefix_delim = kw_prefix
+                # Check for glob-style characters in delimeter - can only be
+                # done reliably if no wildcards/keywords at start of key_str
+                prefix_delim = check_for_glob_patterns(prefix_delim, key_str)
 
             # Split the filepath by prefix delim
             prefix_list = key_str.split(prefix_delim)

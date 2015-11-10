@@ -1,6 +1,7 @@
 # test/unit/utils/build_sublist_test.py
 #
 # Author(s): Daniel Clark, 2015
+from CPAC.utils.build_sublist import build_sublist
 
 '''
 This module performs unit testing on functions in the buildsublist
@@ -540,9 +541,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     '[si]*{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
+                                     '[si]?*{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '[si]*{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
+                                     '?[si]*{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_template
@@ -557,6 +558,26 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
+
+    def test_check_glob_for_patterns(self):
+        '''
+        '''
+
+        # Import packages
+        from CPAC.utils import build_sublist
+
+        # Init variables
+        prefix_delim = 's?[si]ite_[a-z]?'
+        filepath = 'sisite_hi_sub001_sess1.nii.gz'
+        correct_delim = 'sisite_hi'
+
+        # Return filtered delimeter
+        new_delim = build_sublist.check_for_glob_patterns(prefix_delim, filepath)
+
+        # Assert equal
+        err_msg = 'returned delim: %s does not match %s! Check function!' % \
+                  (new_delim, correct_delim)
+        self.assertEqual(new_delim, correct_delim, err_msg)
 
 
 # Make module executable
