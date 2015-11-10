@@ -494,9 +494,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     '[mp]*{participant}_{series}.nii.gz')
+                                     'site{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
         func_template = os.path.join(base_dir,
-                                     'r*t_{participant}_{series}.nii.gz')
+                                     'site{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_template

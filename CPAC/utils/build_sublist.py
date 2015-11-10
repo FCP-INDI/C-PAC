@@ -301,57 +301,6 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     return keep_subj_paths
 
 
-# # Get site, ppant, session-level directory indicies
-# def return_dir_indices(path_template):
-#     '''
-#     Function to return the site, particpant, and session-level
-#     directory indicies based on splitting the path template by
-#     directory seperation '/'
-# 
-#     Parameters
-#     ----------
-#     path_template : string
-#         filepath template in the form of:
-#         '.../base_dir/{site}/{participant}/{session}/..
-#         {series}/file.nii.gz'
-# 
-#     Returns
-#     -------
-#     site_idx : integer
-#         the directory level of site folders
-#     ppant_idx : integer
-#         the directory level of participant folders
-#     sess_idx : integer
-#         the directory level of the session folders
-#     series_idx : integer
-#         the directory level of the series folder
-#     '''
-# 
-#     # Get folder level indices of site and subject - anat
-#     fp_split = path_template.split('/')
-# 
-#     # Site level isn't required, but recommended
-#     try:
-#         site_idx = fp_split.index('{site}')
-#     except ValueError as exc:
-#         site_idx = -1
-# 
-#     # Get required participant directory index
-#     ppant_idx = fp_split.index('{participant}')
-# 
-#     # Session level isn't required, but recommended
-#     try:
-#         sess_idx = fp_split.index('{session}')
-#     except ValueError as exc:
-#         sess_idx = -1
-# 
-#     # Get required series directory index
-#     series_idx = fp_split.index('{series}')
-# 
-#     # Return indices
-#     return site_idx, ppant_idx, sess_idx, series_idx
-
-
 # Return matching filepaths
 def return_local_filepaths(file_pattern):
     '''
@@ -642,7 +591,15 @@ def build_sublist(data_config_yml):
         tmp_dict[tmp_key] = subj_d
 
     # Build a subject list from dictionary values
-    sublist = [v for v in tmp_dict.values()]
+    sublist = []
+    for data_bundle in tmp_dict.values():
+        if data_bundle['anat'] != '' and data_bundle['rest'] != {}:
+            sublist.append(data_bundle)
+    # Check to make sure subject list has at least one valid data bundle
+    if len(sublist) == 0:
+        err_msg = 'Unable to find both anatomical and functional data for any '\
+                  'subjects. Check data organization and file patterns!'
+        raise Exception(err_msg)
 
     # Write subject list out to out location
     sublist_out_yml = os.path.join(sublist_outdir,
