@@ -467,7 +467,7 @@ class BuildSublistTestCase(unittest.TestCase):
         self.assertTrue(properly_filtered, msg=filter_msg)
 
     # Test for regular expression matching
-    def test_local_sublist_regexp_match(self):
+    def test_local_sublist_reorg(self):
         '''
         Method to test that the subject list builder includes only
         desired sites from S3
@@ -512,9 +512,8 @@ class BuildSublistTestCase(unittest.TestCase):
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
 
-
     # Test for regular expression matching
-    def test_local_sublist_reorg(self):
+    def test_local_sublist_regexp_match(self):
         '''
         Method to test that the subject list builder includes only
         desired sites from S3
@@ -541,9 +540,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     'mprage_{participant}_{series}.nii.gz')
+                                     '[si]*{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
         func_template = os.path.join(base_dir,
-                                     'rest_{participant}_{series}.nii.gz')
+                                     '[si]*{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_template
@@ -558,6 +557,7 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
+
 
 # Make module executable
 if __name__ == '__main__':

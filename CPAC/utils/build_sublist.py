@@ -7,45 +7,12 @@ This module has functions to build a subject list from S3 and
 local filepaths
 '''
 
-# Extract site-based scan parameters
-def extract_scan_params(scan_params_csv):
-    '''
-    Function to extract the site-based scan parameters from a csv file
-    and return a dictionary of their values
-
-    Parameters
-    ----------
-    scan_params_csv : string
-        filepath to the scan parameters csv file
-
-    Returns
-    -------
-    site_dict : dictionary
-        a dictionary where site names are the keys and the scan
-        parameters for that site are the values stored as a dictionary
-    '''
-
-    # Import packages
-    import csv
-
-    # Init variables
-    csv_open = open(scan_params_csv, 'r')
-    site_dict = {}
-
-    # Init csv dictionary reader
-    reader = csv.DictReader(csv_open)
-
-    # Iterate through the csv and pull in parameters
-    for dict_row in reader:
-        site = dict_row['Site']
-        site_dict[site] = {key.lower() : val for key, val in dict_row.items()\
-                           if key != 'Site'}
-        # Assumes all other fields are formatted properly, but TR might not
-        site_dict[site]['tr'] = site_dict[site].pop('tr (seconds)')
-
-    # Return site dictionary
-    return site_dict
-
+# Init global variables
+site_kw = '{site}'
+ppant_kw = '{participant}'
+sess_kw = '{session}'
+ser_kw = '{series}'
+kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
 # Check format of filepath templates
 def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
@@ -94,7 +61,7 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
 
 
 # Extract keyword from filepath
-def extract_keyword_from_path(filepath, keyword, template, kw_strs):
+def extract_keyword_from_path(filepath, keyword, template):
     '''
     Function to extract the key string from a filepath, given a
     keyword and a file pattern template
@@ -107,17 +74,12 @@ def extract_keyword_from_path(filepath, keyword, template, kw_strs):
         string of the keyword
     template : string
         file pattern template containing the keyword
-    kw_strs : list
-        a list of the keyword strings
 
     Returns
     -------
     key_str : string
         extracted string where the keyword was located in the filepath 
     '''
-
-    # Import packages
-    import fnmatch
 
     # Init variables
     temp_split = template.split('/')
@@ -134,12 +96,11 @@ def extract_keyword_from_path(filepath, keyword, template, kw_strs):
         # Extract directory with key string in it from filepath
         key_str = fp_split[kw_idx]
 
-        # If the *'s straddle {keyword}, just include any found pattern as
-        # extracted key string
+        # Get the prefix and suffix surrounding keyword
         kw_prefix = kw_dirname.split(keyword)[0]
         kw_suffix = kw_dirname.split(keyword)[-1]
 
-        # Strip out potential keywords from prefix/suffix
+        # Replace other keywords in prefix/suffix with wildcards '*'
         for kw in kw_strs:
             # If keyword was found, grab any text in that position to split out
             if kw in kw_prefix:
@@ -148,21 +109,24 @@ def extract_keyword_from_path(filepath, keyword, template, kw_strs):
                 kw_suffix = kw_suffix.replace(kw, '*')
 
         # Strip out prefix patterns
-        # If it starts with a '*', get everything after it
-        while kw_prefix.startswith('*'):
-            kw_prefix = kw_prefix[1:]
+        # If it ends with a '*', get everything before it
+        while kw_prefix.endswith('*'):
+            kw_prefix = kw_prefix[:-1]
+
         # Make sure what is left is more than ''
         if kw_prefix != '':
-            # Find the next ..*
-            next_star_in_prefix = kw_prefix.find('*')
-            # If there is another '*', grab non-wildcards up until '*'
-            if next_star_in_prefix > 0:
-                prefix_delim = kw_prefix[:next_star_in_prefix]
-            # Otherwise, just use the whole prefix
+            # Find the previous '*' from the right
+            prev_star_in_prefix = kw_prefix.rfind('*')
+            # If there is '*', grab from it to end of prefix as delim
+            if prev_star_in_prefix > 0:
+                prefix_delim = kw_prefix[prev_star_in_prefix+1:]
+            # Otherwise, just use the whole prefix as delim
             else:
                 prefix_delim = kw_prefix
+
             # Split the filepath by prefix delim
             prefix_list = key_str.split(prefix_delim)
+
             # If it was found and split-able, take everything past the first
             # ocurrence of the delim (because delim could also be in suffix)
             if len(prefix_list) > 1:
@@ -172,22 +136,24 @@ def extract_keyword_from_path(filepath, keyword, template, kw_strs):
                 key_str = prefix_list[0]
 
         # Strip out suffix patterns
-        # If it ends with a '*', get everything up to it
-        while kw_suffix.endswith('*'):
-            kw_suffix = kw_suffix[:-1]
+        # If it starts with a '*', get everything after it
+        while kw_suffix.startswith('*'):
+            kw_suffix = kw_suffix[1:]
+
         # Make sure what is left is more than ''
         if kw_suffix != '':
-            # Find the previous *..
-            prev_star_in_suffix = kw_suffix.rfind('*')
-            # If there is another '*', grab non-wildcards back until '*'
-            if prev_star_in_suffix > -1 and \
-               prev_star_in_suffix < len(kw_suffix):
-                suffix_delim = kw_suffix[prev_star_in_suffix+1:]
-            # Otherwise, just use the whole suffix
+            # Find the next '*' from the left
+            next_star_in_suffix = kw_suffix.find('*')
+            # If there is another '*', grab non-wildcards up until '*' as delim
+            if next_star_in_suffix > 0:
+                suffix_delim = kw_suffix[:next_star_in_suffix]
+            # Otherwise, just use the whole prefix as delim
             else:
                 suffix_delim = kw_suffix
+
             # Split the filepath by suffix delim
             suffix_list = key_str.split(suffix_delim)
+
             # If it was found and split-able, take everything up to the last
             # ocurrence of the delim (because delim could also be in prefix)
             if len(suffix_delim) > 1:
@@ -213,6 +179,46 @@ def extract_keyword_from_path(filepath, keyword, template, kw_strs):
 
     # Return the key string
     return key_str
+
+
+# Extract site-based scan parameters
+def extract_scan_params(scan_params_csv):
+    '''
+    Function to extract the site-based scan parameters from a csv file
+    and return a dictionary of their values
+
+    Parameters
+    ----------
+    scan_params_csv : string
+        filepath to the scan parameters csv file
+
+    Returns
+    -------
+    site_dict : dictionary
+        a dictionary where site names are the keys and the scan
+        parameters for that site are the values stored as a dictionary
+    '''
+
+    # Import packages
+    import csv
+
+    # Init variables
+    csv_open = open(scan_params_csv, 'r')
+    site_dict = {}
+
+    # Init csv dictionary reader
+    reader = csv.DictReader(csv_open)
+
+    # Iterate through the csv and pull in parameters
+    for dict_row in reader:
+        site = dict_row['Site']
+        site_dict[site] = {key.lower() : val for key, val in dict_row.items()\
+                           if key != 'Site'}
+        # Assumes all other fields are formatted properly, but TR might not
+        site_dict[site]['tr'] = site_dict[site].pop('tr (seconds)')
+
+    # Return site dictionary
+    return site_dict
 
 
 # Filter out unwanted sites/subjects
@@ -257,7 +263,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                               include_sites, sub_paths)
         keep_site_paths.extend(site_matches)
     else:
-        print '{site} not specified, not filtering out any potential sites...'
+        print 'Not filtering out any potential sites...'
         keep_site_paths = sub_paths
 
     # Only keep subjects in inclusion list or remove those in exclusion list
@@ -439,11 +445,11 @@ def build_sublist(data_config_yml):
     import yaml
 
     # Init variables
-    site_kw = '{site}'
-    ppant_kw = '{participant}'
-    sess_kw = '{session}'
-    ser_kw = '{series}'
-    kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
+#     site_kw = '{site}'
+#     ppant_kw = '{participant}'
+#     sess_kw = '{session}'
+#     ser_kw = '{series}'
+#     kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
     tmp_dict = {}
     s3_str = 's3://'
@@ -527,8 +533,9 @@ def build_sublist(data_config_yml):
 
     # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
-        err_msg = 'Unable to find any files after filtering sites and '\
-                  'subjects! Check site and subject inclusion/exclusion fields!'
+        err_msg = 'Unable to find any files after filtering sites and ' \
+                  'subjects! Check site and subject inclusion fields as well ' \
+                  'as filepaths and template pattern!'
         raise Exception(err_msg)
 
     # Read in scan parameters and return site-based dictionary
@@ -539,10 +546,10 @@ def build_sublist(data_config_yml):
 
     # Iterate through file paths and build subject list
     for anat in anat_paths:
-        site = extract_keyword_from_path(anat, site_kw, anat_template, kw_strs)
-        ppant = extract_keyword_from_path(anat, ppant_kw, anat_template, kw_strs)
-        session = extract_keyword_from_path(anat, sess_kw, anat_template, kw_strs)
-        series = extract_keyword_from_path(anat, ser_kw, anat_template, kw_strs)
+        site = extract_keyword_from_path(anat, site_kw, anat_template)
+        ppant = extract_keyword_from_path(anat, ppant_kw, anat_template)
+        session = extract_keyword_from_path(anat, sess_kw, anat_template)
+        series = extract_keyword_from_path(anat, ser_kw, anat_template)
 
         # Init dictionary
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
@@ -569,10 +576,10 @@ def build_sublist(data_config_yml):
 
     # Now go through and populate functional scans dictionaries
     for func in func_paths:
-        site = extract_keyword_from_path(func, site_kw, func_template, kw_strs)
-        ppant = extract_keyword_from_path(func, ppant_kw, func_template, kw_strs)
-        session = extract_keyword_from_path(func, sess_kw, func_template, kw_strs)
-        series = extract_keyword_from_path(func, ser_kw, func_template, kw_strs)
+        site = extract_keyword_from_path(func, site_kw, func_template)
+        ppant = extract_keyword_from_path(func, ppant_kw, func_template)
+        session = extract_keyword_from_path(func, sess_kw, func_template)
+        series = extract_keyword_from_path(func, ser_kw, func_template)
 
         # Build tmp key and get subject dictionary from tmp dictionary
         tmp_key = '_'.join([site, ppant, session])
