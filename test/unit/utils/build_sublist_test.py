@@ -559,6 +559,7 @@ class BuildSublistTestCase(unittest.TestCase):
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
 
+    # Function to test the custom glob pattern matcher
     def test_check_glob_for_patterns(self):
         '''
         '''
@@ -579,6 +580,45 @@ class BuildSublistTestCase(unittest.TestCase):
                   (new_delim, correct_delim)
         self.assertEqual(new_delim, correct_delim, err_msg)
 
+    # Test for un-specific template
+    def test_ambiguous_template(self):
+        '''
+        Function that tests the subject list cannot be built properly
+        with an over-ambiguous path template
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import build_sublist, test_init
+
+        # Init variables
+        # Init variables
+        data_config_dict = self.data_config_dict
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '{site}_mprage_{participant}_{session}_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     '{site}_rest_{participant}_{session}_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Build subject list
+        try:
+            self._return_sublist_filepaths(data_config_dict)
+        except Exception as exc:
+            self.assertIsInstance(exc, Exception)
 
 # Make module executable
 if __name__ == '__main__':

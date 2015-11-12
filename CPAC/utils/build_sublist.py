@@ -660,7 +660,8 @@ def build_sublist(data_config_yml):
         if tmp_dict.has_key(tmp_key):
             err_msg = 'Key for anatomical file already exists: %s\n'\
                       'Either duplicate scan or data needs re-organization to '\
-                      'differentiate between subjects from different sites/sessions'
+                      'differentiate between subjects from different sites/sessions'\
+                      % tmp_key
             logger.error(err_msg)
             raise Exception(err_msg)
 

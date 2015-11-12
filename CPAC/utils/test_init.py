@@ -238,7 +238,7 @@ def download_cpac_resources_from_s3(local_base):
                                  Callback=aws_utils.ProgressPercentage(obj))
 
     # Print done
-    print 'CPAC resources folder in %s is complete!' % local_dir
+    print 'CPAC resources folder in %s is complete!' % local_base
 
 
 # Look for CPAC_RESOURCE_DIR to be in environment
