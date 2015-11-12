@@ -20,9 +20,9 @@ from nipype import config
 from nipype import logging
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
-logger = logging.getLogger('workflow')
 import pkg_resources as p
 import CPAC
+from CPAC.AWS import aws_utils, fetch_creds
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc, \
                                            create_wf_edit_func
@@ -69,6 +69,9 @@ import linecache
 import csv
 import pickle
 
+# Init variables
+logger = logging.getLogger('workflow')
+
 
 class strategy:
 
@@ -110,7 +113,7 @@ class strategy:
 
             self.resource_pool[key] = value
 
-    
+
 
 def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                       p_name=None, plugin='ResourceMultiProc', \
@@ -189,7 +192,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     else:
         subject_id = sub_dict['subject_id']
         
-    log_dir = os.path.join(c.outputDirectory, 'logs', subject_id)
+    log_dir = os.path.join(c.logDirectory, subject_id)
 
     if not os.path.exists(log_dir):
         os.makedirs(os.path.join(log_dir))
@@ -314,7 +317,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         commands.getoutput(cmd)
 
 
-    def create_log_node(wflow, output, indx, scan_id = None):
+    def create_log_node(wflow, output, indx, scan_id=None):
         #call logging workflow
 
         if wflow: 
@@ -325,6 +328,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             workflow.connect(wflow, output, log_wf, 'inputspec.inputs')
         else:
             log_wf = create_log(wf_name = 'log_done_%s'%scan_id, scan_id= scan_id)
+            log_wf.base_dir = log_dir
             log_wf.inputs.inputspec.workflow = 'DONE'
             log_wf.inputs.inputspec.index = indx
             log_wf.inputs.inputspec.log_dir = log_dir
@@ -5916,6 +5920,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             wf_names.append(strat.get_name())
 
             # Extract credentials path for output if it exists
+            s3_str = 's3://'
             try:
                 creds_path = str(c.awsOutputBucketCredentials)
                 # Import packages
@@ -5925,7 +5930,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:
-                if 's3://' in c.outputDirectory.lower():
+                if c.outputDirectory.lower().startswith(s3_str):
                     err_msg = 'There was an error processing credentials or '\
                               'accessing the S3 bucket. Check and try again.\n'\
                               'Error: %s' % exc
@@ -5950,8 +5955,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 workflow.connect(node, out_file,
                                  ds, key)
                 logger.info('node, out_file, key: %s, %s, %s' % (node, out_file, key))
-    
-    
+
                 link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
                                         'subject_id', 'pipeline_id', 'helper', 'create_sym_links'],
                                         output_names=[],
@@ -5964,7 +5968,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
 
-                if 1 in c.runSymbolicLinks:             
+                if 1 in c.runSymbolicLinks:
                     link_node.inputs.create_sym_links = True
                 else:
                     link_node.inputs.create_sym_links = False
@@ -5974,9 +5978,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                 sink_idx += 1
                 logger.info('sink index: %s' % sink_idx)
-    
 
-            d_name = os.path.join(c.outputDirectory, ds.inputs.container)
+
+            d_name = os.path.join(c.logDirectory, ds.inputs.container)
             if not os.path.exists(d_name):
                 os.makedirs(d_name)
             
@@ -6039,10 +6043,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         #TODO:set memory and num_threads of critical nodes if running 
         # ResourceMultiProcPlugin
 
-        #create callback logger
+        # Create callback logger
         import logging as cb_logging
-
-        cb_log_filename = os.path.join(c.outputDirectory, 'callback_logs',
+        cb_log_filename = os.path.join(log_dir,
                                        'callback_%s.log' % sub_dict['subject_id'])
 
         try:
@@ -6051,34 +6054,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 
         except IOError:
             pass
-        
+
+        # Add handler to callback log file
         cb_logger = cb_logging.getLogger('callback')
         cb_logger.setLevel(cb_logging.DEBUG)
         handler = cb_logging.FileHandler(cb_log_filename)
         cb_logger.addHandler(handler)
 
-        #add status callback function that writes in callback log
-        from nipype.pipeline.plugins.callback_log import log_nodes_cb
-
-        if plugin_args is None:
-            plugin_args = {}
-        plugin_args['status_callback'] = log_nodes_cb
-
-
+        # Add status callback function that writes in callback log
+        try:
+            from nipype.pipeline.plugins.callback_log import log_nodes_cb
+            if plugin_args is None:
+                plugin_args = {}
+            plugin_args['status_callback'] = log_nodes_cb
+        except ImportError as exc:
+            import nipype
+            err_msg = 'Version of nipype found in %s does not contain the '\
+                      'MultiProc plugin. Please check installation is the '\
+                      'most up-to-date or download and install the FCP-INDI '\
+                      'nipype repo at https:/github.com/fcp-indi/nipype.\n'\
+                      'Error: %s' %(os.path.dirname(nipype.__file__), exc)
+            logger.error(err_msg)
+            raise Exception(err_msg)
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
 
-        
-
+        # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
-
-        subject_info_pickle = open(os.getcwd() + '/subject_info_%s.p' % subject_id , 'wb')
-
+        subject_info_pickle = open(os.path.join(log_dir, 'subject_info_%s.p' % subject_id), 'wb')
         pickle.dump(subject_info, subject_info_pickle)
-
         subject_info_pickle.close()
-
 
         '''
         # Actually run the pipeline now
@@ -6122,32 +6128,35 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             ###raise Exception
         '''
     
-        subject_dir = os.path.join(c.outputDirectory, 'pipeline_' + pipeline_id, subject_id)
-
-        create_output_mean_csv(subject_dir)
-
+        # subject_dir = os.path.join(c.outputDirectory, 'pipeline_' + pipeline_id, subject_id)
+        # create_output_mean_csv(subject_dir)
 
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
-            
-            
-    
-        if 1 in c.generateQualityControlImages:
-    
-            for pip_id in pip_ids:
-    
-                f_path = os.path.join(os.path.join(c.outputDirectory, 'pipeline_' + pip_id), subject_id)
-    
-                f_path = os.path.join(f_path, 'qc_files_here')
-    
-                generateQCPages(f_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
-    
-    
-            ### Automatically generate QC index page
-            create_all_qc.run(os.path.join(c.outputDirectory, 'pipeline_' + pip_id))       
-        
 
+        # If QC is enabled
+        if 1 in c.generateQualityControlImages:
+            # QC html files arent supported in S3 currently
+            if c.outputDirectory.startswith(s3_str):
+                err_msg = 'QC webpage generation is currently not supported '\
+                          'when using an S3 bucket as the output directory. '\
+                          'However the QC image files can be found in %s'\
+                          % os.path.join(c.outputDirectory,
+                                         'pipeline_%s' % pipeline_id,
+                                         subject_id, 'qc')
+                logger.info(err_msg)
+            else:
+                # For each pipeline ID, generate the QC pages
+                for pip_id in pip_ids:
+                    # Define pipeline-level logging for QC
+                    pipeline_log_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                    qc_output_folder = os.path.join(pipeline_log_base, subject_id, 'qc_files_here')
+                    # Generate the QC pages
+                    generateQCPages(qc_output_folder, qc_montage_id_a,
+                                    qc_montage_id_s, qc_plot_id, qc_hist_id)
+                    # Automatically generate QC index page
+                    create_all_qc.run(pipeline_log_base)
 
         # pipeline timing code starts here
 
@@ -6162,28 +6171,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             unique_pipeline_id = pipeline_timing_info[0]
             pipeline_start_stamp = pipeline_timing_info[1]
             num_subjects = pipeline_timing_info[2]
-        
+
             # elapsed time data list:
             #  [0] - elapsed time in minutes
             elapsed_time_data = []
 
             elapsed_time_data.append(int(((time.time() - pipeline_start_time)/60)))
 
-
             # elapsedTimeBin list:
             #  [0] - cumulative elapsed time (minutes) across all subjects
             #  [1] - number of times the elapsed time has been appended
             #        (effectively a measure of how many subjects have run)
 
-
-
             # needs to happen:
-                 # write more doc for all this
-                 # warning in .csv that some runs may be partial
-                 # code to delete .tmp file
+            # write more doc for all this
+            # warning in .csv that some runs may be partial
+            # code to delete .tmp file
 
-
-            timing_temp_file_path = os.path.join(c.outputDirectory, '%s_pipeline_timing.tmp' % unique_pipeline_id)
+            timing_temp_file_path = os.path.join(c.logDirectory, '%s_pipeline_timing.tmp' % unique_pipeline_id)
 
             if not os.path.isfile(timing_temp_file_path):
                 elapsedTimeBin = []
@@ -6219,8 +6224,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 gpaTimeFields= ['Pipeline', 'Cores_Per_Subject', 'Simultaneous_Subjects', 'Number_of_Subjects', 'Start_Time', 'End_Time', 'Elapsed_Time_(minutes)', 'Status']
                 timeHeader = dict((n, n) for n in gpaTimeFields)
                 
-                timeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'a')
-                readTimeCSV = open(os.path.join(c.outputDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'rb')
+                timeCSV = open(os.path.join(c.logDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'a')
+                readTimeCSV = open(os.path.join(c.logDirectory, 'cpac_individual_timing_%s.csv' % c.pipelineName), 'rb')
                 timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
                 timeReader = csv.DictReader(readTimeCSV)
                 
@@ -6238,7 +6243,34 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                 # remove the temp timing file now that it is no longer needed
                 os.remove(timing_temp_file_path)
-        
+
+        # Upload logs to s3 if s3_str in output directory
+        if c.outputDirectory.lower().startswith(s3_str):
+            try:
+                # Store logs in s3 output director/logs/...
+                s3_log_dir = c.outputDirectory + '/logs/' + \
+                             os.path.basename(log_dir)
+                bucket_name = c.outputDirectory.split('/')[2]
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                # Collect local log files
+                local_log_files = []
+                for root, dirs, files in os.walk(log_dir):
+                    local_log_files.extend([os.path.join(root, fil) \
+                                            for fil in files]) 
+                # Form destination keys
+                s3_log_files = [loc.replace(log_dir, s3_log_dir) \
+                                for loc in local_log_files]
+                # Upload logs
+                aws_utils.s3_upload(bucket, local_log_files, s3_log_files,
+                                    encrypt=encrypt_data)
+                # Delete local log files
+                for log_f in local_log_files:
+                    os.remove(log_f)
+            except Exception as exc:
+                err_msg = 'Unable to upload CPAC log files in: %s.\nError: %s' \
+                          % (log_dir, exc)
+                logger.error(err_msg)
+
         # Remove working directory when done
         sub_w_path = os.path.join(c.workingDirectory, wfname)
         if c.removeWorkingDir:
@@ -6253,7 +6285,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         
         endString = ("End of subject workflow %s \n\n" % wfname) + "CPAC run complete:\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
         ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-        ("Timing information saved in %s/cpac_individual_timing_%s.csv \n" % (c.outputDirectory, c.pipelineName)) + \
+        ("Timing information saved in %s/cpac_individual_timing_%s.csv \n" % (c.logDirectory, c.pipelineName)) + \
         ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of completion: %s" % strftime("%Y-%m-%d %H:%M:%S"))
     
         logger.info(endString)

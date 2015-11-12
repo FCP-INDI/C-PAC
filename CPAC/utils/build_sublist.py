@@ -97,12 +97,19 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
         keywords or if the filepaths have repeated keywords
     '''
 
+    # Import packages
+    import logging
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
+
     # Check for ppant, series-level directories
     if not (ppant_kw in file_template and ser_kw in file_template):
         err_msg = 'Please provide \'%s\' and \'%s\' level directories in '\
                   'filepath template where participant and series-level '\
                   'directories are present in file template: %s' \
                   % (ppant_kw, ser_kw, file_template)
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Check to make sure all keywords are only used once in template
@@ -110,6 +117,7 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
        file_template.count(sess_kw) > 1 or file_template.count(ser_kw) > 1:
         err_msg = 'There are multiple instances of key words in the provided '\
                   'file template: %s. Fix this and try again.' % file_template
+        logger.error(err_msg)
         raise Exception(err_msg)
 
 
@@ -133,10 +141,15 @@ def extract_keyword_from_path(filepath, keyword, template):
     key_str : string
         extracted string where the keyword was located in the filepath 
     '''
+    # Import packages
+    import logging
 
     # Init variables
     temp_split = template.split('/')
     fp_split = filepath.split('/')
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Extract directory  name of the 
     kw_dirname = [dir for dir in temp_split if keyword in dir]
@@ -221,13 +234,14 @@ def extract_keyword_from_path(filepath, keyword, template):
         # Check to see if we split out everything, if so, just grab
         # whole directory
         if key_str == '':
-            print 'Could not distinguish %s from filepath %s using the file ' \
+            msg = 'Could not distinguish %s from filepath %s using the file ' \
                   'pattern template %s.\nInstead, using entire directory: %s ' \
                   'for keyword %s.\nCheck data organization and file ' \
                   'pattern template' % (keyword, filepath, template, keyword)
+            logger.info(msg)
             key_str = fp_split[kw_idx]
     else:
-        print 'Keyword %s not found in template %s' % (keyword, template)
+        logger.info('Keyword %s not found in template %s' % (keyword, template))
         key_str = ''
 
     # Remove any nifti extensions
@@ -305,13 +319,19 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
         a list of the filepaths to use in the filtered subject list
     '''
 
+    # Import packages
+    import logging
+
+    # Init variables
+    logger = logging.getLogger('sublist_builder')
+
     # Check if {site} was specified
     if site_kw in path_template and include_sites is not None:
         # Filter out sites that are not included
         keep_site_paths = []
         if type(include_sites) is not list:
             include_sites = [include_sites]
-        print 'Only including sites: %s' % include_sites
+        logger.info('Only including sites: %s' % include_sites)
         site_matches = filter(lambda sp: \
                               extract_keyword_from_path(sp,
                                                         site_kw,
@@ -319,20 +339,21 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                               include_sites, sub_paths)
         keep_site_paths.extend(site_matches)
     else:
-        print 'Not filtering out any potential sites...'
+        logger.info('Not filtering out any potential sites...')
         keep_site_paths = sub_paths
 
     # Only keep subjects in inclusion list or remove those in exclusion list
     if include_subs is not None and exclude_subs is not None:
         err_msg = 'Please only populate subjects to include or exclude '\
                   '- not both!'
+        logger.error(err_msg)
         raise Exception(err_msg)
     # Include only
     elif include_subs is not None:
         keep_subj_paths = []
         if type(include_subs) is not list:
             include_subs = [include_subs]
-        print 'Only including subjects: %s' % include_subs
+        logger.info('Only including subjects: %s' % include_subs)
         subj_matches = filter(lambda sp: \
                               extract_keyword_from_path(sp,
                                                         ppant_kw,
@@ -344,7 +365,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
         keep_subj_paths = []
         if type(exclude_subs) is not list:
             exclude_subs = [exclude_subs]
-        print 'Including all subjects but: %s' % exclude_subs
+        logger.info('Including all subjects but: %s' % exclude_subs)
         subj_matches = filter(lambda sp: \
                               extract_keyword_from_path(sp,
                                                         ppant_kw,
@@ -357,7 +378,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
 
     # Filter out any duplicates
     keep_subj_paths = list(set(keep_subj_paths))
-    print 'Filtered down to %d files' % len(keep_subj_paths)
+    logger.info('Filtered down to %d files' % len(keep_subj_paths))
 
     # Return kept paths
     return keep_subj_paths
@@ -383,7 +404,11 @@ def return_local_filepaths(file_pattern):
 
     # Import packages
     import glob
+    import logging
     import os
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Gather local files
     local_filepaths = glob.glob(file_pattern)
@@ -393,7 +418,7 @@ def return_local_filepaths(file_pattern):
 
     # Print how many found
     num_local_files = len(local_filepaths)
-    print 'Found %d files!' % num_local_files
+    logger.info('Found %d files!' % num_local_files)
 
     # Return the filepaths as a list
     return local_filepaths
@@ -422,6 +447,7 @@ def return_s3_filepaths(file_pattern, creds_path=None):
 
     # Import packages
     import fnmatch
+    import logging
     import os
     import re
 
@@ -430,6 +456,9 @@ def return_s3_filepaths(file_pattern, creds_path=None):
     # Init variables
     bucket_name = file_pattern.split('/')[2]
     s3_prefix = '/'.join(file_pattern.split('/')[:3])
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Find non regular expression patterns to get prefix
     s3_rel_path = file_pattern.replace(s3_prefix, '').lstrip('/')
@@ -457,10 +486,11 @@ def return_s3_filepaths(file_pattern, creds_path=None):
     except Exception as exc:
         err_msg = 'There was an error in retrieving S3 bucket: %s.\nError: %s'\
                   %(bucket_name, exc)
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Get filepaths from S3 with prefix
-    print 'Gathering files from S3 to parse...'
+    logger.info('Gathering files from S3 to parse...')
     s3_filepaths = []
     for s3_obj in bucket.objects.filter(Prefix=prefix):
         s3_filepaths.append(str(s3_obj.key))
@@ -473,7 +503,7 @@ def return_s3_filepaths(file_pattern, creds_path=None):
 
     # Print how many found
     num_s3_files = len(s3_filepaths)
-    print 'Found %d files!' % num_s3_files
+    logger.info('Found %d files!' % num_s3_files)
 
     # Return the filepaths as a list
     return s3_filepaths
@@ -497,16 +527,13 @@ def build_sublist(data_config_yml):
     '''
 
     # Import packages
+    import logging
     import os
     import yaml
 
-    # Init variables
-#     site_kw = '{site}'
-#     ppant_kw = '{participant}'
-#     sess_kw = '{session}'
-#     ser_kw = '{series}'
-#     kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
+    from CPAC.utils.utils import setup_logger
 
+    # Init variables
     tmp_dict = {}
     s3_str = 's3://'
 
@@ -522,6 +549,13 @@ def build_sublist(data_config_yml):
     scan_params_csv = data_config_dict['scanParametersCSV']
     sublist_outdir = data_config_dict['outputSubjectListLocation']
     sublist_name = data_config_dict['subjectListName']
+
+    # Get C-PAC logger if it's available
+    log_path = os.path.join(sublist_outdir,
+                            'sublist_build_%s.log' % \
+                            os.path.basename(data_config_yml).split('.')[0])
+    logger = setup_logger('sublist_builder', log_path, logging.INFO, to_screen=True)
+
     # Older data configs won't have this field
     try:
         creds_path = data_config_dict['awsCredentialsFile']
@@ -553,10 +587,10 @@ def build_sublist(data_config_yml):
     # See if the templates are s3 files
     if s3_str in anat_template.lower() and s3_str in func_template.lower():
         # Get anatomical filepaths from s3
-        print 'Fetching anatomical files...'
+        logger.info('Fetching anatomical files...')
         anat_paths = return_s3_filepaths(anat_pattern, creds_path)
         # Get functional filepaths from s3
-        print 'Fetching functional files...'
+        logger.info('Fetching functional files...')
         func_paths = return_s3_filepaths(func_pattern, creds_path)
 
     # If one is in S3 and the other is not, raise error - not supported
@@ -570,28 +604,29 @@ def build_sublist(data_config_yml):
     # Otherwise, it's local files
     else:
         # Get anatomical filepaths
-        print 'Gathering anatomical files...'
+        logger.info('Gathering anatomical files...')
         anat_paths = return_local_filepaths(anat_pattern)
         # Get functional filepaths
-        print 'Gathering functional files...'
+        logger.info('Gathering functional files...')
         func_paths = return_local_filepaths(func_pattern)
 
     # Filter out unwanted anat and func filepaths
-    print 'Filtering anatomical files...'
+    logger.info('Filtering anatomical files...')
     anat_paths = filter_sub_paths(anat_paths, include_sites,
                                   include_subs, exclude_subs,
                                   site_kw, ppant_kw, anat_template)
 
-    print 'Filtering functional files...'
+    logger.info('Filtering functional files...')
     func_paths = filter_sub_paths(func_paths, include_sites,
                                   include_subs, exclude_subs,
                                   site_kw, ppant_kw, func_template)
 
     # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
-        err_msg = 'Unable to find any files after filtering sites and ' \
-                  'subjects! Check site and subject inclusion fields as well ' \
+        err_msg = 'Unable to find any files after filtering sites and '\
+                  'subjects! Check site and subject inclusion fields as well '\
                   'as filepaths and template pattern!'
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Read in scan parameters and return site-based dictionary
@@ -616,8 +651,8 @@ def build_sublist(data_config_yml):
             try:
                 subj_d['scan_parameters'] = site_scan_params[site]
             except KeyError as exc:
-                print 'Site %s missing from scan parameters csv, skipping...'\
-                      % site
+                logger.info('Site %s missing from scan parameters csv, '\
+                            'skipping...' % site)
 
         # Test to make sure subject key isn't present already
         # Should be a unique entry for every anatomical image
@@ -626,6 +661,7 @@ def build_sublist(data_config_yml):
             err_msg = 'Key for anatomical file already exists: %s\n'\
                       'Either duplicate scan or data needs re-organization to '\
                       'differentiate between subjects from different sites/sessions'
+            logger.error(err_msg)
             raise Exception(err_msg)
 
         tmp_dict[tmp_key] = subj_d
@@ -644,8 +680,8 @@ def build_sublist(data_config_yml):
         try:
             subj_d = tmp_dict[tmp_key]
         except KeyError as exc:
-            print 'Unable to find anatomical image for %s. Skipping...' \
-                  % tmp_key
+            logger.info('Unable to find anatomical image for %s. Skipping...'\
+                        % tmp_key)
             continue
 
         # Set the rest dictionary with the scan
@@ -662,6 +698,7 @@ def build_sublist(data_config_yml):
     if len(sublist) == 0:
         err_msg = 'Unable to find both anatomical and functional data for any '\
                   'subjects. Check data organization and file patterns!'
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Write subject list out to out location

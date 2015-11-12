@@ -354,10 +354,9 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
             src_md5 = hashlib.md5(src_read).hexdigest()
             # If md5sums dont match, re-upload via except ClientError
             if src_md5 != dst_md5:
-                raise ClientError('Mis-match md5sums')
+                bucket.upload_file(src_file, dst_file, ExtraArgs=extra_args,
+                                   Callback=ProgressPercentage(src_file))
         except ClientError as exc:
-            print 'Uploading file because of: %s' % exc.message
-            print 'Uploading...'
             bucket.upload_file(src_file, dst_file, ExtraArgs=extra_args,
                                Callback=ProgressPercentage(src_file))
 

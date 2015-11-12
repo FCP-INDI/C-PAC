@@ -557,7 +557,7 @@ class MainFrame(wx.Frame):
 
 
         
-        if (1 in c.runNuisance) or (c.Corrections != None):
+        if (1 in c.runNuisance) or (c.Regressors != None):
             strategies = sorted(build_strategies(c))
         else:
             strategies = None

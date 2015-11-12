@@ -733,8 +733,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
 
     import os
     import commands
-    from CPAC.utils.utils import get_workflow, get_session, \
-                     get_hplpfwhmseed_
+    from CPAC.utils.utils import get_workflow, get_session, get_hplpfwhmseed_
 
     # path (one of the inputs of this function) is a path to a file output by
     # individual-level analysis, and this function runs once per output file
@@ -767,7 +766,6 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
                 # don't raise an exception here because multiple runs of the
                 # same os.makedirs are expected
                 pass
-        
 
         strategy_identifier = None
 
@@ -1751,8 +1749,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     return out_file
 
 
-def create_log( wf_name = "log", 
-                scan_id = None):
+def create_log(wf_name = "log", scan_id=None):
     
     """
     Workflow to create log 
@@ -2071,4 +2068,52 @@ def dbg_file_lineno():
     cf=currentframe()
     return cf.f_back.f_code.co_filename, cf.f_back.f_lineno
 
+
+# Setup log file
+def setup_logger(logger_name, file_path, level, to_screen=False):
+    '''
+    Function to initialize and configure a logger that can write to file
+    and (optionally) the screen.
+
+    Parameters
+    ----------
+    logger_name : string
+        name of the logger
+    file_path : string
+        file path to the log file on disk
+    level : integer
+        indicates the level at which the logger should log; this is
+        controlled by integers that come with the python logging
+        package. (e.g. logging.INFO=20, logging.DEBUG=10)
+    to_screen : boolean (optional)
+        flag to indicate whether to enable logging to the screen
+
+    Returns
+    -------
+    logger : logging.Logger object
+        Python logging.Logger object which is capable of logging run-
+        time information about the program to file and/or screen
+    '''
+
+    # Import packages
+    import logging
+
+    # Init logger, formatter, filehandler, streamhandler
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s : %(message)s')
+
+    # Write logs to file
+    fileHandler = logging.FileHandler(file_path)
+    fileHandler.setFormatter(formatter)
+    logger.addHandler(fileHandler)
+
+    # Write to screen, if desired
+    if to_screen:
+        streamHandler = logging.StreamHandler()
+        streamHandler.setFormatter(formatter)
+        logger.addHandler(streamHandler)
+
+    # Return the logger
+    return logger
 

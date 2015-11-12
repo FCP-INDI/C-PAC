@@ -9,9 +9,10 @@ num_ants_threads,Number of Cores for Anatomical Registration (ANTS only),Compute
 pipelineName,Pipeline Name,Output Settings
 workingDirectory,Working Directory,Output Settings
 crashLogDirectory,Crash Log Directory,Output Settings
+logDirectory,Log Directory,Output Settings
 outputDirectory,Output Directory,Output Settings
-awsOutputBucketCredentials,AWS Output Bucket Credentials,AWS Output Bucket Credentials
-s3Encryption,S3 Encryption,S3 Encryption
+awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
+s3Encryption,S3 Encryption,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
 generateQualityControlImages,Enable Quality Control Interface,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings

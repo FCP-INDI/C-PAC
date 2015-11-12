@@ -233,11 +233,12 @@ class ListBox(wx.Frame):
             import CPAC
             from CPAC.utils import Configuration
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
-            plugin_args = {'num_threads': c.numCoresPerSubject, 
-                            'memory': c.memoryAllocatedForDegreeCentrality}
+            plugin_args = {'num_threads': c.numCoresPerSubject,
+                           'memory': c.memoryAllocatedForDegreeCentrality}
 
-            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p, 
-                plugin='ResourceMultiProc', plugin_args=plugin_args)
+            CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
+                                          plugin='ResourceMultiProc',
+                                          plugin_args=plugin_args)
         
         except ImportError, e:
             wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
@@ -337,7 +338,7 @@ class ListBox(wx.Frame):
                             raise Exception("Error reading config file- %s", config)
                     
                     if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName')) #, '*', 'path_files_here' , '*.txt')
+                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'))
                     else:
                         derv_path = ''
                     

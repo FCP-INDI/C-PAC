@@ -447,7 +447,7 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
 
         
         
-    create_group_log_template(sub_scan_map, os.path.join(c.outputDirectory, 'logs'))
+    create_group_log_template(sub_scan_map, c.logDirectory)
  
 
     '''

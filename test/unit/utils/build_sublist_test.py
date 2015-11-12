@@ -485,7 +485,7 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Init variables
         data_config_dict = self.data_config_dict
-        subs_match_regex = ['0010042', '0010064', '0010128', '0023008',
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
                             '0023008', '0023012', '0027011', '0027018',
                             '0027034', '0027037', '1019436', '1206380', '1418396']
 
@@ -531,7 +531,7 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Init variables
         data_config_dict = self.data_config_dict
-        subs_match_regex = ['0010042', '0010064', '0010128', '0023008',
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
                             '0023008', '0023012', '0027011', '0027018',
                             '0027034', '0027037', '1019436', '1206380', '1418396']
 
