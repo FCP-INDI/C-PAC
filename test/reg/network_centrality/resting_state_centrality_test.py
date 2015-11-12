@@ -116,7 +116,6 @@ def get_wflow_params(reg_type):
 
     # Get workflow configuration parameters
     fwhm = pipeline_config['fwhm'][0]
-    mask_txt_path = pipeline_config['templateSpecificationFile']
     memory_gb = pipeline_config['memoryAllocatedForDegreeCentrality']
 
     # Get threshold values and make dictionary
@@ -128,11 +127,8 @@ def get_wflow_params(reg_type):
                 'eig' : eig_thr,
                 'lfcd' : lfcd_thr}
 
-    # Get centrality mask path from txt file
-    mask_template = []
-    with open(mask_txt_path, 'r') as txt_f:
-        mask_template.extend([line for line in txt_f])
-    mask_template = mask_template[0].rstrip('\n')
+    # Get centrality mask path
+    mask_template = pipeline_config['templateSpecificationFile']
 
     # Get precomputed centrality files directory
     out_dirs = test_init.return_subj_measure_dirs('network_centrality')

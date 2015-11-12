@@ -33,16 +33,11 @@ def populate_template_config(config_type):
     resource_dir = return_resource_dir()
     templates_dir = return_resource_subfolder('templates')
     yamls = ['data_config', 'pipeline_config']
-    texts = ['centrality_spec', 'map_spec', 'mask_spec',
-             'roi_spec', 'seed_spec', 'spatial_maps_spec']
 
     # Check config type and build path
     if config_type in yamls:
         ext = '.yml'
         out_name = 'configs'
-    elif config_type in texts:
-        ext = '.txt'
-        out_name = 'resources'
     else:
         # Check if it's supported, otherwise raise an Exception
         err_msg = 'config_type parameter: %s is unsupported' % config_type
@@ -450,14 +445,17 @@ def return_test_subj():
 
     # Check if set and exists
     if not test_subj:
-        err_msg = 'CPAC_TEST_SUBJ environment variable not set!\n' \
-                  'Set this to the subject id of the desired subject to test' \
-                  'from the cpac_resources folder.'
-        raise Exception(err_msg)
-    elif test_subj not in subs:
+        info_msg = 'CPAC_TEST_SUBJ environment variable not set!'
+        print info_msg
+        # Get user input
+        test_subj = raw_input('Enter C-PAC benchmark test subject id: ')
+
+    # Check to make sure their input files exist
+    if test_subj not in subs:
         err_msg = 'Test subject %s is not in the cpac_resources subject ' \
                   'directory %s. Please specify different CPAC_TEST_SUBJ.' \
                   %(test_subj, site_dir)
+        raise Exception(err_msg)
     else:
         return test_subj
 
