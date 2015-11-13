@@ -2,6 +2,8 @@
 #
 # Contributing authors (please append):
 # Daniel Clark
+from CPAC.network_centrality.network_centrality import create_network_centrality_wf
+from CPAC.network_centrality.utils import convert_pvalue_to_r
 
 '''
 This module performs regression testing on the outputs from the network
@@ -45,12 +47,7 @@ def compare_results(out_dir, pass_thr):
                           if file == nii_file])
 
         # If found more than one matching file for the nifti, raise Exception
-        if len(f_list) > 1:
-            err_msg = 'More than one file found for %s in %s; '\
-                      'please use only one' % (nii_file, str(f_list))
-            raise Exception(err_msg)
-        # Else, if we didn't find any, skip
-        elif len(f_list) == 0:
+        if len(f_list) == 0:
             cent_test_log.info('No test outputs found for %s, skipping ' \
                                'comparison' % nii_file)
         # Otherwise, add to test dictionary
@@ -92,6 +89,9 @@ def get_wflow_params(reg_type):
         filepath to the resampled functional mni input to workflow
     mask_template : string
         filepath to the centrality mask template
+    ident_mat : string
+        filepath to the identity matrix used in resampling input to
+        template file
     memory_gb : float
         the amount of memory (GB) allocated to computing centrality
     out_dir : string
@@ -127,7 +127,8 @@ def get_wflow_params(reg_type):
                 'eig' : eig_thr,
                 'lfcd' : lfcd_thr}
 
-    # Get centrality mask path
+    # Get centrality mask path and identity matrix
+    ident_mat = pipeline_config['identityMatrix']
     mask_template = pipeline_config['templateSpecificationFile']
 
     # Get precomputed centrality files directory
@@ -138,14 +139,15 @@ def get_wflow_params(reg_type):
 
     # Grab functional mni as subject input for that strategy
     func_mni_dir = out_dir.replace('network_centrality', 'functional_mni')
-    func_mni = os.path.join(func_mni_dir, 'functional_mni_centrality.nii.gz')
+    func_mni = os.path.join(func_mni_dir, 'functional_mni.nii.gz')
 
     # Return parameters
-    return func_mni, mask_template, memory_gb, out_dir, thr_dict, fwhm
+    return func_mni, mask_template, ident_mat, memory_gb, \
+           out_dir, thr_dict, fwhm
 
 
 # Set up workflow
-def init_wflow(func_mni, mask_template, memory_gb):
+def init_wflow(func_mni, mask_template, ident_mat, memory_gb, cent_imp, run_eigen=False):
     '''
     Function which inits a nipype workflow using network_centrality's
     create_resting_state_graphs() function to be used for testing
@@ -158,9 +160,15 @@ def init_wflow(func_mni, mask_template, memory_gb):
         mask being used
     mask_template : string
         filepath to the centrality mask
+    ident_mat : string
+        filepath to the identity matrix used in resampling input to
+        template file
     memory_gb : float
         the amount of memory, in GB, the workflow can use during
         computation
+    cent_imp : string
+       either 'afni' or 'cpac' - indicating the type of centrality
+       implementation to test
 
     Returns
     -------
@@ -171,15 +179,40 @@ def init_wflow(func_mni, mask_template, memory_gb):
     '''
 
     # Import packages
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.fsl as fsl
+
     from CPAC.network_centrality import resting_state_centrality
 
     # Init variables
-    wflow = resting_state_centrality.\
-            create_resting_state_graphs(allocated_memory=memory_gb)
+    num_threads = 8
 
-    # Set up workflow parameters
-    wflow.inputs.inputspec.subject = func_mni
-    wflow.inputs.inputspec.template = mask_template
+    # Resasmple workflow
+    resamp_wflow = pe.Node(interface=fsl.FLIRT(), name='resamp_wf')
+    resamp_wflow.inputs.interp = 'trilinear'
+    resamp_wflow.inputs.apply_xfm = True
+    resamp_wflow.inputs.in_matrix_file = ident_mat
+    resamp_wflow.inputs.reference = mask_template
+    resamp_wflow.inputs.in_file = func_mni
+ 
+    # Wrapper workflow to connect the resample node to cent wflow
+    wflow = pe.Workflow(name='centrality_workflow')
+ 
+    # Centrality workflow
+    # AFNI implementation
+    if cent_imp == 'afni':
+        cent_wflow = create_network_centrality_wf('cent_wflow', num_threads,
+                                                  memory_gb, run_eigen=run_eigen)
+        cent_wflow.inputs.afni_degree_centrality.mask = mask_template
+        if run_eigen:
+            cent_wflow.inputs.afni_eigen_centrality.mask_file = mask_template
+        wflow.connect(resamp_wflow, 'out_file', cent_wflow, 'afni_degree_centrality.dataset')
+    # CPAC implementation
+    elif cent_imp == 'cpac':
+        cent_wflow = resting_state_centrality.\
+                create_resting_state_graphs(allocated_memory=memory_gb, wf_name='cent_wflow')
+        cent_wflow.inputs.inputspec.template = mask_template
+        wflow.connect(resamp_wflow, 'out_file', cent_wflow, 'inputspec.subject')
 
     # Return the workflow
     return wflow
@@ -214,7 +247,7 @@ def run_and_get_max_memory(func_tuple):
 
 
 # Test the ants registration strategy
-def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
+def run_wflow(wflow, thr_type, meth_type, test_dir, threshold, cent_imp):
     '''
     Function to run the centrality workflows for degree, eigenvector,
     and lFCD.
@@ -234,6 +267,9 @@ def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
         in
     threshold : float
         correlation/significance/sparsity threshold on data to use
+    cent_imp : string
+       either 'afni' or 'cpac' - indicating the type of centrality
+       implementation to test
 
     Returns
     -------
@@ -246,6 +282,8 @@ def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
     import datetime
     import logging
     import os
+
+    import nibabel as nb
 
     # Check parameters
     # Thresholding type
@@ -273,12 +311,31 @@ def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
     # Get logger
     cent_test_log = logging.getLogger('cent_test_log')
 
-    # Set up centrality workflow
+    # Init base directory
     wflow.base_dir = os.path.join(test_dir, thr_type, meth_type)
-    wflow.inputs.inputspec.method_option = meth_opt
-    wflow.inputs.inputspec.weight_options = [True, True]
-    wflow.inputs.inputspec.threshold_option = thr_opt
-    wflow.inputs.inputspec.threshold = threshold
+
+    if cent_imp == 'afni':
+        if meth_type == 'lfcd':
+            err_msg = 'lFCD is currently not implemented in AFNI. Skipping...'
+            cent_test_log.info(err_msg)
+            return
+        wflow.inputs.cent_wflow.afni_degree_centrality.prefix = 'degree_centrality.nii.gz'
+        wflow.inputs.cent_wflow.afni_degree_centrality.out_1d = 'sim_matrix.1D'
+        if thr_type == 'pval':
+            img = nb.load(wflow.inputs.resamp_wf.in_file).get_data()
+            num_tpts = img.shape[-1]
+            rthresh = convert_pvalue_to_r(threshold, num_tpts, two_tailed=False)
+            wflow.inputs.cent_wflow.afni_degree_centrality.thresh = rthresh
+        elif thr_type == 'sparse':
+            wflow.inputs.cent_wflow.afni_degree_centrality.sparsity = threshold*100.0
+        elif thr_type == 'rval':
+            wflow.inputs.cent_wflow.afni_degree_centrality.thresh = threshold
+    elif cent_imp == 'cpac':
+        # Set up centrality workflow
+        wflow.inputs.cent_wflow.inputspec.method_option = meth_opt
+        wflow.inputs.cent_wflow.inputspec.weight_options = [True, True]
+        wflow.inputs.cent_wflow.inputspec.threshold_option = thr_opt
+        wflow.inputs.cent_wflow.inputspec.threshold = threshold
 
     # Time for log and run
     cent_test_log.info('starting workflow execution...')
@@ -295,7 +352,7 @@ def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
 
 
 # Run and test centrality
-def run_and_test_centrality(reg_type, pass_thr):
+def run_and_test_centrality(reg_type, pass_thr, cent_imp):
     '''
     Function to init, run, and test the outputs of the network
     centrality workflow
@@ -307,6 +364,9 @@ def run_and_test_centrality(reg_type, pass_thr):
     pass_thr : float
         the correlation threshold to be greater than to ensure the new
         centrality workflow outputs are accurate
+    cent_imp : string
+       either 'afni' or 'cpac' - indicating the type of centrality
+       implementation to test
     '''
 
     # Import packages
@@ -326,7 +386,7 @@ def run_and_test_centrality(reg_type, pass_thr):
                        'in %s...' % log_path)
 
     # Init variables
-    func_mni, mask_template, mem_gb, out_dir, thr_dict, fwhm = \
+    func_mni, mask_template, ident_mat, mem_gb, out_dir, thr_dict, fwhm = \
             get_wflow_params(reg_type)
 
     # Log parameters
@@ -334,10 +394,8 @@ def run_and_test_centrality(reg_type, pass_thr):
                        'template file: %s\nallocated memory (GB): %.3f\n' \
                        'thresholds: %s\nfwhm: %d' % \
                        (func_mni, mask_template, mem_gb, str(thr_dict), fwhm))
-
     # Initialize common workflow
-    common_wflow = init_wflow(func_mni, mask_template, mem_gb)
-
+    common_wflow = init_wflow(func_mni, mask_template, ident_mat, mem_gb, cent_imp)
     # Run the p-value, sparsity, and r-value thresholding
     test_dir = out_dir.replace('output', 'test')
     # For each threshold type
@@ -349,13 +407,17 @@ def run_and_test_centrality(reg_type, pass_thr):
                 cent_test_log.info('lfcd non-rvalue method is not supported' \
                                    ' skipping...')
                 continue
+            if meth_type == 'eig' and cent_imp == 'afni':
+                # Initialize common workflow
+                common_wflow = init_wflow(func_mni, mask_template, ident_mat,
+                                          mem_gb, cent_imp, run_eigen=True)
 
             # Run workflow
             threshold = thr_dict[meth_type]
             cent_test_log.info('Running %s workflow with %s thresholding ' \
                                'with a %.3f threshold...' % \
                                (meth_type, thr_type, threshold))
-            run_wflow(common_wflow, thr_type, meth_type, test_dir, threshold)
+            run_wflow(common_wflow, thr_type, meth_type, test_dir, threshold, cent_imp)
 
         # Get output directories for threshold type and compare
         out_type_dir = os.path.join(out_dir, thr_type)
@@ -369,5 +431,8 @@ if __name__ == '__main__':
     reg_type = 'ants'
     pass_thr = 0.98
 
+    # Centrality implementation to test ('afni' or 'cpac')
+    cent_imp = 'afni'
+
     # Run and test centrality
-    run_and_test_centrality(reg_type, pass_thr)
+    run_and_test_centrality(reg_type, pass_thr, cent_imp)
