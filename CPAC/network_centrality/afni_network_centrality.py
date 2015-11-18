@@ -204,8 +204,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
 
 # Return the afni centrality/lfcd workflow
-def create_afni_centrality_wf(wf_name='network_centrality',
-                              method_option, threshold_option,
+def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                               num_threads=1, memory=1):
     '''
     '''
