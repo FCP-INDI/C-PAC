@@ -132,7 +132,7 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
             wflow.connect(resamp_wflow, 'out_file', cent_wflow, 'inputspec.datafile')
             # Add rest of parameters
             cent_wflow.inputs.inputspec.template = template
-            cent_wflow.inputs.inputpsec.threshold = threshold
+            cent_wflow.inputs.inputspec.threshold = threshold
 
             # Log running status
             cent_test_log.info('Running %s workflow with %s thresholding ' \
