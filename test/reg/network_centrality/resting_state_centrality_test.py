@@ -181,4 +181,4 @@ if __name__ == '__main__':
     memory_gb = args.memory_gb[0]
 
     # Run and test centrality
-    run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb):
+    run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb)
