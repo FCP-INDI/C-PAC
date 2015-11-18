@@ -104,6 +104,9 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     for m_idx, meth_type in enumerate(meth_dict.keys()):
         # For each centrality method
         for t_idx, thr_type in enumerate(thr_types):
+            if meth_type == 'lfcd' and thr_type == 'sparse':
+                cent_test_log.info('Skipping lfcd sparse measure...')
+                continue
             threshold = meth_dict[meth_type]
             wf_name = meth_type + '_' + thr_type
             # Init afni implementation
