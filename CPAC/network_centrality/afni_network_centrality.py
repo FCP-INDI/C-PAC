@@ -242,7 +242,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     afni_centrality_node.interface.memory = memory
 
     # Connect input image and mask tempalte
-    centrality_wf.connect(input_node, 'dataset_file',
+    centrality_wf.connect(input_node, 'datafile',
                           afni_centrality_node, 'dataset')
     centrality_wf.connect(input_node, 'template',
                           afni_centrality_node, 'mask')
