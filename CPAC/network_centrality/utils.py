@@ -198,16 +198,16 @@ def cluster_data(img, thr, xyz_a, k=26):
 
 
 # Convert probability threshold value to correlation threshold
-def convert_pvalue_to_r(p_value, scans, two_tailed=False):
+def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     '''
     Method to calculate correlation threshold from p_value
 
     Parameters
     ----------
+    datafile : string
+        filepath to dataset to extract number of time pts from
     p_value : float
         significance threshold p-value
-    scans : int
-        Total number of scans in the data
     two_tailed : boolean (optional); default=False
         flag to indicate whether to calculate the two-tailed t-test
         threshold for the returned correlation value
@@ -219,17 +219,21 @@ def convert_pvalue_to_r(p_value, scans, two_tailed=False):
     '''
 
     # Import packages
+    import nibabel as nb
     import numpy as np
     import scipy.stats
-    #import math
 
     # Init variables
     # Get two-tailed distribution
     if two_tailed:
         p_value = p_value/2
 
+    # Load in data and number of time pts
+    img = nb.load(datafile).get_data()
+    t_pts = img.shape[-1]
+
     # N-2 degrees of freedom with Pearson correlation (two sample means)
-    deg_freedom = scans-2
+    deg_freedom = t_pts-2
 
     # Inverse Survival Function (Inverse of SF)
     # Note: survival function (SF) is also known as the complementary
@@ -432,23 +436,6 @@ def sep_nifti_subbriks(nifti_file, out_names):
 
     # Return separated nifti filepaths
     return output_niftis
-
-
-def get_rval_from_pval(dataset, mask, p_val, two_tailed=False):
-    '''
-    '''
-
-    # Import packages
-    from CPAC.network_centrality import load, convert_pvalue_to_r
-
-    # Get info
-    timeseries, aff, final_mask, template_type, scans = load(dataset, mask)
-
-    # Convert pval thresh to rval
-    r_val = convert_pvalue_to_r(p_val, scans, two_tailed)
-
-    # Return scans
-    return r_val
 
 
 # Calculate eigenvector centrality from one_d file

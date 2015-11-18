@@ -14,8 +14,8 @@ used in C-PAC
 
 
 # Function to create the network centrality workflow
-def create_resting_state_graphs(allocated_memory = None,
-                                wf_name = 'resting_state_graph'):
+def create_resting_state_graphs(wf_name='resting_state_graph', 
+                                allocated_memory=None):
     '''
     Workflow to calculate degree and eigenvector centrality as well as 
     local functional connectivity density (lfcd) measures for the 
@@ -107,7 +107,7 @@ def create_resting_state_graphs(allocated_memory = None,
     >>> wflow = graph.create_resting_state_graphs()
     >>> wflow.inputs.centrality_options.method_options=[True, True]
     >>> wflow.inputs.centrality_options.weight_options=[True, True]
-    >>> wflow.inputs.inputspec.subject = '/home/work/data/rest_mc_MNI_TR_3mm.nii.gz'
+    >>> wflow.inputs.inputspec.datafile = '/home/work/data/rest_mc_MNI_TR_3mm.nii.gz'
     >>> wflow.inputs.inputspec.template = '/home/work/data/mask_3mm.nii.gz'
     >>> wflow.inputs.inputspec.threshold_option = 1
     >>> wflow.inputs.inputspec.threshold = 0.0744
@@ -124,7 +124,7 @@ def create_resting_state_graphs(allocated_memory = None,
     wf = pe.Workflow(name = wf_name)
 
     # Instantiate inputspec node
-    inputspec = pe.Node(util.IdentityInterface(fields=['subject',
+    inputspec = pe.Node(util.IdentityInterface(fields=['datafile',
                                                        'template',
                                                        'method_option',
                                                        'threshold_option',
@@ -148,7 +148,7 @@ def create_resting_state_graphs(allocated_memory = None,
 
 
     # Connect inputspec node to main function node
-    wf.connect(inputspec, 'subject', 
+    wf.connect(inputspec, 'datafile', 
                calculate_centrality, 'datafile')
     wf.connect(inputspec, 'template', 
                calculate_centrality, 'template')
@@ -825,7 +825,7 @@ def calc_centrality(datafile,
 
     # P-value threshold centrality
     if threshold_option == 0:
-        r_value = convert_pvalue_to_r(threshold, scans)
+        r_value = convert_pvalue_to_r(datafile, threshold, two_tailed=False)
         centrality_matrix = get_centrality_by_rvalue(ts_normd, 
                                                      mask, 
                                                      method_option, 
