@@ -25,10 +25,10 @@ class ProgressPercentage(object):
 
         # Initialize data attributes
         self._filename = filename
-        if not hasattr(filename, 'size'):
+        if not hasattr(filename, 'content_length'):
             self._size = float(os.path.getsize(filename))
         else:
-            self._size = float(filename.size)
+            self._size = float(filename.content_length)
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
@@ -271,14 +271,14 @@ def s3_download(bucket, bucket_keys, download_dir):
                 try:
                     print 'Overwriting %s...' % local_path
                     bucket.download_file(bkey, local_path,
-                                         Callback=ProgressPercentage(local_path))
+                                         Callback=ProgressPercentage(bobj))
                 except Exception as exc:
                     print 'Could not download file %s because of: %s, skipping..' \
                           % (bkey, exc)
         else:
             print 'Downloading %s to %s' % (bkey, local_path)
             bucket.download_file(bkey, local_path,
-                                 Callback=ProgressPercentage(local_path))
+                                 Callback=ProgressPercentage(bobj))
 
         # Print status
         per = 100*(float(idx+1)/num_files)
