@@ -271,14 +271,14 @@ def s3_download(bucket, bucket_keys, download_dir):
                 try:
                     print 'Overwriting %s...' % local_path
                     bucket.download_file(bkey, local_path,
-                                         Callback=ProgressPercentage(bkey))
+                                         Callback=ProgressPercentage(bobj))
                 except Exception as exc:
                     print 'Could not download file %s because of: %s, skipping..' \
                           % (bkey, exc)
         else:
             print 'Downloading %s to %s' % (bkey, local_path)
             bucket.download_file(bkey, local_path,
-                                 Callback=ProgressPercentage(bkey))
+                                 Callback=ProgressPercentage(bobj))
 
         # Print status
         per = 100*(float(idx+1)/num_files)
