@@ -87,7 +87,7 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     resamp_wflow.inputs.reference = template
 
     # Init test log file
-    log_path = os.path.join(os.getcwd(), '%s_centrality_test.log' % \
+    log_path = os.path.join(test_dir, '%s_centrality_test.log' % \
                                          os.path.basename(datafile))
     cent_test_log = test_init.setup_test_logger('cent_test_log', log_path,
                                                 logging.INFO, to_screen=True)

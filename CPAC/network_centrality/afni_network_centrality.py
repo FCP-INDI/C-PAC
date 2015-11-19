@@ -271,7 +271,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
             err_msg = 'Sparsity thresholding is not supported for lFCD'
             raise Exception(err_msg)
         # Otherwise, connect threshold to sparsity input
-        centrality_wf.connect(input_node, 'theshold',
+        centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'sparsity')
 
     # Correlation thresholding
