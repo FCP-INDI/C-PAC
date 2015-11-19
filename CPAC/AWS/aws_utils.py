@@ -245,16 +245,16 @@ def s3_download(bucket, bucket_keys, download_dir):
     # Get filepaths from S3 with prefix
     for idx, bkey in enumerate(bucket_keys):
         # Create a new key from the bucket and set its contents
-        obj = bucket.Object(key=bkey)
+        bobj = bucket.Object(key=bkey)
 
         # See if need to upload
         try:
             # If it exists, compare md5sums
-            bkey_exists = bkey.get()
+            bkey_exists = bobj.get()
         except ClientError as exc:
             '%s does not exist in bucket on S3! Skipping...' % bkey
             continue
-        s3_md5 = bkey.e_tag.strip('"')
+        s3_md5 = bobj.e_tag.strip('"')
         # Get local path
         local_path = os.path.join(download_dir, bkey)
         # Create subdirs if necessary
