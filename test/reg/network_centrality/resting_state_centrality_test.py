@@ -38,7 +38,7 @@ def run_and_get_max_memory(func_tuple):
 
 
 # Run and test centrality
-def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb):
+def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb, sub_id='test'):
     '''
     Function to init, run, and test the outputs of the network
     centrality workflow
@@ -70,7 +70,7 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     # Init variables
     ident_mat = '/usr/share/fsl/5.0/etc/flirtsch/ident.mat'
     meth_dict = {'deg' : 0.001,
-                 'eig' : 0.001,
+            #     'eig' : 0.001,
                  'lfcd' : 0.6}
     thr_types = ['pval', 'sparse', 'rval']
 
@@ -87,8 +87,7 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     resamp_wflow.inputs.reference = template
 
     # Init test log file
-    log_path = os.path.join(test_dir, '%s_centrality_test.log' % \
-                                         os.path.basename(datafile))
+    log_path = os.path.join(test_dir, '%s_centrality_test.log' % sub_id)
     cent_test_log = test_init.setup_test_logger('cent_test_log', log_path,
                                                 logging.INFO, to_screen=True)
     cent_test_log.info('Running centrality correlations tests. Storing log ' \
