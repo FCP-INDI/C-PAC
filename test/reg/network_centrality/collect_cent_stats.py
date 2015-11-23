@@ -4,6 +4,37 @@
 
 '''
 '''
+def collect_plot_correlations(base_dir, meth_type, thr_type):
+    '''
+    '''
+
+    # Import packages
+    import numpy as np
+    import os
+
+    # Init variables
+    compare_dict = {}
+    afni_niis = []
+    folder_name = '_'.join([meth_type, thr_type])
+
+    # Walk through to pick up the afni centrality maps
+    for root, dirs, files in os.walk(base_dir):
+        afni_niis.extend([os.path.join(root, fil) for fil in files \
+                          if folder_name in root and \
+                             fil.endswith('.nii.gz') and \
+                             'centrality_test_afni' in root])
+
+    # Get corresponding cpac maps
+    cpac_niis = [nii.replace('centrality_test_afni', 'centrality_test_cpac') \
+                 for nii in afni_niis]
+
+    # Iterate through the afni maps and find correlations
+    for idx, afni_nii in enumerate(afni_niis):
+        cpac_nii = cpac_niis[idx]
+        if os.path.exists(cpac_nii):
+
+
+
 
 # Function to parse the logs in a given directory
 def parse_logs(log_dir):
