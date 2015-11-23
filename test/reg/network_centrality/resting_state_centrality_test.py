@@ -38,7 +38,7 @@ def run_and_get_max_memory(func_tuple):
 
 
 # Run and test centrality
-def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb):
+def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb, sub_id='test'):
     '''
     Function to init, run, and test the outputs of the network
     centrality workflow
@@ -69,13 +69,14 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
 
     # Init variables
     ident_mat = '/usr/share/fsl/5.0/etc/flirtsch/ident.mat'
-    meth_dict = {'deg' : 0.001,
-                 'eig' : 0.001,
-                 'lfcd' : 0.6}
-    thr_types = ['pval', 'sparse', 'rval']
+    thr_dict = { 'rval' : 0.6,
+                'sparse' : 0.001};
+    meth_types = ['deg', 'lfcd'] #,'eig']#'pval' : 0.001,
 
     # Workflow base directory
-    test_dir = os.path.join(os.path.expanduser('~'), 'tests', 'centrality')
+    test_dir = os.path.join(os.path.expanduser('~'), 'tests', 'centrality', sub_id)
+    if not os.path.isdir(test_dir):
+        os.makedirs(test_dir)
     wflow = pe.Workflow(name='centrality_test_%s' % cent_imp, base_dir=test_dir)
 
     # Init resample node
@@ -87,9 +88,8 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     resamp_wflow.inputs.reference = template
 
     # Init test log file
-    log_path = os.path.join(test_dir, '%s_centrality_test.log' % \
-                                         os.path.basename(datafile))
-    cent_test_log = test_init.setup_test_logger('cent_test_log', log_path,
+    log_path = os.path.join(test_dir, '%s_centrality_test.log' % sub_id)
+    cent_test_log = test_init.setup_test_logger(sub_id, log_path,
                                                 logging.INFO, to_screen=True)
     cent_test_log.info('Running centrality correlations tests. Storing log ' \
                        'in %s...' % log_path)
@@ -97,17 +97,18 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
     # Log parameters
     cent_test_log.info('Centrality workflow parameters:\ninput img: %s\n' \
                        'template file: %s\nallocated memory (GB): %.3f\n' \
+                       'methods: %s\n' \
                        'thresholds: %s' % \
-                       (datafile, template, memory_gb, str(meth_dict)))
+                       (datafile, template, memory_gb, str(meth_types), str(thr_dict)))
 
-    # For each threshold type
-    for m_idx, meth_type in enumerate(meth_dict.keys()):
-        # For each centrality method
-        for t_idx, thr_type in enumerate(thr_types):
+    # For each centrality method
+    for m_idx, meth_type in enumerate(meth_types):
+        # For each threshold type
+        for t_idx, thr_type in enumerate(thr_dict.keys()):
             if meth_type == 'lfcd' and thr_type == 'sparse':
                 cent_test_log.info('Skipping lfcd sparse measure...')
                 continue
-            threshold = meth_dict[meth_type]
+            threshold = thr_dict[thr_type]
             wf_name = meth_type + '_' + thr_type
             # Init afni implementation
             if cent_imp == 'afni':
