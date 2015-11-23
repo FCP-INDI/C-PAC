@@ -456,9 +456,8 @@ def parse_and_return_mats(one_d_file, mask_arr):
     one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
-    ijk1 = graph_arr[:, 2:5].astype('int32')
-    ijk2 = graph_arr[:, 5:8].astype('int32')
-    # Weighted array and binarized array
+    i_arr = graph_arr[:, 0].astype('int32')
+    j_arr = graph_arr[:, 1].astype('int32')
     w_arr = graph_arr[:,-1].astype('float32')
     del graph_arr
     b_arr = np.ones(w_arr.shape)
@@ -468,14 +467,14 @@ def parse_and_return_mats(one_d_file, mask_arr):
     mask_voxs = mask_idx.shape[0]
 
     # Extract the ijw's from 1D file
-    i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
-             for ii in range(one_d_rows)]
-    del ijk1
-    j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
-             for ii in range(one_d_rows)]
-    del ijk2
-    i_arr = np.array(i_arr, dtype='int32')
-    j_arr = np.array(j_arr, dtype='int32')
+#     i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
+#              for ii in range(one_d_rows)]
+#     del ijk1
+#     j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
+#              for ii in range(one_d_rows)]
+#     del ijk2
+#     i_arr = np.array(i_arr, dtype='int32')
+#     j_arr = np.array(j_arr, dtype='int32')
 
     # Construct the sparse matrix
     print 'Constructing sparse matrix...'
