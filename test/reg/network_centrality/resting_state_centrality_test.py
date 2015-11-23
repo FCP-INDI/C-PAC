@@ -69,7 +69,7 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
 
     # Init variables
     ident_mat = '/usr/share/fsl/5.0/etc/flirtsch/ident.mat'
-    thr_dict = { 'rval' : 0.6,
+    thr_dict = {'rval' : 0.6,
                 'sparse' : 0.001};
     meth_types = ['deg', 'lfcd'] #,'eig']#'pval' : 0.001,
 
@@ -102,11 +102,11 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
                        (datafile, template, memory_gb, str(meth_types), str(thr_dict)))
 
     # For each centrality method
-    for m_idx, meth_type in enumerate(meth_types):
+    for meth_type in meth_types:
         # For each threshold type
-        for t_idx, thr_type in enumerate(thr_dict.keys()):
-            if meth_type == 'lfcd' and thr_type == 'sparse':
-                cent_test_log.info('Skipping lfcd sparse measure...')
+        for thr_type in thr_dict.keys():
+            if thr_type == 'sparse':
+                cent_test_log.info('Skipping sparse measure...')
                 continue
             threshold = thr_dict[thr_type]
             wf_name = meth_type + '_' + thr_type
@@ -121,6 +121,23 @@ def run_and_test_centrality(datafile, template, cent_imp, num_threads, memory_gb
                                                   num_threads, memory_gb)
             # Init C-PAC python implementation
             elif cent_imp == 'cpac':
+                # Check for types to assign proper integers to workflow creator
+                if meth_type == 'deg':
+                    m_idx = 0
+                elif meth_type == 'lfcd':
+                    m_idx = 2
+                else:
+                    err_msg = 'Method type %s is not supported!' % meth_type
+                    raise Exception(err_msg)
+                if thr_type == 'sparse':
+                    t_idx = 1
+                elif thr_type == 'rval':
+                    t_idx = 2
+                else:
+                    err_msg = 'Threshold type %s is not supported!' % thr_type
+                    raise Exception(err_msg)
+
+                # Create workflow
                 cent_test_log.info('Utilizing C-PAC centrality...')
                 cent_wflow = create_resting_state_graphs(wf_name, memory_gb)
                 cent_wflow.inputs.inputspec.method_option = m_idx

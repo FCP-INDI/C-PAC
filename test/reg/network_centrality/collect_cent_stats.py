@@ -16,16 +16,21 @@ def parse_logs(log_dir):
     import re
 
     # Init variables
+    re_pat = '\d+.\d+'
     logs = []
+    afni_run_times = {'deg-sparse' : {}, 'deg-rval' : {}, 'lfcd-rval' : {}}
+    afni_memories = copy.deepcopy(afni_run_times)
+    cpac_run_times = copy.deepcopy(afni_run_times)
+    cpac_memories = copy.deepcopy(afni_run_times)
+
+    # Collect logs
     for root, dirs, files in os.walk(log_dir):
         logs.extend([os.path.join(root, fil) for fil in files\
                      if fil.endswith('.log')])
-    run_times = {'deg-sparse' : {}, 'deg-rval' : {}, 'lfcd-rval' : {}}
-    memories = copy.deepcopy(run_times)
-    re_pat = '\d+.\d+'
 
     # Iterate through logs
     for log in logs:
+        print 'Parsing log: %s...' % log
 
         # Read in log lines
         with open(log, 'r') as f:
@@ -41,19 +46,36 @@ def parse_logs(log_dir):
                 meth = wflow_line_sp[1]
                 thr = wflow_line_sp[4]
                 key = '-'.join([meth, thr])
-                run_times[key][log] = re.findall(re_pat, log_lines[idx+2])
-                memories[key][log] = re.findall(re_pat, log_lines[idx+3])
+                try:
+                    afni_run_times[key][log] = float(re.findall(re_pat, log_lines[idx+2])[0])
+                    afni_memories[key][log] = float(re.findall(re_pat, log_lines[idx+3])[0])
+                except KeyError as exc:
+                    err_msg = 'Key: %s not in dictionary - not analyzing!' % key
+                    continue
+                except IndexError as exc:
+                    err_msg = 'Log either still be written to or has unfinished run, skipping...'
+                    print err_msg
+                    continue
             elif 'Utilizing C-PAC centrality' in line:
                 wflow_line_sp = log_lines[idx+1].split(' ')
                 meth = wflow_line_sp[1]
                 thr = wflow_line_sp[4]
                 key = '-'.join([meth, thr])
-                run_times[key][log] = re.findall(re_pat, log_lines[idx+2])
-                memories[key][log] = re.findall(re_pat, log_lines[idx+3])
+                try:
+                    cpac_run_times[key][log] = float(re.findall(re_pat, log_lines[idx+2])[0])
+                    cpac_memories[key][log] = float(re.findall(re_pat, log_lines[idx+3])[0])
+                except KeyError as exc:
+                    err_msg = 'Key: %s not in dictionary - not analyzing!' % key
+                    print err_msg
+                    continue
+                except IndexError as exc:
+                    err_msg = 'Log either still be written to or has unfinished run, skipping...'
+                    print err_msg
+                    continue
             else:
                 continue
 
-    return run_times, memories
+    return afni_run_times, afni_memories, cpac_run_times, cpac_memories
 
 
 # Generate the histogram plot
@@ -86,76 +108,53 @@ def plot_histograms(run_times_dict, memories_dict):
 
     # Init variables
     # Runtimes arrays
-    lfcd_pval_runtimes = np.array([v[0] for v in \
-                                   run_times_dict['lfcd-pval'].values()],
-                                   dtype='float32')
-    lfcd_rval_runtimes = np.array([v[0] for v in \
+    lfcd_rval_runtimes = np.array([v for v in \
                                    run_times_dict['lfcd-rval'].values()],
                                    dtype='float32')
-    deg_pval_runtimes = np.array([v[0] for v in \
-                                   run_times_dict['deg-pval'].values()],
-                                   dtype='float32')
-    deg_sparse_runtimes = np.array([v[0] for v in \
+    deg_sparse_runtimes = np.array([v for v in \
                                    run_times_dict['deg-sparse'].values()],
                                    dtype='float32')
-    deg_rval_runtimes = np.array([v[0] for v in \
+    deg_rval_runtimes = np.array([v for v in \
                                    run_times_dict['deg-rval'].values()],
                                    dtype='float32')
 
     # Memories arrays
-    lfcd_pval_mems = np.array([v[0] for v in \
-                               memories_dict['lfcd-pval'].values()],
-                               dtype='float32')
-    lfcd_rval_mems = np.array([v[0] for v in \
+    lfcd_rval_mems = np.array([v for v in \
                                memories_dict['lfcd-rval'].values()],
                                dtype='float32')
-    deg_pval_mems = np.array([v[0] for v in \
-                              memories_dict['deg-pval'].values()],
-                              dtype='float32')
-    deg_sparse_mems = np.array([v[0] for v in \
+    deg_sparse_mems = np.array([v for v in \
                                 memories_dict['deg-sparse'].values()],
                                 dtype='float32')
-    deg_rval_mems = np.array([v[0] for v in \
+    deg_rval_mems = np.array([v for v in \
                               memories_dict['deg-rval'].values()],
                               dtype='float32')
 
     # Histogram plots of runtimes
     plt.figure(1)
-    plt.subplot(221)
-    plt = gen_hist(lfcd_pval_runtimes, plt, 'lfcd-pval')
+
+    plt.subplot(321)
+    plt = gen_hist(deg_rval_runtimes, plt, 'deg-rval')
     plt.xlabel('Runtime (seconds)')
-    plt.subplot(222)
+    plt.subplot(323)
+    plt = gen_hist(deg_sparse_runtimes, plt, 'deg-sparse')
+    plt.xlabel('Runtime (seconds)')
+
+    plt.subplot(325)
     plt = gen_hist(lfcd_rval_runtimes, plt, 'lfcd-rval')
     plt.xlabel('Runtime (seconds)')
 
-    plt.subplot(223)
-    plt = gen_hist(lfcd_pval_mems, plt, 'lfcd-pval')
+    # Memories
+    plt.subplot(322)
+    plt = gen_hist(deg_rval_mems, plt, 'deg-rval')
     plt.xlabel('Peak memory (GB)')
-    plt.subplot(224)
+    plt.subplot(324)
+    plt = gen_hist(deg_sparse_mems, plt, 'deg-sparse')
+    plt.xlabel('Peak memory (GB)')
+
+    plt.subplot(326)
     plt = gen_hist(lfcd_rval_mems, plt, 'lfcd-rval')
     plt.xlabel('Peak memory (GB)')
 
-    # Degree centrality
-    plt.figure(2)
-    plt.subplot(231)
-    plt = gen_hist(deg_pval_runtimes, plt, 'deg-pval')
-    plt.xlabel('Runtime (seconds)')
-    plt.subplot(232)
-    plt = gen_hist(deg_sparse_runtimes, plt, 'deg-sparse')
-    plt.xlabel('Runtime (seconds)')
-    plt.subplot(233)
-    plt = gen_hist(deg_rval_runtimes, plt, 'deg-rval')
-    plt.xlabel('Runtime (seconds)')
-
-    plt.subplot(234)
-    plt = gen_hist(deg_pval_mems, plt, 'deg-pval')
-    plt.xlabel('Peak memory (GB)')
-    plt.subplot(235)
-    plt = gen_hist(deg_sparse_mems, plt, 'deg-sparse')
-    plt.xlabel('Peak memory (GB)')
-    plt.subplot(236)
-    plt = gen_hist(deg_rval_mems, plt, 'deg-rval')
-    plt.xlabel('Peak memory (GB)')
 
     # Return plot object
     return plt
@@ -183,14 +182,18 @@ if __name__ == '__main__':
     logs_dir = args.logs_dir[0]
 
     # Call functions to plot
-    runs, mems = parse_logs(logs_dir)
-    plt = plot_histograms(runs, mems)
+    afni_runs, afni_mems, cpac_runs, cpac_mems = parse_logs(logs_dir)
 
-    # Save figure
-    pdf_out = os.path.join(logs_dir, 'cent_stats.pdf')
+    # Generate and save figure
+    afni_plt = plot_histograms(afni_runs, afni_mems)
+    pdf_out = os.path.join(logs_dir, 'afni_cent_stats.pdf')
     pdf = PdfPages(pdf_out)
-
-    for fig in xrange(1, 3):
-        pdf.savefig(plt.figure(fig))
+    pdf.savefig(afni_plt.figure(1))
     pdf.close()
 
+    # Generate and save figure
+    cpac_plt = plot_histograms(cpac_runs, cpac_mems)
+    pdf_out = os.path.join(logs_dir, 'cpac_cent_stats.pdf')
+    pdf = PdfPages(pdf_out)
+    pdf.savefig(cpac_plt.figure(1))
+    pdf.close()
