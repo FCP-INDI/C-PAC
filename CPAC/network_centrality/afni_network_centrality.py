@@ -239,7 +239,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
 
     # Limit its num_threads and memory via ResourceMultiProc plugin
     afni_centrality_node.interface.num_threads = num_threads
-    afni_centrality_node.interface.memory = memory
+    afni_centrality_node.interface.estimated_memory = memory
 
     # Connect input image and mask tempalte
     centrality_wf.connect(input_node, 'datafile',
@@ -317,7 +317,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
 
         # Limit its num_threads and memory via ResourceMultiProce plugin
         run_eigen_node.interface.num_threads = num_threads
-        run_eigen_node.interface.memory = memory
+        run_eigen_node.interface.estimated_memory = memory
         # MKL threads for scipy eigenvector built with Intel MKL
         run_eigen_node.inputs.num_threads = num_threads
 
