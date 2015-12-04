@@ -144,7 +144,7 @@ def create_resting_state_graphs(wf_name='resting_state_graph',
                                                  function = calc_centrality),
                                    name = 'calculate_centrality')
     
-    calculate_centrality.interface.memory = allocated_memory
+    calculate_centrality.interface.estimated_memory = allocated_memory
 
 
     # Connect inputspec node to main function node
