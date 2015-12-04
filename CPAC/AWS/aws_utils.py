@@ -263,6 +263,8 @@ def s3_download(bucket, bucket_keys, download_dir):
             os.makedirs(dirname)
         # If it exists, check its md5 before skipping
         if os.path.exists(local_path):
+            if os.path.isdir(local_path):
+                continue
             in_read = open(local_path, 'rb').read()
             local_md5 = hashlib.md5(in_read).hexdigest()
             if local_md5 == s3_md5:
