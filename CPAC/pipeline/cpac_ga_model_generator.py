@@ -33,8 +33,12 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # s_paths = a list of all of the filepaths of this particular output
     #           file that prep_group_analysis_workflow is being called for
 
-    p_id, s_ids, scan_ids, s_paths = (list(tup) for tup in zip(*subject_infos))
+    p_id, s_ids, session_ids, scan_ids, s_paths = \
+        (list(tup) for tup in zip(*subject_infos))
 
+
+
+    # load group analysis model configuration file
     try:
         with open(os.path.realpath(group_config_file),"r") as f:
             group_conf = Configuration(yaml.load(f))
@@ -47,18 +51,13 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         raise Exception(err_string)
 
      
-    with open(group_conf.subject_list,"r") as f:
-        group_sublist_items = f.readlines()
-        
-
-    group_sublist = [line.rstrip('\n') for line in group_sublist_items \
-                          if not (line == '\n') and not line.startswith('#')]
 
     # list of subjects for which paths which DO exist
     exist_paths = []
 
     # paths to the actual derivatives for those subjects
     derivative_paths = []
+    derivative_paths = s_paths
 
 
     z_threshold = float(group_conf.z_threshold[0])
@@ -66,6 +65,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     p_threshold = float(group_conf.p_threshold[0])
 
 
+    # determine if f-tests are included or not
     custom_confile = group_conf.custom_contrasts
 
     if ((custom_confile == None) or (custom_confile == '') or \
@@ -105,8 +105,11 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     print "Sorting through subject list to check for missing outputs " \
           "for %s..\n" % resource
 
+    '''
+
     for ga_sub in group_sublist:
         # Strip out carriage-return character if it is there
+        
         
         if ga_sub.endswith('\r'):
             ga_sub = ga_sub.rstrip('\r')
@@ -147,7 +150,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
 
-        ''' process subject ids for repeated measures, if it is on '''
+        # process subject ids for repeated measures, if it is on 
+
         # if repeated measures is being run and the subject list
         # is a list of subject IDs and scan IDs concatenated
         if (group_conf.repeated_measures == True):
@@ -169,16 +173,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
 
-        ''' drop subjects from the group subject list '''
-        # check the path files in path_files_here folder in the
-        # subject's output folder - and drop any subjects from the
-        # group analysis subject list which do not exist in the paths
-        # to the output files
+        # drop subjects from the group subject list
 
-        '''
-        REVISIT THIS LATER to establish a potentially better way to
-        pull output paths (instead of path_files_here)
-        '''
 
         for path in s_paths:
 
@@ -213,8 +209,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                   '\n\n\n'
             raise Exception
 
-    ''' END subject list iteration '''
- 
+
+    # END subject list iteration
+
 
     # check to see if any derivatives of subjects are missing
     if len(list(set(group_sublist) - set(exist_paths))) >0:
@@ -224,6 +221,8 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
         print resource
         print "..at paths:"
         print os.path.dirname(s_paths[0]).replace(s_ids[0], '*')
+
+    '''
 
         
 
@@ -246,13 +245,16 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
         
     ''' write the new subject list '''
+    '''
     new_sub_file = os.path.join(current_mod_path, \
                                     os.path.basename(group_conf.subject_list))
+
+    exist_subs = set(s_ids)
 
     try:
 
         with open(new_sub_file, 'w') as f:
-            for sub in exist_paths:
+            for sub in exist_subs:
                 print >>f, sub
         
     except:
@@ -262,6 +264,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
     group_conf.update('subject_list',new_sub_file)
+    '''
 
     sub_id_label = group_conf.subject_id_label
 
@@ -313,15 +316,15 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     current_output = resource #s_paths[0].replace(pipeline_path, '').split('/')[2]
 
     # generate working directory for this output's group analysis run
-    workDir = '%s/group_analysis/%s/%s_%s' % (c.workingDirectory, group_conf.model_name, resource, scan_ids[0])
+    workDir = '%s/group_analysis/%s/%s' % (c.workingDirectory, group_conf.model_name, resource)
 
     # s_paths is a list of paths to each subject's derivative (of the current
     # derivative gpa is being run on) - s_paths_dirList is a list of each directory
     # in this path separated into list elements
              
     # this makes strgy_path basically the directory path of the folders after
-    # the scan ID folder level         
-    strgy_path = os.path.dirname(s_paths[0]).split(scan_ids[0])[1]
+    # the resource/derivative folder level         
+    strgy_path = os.path.dirname(s_paths[0]).split(resource)[1]
 
     # get rid of periods in the path
     for ch in ['.']:

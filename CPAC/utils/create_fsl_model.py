@@ -4,6 +4,7 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
 
     import os
     import csv
+    import pandas as pd
 
     pheno_file_all_rows = []
     pheno_file_rows = []
@@ -33,10 +34,38 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
             raise Exception(err)
 
         with open(group_subject_list,"r") as f:
-            group_subs = f.read().splitlines()
+            group_subs = pd.read_csv(f)
+
+        subjects = list(group_subs.subject)
+
+        sessions = None
+        series = None
+
+        if "session" in group_subs.columns:
+            sessions = list(group_subs.session)
+
+        if "series" in group_subs.columns:
+            series = list(group_subs.series)
+
+        include = False
 
         for row in pheno_file_all_rows:
-            if row[subject_id_label] in group_subs:
+
+            if row[subject_id_label] in subjects:
+
+                include = True
+
+                if sessions:
+                    include = False
+                    if row["session"] in sessions:
+                        include = True
+
+                if series:
+                    include = False
+                    if row["series"] in series:
+                        include = True
+
+            if include == True:
                 pheno_file_rows.append(row)
 
     else:
@@ -623,6 +652,8 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
                                             subject_id_label)
 
+    print pheno_data_dict
+
 
     # get number of subjects that have the derivative for this current model
     # (basically, the amount of time points, which must be greater than the
@@ -726,9 +757,9 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
                 'successful - do the terms in your formula correctly ' \
                 'correspond to the EVs listed in your phenotype file?\n'
         print 'Phenotype file provided: '
-        print pheno_file, '\n\n'
+        print pheno_file, '\n'
         print "Phenotypic data columns (regressors): ", pheno_data_dict.keys()
-        print "Formula: %s" % formula
+        print "Formula: %s\n\n" % formula
         raise Exception
 
 
@@ -746,6 +777,9 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     column_names = dmatrix.design_info.column_names
       
         
+    print design_matrix
+    raise Exception
+
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \

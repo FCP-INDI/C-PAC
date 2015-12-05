@@ -16,6 +16,7 @@ from nipype import logging
 
 from CPAC.utils import Configuration
 
+
 def split_folders(path):
     folders = []
     
@@ -31,6 +32,8 @@ def split_folders(path):
     folders.reverse()
     #print folders
     return folders
+
+
 
 def run_sge_jobs(c, config_file, resource, subject_infos):
 
@@ -50,11 +53,7 @@ def run_sge_jobs(c, config_file, resource, subject_infos):
     pickle.dump(subject_infos, f)
     f.close()
 
-
-
-
     shell = commands.getoutput('echo $SHELL')
-
 
     subject_bash_file = ''
     if c.runBASC:
@@ -155,7 +154,221 @@ def run_pbs_jobs(c, config_file, resource, subject_infos):
 
 
 
-def run(config_file, output_path_file): #subject_list_file, output_path_file):
+def load_group_config(group_config_file):
+
+    import yaml
+
+    try:
+        ga_config_path = os.path.realpath(group_config_file)
+
+        with open(ga_config_path,"r") as f:
+            ga_config = Configuration(yaml.load(f))
+    except:
+        raise Exception("\n\nError in reading %s configuration file\n\n" \
+                        % group_config_file)
+
+    if len(ga_config.derivative_list) == 0:
+        print '[!] CPAC says: You do not have any derivatives selected ' \
+                'to run for group-level analysis. Return to your group-' \
+                'analysis configuration file and select at least one.'
+        print 'Group analysis configuration file: %s\n\n' \
+                % group_config_file
+        raise Exception
+
+    return ga_config
+
+
+
+def load_group_subject_list(ga_config):
+
+    import pandas as pd
+
+    # get the group subject list
+    if not ga_config.subject_list.endswith(".csv"):
+        err = "\n\n[!] CPAC says: The group-level analysis subject " \
+                "list should be a CSV file (.csv).\n\n"
+        raise Exception(err)
+
+    with open(ga_config.subject_list,"r") as f:
+        ga_sublist = pd.read_csv(f)
+
+
+    if "subject" not in ga_sublist.columns:
+        err = "\n\n[!] CPAC says: Your group-level analysis subject "\
+                "list CSV is missing a 'subject' column.\n\n"
+        raise Exception(err)
+
+    if ga_config.repeated_measures == True:
+        if "session" not in ga_sublist.columns and \
+            "series" not in ga_sublist.columns:
+            err = "\n\n[!] CPAC says: You have selected to run " \
+                    "repeated measures in your group-level analysis, " \
+                    "but you do not have either a 'session' or " \
+                    "'series' column in your group analysis subject " \
+                    "list CSV.\n\n"
+            raise Exception(err)
+    else:
+        if "session" in ga_sublist.columns or \
+            "series" in ga_sublist.columns:
+            err = "\n\n[!] CPAC says: Your group-level analysis " \
+                    "subject list CSV is formatted for repeated " \
+                    "measures, but you do not have repeated measures " \
+                    "selected in your group model configuration.\n\n"
+            raise Exception(err)
+
+
+    return ga_sublist
+
+
+
+def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
+
+    # 1. take in the "subject_path", which is the filepath of the current
+    #    output file being iterated over in run()
+    # 2. replace the participant IDs and potentially the session and series
+    #    IDs appropriately with wildcards (*)
+
+    ''' WHEN THIS LOOP RUNS THROUGH WITHOUT EVER HITTING SOMETHING IN THE '''
+    ''' SUBJECT LIST, THAT MEANS IT WAS GIVEN A SUBJECT PATH FOR A SUBJECT '''
+    ''' THAT WASN'T IN THE SUBLIST- HOWEVER, WE NEED SOMETHING THAT WILL '''
+    ''' TAKE THE SUBS IN THE SUBLIST THAT DID NOT FIND A DERIVATIVE; AND '''
+    ''' TO DO THIS FOR EACH DERIVATIVE '''
+
+    session_id = None
+
+    if ("session" in ga_sublist.columns) and \
+        ("series" in ga_sublist.columns):
+
+        for subject, session, series in zip(ga_sublist.participant, \
+            ga_sublist.session, ga_sublist.series):
+
+            subject = str(subject)
+            session = str(session)
+            series = str(series)
+
+            if (subject in subject_path) and \
+                (session in subject_path) and \
+                (series in subject_path):
+
+                key = subject_path.replace(subject, "*")
+                key = key.replace(session, "*")
+                key = key.replace(series, "*")
+                subject_id = subject
+                session_id = session
+
+                if output not in matched_subs.keys():
+                    matched_subs[output] = []
+
+                matched_subs[output].append((subject, session, series))
+                
+                break
+
+        else:
+            # the subject path is for an output file of a subject that
+            # isn't in the group subject list
+            return None, None, None, matched_subs
+
+    elif ("session" in ga_sublist.columns) and \
+        ("series" not in ga_sublist.columns):
+
+        for subject, session in zip(ga_sublist.participant, \
+            ga_sublist.session):
+
+            subject = str(subject)
+            session = str(session)
+
+            if (subject in subject_path) and \
+                (session in subject_path):
+
+                key = subject_path.replace(subject, "*")
+                key = key.replace(session, "*")
+                subject_id = subject
+                session_id = session
+
+                if output not in matched_subs.keys():
+                    matched_subs[output] = []
+
+                matched_subs[output].append((subject, session))
+
+                break
+
+        else:
+            return None, None, None, matched_subs
+
+    elif ("series" in ga_sublist.columns) and \
+        ("session" not in ga_sublist.columns):
+
+        for subject, series in zip(ga_sublist.participant, \
+            ga_sublist.series):
+
+            subject = str(subject)
+            series = str(series)
+
+            if (subject in subject_path) and \
+                (series in subject_path):
+
+                key = subject_path.replace(subject, "*")
+                key = key.replace(series, "*")
+                subject_id = subject
+
+                if output not in matched_subs.keys():
+                    matched_subs[output] = []
+
+                if (subject, series) not in matched_subs[output]:
+                    matched_subs[output].append((subject, series))
+                else:
+                    # this fires if there are multiple sessions, but the user
+                    # did not denote multiple sessions under a 'sessions'
+                    # column in the group analysis subject list
+                    err = "\n\n[!] CPAC says: It appears there are multiple "\
+                          "sessions in your data, but you do not have any " \
+                          "sessions denoted in your group analysis subject " \
+                          "list.\n\n"
+                    raise Exception(err)
+
+                break
+
+        else:
+            return None, None, None, matched_subs
+
+    elif "participant" in ga_sublist.columns:
+        # each group of subjects from each session go into their own
+        # separate model, instead of combining all sessions into one
+        #     i.e. session_1 will have its own set of group
+        #          analysis outputs, session_2 will have another..
+        #          they will be separated by session just like
+        #          they would be separated by scan
+                    
+        for subject in ga_sublist.participant:
+            if subject in subject_path:
+
+                key = subject_path.replace(subject, '*')
+                subject_id = subject
+
+                if output not in matched_subs.keys():
+                    matched_subs[output] = []
+
+                matched_subs[output].append((subject))
+                
+                break
+        
+        else:     
+            # the subject path is for an output file of a subject that
+            # isn't in the group subject list     
+            return None, None, None, matched_subs
+
+    else:
+
+        err = "\n\n[!] CPAC says: Your group-level analysis subject list " \
+              "is missing a column labeled 'Participant'.\n\n"
+        raise Exception(err)
+
+
+    return key, subject_id, session_id, matched_subs
+
+
+
+def run(config_file, output_path_file):
     
     # Runs group analysis
 
@@ -165,58 +378,45 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
     with open(os.path.realpath(config_file),"r") as f:
         c = Configuration(yaml.load(f))
 
-
-    # load the subject list (in the main GUI window, not the group analysis
-    # one), and parse the yaml so that the subIDs and session IDs can be
-    # accessed for below
-    #try:
-    #    sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    #except Exception as e:
-    #    err = "\n[!] CPAC says: Subject list is not in proper YAML format. " \
-    #          "Please check your file.\nError: %s" % e
-    #    raise Exception(err)
-
+    if len(c.modelConfigs) == 0:
+        print '[!] CPAC says: You do not have any models selected ' \
+              'to run for group-level analysis. Return to your pipeline ' \
+              'configuration file and create or select at least one.\n\n'
+        raise Exception
 
     subject_paths = []
-
-
-    # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
-    # File' provided in the dialog box when group analysis is first run
-    #for file in glob.glob(os.path.abspath(output_path_file)):
-    #    path_list = open(file, 'r').readlines()
-    #    subject_paths.extend([s.rstrip('\r\n') for s in path_list])
-    
-
-    # gather which outputs the user has selected to run group analysis for
     ind_outputs = []
+    ga_configs = {}
+    ga_sublists = {}
+    matched_subs = {}
 
+    # load the group model configs and the group participant lists into
+    # dictionaries, with the model names as keys
     for group_config_file in c.modelConfigs:
 
-        try:
-            ga_config_path = os.path.realpath(group_config_file)
+        ga_config = load_group_config(group_config_file)
 
-            with open(ga_config_path,"r") as f:
-                ga_config = Configuration(yaml.load(f))
-        except:
-            raise Exception("\n\nError in reading %s configuration file\n\n" \
-                            % group_config_file)
-
-        if len(ga_config.derivative_list) == 0:
-            print '[!] CPAC says: You do not have any derivatives selected ' \
-                  'to run for group-level analysis. Return to your group-' \
-                  'analysis configuration file and select at least one.'
-            print 'Group analysis configuration file: %s\n\n' \
-                  % group_config_file
-            raise Exception
-
+        # gather which outputs the user has selected to run group analysis for
         for output_type in ga_config.derivative_list:
             if output_type not in ind_outputs:
                 ind_outputs.append(output_type)
-         
+
+        if ga_config.model_name in ga_configs.keys():
+            err = "\n\n[!] CPAC says: You have more than one group-level " \
+                  "analysis model configuration with the same name!\n\n" \
+                  "Duplicate model name: %s\n\n" % ga_config.model_name
+            raise Exception(err)
+
+        ga_configs[ga_config.model_name] = ga_config
+
+    for ga_config in ga_configs.values():
+
+        ga_sublist = load_group_subject_list(ga_config)
+
+        ga_sublists[ga_config.model_name] = ga_sublist
 
     
-    # collect all of the output paths
-    
+    # collect all of the output paths from individual-level analysis   
     for root, folders, files in os.walk(output_path_file):
     
         split_output_dir_path = output_path_file.split("/")
@@ -229,10 +429,8 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
             
                 split_fullpath = fullpath.split("/")
                 
-                #subID = split_fullpath[len(split_output_dir_path)]
-                deriv_folder_name = split_fullpath[len(split_output_dir_path)+1]
-            
-                #second_half_filepath = fullpath.split(subID)
+                deriv_folder_name = \
+                    split_fullpath[len(split_output_dir_path)+1]
             
                 for output_name in ind_outputs:
             
@@ -250,16 +448,8 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
         raise Exception
 
 
-    if len(c.modelConfigs) == 0:
-        print '[!] CPAC says: You do not have any models selected ' \
-              'to run for group-level analysis. Return to your pipeline ' \
-              'configuration file and create or select at least one.\n\n'
-        raise Exception
-
-
-
-    # 'subject_paths' is a list of every output from every subject included
-    # in the output folder of the run
+    # 'subject_paths' is a list of every output file from every subject in
+    # the output folder of the run, for the outputs selected for grp analysis
 
     # converts the subject_paths list into a set to enforce no duplicates
     set_subject_paths = set(subject_paths)
@@ -268,12 +458,10 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
     subject_paths = list(set_subject_paths)
 
 
-    #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
     base_path = c.outputDirectory
 
 
     from collections import defaultdict
-    analysis_map = defaultdict(list)
     analysis_map_gp = defaultdict(list)
 
 
@@ -284,6 +472,9 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
     count = 0
 
     for subject_path in subject_paths:
+
+        # get classifying information for the current subject_path (which is
+        # an output file path from individual analysis)
 
         split_output_dir_path = output_path_file.split("/")
         split_fullpath = subject_path.split("/")
@@ -351,127 +542,48 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
             resource_name = resource_id
 
 
-        # get list of all unique IDs (session IDs)
-        # loop through them and check subject_path for existence of any
-        # of the session IDs
-        # if it exists, load it into unique_id
-
-        # init subject_id to None
-        #subject_id = None
-        #for sub in sublist:
-        #    if sub['subject_id'] in subject_unique_id:
-        #        subject_id = sub['subject_id']
-
-        # If subject_id never gets set for this specific subject, move on to
-        # next subject
-        #if not subject_id:
-        #    continue
-
-        # 'resource_id' is each type of output
-        # 'key' is a path to each and every individual output file,
-        # except with the subject ID replaced with a wildcard (*)
-
         # loop here to replace the one below it:
         #     go through model configs, make a list of all ders included
         #     enumerate list of selected derivatives and the models they are
         #     in like: (resource_id, group_model, key)
-        for group_config_file in c.modelConfigs:
+        
+        #for group_config_file in c.modelConfigs:
 
-            try:
-                ga_config = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
-            except:
-                raise Exception("\n\nError in reading %s configuration file\n\n" % group_config_file)
+            #ga_config = load_group_config(group_config_file)
 
-            if len(ga_config.derivative_list) == 0:
-                print '[!] CPAC says: You do not have any derivatives selected ' \
-                      'to run for group-level analysis. Return to your group-analysis ' \
-                      'configuration file and select at least one.'
-                print 'Group analysis configuration file: %s\n\n' % group_config_file
-                raise Exception
-
-            # get the group subject list
-            if not ga_config.subject_list.endswith(".txt"):
-                err = "\n\n[!] CPAC says: The group-level analysis subject " \
-                      "list should be a text file (.txt) containing a " \
-                      "subject ID on each line.\nNote: If running repeated " \
-                      "measures analysis, each separate session or scan " \
-                      "should be included with each subject ID separated by "\
-                      "a comma (ex. sub001,session_1).\n\n"
-                raise Exception(err)
-
-            with open(ga_config.subject_list,"r") as f:
-                ga_sublist = f.read().splitlines()
-
-            subject_id = None
-            scans_and_or_sessions = None
-
-            # in the event that the subject ID and session ID are both within
-            # the same directory level (i.e. both in subject_unique_id), then
-            # separate them so we know which is the subject ID and which is
-            # the session ID
-            for sub in ga_sublist:
-                # if repeated measures formatting
-                if "," in sub:
-                    sub = sub.split(",")[0]
-                    scans_and_or_sessions = sub.split(",")[1:]
-                if sub in subject_unique_id:
-                    subject_id = sub
-                    break
+            #ga_sublist = load_group_subject_list(ga_config)
 
             # if this subject is not included in the group analysis subject
             # list, go to the next one
-            if not subject_id:
-                continue
+            #if not subject_id:
+            #    continue
+
+        for model in ga_configs:
+
+            print resource_id
+            print model
+            print ga_configs[model].derivative_list
+
+            if resource_id in list(ga_configs[model].derivative_list):
+
+                key, subject_id, session_id, matched_subs = \
+                    wildcards_into_filepath(ga_sublists[model], subject_path,\
+                        matched_subs, resource_id)
+
+                with open("/home/sgiavasis/run/gpa_track.txt","a") as f:
+                    print >>f, resource_id, ": ", subject_id
+                    print >>f, matched_subs
+                    print >>f, "\n"
+
+                if key != None:
+                    analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, session_id, scan_id, subject_path))
 
 
-            if resource_id in ga_config.derivative_list:
-
-                # include all of the scans and sessions in one model if True
-                if ga_config.repeated_measures == True:
-
-                    # if there are only subject IDs (and no scans or sessions)
-                    # in the group analysis subject list
-                    if not scans_and_or_sessions:
-                        err = "\n\n[!] CPAC says: You have selected to run " \
-                              "repeated measures (or within-subject) " \
-                              "analysis, but the group subject list is not " \
-                              "formatted for repeated measures. Please " \
-                              "consult the User Guide for more information." \
-                              "\n\n"
-                        raise Exception(err)
-
-                    key = subject_path.replace(subject_id, '*')
-
-                    for item in scan_and_or_sessions:
-                        key = key.replace(item, '*')
-
-                else:
-                    # each group of subjects from each session go into their own
-                    # separate model, instead of combining all sessions into one
-                    #     i.e. session_1 will have its own set of group
-                    #          analysis outputs, session_2 will have another..
-                    #          they will be separated by session just like
-                    #          they would be separated by scan
-                    try:
-                        key = subject_path.replace(subject_id, '*')
-                    except:
-                        # this fires if 'subject_id' was never given a value basically
-                        print '\n\n[!] CPAC says: The derivative path file ' \
-                              'you provided does not contain the output directory ' \
-                              'given in the pipeline configuration file.\n'
-                        print 'Derivative path file: ', output_path_file, '\n'
-                        print 'Output directory: ', c.outputDirectory, '\n\n'
-                        raise Exception
-
-
-                analysis_map[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
-
-                analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
 
         count += 1
 
         if count == int(len(subject_paths)*0.7):
-            print "Almost finished parsing output paths.."     
+            print "Almost finished parsing output paths.."
 
         # with this loop, 'analysis_map_gp' is a dictionary with a key for
         # each individual output file - and each entry is a list of tuples,
@@ -480,11 +592,50 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
         # one particular subject
 
 
+    with open("/home/sgiavasis/run/gpa_track.txt","a") as f:
+        for subject_path in subject_paths:
+            print >>f, subject_path, "\n"
+
+    if len(analysis_map_gp) == 0:
+        err = "\n\n[!] CPAC says: No output files from individual-level " \
+              "analysis were found for the subjects or sessions/series " \
+              "in the group analysis subject list(s)!\n\n"
+        raise Exception(err)
+
+
+    '''
+    for group_sublist in ga_sublists.values():
+        for derivative in matched_subs.keys():
+
+            raw_sublist = []
+
+            for row in group_sublist.values:
+                raw_sublist.append(tuple(row))
+
+            print set(raw_sublist)
+            print set(matched_subs[derivative])
+
+            missing_subs = \
+                set(raw_sublist) - set(matched_subs[derivative])
+
+            if len(missing_subs) > 0:
+                print "\n\n[!] Warning: outputs missing for %s for the " \
+                      "following subjects:\n" % derivative
+                for sub in missing_subs:
+                    print sub
+                print "\n"
+    '''
+
+
     print "Finished parsing through output paths!\n"
 
 
+    # HOW IS THE NEW SUBJECT LIST WRITING HANDLED?
 
-    for resource, group_model, glob_key in analysis_map.keys():
+
+
+    '''
+    for resource, group_model, glob_key in analysis_map_gp.keys():
         if resource == 'functional_mni':
 
 
@@ -492,13 +643,13 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
 
                 if not c.runOnGrid:
                     from CPAC.pipeline.cpac_basc_pipeline import prep_basc_workflow
-                    prep_basc_workflow(c, analysis_map[(resource, group_model, glob_key)])
+                    prep_basc_workflow(c, analysis_map_gp[(resource, group_model, glob_key)])
                 else:
                     if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
+                        run_sge_jobs(c, config_file, resource, analysis_map_gp[(resource, group_model, glob_key)])
 
                     elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
+                        run_pbs_jobs(c, config_file, resource, analysis_map_gp[(resource, group_model, glob_key)])
 
 
             if 1 in c.runCWAS:
@@ -514,8 +665,7 @@ def run(config_file, output_path_file): #subject_list_file, output_path_file):
 
                     elif 'pbs' in c.resourceManager.lower():
                         run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
-
-
+    '''
 
     procss = []
     

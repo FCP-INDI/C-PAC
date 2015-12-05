@@ -2576,18 +2576,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 print "\nError message: %s\n\n" % e
                 raise Exception
 
-
-            '''
-            if 0 in c.runSpatialRegression:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-            '''
-
             if "spatial_reg" in ts_analysis_dict.keys():
                 strat.append_name(spatial_map_timeseries.name)
                 strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
@@ -2721,16 +2709,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 logConnectionError('ROI Timeseries analysis', num_strat, strat.get_resource_pool(), '0031')
                 raise
 
-            '''
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-            '''
-
             if "roi_avg" in ts_analysis_dict.keys():
                 strat.append_name(roi_timeseries.name)
                 strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
@@ -2800,16 +2778,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             except:
                 logConnectionError('Voxel timeseries analysis', num_strat, strat.get_resource_pool(), '0030')
                 raise
-
-            '''
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = (strat.leaf_node)
-                tmp.leaf_out_file = str(strat.leaf_out_file)
-                tmp.name = list(strat.name)
-                strat = tmp
-                new_strat_list.append(strat)
-            '''
 
             strat.append_name(voxel_timeseries.name)
             strat.update_resource_pool({'voxel_timeseries': (voxel_timeseries, 'outputspec.mask_outputs')})
