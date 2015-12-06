@@ -36,7 +36,7 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
         with open(group_subject_list,"r") as f:
             group_subs = pd.read_csv(f)
 
-        subjects = list(group_subs.subject)
+        subjects = list(group_subs.participant)
 
         sessions = None
         series = None
@@ -86,7 +86,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
     pheno_data_dict = {}
 
     for line in pheno_file_rows:
-            
+
         for val in line.values():
             
             # if there are any blank values in the pheno row, skip this
@@ -95,9 +95,9 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
                 break
                     
         else:
-            
+
             for key in line.keys():
-            
+
                 # if there are blank entries because of an empty row in
                 # the CSV (such as ",,,,,"), move on to the next entry
                 if len(line[key]) == 0:

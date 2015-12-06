@@ -28,12 +28,17 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     
     # s_ids = a list of all the subject IDs
 
+    # series_ids = same as "scan_ids", but if a scan ID isn't provided in the
+    #              group subject list during repeated measures, this stays as
+    #              None. the point of this is to communicate whether or not
+    #              repeated measures is including different scans in one model
+
     # scan_ids = a list of scan IDs
 
     # s_paths = a list of all of the filepaths of this particular output
     #           file that prep_group_analysis_workflow is being called for
 
-    p_id, s_ids, session_ids, scan_ids, s_paths = \
+    p_id, s_ids, session_ids, series_ids, scan_ids, s_paths = \
         (list(tup) for tup in zip(*subject_infos))
 
 
@@ -230,6 +235,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
     out_dir = os.path.join(group_conf.output_dir, out_dir[1])
     out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
+
+    if (group_conf.repeated_measures == True) and (series_ids[0] != None):
+        out_dir = out_dir.replace(series_ids[0] + "/", "multiple_series")
 
     model_out_dir = os.path.join(group_conf.output_dir, 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
 

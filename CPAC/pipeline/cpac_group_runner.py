@@ -193,7 +193,7 @@ def load_group_subject_list(ga_config):
         ga_sublist = pd.read_csv(f)
 
 
-    if "subject" not in ga_sublist.columns:
+    if "participant" not in ga_sublist.columns:
         err = "\n\n[!] CPAC says: Your group-level analysis subject "\
                 "list CSV is missing a 'subject' column.\n\n"
         raise Exception(err)
@@ -235,6 +235,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
     ''' TO DO THIS FOR EACH DERIVATIVE '''
 
     session_id = None
+    series_id = None
 
     if ("session" in ga_sublist.columns) and \
         ("series" in ga_sublist.columns):
@@ -255,6 +256,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                 key = key.replace(series, "*")
                 subject_id = subject
                 session_id = session
+                series_id = series
 
                 if output not in matched_subs.keys():
                     matched_subs[output] = []
@@ -266,7 +268,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
         else:
             # the subject path is for an output file of a subject that
             # isn't in the group subject list
-            return None, None, None, matched_subs
+            return None, None, None, None, matched_subs
 
     elif ("session" in ga_sublist.columns) and \
         ("series" not in ga_sublist.columns):
@@ -293,7 +295,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                 break
 
         else:
-            return None, None, None, matched_subs
+            return None, None, None, None, matched_subs
 
     elif ("series" in ga_sublist.columns) and \
         ("session" not in ga_sublist.columns):
@@ -310,6 +312,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                 key = subject_path.replace(subject, "*")
                 key = key.replace(series, "*")
                 subject_id = subject
+                series_id = series
 
                 if output not in matched_subs.keys():
                     matched_subs[output] = []
@@ -329,7 +332,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                 break
 
         else:
-            return None, None, None, matched_subs
+            return None, None, None, None, matched_subs
 
     elif "participant" in ga_sublist.columns:
         # each group of subjects from each session go into their own
@@ -355,7 +358,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
         else:     
             # the subject path is for an output file of a subject that
             # isn't in the group subject list     
-            return None, None, None, matched_subs
+            return None, None, None, None, matched_subs
 
     else:
 
@@ -364,7 +367,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
         raise Exception(err)
 
 
-    return key, subject_id, session_id, matched_subs
+    return key, subject_id, session_id, series_id, matched_subs
 
 
 
@@ -560,23 +563,14 @@ def run(config_file, output_path_file):
 
         for model in ga_configs:
 
-            print resource_id
-            print model
-            print ga_configs[model].derivative_list
-
             if resource_id in list(ga_configs[model].derivative_list):
 
-                key, subject_id, session_id, matched_subs = \
+                key, subject_id, session_id, series_id, matched_subs = \
                     wildcards_into_filepath(ga_sublists[model], subject_path,\
                         matched_subs, resource_id)
 
-                with open("/home/sgiavasis/run/gpa_track.txt","a") as f:
-                    print >>f, resource_id, ": ", subject_id
-                    print >>f, matched_subs
-                    print >>f, "\n"
-
                 if key != None:
-                    analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, session_id, scan_id, subject_path))
+                    analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, session_id, series_id, scan_id, subject_path))
 
 
 
@@ -591,10 +585,6 @@ def run(config_file, output_path_file):
         # 'subject_path', which is a full path to that output file for that
         # one particular subject
 
-
-    with open("/home/sgiavasis/run/gpa_track.txt","a") as f:
-        for subject_path in subject_paths:
-            print >>f, subject_path, "\n"
 
     if len(analysis_map_gp) == 0:
         err = "\n\n[!] CPAC says: No output files from individual-level " \
