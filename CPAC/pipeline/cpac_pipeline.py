@@ -3195,7 +3195,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                 # Create centrality workflow
                 network_centrality = \
-                    create_resting_state_graphs(wf_name='network_centrality_%d-%d' \
+                    create_resting_state_graphs(wf_name='network_centrality_%d-%s' \
                                                         % (num_strat, methodOption),
                                                 allocated_memory=c.memoryAllocatedForDegreeCentrality)
 
@@ -3206,10 +3206,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 # Subject mask/parcellation image
                 network_centrality.inputs.inputspec.template = \
                 c.templateSpecificationFile
-                # Give which method we're doing (0 - deg, 1 - eig, 2 - lfcd)
+                # Give which method we're doing
                 network_centrality.inputs.inputspec.method_option = \
                 methodOption
-                # Type of threshold (0 - p-value, 1 - sparsity, 2 - corr)
+                # Type of threshold
                 network_centrality.inputs.inputspec.threshold_option = \
                 thresholdOption
                 # Connect threshold value (float)
@@ -3236,37 +3236,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 '''
                 '''
 
-                # First check for errors
-                if threshold < 0 or threshold > 1:
-                    err_msg = 'threshold value of : %.3f not in range!' \
-                              % threshold
-                    raise Exception(err_msg)
-
                 # Import pacakges
                 from CPAC.network_centrality.afni_network_centrality \
                     import create_afni_centrality_wf
 
                 # Init variables
-                # Set thresh_type
-                if threshold_option == 0:
-                    thresh_option = 'pval'
-                elif threshold_option == 1:
-                    thresh_option = 'sparse'
-                    threshold = threshold*100
-                elif threshold_option == 2:
-                    thresh_option = 'rval'
-                else:
-                    thresh_option = 'None'
-
                 # Set method_options variables
-                if method_option == 0:
-                    meth_option = 'deg'
+                if method_option == 'degree':
                     out_list = 'deg_list'
-                elif method_option == 1:
-                    meth_option = 'eig'
+                elif method_option == 'eigenvector':
                     out_list = 'eig_list'
-                elif method_option == 2:
-                    meth_option = 'lfcd'
+                elif method_option == 'lfcd':
                     out_list = 'lfcd_list'
 
                 # Init workflow name and resource limits
@@ -3276,8 +3256,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                 # Init the workflow
                 afni_centrality_wf = \
-                    create_afni_centrality_wf(wf_name, meth_option, thresh_option,
-                                              num_threads, memory)
+                    create_afni_centrality_wf(wf_name, method_option, threshold,
+                                              threshold_option, num_threads, memory)
 
                 # Connect pipeline resources to workflow
                 # Dataset
@@ -3286,8 +3266,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 # Mask
                 afni_centrality_wf.inputs.inputspec.template = \
                     c.templateSpecificationFile
-                # Threshold
-                afni_centrality_wf.inputs.inputspec.threshold = threshold
 
                 # Connect outputs to merge node
                 workflow.connect(afni_centrality_wf,
@@ -3298,46 +3276,44 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             # If 3dDegreeCentrality is found, run it
             if afni_centrality_found:
                 if c.degWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(0,
+                    connect_afni_centrality_wf('degree',
                                                c.degCorrelationThresholdOption,
                                                c.degCorrelationThreshold)
                 if c.eigWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(1,
+                    connect_afni_centrality_wf('eigenvector',
                                                c.eigCorrelationThresholdOption,
                                                c.eigCorrelationThreshold)
                 # If we're calculating lFCD
                 if c.lfcdWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf(2,
+                    connect_afni_centrality_wf('lfcd',
                                                c.lfcdCorrelationThresholdOption,
                                                c.lfcdCorrelationThreshold)
             # Otherwise run the CPAC python workflow
             else:
                 # If we're calculating degree centrality
                 if c.degWeightOptions.count(True) > 0:
-                    connectCentralityWorkflow(0,
+                    connectCentralityWorkflow('degree',
                                               c.degCorrelationThresholdOption,
                                               c.degCorrelationThreshold,
                                               c.degWeightOptions,
                                               'deg_list')
                 # If we're calculating eigenvector centrality
                 if c.eigWeightOptions.count(True) > 0:
-                    connectCentralityWorkflow(1,
+                    connectCentralityWorkflow('eigenvector',
                                               c.eigCorrelationThresholdOption,
                                               c.eigCorrelationThreshold,
                                               c.eigWeightOptions,
                                               'eig_list')
                 # If we're calculating lFCD
                 if c.lfcdWeightOptions.count(True) > 0:
-                    connectCentralityWorkflow(2,
-                                              2,
+                    connectCentralityWorkflow('lfcd',
+                                              c.lfcdCorrelationThresholdOption,
                                               c.lfcdCorrelationThreshold,
                                               c.lfcdWeightOptions,
                                               'lfcd_list')
 
+            # Update resource pool with centrality outputs
             try:
-
-                # Update resource pool with centrality outputs
-
                 strat.update_resource_pool({'centrality_outputs' : (merge_node, 'merged_list')})
 
                 # if smoothing is required
@@ -3360,7 +3336,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
                     zstd_smoothing.inputs.operand_files = \
                     c.templateSpecificationFile
-
 
                     # calculate zscores
                     workflow.connect(merge_node, 'merged_list',
@@ -3402,7 +3377,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             num_strat += 1
 
     strat_list += new_strat_list
-
 
     num_strat = 0
 

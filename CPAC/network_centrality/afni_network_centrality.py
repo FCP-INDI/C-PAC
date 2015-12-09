@@ -204,7 +204,7 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
 
 
 # Return the afni centrality/lfcd workflow
-def create_afni_centrality_wf(wf_name, method_option, threshold_option,
+def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_option,
                               num_threads=1, memory=1):
     '''
     '''
@@ -213,6 +213,10 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import CPAC.network_centrality.utils as utils
+
+    # Check the centrality parameters
+    method_option, threshold_option = \
+        utils.check_centrality_params(method_option, threshold_option, threshold)
 
     # Init variables
     centrality_wf = pe.Workflow(name=wf_name)
@@ -223,9 +227,12 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                                                         'threshold']),
                          name='inputspec')
 
+    # Input threshold
+    input_node.inputs.threshold = threshold
+
     # Define main input/function node
     # If it's degree or eigenvector, initiate the degree centrality node
-    if method_option == 'deg' or method_option == 'eig':
+    if method_option == 'degree' or method_option == 'eigenvector':
         afni_centrality_node = \
             pe.Node(afniDegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
                     name='afni_centrality')
@@ -248,7 +255,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                           afni_centrality_node, 'mask')
 
     # If we're doing significan thresholding, convert to correlation
-    if threshold_option == 'pval':
+    if threshold_option == 'significance':
         # Check and (possibly) conver threshold
         convert_thr_node = pe.Node(util.Function(input_names=['datafile',
                                                               'p_value',
@@ -265,7 +272,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                               afni_centrality_node, 'thresh')
 
     # Sparsity thresholding
-    elif threshold_option == 'sparse':
+    elif threshold_option == 'sparsity':
         # Check to make sure it's not lFCD
         if method_option == 'lfcd':
             err_msg = 'Sparsity thresholding is not supported for lFCD'
@@ -275,7 +282,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                               afni_centrality_node, 'sparsity')
 
     # Correlation thresholding
-    elif threshold_option == 'rval':
+    elif threshold_option == 'correlation':
         centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'thresh')
 
@@ -290,8 +297,9 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     output_node = pe.Node(util.IdentityInterface(fields=['outfile_list',
                                                          'one_d_output']),
                           name='output_node')
+
     # Degree centrality
-    if method_option == 'deg':
+    if method_option == 'degree':
         # Connect the degree centrality output image to seperate subbriks node
         centrality_wf.connect(afni_centrality_node, 'img_outfile',
                               sep_subbriks_node, 'nifti_file')
@@ -301,8 +309,9 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
         # Connect the degree centrality outputs to output_node
         centrality_wf.connect(sep_subbriks_node, 'output_niftis',
                               output_node, 'outfile_list')
+
     # If running eigenvector centrality, insert additional node
-    elif method_option == 'eig':
+    elif method_option == 'eigenvector':
         # Tell 3dDegreeCentrality to create 1D file
         afni_centrality_node.inputs.out_1d = 'similarity_matrix.1D'
 
@@ -331,6 +340,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
                               output_node, 'outfile_list')
         centrality_wf.connect(afni_centrality_node, 'one_d_outfile',
                               output_node, 'one_d_output')
+
     # lFCD
     elif method_option == 'lfcd':
         # Connect the output image to seperate subbriks node
