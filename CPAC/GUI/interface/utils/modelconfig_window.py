@@ -53,11 +53,16 @@ class ModelConfig(wx.Frame):
 
         self.page = generic_class.GenericClass(self.window, " FSL Model Setup")
 
-        self.page.add(label="Subject List ",
+        self.page.add(label="Participant List ",
                       control=control.COMBO_BOX,
                       name="subject_list",
                       type=dtype.STR,
-                      comment="Full path to a list of subjects to be included in the model.\n\nThis should be a text file with one subject per line.\n\nTip 1: A list in this format contaning all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt).\n\nTIp 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.",
+                      comment="Full path to a list of participants to be " \
+                              "included in the model.\n\nThis should be a " \
+                              "CSV file with at least one column marked " \
+                              "'Participant', and columns marked 'Session' " \
+                              "and/or 'Series' if repeated measures " \
+                              "analysis is to be run.\n\n",
                       values=self.gpa_settings['subject_list'])
 
         self.page.add(label="Phenotype/EV File ",
@@ -67,11 +72,11 @@ class ModelConfig(wx.Frame):
                       comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
                       values=self.gpa_settings['pheno_file'])
 
-        self.page.add(label="Subjects Column Name ",
+        self.page.add(label="Participant Column Name ",
                       control=control.TEXT_BOX,
                       name="subject_id_label",
                       type=dtype.STR,
-                      comment="Name of the subjects column in your EV file.",
+                      comment="Name of the participants column in your EV file.",
                       values=self.gpa_settings['subject_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
@@ -616,7 +621,18 @@ class ModelConfig(wx.Frame):
             # update the 'Model Setup' box and populate it with the EVs and
             # their associated checkboxes for categorical and demean
             if ctrl.get_name() == 'model_setup':
-                ctrl.set_value(self.phenoHeaderItems)
+
+                evs_for_checkbox = []
+                for EV in self.phenoHeaderItems:
+                    evs_for_checkbox.append(EV)
+
+                if "session" in evs_for_checkbox:
+                    evs_for_checkbox.remove("session")
+
+                if "series" in evs_for_checkbox:
+                    evs_for_checkbox.remove("series")
+
+                ctrl.set_value(evs_for_checkbox)
 
             # populate the design formula text box with a formula which
             # includes all of the EVs, and two of the measures (MeanFD and

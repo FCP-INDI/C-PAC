@@ -9,6 +9,7 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
     pheno_file_all_rows = []
     pheno_file_rows = []
 
+
     if not os.path.isfile(pheno_file):
         err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
               "provided does not exist!\nPath provided: %s\n\n" \
@@ -18,11 +19,13 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
 
     with open(os.path.abspath(pheno_file),"r") as f:
 
-        p_reader = csv.DictReader(f, skipinitialspace=True)
+        pheno = pd.read_csv(f)
 
-        for line in p_reader:
+        #p_reader = csv.DictReader(f, skipinitialspace=True)
 
-            pheno_file_all_rows.append(line)
+        #for line in p_reader:
+
+        #    pheno_file_all_rows.append(line)
 
 
     if group_subject_list and subject_id_label:
@@ -36,41 +39,96 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
         with open(group_subject_list,"r") as f:
             group_subs = pd.read_csv(f)
 
+        
+        df_rows = []
+
         subjects = list(group_subs.participant)
+
+        # make those strings just in case
+        subjects = [str(i) for i in subjects]
 
         sessions = None
         series = None
 
         if "session" in group_subs.columns:
             sessions = list(group_subs.session)
+            sessions = [str(i) for i in sessions]
 
         if "series" in group_subs.columns:
             series = list(group_subs.series)
+            series = [str(i) for i in series]
 
-        include = False
 
-        for row in pheno_file_all_rows:
+        for i in range(0,len(subjects)):
 
-            if row[subject_id_label] in subjects:
+            full_id = []
 
-                include = True
+            subject = subjects[i]
+            full_id.append(subject)
 
-                if sessions:
-                    include = False
-                    if row["session"] in sessions:
-                        include = True
+            if sessions and series:
 
-                if series:
-                    include = False
-                    if row["series"] in series:
-                        include = True
+                session = sessions[i]
+                scan = series[i]
+                full_id.append(session)
+                full_id.append(scan)
 
-            if include == True:
-                pheno_file_rows.append(row)
+                try:
+                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.session == session) & (pheno.series == scan)]
+                except:
+                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.session == session) & (pheno.series == scan)]
 
-    else:
+            elif sessions:
 
-        pheno_file_rows = pheno_file_all_rows
+                session = sessions[i]
+                full_id.append(session)
+
+                try:
+                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.session == session)]
+                except:
+                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.session == session)]
+
+
+            elif series:
+
+                scan = series[i]
+                full_id.append(scan)
+
+                try:
+                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.series == scan)]
+                except:
+                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.series == scan)]
+
+
+            else:
+
+                full_id.append(subject)
+
+                print pheno
+                print subject
+
+                try:
+                    row = pheno[(pheno[subject_id_label] == subject)]
+                except:
+                    row = pheno[(pheno[subject_id_label] == int(subject))]
+
+
+            if len(row) > 1:
+
+                err = "\n\n[!] CPAC says: Multiple phenotype entries were " \
+                      "found for these criteria:\n\n%s\n\nPlease ensure " \
+                      "your group analysis participant list and phenotype " \
+                      "file are configured correctly.\n\n" % str(full_id)
+                raise Exception(err)
+
+            elif len(row) == 1:
+
+                df_rows.append(row)
+
+
+        new_pheno_df = pd.concat(df_rows)
+
+        pheno_file_rows = new_pheno_df.to_dict("records")
 
 
     return pheno_file_rows
@@ -87,6 +145,8 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
 
     for line in pheno_file_rows:
 
+        print "line: ", line
+
         for val in line.values():
             
             # if there are any blank values in the pheno row, skip this
@@ -100,8 +160,8 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
 
                 # if there are blank entries because of an empty row in
                 # the CSV (such as ",,,,,"), move on to the next entry
-                if len(line[key]) == 0:
-                    continue
+                #if len(line[key]) == 0:
+                #    continue
 
                 if key not in pheno_data_dict.keys():
                     pheno_data_dict[key] = []
@@ -115,13 +175,15 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
                     if key in ev_selections['categorical']:
                         pheno_data_dict[key].append(key + str(line[key]))
 
-                    elif key == subject_id_label:
+                    elif (key == subject_id_label) or (key == "session") or \
+                        (key == "series"):
                         pheno_data_dict[key].append(line[key])
 
                     else:
                         pheno_data_dict[key].append(float(line[key]))
 
-                elif key == subject_id_label:
+                elif (key == subject_id_label) or (key == "session") or \
+                    (key == "series"):
                     pheno_data_dict[key].append(line[key])
 
                 else:
@@ -170,24 +232,24 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
 
 
 
-def get_group_analysis_subs(group_subject_list):
+def load_group_subject_list(ga_sublist_file):
 
-    sub_ids = []
+    # THIS MORE OR LESS ALREADY EXISTS IN CPAC_GROUP_RUNNER, need to
+    # consolidate code and remove code redundancy
 
-    with open(group_subject_list,"r") as f:
+    import pandas as pd
 
-        sublist_lines = f.readlines()
-
-    for line in sublist_lines:
-
-        subid = line.replace("\r","")
-        subid = subid.replace("\n","")
-
-        if subid != "":
-            sub_ids.append(subid)
+    with open(ga_sublist_file,"r") as f:
+        ga_sublist = pd.read_csv(f)
 
 
-    return sub_ids
+    if "participant" not in ga_sublist.columns:
+        err = "\n\n[!] CPAC says: Your group-level analysis subject "\
+                "list CSV is missing a 'participant' column.\n\n"
+        raise Exception(err)
+
+
+    return ga_sublist
 
 
 
@@ -631,7 +693,6 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     import patsy
     import numpy as np
 
-
     # if running this script alone outside of CPAC
     if output_dir == None:
         output_dir = os.getcwd()
@@ -649,19 +710,26 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
 
     pheno_file_rows = read_pheno_file(pheno_file, sub_list, subject_id_label)
 
-    pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
-                                            subject_id_label)
-
-    print pheno_data_dict
-
 
     # get number of subjects that have the derivative for this current model
     # (basically, the amount of time points, which must be greater than the
     # number of EVs)
 
-    sub_ids = get_group_analysis_subs(sub_list)
+    sub_ids = load_group_subject_list(sub_list)
 
     num_subjects = len(sub_ids)
+
+    # for repeated measures
+    if "session" in sub_ids.columns:
+        ev_selections["categorical"].append("session")
+
+    if "series" in sub_ids.columns:
+        ev_selections["categorical"].append("series")
+
+
+    # create the phenotypic data dictionary
+    pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
+                                            subject_id_label)
 
 
     # start adding additional created EVs
@@ -777,9 +845,6 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
     column_names = dmatrix.design_info.column_names
       
         
-    print design_matrix
-    raise Exception
-
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \

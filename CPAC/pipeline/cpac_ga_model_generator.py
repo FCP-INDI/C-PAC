@@ -14,7 +14,7 @@ from CPAC.group_analysis import create_group_analysis
 
 
 
-def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, threshold_val):
+def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, subject_infos, threshold_val):
     
     #
     # this function runs once per output file during group analysis
@@ -22,6 +22,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     import yaml
     import commands
+    import pandas as pd
 
     # p_id = a list of pipeline IDs, i.e. the name of the output folder for
     #        the strat
@@ -40,7 +41,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
     p_id, s_ids, session_ids, series_ids, scan_ids, s_paths = \
         (list(tup) for tup in zip(*subject_infos))
-
 
 
     # load group analysis model configuration file
@@ -106,9 +106,6 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
     ''' begin iteration through group subject list for processing '''
-
-    print "Sorting through subject list to check for missing outputs " \
-          "for %s..\n" % resource
 
     '''
 
@@ -246,33 +243,31 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     if not os.path.isdir(mod_path):
         os.makedirs(mod_path)
 
+    # current_mod_path = folder under
+    #   "/gpa_output/_grp_model_{model name}/model_files/{current derivative}"
     current_mod_path = os.path.join(mod_path, resource)
 
     if not os.path.isdir(current_mod_path):
         os.makedirs(current_mod_path)
 
         
-    ''' write the new subject list '''
-    '''
+    # write the new participant list
+    new_sublist_columns = new_sublist[0]
+    new_sublist = new_sublist[1:]
+
+    # create new participant list dataframe
+    new_sublist = pd.DataFrame(new_sublist, \
+                               columns=new_sublist_columns)
+
     new_sub_file = os.path.join(current_mod_path, \
                                     os.path.basename(group_conf.subject_list))
 
-    exist_subs = set(s_ids)
-
-    try:
-
-        with open(new_sub_file, 'w') as f:
-            for sub in exist_subs:
-                print >>f, sub
-        
-    except:
-
-        print "Error: Could not open subject list file: ", new_sub_file
-        raise Exception
+    with open(new_sub_file, "w") as f:
+        new_sublist.to_csv(f)
 
 
     group_conf.update('subject_list',new_sub_file)
-    '''
+    
 
     sub_id_label = group_conf.subject_id_label
 
@@ -280,7 +275,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
     # Run 'create_fsl_model' script to extract phenotypic data from
     # the phenotypic file for each of the subjects in the subject list
 
-    ''' get the motion statistics parameter file, if present '''
+    # get the motion statistics parameter file, if present
     # get the parameter file so it can be passed to create_fsl_model.py
     # so MeanFD or other measures can be included in the design matrix
 
@@ -347,7 +342,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
 
 
 
-    ''' merge the remaining subjects for this current output '''
+    # merge the remaining subjects for this current output
     # then, take the group mask, and iterate over the list of subjects
     # remaining to extract the mean of each subject using the group
     # mask
@@ -472,7 +467,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                      
 
 
-    ''' run create_fsl_model.py to generate the group analysis models '''
+    # run create_fsl_model.py to generate the group analysis models
     
     from CPAC.utils import create_fsl_model
     create_fsl_model.run(group_conf, current_output, parameter_file, \
@@ -480,7 +475,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, subject_infos, 
                                  current_mod_path, True)
 
 
-    ''' begin GA workflow setup '''
+    # begin GA workflow setup
 
     if not os.path.exists(new_sub_file):
         raise Exception("path to input subject list %s is invalid" % new_sub_file)

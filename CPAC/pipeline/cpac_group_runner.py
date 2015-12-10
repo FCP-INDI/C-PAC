@@ -185,7 +185,7 @@ def load_group_subject_list(ga_config):
 
     # get the group subject list
     if not ga_config.subject_list.endswith(".csv"):
-        err = "\n\n[!] CPAC says: The group-level analysis subject " \
+        err = "\n\n[!] CPAC says: The group-level analysis participant " \
                 "list should be a CSV file (.csv).\n\n"
         raise Exception(err)
 
@@ -195,7 +195,7 @@ def load_group_subject_list(ga_config):
 
     if "participant" not in ga_sublist.columns:
         err = "\n\n[!] CPAC says: Your group-level analysis subject "\
-                "list CSV is missing a 'subject' column.\n\n"
+                "list CSV is missing a 'participant' column.\n\n"
         raise Exception(err)
 
     if ga_config.repeated_measures == True:
@@ -290,7 +290,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                 if output not in matched_subs.keys():
                     matched_subs[output] = []
 
-                matched_subs[output].append((subject, session))
+                matched_subs[output].append((str(subject), session))
 
                 break
 
@@ -318,7 +318,7 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
                     matched_subs[output] = []
 
                 if (subject, series) not in matched_subs[output]:
-                    matched_subs[output].append((subject, series))
+                    matched_subs[output].append((str(subject), series))
                 else:
                     # this fires if there are multiple sessions, but the user
                     # did not denote multiple sessions under a 'sessions'
@@ -343,15 +343,15 @@ def wildcards_into_filepath(ga_sublist, subject_path, matched_subs, output):
         #          they would be separated by scan
                     
         for subject in ga_sublist.participant:
-            if subject in subject_path:
+            if str(subject) in subject_path:
 
-                key = subject_path.replace(subject, '*')
-                subject_id = subject
+                key = subject_path.replace(str(subject), '*')
+                subject_id = str(subject)
 
                 if output not in matched_subs.keys():
                     matched_subs[output] = []
 
-                matched_subs[output].append((subject))
+                matched_subs[output].append((str(subject)))
                 
                 break
         
@@ -545,32 +545,20 @@ def run(config_file, output_path_file):
             resource_name = resource_id
 
 
-        # loop here to replace the one below it:
-        #     go through model configs, make a list of all ders included
-        #     enumerate list of selected derivatives and the models they are
-        #     in like: (resource_id, group_model, key)
-        
-        #for group_config_file in c.modelConfigs:
-
-            #ga_config = load_group_config(group_config_file)
-
-            #ga_sublist = load_group_subject_list(ga_config)
-
-            # if this subject is not included in the group analysis subject
-            # list, go to the next one
-            #if not subject_id:
-            #    continue
-
         for model in ga_configs:
 
             if resource_id in list(ga_configs[model].derivative_list):
 
-                key, subject_id, session_id, series_id, matched_subs = \
-                    wildcards_into_filepath(ga_sublists[model], subject_path,\
-                        matched_subs, resource_id)
+                if model not in matched_subs.keys():
+                    matched_subs[model] = {}
 
+                key, subject_id, session_id, series_id, matched_subs[model] =\
+                    wildcards_into_filepath(ga_sublists[model], subject_path,\
+                        matched_subs[model], resource_id)
+
+                # toss it in the pile!
                 if key != None:
-                    analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, session_id, series_id, scan_id, subject_path))
+                    analysis_map_gp[(resource_name, group_config_file, model, key)].append((pipeline_id, subject_id, session_id, series_id, scan_id, subject_path))
 
 
 
@@ -586,6 +574,84 @@ def run(config_file, output_path_file):
         # one particular subject
 
 
+    # let's find missing subjects
+    sublist_tuples = []
+    missing_subs = {}
+
+    # create a list of tuples based on the group analysis participant list
+    for model in ga_sublists.keys():
+        for sub_row in ga_sublists[model].values:
+            sub_row = [str(i) for i in sub_row]
+            if len(sub_row) > 1:
+                sublist_tuples.append(tuple(sub_row))
+            else:
+                sublist_tuples.append(sub_row[0])
+
+
+    sublist_tuples = list(set(sublist_tuples))
+
+
+    # compare what's been matched to what's in the participant list
+    for group_model in matched_subs.keys():
+        for output_type in matched_subs[group_model].keys():
+            for sub_tuple in sublist_tuples:
+                if sub_tuple not in matched_subs[group_model][output_type]:
+            
+                    if group_model not in missing_subs.keys():
+                        missing_subs[group_model] = {}
+
+                    if output_type not in missing_subs[group_model].keys():
+                        missing_subs[group_model][output_type] = []
+
+                    missing_subs[group_model][output_type].append(sub_tuple)
+
+    if len(missing_subs) > 0:
+
+        miss_msg = "\n\n[!] CPAC warns: Output files missing for " \
+                   "participants included in group-level analysis:\n"
+
+        for group_model in missing_subs.keys():
+            for output_type in missing_subs[group_model].keys():
+                miss_msg = miss_msg + "\n" + output_type + "\n"
+                for sub_tuple in missing_subs[group_model][output_type]:
+                    miss_msg = miss_msg + str(sub_tuple) + "\n"
+
+        print miss_msg
+
+
+    # let's create new subject lists
+    new_sublists = {}
+
+    for group_model in matched_subs.keys():
+
+        if group_model not in new_sublists.keys():
+            new_sublists[group_model] = {}
+
+        for output_type in matched_subs[group_model].keys():
+
+            if output_type not in new_sublists[group_model].keys():
+                new_sublists[group_model][output_type] = []
+
+            new_list = []
+
+            tuple_list = matched_subs[group_model][output_type]
+
+            new_list.append(ga_sublists[group_model].columns)
+
+            tuple_list = list(set(tuple_list))
+
+            for sub_tuple in tuple_list:
+
+                if type(sub_tuple) is tuple:
+                    new_list.append(list(sub_tuple))
+                elif type(sub_tuple) is str:
+                    new_list.append(sub_tuple)
+
+            new_sublists[group_model][output_type] = new_list
+
+
+    # check in case there are no output files
+
     if len(analysis_map_gp) == 0:
         err = "\n\n[!] CPAC says: No output files from individual-level " \
               "analysis were found for the subjects or sessions/series " \
@@ -593,35 +659,8 @@ def run(config_file, output_path_file):
         raise Exception(err)
 
 
-    '''
-    for group_sublist in ga_sublists.values():
-        for derivative in matched_subs.keys():
-
-            raw_sublist = []
-
-            for row in group_sublist.values:
-                raw_sublist.append(tuple(row))
-
-            print set(raw_sublist)
-            print set(matched_subs[derivative])
-
-            missing_subs = \
-                set(raw_sublist) - set(matched_subs[derivative])
-
-            if len(missing_subs) > 0:
-                print "\n\n[!] Warning: outputs missing for %s for the " \
-                      "following subjects:\n" % derivative
-                for sub in missing_subs:
-                    print sub
-                print "\n"
-    '''
-
 
     print "Finished parsing through output paths!\n"
-
-
-    # HOW IS THE NEW SUBJECT LIST WRITING HANDLED?
-
 
 
     '''
@@ -660,7 +699,7 @@ def run(config_file, output_path_file):
     procss = []
     
 
-    for resource, group_model, glob_key in analysis_map_gp.keys():
+    for resource, group_model_config, group_model, glob_key in analysis_map_gp.keys():
 
         # 'resource' is each type of output
         # 'glob_key' is a path to each and every individual output file,
@@ -673,7 +712,7 @@ def run(config_file, output_path_file):
         if not c.runOnGrid:
 
             from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
-            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
+            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model_config, resource, new_sublists[group_model][resource], analysis_map_gp[(resource, group_model_config, group_model, glob_key)], scrub_threshold)))
             
         else:
         
