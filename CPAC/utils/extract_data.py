@@ -473,7 +473,7 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     writer = csv.writer(f)
 
-    writer.writerow(['subject_id', 'EV1', '..'])
+    writer.writerow(['participant', 'EV1', '..'])
     for sub in sorted(subID_set):
         writer.writerow([sub, ''])
 
@@ -500,12 +500,12 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'session', 'series', 'EV1', '..'])
 
         for session in sorted(session_set):
             for scan in sorted(scan_set):
                 for sub in sorted(subID_set):
-                    writer.writerow([sub + '_' + scan + '_' + session, ''])
+                    writer.writerow([sub, session, scan, ''])
 
         f.close()
 
@@ -527,11 +527,11 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'session', 'EV1', '..'])
 
         for session in sorted(session_set):
             for sub in sorted(subID_set):
-                writer.writerow([sub + '_' + session, ''])
+                writer.writerow([sub, session, ''])
 
         f.close()
 
@@ -553,11 +553,11 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'series', 'EV1', '..'])
 
         for scan in sorted(scan_set):
             for sub in sorted(subID_set):
-                writer.writerow([sub + '_' + scan, ''])
+                writer.writerow([sub, scan, ''])
 
         f.close()
 
