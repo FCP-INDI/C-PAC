@@ -11,7 +11,6 @@ CPAC/AWS/fetch_creds.py
 # Import packages
 import unittest
 from CPAC.AWS import fetch_creds
-from test import AWS_CREDS, BUCKET_NAME, DB_CREDS
 
 # Test case for the run function
 class FetchCredsTestCase(unittest.TestCase):
@@ -87,41 +86,6 @@ class FetchCredsTestCase(unittest.TestCase):
         self.assertIsInstance(keys[0], str)
         self.assertIsInstance(keys[1], str)
 
-    # Test getting the RDS variables from creds file
-    def test_return_rds_vars(self):
-        '''
-        Method to test the fetch_creds.return_rds_vars() function
-
-        Parameters
-        ----------
-        self : FetchCredsTestCase
-            a unittest.TestCase-inherited class
-
-        Returns
-        -------
-        None
-            this function does not return any values, but tests to make
-            sure the fetch_creds.return_rds_vars() function returns a
-            string for each of the different login variables
-        '''
-
-        # Init variables
-        err_msg = 'Variable is not a string, correct this in the '\
-                  'credentials file: %s' % self.db_creds
-
-        # Grab login variables
-        rds_vars = fetch_creds.return_rds_vars(self.db_creds)
-
-        # Assert there are five variables
-        self.assertEqual(len(rds_vars), 5)
-
-        # Assert that each are strings
-        self.assertIsInstance(rds_vars[0], str, msg=err_msg)
-        self.assertIsInstance(rds_vars[1], str, msg=err_msg)
-        self.assertIsInstance(rds_vars[2], str, msg=err_msg)
-        self.assertIsInstance(rds_vars[3], str, msg=err_msg)
-        self.assertIsInstance(rds_vars[4], str, msg=err_msg)
-
     # Test getting S3 bucket
     def test_return_bucket(self):
         '''
@@ -141,51 +105,19 @@ class FetchCredsTestCase(unittest.TestCase):
         '''
 
         # Import packages
-        import boto.s3
+        import boto3
 
         # Init variables
+        bucket_name = 'fcp-indi'
         err_msg = 'Unable to get the S3 bucket because of faulty AWS '\
                   'credentials or boto package not found'
 
         # Grab the AWS bucket
-        bucket = fetch_creds.return_bucket(self.creds_path,
-                                           self.bucket_name)
+        bucket = fetch_creds.return_bucket(None,
+                                           'fcp-indi')
 
         # Assert that it is a boto bucket object
-        self.assertIsInstance(bucket, boto.s3.bucket.Bucket,
-                              msg=err_msg)
-
-    # Test getting oracle database cursor
-    def test_return_cursor(self):
-        '''
-        Method to test the fetch_creds.return_cursor() function
-
-        Parameters
-        ----------
-        self : FetchCredsTestCase
-            a unittest.TestCase-inherited class
-
-        Returns
-        -------
-        None
-            this function does not return any values, but tests to make
-            sure the fetch_creds.return_cursor() function returns a
-            cursor object
-        '''
-
-        # Import packages
-        import cx_Oracle
-
-        # Init variables
-        err_msg = 'Unable to get the database cursor because of bad '\
-                  'credentials or cx_Oracle package not found'
-
-        # Grab the AWS bucket
-        cursor = fetch_creds.return_cursor(self.db_creds)
-
-        # Assert that it is a boto bucket object
-        self.assertIsInstance(cursor, cx_Oracle.Cursor,
-                              msg=err_msg)
+        self.assertIs(bucket.name, 'fcp-indi')
 
 
 # Command-line run-able unittest module

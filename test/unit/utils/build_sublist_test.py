@@ -1,6 +1,7 @@
 # test/unit/utils/build_sublist_test.py
 #
 # Author(s): Daniel Clark, 2015
+from CPAC.utils.build_sublist import build_sublist
 
 '''
 This module performs unit testing on functions in the buildsublist
@@ -355,7 +356,7 @@ class BuildSublistTestCase(unittest.TestCase):
         include_sites = ['site_1']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -399,7 +400,7 @@ class BuildSublistTestCase(unittest.TestCase):
         include_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -443,7 +444,7 @@ class BuildSublistTestCase(unittest.TestCase):
         exclude_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
                                      '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
@@ -465,6 +466,159 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_local_sublist_reorg(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     'site{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     'site{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_local_sublist_regexp_match(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '[si]?*{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     '?[si]*{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Function to test the custom glob pattern matcher
+    def test_check_glob_for_patterns(self):
+        '''
+        '''
+
+        # Import packages
+        from CPAC.utils import build_sublist
+
+        # Init variables
+        prefix_delim = 's?[si]ite_[a-z]?'
+        filepath = 'sisite_hi_sub001_sess1.nii.gz'
+        correct_delim = 'sisite_hi'
+
+        # Return filtered delimeter
+        new_delim = build_sublist.check_for_glob_patterns(prefix_delim, filepath)
+
+        # Assert equal
+        err_msg = 'returned delim: %s does not match %s! Check function!' % \
+                  (new_delim, correct_delim)
+        self.assertEqual(new_delim, correct_delim, err_msg)
+
+    # Test for un-specific template
+    def test_ambiguous_template(self):
+        '''
+        Function that tests the subject list cannot be built properly
+        with an over-ambiguous path template
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import build_sublist, test_init
+
+        # Init variables
+        # Init variables
+        data_config_dict = self.data_config_dict
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '{site}_mprage_{participant}_{session}_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     '{site}_rest_{participant}_{session}_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Build subject list
+        try:
+            self._return_sublist_filepaths(data_config_dict)
+        except Exception as exc:
+            self.assertIsInstance(exc, Exception)
 
 # Make module executable
 if __name__ == '__main__':

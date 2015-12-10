@@ -59,7 +59,7 @@ class CentralitySettings(wx.ScrolledWindow):
         self.page.add(label="Degree Centrality Threshold Type", 
                      control=control.CHOICE_BOX, 
                      name='degCorrelationThresholdOption', 
-                     type = dtype.NUM, 
+                     type = dtype.LSTR, 
                      comment="Select the type of threshold used when creating the degree centrality adjacency matrix.", 
                      values=["Significance threshold","Sparsity threshold", "Correlation threshold"])
         
@@ -81,7 +81,7 @@ class CentralitySettings(wx.ScrolledWindow):
         self.page.add(label="Eigenvector Centrality Threshold Type", 
                      control=control.CHOICE_BOX, 
                      name='eigCorrelationThresholdOption', 
-                     type = dtype.NUM, 
+                     type = dtype.LSTR, 
                      comment="Select the type of threshold used when creating the eigenvector centrality adjacency matrix.", 
                      values=["Significance threshold","Sparsity threshold", "Correlation threshold"])
         
@@ -103,9 +103,9 @@ class CentralitySettings(wx.ScrolledWindow):
         self.page.add(label="Local Functional Connectivity Density Threshold Type ", 
                      control=control.CHOICE_BOX, 
                      name='lfcdCorrelationThresholdOption', 
-                     type = dtype.NUM, 
+                     type = dtype.LSTR, 
                      comment="Select the type of threshold used when creating the lFCD adjacency matrix.", 
-                     values=["Correlation threshold"])
+                     values=["Significance threshold", "Correlation threshold"])
         
         self.page.add(label="Local Functional Connectivity Density Threshold Value", 
                      control=control.FLOAT_CTRL, 

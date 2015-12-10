@@ -137,6 +137,13 @@ class DirectorySettings(wx.ScrolledWindow):
                       comment="Directory where CPAC should write crash logs.",
                       validation_req=False)
 
+        self.page.add(label="Log Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name='logDirectory',
+                      type=dtype.STR,
+                      comment="Directory where CPAC should place run logs.",
+                      validation_req=False)
+
         self.page.add(label="Output Directory ",
                       control=control.DIR_COMBO_BOX,
                       name='outputDirectory',

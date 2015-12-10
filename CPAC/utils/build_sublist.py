@@ -7,6 +7,250 @@ This module has functions to build a subject list from S3 and
 local filepaths
 '''
 
+# Init global variables
+site_kw = '{site}'
+ppant_kw = '{participant}'
+sess_kw = '{session}'
+ser_kw = '{series}'
+kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
+
+# Check for glob-style patterns
+def check_for_glob_patterns(prefix_delim, filepath):
+    '''
+    Function to check the prefix delimeter for any glob patterns (?, []);
+    if some are found, they are replaced by the filepath's characters
+    in those locations - this allows for a more accurate keyword
+    extraction
+
+    Parameters
+    ----------
+    prefix_delim : string
+        the last non-wildcard characters before the desired keyword
+    filepath : string
+        filepath to the file of interest
+
+    Returns
+    -------
+    prefix_delim : string
+        the glob-matched prefix delimeter
+    '''
+
+    # Init variables
+    prefix_list = list(prefix_delim)
+    in_brak_flg = False
+    idx = 0
+    jdx = idx
+
+    # Iterate through prefix delimeter
+    for char in prefix_delim:
+        if in_brak_flg:
+            if char == ']':
+                in_brak_flg = False
+            prefix_list[jdx] = ''
+            jdx += 1
+            continue
+        filepath_test = filepath[idx:]
+        if char == '?':
+            char_match = filepath_test[0]
+            prefix_list[jdx] = char_match
+        elif char == '[' and not in_brak_flg:
+            in_brak_flg = True
+            char_match = filepath_test[0]
+            prefix_list[jdx] = char_match
+        idx += 1
+        jdx += 1
+
+    # Join list
+    prefix_delim = ''.join(prefix_list)
+
+    # Return the glob-matches prefix delimiter
+    return prefix_delim
+
+
+# Check format of filepath templates
+def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
+    '''
+    Function to validate the file templalte contains all required
+    keywords
+
+    Parameters
+    ----------
+    file_template : string
+        the file pattern template to check
+    site_kw : string
+        the keyword indicating the site-level strings in the filepaths
+    ppant_kw : string
+        the keyword indicating the ppant-level strings in the filepaths
+    sess_kw : string
+        the keyword indicating the session-level strings in the filepaths
+    ser_kw : string
+        the keyword indicating the series-level strings in the filepaths
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    Exception
+        raises an exception if the filepaths don't contain the required
+        keywords or if the filepaths have repeated keywords
+    '''
+
+    # Import packages
+    import logging
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
+
+    # Check for ppant, series-level directories
+    if not (ppant_kw in file_template and ser_kw in file_template):
+        err_msg = 'Please provide \'%s\' and \'%s\' level directories in '\
+                  'filepath template where participant and series-level '\
+                  'directories are present in file template: %s' \
+                  % (ppant_kw, ser_kw, file_template)
+        logger.error(err_msg)
+        raise Exception(err_msg)
+
+    # Check to make sure all keywords are only used once in template
+    if file_template.count(site_kw) > 1 or file_template.count(ppant_kw) > 1 or \
+       file_template.count(sess_kw) > 1 or file_template.count(ser_kw) > 1:
+        err_msg = 'There are multiple instances of key words in the provided '\
+                  'file template: %s. Fix this and try again.' % file_template
+        logger.error(err_msg)
+        raise Exception(err_msg)
+
+
+# Extract keyword from filepath
+def extract_keyword_from_path(filepath, keyword, template):
+    '''
+    Function to extract the key string from a filepath, given a
+    keyword and a file pattern template
+
+    Parameters
+    ----------
+    filepath : string
+        filepath to the file of interest
+    keyword : string
+        string of the keyword
+    template : string
+        file pattern template containing the keyword
+
+    Returns
+    -------
+    key_str : string
+        extracted string where the keyword was located in the filepath 
+    '''
+    # Import packages
+    import logging
+
+    # Init variables
+    temp_split = template.split('/')
+    fp_split = filepath.split('/')
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
+
+    # Extract directory  name of the 
+    kw_dirname = [dir for dir in temp_split if keyword in dir]
+
+    # If the keyword is in the template, extract string from filepath
+    if len(kw_dirname) == 1:
+        # Get the directory fullname from template, as well as any surrounding
+        kw_dirname = kw_dirname[0]
+        kw_idx = temp_split.index(kw_dirname)
+        # Extract directory with key string in it from filepath
+        key_str = fp_split[kw_idx]
+
+        # Get the prefix and suffix surrounding keyword
+        kw_prefix = kw_dirname.split(keyword)[0]
+        kw_suffix = kw_dirname.split(keyword)[-1]
+
+        # Replace other keywords in prefix/suffix with wildcards '*'
+        for kw in kw_strs:
+            # If keyword was found, grab any text in that position to split out
+            if kw in kw_prefix:
+                kw_prefix = kw_prefix.replace(kw, '*')
+            if kw in kw_suffix:
+                kw_suffix = kw_suffix.replace(kw, '*')
+
+        # Strip out prefix patterns
+        # If it ends with a '*', get everything before it
+        while kw_prefix.endswith('*'):
+            kw_prefix = kw_prefix[:-1]
+
+        # Make sure what is left is more than ''
+        if kw_prefix != '':
+            # Find the previous '*' from the right
+            prev_star_in_prefix = kw_prefix.rfind('*')
+            # If there is '*', grab from it to end of prefix as delim
+            if prev_star_in_prefix > 0:
+                prefix_delim = kw_prefix[prev_star_in_prefix+1:]
+            # Otherwise, just use the whole prefix as delim
+            else:
+                prefix_delim = kw_prefix
+                # Check for glob-style characters in delimeter - can only be
+                # done reliably if no wildcards/keywords at start of key_str
+                prefix_delim = check_for_glob_patterns(prefix_delim, key_str)
+
+            # Split the filepath by prefix delim
+            prefix_list = key_str.split(prefix_delim)
+
+            # If it was found and split-able, take everything past the first
+            # ocurrence of the delim (because delim could also be in suffix)
+            if len(prefix_list) > 1:
+                key_str = prefix_delim.join(prefix_list[1:])
+            # Othwerwise, it wasn't found or split-able, use what we had
+            else:
+                key_str = prefix_list[0]
+
+        # Strip out suffix patterns
+        # If it starts with a '*', get everything after it
+        while kw_suffix.startswith('*'):
+            kw_suffix = kw_suffix[1:]
+
+        # Make sure what is left is more than ''
+        if kw_suffix != '':
+            # Find the next '*' from the left
+            next_star_in_suffix = kw_suffix.find('*')
+            # If there is another '*', grab non-wildcards up until '*' as delim
+            if next_star_in_suffix > 0:
+                suffix_delim = kw_suffix[:next_star_in_suffix]
+            # Otherwise, just use the whole prefix as delim
+            else:
+                suffix_delim = kw_suffix
+
+            # Split the filepath by suffix delim
+            suffix_list = key_str.split(suffix_delim)
+
+            # If it was found and split-able, take everything up to the last
+            # ocurrence of the delim (because delim could also be in prefix)
+            if len(suffix_delim) > 1:
+                key_str = suffix_delim.join(suffix_list[:-1])
+            # Otherwise, it wasn't found or split-able, use what we had
+            else:
+                key_str = suffix_list[0]
+
+        # Check to see if we split out everything, if so, just grab
+        # whole directory
+        if key_str == '':
+            msg = 'Could not distinguish %s from filepath %s using the file ' \
+                  'pattern template %s.\nInstead, using entire directory: %s ' \
+                  'for keyword %s.\nCheck data organization and file ' \
+                  'pattern template' % (keyword, filepath, template, keyword)
+            logger.info(msg)
+            key_str = fp_split[kw_idx]
+    else:
+        logger.info('Keyword %s not found in template %s' % (keyword, template))
+        key_str = ''
+
+    # Remove any nifti extensions
+    key_str = key_str.rstrip('.gz').rstrip('nii')
+
+    # Return the key string
+    return key_str
+
+
 # Extract site-based scan parameters
 def extract_scan_params(scan_params_csv):
     '''
@@ -48,8 +292,8 @@ def extract_scan_params(scan_params_csv):
 
 
 # Filter out unwanted sites/subjects
-def filter_sub_paths(sub_paths, include_sites, include_subs,
-                     exclude_subs, site_idx, subj_idx):
+def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
+                     site_kw, ppant_kw, path_template):
     '''
     Function to filter out unwanted sites and subjects from the
     collected filepaths
@@ -64,10 +308,10 @@ def filter_sub_paths(sub_paths, include_sites, include_subs,
         indicates which subjects to keep filepaths from
     exclude_subs : list or string
         indicates which subjects to remove filepaths from
-    site_idx : integer
-        index of filepath, split by '/', where site directory is
-    subj_idx : integer
-        index of filepath, split by '/', where subj directory is
+    path_template : string
+        filepath template in the form of:
+        '.../base_dir/{site}/{participant}/{session}/..
+        {series}/file.nii.gz'
 
     Returns
     -------
@@ -75,119 +319,82 @@ def filter_sub_paths(sub_paths, include_sites, include_subs,
         a list of the filepaths to use in the filtered subject list
     '''
 
-    # Filter out sites that are not included
-    if include_sites is not None:
+    # Import packages
+    import logging
+
+    # Init variables
+    logger = logging.getLogger('sublist_builder')
+
+    # Check if {site} was specified
+    if site_kw in path_template and include_sites is not None:
+        # Filter out sites that are not included
         keep_site_paths = []
         if type(include_sites) is not list:
             include_sites = [include_sites]
-        print 'Only including sites: %s' % include_sites
-        for site in include_sites:
-            site_matches = filter(lambda sp: sp.split('/')[site_idx] == site,
-                                  sub_paths)
-            keep_site_paths.extend(site_matches)
-            #sub_paths = [sp for sp in sub_paths if sp not in site_matches]
+        logger.info('Only including sites: %s' % include_sites)
+        site_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        site_kw,
+                                                        path_template) in \
+                              include_sites, sub_paths)
+        keep_site_paths.extend(site_matches)
     else:
+        logger.info('Not filtering out any potential sites...')
         keep_site_paths = sub_paths
 
     # Only keep subjects in inclusion list or remove those in exclusion list
     if include_subs is not None and exclude_subs is not None:
         err_msg = 'Please only populate subjects to include or exclude '\
                   '- not both!'
+        logger.error(err_msg)
         raise Exception(err_msg)
     # Include only
     elif include_subs is not None:
         keep_subj_paths = []
         if type(include_subs) is not list:
             include_subs = [include_subs]
-        print 'Only including subjects: %s' % include_subs
-        for inc_sub in include_subs:
-            sub_matches = filter(lambda sp: \
-                                 sp.split('/')[subj_idx] == inc_sub,
-                                 keep_site_paths)
-            keep_subj_paths.extend(sub_matches)
+        logger.info('Only including subjects: %s' % include_subs)
+        subj_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        ppant_kw,
+                                                        path_template) in \
+                              include_subs, sub_paths)
+        keep_subj_paths.extend(subj_matches)
     # Or exclude only
     elif exclude_subs is not None:
         keep_subj_paths = []
         if type(exclude_subs) is not list:
             exclude_subs = [exclude_subs]
-        print 'Including all subjects but: %s' % exclude_subs
-        sub_excludes = []
-        for exc_sub in exclude_subs:
-            sub_excludes.extend(filter(lambda sp: \
-                                sp.split('/')[subj_idx] == exc_sub,
-                                keep_site_paths))
-        # Prune out exclusions
-        keep_subj_paths = [sp for sp in keep_site_paths \
-                           if sp not in sub_excludes]
+        logger.info('Including all subjects but: %s' % exclude_subs)
+        subj_matches = filter(lambda sp: \
+                              extract_keyword_from_path(sp,
+                                                        ppant_kw,
+                                                        path_template) not in \
+                              exclude_subs, sub_paths)
+        keep_subj_paths.extend(subj_matches)
+
     else:
         keep_subj_paths = keep_site_paths
+
+    # Filter out any duplicates
+    keep_subj_paths = list(set(keep_subj_paths))
+    logger.info('Filtered down to %d files' % len(keep_subj_paths))
 
     # Return kept paths
     return keep_subj_paths
 
 
-# Get site, ppant, session-level directory indicies
-def return_dir_indices(path_template):
-    '''
-    Function to return the site, particpant, and session-level
-    directory indicies based on splitting the path template by
-    directory seperation '/'
-
-    Parameters
-    ----------
-    path_template : string
-        filepath template in the form of:
-        's3://bucket_name/base_dir/{site}/{participant}/{session}/..
-        {series}/file.nii.gz'
-
-    Returns
-    -------
-    site_idx : integer
-        the directory level of site folders
-    ppant_idx : integer
-        the directory level of participant folders
-    sess_idx : integer
-        the directory level of the session folders
-    series_idx : integer
-        the directory level of the series folder
-    '''
-
-    # Get folder level indices of site and subject - anat
-    fp_split = path_template.split('/')
-
-    # Site level isn't required, but recommended
-    try:
-        site_idx = fp_split.index('{site}')
-    except ValueError as exc:
-        site_idx = -1
-
-    # Get required participant directory index
-    ppant_idx = fp_split.index('{participant}')
-
-    # Session level isn't required, but recommended
-    try:
-        sess_idx = fp_split.index('{session}')
-    except ValueError as exc:
-        sess_idx = -1
-
-    # Get required series directory index
-    series_idx = fp_split.index('{series}')
-
-    # Return indices
-    return site_idx, ppant_idx, sess_idx, series_idx
-
-
 # Return matching filepaths
-def return_local_filepaths(path_template):
+def return_local_filepaths(file_pattern):
     '''
     Function to return the filepaths from local directories given a
     file pattern template
 
     Parameters
     ----------
-    path_template : string
-        filepath template in the form of:
-        '/base_dir/{site}/{participant}/{session}/../file.nii.gz'
+    file_pattern : string
+        regexp and glob compatible file pattern for gathering local
+        files
 
     Returns
     -------
@@ -197,19 +404,11 @@ def return_local_filepaths(path_template):
 
     # Import packages
     import glob
+    import logging
     import os
 
-    # Check for errors
-    if not ('{participant}' in path_template and '{series}' in path_template):
-        err_msg = 'Please provide \'{particpant}\' and \'{series}\' level '\
-                  'directories in filepath template where participant and '\
-                  'series-level directories are present'
-        raise Exception(err_msg)
-
-    # Init variables
-    file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*').\
-                   replace('{series}', '*')
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Gather local files
     local_filepaths = glob.glob(file_pattern)
@@ -219,24 +418,23 @@ def return_local_filepaths(path_template):
 
     # Print how many found
     num_local_files = len(local_filepaths)
-    print 'Found %d files!' % num_local_files
+    logger.info('Found %d files!' % num_local_files)
 
     # Return the filepaths as a list
     return local_filepaths
 
 
 # Return matching filepaths
-def return_s3_filepaths(path_template, creds_path=None):
+def return_s3_filepaths(file_pattern, creds_path=None):
     '''
     Function to return the filepaths from an S3 bucket given a file
     pattern template and, optionally, credentials
 
     Parameters
     ----------
-    path_template : string
-        filepath template in the form of:
-        's3://bucket_name/base_dir/{site}/{participant}/{session}/..
-        ../file.nii.gz'
+    file_pattern : string
+        regexp and glob compatible file pattern for gathering local
+        files
     creds_path : string (optional); default=None
         filepath to a credentials file containing the AWS credentials
         to access the S3 bucket objects
@@ -249,26 +447,18 @@ def return_s3_filepaths(path_template, creds_path=None):
 
     # Import packages
     import fnmatch
+    import logging
     import os
     import re
 
     from CPAC.AWS import fetch_creds
 
-    # Check for errors
-    if not ('{participant}' in path_template and '{series}' in path_template):
-        err_msg = 'Please provide \'{particpant}\' and \'{series}\' level '\
-                  'directories in filepath template where participant and '\
-                  'series-level directories are present'
-        raise Exception(err_msg)
-
     # Init variables
-    bucket_name = path_template.split('/')[2]
-    s3_prefix = '/'.join(path_template.split('/')[:3])
+    bucket_name = file_pattern.split('/')[2]
+    s3_prefix = '/'.join(file_pattern.split('/')[:3])
 
-    # File pattern
-    file_pattern = path_template.replace('{site}', '*').\
-                   replace('{participant}', '*').replace('{session}', '*').\
-                   replace('{series}', '*')
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Find non regular expression patterns to get prefix
     s3_rel_path = file_pattern.replace(s3_prefix, '').lstrip('/')
@@ -296,10 +486,11 @@ def return_s3_filepaths(path_template, creds_path=None):
     except Exception as exc:
         err_msg = 'There was an error in retrieving S3 bucket: %s.\nError: %s'\
                   %(bucket_name, exc)
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Get filepaths from S3 with prefix
-    print 'Gathering files from S3 to parse...'
+    logger.info('Gathering files from S3 to parse...')
     s3_filepaths = []
     for s3_obj in bucket.objects.filter(Prefix=prefix):
         s3_filepaths.append(str(s3_obj.key))
@@ -312,7 +503,7 @@ def return_s3_filepaths(path_template, creds_path=None):
 
     # Print how many found
     num_s3_files = len(s3_filepaths)
-    print 'Found %d files!' % num_s3_files
+    logger.info('Found %d files!' % num_s3_files)
 
     # Return the filepaths as a list
     return s3_filepaths
@@ -336,8 +527,11 @@ def build_sublist(data_config_yml):
     '''
 
     # Import packages
+    import logging
     import os
     import yaml
+
+    from CPAC.utils.utils import setup_logger
 
     # Init variables
     tmp_dict = {}
@@ -355,6 +549,13 @@ def build_sublist(data_config_yml):
     scan_params_csv = data_config_dict['scanParametersCSV']
     sublist_outdir = data_config_dict['outputSubjectListLocation']
     sublist_name = data_config_dict['subjectListName']
+
+    # Get C-PAC logger if it's available
+    log_path = os.path.join(sublist_outdir,
+                            'sublist_build_%s.log' % \
+                            os.path.basename(data_config_yml).split('.')[0])
+    logger = setup_logger('sublist_builder', log_path, logging.INFO, to_screen=True)
+
     # Older data configs won't have this field
     try:
         creds_path = data_config_dict['awsCredentialsFile']
@@ -373,14 +574,24 @@ def build_sublist(data_config_yml):
     if creds_path == 'None':
         creds_path = None
 
+    # Check templates for proper formatting
+    check_template_format(anat_template, site_kw, ppant_kw, sess_kw, ser_kw)
+    check_template_format(func_template, site_kw, ppant_kw, sess_kw, ser_kw)
+
+    # Replace keywords with glob regex wildcards
+    anat_pattern = anat_template.replace(site_kw, '*').replace(ppant_kw, '*').\
+                   replace(sess_kw, '*').replace(ser_kw, '*')
+    func_pattern = func_template.replace(site_kw, '*').replace(ppant_kw, '*').\
+                   replace(sess_kw, '*').replace(ser_kw, '*')
+
     # See if the templates are s3 files
     if s3_str in anat_template.lower() and s3_str in func_template.lower():
         # Get anatomical filepaths from s3
-        print 'Fetching anatomical files...'
-        anat_paths = return_s3_filepaths(anat_template, creds_path)
+        logger.info('Fetching anatomical files...')
+        anat_paths = return_s3_filepaths(anat_pattern, creds_path)
         # Get functional filepaths from s3
-        print 'Fetching functional files...'
-        func_paths = return_s3_filepaths(func_template, creds_path)
+        logger.info('Fetching functional files...')
+        func_paths = return_s3_filepaths(func_pattern, creds_path)
 
     # If one is in S3 and the other is not, raise error - not supported
     elif (s3_str in anat_template.lower() and s3_str not in func_template.lower()) or \
@@ -393,33 +604,29 @@ def build_sublist(data_config_yml):
     # Otherwise, it's local files
     else:
         # Get anatomical filepaths
-        print 'Gathering anatomical files...'
-        anat_paths = return_local_filepaths(anat_template)
+        logger.info('Gathering anatomical files...')
+        anat_paths = return_local_filepaths(anat_pattern)
         # Get functional filepaths
-        print 'Gathering functional files...'
-        func_paths = return_local_filepaths(func_template)
-
-    # Get directory indicies
-    anat_site_idx, anat_ppant_idx, anat_sess_idx, anat_series_idx = \
-        return_dir_indices(anat_template)
-    func_site_idx, func_ppant_idx, func_sess_idx, func_series_idx = \
-        return_dir_indices(func_template)
+        logger.info('Gathering functional files...')
+        func_paths = return_local_filepaths(func_pattern)
 
     # Filter out unwanted anat and func filepaths
+    logger.info('Filtering anatomical files...')
     anat_paths = filter_sub_paths(anat_paths, include_sites,
                                   include_subs, exclude_subs,
-                                  anat_site_idx, anat_ppant_idx)
-    print 'Filtered down to %d anatomical files' % len(anat_paths)
+                                  site_kw, ppant_kw, anat_template)
 
+    logger.info('Filtering functional files...')
     func_paths = filter_sub_paths(func_paths, include_sites,
                                   include_subs, exclude_subs,
-                                  func_site_idx, func_ppant_idx)
-    print 'Filtered down to %d functional files' % len(func_paths)
+                                  site_kw, ppant_kw, func_template)
 
     # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
         err_msg = 'Unable to find any files after filtering sites and '\
-                  'subjects! Check site and subject inclusion/exclusion fields!'
+                  'subjects! Check site and subject inclusion fields as well '\
+                  'as filepaths and template pattern!'
+        logger.error(err_msg)
         raise Exception(err_msg)
 
     # Read in scan parameters and return site-based dictionary
@@ -430,86 +637,70 @@ def build_sublist(data_config_yml):
 
     # Iterate through file paths and build subject list
     for anat in anat_paths:
-        anat_sp = anat.split('/')
-        # Test for optional site folder
-        if anat_site_idx != -1:
-            site = anat_sp[anat_site_idx]
-        else:
-            site = ''
-
-        # Participant id
-        subj = anat_sp[anat_ppant_idx]
-
-        # Test for optional session folder
-        if anat_sess_idx != -1:
-            sess = anat_sp[anat_sess_idx]
-        else:
-            sess = ''
-
-        # Series id
-        series = anat_sp[anat_series_idx]
+        site = extract_keyword_from_path(anat, site_kw, anat_template)
+        ppant = extract_keyword_from_path(anat, ppant_kw, anat_template)
+        session = extract_keyword_from_path(anat, sess_kw, anat_template)
+        series = extract_keyword_from_path(anat, ser_kw, anat_template)
 
         # Init dictionary
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
-                  'subject_id' : subj, 'unique_id' : '_'.join([site, sess])}
+                  'subject_id' : ppant, 'unique_id' : '_'.join([site, session])}
 
         # Check for scan parameters
         if scan_params_csv is not None:
             try:
                 subj_d['scan_parameters'] = site_scan_params[site]
             except KeyError as exc:
-                print 'Site %s missing from scan parameters csv, skipping...'\
-                      % site
+                logger.info('Site %s missing from scan parameters csv, '\
+                            'skipping...' % site)
 
         # Test to make sure subject key isn't present already
         # Should be a unique entry for every anatomical image
-        tmp_key = '_'.join([site, subj, sess])
+        tmp_key = '_'.join([site, ppant, session])
         if tmp_dict.has_key(tmp_key):
             err_msg = 'Key for anatomical file already exists: %s\n'\
                       'Either duplicate scan or data needs re-organization to '\
-                      'differentiate between subjects from different sites/sessions'
+                      'differentiate between subjects from different sites/sessions'\
+                      % tmp_key
+            logger.error(err_msg)
             raise Exception(err_msg)
 
         tmp_dict[tmp_key] = subj_d
 
     # Now go through and populate functional scans dictionaries
     for func in func_paths:
-        # Extract info from filepath
-        func_sp = func.split('/')
-        # Test for optional site folder
-        if func_site_idx != -1:
-            site = func_sp[func_site_idx]
-        else:
-            site = ''
-
-        # Participant id
-        subj = func_sp[func_ppant_idx]
-
-        # Test for optional session folder
-        if func_sess_idx != -1:
-            sess = func_sp[func_sess_idx]
-        else:
-            sess = ''
-
-        # Series id
-        series = func_sp[func_series_idx]
+        site = extract_keyword_from_path(func, site_kw, func_template)
+        ppant = extract_keyword_from_path(func, ppant_kw, func_template)
+        session = extract_keyword_from_path(func, sess_kw, func_template)
+        series = extract_keyword_from_path(func, ser_kw, func_template)
 
         # Build tmp key and get subject dictionary from tmp dictionary
-        tmp_key = '_'.join([site, subj, sess])
+        tmp_key = '_'.join([site, ppant, session])
+
         # Try and find the associated anat scan
         try:
             subj_d = tmp_dict[tmp_key]
         except KeyError as exc:
-            print 'Unable to find anatomical image for %s. Skipping...' \
-                  % tmp_key
+            logger.info('Unable to find anatomical image for %s. Skipping...'\
+                        % tmp_key)
             continue
+
         # Set the rest dictionary with the scan
         subj_d['rest'][series] = func
         # And replace it back in the dictionary
         tmp_dict[tmp_key] = subj_d
 
     # Build a subject list from dictionary values
-    sublist = [v for v in tmp_dict.values()]
+    sublist = []
+    for data_bundle in tmp_dict.values():
+        if data_bundle['anat'] != '' and data_bundle['rest'] != {}:
+            sublist.append(data_bundle)
+    # Check to make sure subject list has at least one valid data bundle
+    if len(sublist) == 0:
+        err_msg = 'Unable to find both anatomical and functional data for any '\
+                  'subjects. Check data organization and file patterns!'
+        logger.error(err_msg)
+        raise Exception(err_msg)
 
     # Write subject list out to out location
     sublist_out_yml = os.path.join(sublist_outdir,

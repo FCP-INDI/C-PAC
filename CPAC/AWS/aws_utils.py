@@ -25,10 +25,10 @@ class ProgressPercentage(object):
 
         # Initialize data attributes
         self._filename = filename
-        if not hasattr(filename, 'size'):
+        if not hasattr(filename, 'content_length'):
             self._size = float(os.path.getsize(filename))
         else:
-            self._size = float(filename.size)
+            self._size = float(filename.content_length)
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
@@ -237,12 +237,24 @@ def s3_download(bucket, bucket_keys, download_dir):
     import hashlib
     import os
 
+    from botocore.exceptions import ClientError
+
     # Init variables
     num_files = len(bucket_keys)
 
     # Get filepaths from S3 with prefix
     for idx, bkey in enumerate(bucket_keys):
-        s3_md5 = bkey.e_tag.strip('"')
+        # Create a new key from the bucket and set its contents
+        bobj = bucket.Object(key=bkey)
+
+        # See if need to upload
+        try:
+            # If it exists, compare md5sums
+            bkey_exists = bobj.get()
+        except ClientError as exc:
+            '%s does not exist in bucket on S3! Skipping...' % bkey
+            continue
+        s3_md5 = bobj.e_tag.strip('"')
         # Get local path
         local_path = os.path.join(download_dir, bkey)
         # Create subdirs if necessary
@@ -251,6 +263,8 @@ def s3_download(bucket, bucket_keys, download_dir):
             os.makedirs(dirname)
         # If it exists, check its md5 before skipping
         if os.path.exists(local_path):
+            if os.path.isdir(local_path):
+                continue
             in_read = open(local_path, 'rb').read()
             local_md5 = hashlib.md5(in_read).hexdigest()
             if local_md5 == s3_md5:
@@ -259,14 +273,14 @@ def s3_download(bucket, bucket_keys, download_dir):
                 try:
                     print 'Overwriting %s...' % local_path
                     bucket.download_file(bkey, local_path,
-                                         Callback=ProgressPercentage(bkey))
+                                         Callback=ProgressPercentage(bobj))
                 except Exception as exc:
                     print 'Could not download file %s because of: %s, skipping..' \
                           % (bkey, exc)
         else:
             print 'Downloading %s to %s' % (bkey, local_path)
             bucket.download_file(bkey, local_path,
-                                 Callback=ProgressPercentage(bkey))
+                                 Callback=ProgressPercentage(bobj))
 
         # Print status
         per = 100*(float(idx+1)/num_files)
@@ -354,15 +368,14 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
             src_md5 = hashlib.md5(src_read).hexdigest()
             # If md5sums dont match, re-upload via except ClientError
             if src_md5 != dst_md5:
-                raise ClientError('Mis-match md5sums')
+                bucket.upload_file(src_file, dst_file, ExtraArgs=extra_args,
+                                   Callback=ProgressPercentage(src_file))
         except ClientError as exc:
-            print 'Uploading file because of: %s' % exc.message
-            print 'Uploading...'
-            bucket.upload_file(src_file, dst_key, ExtraArgs=extra_args,
+            bucket.upload_file(src_file, dst_file, ExtraArgs=extra_args,
                                Callback=ProgressPercentage(src_file))
 
         per = 100*(float(idx+1)/num_files)
-        print 'finished file %d/%d\n%f%% complete\n' % (idx+1, num_files, per)
+        print 'finished file %d/%d\n\n%f%% complete\n' % (idx+1, num_files, per)
 
     # Print when finished
     print 'Done!'
