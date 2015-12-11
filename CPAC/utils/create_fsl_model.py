@@ -104,9 +104,6 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
 
                 full_id.append(subject)
 
-                print pheno
-                print subject
-
                 try:
                     row = pheno[(pheno[subject_id_label] == subject)]
                 except:
@@ -144,8 +141,6 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
     pheno_data_dict = {}
 
     for line in pheno_file_rows:
-
-        print "line: ", line
 
         for val in line.values():
             
