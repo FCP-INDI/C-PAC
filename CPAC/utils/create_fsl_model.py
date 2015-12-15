@@ -304,9 +304,11 @@ def insert_new_regressor(pheno_data_dict, measure_dict, sub_id_label, \
 
             if subject == subID:
 
+                subs = [str(i) for i in list(pheno_data_dict[sub_id_label])]
+
                 # return the index (just an integer) of where in the
                 # pheno_data_dict list structure a subject ID is
-                idx = np.where(pheno_data_dict[sub_id_label]==subID)[0][0]
+                idx = np.where(subs==str(subID))[0][0]
 
                 # insert value in the proper point
                 measure_list[idx] = float(measure_dict[subID])#[measure_name])
@@ -738,7 +740,7 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
                 measure_dict = new_regressor_dict[measure]
 
                 pheno_data_dict = insert_new_regressor(pheno_data_dict, \
-                                                       measure_dict,\
+                                                       measure_dict, \
                                                        subject_id_label, \
                                                        measure)
 
