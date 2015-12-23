@@ -1,14 +1,8 @@
 
-def read_pheno_file(pheno_file, group_subject_list=None, \
-                    subject_id_label=None):
+def load_pheno_file(pheno_file):
 
     import os
-    import csv
     import pandas as pd
-
-    pheno_file_all_rows = []
-    pheno_file_rows = []
-
 
     if not os.path.isfile(pheno_file):
         err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
@@ -19,120 +13,199 @@ def read_pheno_file(pheno_file, group_subject_list=None, \
 
     with open(os.path.abspath(pheno_file),"r") as f:
 
-        pheno = pd.read_csv(f)
-
-        #p_reader = csv.DictReader(f, skipinitialspace=True)
-
-        #for line in p_reader:
-
-        #    pheno_file_all_rows.append(line)
+        pheno_dataframe = pd.read_csv(f)
 
 
-    if group_subject_list and subject_id_label:
+    return pheno_dataframe
 
-        if not os.path.isfile(group_subject_list):
-            err = "\n\n[!] CPAC says: The group-level analysis subject list "\
-                  "provided does not exist!\nPath provided: %s\n\n" \
-                  % group_subject_list
-            raise Exception(err)
 
-        with open(group_subject_list,"r") as f:
-            group_subs = pd.read_csv(f)
 
+def load_group_participant_list(group_participant_list_file):
+
+    import os
+    import pandas as pd
+
+
+    if not os.path.isfile(group_participant_list_file):
+        err = "\n\n[!] CPAC says: The group-level analysis subject list "\
+              "provided does not exist!\nPath provided: %s\n\n" \
+              % group_subject_list
+        raise Exception(err)
+
+
+    with open(group_participant_list_file,"r") as f:
+
+        group_subs_dataframe = pd.read_csv(f)
+
+
+    if "participant" not in ga_sublist.columns:
+        err = "\n\n[!] CPAC says: Your group-level analysis subject "\
+                "list CSV is missing a 'participant' column.\n\n"
+        raise Exception(err)
+
+
+    return group_subs_dataframe
+
+
+
+def process_pheno_file(pheno_file_dataframe, group_subs_dataframe, \
+                       participant_id_label):
+
+    # drops participants from the phenotype file if they are not in the group
+    # analysis participant list
+    #     also handles sessions and series appropriately for repeated measures
+
+    # input
+    #   pheno_file_dataframe: Pandas dataframe of the phenotype file
+    #   group_subs_dataframe: Pandas dataframe of the group analysis
+    #                         participant list
+    #   participant_id_label: string of the name of the participant column in
+    #                         the phenotype file
+    # output
+    #   pheno_file_rows: a list of dictionaries, with each dictionary being
+    #                    one of the rows from the phenotype file, with the
+    #                    format of {header: value, header: value, ..}
+
+    import os
+    import pandas as pd
+
+
+    if not isinstance(pheno_file_dataframe, pd.DataFrame):
+        err = "\n\n[!] CPAC says: The phenotype information input should " \
+              "be a Python Pandas dataframe object.\n\n"
+        raise Exception(err)
+
+    if not isinstance(group_subs_dataframe, pd.DataFrame):
+        err = "\n\n[!] CPAC says: The group analysis participant list input "\
+              "should be a Python Pandas dataframe object.\n\n"
+        raise Exception(err)
+
+    if not isinstance(participant_id_label, str):
+        err = "\n\n[!] CPAC says: The participant ID label input should be " \
+              "a string.\n\n"
+
+
+    pheno = pheno_file_dataframe
+    pheno_file_rows = []
         
-        df_rows = []
+    df_rows = []
 
-        subjects = list(group_subs.participant)
+    # convert from dataframe to list and make those strings just in case
+    subjects = list(group_subs_dataframe.participant)
+    subjects = [str(i) for i in subjects]
 
-        # make those strings just in case
-        subjects = [str(i) for i in subjects]
+    sessions = None
+    series = None
 
-        sessions = None
-        series = None
+    if "session" in group_subs_dataframe.columns:
+        sessions = list(group_subs_dataframe.session)
+        sessions = [str(i) for i in sessions]
 
-        if "session" in group_subs.columns:
-            sessions = list(group_subs.session)
-            sessions = [str(i) for i in sessions]
-
-        if "series" in group_subs.columns:
-            series = list(group_subs.series)
-            series = [str(i) for i in series]
+    if "series" in group_subs_dataframe.columns:
+        series = list(group_subs_dataframe.series)
+        series = [str(i) for i in series]
 
 
-        for i in range(0,len(subjects)):
+    # use an integer for iteration because we're not sure if there will be
+    # sessions and/or series
+    for i in range(0,len(subjects)):
 
-            full_id = []
+        full_id = []
 
-            subject = subjects[i]
+        subject = subjects[i]
+        full_id.append(subject)
+
+        if sessions and series:
+
+            session = sessions[i]
+            scan = series[i]
+            full_id.append(session)
+            full_id.append(scan)
+
+            try:
+                row = pheno[(pheno[participant_id_label] == subject) & \
+                          (pheno.session == session) & \
+                          (pheno.series == scan)]
+            except:
+                row = pheno[(pheno[participant_id_label] == int(subject)) & \
+                          (pheno.session == session) & \
+                          (pheno.series == scan)]
+
+        elif sessions:
+
+            session = sessions[i]
+            full_id.append(session)
+
+            try:
+                row = pheno[(pheno[participant_id_label] == subject) & \
+                          (pheno.session == session)]
+            except:
+                row = pheno[(pheno[participant_id_label] == int(subject)) & \
+                          (pheno.session == session)]
+
+
+        elif series:
+
+            scan = series[i]
+            full_id.append(scan)
+
+            try:
+                row = pheno[(pheno[participant_id_label] == subject) & \
+                          (pheno.series == scan)]
+            except:
+                row = pheno[(pheno[participant_id_label] == int(subject)) & \
+                          (pheno.series == scan)]
+
+
+        else:
+
             full_id.append(subject)
 
-            if sessions and series:
-
-                session = sessions[i]
-                scan = series[i]
-                full_id.append(session)
-                full_id.append(scan)
-
-                try:
-                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.session == session) & (pheno.series == scan)]
-                except:
-                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.session == session) & (pheno.series == scan)]
-
-            elif sessions:
-
-                session = sessions[i]
-                full_id.append(session)
-
-                try:
-                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.session == session)]
-                except:
-                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.session == session)]
+            try:
+                row = pheno[(pheno[participant_id_label] == subject)]
+            except:
+                row = pheno[(pheno[participant_id_label] == int(subject))]
 
 
-            elif series:
+        if len(row) > 1:
 
-                scan = series[i]
-                full_id.append(scan)
+            err = "\n\n[!] CPAC says: Multiple phenotype entries were " \
+                  "found for these criteria:\n\n%s\n\nPlease ensure " \
+                  "your group analysis participant list and phenotype " \
+                  "file are configured correctly.\n\n" % str(full_id)
+            raise Exception(err)
 
-                try:
-                    row = pheno[(pheno[subject_id_label] == subject) & (pheno.series == scan)]
-                except:
-                    row = pheno[(pheno[subject_id_label] == int(subject)) & (pheno.series == scan)]
+        elif len(row) == 1:
 
-
-            else:
-
-                full_id.append(subject)
-
-                try:
-                    row = pheno[(pheno[subject_id_label] == subject)]
-                except:
-                    row = pheno[(pheno[subject_id_label] == int(subject))]
+            df_rows.append(row)
 
 
-            if len(row) > 1:
+    new_pheno_df = pd.concat(df_rows)
 
-                err = "\n\n[!] CPAC says: Multiple phenotype entries were " \
-                      "found for these criteria:\n\n%s\n\nPlease ensure " \
-                      "your group analysis participant list and phenotype " \
-                      "file are configured correctly.\n\n" % str(full_id)
-                raise Exception(err)
-
-            elif len(row) == 1:
-
-                df_rows.append(row)
-
-
-        new_pheno_df = pd.concat(df_rows)
-
-        pheno_file_rows = new_pheno_df.to_dict("records")
+    pheno_file_rows = new_pheno_df.to_dict("records")
 
 
     return pheno_file_rows
 
 
 
-def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
+def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
+
+    # creates the phenotype data dictionary in a format Patsy requires,
+    # and also demeans the continuous EVs marked for demeaning
+
+    # input
+    #   pheno_file_rows: a list of dictionaries, with each dictionary being
+    #                    one of the rows from the phenotype file, with the
+    #                    format of {header: value, header: value, ..}
+    #   ev_selections: a dictionary with keys for "categorical" and "demean",
+    #                  with the entries being lists of phenotype EV names
+    #   participant_id_label: string of the name of the participant column in
+    #                         the phenotype file
+    # output
+    #   pheno_data_dict: a dictionary with each key being a phenotype column,
+    #                    and each entry being a list of values, IN ORDER
+    #                        data is also in Patsy-acceptable format
 
     import os
     import csv
@@ -148,7 +221,7 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
             # row. if not, continue on with the "else" clause
             if val == "":
                 break
-                    
+
         else:
 
             for key in line.keys():
@@ -227,107 +300,62 @@ def create_pheno_dict(pheno_file_rows, ev_selections, subject_id_label):
 
 
 
-def load_group_subject_list(ga_sublist_file):
-
-    # THIS MORE OR LESS ALREADY EXISTS IN CPAC_GROUP_RUNNER, need to
-    # consolidate code and remove code redundancy
-
-    import pandas as pd
-
-    with open(ga_sublist_file,"r") as f:
-        ga_sublist = pd.read_csv(f)
-
-
-    if "participant" not in ga_sublist.columns:
-        err = "\n\n[!] CPAC says: Your group-level analysis subject "\
-                "list CSV is missing a 'participant' column.\n\n"
-        raise Exception(err)
-
-
-    return ga_sublist
-
-
-
 def get_measure_dict(param_file):
 
+    # load the CPAC-generated power parameters file and parse it
+
+    # input
+    #   param_file: a full path to the CPAC-generated power parameters CSV
+    # output
+    #   measure_dict: a dictionary of dictionaries in the following format
+    #                     {"MeanFD_Power": {"participant_01": 15.43,
+    #                                       "participant_02": 13.22},
+    #                      "MeanFD_Jenkinson": {"participant_01": 18.55,
+    #                                           "participant_02": 16.27},
+    #                      ...}
+
     import os
-    import csv
+    import pandas as pd
 
     if not os.path.isfile(param_file):
-        err = "\n[!] CPAC says: You've included a motion parameter in " \
-                "your group-level analysis model design formula, but " \
-                "there is no motion parameters file available.\n"
+        err = "\n\n[!] CPAC says: You've included a motion parameter in " \
+              "your group-level analysis model design formula, but " \
+              "there is no motion parameters file available.\n\n"
         raise Exception(err)
 
-    measures = ['MeanFD', 'MeanFD_Jenkinson', 'MeanDVARS']
+    with open(param_file,"r") as f:
+        motion_params = pd.read_csv(f, index_col=False)
+
+
+    measures = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
 
     measure_dict = {}
 
-    with open(param_file,"r") as f:
 
-        motion_params = csv.DictReader(f)
+    for m in measures:
 
-        for line in motion_params:
-            measure_map = {}
-            for m in measures:
-                if line.get(m):
-                    measure_map[m] = line[m]
+        measure_map = {}
+        
+        if m in motion_params.columns:
 
-            measure_dict[line['Subject']] = measure_map
+            part_ids = list(motion_params["Subject"])
+            part_ids = [str(i) for i in part_ids]
+
+            scan_ids = list(motion_params["Scan"])
+            scan_ids = [str(i) for i in scan_ids]            
+
+            measure_vals = list(motion_params[m])
+            measure_vals = [float(i) for i in measure_vals]
+
+            for part_id, scan_id, measure_val in \
+                zip(part_ids, scan_ids, measure_vals):
+
+                measure_map[(part_id,scan_id)] = measure_val
+
+        measure_dict[m] = measure_map
 
 
     return measure_dict
-
-
-
-def insert_new_regressor(pheno_data_dict, measure_dict, sub_id_label, \
-                             measure_name):
-
-    import numpy as np
-
-    # processes a motion measure (MeanFD, Mean DVARS, etc.), demeans the
-    # values, and inserts it into the pheno data dict appropriately and
-    # returns the updated version
-
-    measure_list = []
-
-    # create a blank list that is the proper length
-    for sub in pheno_data_dict[sub_id_label]:
-        measure_list.append(0)
-
-    for subID in measure_dict.keys():
-
-        # find matching subject IDs between the measure_dict and the
-        # pheno_data_dict so we can insert measure values into the
-        # pheno_data_dict
-        for subject in pheno_data_dict[sub_id_label]:
-
-            if subject == subID:
-
-                subs = [str(i) for i in list(pheno_data_dict[sub_id_label])]
-
-                # return the index (just an integer) of where in the
-                # pheno_data_dict list structure a subject ID is
-                idx = np.where(subs==str(subID))[0][0]
-
-                # insert value in the proper point
-                measure_list[idx] = float(measure_dict[subID])#[measure_name])
-
-
-    # time to demean the values
-    measure_mean = sum(measure_list) / len(measure_list)
-
-    idx = 0
-
-    for measure in measure_list:
-        measure_list[idx] = measure - measure_mean
-        idx += 1
-
-    # add this new list to the pheno_data_dict
-    pheno_data_dict[measure_name] = np.array(measure_list)
-
-
-    return pheno_data_dict
 
 
 
@@ -371,9 +399,9 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
 
     if grouping_var == None or grouping_var not in formula:
         print '\n\n[!] CPAC says: Model group variances separately is ' \
-                'enabled, but the grouping variable set is either set to ' \
-               'None, or was not included in the model as one of the ' \
-                'EVs.\n'
+              'enabled, but the grouping variable set is either set to ' \
+              'None, or was not included in the model as one of the ' \
+              'EVs.\n'
         print 'Design formula: ', formula
         print 'Grouping variable: ', grouping_var, '\n\n'
         raise Exception
@@ -629,61 +657,70 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
 
 
 
-def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
-                             subject_id_label, coding_scheme="Treatment", \
-                             grouping_var=None, new_regressor_dict=None, \
-                             roi_means_dict=None,  output_dir=None, \
-                             model_name="design", current_output=None):
+def create_design_matrix(pheno_file, ev_selections, formula, \
+                             subject_id_label, sub_list=None, \
+                             coding_scheme="Treatment", grouping_var=None, \
+                             new_regressor_dict=None, roi_means_dict=None, \
+                             output_dir=None, model_name="design", \
+                             current_output=None):
 
     # this should allow the user to easily create a FLAMEO-formatted .mat file
-    # from the command line or from within CPAC
+    # and .grp file from the command line or from within CPAC
 
-    # pheno_file: full path to a CSV file with the phenotypic data
+    # input
+    #   pheno_file: full path to a CSV file with the phenotypic data
     #
-    # sub_list: full path to a text file containing the subject IDs (one on
-    #           each line) that you want included from the phenotypic file
-    # 
-    # ev_selections: a Python dictionary of two lists denoting which EVs are
-    #                categorical, and which should be demeaned
-    #                    format - {"categorical": ["dx_group", "sex"], 
-    #                              "demean": ["age"]}
+    #   ev_selections: a Python dictionary of two lists denoting which EVs are
+    #                  categorical, and which should be demeaned
+    #                      format - {"categorical": ["dx_group", "sex"], 
+    #                                "demean": ["age"]}
     #
-    # formula: a string with the Patsy-format design matrix formula
-    #          more info here:
-    #              http://patsy.readthedocs.org/en/latest/formulas.html
+    #   formula: a string with the Patsy-format design matrix formula
+    #            more info here:
+    #                http://patsy.readthedocs.org/en/latest/formulas.html
     #
-    # subject_id_label: a string denoting the header label of the subject ID
-    #                   column in the phenotype CSV file
+    #   subject_id_label: a string denoting the header label of the subject ID
+    #                     column in the phenotype CSV file
     #
-    # coding_scheme: (optional) which encoding scheme Patsy should use when
-    #                creating the design matrix - "Treatment" (default) or
-    #                "Sum"
+    #   sub_list: (optional) full path to a CSV file containing the
+    #             participant IDs, and optionally session and/or series IDs
+    #             that you want included from the phenotypic file
+    #             NOTE: if not provided, all rows from phenotypic are included
+    #                   in the model
     #
-    # grouping_var: (optional) the grouping variable to use if modeling group
-    #               variances separately
+    #   coding_scheme: (optional) which encoding scheme Patsy should use when
+    #                  creating the design matrix - "Treatment" (default) or
+    #                  "Sum"
     #
-    # new_regressor_dict: (optional) a Python dictionary containing other
-    #                     dictionaries of subject IDs matched to the values of
-    #                     each new regressor
-    #                         format - {"MeanFD": {"sub001": 0.493,
-    #                                              "sub002": 0.211,},
-    #                                   "Measure_Mean": {"sub001": 0.193,
-    #                                                    "sub002": 0.392},
-    #                                   ..}
+    #   grouping_var: (optional) the grouping variable to use if modeling
+    #                 group variances separately
     #
-    # roi_means_dict: (optional) a Python dictionary of lists containing the
-    #                 mean values of user-defined ROIs of the derivative for
-    #                 each subject
-    #                     format - {"sub001": [3.23, 2.11],
-    #                               "sub002": [1.79, 3.03]}
-    #                     (with the length of the lists being the number of
-    #                      ROIs specified)
+    #   new_regressor_dict: (optional) a Python dictionary containing other
+    #                       dictionaries of subject IDs matched to the values
+    #                       of each new regressor
+    #                           format - {"MeanFD": {"sub001": 0.493,
+    #                                                "sub002": 0.211,},
+    #                                     "Measure_Mean": {"sub001": 0.193,
+    #                                                      "sub002": 0.392},
+    #                                     ..}
     #
-    # output_dir: (optional) where to write the .mat file
+    #   roi_means_dict: (optional) a Python dictionary of lists containing the
+    #                   mean values of user-defined ROIs of the derivative for
+    #                   each subject
+    #                       format - {"sub001": [3.23, 2.11],
+    #                                 "sub002": [1.79, 3.03]}
+    #                       (with the length of the lists being the number of
+    #                        ROIs specified)
     #
-    # model_name: (optional) name of the group analysis model
+    #   output_dir: (optional) where to write the .mat file
     #
-    # current_output: (optional) name of the derivative in the analysis
+    #   model_name: (optional) name of the group analysis model
+    #
+    #   current_output: (optional) name of the derivative in the analysis
+    #
+    # output
+    #   dmatrix: a Patsy object of the design matrix
+    #   depatsified_EV_names: a list of the column names of the design matrix
 
 
     import os
@@ -695,54 +732,65 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
         output_dir = os.getcwd()
 
 
-    # return the data from the phenotype file processed properly for Patsy
-    # and load it into 'pheno_data_dict'
-    #     format: dictionary, each key is the name of an EV, and its value is
-    #             a LIST of values in order of the subjects
-    #                 - categorical EVs are already renamed from '0,1,..' to
-    #                   'EV0,EV1,..' with EV being the EV name
-    #                 - EVs to be demeaned are already demeaned
-    #                 - numerical EVs (non-categorical) are in a list which
-    #                   have been converted into a NumPy array
+    # let's process the phenotype file data and drop rows (participants) if
+    # they are not listed in the participant list
+    pheno_file_df = load_pheno_file(pheno_file)
 
-    pheno_file_rows = read_pheno_file(pheno_file, sub_list, subject_id_label)
+    participant_list_df = load_group_participant_list(sub_list)
+
+    pheno_file_rows = process_pheno_file(pheno_file_df, participant_list_df, \
+                                         subject_id_label)
 
 
     # get number of subjects that have the derivative for this current model
     # (basically, the amount of time points, which must be greater than the
     # number of EVs)
+    num_subjects = len(participant_list_df)
 
-    sub_ids = load_group_subject_list(sub_list)
-
-    num_subjects = len(sub_ids)
 
     # for repeated measures
-    if "session" in sub_ids.columns:
+    if "session" in participant_list_df.columns:
         ev_selections["categorical"].append("session")
 
-    if "series" in sub_ids.columns:
+    if "series" in participant_list_df.columns:
         ev_selections["categorical"].append("series")
 
 
-    # create the phenotypic data dictionary
-    pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
-                                            subject_id_label)
-
-
-    # start adding additional created EVs
+    # start adding additionally created EVs
     if new_regressor_dict:
 
         for measure in new_regressor_dict.keys():
 
-            if (measure in formula) and \
-                (measure not in pheno_data_dict.keys()):
+            if (measure in formula):
 
                 measure_dict = new_regressor_dict[measure]
 
-                pheno_data_dict = insert_new_regressor(pheno_data_dict, \
-                                                       measure_dict, \
-                                                       subject_id_label, \
-                                                       measure)
+                for pheno_row_dict in pheno_file_rows:
+
+                    participant_id = pheno_row_dict[subject_id_label]
+
+                    if ("session" in pheno_row_dict.keys()) and \
+                        ("series" in pheno_row_dict.keys()):
+                        session_id = pheno_row_dict["session"]
+                        series_id = pheno_row_dict["series"]
+                        participant_tuple = \
+                            (participant_id, session_id, series_id)
+
+                    elif "session" in pheno_row_dict.keys():
+                        session_id = pheno_row_dict["session"]
+                        participant_tuple = (participant_id, session_id)
+
+                    elif "series" in pheno_row_dict.keys():
+                        series_id = pheno_row_dict["series"]
+                        participant_tuple = (participant_id, series_id)
+
+                    else:
+                        participant_tuple = (participant_id)
+                    
+                    pheno_row_dict[measure] = measure_dict[participant_tuple]
+
+
+                ev_selections["demean"].append(measure)
 
 
     if "Custom_ROI_Mean" in formula:
@@ -755,7 +803,13 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
                   "\n\n"
             raise Exception(err)
 
-
+        # roi_dict_dict is a dictionary of dictionaries, with each dictionary
+        # holding all of the means for one ROI, with each entry being a mean
+        # for a participant (the keys are the participant IDs)
+        #     ex. {participant_01: 35.15, participant_02: 50.00}
+        #             with the float values being all of the means of one of
+        #             the ROIs specified
+        # there will be a dictionary for each ROI specified
         roi_dict_dict = get_custom_roi_info(roi_means_dict)
 
         add_formula_string = ""
@@ -764,10 +818,32 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
 
             roi_dict = roi_dict_dict[roi_column]
 
-            pheno_data_dict = insert_new_regressor(pheno_data_dict, \
-                                                   roi_dict,\
-                                                   subject_id_label,
-                                                   roi_column)
+            for pheno_row_dict in pheno_file_rows:
+
+                participant_id = pheno_row_dict[subject_id_label]
+
+                if ("session" in pheno_row_dict.keys()) and \
+                    ("series" in pheno_row_dict.keys()):
+                    session_id = pheno_row_dict["session"]
+                    series_id = pheno_row_dict["series"]
+                    participant_tuple = \
+                        (participant_id, session_id, series_id)
+
+                elif "session" in pheno_row_dict.keys():
+                    session_id = pheno_row_dict["session"]
+                    participant_tuple = (participant_id, session_id)
+
+                elif "series" in pheno_row_dict.keys():
+                    series_id = pheno_row_dict["series"]
+                    participant_tuple = (participant_id, series_id)
+
+                else:
+                    participant_tuple = (participant_id)
+
+                pheno_row_dict[roi_column] = roi_dict[participant_tuple]
+
+
+            ev_selections["demean"].append(roi_column)
 
             # create a string of all the new custom ROI regressor column names
             # to be inserted into the design formula, so that Patsy will
@@ -783,6 +859,20 @@ def create_design_matrix(pheno_file, sub_list, ev_selections, formula, \
         # now been added to the model with appropriate column labels      
 
         formula = formula.replace("Custom_ROI_Mean",add_formula_string)
+
+
+
+    # return the data from the phenotype file processed properly for Patsy
+    # and load it into 'pheno_data_dict'
+    #     format: dictionary, each key is the name of an EV, and its value is
+    #             a LIST of values in order of the subjects
+    #                 - categorical EVs are already renamed from '0,1,..' to
+    #                   'EV0,EV1,..' with EV being the EV name
+    #                 - EVs to be demeaned are already demeaned
+    #                 - numerical EVs (non-categorical) are in a list which
+    #                   have been converted into a NumPy array
+    pheno_data_dict = create_pheno_dict(pheno_file_rows, ev_selections, \
+                                        subject_id_label)
 
 
 
@@ -1438,42 +1528,9 @@ def run(group_config, current_output, param_file=None, \
 
     measure_dict = {}
 
-    # extract motion measures
+    # extract motion measures from CPAC-generated power params file
     if param_file != None:
-
-        # extract motion measures such as MeanFD, MeanDVARS, etc. from the
-        # motion parameters CSV provided so that they may be inserted as new
-        # regressors into the model
-
-        if not os.path.exists(param_file):
-            err = "[!] CPAC says: The motion parameters CSV file path you " \
-                  "provided does not exist!\nCSV file path: %s" % param_file
-            raise Exception(err)
-
-
-        measures = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
-
-
-        with open(param_file,"r") as f:
-
-            param_dictreader = csv.DictReader(f)
-
-            motion_param_lines = []
-
-            for line in param_dictreader:
-                # each "line" is a dictionary
-                motion_param_lines.append(line)
-
-            for m in measures:
-
-                measure_map = {}
-                for sub in motion_param_lines:
-
-                    if m in sub.keys():
-                        measure_map[sub["Subject"]] = sub[m]
-
-                measure_dict[m] = measure_map
-
+        measure_dict = get_measure_dict(param_file)        
 
 
     # combine the motion measures dictionary with the measure_mean
