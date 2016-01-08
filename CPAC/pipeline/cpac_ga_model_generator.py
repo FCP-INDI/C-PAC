@@ -17,7 +17,7 @@ from CPAC.group_analysis import create_group_analysis
 def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, subject_infos, threshold_val):
     
     #
-    # this function runs once per output file during group analysis
+    # this function runs once per derivative type during group analysis
     #
 
     import yaml
@@ -102,131 +102,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
 
         if count_ftests > 0:
             fTest = True
-
-
-
-    ''' begin iteration through group subject list for processing '''
-
-    '''
-
-    for ga_sub in group_sublist:
-        # Strip out carriage-return character if it is there
-        
-        
-        if ga_sub.endswith('\r'):
-            ga_sub = ga_sub.rstrip('\r')
-
-        # ga_sub = subject ID taken off the group analysis subject list
-
-        # let's check to make sure the subject list is formatted for
-        # repeated measures properly if repeated measures is enabled
-        # and vice versa
-        if (group_conf.repeated_measures == True) and (',' not in ga_sub):
-            print '\n\n'
-            print '[!] CPAC says: The group analysis subject list ' \
-                  'is not in the appropriate format for repeated ' \
-                  'measures.\n'
-            print 'Please use the appropriate format as described in ' \
-                  'the CPAC User Guide or turn off Repeated Measures ' \
-                  'in the CPAC pipeline configuration editor, found ' \
-                  'in the \'Group Analysis Settings\' tab of the ' \
-                  'pipeline configuration editor.\n'
-            print 'NOTE: CPAC generates a properly-formatted group ' \
-                  'analysis subject list meant for running repeated ' \
-                  'measures when you create your original subject ' \
-                  'list. Look for \'subject_list_group_analysis_' \
-                  'repeated_measures.txt\' in the directory where ' \
-                  'you created your subject list.\n\n'
-            raise Exception
-
-        elif (group_conf.repeated_measures == False) and (',' in ga_sub):
-            print '\n\n'
-            print '[!] CPAC says: It looks like your group analysis ' \
-                  'subject list is formatted for running repeated ' \
-                  'measures, but \'Run Repeated Measures\' is not ' \
-                  'enabled in the pipeline configuration, found in ' \
-                  'the \'Group Analysis Settings\' tab of the ' \
-                  'pipeline configuration editor.\n'
-            print 'Double-check your pipeline configuration?\n\n'
-            raise Exception
-
-
-
-        # process subject ids for repeated measures, if it is on 
-
-        # if repeated measures is being run and the subject list
-        # is a list of subject IDs and scan IDs concatenated
-        if (group_conf.repeated_measures == True):
-
-            # sub.count(',') equals 1 when there is either multiple scans
-            # or multiple sessions but not both, for repeated measures
-
-            # sub.count(',') equals 2 when there are multiple sessions
-            # AND scans, for repeated measures
-
-            if ga_sub.count(',') == 1:
-                sub_id = ga_sub.split(',',1)[0]
-                other_id = ga_sub.split(',',1)[1]
-
-            elif ga_sub.count(',') == 2:
-                sub_id = ga_sub.split(',',2)[0]
-                scan_id = ga_sub.split(',',2)[1]
-                session_id = ga_sub.split(',',2)[2]
-
-
-
-        # drop subjects from the group subject list
-
-
-        for path in s_paths:
-
-            if (group_conf.repeated_measures == True):
-
-                if ga_sub.count(',') == 1:
-                    if (sub_id in path) and (other_id in path):
-                        exist_paths.append(ga_sub)
-                        derivative_paths.append(path)
-
-                elif ga_sub.count(',') == 2:
-                    if (sub_id in path) and (scan_id in path) and \
-                            (session_id in path):
-                        exist_paths.append(ga_sub)
-                        derivative_paths.append(path)
-
-            else:
-                if ga_sub in path:
-                    exist_paths.append(ga_sub)
-                    derivative_paths.append(path)
-
-
-        # END subject-dropping!
-
-        if len(derivative_paths) == 0:
-            print '\n\n\n[!] CPAC says: None of the subjects listed in the ' \
-                  'group analysis subject list were found to have outputs ' \
-                  'produced by individual-level analysis.\n\nEnsure that ' \
-                  'the subjects listed in your group analysis subject list ' \
-                  'are the same as the ones included in the individual-' \
-                  'level analysis you are running group-level analysis for.' \
-                  '\n\n\n'
-            raise Exception
-
-
-    # END subject list iteration
-
-
-    # check to see if any derivatives of subjects are missing
-    if len(list(set(group_sublist) - set(exist_paths))) >0:
-        print "List of outputs missing for subjects:"
-        print list(set(group_sublist) - set(exist_paths))
-        print "..for derivatives:"
-        print resource
-        print "..at paths:"
-        print os.path.dirname(s_paths[0]).replace(s_ids[0], '*')
-
-    '''
-
-        
+      
 
     # create the path string for the group analysis output
     out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')

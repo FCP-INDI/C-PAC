@@ -162,9 +162,9 @@ def s3_rename(bucket, src_list, dst_list,
             print 'to destination: ', dst_key
             if make_public:
                 print 'making public...'
-                dst_key.copy_from(CopySource=bucket.name + '/' + dst_key, ACL='public-read')
+                dst_obj.copy_from(CopySource=bucket.name + '/' + str(src_f), ACL='public-read')
             else:
-                dst_key.copy_from(CopySource=bucket.name + '/' + dst_key)
+                dst_obj.copy_from(CopySource=bucket.name + '/' + str(src_f))
             if not keep_old:
                 src_key.delete()
 
