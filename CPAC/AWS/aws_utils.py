@@ -2,6 +2,7 @@
 #
 # Contributing authors:
 # Daniel Clark
+from traits.has_traits import PrefixTraits
 
 '''
 This module contains functions which assist in interacting with AWS
@@ -25,10 +26,12 @@ class ProgressPercentage(object):
 
         # Initialize data attributes
         self._filename = filename
-        if not hasattr(filename, 'content_length'):
-            self._size = float(os.path.getsize(filename))
-        else:
+        if hasattr(filename, 'content_length'):
             self._size = float(filename.content_length)
+        elif hasattr(filename, 'size'):
+            self._size = float(filename.size)
+        else:
+            self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
@@ -214,7 +217,7 @@ def s3_delete(bucket, bucket_keys):
 # Download files from AWS S3 to local machine
 def s3_download(bucket, bucket_keys, download_dir):
     '''
-    Method to download files from an AWS S3 bucket that have the same
+    Function to download files from an AWS S3 bucket that have the same
     names as those of an input list to a local directory.
 
     Parameters

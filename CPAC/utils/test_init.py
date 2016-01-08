@@ -126,7 +126,8 @@ def return_aws_creds():
     if not creds_path:
         err_msg = 'CPAC_AWS_CREDS environment variable not set!\n' \
                   'Set this to the filepath location of your AWS credentials.'
-        raise Exception(err_msg)
+        print err_msg
+        creds_path = raw_input('Enter path to AWS credentials file: ')
     else:
         return creds_path
 
@@ -528,15 +529,17 @@ def download_resource_from_s3(s3_url_path):
 
     # Import packages
     import os
+    import tempfile
     import urllib
 
     # Init variables
+    temp_dir = tempfile.mkdtemp()
     url_open = urllib.URLopener()
     base_name = os.path.basename(s3_url_path)
-    dl_path = os.path.join('/tmp', base_name)
+    dl_path = os.path.join(temp_dir, base_name)
 
-    # Download file to /tmp
-    url_open.retrieve(s3_url_path, os.path.join('/tmp', dl_path))
+    # Download file
+    url_open.retrieve(s3_url_path, dl_path)
 
     # Return the downloaded path
     return dl_path
