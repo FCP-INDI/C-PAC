@@ -99,8 +99,7 @@ def md5_sum(bucket, prefix='', filt_str=''):
 
 
 # Rename s3 keys from src_list to dst_list
-def s3_rename(bucket, src_list, dst_list,
-              keep_old=False, make_public=False):
+def s3_rename(bucket, src_dst_tuple, keep_old=False, make_public=False):
     '''
     Function to rename files from an AWS S3 bucket via a copy and delete
     process. Uses all keys in src_list as the original names and renames
@@ -111,10 +110,11 @@ def s3_rename(bucket, src_list, dst_list,
     ----------
     bucket : boto3 Bucket instance
         an instance of the boto3 S3 bucket class to download from
-    src_list : list (str)
-        a list of relative paths of the files to delete from the bucket
-    dst_list : list (str)
-        a list of relative paths of the files to delete from the bucket
+    src_dst_tuple : tuple
+        a tuple of src and dstlocal lists where src_dst_tuple[0] is the
+        src_list and src_dst_tuple[1] is the corresponding dst list;
+        src_list[n] would be renamed and saved as dst_list[n] on the S3
+        bucket provided
     keep_old : boolean (optional), default=False
         flag indicating whether to keep the src_list files
     make_public : boolean (optional), default=False
@@ -129,6 +129,10 @@ def s3_rename(bucket, src_list, dst_list,
 
     # Import packages
     from botocore.exceptions import ClientError
+
+    # Init variables
+    src_list = src_dst_tuple[0]
+    dst_list = src_dst_tuple[1]
 
     # Check list lengths are equal
     if len(src_list) != len(dst_list):
@@ -215,7 +219,7 @@ def s3_delete(bucket, bucket_keys):
 
 
 # Download files from AWS S3 to local machine
-def s3_download(bucket, bucket_keys, download_dir):
+def s3_download(bucket, s3_local_tuple, download_dir):
     '''
     Function to download files from an AWS S3 bucket that have the same
     names as those of an input list to a local directory.
@@ -224,6 +228,10 @@ def s3_download(bucket, bucket_keys, download_dir):
     ----------
     bucket : boto3 Bucket instance
         an instance of the boto3 S3 bucket class to download from
+    s3_local_tuple : tuple
+        a tuple of s3 and local lists where s3_local_tuple[0] is the
+        s3_list and s3_local_tuple[1] is the corresponding local list;
+        s3_list[n] would be downloaded and saved as local_list[n]
     bucket_keys : list
         a list of relative paths of the files to download from the bucket
     downoad_dir : string
@@ -243,10 +251,12 @@ def s3_download(bucket, bucket_keys, download_dir):
     from botocore.exceptions import ClientError
 
     # Init variables
-    num_files = len(bucket_keys)
+    s3_list = s3_local_tuple[0]
+    local_files = s3_local_tuple[1]
+    num_files = len(s3_list)
 
     # Get filepaths from S3 with prefix
-    for idx, bkey in enumerate(bucket_keys):
+    for idx, bkey in enumerate(s3_list):
         # Create a new key from the bucket and set its contents
         bobj = bucket.Object(key=bkey)
 
@@ -259,7 +269,7 @@ def s3_download(bucket, bucket_keys, download_dir):
             continue
         s3_md5 = bobj.e_tag.strip('"')
         # Get local path
-        local_path = os.path.join(download_dir, bkey)
+        local_path = local_files[idx]
         # Create subdirs if necessary
         dirname = os.path.dirname(local_path)
         if not os.path.exists(dirname):
@@ -294,7 +304,7 @@ def s3_download(bucket, bucket_keys, download_dir):
 
 
 # Upload files to AWS S3
-def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
+def s3_upload(bucket, local_s3_tuple, make_public=False, encrypt=False):
     '''
     Function to upload a list of data to an S3 bucket
 
@@ -302,12 +312,11 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
     ----------
     bucket : boto3 Bucket instance
         an instance of the boto3 S3 bucket class to upload to
-    src_list : list (str)
-        list of filepaths as strings to upload to S3
-    dst_list : list (str)
-        list of filepaths as strings coinciding with src_list, such
-        that src_list[1] gets uploaded to S3 with the S3 path given in
-        dst_list[1]
+    local_s3_tuple : tuple
+        a tuple of local and s3 lists where local_s3_tuple[0] is the
+        local_list and local_s3_tuple[1] is the corresponding s3 list;
+        local_list[n] would be uploaded and saved as s3_list[n]
+        in the bucket
     make_public : boolean (optional), default=False
         set to True if files should be publically read-able on S3
     encrypt : boolean (optional), default=False
@@ -326,7 +335,9 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
     from botocore.exceptions import ClientError
 
     # Init variables
-    num_files = len(src_list)
+    local_list = local_s3_tuple[0]
+    s3_list = local_s3_tuple[1]
+    num_files = len(local_list)
     s3_str = 's3://'
     extra_args = {}
 
@@ -339,13 +350,13 @@ def s3_upload(bucket, src_list, dst_list, make_public=False, encrypt=False):
         extra_args['ServerSideEncryption'] = 'AES256'
 
     # Check if the list lengths match 
-    if num_files != len(dst_list):
-        raise RuntimeError, 'src_list and dst_list must be the same length!'
+    if num_files != len(s3_list):
+        raise RuntimeError, 'local_list and s3_list must be the same length!'
 
     # For each source file, upload
-    for idx, src_file in enumerate(src_list):
+    for idx, src_file in enumerate(local_list):
         # Get destination path
-        dst_file = dst_list[idx]
+        dst_file = s3_list[idx]
 
         # Check for s3_prefix
         if src_file.startswith(s3_str):
