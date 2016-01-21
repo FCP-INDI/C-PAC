@@ -219,7 +219,7 @@ def s3_delete(bucket, bucket_keys):
 
 
 # Download files from AWS S3 to local machine
-def s3_download(bucket, s3_local_tuple, download_dir):
+def s3_download(bucket, s3_local_tuple):
     '''
     Function to download files from an AWS S3 bucket that have the same
     names as those of an input list to a local directory.
@@ -232,10 +232,6 @@ def s3_download(bucket, s3_local_tuple, download_dir):
         a tuple of s3 and local lists where s3_local_tuple[0] is the
         s3_list and s3_local_tuple[1] is the corresponding local list;
         s3_list[n] would be downloaded and saved as local_list[n]
-    bucket_keys : list
-        a list of relative paths of the files to download from the bucket
-    downoad_dir : string
-        local directory prefix to store the downloaded data
 
     Returns
     -------
