@@ -252,7 +252,7 @@ def run(config_file, output_path_file):
 
     for key_tuple in output_paths:
 
-    	for output_name in output_paths[key_tuple]
+        for output_name in output_paths[key_tuple]:
 
             if len(output_paths[key_tuple]) == 0:
                 err = "[!] CPAC says: No individual-level analysis outputs were "\
