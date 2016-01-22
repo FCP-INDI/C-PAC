@@ -320,10 +320,10 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
     # Open pid file and qsub batch script
     p = open(os.path.join(cluster_files_dir, 'pid.txt'), 'w') 
-    out = commands.getoutput('qsub  %s ' % (subject_bash_file))
+    out = commands.getoutput('sbatch %s' % (subject_bash_file))
 
     # Check for successful qsub submission
-    if re.search('(?<=Your job-array )\d+', out) == None:
+    if re.search('(?<=Submitted batch job )\d+', out) == None:
         err_msg = 'Error: Running of \'sbatch\' command in terminal failed. '\
                   'Please troubleshoot your SLURM configuration with your '\
                   'system adminitrator and then try again.'
