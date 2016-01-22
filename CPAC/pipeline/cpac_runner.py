@@ -312,7 +312,7 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     # Print C-PAC execution
     print >>f, 'python -c \"import CPAC; '\
                'CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\", \\\"%s\\\", '\
-               '\\\"$SGE_TASK_ID\\\", \\\"%s\\\", \\\"%s\\\", plugin=\\\"%s\\\", '\
+               '\\\"$SLURM_ARRAY_TASK_ID\\\", \\\"%s\\\", \\\"%s\\\", plugin=\\\"%s\\\", '\
                'plugin_args=%s) \" ' % (str(config_file), subject_list_file, \
                strategies_file, p_name, 'ResourceMultiProc', plugin_args)
     # Close file and make executable
@@ -330,7 +330,7 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
                   'system adminitrator and then try again.'
         raise Exception(err_msg)
     else:
-        print "The command run was: qsub %s" % subject_bash_file
+        print "The command run was: sbatch %s" % subject_bash_file
 
     # Get pid and send to pid file
     pid = re.search("(?<=Submitted batch job )\d+", out).group(0)
