@@ -280,7 +280,7 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     # Init variables
     submit_timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
     cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
-    subject_bash_file = os.path.join(cluster_files_dir, 'cpac_submit_%s.sge' % submit_timestamp)
+    subject_bash_file = os.path.join(cluster_files_dir, 'cpac_submit_%s.slurm' % submit_timestamp)
 
     # Batch file variables
     shell = commands.getoutput('echo $SHELL')
