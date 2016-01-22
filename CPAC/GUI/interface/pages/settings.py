@@ -63,8 +63,19 @@ class ComputerSettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='resourceManager',
                       type=dtype.STR,
-                      values=["SGE", "PBS"],
-                      comment="Sun Grid Engine (SGE) or Portable Batch System (PBS).\n\nOnly applies if you are running on a grid or compute cluster.")
+                      values=["SGE", "PBS", "SLURM"],
+                      comment="Sun Grid Engine (SGE), "\
+                              "Portable Batch System (PBS), or "
+                              "Simple Linux Utility for Resource Management (SLURM)."\
+                              "\n\nOnly applies if you are running on a grid or compute cluster.")
+
+        self.page.add(label='Email (Cluster only) ',
+                      control=control.TEXT_BOX,
+                      name='userEmail',
+                      type=dtype.STR,
+                      comment='User email to send job status to when '\
+                              'running C-PAC on a grid or compute cluster',
+                      values='cpac')
 
         self.page.add(label='SGE Parallel Environment ',
                       control=control.TEXT_BOX,
