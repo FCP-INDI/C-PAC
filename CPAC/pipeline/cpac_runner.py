@@ -298,10 +298,11 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print >>f, '#SBATCH --workdir=%s' % cluster_files_dir
     print >>f, '#SBATCH --cpus-per-task=%d' % c.numCoresPerSubject
     print >>f, '#SBATCH --job-name=C-PAC'
-    print >>f, '#SBATCH --mail-type=ALL'
+    print >>f, '#SBATCH --mail-type=BEGIN'
+    print >>f, '#SBATCH --mail-type=END'
     print >>f, '#SBATCH --mail-user=%s' % c.userEmail
     print >>f, '#SBATCH --uid=%s' % user_account
-    print >>f, '$SBATCH --get-user-env'
+    print >>f, '#SBATCH --get-user-env'
     print >>f, '#SBATCH --error=%s' % err_log
     print >>f, '#SBATCH --output=%s' % out_log
 
@@ -332,7 +333,7 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
         print "The command run was: qsub %s" % subject_bash_file
 
     # Get pid and send to pid file
-    pid = re.search("(?<=Your job-array )\d+", out).group(0)
+    pid = re.search("(?<=Submitted batch job )\d+", out).group(0)
     print >> p, pid
     p.close()
 
