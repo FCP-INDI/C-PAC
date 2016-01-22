@@ -466,18 +466,20 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=None):
     
     # Import packages
+    import commands
+    import pickle
     import time
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
     pipeline_start_stamp = strftime("%Y-%m-%d_%H:%M:%S")
 
+    # Load in pipeline config file
     try:
         if not os.path.exists(config_file):
             raise IOError
         else:
             c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
-    
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
@@ -485,48 +487,43 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
         print "Error reading config file - %s" % config_file
         raise Exception
 
-    #do some validation
+    # Do some validation
     validate(c)
 
-    # get the pipeline name
+    # Get the pipeline name
     p_name = c.pipelineName
 
-
+    # Load in subject list
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         print "Subject list is not in proper YAML format. Please check your file"
         raise Exception
 
-
     # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
     # creating symlinks
     strategies = sorted(build_strategies(c))
 
-    
+    # Print strategies
     print "strategies ---> "
     print strategies
-    
-    sub_scan_map ={}
-
+    # Print subject list
     print "subject list: "
     print sublist
-    
+
+    # Populate subject scan map
+    sub_scan_map ={}
     try:
-    
         for sub in sublist:
             if sub['unique_id']:
                 s = sub['subject_id']+"_" + sub["unique_id"]
             else:
                 s = sub['subject_id']
-        
             scan_ids = ['scan_anat']
             for id in sub['rest']:
                 scan_ids.append('scan_'+ str(id))
             sub_scan_map[s] = scan_ids
-            
     except:
-        
         print "\n\n" + "ERROR: Subject list file not in proper format - check if you loaded the correct file?" + "\n" + \
               "Error name: cpac_runner_0001" + "\n\n"
         raise Exception
@@ -570,7 +567,6 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
             c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
     '''
 
-
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
     pipeline_timing_info.append(pipeline_start_stamp)
@@ -580,14 +576,11 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:
 
-        import commands
-        import pickle
-
-        temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
-        print commands.getoutput("mkdir -p %s" % temp_files_dir)
-
-        # 
-        strategies_file = os.path.join(temp_files_dir, 'strategies.obj')
+        # Create cluster log dir
+        cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
+        print commands.getoutput("mkdir -p %s" % cluster_files_dir)
+        # Create strategies file
+        strategies_file = os.path.join(cluster_files_dir, 'strategies.obj')
         f = open(strategies_file, 'w')
         pickle.dump(strategies, f)
         f.close()
