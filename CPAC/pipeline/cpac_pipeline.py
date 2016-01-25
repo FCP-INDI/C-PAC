@@ -3207,6 +3207,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 # Import pacakges
                 from CPAC.network_centrality.afni_network_centrality \
                     import create_afni_centrality_wf
+                import CPAC.network_centrality.utils as cent_utils
 
                 # Init variables
                 # Set method_options variables
@@ -3221,6 +3222,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
                 num_threads = c.numCoresPerSubject
                 memory = c.memoryAllocatedForDegreeCentrality
+
+                # Change sparsity thresholding to % to work with afni
+                method_option, threshold_option = \
+                    cent_utils.check_centrality_params(method_option, threshold_option, threshold)
+
+                if method_option == 'sparsity':
+                    threshold = threshold*100
 
                 # Init the workflow
                 afni_centrality_wf = \

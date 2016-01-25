@@ -69,14 +69,6 @@ class ComputerSettings(wx.ScrolledWindow):
                               "Simple Linux Utility for Resource Management (SLURM)."\
                               "\n\nOnly applies if you are running on a grid or compute cluster.")
 
-        self.page.add(label='Email (Cluster only) ',
-                      control=control.TEXT_BOX,
-                      name='userEmail',
-                      type=dtype.STR,
-                      comment='User email to send job status to when '\
-                              'running C-PAC on a grid or compute cluster',
-                      values='cpac')
-
         self.page.add(label='SGE Parallel Environment ',
                       control=control.TEXT_BOX,
                       name='parallelEnvironment',
