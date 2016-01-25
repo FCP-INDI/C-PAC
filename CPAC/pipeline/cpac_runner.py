@@ -214,7 +214,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     shell = commands.getoutput('echo $SHELL')
     print >>f, '#! %s' % shell
     print >>f, '#$ -N C-PAC Pipeline %s' % c.pipelineName
-    print >>f, '#$ -cwd'
+    print >>f, '#$ -wd %s' % cluster_files_dir
     print >>f, '#$ -S %s' % shell
     print >>f, '#$ -V'
     print >>f, '#$ -t 1-%d' % len(sublist)
