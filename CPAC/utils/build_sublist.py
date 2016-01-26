@@ -15,56 +15,69 @@ ser_kw = '{series}'
 kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
 # Check for glob-style patterns
-def check_for_glob_patterns(prefix_delim, filepath):
+def check_for_glob_patterns(delim, filepath, suffix_flag=False):
     '''
-    Function to check the prefix delimeter for any glob patterns (?, []);
+    Function to check the delimeter for any glob patterns (?, []);
     if some are found, they are replaced by the filepath's characters
     in those locations - this allows for a more accurate keyword
     extraction
 
     Parameters
     ----------
-    prefix_delim : string
-        the last non-wildcard characters before the desired keyword
+    delim : string
+        the non-wildcard characters before/after the desired keyword
     filepath : string
         filepath to the file of interest
+    suffix_flag : boolean
+        flag to indicate if delimeter is prefix or suffix
 
     Returns
     -------
-    prefix_delim : string
-        the glob-matched prefix delimeter
+    delim : string
+        the glob-matched delimeter with the filepath
     '''
 
+    # If it's a suffix, traverse backwards
+    if suffix_flag:
+        delim = delim[::-1]
+        filepath = filepath[::-1]
+        first_brak = ']'
+        last_brak = '['
+    else:
+        first_brak = '['
+        last_brak = ']'
+
     # Init variables
-    prefix_list = list(prefix_delim)
+    delim_list = list(delim)
+    filepath_test = filepath
     in_brak_flg = False
-    idx = 0
-    jdx = idx
 
     # Iterate through prefix delimeter
-    for char in prefix_delim:
+    for idx, char in enumerate(delim):
         if in_brak_flg:
-            if char == ']':
+            if char == last_brak:
                 in_brak_flg = False
-            prefix_list[jdx] = ''
-            jdx += 1
+            delim_list[idx] = ''
             continue
-        filepath_test = filepath[idx:]
-        if char == '?':
+        if char == '?' or char == first_brak:
+            if char == first_brak:
+                in_brak_flg = True
+            const_str = ''.join(delim[:idx])
+            fp_idx = filepath.find(const_str)
+            filepath_test = filepath[fp_idx+len(const_str):]
             char_match = filepath_test[0]
-            prefix_list[jdx] = char_match
-        elif char == '[' and not in_brak_flg:
-            in_brak_flg = True
-            char_match = filepath_test[0]
-            prefix_list[jdx] = char_match
-        idx += 1
-        jdx += 1
+            delim_list[idx] = char_match
+            delim = ''.join(delim_list)
 
     # Join list
-    prefix_delim = ''.join(prefix_list)
+    delim = ''.join(delim_list)
+
+    # If it's a suffix, reverse it
+    if suffix_flag:
+        delim = delim[::-1]
 
     # Return the glob-matches prefix delimiter
-    return prefix_delim
+    return delim
 
 
 # Check format of filepath templates
@@ -104,11 +117,11 @@ def check_template_format(file_template, site_kw, ppant_kw, sess_kw, ser_kw):
     logger = logging.getLogger('sublist_builder')
 
     # Check for ppant, series-level directories
-    if not (ppant_kw in file_template and ser_kw in file_template):
-        err_msg = 'Please provide \'%s\' and \'%s\' level directories in '\
-                  'filepath template where participant and series-level '\
+    if not ppant_kw in file_template:
+        err_msg = 'Please provide \'%s\' level directories in '\
+                  'filepath template where participant-level '\
                   'directories are present in file template: %s' \
-                  % (ppant_kw, ser_kw, file_template)
+                  % (ppant_kw, file_template)
         logger.error(err_msg)
         raise Exception(err_msg)
 
@@ -141,6 +154,7 @@ def extract_keyword_from_path(filepath, keyword, template):
     key_str : string
         extracted string where the keyword was located in the filepath 
     '''
+
     # Import packages
     import logging
 
@@ -155,7 +169,7 @@ def extract_keyword_from_path(filepath, keyword, template):
     kw_dirname = [dir for dir in temp_split if keyword in dir]
 
     # If the keyword is in the template, extract string from filepath
-    if len(kw_dirname) == 1:
+    if len(kw_dirname) > 0:
         # Get the directory fullname from template, as well as any surrounding
         kw_dirname = kw_dirname[0]
         kw_idx = temp_split.index(kw_dirname)
@@ -164,7 +178,7 @@ def extract_keyword_from_path(filepath, keyword, template):
 
         # Get the prefix and suffix surrounding keyword
         kw_prefix = kw_dirname.split(keyword)[0]
-        kw_suffix = kw_dirname.split(keyword)[-1]
+        kw_suffix = kw_dirname.split(keyword)[1]
 
         # Replace other keywords in prefix/suffix with wildcards '*'
         for kw in kw_strs:
@@ -184,14 +198,13 @@ def extract_keyword_from_path(filepath, keyword, template):
             # Find the previous '*' from the right
             prev_star_in_prefix = kw_prefix.rfind('*')
             # If there is '*', grab from it to end of prefix as delim
-            if prev_star_in_prefix > 0:
+            if prev_star_in_prefix >= 0:
                 prefix_delim = kw_prefix[prev_star_in_prefix+1:]
             # Otherwise, just use the whole prefix as delim
             else:
                 prefix_delim = kw_prefix
-                # Check for glob-style characters in delimeter - can only be
-                # done reliably if no wildcards/keywords at start of key_str
-                prefix_delim = check_for_glob_patterns(prefix_delim, key_str)
+            # Check for glob-style characters in delimeter
+            prefix_delim = check_for_glob_patterns(prefix_delim, key_str)
 
             # Split the filepath by prefix delim
             prefix_list = key_str.split(prefix_delim)
@@ -214,11 +227,14 @@ def extract_keyword_from_path(filepath, keyword, template):
             # Find the next '*' from the left
             next_star_in_suffix = kw_suffix.find('*')
             # If there is another '*', grab non-wildcards up until '*' as delim
-            if next_star_in_suffix > 0:
+            if next_star_in_suffix >= 0:
                 suffix_delim = kw_suffix[:next_star_in_suffix]
             # Otherwise, just use the whole prefix as delim
             else:
                 suffix_delim = kw_suffix
+            # Check for glob-style characters in delimeter
+            suffix_delim = check_for_glob_patterns(suffix_delim, key_str,
+                                                   suffix_flag=True)
 
             # Split the filepath by suffix delim
             suffix_list = key_str.split(suffix_delim)
@@ -236,12 +252,12 @@ def extract_keyword_from_path(filepath, keyword, template):
         if key_str == '':
             msg = 'Could not distinguish %s from filepath %s using the file ' \
                   'pattern template %s.\nInstead, using entire directory: %s ' \
-                  'for keyword %s.\nCheck data organization and file ' \
-                  'pattern template' % (keyword, filepath, template, keyword)
+                  'for %s.\nCheck data organization and file pattern template' \
+                  % (keyword, filepath, template, key_str, keyword)
             logger.info(msg)
             key_str = fp_split[kw_idx]
     else:
-        logger.info('Keyword %s not found in template %s' % (keyword, template))
+        #logger.info('Keyword %s not found in template %s' % (keyword, template))
         key_str = ''
 
     # Remove any nifti extensions
@@ -398,7 +414,7 @@ def return_local_filepaths(file_pattern):
 
     Returns
     -------
-    local_filepaths : list
+    matched_paths : list
         a list of strings of the local filepaths
     '''
 
@@ -413,15 +429,24 @@ def return_local_filepaths(file_pattern):
     # Gather local files
     local_filepaths = glob.glob(file_pattern)
 
+    # Restrict filepaths and pattern to be of same directory depth
+    # as fnmatch will expand /*/ recursively to .../*/*/...
+    matched_paths = []
+    for lfp in local_filepaths:
+        s3_split = lfp.split('/')
+        fp_split = file_pattern.split('/')
+        if len(s3_split) == len(fp_split):
+            matched_paths.append(lfp)
+
     # Get absolute paths
-    local_filepaths = [os.path.abspath(fp) for fp in local_filepaths]
+    matched_paths = [os.path.abspath(fp) for fp in matched_paths]
 
     # Print how many found
-    num_local_files = len(local_filepaths)
+    num_local_files = len(matched_paths)
     logger.info('Found %d files!' % num_local_files)
 
     # Return the filepaths as a list
-    return local_filepaths
+    return matched_paths
 
 
 # Return matching filepaths
@@ -441,7 +466,7 @@ def return_s3_filepaths(file_pattern, creds_path=None):
 
     Returns
     -------
-    s3_filepaths : list
+    matched_s3_paths : list
         a list of strings of the filepaths from the S3 bucket
     '''
 
@@ -501,12 +526,21 @@ def return_s3_filepaths(file_pattern, creds_path=None):
     # File pattern filter
     s3_filepaths = fnmatch.filter(s3_filepaths, file_pattern)
 
+    # Restrict filepaths and pattern to be of same directory depth
+    # as fnmatch will expand /*/ recursively to .../*/*/...
+    matched_s3_paths = []
+    for s3fp in s3_filepaths:
+        s3_split = s3fp.split('/')
+        fp_split = file_pattern.split('/')
+        if len(s3_split) == len(fp_split):
+            matched_s3_paths.append(s3fp)
+
     # Print how many found
-    num_s3_files = len(s3_filepaths)
+    num_s3_files = len(matched_s3_paths)
     logger.info('Found %d files!' % num_s3_files)
 
     # Return the filepaths as a list
-    return s3_filepaths
+    return matched_s3_paths
 
 
 # Build the C-PAC subject list

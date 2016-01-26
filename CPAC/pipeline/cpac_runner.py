@@ -222,7 +222,8 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     # Write config lines to it
     shell = commands.getoutput('echo $SHELL')
     print >>f, '#! %s' % shell
-    print >>f, '#$ -cwd'
+    print >>f, '#$ -N C-PAC Pipeline %s' % c.pipelineName
+    print >>f, '#$ -wd %s' % cluster_files_dir
     print >>f, '#$ -S %s' % shell
     print >>f, '#$ -V'
     print >>f, '#$ -t 1-%d' % len(sublist)
@@ -306,10 +307,7 @@ def run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print >>f, '#SBATCH --array=0-%d' % (num_subs-1)
     print >>f, '#SBATCH --workdir=%s' % cluster_files_dir
     print >>f, '#SBATCH --cpus-per-task=%d' % c.numCoresPerSubject
-    print >>f, '#SBATCH --job-name=C-PAC'
-    print >>f, '#SBATCH --mail-type=BEGIN'
-    print >>f, '#SBATCH --mail-type=END'
-    print >>f, '#SBATCH --mail-user=%s' % c.userEmail
+    print >>f, '#SBATCH --job-name=C-PAC Pipeline %s' % c.pipelineName
     print >>f, '#SBATCH --uid=%s' % user_account
     print >>f, '#SBATCH --get-user-env'
     print >>f, '#SBATCH --error=%s' % err_log
