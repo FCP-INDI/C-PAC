@@ -1,3 +1,12 @@
+# CPAC/cpac_pipeline/cpac_runner.py
+#
+# FCP-INDI
+
+'''
+This module contains functions used to run a C-PAC pipeline
+'''
+
+# Import packages
 from multiprocessing import Process
 import os
 from CPAC.utils.utils import create_seeds_, create_group_log_template
@@ -7,7 +16,7 @@ import time
 from time import strftime
 
 
-
+# Validate length of directory
 def validate(config_obj):
     
     #check for path lengths
