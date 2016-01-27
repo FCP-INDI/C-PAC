@@ -114,10 +114,9 @@ class strategy:
             self.resource_pool[key] = value
 
 
-
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
-                      p_name=None, plugin='ResourceMultiProc', \
-                      plugin_args=None):
+# Create and prepare C-PAC pipeline workflow
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
+                  p_name=None, plugin='ResourceMultiProc', plugin_args=None):
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      SETUP

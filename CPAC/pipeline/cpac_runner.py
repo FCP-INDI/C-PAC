@@ -1,4 +1,4 @@
-# CPAC/cpac_pipeline/cpac_runner.py
+# CPAC/pipeline/cpac_runner.py
 #
 # FCP-INDI
 
@@ -199,7 +199,7 @@ def build_strategies(configuration):
 
 
 # Create and run SGE script
-def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
+def run_sge_jobs(c, config_file, subject_list_file, strategies_file, p_name):
     '''
     Function to build an Grid engine batch job submission script and
     submit it to the queue via 'qsub'
@@ -225,7 +225,7 @@ def run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name):
     print >>f, '#$ -N C-PAC Pipeline %s' % c.pipelineName
     print >>f, '#$ -wd %s' % cluster_files_dir
     print >>f, '#$ -S %s' % shell
-    print >>f, '#$ -V'
+    print >>f, '#$ -V' # For env vars
     print >>f, '#$ -t 1-%d' % len(sublist)
     print >>f, '#$ -q %s' % c.queue
     print >>f, '#$ -pe %s %d' % (c.parallelEnvironment, c.numCoresPerSubject)
@@ -414,12 +414,121 @@ def run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name):
 
     print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.run(\\\"%s\\\",\\\"%s\\\",\\\"${PBS_ARRAYID}\\\",\\\"%s\\\", \\\"%s\\\" , \\\"%s\\\", \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), \
         subject_list_file, strategies_file, c.maskSpecificationFile, c.roiSpecificationFile, c.templateSpecificationFile, p_name)
-#    print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_pipeline.py -c %s -s %s -indx ${PBS_ARRAYID} -strategies %s \" " %(str(config_file), subject_list_file, strategies_file)
-    #print >>f, "python CPAC.pipeline.cpac_pipeline.py -c ", str(config_file), "-s ", subject_list_file, " -indx ${PBS_ARRAYID} -strategies ", strategies_file
     f.close()
 
     commands.getoutput('chmod +x %s' % subject_bash_file )
-    #logger.info(commands.getoutput('qsub  %s ' % (subject_bash_file)))
+
+
+# Create and run script for CPAC to run on cluster
+def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
+                        cluster_files_dir):
+    '''
+    Function to build a SLURM batch job submission script and
+    submit it to the scheduler via 'sbatch'
+    '''
+
+    # Import packages
+    import commands
+    import getpass
+    import re
+    from time import strftime
+
+    from CPAC.utils import Configuration
+    from CPAC.pipeline import cluster_templates
+
+    # Load in pipeline config
+    try:
+        config_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
+        config = Configuration(config_dict)
+    except:
+        raise Exception('Pipeline config is not in proper YAML format. '\
+                        'Please check your file')
+    # Load in the subject list
+    try:
+        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+    except:
+        raise Exception('Subject list is not in proper YAML format. '\
+                        'Please check your file')
+
+    # Init variables
+    timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
+    job_scheduler = config.resourceManager.lower()
+    subject_bash_file = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
+                                     % (timestamp, job_scheduler))
+    # Batch file variables
+    shell = commands.getoutput('echo $SHELL')
+    user_account = getpass.getuser()
+    num_subs = len(sublist)
+#     if job_scheduler == 'slurm':
+#         err_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.err' \
+#                                % timestamp)
+#         out_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.out' \
+#                                % timestamp)
+#     elif job_scheduler == 'sge':
+#         err_log = os.path.join(cluster_files_dir, 'cpac_slurm_task$TASK_ID_%s.err' \
+#                                % timestamp)
+#         out_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.out' \
+#                                % timestamp)
+
+    # Init plugin arguments
+    plugin_args = {'num_threads': config.numCoresPerSubject,
+                   'memory': config.memoryAllocatedForDegreeCentrality}
+
+    # Set up config dictionary
+    config_dict = {'timestamp' : timestamp,
+                   'shell' : shell,
+                   'pipeline_name' : config.pipelineName,
+                   'num_subs' : num_subs,
+                   'queue' : config.queue,
+                   'cores_per_sub' : config.numCoresPerSubject,
+                   'user' : user_account,
+                   'work_dir' : cluster_files_dir,
+                   'plugin_args' : plugin_args}
+#                    'err_log' : err_log,
+#                    'out_log' : out_log}
+
+    # Get string template for job scheduler
+    if job_scheduler == 'pbs':
+        env_arr_idx = 'PBS_ARRAYID'
+        err_fname = ''
+        out_fname = ''
+        batch_file_contents = cluster_templates.pbs_template
+    elif job_scheduler == 'sge':
+        env_arr_idx = 'SGE_TASK_ID'
+        err_fname = 'cpac_sge_$JOB_ID.$TASK_ID.err'
+        out_fname = 'cpac_sge_$JOB_ID.$TASK_ID.out'
+        batch_file_contents = cluster_templates.sge_template
+    elif job_scheduler == 'slurm':
+        env_arr_idx = 'SLURM_ARRAY_TASK_ID'
+        err_fname = 'cpac_slurm_%%j.%%a.err'
+        out_fname = 'cpac_slurm_%%j.%%a.out'
+        batch_file_contents = cluster_templates.slurm_template
+
+    # Populate rest of dictionary
+    config_dict['env_arr_idx'] = env_arr_idx
+    config_dict['err_log'] = os.path.join(cluster_files_dir, err_fname)
+    config_dict['out_log'] = os.path.join(cluster_files_dir, out_fname)
+
+    # Populate string from config dict values
+    batch_file_contents = batch_file_contents % config_dict
+
+    # Open pid file and qsub batch script
+    p = open(os.path.join(cluster_files_dir, 'pid.txt'), 'w') 
+    out = commands.getoutput('sbatch %s' % (subject_bash_file))
+
+    # Check for successful qsub submission
+    if re.search('(?<=Submitted batch job )\d+', out) == None:
+        err_msg = 'Error: Running of \'sbatch\' command in terminal failed. '\
+                  'Please troubleshoot your SLURM configuration with your '\
+                  'system adminitrator and then try again.'
+        raise Exception(err_msg)
+    else:
+        print "The command run was: sbatch %s" % subject_bash_file
+
+    # Get pid and send to pid file
+    pid = re.search("(?<=Submitted batch job )\d+", out).group(0)
+    print >> p, pid
+    p.close()
 
 
 def append_seeds_to_file(working_dir, seed_list, seed_file):
@@ -471,12 +580,21 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 # Run C-PAC subjects via job queue
-def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=None):
-    
+def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=None):
+    '''
+    '''
+
     # Import packages
     import commands
+    import os
     import pickle
     import time
+
+    from CPAC.pipeline.cpac_pipeline import prep_workflow
+
+    # Init variables
+    config_file = os.path.realpath(config_file)
+    subject_list_file = os.path.realpath(subject_list_file)
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -487,7 +605,7 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
         if not os.path.exists(config_file):
             raise IOError
         else:
-            c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
+            c = Configuration(yaml.load(open(config_file, 'r')))
     except IOError:
         print "config file %s doesn't exist" % config_file
         raise
@@ -503,7 +621,7 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
 
     # Load in subject list
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
+        sublist = yaml.load(open(subject_list_file, 'r'))
     except:
         print "Subject list is not in proper YAML format. Please check your file"
         raise Exception
@@ -580,18 +698,20 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
     pipeline_timing_info.append(pipeline_start_stamp)
     pipeline_timing_info.append(len(sublist))
 
-
     # If we're running on cluster, execute job scheduler
     if c.runOnGrid:
-
         # Create cluster log dir
         cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
-        print commands.getoutput("mkdir -p %s" % cluster_files_dir)
+        os.makedirs(cluster_files_dir)
+
         # Create strategies file
         strategies_file = os.path.join(cluster_files_dir, 'strategies.obj')
-        f = open(strategies_file, 'w')
-        pickle.dump(strategies, f)
-        f.close()
+        with open(strategies_file, 'w') as f:
+            pickle.dump(strategies, f)
+
+        # Run on cluster
+        run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
+                            cluster_files_dir)
 
         # Run one of the job schedulers over cluster
         if 'sge' in c.resourceManager.lower():
@@ -605,9 +725,6 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
 
     # Run on one computer
     else:
-        # Import packages
-        from CPAC.pipeline.cpac_pipeline import prep_workflow
-
         # Init variables
         procss = [Process(target=prep_workflow,
                           args=(sub, c, strategies, 1,
@@ -619,22 +736,11 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
 
         # If we're allocating more processes than are subjects, run them all
         if len(sublist) <= c.numSubjectsAtOnce:
-            """
-            Stream all the subjects as sublist is
-            less than or equal to the number of 
-            subjects that need to run
-            """
             for p in procss:
                 p.start()
                 print >>pid,p.pid
         # Otherwise manage resources to run processes incrementally
         else:
-            """
-            Stream the subject workflows for preprocessing.
-            At Any time in the pipeline c.numSubjectsAtOnce
-            will run, unless the number remaining is less than
-            the value of the parameter stated above
-            """
             idx = 0
             while(idx < len(sublist)):
                 # If the job queue is empty and we haven't started indexing
@@ -642,9 +748,9 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in procss[idc: idc + c.numSubjectsAtOnce]:
+                    for p in procss[idc : idc+c.numSubjectsAtOnce]:
                         p.start()
-                        print >>pid,p.pid
+                        print >>pid, p.pid
                         jobQueue.append(p)
                         idx += 1
                 # Otherwise, jobs are running - check them
@@ -662,7 +768,7 @@ def run(config_file, subject_list_file, p_name= None, plugin=None, plugin_args=N
                             # Append this to job queue and increment index
                             jobQueue.append(procss[idx])
                             idx += 1
-
                     # Add sleep so while loop isn't consuming 100% of CPU
                     time.sleep(2)
+        # Close PID txt file to indicate finish
         pid.close()
