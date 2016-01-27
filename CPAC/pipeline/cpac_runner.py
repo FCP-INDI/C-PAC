@@ -453,8 +453,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
     job_scheduler = pipeline_config.resourceManager.lower()
-    subject_bash_file = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
-                                     % (timestamp, job_scheduler))
+
     # Batch file variables
     shell = commands.getoutput('echo $SHELL')
     user_account = getpass.getuser()
@@ -509,9 +508,14 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Populate string from config dict values
     batch_file_contents = batch_file_contents % config_dict
+    # Write file
+    batch_filepath = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
+                                  % (timestamp, job_scheduler))
+    with open(batch_filepath, 'w') as f:
+        f.write(batch_file_contents)
 
     # Get output response from job submission
-    out = commands.getoutput('%s %s' % (exec_cmd, subject_bash_file))
+    out = commands.getoutput('%s %s' % (exec_cmd, batch_filepath))
 
     # Check for successful qsub submission
     if re.search(confirm_str, out) == None:
@@ -625,12 +629,12 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     # creating symlinks
     strategies = sorted(build_strategies(c))
 
-    # Print strategies
-    print "strategies ---> "
-    print strategies
-    # Print subject list
-    print "subject list: "
-    print sublist
+#     # Print strategies
+#     print "strategies ---> "
+#     print strategies
+#     # Print subject list
+#     print "subject list: "
+#     print sublist
 
     # Populate subject scan map
     sub_scan_map ={}
