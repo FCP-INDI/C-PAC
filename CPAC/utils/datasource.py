@@ -109,7 +109,7 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
                   'files (under %s options) does not have a correct path ' \
                   'or does not exist.\nTip: If all the paths are okay, ' \
                   'then ensure there are no whitespaces or blank lines in ' \
-                  'your ROI specification file.\n\n' % mask_type
+                  'your ROI specification file.\n\n' % tab
             raise Exception(err)
 
         if mask_file.strip() == '' or mask_file.startswith('#'):

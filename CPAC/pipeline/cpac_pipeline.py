@@ -2555,7 +2555,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_roi.inputs.apply_xfm = True
                 resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
     
-                roi_dataflow = create_roi_mask_dataflow(c.roiSpecificationFile, 'ROI Average TSE', 'roi_dataflow_%d' % num_strat)
+                roi_dataflow = create_roi_mask_dataflow(c.roiSpecificationFile, 'roi', 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
                 roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
@@ -2571,7 +2571,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_roi_for_sca.inputs.apply_xfm = True
                 resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
                 
-                roi_dataflow_for_sca = create_roi_mask_dataflow(c.roiSpecificationFileForSCA, 'ROI Average TSE', 'roi_dataflow_for_sca_%d' % num_strat)
+                roi_dataflow_for_sca = create_roi_mask_dataflow(c.roiSpecificationFileForSCA, 'roi', 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
                 roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
@@ -2662,7 +2662,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_mask.inputs.apply_xfm = True
                 resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
     
-                mask_dataflow = create_roi_mask_dataflow(c.maskSpecificationFile, 'ROI Voxelwise TSE', 'mask_dataflow_%d' % num_strat)
+                mask_dataflow = create_roi_mask_dataflow(c.maskSpecificationFile, 'voxel', 'mask_dataflow_%d' % num_strat)
     
                 voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
                 voxel_timeseries.inputs.inputspec.output_type = c.voxelTSOutputs
@@ -2675,7 +2675,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
                 resample_functional_to_mask_for_sca.inputs.apply_xfm = True
                 resample_functional_to_mask_for_sca.inputs.in_matrix_file = c.identityMatrix
     
-                mask_dataflow_for_sca = create_roi_mask_dataflow(c.maskSpecificationFileForSCA, 'ROI Voxelwise TSE', 'mask_dataflow_for_sca_%d' % num_strat)
+                mask_dataflow_for_sca = create_roi_mask_dataflow(c.maskSpecificationFileForSCA, 'voxel', 'mask_dataflow_for_sca_%d' % num_strat)
     
                 voxel_timeseries_for_sca = get_voxel_timeseries('voxel_timeseries_for_sca_%d' % num_strat)
                 voxel_timeseries_for_sca.inputs.inputspec.output_type = c.voxelTSOutputs
@@ -3045,7 +3045,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, p_nam
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
 
             template_dataflow = create_roi_mask_dataflow(c.templateSpecificationFile,
-                                                         'Network Centrality',
+                                                         'centrality',
                                                          'template_dataflow_%d' % num_strat)
 
             # Connect in each workflow for the centrality method of interest
