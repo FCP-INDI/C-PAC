@@ -480,21 +480,21 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Get string template for job scheduler
     if job_scheduler == 'pbs':
-        env_arr_idx = 'PBS_ARRAYID'
+        env_arr_idx = '$PBS_ARRAYID'
         err_fname = ''
         out_fname = ''
         batch_file_contents = cluster_templates.pbs_template
         confirm_str = '(?<=Your job-array )\d+'
         exec_cmd = 'qsub'
     elif job_scheduler == 'sge':
-        env_arr_idx = 'SGE_TASK_ID'
+        env_arr_idx = '$SGE_TASK_ID'
         err_fname = 'cpac_sge_$JOB_ID.$TASK_ID.err'
         out_fname = 'cpac_sge_$JOB_ID.$TASK_ID.out'
         batch_file_contents = cluster_templates.sge_template
         confirm_str = '(?<=Your job-array )\d+'
         exec_cmd = 'qsub'
     elif job_scheduler == 'slurm':
-        env_arr_idx = 'SLURM_ARRAY_TASK_ID'
+        env_arr_idx = '$SLURM_ARRAY_TASK_ID'
         err_fname = 'cpac_slurm_%%j.%%a.err'
         out_fname = 'cpac_slurm_%%j.%%a.out'
         batch_file_contents = cluster_templates.slurm_template
