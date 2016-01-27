@@ -438,8 +438,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Load in pipeline config
     try:
-        config_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
-        config = Configuration(config_dict)
+        pipeline_dict = yaml.load(open(os.path.realpath(config_file), 'r'))
+        pipeline_config = Configuration(pipeline_dict)
     except:
         raise Exception('Pipeline config is not in proper YAML format. '\
                         'Please check your file')
@@ -452,7 +452,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
-    job_scheduler = config.resourceManager.lower()
+    job_scheduler = pipeline_config.resourceManager.lower()
     subject_bash_file = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
                                      % (timestamp, job_scheduler))
     # Batch file variables
@@ -461,16 +461,17 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     num_subs = len(sublist)
 
     # Init plugin arguments
-    plugin_args = {'num_threads': config.numCoresPerSubject,
-                   'memory': config.memoryAllocatedForDegreeCentrality}
+    plugin_args = {'num_threads': pipeline_config.numCoresPerSubject,
+                   'memory': pipeline_config.memoryAllocatedForDegreeCentrality}
 
     # Set up config dictionary
     config_dict = {'timestamp' : timestamp,
                    'shell' : shell,
-                   'pipeline_name' : config.pipelineName,
+                   'pipeline_name' : pipeline_config.pipelineName,
                    'num_subs' : num_subs,
-                   'queue' : config.queue,
-                   'cores_per_sub' : config.numCoresPerSubject,
+                   'queue' : pipeline_config.queue,
+                   'par_env' : pipeline_config.parallelEnvironment,
+                   'cores_per_sub' : pipeline_config.numCoresPerSubject,
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
                    'plugin_args' : plugin_args}
