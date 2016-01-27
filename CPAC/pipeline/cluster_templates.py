@@ -11,7 +11,7 @@ end_taskid_str = 'echo "End - TASKID " %(env_arr_idx)s " : " $(date)'
 # Run CPAC via python -c print command
 python_cpac_str = 'python -c "from CPAC.pipeline.cpac_pipeline import run; '\
                   'run(\'%(config_file)s\', \'%(subject_list_file)s\', '\
-                      '\'%(env_arr_idx)s\', \'%(strategies_file)s\', '\
+                      '%(env_arr_idx)s, \'%(strategies_file)s\', '\
                       '\'%(pipeline_name)s\', plugin=\'ResourceMultiProc\', '\
                       'plugin_args=%(plugin_args)s)"'
 
