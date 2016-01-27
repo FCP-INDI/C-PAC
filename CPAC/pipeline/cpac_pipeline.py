@@ -6235,16 +6235,16 @@ def run(config, subject_list_file, indx, strategies, p_name=None, \
     import commands
     commands.getoutput('source ~/.bashrc')
     import yaml
-
+    
     # Import configuration file
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-
+    
     # Try and load in the subject list
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
-
+    
     # Grab the subject of interest
     sub_dict = sublist[int(indx)-1]
     sub_id = sub_dict['subject_id']

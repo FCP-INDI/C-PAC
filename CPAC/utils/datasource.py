@@ -99,8 +99,9 @@ def check_for_s3(file_path, creds_path):
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])
             if error_code == 403:
-                err_msg = 'Access to bucket: %s is denied; check credentials'\
-                          % bucket_name
+                err_msg = 'Access to bucket: %s is denied; using credentials '\
+                          'in subject list: %s cannot access the file %s'\
+                          % (bucket_name, creds_path, file_path)
                 raise Exception(err_msg)
             elif error_code == 404:
                 err_msg = 'Bucket: %s does not exist; check spelling and try '\
@@ -151,7 +152,6 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
     # Return the workflow
     return wf
-
 
 
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
