@@ -465,7 +465,10 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
                    'memory': pipeline_config.memoryAllocatedForDegreeCentrality}
 
     # Set up config dictionary
-    config_dict = {'timestamp' : timestamp,
+    config_dict = {'config_file' : config_file,
+                   'subject_list_file' : subject_list_file,
+                   'strategies_file' : strategies_file,
+                   'timestamp' : timestamp,
                    'shell' : shell,
                    'pipeline_name' : pipeline_config.pipelineName,
                    'num_subs' : num_subs,
