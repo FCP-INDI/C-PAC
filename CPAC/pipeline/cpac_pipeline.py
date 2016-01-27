@@ -6168,7 +6168,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                 for loc in local_log_files]
                 # Upload logs
                 aws_utils.s3_upload(bucket, (local_log_files, s3_log_files),
-                                    s3_log_files, encrypt=encrypt_data)
+                                    encrypt=encrypt_data)
                 # Delete local log files
                 for log_f in local_log_files:
                     os.remove(log_f)

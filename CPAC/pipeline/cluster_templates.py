@@ -27,8 +27,6 @@ pbs_template = \
 #PBS -A %(user)s
 #PBS -V
 #PBS -wd %(work_dir)s
-##PBS -e %(err_log)s
-##PBS -o %(out_log)s
 '''
 # Add in start, python CPAC, end
 pbs_template = '\n'.join([pbs_template,

@@ -459,16 +459,6 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     shell = commands.getoutput('echo $SHELL')
     user_account = getpass.getuser()
     num_subs = len(sublist)
-#     if job_scheduler == 'slurm':
-#         err_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.err' \
-#                                % timestamp)
-#         out_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.out' \
-#                                % timestamp)
-#     elif job_scheduler == 'sge':
-#         err_log = os.path.join(cluster_files_dir, 'cpac_slurm_task$TASK_ID_%s.err' \
-#                                % timestamp)
-#         out_log = os.path.join(cluster_files_dir, 'cpac_slurm_task%%a_%s.out' \
-#                                % timestamp)
 
     # Init plugin arguments
     plugin_args = {'num_threads': config.numCoresPerSubject,
@@ -484,8 +474,6 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
                    'plugin_args' : plugin_args}
-#                    'err_log' : err_log,
-#                    'out_log' : out_log}
 
     # Get string template for job scheduler
     if job_scheduler == 'pbs':
@@ -493,16 +481,22 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
         err_fname = ''
         out_fname = ''
         batch_file_contents = cluster_templates.pbs_template
+        confirm_str = '(?<=Your job-array )\d+'
+        exec_cmd = 'qsub'
     elif job_scheduler == 'sge':
         env_arr_idx = 'SGE_TASK_ID'
         err_fname = 'cpac_sge_$JOB_ID.$TASK_ID.err'
         out_fname = 'cpac_sge_$JOB_ID.$TASK_ID.out'
         batch_file_contents = cluster_templates.sge_template
+        confirm_str = '(?<=Your job-array )\d+'
+        exec_cmd = 'qsub'
     elif job_scheduler == 'slurm':
         env_arr_idx = 'SLURM_ARRAY_TASK_ID'
         err_fname = 'cpac_slurm_%%j.%%a.err'
         out_fname = 'cpac_slurm_%%j.%%a.out'
         batch_file_contents = cluster_templates.slurm_template
+        confirm_str = '(?<=Submitted batch job )\d+'
+        exec_cmd = 'sbatch'
 
     # Populate rest of dictionary
     config_dict['env_arr_idx'] = env_arr_idx
@@ -512,23 +506,20 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Populate string from config dict values
     batch_file_contents = batch_file_contents % config_dict
 
-    # Open pid file and qsub batch script
-    p = open(os.path.join(cluster_files_dir, 'pid.txt'), 'w') 
-    out = commands.getoutput('sbatch %s' % (subject_bash_file))
+    # Get output response from job submission
+    out = commands.getoutput('%s %s' % (exec_cmd, subject_bash_file))
 
     # Check for successful qsub submission
-    if re.search('(?<=Submitted batch job )\d+', out) == None:
-        err_msg = 'Error: Running of \'sbatch\' command in terminal failed. '\
-                  'Please troubleshoot your SLURM configuration with your '\
-                  'system adminitrator and then try again.'
+    if re.search(confirm_str, out) == None:
+        err_msg = 'Error submitting C-PAC pipeline run to %s queue' \
+                  % job_scheduler
         raise Exception(err_msg)
-    else:
-        print "The command run was: sbatch %s" % subject_bash_file
 
     # Get pid and send to pid file
-    pid = re.search("(?<=Submitted batch job )\d+", out).group(0)
-    print >> p, pid
-    p.close()
+    pid = re.search(confirm_str, out).group(0)
+    pid_file = os.path.join(cluster_files_dir, 'pid.txt')
+    with open(pid_file, 'w') as f:
+        f.write(pid)
 
 
 def append_seeds_to_file(working_dir, seed_list, seed_file):
@@ -714,14 +705,14 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
                             cluster_files_dir)
 
         # Run one of the job schedulers over cluster
-        if 'sge' in c.resourceManager.lower():
-            run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name)
-        elif 'pbs' in c.resourceManager.lower():
-            run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name)
-        elif 'condor' in c.resourceManager.lower():
-            run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
-        elif 'slurm' in c.resourceManager.lower():
-            run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+#         if 'sge' in c.resourceManager.lower():
+#             run_sge_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+#         elif 'pbs' in c.resourceManager.lower():
+#             run_pbs_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+#         elif 'condor' in c.resourceManager.lower():
+#             run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+#         elif 'slurm' in c.resourceManager.lower():
+#             run_slurm_jobs(c, config_file, strategies_file, subject_list_file, p_name)
 
     # Run on one computer
     else:
