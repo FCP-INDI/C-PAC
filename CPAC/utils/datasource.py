@@ -64,6 +64,7 @@ def check_for_s3(file_path, creds_path):
 
     # Import packages
     import os
+    import botocore.exceptions
     from CPAC.AWS import fetch_creds
 
     # Init variables
@@ -93,7 +94,26 @@ def check_for_s3(file_path, creds_path):
             os.makedirs(local_dir)
 
         # Download file
-        bucket.download_file(Key=rel_path, Filename=local_path)
+        try:
+            bucket.download_file(Key=rel_path, Filename=local_path)
+        except botocore.exceptions.ClientError as exc:
+            error_code = int(exc.response['Error']['Code'])
+            if error_code == 403:
+                err_msg = 'Access to bucket: %s is denied; check credentials'\
+                          % bucket_name
+                raise Exception(err_msg)
+            elif error_code == 404:
+                err_msg = 'Bucket: %s does not exist; check spelling and try '\
+                          'again' % bucket_name
+                raise Exception(err_msg)
+            else:
+                err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+                          % (bucket_name, exc)
+        except Exception as exc:
+            err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+                      % (bucket_name, exc)
+            raise Exception(err_msg)
+            
     # Otherwise just return what was passed in
     else:
         local_path = file_path
