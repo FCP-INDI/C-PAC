@@ -44,8 +44,6 @@ sge_template = \
 #$ -A %(user)s
 #$ -V
 #$ -wd %(work_dir)s
-##$ -e %(err_log)s
-##$ -o %(out_log)s
 '''
 # Add in start, python CPAC, end
 sge_template = '\n'.join([sge_template,
@@ -61,8 +59,6 @@ slurm_template = \
 #SBATCH --uid=%(user)s
 #SBATCH --get-user-env
 #SBATCH --workdir=%(work_dir)s
-##SBATCH --error=%(err_log)s
-##SBATCH --output=%(out_log)s
 '''
 # Add in start, python CPAC, end
 slurm_template = '\n'.join([slurm_template,

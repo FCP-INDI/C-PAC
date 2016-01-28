@@ -298,36 +298,28 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Get string template for job scheduler
     if job_scheduler == 'pbs':
         env_arr_idx = '$PBS_ARRAYID'
-        err_fname = ''
-        out_fname = ''
         batch_file_contents = cluster_templates.pbs_template
         confirm_str = '(?<=Your job-array )\d+'
         exec_cmd = 'qsub'
     elif job_scheduler == 'sge':
         env_arr_idx = '$SGE_TASK_ID'
-        err_fname = 'cpac_sge_$JOB_ID.$TASK_ID.err'
-        out_fname = 'cpac_sge_$JOB_ID.$TASK_ID.out'
         batch_file_contents = cluster_templates.sge_template
         confirm_str = '(?<=Your job-array )\d+'
         exec_cmd = 'qsub'
     elif job_scheduler == 'slurm':
         env_arr_idx = '$SLURM_ARRAY_TASK_ID'
-        err_fname = 'cpac_slurm_%%j.%%a.err'
-        out_fname = 'cpac_slurm_%%j.%%a.out'
         batch_file_contents = cluster_templates.slurm_template
         confirm_str = '(?<=Submitted batch job )\d+'
         exec_cmd = 'sbatch'
 
     # Populate rest of dictionary
     config_dict['env_arr_idx'] = env_arr_idx
-    config_dict['err_log'] = os.path.join(cluster_files_dir, err_fname)
-    config_dict['out_log'] = os.path.join(cluster_files_dir, out_fname)
 
     # Populate string from config dict values
     batch_file_contents = batch_file_contents % config_dict
     # Write file
-    batch_filepath = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
-                                  % (timestamp, job_scheduler))
+    batch_filepath = os.path.join(cluster_files_dir, 'cpac_pipeline_%s.%s' \
+                                  % (pipeline_config.pipelineName, job_scheduler))
     with open(batch_filepath, 'w') as f:
         f.write(batch_file_contents)
 
@@ -445,13 +437,6 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
     # creating symlinks
     strategies = sorted(build_strategies(c))
-
-#     # Print strategies
-#     print "strategies ---> "
-#     print strategies
-#     # Print subject list
-#     print "subject list: "
-#     print sublist
 
     # Populate subject scan map
     sub_scan_map ={}
