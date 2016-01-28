@@ -518,7 +518,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     if c.runOnGrid:
         # Create cluster log dir
         cluster_files_dir = os.path.join(c.logDirectory, 'cluster_files')
-        if not os.path.exists(os.path.dirname(cluster_files_dir)):
+        if not os.path.exists(cluster_files_dir):
             os.makedirs(cluster_files_dir)
 
         # Create strategies file
