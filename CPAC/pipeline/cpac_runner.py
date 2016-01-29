@@ -318,8 +318,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Populate string from config dict values
     batch_file_contents = batch_file_contents % config_dict
     # Write file
-    batch_filepath = os.path.join(cluster_files_dir, 'cpac_pipeline_%s.%s' \
-                                  % (pipeline_config.pipelineName, job_scheduler))
+    batch_filepath = os.path.join(cluster_files_dir, 'cpac_submit_%s.%s' \
+                                  % (timestamp, job_scheduler))
     with open(batch_filepath, 'w') as f:
         f.write(batch_file_contents)
 

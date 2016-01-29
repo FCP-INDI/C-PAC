@@ -2,6 +2,9 @@
 #
 # Author: Daniel Clark, 2016
 
+# Make directory
+mkdir_str = 'mkdir -p %(job_folder)s'
+
 # Start task ID string
 start_taskid_str = 'echo "Start - TASKID " %(env_arr_idx)s " : " $(date)'
 
@@ -20,7 +23,7 @@ pbs_template = \
 '''#! %(shell)s
 ## C-PAC PBS batch file - %(timestamp)s
 #PBS -S %(shell)s
-#PBS -N cpac_pipeline_%(pipeline_name)s
+#PBS -N cpac_run_%(pipeline_name)s
 #PBS -t 1-%(num_subs)d
 #PBS -q %(queue)s
 #PBS -l nodes=1:ppn=%(cores_per_sub)d
@@ -37,7 +40,7 @@ sge_template = \
 '''#! %(shell)s
 ## C-PAC SGE batch file - %(timestamp)s
 #$ -S %(shell)s
-#$ -N cpac_pipeline_%(pipeline_name)s
+#$ -N cpac_run_%(pipeline_name)s
 #$ -t 1-%(num_subs)d
 #$ -q %(queue)s
 #$ -pe %(par_env)s %(cores_per_sub)d
@@ -53,7 +56,7 @@ sge_template = '\n'.join([sge_template,
 slurm_template = \
 '''#! %(shell)s
 ## C-PAC SLURM batch file - %(timestamp)s
-#SBATCH --job-name=cpac_pipeline_%(pipeline_name)s
+#SBATCH --job-name=cpac_run_%(pipeline_name)s
 #SBATCH --array=1-%(num_subs)d
 #SBATCH --cpus-per-task=%(cores_per_sub)d
 #SBATCH --uid=%(user)s
