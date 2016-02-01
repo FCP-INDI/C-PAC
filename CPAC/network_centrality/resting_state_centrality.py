@@ -787,26 +787,26 @@ def calc_centrality(datafile, template, method_option, threshold_option,
     # P-value threshold centrality
     if threshold_option == 'significance':
         r_value = convert_pvalue_to_r(datafile, threshold, two_tailed=False)
-        centrality_matrix = get_centrality_by_rvalue(ts_normd, 
-                                                     mask, 
-                                                     method_option, 
-                                                     weight_options, 
-                                                     r_value, 
+        centrality_matrix = get_centrality_by_rvalue(ts_normd,
+                                                     mask,
+                                                     method_option,
+                                                     weight_options,
+                                                     r_value,
                                                      block_size)
     # Sparsity threshold
     elif threshold_option == 'sparsity':
-        centrality_matrix = get_centrality_by_sparsity(ts_normd, 
-                                                       method_option, 
-                                                       weight_options, 
-                                                       threshold, 
+        centrality_matrix = get_centrality_by_sparsity(ts_normd,
+                                                       method_option,
+                                                       weight_options,
+                                                       threshold,
                                                        block_size)
     # R-value threshold centrality
     elif threshold_option == 'correlation':
-        centrality_matrix = get_centrality_by_rvalue(ts_normd, 
-                                                     mask, 
-                                                     method_option, 
-                                                     weight_options, 
-                                                     threshold, 
+        centrality_matrix = get_centrality_by_rvalue(ts_normd,
+                                                     mask,
+                                                     method_option,
+                                                     weight_options,
+                                                     threshold,
                                                      block_size)
     # For fast approach (no thresholding)
     elif threshold_option == 3:

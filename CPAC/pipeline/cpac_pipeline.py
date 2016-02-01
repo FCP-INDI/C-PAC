@@ -13,7 +13,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 from nipype.interfaces.afni import preprocess
-from   nipype.pipeline.utils import format_dot
+from   nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
@@ -135,15 +135,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
+    # Check pipeline config resources
+    from CPAC.utils.utils import check_config_resources
+    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
+        check_config_resources(c)
+
+
+    if plugin_args:
+        plugin_args['memory'] = sub_mem_gb
+        plugin_args['n_procs'] = num_cores_per_sub
+    else:
+        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
+
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
 
-    os.environ['OMP_NUM_THREADS'] = numThreads
-    os.environ['MKL_NUM_THREADS'] = numThreads
-    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(c.num_ants_threads)
+    os.environ['OMP_NUM_THREADS'] = num_cores_per_sub
+    os.environ['MKL_NUM_THREADS'] = num_cores_per_sub
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
@@ -384,7 +396,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if creds_path and os.path.exists(creds_path):
             input_creds_path = os.path.abspath(creds_path)
         else:
-            input_creds_path = None
+            err_msg = 'Credentials path: "%s" for subject "%s" was not '\
+                      'found. Check this path and try again.' % (creds_path, subject_id)
+            raise Exception(err_msg)
     except KeyError:
         input_creds_path = None
 
@@ -531,9 +545,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if ('ANTS' in c.regOption) and \
                 ('anat_mni_fnirt_register' not in nodes):
 
-            ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                    '_ants_register_%d' % num_strat, c.regWithSkull[0], 
-                                            num_threads=c.num_ants_threads)
+            ants_reg_anat_mni = \
+                create_wf_calculate_ants_warp('anat_mni_ants_register_%d' \
+                                              % num_strat, c.regWithSkull[0], 
+                                              num_threads=num_ants_cores)
 
 
             try:
@@ -753,9 +768,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     ('anat_mni_fnirt_register' not in nodes) and \
                     ('anat_symmetric_mni_fnirt_register' not in nodes):
 
-                ants_reg_anat_symm_mni = create_wf_calculate_ants_warp('anat' \
-                        '_symmetric_mni_ants_register_%d' % num_strat, \
-                        c.regWithSkull[0])
+                ants_reg_anat_symm_mni = \
+                    create_wf_calculate_ants_warp('anat_symmetric_mni_ants_register_%d' % num_strat, \
+                                                  c.regWithSkull[0],
+                                                  num_threads=num_ants_cores)
 
                 try:
 
@@ -961,7 +977,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-
 
 
 
@@ -3222,11 +3237,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 num_threads = c.numCoresPerSubject
                 memory = c.memoryAllocatedForDegreeCentrality
 
-                # Change sparsity thresholding to % to work with afni
+                # Format method and threshold options properly and check for errors
                 method_option, threshold_option = \
                     cent_utils.check_centrality_params(method_option, threshold_option, threshold)
 
-                if method_option == 'sparsity':
+                # Change sparsity thresholding to % to work with afni
+                if threshold_option == 'sparsity':
                     threshold = threshold*100
 
                 # Init the workflow
@@ -5970,8 +5986,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # Add status callback function that writes in callback log
         try:
             from nipype.pipeline.plugins.callback_log import log_nodes_cb
-            if plugin_args is None:
-                plugin_args = {}
             plugin_args['status_callback'] = log_nodes_cb
         except ImportError as exc:
             import nipype
@@ -5981,7 +5995,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                       'nipype repo at https:/github.com/fcp-indi/nipype.\n'\
                       'Error: %s' %(os.path.dirname(nipype.__file__), exc)
             logger.error(err_msg)
-            raise Exception(err_msg)
+            #raise Exception(err_msg)
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)

@@ -99,19 +99,19 @@ def check_for_s3(file_path, creds_path):
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])
             if error_code == 403:
-                err_msg = 'Access to bucket: %s is denied; using credentials '\
-                          'in subject list: %s cannot access the file %s'\
+                err_msg = 'Access to bucket: "%s" is denied; using credentials '\
+                          'in subject list: "%s"; cannot access the file "%s"'\
                           % (bucket_name, creds_path, file_path)
                 raise Exception(err_msg)
             elif error_code == 404:
-                err_msg = 'Bucket: %s does not exist; check spelling and try '\
+                err_msg = 'Bucket: "%s" does not exist; check spelling and try '\
                           'again' % bucket_name
                 raise Exception(err_msg)
             else:
-                err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+                err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                           % (bucket_name, exc)
         except Exception as exc:
-            err_msg = 'Unable to connect to bucket: %s. Error message:\n%s'\
+            err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                       % (bucket_name, exc)
             raise Exception(err_msg)
             

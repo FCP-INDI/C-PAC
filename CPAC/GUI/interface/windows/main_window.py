@@ -278,9 +278,6 @@ class ListBox(wx.Frame):
 
                 print '\n\n[!] ' + errmsg + '\n\n'
 
-
-                    
-
         except Exception, e:
 
             errSubID = wx.MessageDialog(self, str(e), 'Error',
@@ -289,8 +286,6 @@ class ListBox(wx.Frame):
             errSubID.Destroy()
 
             print e
-
-                
 
 
     def runGroupLevelAnalysis(self, event):
@@ -550,13 +545,12 @@ class ListBox(wx.Frame):
             c = yaml.load(open(config, 'r'))
         except:
             dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
-                                           'Error!',
-                                       wx.OK | wx.ICON_ERROR)
+                                   'Error!', wx.OK | wx.ICON_ERROR)
             ret_val = -1
             dlg.ShowModal()
             dlg.Destroy()
 
-                
+
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
