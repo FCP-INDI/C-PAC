@@ -153,8 +153,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # import mkl
     numThreads = '1'
 
-    os.environ['OMP_NUM_THREADS'] = num_cores_per_sub
-    os.environ['MKL_NUM_THREADS'] = num_cores_per_sub
+    os.environ['OMP_NUM_THREADS'] = str(num_cores_per_sub)
+    os.environ['MKL_NUM_THREADS'] = str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
     # calculate maximum potential use of cores according to current pipeline
