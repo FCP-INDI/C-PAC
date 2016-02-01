@@ -85,9 +85,9 @@ class ComputerSettings(wx.ScrolledWindow):
 
         self.page.add(label="Memory Per Subject (GB) ",
                       control=control.INT_CTRL,
-                      name='numCoresPerSubject',
+                      name='memoryAllocatedPerSubject',
                       type=dtype.NUM,
-                      comment="Memory to allocate per subject.\n\nIMPORTANT: '\Memory Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' must not be more than the total amount of RAM",
+                      comment="Memory to allocate per subject.\n\nIMPORTANT: \'Memory Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' must not be more than the total amount of RAM",
                       values=1)
 
         self.page.add(label="Number of Cores Per Subject ",
