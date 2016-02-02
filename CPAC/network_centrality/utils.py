@@ -1,6 +1,5 @@
 # CPAC/network_centrality/utils.py
 #
-# Contributing authors (please append):
 #
 
 '''
@@ -449,75 +448,47 @@ def parse_and_return_mats(one_d_file, mask_arr):
 
     # Parse out numbers
     print 'Parsing contents...'
-    graph_arr = np.loadtxt(one_d_file, skiprows=6, dtype='float32')
+    graph_arr = np.loadtxt(one_d_file, skiprows=6)
 
     # Cast as numpy arrays and extract i, j, w
     print 'Creating arrays...'
+    one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
-    i_arr = graph_arr[:, 0].astype('int32')
-    j_arr = graph_arr[:, 1].astype('int32')
+    ijk1 = graph_arr[:, 2:5].astype('int32')
+    ijk2 = graph_arr[:, 5:8].astype('int32')
+    # Weighted array and binarized array
     w_arr = graph_arr[:,-1].astype('float32')
-    corr_shape = len(mask_arr.flatten())
     del graph_arr
     b_arr = np.ones(w_arr.shape)
 
-
-    # idx = i + jx + kyz
-    # idx : 1d idx, ijk : 3d idx, xyz : shape of mask
-    
-    
-    # Old alg for creating corr mat
-#     one_d_rows = graph_arr.shape[0]
-#     ijk1 = graph_arr[:, 2:5]
-#     ijk2 = graph_arr[:, 5:8]
-
     # Non-zero elements from mask is size of similarity matrix
-#     mask_idx = np.argwhere(mask_arr)
-#     mask_voxs = mask_idx.shape[0]
+    mask_idx = np.argwhere(mask_arr)
+    mask_voxs = mask_idx.shape[0]
 
     # Extract the ijw's from 1D file
-#     i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
-#              for ii in range(one_d_rows)]
-#     del ijk1
-#     j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
-#              for ii in range(one_d_rows)]
-#     del ijk2
-#     i_arr = np.array(i_arr, dtype='int32')
-#     j_arr = np.array(j_arr, dtype='int32')
+    i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    del ijk1
+    j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    del ijk2
+    i_arr = np.array(i_arr, dtype='int32')
+    j_arr = np.array(j_arr, dtype='int32')
 
     # Construct the sparse matrix
     print 'Constructing sparse matrix...'
     wmat_upper_tri = sparse.coo_matrix((w_arr, (i_arr, j_arr)),
-                                       shape=(corr_shape, corr_shape))
+                                       shape=(mask_voxs, mask_voxs))
     bmat_upper_tri = sparse.coo_matrix((b_arr, (i_arr, j_arr)),
-                                       shape=(corr_shape, corr_shape))
+                                       shape=(mask_voxs, mask_voxs))
 
     # Make symmetric
-    wght_sim_matrix = wmat_upper_tri + wmat_upper_tri.T
-    bin_sim_matrix = bmat_upper_tri + bmat_upper_tri.T
-
-    import scipy.sparse.linalg as linalg
-    num_eigs=1
-    which_eigs='LM'
-    max_iter=1000
-    bin_eig_val, bin_eig_vect = linalg.eigsh(bin_sim_matrix, k=num_eigs,
-                                             which=which_eigs, maxiter=max_iter)
-    wght_eig_val, wght_eig_vect = linalg.eigsh(wght_sim_matrix, k=num_eigs,
-                                               which=which_eigs, maxiter=max_iter)
-
-    return bin_eig_val, bin_eig_vect, wght_eig_val, wght_eig_vect
-
-#     out_bin = np.zeros(mask_arr.shape, dtype='float32')
-#     out_wght = np.zeros(mask_arr.shape, dtype='float32')
-#     for idx in range(len(bin_eig_vect)):
-#         out_bin.itemset(idx, bin_eig_val*bin_eig_vect[idx])
-#         out_wght.itemset(idx, wght_eig_val*wght_eig_vect[idx])
-# 
-#     return out_bin, out_wght
+    w_similarity_matrix = wmat_upper_tri + wmat_upper_tri.T
+    b_similarity_matrix = bmat_upper_tri + bmat_upper_tri.T
 
     # Return the symmetric matrices and affine
-    #return b_similarity_matrix, w_similarity_matrix
+    return b_similarity_matrix, w_similarity_matrix
 
 
 # Check centrality parameters

@@ -186,11 +186,11 @@ def calc_eigen_from_1d(one_d_file, num_threads, mask_file):
     # Create eigenvector tuple
     centrality_tuple = ('eigenvector_centrality_binarized', np.abs(bin_eig_val*bin_eig_vect))
     bin_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
-                                                mask_arr, template_type)
+                                              mask_arr, template_type)
 
     centrality_tuple = ('eigenvector_centrality_weighted', np.abs(wght_eig_val*wght_eig_vect))
     wght_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
-                                                mask_arr, template_type)
+                                               mask_arr, template_type)
 
     # Grab outfile paths
     eigen_outfiles = [bin_outfile, wght_outfile]

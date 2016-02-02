@@ -761,8 +761,7 @@ def calc_centrality(datafile, template, method_option, threshold_option,
 
     # First check input parameters and get proper formatted method/thr options
     method_option, threshold_option = \
-        check_centrality_params(weight_options, method_option,
-                                threshold_option, threshold)
+        check_centrality_params(method_option, threshold_option, threshold)
 
     # Init variables
     start = time.clock()

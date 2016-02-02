@@ -3145,8 +3145,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
-            resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_template.inputs.apply_xfm = True
 
             # Get nipype  node and out file of the func mni img
             node, out_file = strat.get_node_from_resource_pool('functional_mni')
@@ -5890,10 +5890,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
 
-                if 1 in c.runSymbolicLinks:
-                    link_node.inputs.create_sym_links = True
-                else:
-                    link_node.inputs.create_sym_links = False
+#                 if 1 in c.runSymbolicLinks:
+#                     link_node.inputs.create_sym_links = False
+#                 else:
+                link_node.inputs.create_sym_links = False
 
     
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
