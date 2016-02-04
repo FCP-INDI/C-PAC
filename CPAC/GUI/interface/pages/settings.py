@@ -83,6 +83,16 @@ class ComputerSettings(wx.ScrolledWindow):
                       comment='SGE Queue to use when running CPAC.\n\nOnly applies when you are running on a grid or compute cluster using SGE.',
                       values='all.q')
 
+        self.page.add(label='Profile Pipeline Resources ',
+                      control=control.CHOICE_BOX,
+                      name='runtimeProfile',
+                      type=dtype.BOOL,
+                      comment='If the \'ResourceMultiProc\' plugin for nipype is '\
+                              'available and the user wishes to profile the '\
+                              'resources occupied by each node, set to \'True\'.',
+                      values=['False', 'True'],
+                      wkf_switch=False)
+
         self.page.add(label="Memory Per Subject (GB) ",
                       control=control.INT_CTRL,
                       name='memoryAllocatedPerSubject',

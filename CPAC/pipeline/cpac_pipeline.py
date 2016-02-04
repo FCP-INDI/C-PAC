@@ -144,8 +144,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if plugin_args:
         plugin_args['memory'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
+        plugin_args['runtime_profile'] = c.runtimeProfile
     else:
-        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
+        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub,
+                       'runtime_profile' : c.runtimeProfile}
 
 
     # perhaps in future allow user to set threads maximum
@@ -1646,10 +1648,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.append_name(gen_motion_stats.name)
 
         strat.update_resource_pool({'frame_wise_displacement':(gen_motion_stats, 'outputspec.FD_1D'),
-                                        'scrubbing_frames_excluded':(gen_motion_stats, 'outputspec.frames_ex_1D'),
-                                        'scrubbing_frames_included':(gen_motion_stats, 'outputspec.frames_in_1D'),
-                                        'power_params':(gen_motion_stats, 'outputspec.power_params'),
-                                        'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
+                                    'scrubbing_frames_excluded':(gen_motion_stats, 'outputspec.frames_ex_1D'),
+                                    'scrubbing_frames_included':(gen_motion_stats, 'outputspec.frames_in_1D'),
+                                    'power_params':(gen_motion_stats, 'outputspec.power_params'),
+                                    'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
             
         create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat)
         num_strat += 1
