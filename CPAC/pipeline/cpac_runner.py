@@ -278,7 +278,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Init plugin arguments
     plugin_args = {'n_procs': pipeline_config.numCoresPerSubject,
-                   'memory': pipeline_config.memoryAllocatedForDegreeCentrality}
+                   'memory': pipeline_config.memoryAllocatedPerSubject,
+                   'runtime_profile' : pipeline_config.runtimeProfile}
 
     # Set up config dictionary
     config_dict = {'config_file' : config_file,

@@ -230,8 +230,9 @@ class ListBox(wx.Frame):
             import CPAC
             from CPAC.utils import Configuration
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
-            plugin_args = {'num_threads': c.numCoresPerSubject,
-                           'memory': c.memoryAllocatedForDegreeCentrality}
+            plugin_args = {'n_procs': c.numCoresPerSubject,
+                           'memory': c.memoryAllocatedPerSubject,
+                           'runtime_profile' : c.runtimeProfile}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='ResourceMultiProc',
