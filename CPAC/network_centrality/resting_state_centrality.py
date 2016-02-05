@@ -812,7 +812,10 @@ def calc_centrality(datafile, template, method_option, threshold_option,
         centrality_matrix = get_centrality_fast(ts, method_option)
     # Otherwise, incorrect input for threshold_option
     else:
-        raise Exception('Threshold option not supported: %s' % str(threshold_option))
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
+        raise Exception(err_msg)
 
     # Print timing info
     print 'Timing:', time.clock() - start

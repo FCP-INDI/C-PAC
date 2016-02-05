@@ -548,8 +548,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ('anat_mni_fnirt_register' not in nodes):
 
             ants_reg_anat_mni = \
-                create_wf_calculate_ants_warp('anat_mni_ants_register_%d' \
-                                              % num_strat, c.regWithSkull[0], 
+                create_wf_calculate_ants_warp('anat_mni_ants_register_%d' % num_strat,
+                                              c.regWithSkull[0],
                                               num_threads=num_ants_cores)
 
 

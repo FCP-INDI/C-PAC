@@ -613,8 +613,12 @@ class ListBox(wx.Frame):
 
         return ret_val
 
+    # Function to load and add config file to GUI
     def AddConfig(self, event):
-        
+        '''
+        docstring
+        '''
+
         # Gets called when you click 'Load' for pipeline config in the GUI
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
@@ -622,7 +626,8 @@ class ListBox(wx.Frame):
             defaultFile="",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
-        
+
+        # User clicks "OK"
         if dlg.ShowModal() == wx.ID_OK:
             # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
@@ -647,9 +652,10 @@ class ListBox(wx.Frame):
                     raise Exception(err_msg)
             # Otherwise, report error
             else:
-                err_msg = 'File %s does not exist. Check and try again.' \
-                          % path
+                err_msg = 'File %s does not exist. Check and try again.' % path
                 raise Exception(err_msg)
+
+            # If config file is ok, proceed to load
             if self.check_config(path) > 0:
                 while True:
                     try:
@@ -661,31 +667,24 @@ class ListBox(wx.Frame):
                               'wrong file.\n'
                         print 'Error name: main_window_0001\n\n'
                         print 'Exception: %s' % e
-                    
-
+                    # Valid pipeline name
                     if c.pipelineName != None:
-                            
                             if self.pipeline_map.get(c.pipelineName) == None:
-
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading does NOT already exist in
                                 # the listbox, i.e., the proper condition
-
                                 self.pipeline_map[str(c.pipelineName)] = path
                                 self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
-                            
                             else:
-
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading DOES already exist in
                                 # the listbox, which is a conflict
-                                       
                                 dlg3 = wx.MessageDialog(self, 'The \'' \
                                         'Pipeline Name\' attribute of the ' \
                                         'configuration file you are loading' \
@@ -706,9 +705,8 @@ class ListBox(wx.Frame):
                                 dlg3.ShowModal()
                                 dlg3.Destroy()
                                 break
-                                
+                    # Pipeline name is None
                     else:
-                        
                         dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
                                                 ' the pipeline_config.yml file in a text editor and' \
                                                 ' restore the pipelineName field.',
@@ -716,12 +714,11 @@ class ListBox(wx.Frame):
                                 wx.OK | wx.ICON_ERROR)
                         dlg4.ShowModal()
                         dlg4.Destroy()
-                        
                         dlg.Destroy
                         break
 
-                    
-                             
+
+# runCPAC class
 class runCPAC(wx.Frame):
  
     def __init__(self, pipeline, sublist, p, pid):

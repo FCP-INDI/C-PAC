@@ -523,7 +523,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
         elif threshold_option == 2:
             threshold_option = 'correlation'
         else:
-            err_msg = 'Threshold option: %d not supported' % threshold_option
+            err_msg = 'Threshold option: %s not supported for network centrality '\
+                      'measure: %s; fix this in the pipeline config'\
+                      % (str(threshold_option), str(method_option))
             raise Exception(err_msg)
     elif type(threshold_option) is not str:
         err_msg = 'Threshold option must be a string, but type: %s provided' \
@@ -544,7 +546,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
 
     # Check for strings properly formatted
     if threshold_option not in acceptable_thresholds:
-        err_msg = 'Threshold option: %s not supported' % threshold_option
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
         raise Exception(err_msg)
 
     # If it's significance/sparsity thresholding, check for (0,1]
@@ -562,7 +566,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
                       % threshold
             raise Exception(err_msg)
     else:
-        err_msg = 'Threshold option: %s not supported' % threshold_option
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
         raise Exception(err_msg)
     # 
     if method_option == 'lfcd' and threshold_option == 'sparsity':
