@@ -395,8 +395,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict['creds_path']
-        if creds_path and os.path.exists(creds_path):
+        if os.path.exists(creds_path):
             input_creds_path = os.path.abspath(creds_path)
+        elif creds_path is None:
+            input_creds_path = None
         else:
             err_msg = 'Credentials path: "%s" for subject "%s" was not '\
                       'found. Check this path and try again.' % (creds_path, subject_id)
