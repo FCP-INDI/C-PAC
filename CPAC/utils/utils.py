@@ -2137,8 +2137,8 @@ def check_config_resources(c):
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total/(1024.0**3)
         sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
-    elif c.memoryAllocatedPerSubject <= c.memoryAllocatedForDegreeCentrality:
-        err_msg = 'Memoy allocated for subject: %d needs to be greater '\
+    elif c.memoryAllocatedPerSubject < c.memoryAllocatedForDegreeCentrality:
+        err_msg = 'Memory allocated for subject: %d needs to be greater '\
                   'than the memory allocated for centrality: %d. Fix and '\
                   'try again.' % (c.memoryAllocatedPerSubject,
                                   c.memoryAllocatedForDegreeCentrality)
