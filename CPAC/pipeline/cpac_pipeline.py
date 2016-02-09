@@ -5895,10 +5895,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
 
-#                 if 1 in c.runSymbolicLinks:
-#                     link_node.inputs.create_sym_links = False
-#                 else:
-                link_node.inputs.create_sym_links = False
+                if 1 in c.runSymbolicLinks:
+                    link_node.inputs.create_sym_links = True
+                else:
+                    link_node.inputs.create_sym_links = False
 
     
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
