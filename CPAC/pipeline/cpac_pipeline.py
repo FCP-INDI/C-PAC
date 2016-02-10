@@ -378,7 +378,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter = 0
 
 
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      PREPROCESSING
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -386,11 +385,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     '''
     Initialize Anatomical Input Data Flow
     '''
-    
+
     num_strat = 0
 
     strat_initial = strategy()
-
 
     # Extract credentials path if it exists
     try:
@@ -413,7 +411,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     flow.inputs.inputnode.creds_path = input_creds_path
 
     anat_flow = flow.clone('anat_gather_%d' % num_strat)
-
 
     strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
 
@@ -539,7 +536,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 
     strat_list += new_strat_list
 
-        
+
     new_strat_list = []
             
     for strat in strat_list:
@@ -555,9 +552,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                               c.regWithSkull[0],
                                               num_threads=num_ants_cores)
 
-
             try:
-
                 # calculating the transform with the skullstripped is
                 # reported to be better, but it requires very high
                 # quality skullstripping. If skullstripping is imprecise

@@ -69,7 +69,7 @@ def check_for_s3(file_path, creds_path):
 
     # Init variables
     s3_str = 's3://'
-    local_download_dir = '/tmp'
+    local_download_dir = os.getcwd()
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
@@ -114,7 +114,7 @@ def check_for_s3(file_path, creds_path):
             err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
                       % (bucket_name, exc)
             raise Exception(err_msg)
-            
+
     # Otherwise just return what was passed in
     else:
         local_path = file_path

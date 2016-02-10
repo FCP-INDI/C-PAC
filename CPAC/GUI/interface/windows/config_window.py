@@ -295,65 +295,74 @@ class MainFrame(wx.Frame):
     def test_sublist(self, sublist):
         '''
         Instance method to test a subject list for errors
-        
+
         Parameters
         ----------
         self : MainFrame (wx.Frame object)
             the method is aware of the instance as self
         sublist : list (dict)
             a C-PAC-formatted subject list (yaml list of dictionaries)
-        
+
         Returns
         -------
         pass_flg : boolean
             flag which indicates whether the subject list passed testing
         '''
-        
+
         # Import packages
         import nibabel as nb
         import os
-        
+
+        from CPAC.utils.datasource import check_for_s3
+
         # Init variables
         err_str = ''
         err_msg = ''
         not_found_flg = False
         bad_dim_flg = False
         pass_flg = False
-        
+        checked_s3 = False
+        s3_str = 's3://'
+
         # Check to ensure the user is providing an actual subject
         # list and not some other kind of file
         try:
             subInfo = sublist[0]
         except:
-            errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - ' \
-                      'check if you loaded the correct file? \n\n' \
-                        'Error name: config_window_0001',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - ' \
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0001'
+            errDlg4 = wx.MessageDialog(self, msg, 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg4.ShowModal()
             errDlg4.Destroy()
-    
-            raise Exception  
-            
+
+            # Raise Exception
+            raise Exception
+
         # Another check to ensure the actual subject list was generated
         # properly and that it will work
         if 'subject_id' not in subInfo:
-            errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - '
-                      'check if you loaded the correct file? \n\n' \
-                        'Error name: config_window_0002',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - '\
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0002'
+            errDlg3 = wx.MessageDialog(self, msg , 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg3.ShowModal()
             errDlg3.Destroy()
-    
+
+            # Raise Exception
             raise Exception
-        
+
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
             func_files = sub['rest']
+            if anat_file.lower().startswith(s3_str):
+                if checked_s3:
+                    break
+                creds_path = sub['creds_path']
+                anat_file = check_for_s3(anat_file, creds_path)
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -372,6 +381,11 @@ class MainFrame(wx.Frame):
                 err_str = err_str + err_str_suffix
             # For each functional file
             for func_file in func_files.values():
+                if func_file.lower().startswith(s3_str) and not checked_s3:
+                    creds_path = sub['creds_path']
+                    func_file = check_for_s3(func_file, creds_path)
+                    checked_s3 = True
+                    break
                 # Check if functional file exists
                 if os.path.exists(func_file):
                     img = nb.load(func_file)
@@ -407,12 +421,12 @@ class MainFrame(wx.Frame):
                 raise Exception(err_str)
             else:
                 pass_flg = True
-        
+
         # Return the flag
         return pass_flg
 
+    # Test pipeline config file
     def testConfig(self, event):
-        
         '''
         This function runs when the user clicks the "Test Configuration"
         button in the pipeline configuration window.
@@ -423,21 +437,22 @@ class MainFrame(wx.Frame):
         config will run or not depending on if the pipeline gets built
         successfully.
         '''
-        
+
+        # Import packages
         import os
         import yaml
         from CPAC.utils import Configuration
-        
+
         from CPAC.pipeline.cpac_pipeline import prep_workflow
         from CPAC.pipeline.cpac_runner import build_strategies
-        
+
         def display(win, msg, changeBg=True):
             wx.MessageBox(msg, "Error")
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
             win.Refresh()
-        
+
         # Collect a sample subject list and parse it in
         testDlg0 = wx.MessageDialog(
             self, 'This tool will run a quick check on the current pipeline '\
@@ -459,11 +474,12 @@ class MainFrame(wx.Frame):
             subListPath = dlg.GetPath()
         
         # Load and test the subject list
+        print 'Checking subject list: %s...' % subListPath
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
-        
+        print 'Subject list looks good!'
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
 
