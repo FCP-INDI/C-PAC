@@ -571,12 +571,27 @@ class ListBox(wx.Frame):
                 paramList.append(param.split(','))
 
 
-
+        notify_centrality_misconfig = True
         for param in paramList:
-
             try:
                 if str(param[0]) not in c:
                     missingParams.append(param)
+                # Check centrality threshold options during initial load
+                if 'ThresholdOption' in str(param[0]):
+                    config_val = c[str(param[0])]
+                    if type(config_val) is list:
+                        config_val = config_val[0]
+                    if type(config_val) is int:
+                        missingParams.append(param)
+                        if notify_centrality_misconfig:
+                            notify_centrality_misconfig = False
+                            msg = 'At least one of your centrality treshold '\
+                                  'options is mis-formatted as an integer. '\
+                                  'Fix this in the pipeline config edit window'
+                            dlg = wx.MessageDialog(self, msg, 'Error!', wx.OK | wx.ICON_ERROR)
+                            ret_val = -1
+                            dlg.ShowModal()
+                            dlg.Destroy()
             except:
                 errdlg = wx.MessageDialog(self, "Your pipeline " \
                                           "configuration file could not be " \
@@ -588,11 +603,9 @@ class ListBox(wx.Frame):
                 errdlg.ShowModal()
                 errdlg.Destroy()
                 break
-                
 
-        
+        # If any missing parameters, notify user
         if missingParams:
-
             message = 'The following parameters are missing from your pipeline configuration file:\n\n'
 
             for param in missingParams:
@@ -609,8 +622,9 @@ class ListBox(wx.Frame):
             else:
                 print "Couldn't find the config file %s "%config    
 
-            ret_val = -1    
+            ret_val = -1
 
+        # Return if config was correct
         return ret_val
 
     # Function to load and add config file to GUI
