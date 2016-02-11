@@ -224,7 +224,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     subject_info['strategies'] = strategies
 
 
-
     '''
     input filepaths check and tool setup check
     '''
@@ -266,8 +265,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             pass
         else:
             raise Exception
-            
-            
+
     # this checks to make sure the user has appropriately installed and
     # configured necessary tools (i.e. AFNI, FSL, ANTS..)
     
@@ -300,9 +298,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
               "Consult the CPAC Installation Guide for instructions.\n\n" \
               % missing_string
         raise Exception(err)
-    
-                
-    
+
 
     '''
     workflow preliminary setup
@@ -370,7 +366,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             nodes.append(node[:-2])
             
         return nodes
-        
 
     strat_list = []
 
@@ -2991,7 +2986,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     Inserting Surface Registration
     '''
@@ -3044,8 +3038,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
     '''
 
-
-
     '''
     Inserting vertices based timeseries
     '''
@@ -3089,10 +3081,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-
     '''
-
-
 
     '''
     Set Up FWHM iterable
@@ -3104,8 +3093,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
-    
-
 
     '''
     Inserting Network centrality
@@ -3138,6 +3125,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         except subprocess.CalledProcessError as exc:
                 afni_centrality_found = False
                 print 'Using C-PAC centrality function'
+
         # For each desired strategy
         for strat in strat_list:
 
@@ -3372,9 +3360,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     num_strat = 0
 
 
-
-
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      WARP OUTPUTS TO TEMPLATE
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -3409,8 +3394,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             apply_ants_warp.inputs.inputspec. \
                     input_image_type = input_image_type
-                    
-            
 
             try:
 
@@ -3488,11 +3471,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
 
-
         else:
 
             # FSL WARP APPLICATION
-
             if map_node == 0:
             
                 apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
@@ -3525,7 +3506,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node, out_file = strat.get_node_from_resource_pool('anat' \
                         'omical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
-                
 
 
             except:
@@ -3539,8 +3519,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.append_name(apply_fsl_warp.name)
             
             num_strat += 1
-
-
 
 
     '''
@@ -3600,7 +3578,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
-
 
 
             try:
@@ -3696,18 +3673,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.append_name(fisher_z_score_std.name)
         strat.update_resource_pool({'%s_fisher_zstd' % (output_resource): \
                 (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
-                
-                
-                
-                
-    '''
-    calculate output averages via individual-level mask
-    '''
-    
+
+
+    # Calc average via 3dmaskave
     def calc_avg(output_resource, strat, num_strat, map_node=0):
-    
+        '''
+        calculate output averages via individual-level mask
+        '''
+
         if map_node == 0:
-                    
             calc_average = pe.Node(interface=preprocess.Maskave(),
                 name='%s_mean_%d' % (output_resource, num_strat))
 
@@ -3717,9 +3691,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     function=extract_output_mean),
                     name='%s_mean_to_txt_%d' % (output_resource, \
                     num_strat))
-                        
+
         elif map_node == 1:
-            
             calc_average = pe.MapNode(interface=preprocess.Maskave(),
                 name='%s_mean_%d' % (output_resource, num_strat), \
                 iterfield=['in_file'])
@@ -3730,33 +3703,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     function=extract_output_mean),
                     name='%s_mean_to_txt_%d' % (output_resource, \
                     num_strat), iterfield=['in_file'])
-            
-        
+
         mean_to_csv.inputs.output_name = output_resource
-        
-        
+
         try:
-        
             node, out_file = strat. \
                     get_node_from_resource_pool(output_resource)
-
             workflow.connect(node, out_file, calc_average, 'in_file')
-            
             workflow.connect(calc_average, 'out_file', \
                 mean_to_csv, 'in_file')
-        
-        
+
         except:
-        
             logConnectionError('%s calc average' % \
-                output_name, num_strat, strat.get_resource_pool(), '0128')
+                output_resource, num_strat, strat.get_resource_pool(), '0128')
             raise
-        
-        
+
         strat.append_name(calc_average.name)
         strat.update_resource_pool({'output_means.@%s_average' % (output_resource): (mean_to_csv, 'output_mean')})
-
-
 
 
     '''

@@ -58,7 +58,7 @@ def get_rest(scan, rest_dict):
 
 
 # Check if passed in file is on S3
-def check_for_s3(file_path, creds_path):
+def check_for_s3(file_path, creds_path, dl_dir=None):
     '''
     '''
 
@@ -69,7 +69,8 @@ def check_for_s3(file_path, creds_path):
 
     # Init variables
     s3_str = 's3://'
-    local_download_dir = os.getcwd()
+    if dl_dir is None:
+        dl_dir = os.getcwd()
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
@@ -85,8 +86,8 @@ def check_for_s3(file_path, creds_path):
 
         # Extract relative key path from bucket and local path
         s3_prefix = os.path.join(s3_str, bucket_name)
-        rel_path = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = file_path.replace(s3_prefix, local_download_dir)
+        s3_key = file_path.replace(s3_prefix, '').lstrip('/')
+        local_path = os.path.join(dl_dir, os.path.basename(s3_key))
 
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
@@ -95,7 +96,7 @@ def check_for_s3(file_path, creds_path):
 
         # Download file
         try:
-            bucket.download_file(Key=rel_path, Filename=local_path)
+            bucket.download_file(Key=s3_key, Filename=local_path)
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])
             if error_code == 403:

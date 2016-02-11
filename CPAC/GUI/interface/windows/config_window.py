@@ -310,8 +310,10 @@ class MainFrame(wx.Frame):
         '''
 
         # Import packages
-        import nibabel as nb
         import os
+        import tempfile
+        import nibabel as nb
+
 
         from CPAC.utils.datasource import check_for_s3
 
@@ -361,8 +363,9 @@ class MainFrame(wx.Frame):
             if anat_file.lower().startswith(s3_str):
                 if checked_s3:
                     break
+                dl_dir = tempfile.mkdtemp()
                 creds_path = sub['creds_path']
-                anat_file = check_for_s3(anat_file, creds_path)
+                anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -381,11 +384,11 @@ class MainFrame(wx.Frame):
                 err_str = err_str + err_str_suffix
             # For each functional file
             for func_file in func_files.values():
-                if func_file.lower().startswith(s3_str) and not checked_s3:
+                if func_file.lower().startswith(s3_str):
+                    dl_dir = tempfile.mkdtemp()
                     creds_path = sub['creds_path']
-                    func_file = check_for_s3(func_file, creds_path)
+                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir)
                     checked_s3 = True
-                    break
                 # Check if functional file exists
                 if os.path.exists(func_file):
                     img = nb.load(func_file)
@@ -402,6 +405,14 @@ class MainFrame(wx.Frame):
                     not_found_flg = True
                     err_str_suffix = 'File not found: %s\n' % func_file
                     err_str = err_str + err_str_suffix
+                # If we're just checking s3 files, remove the temporarily downloaded
+                if checked_s3:
+                    try:
+                        os.remove(anat_file)
+                        os.remove(func_file)
+                    except:
+                        pass
+                    break
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
