@@ -4460,7 +4460,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     logStandardError('QC', 'unable to get resources for FD plot', '0053')
                     raise
 
-
             # make QC montages for Skull Stripping Visualization
 
             try:
@@ -5840,7 +5839,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 encrypt_data = False
             for key in sorted(rp.keys()):
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                ds.inputs.base_directory = c.outputDirectory
+                # Write QC outputs to log directory
+                if 'qc' in key.lower():
+                    ds.inputs.base_directory = c.logDirectory
+                else:
+                    ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
@@ -6047,13 +6050,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # For each pipeline ID, generate the QC pages
                 for pip_id in pip_ids:
                     # Define pipeline-level logging for QC
-                    pipeline_log_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_log_base, subject_id, 'qc_files_here')
+                    pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                    qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
                     # Generate the QC pages
                     generateQCPages(qc_output_folder, qc_montage_id_a,
                                     qc_montage_id_s, qc_plot_id, qc_hist_id)
                     # Automatically generate QC index page
-                    create_all_qc.run(pipeline_log_base)
+                    create_all_qc.run(pipeline_out_base)
 
         # pipeline timing code starts here
 

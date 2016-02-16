@@ -843,6 +843,10 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
+    # DEBUG
+    if id_ == 40:
+        print 'hi'
+
     #print 'id_ :', id_
     if id_ in dict_a:
 
@@ -855,7 +859,9 @@ def feed_lines_html(id_,
 
         idxs = len(dict_a[id_])
         for idx in range(0, idxs):
-
+            # DEBUG
+            if idx == 5:
+                print 'hi'
             png_a = dict_a[id_][idx]
             png_s = dict_s[id_][idx]
             png_h = None
@@ -893,10 +899,8 @@ def feed_lines_html(id_,
                 id_a = '_'.join([id_a, str(idx), 'a'])
                 id_s = '_'.join([id_s, str(idx), 's'])
                 id_h = '_'.join([id_h, str(idx), 'h' ])
-            
 
             if idx == 0:
-
                 # add general user readable link names for QC navigation bar
                 if image_name_a_nav == 'skullstrip_vis':
                     image_readable = 'Visual Result of Skull Strip'
@@ -1069,6 +1073,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
 
         for id_ in sorted(all_ids):
+            print 'id: ', id_
             feed_lines_html(id_,
                               dict_a,
                               dict_s,
@@ -1087,7 +1092,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
         f_html_0.close()
         f_html_1.close()
 
-    except:
+    except Exception as exc:
 
         print '\n\nWarning: QC HTML pages could not be generated because' \
               ' the file names have become too long. Clear out the .html' \
