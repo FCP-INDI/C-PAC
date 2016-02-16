@@ -3115,16 +3115,26 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             raise Exception(err)
 
-        # Check for the existence of AFNI 3dDegreeCentrality binary
+        # Check for the existence of AFNI 3dDegreeCentrality/LFCD binaries
         import subprocess
         try:
-            ret_code = subprocess.check_call(['which', '3dDegreeCentrality'])
+            ret_code = subprocess.check_call(['which', '3dDegreeCentrality'],
+                                             stdout=open(os.devnull, 'wb'))
             if ret_code == 0:
                 afni_centrality_found = True
-                print 'Using AFNI centrality function'
+                logger.info('Using AFNI centrality function')
         except subprocess.CalledProcessError as exc:
                 afni_centrality_found = False
-                print 'Using C-PAC centrality function'
+                logger.info('Using C-PAC centrality function')
+        try:
+            ret_code = subprocess.check_call(['which', '3dLFCD'],
+                                             stdout=open(os.devnull, 'wb'))
+            if ret_code == 0:
+                afni_lfcd_found = True
+                logger.info('Using AFNI LFCD function')
+        except subprocess.CalledProcessError as exc:
+                afni_lfcd_found = False
+                logger.info('Using C-PAC LFCD function')
 
         # For each desired strategy
         for strat in strat_list:
@@ -3252,7 +3262,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  merge_node,
                                  out_list)
 
-            # If 3dDegreeCentrality is found, run it
+            # Degree/eigen check
             if afni_centrality_found:
                 if c.degWeightOptions.count(True) > 0:
                     connect_afni_centrality_wf('degree',
@@ -3262,11 +3272,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     connect_afni_centrality_wf('eigenvector',
                                                c.eigCorrelationThresholdOption,
                                                c.eigCorrelationThreshold)
-                # If we're calculating lFCD
-                if c.lfcdWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf('lfcd',
-                                               c.lfcdCorrelationThresholdOption,
-                                               c.lfcdCorrelationThreshold)
             # Otherwise run the CPAC python workflow
             else:
                 # If we're calculating degree centrality
@@ -3283,6 +3288,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                               c.eigCorrelationThreshold,
                                               c.eigWeightOptions,
                                               'eig_list')
+            # LFCD check
+            if afni_lfcd_found:
+                # If we're calculating lFCD
+                if c.lfcdWeightOptions.count(True) > 0:
+                    connect_afni_centrality_wf('lfcd',
+                                               c.lfcdCorrelationThresholdOption,
+                                               c.lfcdCorrelationThreshold)
+            # Otherwise run the CPAC python workflow
+            else:
                 # If we're calculating lFCD
                 if c.lfcdWeightOptions.count(True) > 0:
                     connectCentralityWorkflow('lfcd',
