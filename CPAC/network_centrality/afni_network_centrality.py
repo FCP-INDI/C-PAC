@@ -16,7 +16,7 @@ from nipype.interfaces.base import traits, File
 class afniDegreeCentralityInputSpec(CommandLineInputSpec):
     '''
     '''
-
+ 
     # Define class variables
     prefix = traits.Str(exists=True, argstr='-prefix %s', position=0,
                         desc='Output file name prefix', mandatory=True)
@@ -36,13 +36,13 @@ class afniDegreeCentralityInputSpec(CommandLineInputSpec):
                                                     'brain-only voxels')
     dataset = File(argstr='%s', exists=True, position=-1,
                    desc='Functional input dataset to use')
-
-
+ 
+ 
 # Output spec class
 class afniDegreeCentralityOutputSpec(TraitedSpec):
     '''
     '''
-
+ 
     # Define command outputs
     img_outfile = File(desc='The binarized and weighted degree centrality '\
                             'images stored in two sub-briks of a nifti',
@@ -51,31 +51,31 @@ class afniDegreeCentralityOutputSpec(TraitedSpec):
                              'after thresholding with one-dimensional and '\
                              'ijk voxel indices, correlations, image extents, '\
                              'and affine matrix')
-
-
+ 
+ 
 # Command line execution class
 class afniDegreeCentrality(CommandLine):
     '''
     '''
-
+ 
     # Define command, input, and output spec
     _cmd = '3dDegreeCentrality'
     input_spec = afniDegreeCentralityInputSpec
     output_spec = afniDegreeCentralityOutputSpec
-
+ 
     # Gather generated outputs
     def _list_outputs(self):
-
+ 
         # Import packages
         import os
-
+ 
         # Get generated outputs dictionary and assign generated outputs
         # to out output spec
         outputs = self.output_spec().get()
         outputs['img_outfile'] = os.path.abspath(self.inputs.prefix)
         if self.inputs.out_1d:
             outputs['one_d_outfile'] = os.path.abspath(self.inputs.out_1d)
-
+ 
         # Return outputs
         return outputs
 
