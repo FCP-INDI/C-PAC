@@ -2,7 +2,6 @@
 #
 # Contributing authors:
 # Daniel Clark
-from traits.has_traits import PrefixTraits
 
 '''
 This module contains functions which assist in interacting with AWS

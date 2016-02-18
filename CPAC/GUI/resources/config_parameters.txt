@@ -6,6 +6,8 @@ queue,SGE Queue,Computer Settings
 numCoresPerSubject,Number of Cores Per Subject,Computer Settings
 numSubjectsAtOnce,Number of Subjects to Run Simultaneously,Computer Settings
 num_ants_threads,Number of Cores for Anatomical Registration (ANTS only),Computer Settings
+runtimeProfile, Profile Pipeline Resources, Computer Settings
+memoryAllocatedPerSubject,Memory Per Subject (GB),Computer Settings
 pipelineName,Pipeline Name,Output Settings
 workingDirectory,Working Directory,Output Settings
 crashLogDirectory,Crash Log Directory,Output Settings

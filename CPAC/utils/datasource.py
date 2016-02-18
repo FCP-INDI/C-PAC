@@ -58,17 +58,19 @@ def get_rest(scan, rest_dict):
 
 
 # Check if passed in file is on S3
-def check_for_s3(file_path, creds_path):
+def check_for_s3(file_path, creds_path, dl_dir=None):
     '''
     '''
 
     # Import packages
     import os
+    import botocore.exceptions
     from CPAC.AWS import fetch_creds
 
     # Init variables
     s3_str = 's3://'
-    local_download_dir = '/tmp'
+    if dl_dir is None:
+        dl_dir = os.getcwd()
 
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
@@ -84,8 +86,8 @@ def check_for_s3(file_path, creds_path):
 
         # Extract relative key path from bucket and local path
         s3_prefix = os.path.join(s3_str, bucket_name)
-        rel_path = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = file_path.replace(s3_prefix, local_download_dir)
+        s3_key = file_path.replace(s3_prefix, '').lstrip('/')
+        local_path = os.path.join(dl_dir, os.path.basename(s3_key))
 
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
@@ -93,7 +95,27 @@ def check_for_s3(file_path, creds_path):
             os.makedirs(local_dir)
 
         # Download file
-        bucket.download_file(Key=rel_path, Filename=local_path)
+        try:
+            bucket.download_file(Key=s3_key, Filename=local_path)
+        except botocore.exceptions.ClientError as exc:
+            error_code = int(exc.response['Error']['Code'])
+            if error_code == 403:
+                err_msg = 'Access to bucket: "%s" is denied; using credentials '\
+                          'in subject list: "%s"; cannot access the file "%s"'\
+                          % (bucket_name, creds_path, file_path)
+                raise Exception(err_msg)
+            elif error_code == 404:
+                err_msg = 'Bucket: "%s" does not exist; check spelling and try '\
+                          'again' % bucket_name
+                raise Exception(err_msg)
+            else:
+                err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                          % (bucket_name, exc)
+        except Exception as exc:
+            err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                      % (bucket_name, exc)
+            raise Exception(err_msg)
+
     # Otherwise just return what was passed in
     else:
         local_path = file_path
@@ -131,7 +153,6 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
     # Return the workflow
     return wf
-
 
 
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):

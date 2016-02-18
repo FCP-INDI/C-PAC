@@ -2117,3 +2117,62 @@ def setup_logger(logger_name, file_path, level, to_screen=False):
     # Return the logger
     return logger
 
+
+# Check pipeline config againts computer resources
+def check_config_resources(c):
+    '''
+    docstring
+    '''
+
+    # Import packages
+    import psutil
+    from multiprocessing import cpu_count
+
+    # Init variables
+    sys_virt_mem = psutil.virtual_memory()
+    num_cores = cpu_count()
+
+    # Check for pipeline memory for subject
+    if c.memoryAllocatedPerSubject is None:
+        # Get system memory and numSubsAtOnce
+        sys_mem_gb = sys_virt_mem.total/(1024.0**3)
+        sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
+    elif c.memoryAllocatedPerSubject < c.memoryAllocatedForDegreeCentrality:
+        err_msg = 'Memory allocated for subject: %d needs to be greater '\
+                  'than the memory allocated for centrality: %d. Fix and '\
+                  'try again.' % (c.memoryAllocatedPerSubject,
+                                  c.memoryAllocatedForDegreeCentrality)
+        raise Exception(err_msg)
+    else:
+        sub_mem_gb = c.memoryAllocatedPerSubject
+
+    # Check for pipeline threads
+    # Check if user specified cores
+    if c.numCoresPerSubject:
+        total_user_cores = c.numSubjectsAtOnce*c.numCoresPerSubject
+        if total_user_cores > num_cores:
+            err_msg = 'Config file specifies more subjects running in '\
+                      'parallel than number of threads available. Change '\
+                      'this and try again'
+            raise Exception(err_msg)
+        else:
+            num_cores_per_sub = c.numCoresPerSubject
+    else:
+        num_cores_per_sub = num_cores/c.numCoresPerSubject
+
+    # Now check ANTS
+    if c.regOption == 'ANTS':
+        if c.num_ants_threads is None:
+            num_ants_cores = num_cores_per_sub
+        elif c.num_ants_threads > c.numCoresPerSubject:
+            err_msg = 'Number of threads for ANTS: %d is greater than the '\
+                      'number of threads per subject: %d. Change this and '\
+                      'try again.'
+            raise Exception(err_msg)
+        else:
+            num_ants_cores = c.num_ants_threads
+    else:
+        num_ants_cores = 1
+
+    # Return memory and cores
+    return sub_mem_gb, num_cores_per_sub, num_ants_cores

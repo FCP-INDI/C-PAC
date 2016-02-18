@@ -1,5 +1,4 @@
 # CPAC/pipeline/cpac_pipeline.py
-# 
 
 '''
 This module prepares and executes the main C-PAC workflow
@@ -13,7 +12,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 from nipype.interfaces.afni import preprocess
-from   nipype.pipeline.utils import format_dot
+from nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
@@ -114,10 +113,9 @@ class strategy:
             self.resource_pool[key] = value
 
 
-
-def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
-                      p_name=None, plugin='ResourceMultiProc', \
-                      plugin_args=None):
+# Create and prepare C-PAC pipeline workflow
+def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
+                  p_name=None, plugin='ResourceMultiProc', plugin_args=None):
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      SETUP
@@ -136,15 +134,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
+    # Check pipeline config resources
+    from CPAC.utils.utils import check_config_resources
+    sub_mem_gb, num_cores_per_sub, num_ants_cores = \
+        check_config_resources(c)
+
+
+    if plugin_args:
+        plugin_args['memory'] = sub_mem_gb
+        plugin_args['n_procs'] = num_cores_per_sub
+        plugin_args['runtime_profile'] = c.runtimeProfile
+    else:
+        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub,
+                       'runtime_profile' : c.runtimeProfile}
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
     numThreads = '1'
 
-    os.environ['OMP_NUM_THREADS'] = numThreads
-    os.environ['MKL_NUM_THREADS'] = numThreads
-    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(c.num_ants_threads)
+    os.environ['OMP_NUM_THREADS'] = str(num_cores_per_sub)
+    os.environ['MKL_NUM_THREADS'] = str(num_cores_per_sub)
+    os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
@@ -204,12 +215,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     elif already_skullstripped == 3:
         already_skullstripped = 1
 
-
     subject_info = {}
     subject_info['subject_id'] = subject_id
     subject_info['start_time'] = pipeline_start_time
     subject_info['strategies'] = strategies
-
 
 
     '''
@@ -253,8 +262,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             pass
         else:
             raise Exception
-            
-            
+
     # this checks to make sure the user has appropriately installed and
     # configured necessary tools (i.e. AFNI, FSL, ANTS..)
     
@@ -287,9 +295,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
               "Consult the CPAC Installation Guide for instructions.\n\n" \
               % missing_string
         raise Exception(err)
-    
-                
-    
+
 
     '''
     workflow preliminary setup
@@ -357,13 +363,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             nodes.append(node[:-2])
             
         return nodes
-        
 
     strat_list = []
 
     workflow_bit_id = {}
     workflow_counter = 0
-
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -373,17 +377,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     '''
     Initialize Anatomical Input Data Flow
     '''
-    
+
     num_strat = 0
 
     strat_initial = strategy()
 
-
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict['creds_path']
-        if creds_path and os.path.exists(creds_path):
-            input_creds_path = os.path.abspath(creds_path)
+        if creds_path:
+            if os.path.exists(creds_path):
+                input_creds_path = os.path.abspath(creds_path)
+            else:
+                err_msg = 'Credentials path: "%s" for subject "%s" was not '\
+                          'found. Check this path and try again.' % (creds_path, subject_id)
+                raise Exception(err_msg)
         else:
             input_creds_path = None
     except KeyError:
@@ -395,7 +403,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     flow.inputs.inputnode.creds_path = input_creds_path
 
     anat_flow = flow.clone('anat_gather_%d' % num_strat)
-
 
     strat_initial.set_leaf_properties(anat_flow, 'outputspec.anat')
 
@@ -521,7 +528,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 
     strat_list += new_strat_list
 
-        
+
     new_strat_list = []
             
     for strat in strat_list:
@@ -532,13 +539,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         if ('ANTS' in c.regOption) and \
                 ('anat_mni_fnirt_register' not in nodes):
 
-            ants_reg_anat_mni = create_wf_calculate_ants_warp('anat_mni' \
-                    '_ants_register_%d' % num_strat, c.regWithSkull[0], 
-                                            num_threads=c.num_ants_threads)
-
+            ants_reg_anat_mni = \
+                create_wf_calculate_ants_warp('anat_mni_ants_register_%d' % num_strat,
+                                              c.regWithSkull[0],
+                                              num_threads=num_ants_cores)
 
             try:
-
                 # calculating the transform with the skullstripped is
                 # reported to be better, but it requires very high
                 # quality skullstripping. If skullstripping is imprecise
@@ -754,9 +760,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     ('anat_mni_fnirt_register' not in nodes) and \
                     ('anat_symmetric_mni_fnirt_register' not in nodes):
 
-                ants_reg_anat_symm_mni = create_wf_calculate_ants_warp('anat' \
-                        '_symmetric_mni_ants_register_%d' % num_strat, \
-                        c.regWithSkull[0])
+                ants_reg_anat_symm_mni = \
+                    create_wf_calculate_ants_warp('anat_symmetric_mni_ants_register_%d' % num_strat, \
+                                                  c.regWithSkull[0],
+                                                  num_threads=num_ants_cores)
 
                 try:
 
@@ -962,7 +969,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             num_strat += 1
 
     strat_list += new_strat_list
-
 
 
 
@@ -1632,10 +1638,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         strat.append_name(gen_motion_stats.name)
 
         strat.update_resource_pool({'frame_wise_displacement':(gen_motion_stats, 'outputspec.FD_1D'),
-                                        'scrubbing_frames_excluded':(gen_motion_stats, 'outputspec.frames_ex_1D'),
-                                        'scrubbing_frames_included':(gen_motion_stats, 'outputspec.frames_in_1D'),
-                                        'power_params':(gen_motion_stats, 'outputspec.power_params'),
-                                        'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
+                                    'scrubbing_frames_excluded':(gen_motion_stats, 'outputspec.frames_ex_1D'),
+                                    'scrubbing_frames_included':(gen_motion_stats, 'outputspec.frames_in_1D'),
+                                    'power_params':(gen_motion_stats, 'outputspec.power_params'),
+                                    'motion_params':(gen_motion_stats, 'outputspec.motion_params')})
             
         create_log_node(gen_motion_stats, 'outputspec.motion_params', num_strat)
         num_strat += 1
@@ -2946,7 +2952,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     strat_list += new_strat_list
 
 
-
     '''
     Inserting Surface Registration
     '''
@@ -2999,8 +3004,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     strat_list += new_strat_list
     '''
 
-
-
     '''
     Inserting vertices based timeseries
     '''
@@ -3044,10 +3047,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             num_strat += 1
 
     strat_list += new_strat_list
-
     '''
-
-
 
     '''
     Set Up FWHM iterable
@@ -3059,8 +3059,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
         inputnode_fwhm.iterables = ("fwhm", c.fwhm)
-    
-
 
     '''
     Inserting Network centrality
@@ -3083,16 +3081,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
             raise Exception(err)
 
-        # Check for the existence of AFNI 3dDegreeCentrality binary
+        # Check for the existence of AFNI 3dDegreeCentrality/LFCD binaries
         import subprocess
         try:
-            ret_code = subprocess.check_call(['which', '3dDegreeCentrality'])
+            ret_code = subprocess.check_call(['which', '3dDegreeCentrality'],
+                                             stdout=open(os.devnull, 'wb'))
             if ret_code == 0:
                 afni_centrality_found = True
-                print 'Using AFNI centrality function'
+                logger.info('Using AFNI centrality function')
         except subprocess.CalledProcessError as exc:
                 afni_centrality_found = False
-                print 'Using C-PAC centrality function'
+                logger.info('Using C-PAC centrality function')
+        try:
+            ret_code = subprocess.check_call(['which', '3dLFCD'],
+                                             stdout=open(os.devnull, 'wb'))
+            if ret_code == 0:
+                afni_lfcd_found = True
+                logger.info('Using AFNI LFCD function')
+        except subprocess.CalledProcessError as exc:
+                afni_lfcd_found = False
+                logger.info('Using C-PAC LFCD function')
+
         # For each desired strategy
         for strat in strat_list:
 
@@ -3100,8 +3109,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             resample_functional_to_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_functional_to_template_%d' % num_strat)
             resample_functional_to_template.inputs.interp = 'trilinear'
-            resample_functional_to_template.inputs.apply_xfm = True
             resample_functional_to_template.inputs.in_matrix_file = c.identityMatrix
+            resample_functional_to_template.inputs.apply_xfm = True
 
             # Get nipype  node and out file of the func mni img
             node, out_file = strat.get_node_from_resource_pool('functional_mni')
@@ -3176,6 +3185,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 # Import pacakges
                 from CPAC.network_centrality.afni_network_centrality \
                     import create_afni_centrality_wf
+                import CPAC.network_centrality.utils as cent_utils
 
                 # Init variables
                 # Set method_options variables
@@ -3190,6 +3200,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
                 num_threads = c.numCoresPerSubject
                 memory = c.memoryAllocatedForDegreeCentrality
+
+                # Format method and threshold options properly and check for errors
+                method_option, threshold_option = \
+                    cent_utils.check_centrality_params(method_option, threshold_option, threshold)
+
+                # Change sparsity thresholding to % to work with afni
+                if threshold_option == 'sparsity':
+                    threshold = threshold*100
 
                 # Init the workflow
                 afni_centrality_wf = \
@@ -3210,7 +3228,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                  merge_node,
                                  out_list)
 
-            # If 3dDegreeCentrality is found, run it
+            # Degree/eigen check
             if afni_centrality_found:
                 if c.degWeightOptions.count(True) > 0:
                     connect_afni_centrality_wf('degree',
@@ -3220,11 +3238,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     connect_afni_centrality_wf('eigenvector',
                                                c.eigCorrelationThresholdOption,
                                                c.eigCorrelationThreshold)
-                # If we're calculating lFCD
-                if c.lfcdWeightOptions.count(True) > 0:
-                    connect_afni_centrality_wf('lfcd',
-                                               c.lfcdCorrelationThresholdOption,
-                                               c.lfcdCorrelationThreshold)
             # Otherwise run the CPAC python workflow
             else:
                 # If we're calculating degree centrality
@@ -3241,6 +3254,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                               c.eigCorrelationThreshold,
                                               c.eigWeightOptions,
                                               'eig_list')
+            # LFCD check
+            if afni_lfcd_found:
+                # If we're calculating lFCD
+                if c.lfcdWeightOptions.count(True) > 0:
+                    connect_afni_centrality_wf('lfcd',
+                                               c.lfcdCorrelationThresholdOption,
+                                               c.lfcdCorrelationThreshold)
+            # Otherwise run the CPAC python workflow
+            else:
                 # If we're calculating lFCD
                 if c.lfcdWeightOptions.count(True) > 0:
                     connectCentralityWorkflow('lfcd',
@@ -3318,9 +3340,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     num_strat = 0
 
 
-
-
-
     """""""""""""""""""""""""""""""""""""""""""""""""""
      WARP OUTPUTS TO TEMPLATE
     """""""""""""""""""""""""""""""""""""""""""""""""""
@@ -3355,8 +3374,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
             apply_ants_warp.inputs.inputspec. \
                     input_image_type = input_image_type
-                    
-            
 
             try:
 
@@ -3434,11 +3451,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             num_strat += 1
 
 
-
         else:
 
             # FSL WARP APPLICATION
-
             if map_node == 0:
             
                 apply_fsl_warp = pe.Node(interface=fsl.ApplyWarp(),
@@ -3471,7 +3486,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 node, out_file = strat.get_node_from_resource_pool('anat' \
                         'omical_to_mni_nonlinear_xfm')
                 workflow.connect(node, out_file, apply_fsl_warp, 'field_file')
-                
 
 
             except:
@@ -3485,8 +3499,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             strat.append_name(apply_fsl_warp.name)
             
             num_strat += 1
-
-
 
 
     '''
@@ -3546,7 +3558,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                         fsl.MultiImageMaths(), name='%s_to_standard_' \
                         'smooth_%d' % (output_name, num_strat), \
                         iterfield=['in_file'])
-
 
 
             try:
@@ -3642,18 +3653,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         strat.append_name(fisher_z_score_std.name)
         strat.update_resource_pool({'%s_fisher_zstd' % (output_resource): \
                 (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
-                
-                
-                
-                
-    '''
-    calculate output averages via individual-level mask
-    '''
-    
+
+
+    # Calc average via 3dmaskave
     def calc_avg(output_resource, strat, num_strat, map_node=0):
-    
+        '''
+        calculate output averages via individual-level mask
+        '''
+
         if map_node == 0:
-                    
             calc_average = pe.Node(interface=preprocess.Maskave(),
                 name='%s_mean_%d' % (output_resource, num_strat))
 
@@ -3663,9 +3671,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     function=extract_output_mean),
                     name='%s_mean_to_txt_%d' % (output_resource, \
                     num_strat))
-                        
+
         elif map_node == 1:
-            
             calc_average = pe.MapNode(interface=preprocess.Maskave(),
                 name='%s_mean_%d' % (output_resource, num_strat), \
                 iterfield=['in_file'])
@@ -3676,33 +3683,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                     function=extract_output_mean),
                     name='%s_mean_to_txt_%d' % (output_resource, \
                     num_strat), iterfield=['in_file'])
-            
-        
+
         mean_to_csv.inputs.output_name = output_resource
-        
-        
+
         try:
-        
             node, out_file = strat. \
                     get_node_from_resource_pool(output_resource)
-
             workflow.connect(node, out_file, calc_average, 'in_file')
-            
             workflow.connect(calc_average, 'out_file', \
                 mean_to_csv, 'in_file')
-        
-        
+
         except:
-        
             logConnectionError('%s calc average' % \
-                output_name, num_strat, strat.get_resource_pool(), '0128')
+                output_resource, num_strat, strat.get_resource_pool(), '0128')
             raise
-        
-        
+
         strat.append_name(calc_average.name)
         strat.update_resource_pool({'output_means.@%s_average' % (output_resource): (mean_to_csv, 'output_mean')})
-
-
 
 
     '''
@@ -4428,7 +4425,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 except:
                     logStandardError('QC', 'unable to get resources for FD plot', '0053')
                     raise
-
 
             # make QC montages for Skull Stripping Visualization
 
@@ -5745,11 +5741,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 strategy_tag_helper_symlinks['nuisance'] = 1
             else:
                 strategy_tag_helper_symlinks['nuisance'] = 0
-    
+
             strat_tag = ""
-    
             hash_val = 0
-    
+
             for name in strat.get_name():
                 import re
                 
@@ -5809,7 +5804,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 encrypt_data = False
             for key in sorted(rp.keys()):
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                ds.inputs.base_directory = c.outputDirectory
+                # Write QC outputs to log directory
+                if 'qc' in key.lower():
+                    ds.inputs.base_directory = c.logDirectory
+                else:
+                    ds.inputs.base_directory = c.outputDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
@@ -5932,8 +5931,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         # Add status callback function that writes in callback log
         try:
             from nipype.pipeline.plugins.callback_log import log_nodes_cb
-            if plugin_args is None:
-                plugin_args = {}
             plugin_args['status_callback'] = log_nodes_cb
         except ImportError as exc:
             import nipype
@@ -5943,7 +5940,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                       'nipype repo at https:/github.com/fcp-indi/nipype.\n'\
                       'Error: %s' %(os.path.dirname(nipype.__file__), exc)
             logger.error(err_msg)
-            raise Exception(err_msg)
+            #raise Exception(err_msg)
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
@@ -6005,26 +6002,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
         # If QC is enabled
         if 1 in c.generateQualityControlImages:
-            # QC html files arent supported in S3 currently
-            if c.outputDirectory.startswith(s3_str):
-                err_msg = 'QC webpage generation is currently not supported '\
-                          'when using an S3 bucket as the output directory. '\
-                          'However the QC image files can be found in %s'\
-                          % os.path.join(c.outputDirectory,
-                                         'pipeline_%s' % pipeline_id,
-                                         subject_id, 'qc')
-                logger.info(err_msg)
-            else:
-                # For each pipeline ID, generate the QC pages
-                for pip_id in pip_ids:
-                    # Define pipeline-level logging for QC
-                    pipeline_log_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_log_base, subject_id, 'qc_files_here')
-                    # Generate the QC pages
-                    generateQCPages(qc_output_folder, qc_montage_id_a,
-                                    qc_montage_id_s, qc_plot_id, qc_hist_id)
-                    # Automatically generate QC index page
-                    create_all_qc.run(pipeline_log_base)
+            # For each pipeline ID, generate the QC pages
+            for pip_id in pip_ids:
+                # Define pipeline-level logging for QC
+                pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
+                # Generate the QC pages
+                generateQCPages(qc_output_folder, qc_montage_id_a,
+                                qc_montage_id_s, qc_plot_id, qc_hist_id)
+                # Automatically generate QC index page
+                create_all_qc.run(pipeline_out_base)
 
         # pipeline timing code starts here
 
@@ -6130,7 +6117,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                 for loc in local_log_files]
                 # Upload logs
                 aws_utils.s3_upload(bucket, (local_log_files, s3_log_files),
-                                    s3_log_files, encrypt=encrypt_data)
+                                    encrypt=encrypt_data)
                 # Delete local log files
                 for log_f in local_log_files:
                     os.remove(log_f)
@@ -6197,16 +6184,16 @@ def run(config, subject_list_file, indx, strategies, p_name=None, \
     import commands
     commands.getoutput('source ~/.bashrc')
     import yaml
-
+    
     # Import configuration file
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
-
+    
     # Try and load in the subject list
     try:
         sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
     except:
         raise Exception ("Subject list is not in proper YAML format. Please check your file")
-
+    
     # Grab the subject of interest
     sub_dict = sublist[int(indx)-1]
     sub_id = sub_dict['subject_id']

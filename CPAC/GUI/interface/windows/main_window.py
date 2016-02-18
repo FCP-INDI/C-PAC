@@ -230,8 +230,9 @@ class ListBox(wx.Frame):
             import CPAC
             from CPAC.utils import Configuration
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
-            plugin_args = {'num_threads': c.numCoresPerSubject,
-                           'memory': c.memoryAllocatedForDegreeCentrality}
+            plugin_args = {'n_procs': c.numCoresPerSubject,
+                           'memory': c.memoryAllocatedPerSubject,
+                           'runtime_profile' : c.runtimeProfile}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='ResourceMultiProc',
@@ -278,9 +279,6 @@ class ListBox(wx.Frame):
 
                 print '\n\n[!] ' + errmsg + '\n\n'
 
-
-                    
-
         except Exception, e:
 
             errSubID = wx.MessageDialog(self, str(e), 'Error',
@@ -289,8 +287,6 @@ class ListBox(wx.Frame):
             errSubID.Destroy()
 
             print e
-
-                
 
 
     def runGroupLevelAnalysis(self, event):
@@ -550,13 +546,12 @@ class ListBox(wx.Frame):
             c = yaml.load(open(config, 'r'))
         except:
             dlg = wx.MessageDialog(self, 'Error loading yaml file. Please check the file format',
-                                           'Error!',
-                                       wx.OK | wx.ICON_ERROR)
+                                   'Error!', wx.OK | wx.ICON_ERROR)
             ret_val = -1
             dlg.ShowModal()
             dlg.Destroy()
 
-                
+
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -576,12 +571,27 @@ class ListBox(wx.Frame):
                 paramList.append(param.split(','))
 
 
-
+        notify_centrality_misconfig = True
         for param in paramList:
-
             try:
                 if str(param[0]) not in c:
                     missingParams.append(param)
+                # Check centrality threshold options during initial load
+                if 'ThresholdOption' in str(param[0]):
+                    config_val = c[str(param[0])]
+                    if type(config_val) is list:
+                        config_val = config_val[0]
+                    if type(config_val) is int:
+                        missingParams.append(param)
+                        if notify_centrality_misconfig:
+                            notify_centrality_misconfig = False
+                            msg = 'At least one of your centrality treshold '\
+                                  'options is mis-formatted as an integer. '\
+                                  'Fix this in the pipeline config edit window'
+                            dlg = wx.MessageDialog(self, msg, 'Error!', wx.OK | wx.ICON_ERROR)
+                            ret_val = -1
+                            dlg.ShowModal()
+                            dlg.Destroy()
             except:
                 errdlg = wx.MessageDialog(self, "Your pipeline " \
                                           "configuration file could not be " \
@@ -593,11 +603,9 @@ class ListBox(wx.Frame):
                 errdlg.ShowModal()
                 errdlg.Destroy()
                 break
-                
 
-        
+        # If any missing parameters, notify user
         if missingParams:
-
             message = 'The following parameters are missing from your pipeline configuration file:\n\n'
 
             for param in missingParams:
@@ -614,12 +622,17 @@ class ListBox(wx.Frame):
             else:
                 print "Couldn't find the config file %s "%config    
 
-            ret_val = -1    
+            ret_val = -1
 
+        # Return if config was correct
         return ret_val
 
+    # Function to load and add config file to GUI
     def AddConfig(self, event):
-        
+        '''
+        docstring
+        '''
+
         # Gets called when you click 'Load' for pipeline config in the GUI
         dlg = wx.FileDialog(
             self, message="Choose the CPAC Configuration file",
@@ -627,7 +640,8 @@ class ListBox(wx.Frame):
             defaultFile="",
             wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
-        
+
+        # User clicks "OK"
         if dlg.ShowModal() == wx.ID_OK:
             # Load config file into memory and verify its not a subject list
             path = dlg.GetPath()
@@ -652,9 +666,10 @@ class ListBox(wx.Frame):
                     raise Exception(err_msg)
             # Otherwise, report error
             else:
-                err_msg = 'File %s does not exist. Check and try again.' \
-                          % path
+                err_msg = 'File %s does not exist. Check and try again.' % path
                 raise Exception(err_msg)
+
+            # If config file is ok, proceed to load
             if self.check_config(path) > 0:
                 while True:
                     try:
@@ -666,31 +681,24 @@ class ListBox(wx.Frame):
                               'wrong file.\n'
                         print 'Error name: main_window_0001\n\n'
                         print 'Exception: %s' % e
-                    
-
+                    # Valid pipeline name
                     if c.pipelineName != None:
-                            
                             if self.pipeline_map.get(c.pipelineName) == None:
-
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading does NOT already exist in
                                 # the listbox, i.e., the proper condition
-
                                 self.pipeline_map[str(c.pipelineName)] = path
                                 self.listbox.Append(str(c.pipelineName))
                                 dlg.Destroy()
                                 break
-                            
                             else:
-
                                 # this runs if you click 'Load' on the main
                                 # CPAC window, enter a path, and the pipeline
                                 # name attribute of the pipeline config file
                                 # you are loading DOES already exist in
                                 # the listbox, which is a conflict
-                                       
                                 dlg3 = wx.MessageDialog(self, 'The \'' \
                                         'Pipeline Name\' attribute of the ' \
                                         'configuration file you are loading' \
@@ -711,9 +719,8 @@ class ListBox(wx.Frame):
                                 dlg3.ShowModal()
                                 dlg3.Destroy()
                                 break
-                                
+                    # Pipeline name is None
                     else:
-                        
                         dlg4 = wx.MessageDialog(self, 'Warning: Pipeline name is blank.\n\nPlease edit' \
                                                 ' the pipeline_config.yml file in a text editor and' \
                                                 ' restore the pipelineName field.',
@@ -721,12 +728,11 @@ class ListBox(wx.Frame):
                                 wx.OK | wx.ICON_ERROR)
                         dlg4.ShowModal()
                         dlg4.Destroy()
-                        
                         dlg.Destroy
                         break
 
-                    
-                             
+
+# runCPAC class
 class runCPAC(wx.Frame):
  
     def __init__(self, pipeline, sublist, p, pid):

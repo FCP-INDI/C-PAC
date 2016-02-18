@@ -1,6 +1,5 @@
 # CPAC/network_centrality/utils.py
 #
-# Contributing authors (please append):
 #
 
 '''
@@ -44,8 +43,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
 
     # Import packages
     import numpy as np
+    from nipype import logging
 
     # Init variables
+    logger = logging.getLogger('workflow)')
     block_size = 1000   # default
 
     nvoxs   = timeseries.shape[0]
@@ -119,10 +120,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
     else:
         memory_usage = (needed_memory + block_size*nvoxs*nbytes)/1024.0**3
 
-    # Print information
-    print 'block_size -> %i voxels' % block_size
-    print '# of blocks -> %i' % np.ceil(float(nvoxs)/block_size)
-    print 'expected usage -> %.2fGB' % memory_usage
+    # Log information
+    logger.info('block_size -> %i voxels' % block_size)
+    logger.info('# of blocks -> %i' % np.ceil(float(nvoxs)/block_size))
+    logger.info('expected usage -> %.2fGB' % memory_usage)
 
     return block_size
 
@@ -348,9 +349,14 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     Exception
     '''
 
-    import nibabel as nib
+    # Import packages
     import os
+    import nibabel as nib
     import numpy as np
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     try:
         out_file, matrix = centrality_matrix
@@ -358,7 +364,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         out_file = os.path.join(os.getcwd(), out_file + '.nii.gz')
         sparse_m = np.zeros((mask.shape), dtype=float)
 
-        print 'mapping centrality matrix to nifti image...', out_file
+        logger.info('mapping centrality matrix to nifti image: %s' % out_file)
 
         if int(template_type) == 0:
             cords = np.argwhere(mask)
@@ -387,9 +393,10 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         nifti_img.to_filename(out_file)
 
         return out_file
-    except:
-        print 'Error in mapping centrality matrix to nifti image'
-        raise
+    except Exception as exc:
+        err_msg = 'Error in mapping centrality matrix to nifti image. '\
+                  'Error: %s' % exc
+        raise Exception(err_msg)
 
 
 # Function to actually do the list merging
@@ -446,78 +453,54 @@ def parse_and_return_mats(one_d_file, mask_arr):
     # Import packages
     import numpy as np
     import scipy.sparse as sparse
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     # Parse out numbers
-    print 'Parsing contents...'
-    graph_arr = np.loadtxt(one_d_file, skiprows=6, dtype='float32')
+    logger.info('Parsing contents...')
+    graph_arr = np.loadtxt(one_d_file, skiprows=6)
 
     # Cast as numpy arrays and extract i, j, w
-    print 'Creating arrays...'
+    logger.info('Creating arrays...')
+    one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
-    i_arr = graph_arr[:, 0].astype('int32')
-    j_arr = graph_arr[:, 1].astype('int32')
+    ijk1 = graph_arr[:, 2:5].astype('int32')
+    ijk2 = graph_arr[:, 5:8].astype('int32')
+    # Weighted array and binarized array
     w_arr = graph_arr[:,-1].astype('float32')
-    corr_shape = len(mask_arr.flatten())
     del graph_arr
     b_arr = np.ones(w_arr.shape)
 
-
-    # idx = i + jx + kyz
-    # idx : 1d idx, ijk : 3d idx, xyz : shape of mask
-    
-    
-    # Old alg for creating corr mat
-#     one_d_rows = graph_arr.shape[0]
-#     ijk1 = graph_arr[:, 2:5]
-#     ijk2 = graph_arr[:, 5:8]
-
     # Non-zero elements from mask is size of similarity matrix
-#     mask_idx = np.argwhere(mask_arr)
-#     mask_voxs = mask_idx.shape[0]
+    mask_idx = np.argwhere(mask_arr)
+    mask_voxs = mask_idx.shape[0]
 
     # Extract the ijw's from 1D file
-#     i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
-#              for ii in range(one_d_rows)]
-#     del ijk1
-#     j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
-#              for ii in range(one_d_rows)]
-#     del ijk2
-#     i_arr = np.array(i_arr, dtype='int32')
-#     j_arr = np.array(j_arr, dtype='int32')
+    i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    del ijk1
+    j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
+             for ii in range(one_d_rows)]
+    del ijk2
+    i_arr = np.array(i_arr, dtype='int32')
+    j_arr = np.array(j_arr, dtype='int32')
 
     # Construct the sparse matrix
-    print 'Constructing sparse matrix...'
+    logger.info('Constructing sparse matrix...')
     wmat_upper_tri = sparse.coo_matrix((w_arr, (i_arr, j_arr)),
-                                       shape=(corr_shape, corr_shape))
+                                       shape=(mask_voxs, mask_voxs))
     bmat_upper_tri = sparse.coo_matrix((b_arr, (i_arr, j_arr)),
-                                       shape=(corr_shape, corr_shape))
+                                       shape=(mask_voxs, mask_voxs))
 
     # Make symmetric
-    wght_sim_matrix = wmat_upper_tri + wmat_upper_tri.T
-    bin_sim_matrix = bmat_upper_tri + bmat_upper_tri.T
-
-    import scipy.sparse.linalg as linalg
-    num_eigs=1
-    which_eigs='LM'
-    max_iter=1000
-    bin_eig_val, bin_eig_vect = linalg.eigsh(bin_sim_matrix, k=num_eigs,
-                                             which=which_eigs, maxiter=max_iter)
-    wght_eig_val, wght_eig_vect = linalg.eigsh(wght_sim_matrix, k=num_eigs,
-                                               which=which_eigs, maxiter=max_iter)
-
-    return bin_eig_val, bin_eig_vect, wght_eig_val, wght_eig_vect
-
-#     out_bin = np.zeros(mask_arr.shape, dtype='float32')
-#     out_wght = np.zeros(mask_arr.shape, dtype='float32')
-#     for idx in range(len(bin_eig_vect)):
-#         out_bin.itemset(idx, bin_eig_val*bin_eig_vect[idx])
-#         out_wght.itemset(idx, wght_eig_val*wght_eig_vect[idx])
-# 
-#     return out_bin, out_wght
+    w_similarity_matrix = wmat_upper_tri + wmat_upper_tri.T
+    b_similarity_matrix = bmat_upper_tri + bmat_upper_tri.T
 
     # Return the symmetric matrices and affine
-    #return b_similarity_matrix, w_similarity_matrix
+    return b_similarity_matrix, w_similarity_matrix
 
 
 # Check centrality parameters
@@ -552,7 +535,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
         elif threshold_option == 2:
             threshold_option = 'correlation'
         else:
-            err_msg = 'Threshold option: %d not supported' % threshold_option
+            err_msg = 'Threshold option: %s not supported for network centrality '\
+                      'measure: %s; fix this in the pipeline config'\
+                      % (str(threshold_option), str(method_option))
             raise Exception(err_msg)
     elif type(threshold_option) is not str:
         err_msg = 'Threshold option must be a string, but type: %s provided' \
@@ -573,7 +558,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
 
     # Check for strings properly formatted
     if threshold_option not in acceptable_thresholds:
-        err_msg = 'Threshold option: %s not supported' % threshold_option
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
         raise Exception(err_msg)
 
     # If it's significance/sparsity thresholding, check for (0,1]
@@ -591,7 +578,9 @@ def check_centrality_params(method_option, threshold_option, threshold):
                       % threshold
             raise Exception(err_msg)
     else:
-        err_msg = 'Threshold option: %s not supported' % threshold_option
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
         raise Exception(err_msg)
     # 
     if method_option == 'lfcd' and threshold_option == 'sparsity':
