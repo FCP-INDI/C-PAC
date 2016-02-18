@@ -19,6 +19,53 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
 ID_SUBMIT = 6
 
 
+
+def gen_checkboxgrid_config_string(label, value):
+
+    # example inputs
+    #     label (string): "tsa_roi_paths" (the name of the input control)
+    #     value (dictionary):
+    #         {'/path/to/roi.nii.gz': ['Voxel', 'Avg']}
+
+    string = ""
+
+    if len(value.keys()) == 0:
+        string = string + label + ": None\n"
+        return string
+    else:
+        string = string + label + ":\n"
+
+    flag = 0                  
+
+    for entry in value.keys():
+
+        # each "entry" is a filepath to an ROI .nii.gz file
+        # each "value[entry]" is a list of selected analysis types (strings)
+
+        if flag == 0:
+            string = string + "  - "
+            flag = 1
+        else:
+            string = string + "    "
+
+        string = string + entry + ": "
+
+        firstnum = 0
+
+        selection_string = str(value[entry])
+        selection_string = selection_string.replace("'", "")
+        selection_string = selection_string.replace("[", "")
+        selection_string = selection_string.replace("]", "")
+
+        string = string + selection_string
+
+        string = string + "\n"
+
+
+    return string
+
+
+
 class Mybook(wx.Treebook):
 
     def __init__(self, parent):
@@ -1065,39 +1112,10 @@ class MainFrame(wx.Frame):
 
                 elif dtype == 9:
 
-                    if len(value.keys()) == 0:
-                        print >>f, label,": None\n"
-                        continue
-                    else:
-                        print >>f, label,":"
+                    # checkbox grid (ROI extraction etc.)
+                    string = gen_checkboxgrid_config_string(label, value)
 
-                    flag = 0                  
-
-                    for entry in value.keys():
-
-                        if flag == 0:
-                            string = "  - "
-                            flag = 1
-                        else:
-                            string = "    "
-
-                        string = string + entry + ": "
-
-                        firstnum = 0
-
-                        for tsa_type in sample_list:
-
-                            if firstnum > 0:
-                                string = string + ","
-                            firstnum = 1
-
-                            if tsa_type in value[entry]:
-                                string = string + "1"
-                            else:
-                                string = string + "0"
-
-                        print >>f, string
-
+                    print >>f, string
                     print >>f, "\n"
 
 

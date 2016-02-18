@@ -330,11 +330,11 @@ class Control(wx.Control):
             self.selection = self.ctrl.GetGridSelection()
 
             add_string = "\n\nAvailable analyses: %s.\nDenote which " \
-                         "analyses to run for each ROI path by listing 1's " \
-                         "or 0's. For example, if you wish to run %s and " \
-                         "%s, you would enter: '/path/to/ROI.nii.gz': " \
-                         "1,0,1" % (selections, selections[0], \
-                         selections[2])
+                         "analyses to run for each ROI path by listing the " \
+                         "names above. For example, if you wish to run %s " \
+                         "and %s, you would enter: '/path/to/ROI.nii.gz': " \
+                         "%s, %s" % (selections, selections[0], \
+                         selections[2], selections[0], selections[2])
 
             self.help = self.help + add_string
 

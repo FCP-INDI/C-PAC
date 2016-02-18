@@ -433,7 +433,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
         strat.update_resource_pool({'anatomical_brain':(anat_preproc, 'outputspec.brain')})
         strat.update_resource_pool({'anatomical_reorient':(anat_preproc, 'outputspec.reorient')})
             
-        #write to log
+        # write to log
         create_log_node(anat_preproc, 'outputspec.brain', num_strat)
 
         num_strat += 1
@@ -2410,6 +2410,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     ts_analysis_dict = {}
     sca_analysis_dict = {}
 
+    # c.tsa_roi_paths and c.sca_roi_paths come in a format as such:
+    # a list containing a dictionary
+    # [{'/path/to/rois1.nii.gz': 'Avg, MultReg',
+    # '/path/to/rois2.nii.gz': 'Avg, MultReg',
+    # '/path/to/rois3.nii.gz': 'Avg, MultReg',
+    # '/path/to/rois4.nii.gz': 'DualReg'}]
+
+
     if 1 in c.runROITimeseries:
 
         if c.tsa_roi_paths:
@@ -2420,26 +2428,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                   "\n\n"
             raise Exception(err)
 
-        selections = ["roi_avg", "roi_vox", "spatial_reg"]
-
-        # convert the 1's
-        for roi_path in tsa_roi_dict.keys():
-
-            new_list = []
-
-            ones_list = tsa_roi_dict[roi_path].split(",")
-
-            for digit, selection in zip(ones_list, selections):
-
-                if digit == "1":
-                    new_list.append(selection)
-
-            tsa_roi_dict[roi_path] = new_list
-
-
         # flip the dictionary
-        ts_analysis_dict = {}
-
         for roi_path in tsa_roi_dict.keys():
 
             for analysis_type in tsa_roi_dict[roi_path]:
@@ -2450,7 +2439,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 ts_analysis_dict[analysis_type].append(roi_path)
 
 
-    sca_analysis_dict = {}
     if 1 in c.runSCA:
 
         if c.sca_roi_paths:
@@ -2461,26 +2449,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                   "\n\n"
             raise Exception(err)
 
-        selections = ["roi_avg", "dual_reg", "mult_reg"]
-
-        # convert the 1's
-        for roi_path in sca_roi_dict.keys():
-
-            new_list = []
-
-            ones_list = sca_roi_dict[roi_path].split(",")
-
-            for digit, selection in zip(ones_list, selections):
-
-                if digit == "1":
-                    new_list.append(selection)
-
-            sca_roi_dict[roi_path] = new_list
-
-
         # flip the dictionary
-        # sca_analysis_dict = {}
-
         for roi_path in sca_roi_dict.keys():
 
             for analysis_type in sca_roi_dict[roi_path]:
@@ -2501,12 +2470,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runSpatialRegression:
 
-    if ("spatial_reg" in ts_analysis_dict.keys()) or \
-        ("dual_reg" in sca_analysis_dict.keys()):
+    if ("SpatialReg" in ts_analysis_dict.keys()) or \
+        ("DualReg" in sca_analysis_dict.keys()):
 
         for strat in strat_list:
 
-            if "spatial_reg" in ts_analysis_dict.keys():
+            if "SpatialReg" in ts_analysis_dict.keys():
 
                 resample_spatial_map_to_native_space = pe.Node(interface=fsl.FLIRT(),
                                                              name='resample_spatial_map_to_native_space_%d' % num_strat)
@@ -2514,13 +2483,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_spatial_map_to_native_space.inputs.apply_xfm = True
                 resample_spatial_map_to_native_space.inputs.in_matrix_file = c.identityMatrix
 
-                spatial_map_dataflow = create_spatial_map_dataflow(ts_analysis_dict["spatial_reg"], 'spatial_map_dataflow_%d' % num_strat)
+                spatial_map_dataflow = create_spatial_map_dataflow(ts_analysis_dict["SpatialReg"], 'spatial_map_dataflow_%d' % num_strat)
 
                 spatial_map_timeseries = get_spatial_map_timeseries('spatial_map_timeseries_%d' % num_strat)
                 spatial_map_timeseries.inputs.inputspec.demean = True #c.spatialDemean
 
 
-            if "dual_reg" in sca_analysis_dict.keys():
+            if "DualReg" in sca_analysis_dict.keys():
 
                 resample_spatial_map_to_native_space_for_dr = pe.Node(interface=fsl.FLIRT(),
                                                              name='resample_spatial_map_to_native_space_for_DR_%d' % num_strat)
@@ -2528,14 +2497,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_spatial_map_to_native_space_for_dr.inputs.apply_xfm = True
                 resample_spatial_map_to_native_space_for_dr.inputs.in_matrix_file = c.identityMatrix
 
-                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(sca_analysis_dict["dual_reg"], 'spatial_map_dataflow_for_DR_%d' % num_strat)
+                spatial_map_dataflow_for_dr = create_spatial_map_dataflow(sca_analysis_dict["DualReg"], 'spatial_map_dataflow_for_DR_%d' % num_strat)
 
                 spatial_map_timeseries_for_dr = get_spatial_map_timeseries('spatial_map_timeseries_for_DR_%d' % num_strat)
                 spatial_map_timeseries_for_dr.inputs.inputspec.demean = True #c.spatialDemean
 
             try:
 
-                if "spatial_reg" in ts_analysis_dict.keys():
+                if "SpatialReg" in ts_analysis_dict.keys():
 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                     node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
@@ -2555,7 +2524,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                      spatial_map_timeseries, 'inputspec.subject_rest')
 
 
-                if "dual_reg" in sca_analysis_dict.keys():
+                if "DualReg" in sca_analysis_dict.keys():
 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                     node2, out_file2 = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
@@ -2580,18 +2549,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 print "\nError message: %s\n\n" % e
                 raise Exception
 
-            if "spatial_reg" in ts_analysis_dict.keys():
+            if "SpatialReg" in ts_analysis_dict.keys():
                 strat.append_name(spatial_map_timeseries.name)
                 strat.update_resource_pool({'spatial_map_timeseries' : (spatial_map_timeseries, 'outputspec.subject_timeseries')})
                 create_log_node(spatial_map_timeseries, 'outputspec.subject_timeseries', num_strat)
 
-            if "dual_reg" in sca_analysis_dict.keys():
+            if "DualReg" in sca_analysis_dict.keys():
                 strat.append_name(spatial_map_timeseries_for_dr.name)
                 strat.update_resource_pool({'spatial_map_timeseries_for_DR' : (spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries')})
                 create_log_node(spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries', num_strat)
 
-            if ("spatial_reg" in ts_analysis_dict.keys()) or \
-                ("dual_reg" in sca_analysis_dict.keys()):
+            if ("SpatialReg" in ts_analysis_dict.keys()) or \
+                ("DualReg" in sca_analysis_dict.keys()):
                 num_strat += 1
 
     strat_list += new_strat_list
@@ -2607,13 +2576,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runROITimeseries:
 
-    if ("roi_avg" in ts_analysis_dict.keys()) or \
-        ("roi_avg" in sca_analysis_dict.keys()) or \
-            ("mult_reg" in sca_analysis_dict.keys()):
+    if ("Avg" in ts_analysis_dict.keys()) or \
+        ("Avg" in sca_analysis_dict.keys()) or \
+            ("MultReg" in sca_analysis_dict.keys()):
 
         for strat in strat_list:
 
-            if "roi_avg" in ts_analysis_dict.keys():
+            if "Avg" in ts_analysis_dict.keys():
 
                 resample_functional_to_roi = pe.Node(interface=fsl.FLIRT(),
                                                           name='resample_functional_to_roi_%d' % num_strat)
@@ -2621,12 +2590,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_functional_to_roi.inputs.apply_xfm = True
                 resample_functional_to_roi.inputs.in_matrix_file = c.identityMatrix
 
-                roi_dataflow = create_roi_mask_dataflow(ts_analysis_dict["roi_avg"], 'roi_dataflow_%d' % num_strat)
+                roi_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
                 roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
-            if "roi_avg" in sca_analysis_dict.keys():
+            if "Avg" in sca_analysis_dict.keys():
             
                 # same workflow, except to run TSE and send it to the resource pool
                 # so that it will not get sent to SCA
@@ -2636,12 +2605,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_functional_to_roi_for_sca.inputs.apply_xfm = True
                 resample_functional_to_roi_for_sca.inputs.in_matrix_file = c.identityMatrix
                 
-                roi_dataflow_for_sca = create_roi_mask_dataflow(sca_analysis_dict["roi_avg"], 'roi_dataflow_for_sca_%d' % num_strat)
+                roi_dataflow_for_sca = create_roi_mask_dataflow(sca_analysis_dict["Avg"], 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
                 roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
 
-            if "mult_reg" in sca_analysis_dict.keys():
+            if "MultReg" in sca_analysis_dict.keys():
             
                 # same workflow, except to run TSE and send it to the resource pool
                 # so that it will not get sent to SCA
@@ -2651,14 +2620,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 resample_functional_to_roi_for_multreg.inputs.apply_xfm = True
                 resample_functional_to_roi_for_multreg.inputs.in_matrix_file = c.identityMatrix
                 
-                roi_dataflow_for_multreg = create_roi_mask_dataflow(sca_analysis_dict["mult_reg"], 'roi_dataflow_for_mult_reg_%d' % num_strat)
+                roi_dataflow_for_multreg = create_roi_mask_dataflow(sca_analysis_dict["MultReg"], 'roi_dataflow_for_mult_reg_%d' % num_strat)
     
                 roi_timeseries_for_multreg = get_roi_timeseries('roi_timeseries_for_mult_reg_%d' % num_strat)
                 roi_timeseries_for_multreg.inputs.inputspec.output_type = c.roiTSOutputs
 
             try:
 
-                if "roi_avg" in ts_analysis_dict.keys():
+                if "Avg" in ts_analysis_dict.keys():
 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
     
@@ -2675,7 +2644,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                      roi_timeseries, 'inputspec.rest')
                 
                 
-                if ("roi_avg" in sca_analysis_dict.keys()):
+                if ("Avg" in sca_analysis_dict.keys()):
                 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
@@ -2692,7 +2661,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                                      roi_timeseries_for_sca, 'inputspec.rest')
 
 
-                if ("mult_reg" in sca_analysis_dict.keys()):
+                if ("MultReg" in sca_analysis_dict.keys()):
                 
                     node, out_file = strat.get_node_from_resource_pool('functional_mni')
                 
@@ -2713,24 +2682,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
                 logConnectionError('ROI Timeseries analysis', num_strat, strat.get_resource_pool(), '0031')
                 raise
 
-            if "roi_avg" in ts_analysis_dict.keys():
+            if "Avg" in ts_analysis_dict.keys():
                 strat.append_name(roi_timeseries.name)
                 strat.update_resource_pool({'roi_timeseries' : (roi_timeseries, 'outputspec.roi_outputs')})
                 create_log_node(roi_timeseries, 'outputspec.roi_outputs', num_strat)
 
-            if "roi_avg" in sca_analysis_dict.keys():
+            if "Avg" in sca_analysis_dict.keys():
                 strat.append_name(roi_timeseries_for_sca.name)
                 strat.update_resource_pool({'roi_timeseries_for_SCA' : (roi_timeseries_for_sca, 'outputspec.roi_outputs')})
                 create_log_node(roi_timeseries_for_sca, 'outputspec.roi_outputs', num_strat)
 
-            if "mult_reg" in sca_analysis_dict.keys():
+            if "MultReg" in sca_analysis_dict.keys():
                 strat.append_name(roi_timeseries_for_multreg.name)
                 strat.update_resource_pool({'roi_timeseries_for_SCA_multreg' : (roi_timeseries_for_multreg, 'outputspec.roi_outputs')})
                 create_log_node(roi_timeseries_for_multreg, 'outputspec.roi_outputs', num_strat)
 
-            if ("roi_avg" in ts_analysis_dict.keys()) or \
-                ("roi_avg" in sca_analysis_dict.keys()) or \
-                    ("mult_reg" in sca_analysis_dict.keys()):
+            if ("Avg" in ts_analysis_dict.keys()) or \
+                ("Avg" in sca_analysis_dict.keys()) or \
+                    ("MultReg" in sca_analysis_dict.keys()):
                 num_strat += 1
 
 
@@ -2747,7 +2716,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runVoxelTimeseries:
 
-    if "roi_vox" in ts_analysis_dict.keys():
+    if "Voxel" in ts_analysis_dict.keys():
 
         for strat in strat_list:
 
@@ -2757,7 +2726,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
             resample_functional_to_mask.inputs.apply_xfm = True
             resample_functional_to_mask.inputs.in_matrix_file = c.identityMatrix
     
-            mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["roi_vox"], 'mask_dataflow_%d' % num_strat)
+            mask_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Voxel"], 'mask_dataflow_%d' % num_strat)
     
             voxel_timeseries = get_voxel_timeseries('voxel_timeseries_%d' % num_strat)
             voxel_timeseries.inputs.inputspec.output_type = c.roiTSOutputs           
@@ -2803,7 +2772,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runSCA and (1 in c.runROITimeseries):
 
-    if "roi_avg" in sca_analysis_dict.keys():
+    if "Avg" in sca_analysis_dict.keys():
 
         for strat in strat_list:
 
@@ -2880,7 +2849,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runDualReg and (1 in c.runSpatialRegression):
 
-    if "dual_reg" in sca_analysis_dict.keys():
+    if "DualReg" in sca_analysis_dict.keys():
 
         for strat in strat_list:
 
@@ -2937,7 +2906,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if 1 in c.runMultRegSCA and (1 in c.runROITimeseries):
 
-    if "mult_reg" in sca_analysis_dict.keys():
+    if "MultReg" in sca_analysis_dict.keys():
 
         for strat in strat_list:
 
@@ -3743,7 +3712,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if (1 in c.runRegisterFuncToMNI) and ("dual_reg" in sca_analysis_dict.keys()): #(1 in c.runDualReg) and (1 in c.runSpatialRegression):
+    if (1 in c.runRegisterFuncToMNI) and ("DualReg" in sca_analysis_dict.keys()): #(1 in c.runDualReg) and (1 in c.runSpatialRegression):
         for strat in strat_list:
 
             output_to_standard('dr_tempreg_maps_stack', 'dr_tempreg_maps_stack', strat, num_strat, input_image_type=3)
@@ -3807,7 +3776,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     num_strat = 0
 
 
-    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()): # in(1 in c.runROITimeseries):
+    if 1 in c.runRegisterFuncToMNI and (1 in c.runSCA) and ("Avg" in sca_analysis_dict.keys()): # in(1 in c.runROITimeseries):
         for strat in strat_list:
 
             output_to_standard('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat, input_image_type=3)
@@ -3831,7 +3800,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries) and c.fwhm != None:
 
-    if ("mult_reg" in sca_analysis_dict.keys()) and (c.fwhm != None):
+    if ("MultReg" in sca_analysis_dict.keys()) and (c.fwhm != None):
 
         for strat in strat_list:
 
@@ -3912,7 +3881,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if (1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
 
-    if "mult_reg" in sca_analysis_dict.keys():
+    if "MultReg" in sca_analysis_dict.keys():
     
         for strat in strat_list:
                           
@@ -3938,7 +3907,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
     #if (1 in c.runDualReg) and (1 in c.runSpatialRegression) and c.fwhm != None:
 
-    if ("dual_reg" in sca_analysis_dict.keys()) and (c.fwhm != None):
+    if ("DualReg" in sca_analysis_dict.keys()) and (c.fwhm != None):
 
         for strat in strat_list:
 
@@ -4015,7 +3984,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if "dual_reg" in sca_analysis_dict.keys():
+    if "DualReg" in sca_analysis_dict.keys():
     
         for strat in strat_list:
     
@@ -4205,7 +4174,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     '''
     Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
     '''
-    if (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()) and c.fwhm != None:
+    if (1 in c.runSCA) and ("Avg" in sca_analysis_dict.keys()) and c.fwhm != None:
         for strat in strat_list:
 
             output_smooth('sca_roi_stack', 'sca_roi_correlation_stack', strat, num_strat)
@@ -4224,7 +4193,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()):
+    if (1 in c.runSCA) and ("Avg" in sca_analysis_dict.keys()):
     
         for strat in strat_list:
     
@@ -4255,7 +4224,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
     new_strat_list = []
     num_strat = 0
 
-    if 1 in c.runZScoring and (1 in c.runSCA) and ("roi_avg" in sca_analysis_dict.keys()): #(1 in c.runROITimeseries):
+    if 1 in c.runZScoring and (1 in c.runSCA) and ("Avg" in sca_analysis_dict.keys()): #(1 in c.runROITimeseries):
 
         for strat in strat_list:
 
@@ -4742,7 +4711,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 
             # SCA Seed QA montages
-            if (1 in c.runSCA) and ("roi_vox" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
+            if (1 in c.runSCA) and ("Voxel" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
 
                 if 1 in c.runRegisterFuncToMNI:
                     QA_montages('sca_seed_to_standard', 23)
@@ -4760,7 +4729,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None, \
 
 
             # SCA Multiple Regression
-            if "mult_reg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+            if "MultReg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
 
                 if 1 in c.runRegisterFuncToMNI:
                     QA_montages('sca_tempreg_maps_files', 27)
