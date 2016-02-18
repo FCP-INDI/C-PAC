@@ -33,7 +33,13 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
     -------
     out : numpy.ndarray
     """
-    
+
+    # Import packages
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
+
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
     
@@ -46,7 +52,7 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
     
     if out is None:
         out = np.zeros(corr_matrix.shape[0], dtype=corr_matrix.dtype)
-    print 'about to call thresh_and_sum'
+    logger.info('about to call thresh_and_sum')
     func_name   = "centrality_%s_%s" % (method, dtype)
     func        = globals()[func_name]
     func(corr_matrix, out, r_value)

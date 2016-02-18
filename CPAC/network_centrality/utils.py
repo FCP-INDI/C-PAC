@@ -43,8 +43,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
 
     # Import packages
     import numpy as np
+    from nipype import logging
 
     # Init variables
+    logger = logging.getLogger('workflow)')
     block_size = 1000   # default
 
     nvoxs   = timeseries.shape[0]
@@ -118,10 +120,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
     else:
         memory_usage = (needed_memory + block_size*nvoxs*nbytes)/1024.0**3
 
-    # Print information
-    print 'block_size -> %i voxels' % block_size
-    print '# of blocks -> %i' % np.ceil(float(nvoxs)/block_size)
-    print 'expected usage -> %.2fGB' % memory_usage
+    # Log information
+    logger.info('block_size -> %i voxels' % block_size)
+    logger.info('# of blocks -> %i' % np.ceil(float(nvoxs)/block_size))
+    logger.info('expected usage -> %.2fGB' % memory_usage)
 
     return block_size
 
@@ -347,9 +349,14 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     Exception
     '''
 
-    import nibabel as nib
+    # Import packages
     import os
+    import nibabel as nib
     import numpy as np
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     try:
         out_file, matrix = centrality_matrix
@@ -357,7 +364,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         out_file = os.path.join(os.getcwd(), out_file + '.nii.gz')
         sparse_m = np.zeros((mask.shape), dtype=float)
 
-        print 'mapping centrality matrix to nifti image...', out_file
+        logger.info('mapping centrality matrix to nifti image: %s' % out_file)
 
         if int(template_type) == 0:
             cords = np.argwhere(mask)
@@ -386,9 +393,10 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         nifti_img.to_filename(out_file)
 
         return out_file
-    except:
-        print 'Error in mapping centrality matrix to nifti image'
-        raise
+    except Exception as exc:
+        err_msg = 'Error in mapping centrality matrix to nifti image. '\
+                  'Error: %s' % exc
+        raise Exception(err_msg)
 
 
 # Function to actually do the list merging
@@ -445,13 +453,17 @@ def parse_and_return_mats(one_d_file, mask_arr):
     # Import packages
     import numpy as np
     import scipy.sparse as sparse
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     # Parse out numbers
-    print 'Parsing contents...'
+    logger.info('Parsing contents...')
     graph_arr = np.loadtxt(one_d_file, skiprows=6)
 
     # Cast as numpy arrays and extract i, j, w
-    print 'Creating arrays...'
+    logger.info('Creating arrays...')
     one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
@@ -477,7 +489,7 @@ def parse_and_return_mats(one_d_file, mask_arr):
     j_arr = np.array(j_arr, dtype='int32')
 
     # Construct the sparse matrix
-    print 'Constructing sparse matrix...'
+    logger.info('Constructing sparse matrix...')
     wmat_upper_tri = sparse.coo_matrix((w_arr, (i_arr, j_arr)),
                                        shape=(mask_voxs, mask_voxs))
     bmat_upper_tri = sparse.coo_matrix((b_arr, (i_arr, j_arr)),

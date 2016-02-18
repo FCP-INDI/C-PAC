@@ -1,5 +1,4 @@
 # CPAC/pipeline/cpac_pipeline.py
-# 
 
 '''
 This module prepares and executes the main C-PAC workflow
@@ -13,7 +12,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
 from nipype.interfaces.afni import preprocess
-from   nipype.pipeline.engine.utils import format_dot
+from nipype.pipeline.engine.utils import format_dot
 import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
@@ -149,7 +148,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub,
                        'runtime_profile' : c.runtimeProfile}
 
-
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
     # import mkl
@@ -216,7 +214,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         already_skullstripped = 0
     elif already_skullstripped == 3:
         already_skullstripped = 1
-
 
     subject_info = {}
     subject_info['subject_id'] = subject_id
@@ -5775,11 +5772,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strategy_tag_helper_symlinks['nuisance'] = 1
             else:
                 strategy_tag_helper_symlinks['nuisance'] = 0
-    
+
             strat_tag = ""
-    
             hash_val = 0
-    
+
             for name in strat.get_name():
                 import re
                 
@@ -6037,26 +6033,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # If QC is enabled
         if 1 in c.generateQualityControlImages:
-            # QC html files arent supported in S3 currently
-            if c.outputDirectory.startswith(s3_str):
-                err_msg = 'QC webpage generation is currently not supported '\
-                          'when using an S3 bucket as the output directory. '\
-                          'However the QC image files can be found in %s'\
-                          % os.path.join(c.outputDirectory,
-                                         'pipeline_%s' % pipeline_id,
-                                         subject_id, 'qc')
-                logger.info(err_msg)
-            else:
-                # For each pipeline ID, generate the QC pages
-                for pip_id in pip_ids:
-                    # Define pipeline-level logging for QC
-                    pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
-                    # Generate the QC pages
-                    generateQCPages(qc_output_folder, qc_montage_id_a,
-                                    qc_montage_id_s, qc_plot_id, qc_hist_id)
-                    # Automatically generate QC index page
-                    create_all_qc.run(pipeline_out_base)
+            # For each pipeline ID, generate the QC pages
+            for pip_id in pip_ids:
+                # Define pipeline-level logging for QC
+                pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
+                # Generate the QC pages
+                generateQCPages(qc_output_folder, qc_montage_id_a,
+                                qc_montage_id_s, qc_plot_id, qc_hist_id)
+                # Automatically generate QC index page
+                create_all_qc.run(pipeline_out_base)
 
         # pipeline timing code starts here
 

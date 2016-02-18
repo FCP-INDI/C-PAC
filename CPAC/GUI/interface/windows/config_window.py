@@ -518,7 +518,7 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
-                
+
                 #validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and \
@@ -582,23 +582,18 @@ class MainFrame(wx.Frame):
             errDlg2.ShowModal()
             errDlg2.Destroy()
 
-
-        
         if (1 in c.runNuisance) or (c.Regressors != None):
             strategies = sorted(build_strategies(c))
         else:
             strategies = None
-        
-        
+
         # Run the actual pipeline building prep and see if it works or not
         testDlg1 = wx.MessageDialog(
             self, 'Click OK to run the test. This should take only a few seconds.',
             'Running Test',
             wx.OK | wx.ICON_INFORMATION)
         testDlg1.ShowModal()
-           
 
-            
         # Check file paths first
         
         # Just getting proper names of config file parameters
@@ -644,8 +639,35 @@ class MainFrame(wx.Frame):
                     wx.OK | wx.ICON_ERROR)
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
-        
-        
+
+        # Check S3 output bucket access if writing to S3
+        output_dir = c.outputDirectory
+        s3_str = 's3://'
+        if output_dir.lower().startswith(s3_str):
+            output_dir_sp = output_dir.split('/')
+            output_dir_sp[0] = output_dir_sp[0].lower()
+            output_dir = '/'.join(output_dir_sp)
+
+        if type(output_dir) is str and output_dir.lower().startswith(s3_str):
+            from CPAC.AWS import fetch_creds
+            creds_path = c.awsOutputBucketCredentials
+            bucket_name = output_dir.split(s3_str)[1].split('/')[0]
+            try:
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                print 'Connection with output bucket "%s" successful!' % bucket_name
+            except Exception as exc:
+                err_msg = 'Unable to access output S3 bucket: "%s" with '\
+                          'credentials in: "%s". Check bucket name '\
+                          'and credentials file and try again'\
+                          % (bucket_name, creds_path)
+                testDlg1.Destroy()
+
+                errDlg1 = wx.MessageDialog(self, err_msg, 'Pipeline Not Ready',
+                                           wx.OK | wx.ICON_ERROR)
+                errDlg1.ShowModal()
+                errDlg1.Destroy()
+                return
+
         testFile(c.template_brain_only_for_anat, \
                      'template_brain_only_for_anat',[1])
         testFile(c.template_skull_for_anat,'template_skull_for_anat',[1])
@@ -678,11 +700,8 @@ class MainFrame(wx.Frame):
         if c.sca_roi_paths and type(c.sca_roi_paths[0]) == dict:
             for roi_path in c.sca_roi_paths[0].keys():
                 testFile(roi_path, "sca_roi_paths", c.runSCA)
-            
-            
         try:
-            
-            # Run the pipeline building           
+            # Run the pipeline building
             prep_workflow(sublist[0], c, strategies, 0)
 
         except Exception as xxx:

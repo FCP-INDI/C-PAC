@@ -219,24 +219,24 @@ def load(datafile, template=None):
         else:
             img = nib.load(datafile) 
         
-        data    = img.get_data().astype(np.float32)
-        aff     = img.get_affine()    
-        scans   = data.shape[3]
+        data = img.get_data().astype(np.float32)
+        aff = img.get_affine()    
+        scans = data.shape[3]
         
-        datmask     = data.var(axis=3).astype('bool')
+        datmask = data.var(axis=3).astype('bool')
         if template is None:
-            mask    = np.ones((data.shape[:3]))
+            mask = np.ones((data.shape[:3]))
         else:
-            mask    = nib.load(template).get_data().astype(np.float32)
+            mask = nib.load(template).get_data().astype(np.float32)
         
-    except:
-        print "Error in loading images for graphs"
-        raise
+    except Exception as exc:
+        err_msg = 'Error in loading images for graphs. Error: %s' % exc
+        raise Exception(err_msg)
     
     
     if mask.shape != data.shape[:3]:
-        raise Exception("Invalid Shape Error. mask and data file have"\
-                        "different shape please check the voxel size of the two files")
+        raise Exception('Invalid Shape Error. mask and data file have'\
+                        'different shape please check the voxel size of the two files')
 
     #check for parcellation
     nodes = np.unique(mask).tolist()
@@ -245,7 +245,7 @@ def load(datafile, template=None):
     if len(nodes)>2:
         nodes.sort()
         print "sorted nodes", nodes
-        
+
         flag=1
         for n in nodes:
             if n > 0:
@@ -265,7 +265,7 @@ def load(datafile, template=None):
         mask = mask.astype('bool')
         final_mask = mask & datmask
         timeseries = data[final_mask]
-    
+
     return timeseries, aff, final_mask, template_type, scans
 
 
@@ -307,10 +307,13 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
     
     # Import packages
     import numpy as np
+    from nipype import logging
+
     from CPAC.network_centrality.utils import cluster_data
     import CPAC.network_centrality.core as core
     
     # Init variables
+    logger = logging.getLogger('workflow')
     out_list = []
     nvoxs = ts_normd.shape[1]
 
@@ -358,7 +361,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
     # Run as long as our last row index is <= nvoxs
     while m <= nvoxs:
         # First, compute block of correlation matrix
-        print 'running block %d: rows %d thru %d' % (block_no, n, m)
+        logger.info('running block %d: rows %d thru %d' % (block_no, n, m))
         rmat_block = np.dot(ts_normd[:,n:m].T, ts_normd)
         
         # Degree centrality calculation
@@ -378,7 +381,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
         if method_option == 'lfcd':
             xyz_a = np.argwhere(template)
             krange = rmat_block.shape[0]
-            print '...iterating through seeds in block - lfcd'
+            logger.info('...iterating through seeds in block - lfcd')
             for k in range (0,krange):
                 corr_seed = rmat_block[k,:]
                 labels = cluster_data(corr_seed,r_value,xyz_a)
@@ -426,19 +429,19 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
     try:
         if method_option == 'eigenvector':
             if out_binarize:
-                print '...calculating binarize eigenvector'
+                logger.info('...calculating binarize eigenvector')
                 eigen_binarize[:] = core.eigenvector_centrality(r_matrix, 
                                                            r_value, 
                                                            method='binarize').squeeze()
             if out_weighted:
-                print '...calculating weighted eigenvector'
+                logger.info('...calculating weighted eigenvector')
                 eigen_weighted[:] = core.eigenvector_centrality(r_matrix, 
                                                            r_value, 
                                                            method='weighted').squeeze()
             del r_matrix
-    except Exception:
-        print 'Error in calcuating eigen vector centrality'
-        raise
+    except Exception as exc:
+        err_msg =  'Error in calcuating eigen vector centrality. Error: %s' % exc
+        raise Exception(err_msg)
 
     # Return list of outputs
     return out_list
@@ -479,9 +482,12 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
     # Import packages
     import numpy as np
     import scipy as sp
+    from nipype import logging
+
     import CPAC.network_centrality.core as core
 
     # Init variables
+    logger = logging.getLogger('workflow')
     out_list = []
     nvoxs = ts_normd.shape[1]
 
@@ -536,7 +542,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
     # Calculate correlations step - prune connections for degree
     while n <= nvoxs:
         # First, compute block of correlation matrix
-        print 'running block %d: rows %d thru %d' % (block_no, n, m-1)
+        logger.info('running block %d: rows %d thru %d' % (block_no, n, m-1))
         # Calculate wij over entire matrix by block
         # Do this for both deg and eig, more efficient way to compute r_value
         rmat_block = np.dot(ts_normd[:,n:m].T, 
@@ -548,7 +554,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
         rmat_block = rmat_block[block_mask]
         thr_idx = np.where(rmat_block >= r_value)   
         rmat_block = rmat_block[thr_idx]
-        print 'number of passing correlations is %d' % len(rmat_block)
+        logger.info('number of passing correlations is %d' % len(rmat_block))
         # Add global offset
         idx = np.where(block_mask)
         i = idx[0][thr_idx].astype('int32') + n
@@ -565,7 +571,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
         # Free some memory
         del w_global, i_global, j_global
         # Pass these into the global set and sort (ascending) by correlation
-        print 'sorting list...'
+        logger.info('sorting list...')
         wij_global.sort()
         # And trim list if it's greater than the number of connections we want
         if len(wij_global) > sparse_num:
@@ -594,7 +600,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
     # Degree - use ijw list to create a sparse matrix
     if method_option == 'degree':
         # Create sparse (symmetric) matrix of all correlations that survived
-        print 'creating sparse matrix'
+        logger.info('creating sparse matrix')
         # Extract the weights and indices from the global list
         w = wij_global.f0
         i = wij_global.f1
@@ -624,11 +630,11 @@ def get_centrality_by_sparsity(ts_normd, method_option, weight_options,
         del wij_global
         # Finally compute centrality using full matrix and r_value
         if out_binarize:
-            print '...calculating binarize eigenvector'
+            logger.info('...calculating binarize eigenvector')
             eigen_binarize[:] = core.eigenvector_centrality(r_matrix, r_value, 
                                                        method='binarize').squeeze()
         if out_weighted:
-            print '...calculating weighted eigenvector'
+            logger.info('...calculating weighted eigenvector')
             eigen_weighted[:] = core.eigenvector_centrality(r_matrix, r_value, 
                                                        method='weighted').squeeze()
         del r_matrix
@@ -742,8 +748,6 @@ def calc_centrality(datafile, template, method_option, threshold_option,
     '''
 
     # Import packages
-    import time
-
     from CPAC.network_centrality import load,\
                                         get_centrality_by_rvalue,\
                                         get_centrality_by_sparsity,\
@@ -764,7 +768,6 @@ def calc_centrality(datafile, template, method_option, threshold_option,
         check_centrality_params(method_option, threshold_option, threshold)
 
     # Init variables
-    start = time.clock()
     out_list = []
     ts, aff, mask, t_type, scans = load(datafile, template)
 
@@ -816,9 +819,6 @@ def calc_centrality(datafile, template, method_option, threshold_option,
                   'measure: %s; fix this in the pipeline config'\
                   % (str(threshold_option), str(method_option))
         raise Exception(err_msg)
-
-    # Print timing info
-    print 'Timing:', time.clock() - start
  
     # Map the arrays back to images
     for mat in centrality_matrix:
