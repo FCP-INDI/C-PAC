@@ -311,7 +311,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
 
     from CPAC.network_centrality.utils import cluster_data
     import CPAC.network_centrality.core as core
-    
+
     # Init variables
     logger = logging.getLogger('workflow')
     out_list = []
@@ -320,7 +320,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, weight_options,
     # Weighting
     out_binarize = weight_options[0]
     out_weighted = weight_options[1]
-    
+
     # Init degree centrality outputs
     if method_option == 'degree':
         # If binary weighting, init output map
