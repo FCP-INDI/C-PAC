@@ -787,7 +787,7 @@ class CheckBoxGrid(wx.Panel):
         #self.idx = 100
         self.y_pos = 0
 
-        self.onReload_set_selections(self.choiceDict, internal=True)
+        self.onReload_set_selections(self.choiceDict)
 
 
     def add_checkbox_grid_value(self, entry):
@@ -1001,48 +1001,14 @@ class CheckBoxGrid(wx.Panel):
         #      "Voxel": ["/path/to/ROI1.nii.gz","/path/to/ROI3.nii.gz"]}
 
 
-    def onReload_set_selections(self, choice_dict, internal=False):
+    def onReload_set_selections(self, choice_dict):
 
         for entry in choice_dict.keys():
 
             # re-populate the box with entries (but not selections)
             self.add_checkbox_grid_value(entry)
 
-            if not internal:
-
-                # file_selections is the string of digits loaded from the
-                # pipeline config YAML file denoting the user's choices for
-                # each ROI path entry, ex. "1,1,0,0"
-                file_selections = choice_dict[entry]
-                file_selections = file_selections.split(",")
-
-                choice_dict[entry] = []
-
-                # convert the digits back into the string names of the
-                # selections for each ROI path
-                for digit,option in zip(file_selections,self.selections):
-                    if digit == "1":
-                        choice_dict[entry].append(option)
-
         # re-populate selections
-
-        '''
-        for cb_id in self.cbValuesDict.keys():
-            
-            # path to file
-            cb_name = self.cbValuesDict[cb_id][0]
-
-            # selection name (ex. Avg, Voxel, PC1, etc..)
-            cb_option = self.cbValuesDict[cb_id][1]
-
-            if cb_option in choice_dict[cb_name]:
-                #try:
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
-                #except:
-                #    pass
-        '''
-
         for entry in self.entry_controls:
 
             for ctrl in self.entry_controls[entry]:

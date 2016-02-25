@@ -1,8 +1,5 @@
 
 
-
-
-
 def load_config_yml(config_file):
 
 	# loads a configuration YAML file
@@ -13,6 +10,7 @@ def load_config_yml(config_file):
     # output
     #   config: Configuration object
 
+    import os
     import yaml
     from CPAC.utils import Configuration
 
@@ -49,7 +47,7 @@ def load_group_participant_list(ga_part_list_filepath):
     # get the group participant list
     if not ga_part_list_filepath.endswith(".txt"):
         err = "\n\n[!] CPAC says: The group-level analysis participant " \
-              "list should be a text file (.text).\nPath provided: %s\n\n" \
+              "list should be a text file (.txt).\nPath provided: %s\n\n" \
               % ga_part_list_filepath
         raise Exception(err)
 
@@ -70,8 +68,51 @@ def load_group_participant_list(ga_part_list_filepath):
 
 
 
-def assign_output_name(fullpath, split_fullpath, deriv_folder_name):
+def collect_group_config_info(pipeline_config):
 
+    ga_configs = {}
+    ga_partlists = {}
+
+    for group_config_file in pipeline_config.modelConfigs:
+
+        ga_config = load_config_yml(group_config_file)
+
+        if len(ga_config.derivative_list) == 0:
+            err = "\n\n[!] CPAC says: You do not have any derivatives " \
+                  "selected to run for group-level analysis. Return to " \
+                  "your group-analysis configuration file and select at " \
+                  "least one.\nGroup analysis configuration file: %s\n\n" \
+                   % group_config_file
+            raise Exception(err)
+
+        if ga_config.model_name in ga_configs.keys():
+            err = "\n\n[!] CPAC says: You have more than one group-level " \
+                  "analysis model configuration with the same name!\n\n" \
+                  "Duplicate model name: %s\n\n" % ga_config.model_name
+            raise Exception(err)
+
+        ga_configs[ga_config.model_name] = (ga_config, group_config_file)
+
+
+    # now the group participant lists
+    #     NOTE: it is assumed the participant IDs listed in these text files
+    #           are in the format of {participant}_{site}_{session} !!!
+    for ga_config_tuple in ga_configs.values():
+
+        ga_config = ga_config_tuple[0]
+
+        ga_partlist = load_group_participant_list(ga_config.subject_list)
+
+        ga_partlists[ga_config.model_name] = ga_partlist
+
+
+    return ga_configs, ga_partlists
+
+
+
+def assign_output_name(fullpath, deriv_folder_name):
+
+    '''
     if ("_mask_" in fullpath) and (("sca_roi" in fullpath) or \
         ("sca_tempreg" in fullpath) or ("centrality" in fullpath)):
             
@@ -108,77 +149,32 @@ def assign_output_name(fullpath, split_fullpath, deriv_folder_name):
     else:
         
         output_name = deriv_folder_name
+    '''
+
+    # let's make sure the output file paths are stored in bins separately
+    # for each combination of series ID, nuisance regression strategy,
+    # bandpass filter cutoffs, etc.
+
+    output_name = fullpath.split(deriv_folder_name)[1]
+    output_name = deriv_folder_name + output_name
+
+    if ".nii.gz" in output_name:
+        output_name = output_name.replace(".nii.gz","")
+    elif ".nii" in output_name:
+        output_name = output_name.replace(".nii","") 
 
 
     return output_name
 
 
 
-def run(config_file, output_path_file):
-    
-    # Runs group analysis
+def collect_output_paths(output_path_file, ga_configs, ga_partlists):
 
     import os
 
-    ind_outputs = []
-    ga_configs = []
-    ga_partlists = []
     output_paths = {}
     matched_parts = {}
-    missing_parts = {}
-
-    analysis_map_gp = {}
-
-    # Load the MAIN PIPELINE config file into 'c'
-    c = load_config_yml(config_file)
-
-    if len(c.modelConfigs) == 0:
-        print '[!] CPAC says: You do not have any models selected ' \
-              'to run for group-level analysis. Return to your pipeline ' \
-              'configuration file and create or select at least one.\n\n'
-        raise Exception
-
-
-    # load the group model configs and the group participant lists into
-    # dictionaries, with the model names as keys
-    for group_config_file in c.modelConfigs:
-
-        ga_config = load_config_yml(group_config_file)
-
-        if len(ga_config.derivative_list) == 0:
-            err = "\n\n[!] CPAC says: You do not have any derivatives " \
-                  "selected to run for group-level analysis. Return to " \
-                  "your group-analysis configuration file and select at " \
-                  "least one.\nGroup analysis configuration file: %s\n\n" \
-                   % group_config_file
-            raise Exception(err)
-
-        if ga_config.model_name in ga_configs.keys():
-            err = "\n\n[!] CPAC says: You have more than one group-level " \
-                  "analysis model configuration with the same name!\n\n" \
-                  "Duplicate model name: %s\n\n" % ga_config.model_name
-            raise Exception(err)
-
-        # gather which outputs the user has selected to run group analysis for
-        #     this cuts down on parsing time for output paths
-        for output_type in ga_config.derivative_list:
-            if output_type not in ind_outputs:
-                ind_outputs.append(output_type)
-
-        ga_configs[ga_config.model_name] = (ga_config, group_config_file)
-
-
-    # now the group participant lists
-    #     NOTE: it is assumed the participant IDs listed in these text files
-    #           are in the format of {participant}_{site}_{session} !!!
-    for ga_config_tuple in ga_configs.values():
-
-        ga_config = ga_config_tuple[0]
-
-        ga_partlist = load_group_participant_list(ga_config.subject_list)
-
-        ga_partlists[ga_config.model_name] = ga_partlist
-
+    matched_ders = []
 
     # collect relevant output paths from individual-level analysis   
     for root, folders, files in os.walk(output_path_file):
@@ -202,6 +198,9 @@ def run(config_file, output_path_file):
 
                 series_id = \
                     split_fullpath[len(split_output_dir_path)+2]
+
+                # for repeated measures (potentially)
+                full_ID = unique_part_ID + "," + series_id
                   
                 for group_model in ga_configs.keys():
 
@@ -211,59 +210,89 @@ def run(config_file, output_path_file):
                     # include output path if the participant is in the group
                     # model's participant list, and if the derivative is one
                     # of the group model's selected derivatives
-                    if (unique_part_ID in ga_partlists[group_model]) and \
+                    if ((unique_part_ID in ga_partlists[group_model]) or \
+                    	(full_ID in ga_partlists[group_model])) and \
                         (deriv_folder_name in ga_config.derivative_list):
+
+                        # let's keep track of which derivatives have at least
+                        # one participant completed for it
+                        if deriv_folder_name not in matched_ders:
+                        	matched_ders.append(deriv_folder_name)
 
                         # create "output_name" for analysis_map_gp keying
                         output_name = assign_output_name(fullpath, \
-                        	              split_fullpath, deriv_folder_name)
+                        	                             deriv_folder_name)
         
                         key = (group_model, ga_config_file)
 
                         if key not in output_paths.keys():
                         	output_paths[key] = {}
 
-                        if output_name not in output_paths[key].keys():
-                        	output_paths[key][output_name] = []
+                        if series_id not in output_paths[key].keys():
+                        	output_paths[key][series_id] = {}
 
-                        output_paths[key][output_name].append(fullpath)
+                        if output_name not in output_paths[key][series_id].keys():
+                        	output_paths[key][series_id][output_name] = []
+
+                        output_paths[key][series_id][output_name].append(fullpath)
 
                         # keep track of which participants from the
                         # participant list have been found in the output paths
                         if key not in matched_parts.keys():
                             matched_parts[key] = {}
 
-                        if output_name not in matched_parts[key].keys():
-                        	matched_parts[key][output_name] = []
+                        if series_id not in matched_parts[key].keys():
+                        	matched_parts[key][series_id] = {}
 
-                        # WARNING: losing information here - if there are
-                        #          multiple series/scans, and one of them did
-                        #          not complete during individual level, then
-                        #          it will not be reported as missing below -
-                        #          however, the missing participant/scan will
-                        #          be obvious in the updated participant lists
-                        #          in the model_files outputs
+                        if output_name not in matched_parts[key][series_id].keys():
+                        	matched_parts[key][series_id][output_name] = []
+
                         if unique_part_ID not in \
-                            matched_parts[key][output_name]:
+                            matched_parts[key][series_id][output_name]:
 
-                            matched_parts[key][output_name].append( \
-                            	unique_part_ID)
+                            matched_parts[key][series_id][output_name].append(unique_part_ID)
 
 
-    for key_tuple in output_paths:
+    # see if there were no output files found for the derivative
+    if len(ga_config.derivative_list) != len(matched_ders):
 
-        for output_name in output_paths[key_tuple]:
+        empty_ders = set(ga_config.derivative_list) - set(matched_ders)
 
-            if len(output_paths[key_tuple]) == 0:
-                err = "[!] CPAC says: No individual-level analysis outputs were "\
-                      "found given the selected derivatives and pipeline output "\
-                      "directory path you provided.\n\nPipeline Output " \
-                      "Directory provided: %s\nSelected derivative: %s\n\n" \
-                      "Either make sure your selections are correct, or that " \
-                      "individual-level analysis completed successfully for the "\
-                      "derivative in question.\n\n" \
-                  % (output_path_file, output_name)
-            raise Exception(err)
+        err = "[!] CPAC says: No individual-level analysis outputs " \
+              "were found for the following selected derivatives within " \
+              "the pipeline output directory path you provided.\n\n" \
+              "Pipeline Output Directory provided: %s\nDerivatives with no " \
+              "completed participants:\n%s\n\nEither make sure your " \
+              "selections are correct, or that individual-level analysis " \
+              "completed successfully for the derivative in " \
+              "question.\n\n" % (output_path_file, str(empty_ders))
+        raise Exception(err)
+
+
+    return output_paths, matched_parts
+
+
+
+
+def report_missing_participants(matched_parts, ga_partlists):
+
+    missing_parts = {}
+    split_ga_partlists = {}
+
+    for group_model in ga_partlists.keys():
+        for part in ga_partlists[group_model]:
+   	        if "," in part:
+   	            unique_id = part.split(",")[0]
+   	            series_id = part.split(",")[1]
+   	            if group_model not in split_ga_partlists.keys():
+   	                split_ga_partlists[group_model] = {}
+   	            if series_id not in split_ga_partlists[group_model].keys():
+   	                split_ga_partlists[group_model][series_id] = []
+                split_ga_partlists[group_model][series_id].append(unique_id)
+            else:
+                # if not repeated measures, OR if repeated measures but only
+                # for multiple sessions
+                pass
 
 
     # compare what's been matched to what's in the participant list
@@ -272,17 +301,31 @@ def run(config_file, output_path_file):
         group_model = key_tuple[0]
         matched_list = matched_parts[key_tuple]
 
-        if key_tuple not in missing_parts.keys():
-            missing_parts[key_tuple] = {}
+        for series_id in matched_parts[key_tuple].keys():
 
-        for output_name in matched_parts[key_tuple].keys():
+            for output_name in matched_parts[key_tuple][series_id].keys():
 
-            #if output_name not in missing_parts[key_tuple].keys():
-            # 	missing_parts[key_tuple][output_name] = []
+                missing_list = []
 
-            missing_list = ga_partlists[group_model] - matched_list
+                if len(split_ga_partlists) > 0:
+                	# if repeated measures with repeated series
+                    for part in split_ga_partlists[group_model][series_id]:
+                        if part not in matched_parts[key_tuple][series_id][output_name]:
+                	        missing_list.append(part)
+                else:
+                    for part in ga_partlists[group_model]:
+                        if part not in matched_parts[key_tuple][series_id][output_name]:
+                	        missing_list.append(part)
 
-        	missing_parts[key_tuple][output_name] = missing_list
+                if len(missing_list) > 0:
+
+                    if key_tuple not in missing_parts.keys():
+                        missing_parts[key_tuple] = {}
+
+                    if series_id not in missing_parts[key_tuple].keys():
+                    	missing_parts[key_tuple][series_id] = {}
+
+                    missing_parts[key_tuple][series_id][output_name] = missing_list
 
 
     # report missing participants
@@ -292,18 +335,161 @@ def run(config_file, output_path_file):
                    "participants included in group-level analysis:\n"
 
         for key_tuple in missing_parts.keys():
-        	for output_name in missing_parts[key_tuple].keys():
+        	for series_id in missing_parts[key_tuple].keys():
+                for output_name in missing_parts[key_tuple][series_id].keys():
             
-            miss_msg = miss_msg + "\n" + output_name + "\n"
+                miss_msg = miss_msg + "\n%s - %s\n" % (output_name, series_id)
             
-            miss_msg = miss_msg + missing_parts[key_tuple][output_name] + "\n"
+                miss_msg = miss_msg + str(missing_parts[key_tuple][series_id][output_name]) + "\n"
 
         print miss_msg
 
 
-    ''' output_paths can now function as analysis_map_gp '''
-    ''' subject IDs etc. can be gleaned on the other side '''
-    ''' all it sends over is: group model name, group config file path, list of output paths relevant '''
-    '''     already reduced from available subjects and whats in the subject list '''
 
+def run(config_file, output_path_file):
+    
+    # Runs group analysis
+
+    import os 
+
+    # Load the MAIN PIPELINE config file into 'c'
+    c = load_config_yml(config_file)
+
+    if len(c.modelConfigs) == 0:
+        print '[!] CPAC says: You do not have any models selected ' \
+              'to run for group-level analysis. Return to your pipeline ' \
+              'configuration file and create or select at least one.\n\n'
+        raise Exception
+
+    # sammin sammin mmmm samin in gray v
+
+    # load the group model configs and the group participant lists into
+    # dictionaries, with the model names as keys
+    ga_configs, ga_partlists = collect_group_config_info(c)
+
+
+    # gather output file paths from individual level analysis
+    # return only the ones appropriate for each model and participant list
+    output_paths, matched_parts = \
+        collect_output_paths(output_path_file, ga_configs, ga_partlists)
+
+
+    # warn the user of any missing participants
+    report_missing_participants(matched_parts, ga_partlists)
+
+
+    # let's get the show on the road
+    procss = []
+    
+    for group_model_config in output_paths.keys():
+
+        # group_model_config is a tuple:
+        #    (group model name, group analysis config YAML file)
         
+        group_model_name = group_model_config[0]
+        group_config_file = group_model_config[1]
+
+        key = (group_model_name, group_config_file)
+
+        for key in output_paths.keys():
+
+        	for series_id in output_paths[key].keys():
+
+        		for output_name in output_paths[key][series_id].keys():
+
+        			resource = output_name.split("/")[0]
+
+                    # just make sure the .split above worked - ideally we
+                    # should never see this error
+                    # if this error trips, something has changed in the output
+                    # directory structure and this script was not adapted
+                    # appropriately
+                    ga_config = ga_configs[group_model_name][0]
+        			if resource not in ga_config.derivative_list:
+        				err = "\n\n[!] CPAC says: The individual-level " \
+        				      "output file paths have not been parsed " \
+        				      "correctly.\n\n%s\n\n" % str(locals())
+        				raise Exception(err)
+
+                    ''' how are we handling sending in combined series for repeated measures ????? '''
+
+                    #get all the motion parameters across subjects
+                    from CPAC.utils import extract_parameters
+                    scrub_threshold = \
+                        extract_parameters.run(c.outputDirectory, \
+                        	                   c.runScrubbing)
+
+                    if not c.runOnGrid:
+
+                        from CPAC.pipeline.cpac_ga_model_generator import \
+                            prep_group_analysis_workflow
+
+                        procss.append(Process(target = \
+                        	prep_group_analysis_workflow, args = \
+                        	    (c, group_config_file, resource, \
+            		             output_paths[group_model_config][SERIES???][output_name], \
+            		             output_path_file, scrub_threshold)))
+            
+                    else:
+        
+                        print "\n\n[!] CPAC says: Group-level analysis has " \
+                              "not yet been implemented to handle runs on a "\
+                              "cluster or grid.\n\nPlease turn off 'Run " \
+                              "CPAC On A Cluster/Grid' in order to continue "\
+                              "with group-level analysis. This will submit " \
+                              "the job to only one node, however.\n\nWe " \
+                              "will update users on when this feature will " \
+                              "be available through release note " \
+                              "announcements.\n\n"
+
+    
+          
+    pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
+                        
+    jobQueue = []
+    if len(procss) <= c.numGPAModelsAtOnce:
+        """
+        Stream all the subjects as sublist is
+        less than or equal to the number of 
+        subjects that need to run
+        """
+        for p in procss:
+            p.start()
+            print >>pid,p.pid
+                
+    else:
+        """
+        Stream the subject workflows for preprocessing.
+        At Any time in the pipeline c.numSubjectsAtOnce
+        will run, unless the number remaining is less than
+        the value of the parameter stated above
+        """
+        idx = 0
+        while(idx < len(procss)):
+                
+            if len(jobQueue) == 0 and idx == 0:
+                
+                idc = idx
+                    
+                for p in procss[idc: idc + c.numGPAModelsAtOnce]:
+                
+                    p.start()
+                    print >>pid,p.pid
+                    jobQueue.append(p)
+                    idx += 1
+                
+            else:
+                
+                for job in jobQueue:
+                
+                    if not job.is_alive():
+                        print 'found dead job ', job
+                        loc = jobQueue.index(job)
+                        del jobQueue[loc]
+                        procss[idx].start()
+                
+                        jobQueue.append(procss[idx])
+                        idx += 1
+                
+    pid.close()
+    
