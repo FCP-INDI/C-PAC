@@ -143,10 +143,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if plugin_args:
         plugin_args['memory'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
-        plugin_args['runtime_profile'] = c.runtimeProfile
     else:
-        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub,
-                       'runtime_profile' : c.runtimeProfile}
+        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    

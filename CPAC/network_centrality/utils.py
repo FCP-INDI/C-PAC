@@ -74,6 +74,7 @@ def calc_blocksize(timeseries, memory_allocated=None,
         # If we're doing degree/sparisty thresholding, calculate block_size
         if sparsity_thresh:
             # k - block_size, v - nvoxs, d - nbytes, m - memory_allocated
+            # Polynomial for sparsity algorithm memory usage
             # Solve for k: (-d/2 - 20.5)*k^2 + (41*v + d*v -d/2 - 20.5)*k - m = 0
             coeffs = np.zeros(3)
             coeffs[0] = -nbytes/2 - 20.5
