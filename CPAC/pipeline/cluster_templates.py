@@ -62,6 +62,7 @@ slurm_template = \
 #SBATCH --uid=%(user)s
 #SBATCH --get-user-env
 #SBATCH --workdir=%(work_dir)s
+#SBATCH --time=%(time_limit)s
 '''
 # Add in start, python CPAC, end
 slurm_template = '\n'.join([slurm_template,

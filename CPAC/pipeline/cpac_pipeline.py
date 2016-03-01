@@ -383,7 +383,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict['creds_path']
-        if creds_path:
+        if creds_path and 'none' not in creds_path.lower():
             if os.path.exists(creds_path):
                 input_creds_path = os.path.abspath(creds_path)
             else:
