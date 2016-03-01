@@ -270,7 +270,10 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
     job_scheduler = pipeline_config.resourceManager.lower()
-    time_limit = '08:00:00' # for SLURM time limit constraints only, hh:mm:ss
+
+    # For SLURM time limit constraints only, hh:mm:ss
+    hrs_limit = 8*len(sublist)
+    time_limit = '%d:00:00' % hrs_limit
 
     # Batch file variables
     shell = commands.getoutput('echo $SHELL')
