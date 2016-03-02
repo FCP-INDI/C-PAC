@@ -2599,7 +2599,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-                roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
+                #roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "Avg" in sca_analysis_dict.keys():
             
@@ -2614,7 +2614,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_sca = create_roi_mask_dataflow(sca_analysis_dict["Avg"], 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
-                roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
+                #roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "MultReg" in sca_analysis_dict.keys():
             
@@ -2629,7 +2629,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_multreg = create_roi_mask_dataflow(sca_analysis_dict["MultReg"], 'roi_dataflow_for_mult_reg_%d' % num_strat)
     
                 roi_timeseries_for_multreg = get_roi_timeseries('roi_timeseries_for_mult_reg_%d' % num_strat)
-                roi_timeseries_for_multreg.inputs.inputspec.output_type = c.roiTSOutputs
+                #roi_timeseries_for_multreg.inputs.inputspec.output_type = c.roiTSOutputs
 
             try:
 
