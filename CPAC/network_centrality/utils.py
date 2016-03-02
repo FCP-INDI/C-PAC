@@ -46,7 +46,7 @@ def calc_blocksize(timeseries, memory_allocated=None,
     from nipype import logging
 
     # Init variables
-    logger = logging.getLogger('workflow)')
+    logger = logging.getLogger('workflow')
     block_size = 1000   # default
 
     nvoxs   = timeseries.shape[0]

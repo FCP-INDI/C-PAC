@@ -240,22 +240,22 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     if method_option == 'degree':
         afni_centrality_node = \
             pe.Node(DegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='degree_centrality')
+                    name=method_option)
         afni_centrality_node.inputs.out_file = 'degree_centrality_merged.nii.gz'
-        out_names = ('degree_binarize', 'degree_weighted')
+        out_names = ('degree_centrality_binarize', 'degree_centrality_weighted')
     # Eigenvector centrality
     elif method_option == 'eigenvector':
         # For now, two nodes for bin, wght, respectibvely
         afni_centrality_node = \
         pe.Node(ECM(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                name='eigenvector_centrality_bin')
-        afni_centrality_node.inputs.out_file = 'eigenvector_centrality_binarized.nii.gz'
+                name=method_option)
+        afni_centrality_node.inputs.out_file = 'eigenvector_centrality_weighted.nii.gz'
         #afni_centrality_node.inputs.binary = True
     # lFCD
     elif method_option == 'lfcd':
         afni_centrality_node = \
             pe.Node(LFCD(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='lfcd')
+                    name=method_option)
         afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
         out_names = ('lfcd_binarize', 'lfcd_weighted')
 
