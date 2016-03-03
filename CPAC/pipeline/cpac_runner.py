@@ -457,43 +457,6 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
         raise Exception
 
     create_group_log_template(sub_scan_map, c.logDirectory)
- 
-    '''
-    seeds_created = []
-    if not (c.seedSpecificationFile is None):
-
-        try:
-            if os.path.exists(c.seedSpecificationFile):
-                seeds_created = create_seeds_(c.seedOutputLocation, c.seedSpecificationFile, c.FSLDIR)
-                print 'seeds created %s -> ' % seeds_created
-        except:
-            raise IOError('Problem in seedSpecificationFile')
-
-
-    if 1 in c.runVoxelTimeseries:
-
-        if 'roi_voxelwise' in c.useSeedInAnalysis:
-
-            c.maskSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.maskSpecificationFile)
-
-    if 1 in c.runROITimeseries:
-
-        if 'roi_average' in c.useSeedInAnalysis:
-
-            c.roiSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFile)
-
-    if 1 in c.runSCA:
-
-        if 'roi_average' in c.useSeedInAnalysis:
-
-            c.roiSpecificationFileForSCA = append_seeds_to_file(c.workingDirectory, seeds_created, c.roiSpecificationFileForSCA)
-
-    if 1 in c.runNetworkCentrality:
-
-        if 'centrality_outputs_smoothed' in c.useSeedInAnalysis:
-
-            c.templateSpecificationFile = append_seeds_to_file(c.workingDirectory, seeds_created, c.templateSpecificationFile)
-    '''
 
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
@@ -527,6 +490,16 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
                           args=(sub, c, strategies, 1,
                                 pipeline_timing_info, p_name, plugin, plugin_args)) \
                   for sub in sublist]
+
+        if not os.path.exists(c.workingDirectory):
+            try:
+                os.makedirs(c.workingDirectory)
+            except:
+                err = "\n\n[!] CPAC says: Could not create the working " \
+                      "directory: %s\n\nMake sure you have permissions " \
+                      "to write to this directory.\n\n" % c.workingDirectory
+                raise Exception(err)
+                
         pid = open(os.path.join(c.workingDirectory, 'pid.txt'), 'w')
         # Init job queue
         jobQueue = []
