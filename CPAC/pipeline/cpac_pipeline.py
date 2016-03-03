@@ -143,10 +143,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     if plugin_args:
         plugin_args['memory'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
-        plugin_args['runtime_profile'] = c.runtimeProfile
     else:
-        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub,
-                       'runtime_profile' : c.runtimeProfile}
+        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
@@ -385,7 +383,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict['creds_path']
-        if creds_path:
+        if creds_path and 'none' not in creds_path.lower():
             if os.path.exists(creds_path):
                 input_creds_path = os.path.abspath(creds_path)
             else:

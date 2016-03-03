@@ -271,6 +271,10 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
     job_scheduler = pipeline_config.resourceManager.lower()
 
+    # For SLURM time limit constraints only, hh:mm:ss
+    hrs_limit = 8*len(sublist)
+    time_limit = '%d:00:00' % hrs_limit
+
     # Batch file variables
     shell = commands.getoutput('echo $SHELL')
     user_account = getpass.getuser()
@@ -294,7 +298,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
                    'cores_per_sub' : pipeline_config.numCoresPerSubject,
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
-                   'plugin_args' : plugin_args}
+                   'plugin_args' : plugin_args,
+                   'time_limit' : time_limit}
 
     # Get string template for job scheduler
     if job_scheduler == 'pbs':

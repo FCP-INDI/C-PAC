@@ -1,4 +1,4 @@
-# CPAC/network_centrality/network_centraliy.py
+# CPAC/network_centrality/afni_network_centrality.py
 #
 # Authors: Daniel Clark
 
@@ -7,79 +7,215 @@ This module contains functions which build and return the network
 centrality nipype workflow
 '''
 
+# Import packages
+from nipype.interfaces.afni.base import AFNICommand, AFNICommandInputSpec,\
+                                        AFNICommandOutputSpec
+from nipype.interfaces.base import traits, File
 
-# Calculate eigenvector centrality from one_d file
-def calc_eigen_from_1d(oned_file, num_threads, mask_file):
-    '''
-    '''
 
-    # Import packages
-    import os
+class CentralityInputSpec(AFNICommandInputSpec):
+    """
+    inherits the out_file parameter from AFNICommandOutputSpec base class
+    """
 
-    import nibabel as nib
-    import numpy as np
-    import scipy.sparse.linalg as linalg
-    from nipype import logging
+    mask = File(desc='mask file to mask input data',
+                   argstr="-mask %s",
+                   exists=True)
 
-    from CPAC.network_centrality import utils
+    thresh = traits.Float(desc='threshold to exclude connections where corr <= thresh',
+                          argstr='-thresh %f')
 
-    # Init variables
-    num_eigs = 1
-    which_eigs = 'LM'
-    max_iter = 1000
-    logger = logging.getLogger('workflow')
+    polort = traits.Int(desc='', argstr='-polort %d')
 
-    # See if mask was ROI atlas or mask file
-    mask_img = nib.load(mask_file)
-    mask_arr = mask_img.get_data()
-    mask_affine = mask_img.get_affine()
-    if len(np.unique(mask_arr)) > 2:
-        template_type = 1
-    else:
-        template_type = 0
+    autoclip = traits.Bool(desc='Clip off low-intensity regions in the dataset',
+                           argstr='-autoclip')
 
-    # Temporarily set MKL threads to num_threads for this process only
-    os.system('export MKL_NUM_THREADS=%d' % num_threads)
+    automask = traits.Bool(desc='Mask the dataset to target brain-only voxels',
+                           argstr='-automask')
 
-    # Get the similarity matrix from the 1D file
-    bin_sim_matrix, wght_sim_matrix = \
-        utils.parse_and_return_mats(oned_file, mask_arr)
 
-    # Use scipy's sparse linalg library to get eigen-values/vectors
-    bin_eig_val, bin_eig_vect = linalg.eigsh(bin_sim_matrix, k=num_eigs,
-                                             which=which_eigs, maxiter=max_iter)
-    wght_eig_val, wght_eig_vect = linalg.eigsh(wght_sim_matrix, k=num_eigs,
-                                               which=which_eigs, maxiter=max_iter)
+class DegreeCentralityInputSpec(CentralityInputSpec):
+    """
+    inherits the out_file parameter from AFNICommandOutputSpec base class
+    """
 
-    # Create eigenvector tuple
-    centrality_tuple = ('eigenvector_centrality_binarized', np.abs(bin_eig_val*bin_eig_vect))
-    bin_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
-                                              mask_arr, template_type)
+    in_file = File(desc='input file to 3dDegreeCentrality',
+                   argstr='%s',
+                   position=-1,
+                   mandatory=True,
+                   exists=True,
+                   copyfile=False)
 
-    centrality_tuple = ('eigenvector_centrality_weighted', np.abs(wght_eig_val*wght_eig_vect))
-    wght_outfile = utils.map_centrality_matrix(centrality_tuple, mask_affine,
-                                               mask_arr, template_type)
+    pearson = traits.Bool(desc='Correlation is normal pearson (default)',
+                          argstr='-pearson')
 
-    # Grab outfile paths
-    eigen_outfiles = [bin_outfile, wght_outfile]
+    sparsity = traits.Float(desc='only take the top percent of connections',
+                            argstr='-sparsity %f')
 
-    # Record eigenvalues in logger just in case
-    logger.info('Eigenvalues for %s are - bin: %.5f, wght: %.5f' \
-                % (oned_file, bin_eig_val, wght_eig_val))
+    oned_file = traits.Str(desc='output filepath to text dump of correlation matrix',
+                           argstr='-out1D %s', mandatory=False)
 
-    # Return the eigenvector output file
-    return eigen_outfiles
+
+class DegreeCentralityOutputSpec(AFNICommandOutputSpec):
+    """
+    inherits the out_file parameter from AFNICommandOutputSpec base class
+    """
+
+    oned_file = File(desc='The text output of the similarity matrix computed'\
+                          'after thresholding with one-dimensional and '\
+                          'ijk voxel indices, correlations, image extents, '\
+                          'and affine matrix')
+
+
+class DegreeCentrality(AFNICommand):
+    """Performs degree centrality on a dataset using a given maskfile
+    via 3dDegreeCentrality
+    For complete details, see the `3dDegreeCentrality Documentation.
+    <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDegreeCentrality.html>
+    Examples
+    ========
+    >>> from nipype.interfaces import afni as afni
+    >>> degree = afni.DegreeCentrality()
+    >>> degree.inputs.in_file = 'func_preproc.nii'
+    >>> degree.inputs.mask = 'mask.nii'
+    >>> degree.inputs.sparsity = 1 # keep the top one percent of connections
+    >>> degree.cmdline
+    '3dDegreeCentrality -sparsity 1 -mask mask.nii func_preproc.nii'
+    >>> res = degree.run() # doctest: +SKIP
+    """
+
+    _cmd = '3dDegreeCentrality'
+    input_spec = DegreeCentralityInputSpec
+    output_spec = DegreeCentralityOutputSpec
+
+    # Re-define generated inputs
+    def _list_outputs(self):
+        # Import packages
+        import os
+
+        # Update outputs dictionary if oned file is defined
+        outputs = super(DegreeCentrality, self)._list_outputs()
+        if self.inputs.oned_file:
+            outputs['oned_file'] = os.path.abspath(self.inputs.oned_file)
+
+        return outputs
+
+
+class ECMInputSpec(CentralityInputSpec):
+    """
+    inherits the out_file parameter from AFNICommandOutputSpec base class
+    """
+
+    in_file = File(desc='input file to 3dECM',
+                   argstr='%s',
+                   position=-1,
+                   mandatory=True,
+                   exists=True,
+                   copyfile=False)
+
+    full = traits.Bool(desc='use full power method for thresholded and/or '\
+                            'binary eigenvector centrality',
+                       argstr='-full')
+
+    fecm = traits.Bool(desc='use shortcut method for computing fast '\
+                            'eigenvector centrality mapping; used during non-'\
+                            'thresholded and/or non-binary centrality',
+                       argstr='-fecm')
+
+    binary = traits.Bool(desc='calculate binarized centrlaity rather than '\
+                              'weighted; requires threshold; forces scale=1.0 '\
+                              'and shift=0.0',
+                         argstr='-binary')
+
+    sparsity = traits.Float(desc='only take the top percent of connections',
+                            argstr='-sparsity %f')
+
+    shift = traits.Float(desc='shifting value to enforce non-negativity among '\
+                              'correlations; should be >= 0',
+                         argstr='-shift %f')
+
+    scale = traits.Float(desc='scale correlations after shift; should be >= 0',
+                         argstr='-scale %f')
+
+    eps = traits.Float(desc='the stopping criterion for power iteration; '\
+                            'default=0.1',
+                       argstr='-eps %f')
+
+    max_iter = traits.Int(desc='maximum number of iterations for power '\
+                               'iteration; default=1000',
+                          argstr='-max_iter %d')
+
+    memory = traits.Float(desc='Memory limit (GB)- if 3dECM uses more than '\
+                               'this the program will error out instead of '\
+                               'risk crashing the system; default=2',
+                          argstr='-memory %f')
+
+
+class ECM(AFNICommand):
+    """Performs eigenvector centrality on a dataset using a given maskfile
+    via 3dECM
+    For complete details, see the `3dECM Documentation.
+    <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dECM.html>
+    Examples
+    ========
+    >>> from nipype.interfaces import afni as afni
+    >>> eig = afni.ECM()
+    >>> eig.inputs.in_file = 'func_preproc.nii'
+    >>> eig.inputs.mask = 'mask.nii'
+    >>> eig.inputs.sparsity = 1 # keep the top one percent of connections
+    >>> eig.cmdline
+    '3dECM -sparsity 1 -mask mask.nii func_preproc.nii'
+    >>> res = eig.run() # doctest: +SKIP
+    """
+
+    _cmd = '3dECM'
+    input_spec = ECMInputSpec
+    output_spec = AFNICommandOutputSpec
+
+
+class LFCDInputSpec(CentralityInputSpec):
+    """
+    inherits the out_file parameter from AFNICommandOutputSpec base class
+    """
+
+    in_file = File(desc='input file to 3dLFCD',
+                   argstr='%s',
+                   position=-1,
+                   mandatory=True,
+                   exists=True,
+                   copyfile=False)
+
+
+class LFCD(AFNICommand):
+    """Performs degree centrality on a dataset using a given maskfile
+    via 3dLFCD
+    For complete details, see the `3dLFCD Documentation.
+    <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dLFCD.html>
+    Examples
+    ========
+    >>> from nipype.interfaces import afni as afni
+    >>> lfcd = afni.LFCD()
+    >>> lfcd.inputs.in_file = 'func_preproc.nii'
+    >>> lfcd.inputs.mask = 'mask.nii'
+    >>> lfcd.inputs.threshold = .8 # keep all connections with corr >= 0.8
+    >>> lfcd.cmdline
+    '3dLFCD -threshold 0.8 -mask mask.nii func_preproc.nii'
+    >>> res = lfcd.run() # doctest: +SKIP
+    """
+
+    _cmd = '3dLFCD'
+    input_spec = LFCDInputSpec
+    output_spec = AFNICommandOutputSpec
 
 
 # Return the afni centrality/lfcd workflow
-def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_option,
-                              num_threads=1, memory=1):
+def create_afni_centrality_wf(wf_name, method_option, threshold_option,
+                              threshold, num_threads=1, memory_gb=1):
     '''
     '''
 
     # Import packages
     import nipype.pipeline.engine as pe
-    import nipype.interfaces.afni as afni
     import nipype.interfaces.utility as util
     import CPAC.network_centrality.utils as utils
 
@@ -91,7 +227,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_optio
     centrality_wf = pe.Workflow(name=wf_name)
 
     # Create inputspec node
-    input_node = pe.Node(util.IdentityInterface(fields=['datafile',
+    input_node = pe.Node(util.IdentityInterface(fields=['in_file',
                                                         'template',
                                                         'threshold']),
                          name='inputspec')
@@ -100,25 +236,35 @@ def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_optio
     input_node.inputs.threshold = threshold
 
     # Define main input/function node
-    # If it's degree or eigenvector, initiate the degree centrality node
-    if method_option == 'degree' or method_option == 'eigenvector':
+    # Degree centrality
+    if method_option == 'degree':
         afni_centrality_node = \
-            pe.Node(afni.DegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='afni_centrality')
-        afni_centrality_node.inputs.out_file = 'degree_centrality.nii.gz'
-    # Otherwise, if it's lFCD, initiate the lFCD node
+            pe.Node(DegreeCentrality(environ={'OMP_NUM_THREADS' : str(num_threads)}),
+                    name=method_option)
+        afni_centrality_node.inputs.out_file = 'degree_centrality_merged.nii.gz'
+        out_names = ('degree_centrality_binarize', 'degree_centrality_weighted')
+    # Eigenvector centrality
+    elif method_option == 'eigenvector':
+        # For now, two nodes for bin, wght, respectibvely
+        afni_centrality_node = \
+        pe.Node(ECM(environ={'OMP_NUM_THREADS' : str(num_threads)}),
+                name=method_option)
+        afni_centrality_node.inputs.out_file = 'eigenvector_centrality_weighted.nii.gz'
+        #afni_centrality_node.inputs.binary = True
+    # lFCD
     elif method_option == 'lfcd':
         afni_centrality_node = \
-            pe.Node(afni.LFCD(environ={'OMP_NUM_THREADS' : str(num_threads)}),
-                    name='afni_centrality')
-        afni_centrality_node.inputs.out_file = 'lfcd.nii.gz'
+            pe.Node(LFCD(environ={'OMP_NUM_THREADS' : str(num_threads)}),
+                    name=method_option)
+        afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
+        out_names = ('lfcd_binarize', 'lfcd_weighted')
 
     # Limit its num_threads and memory via ResourceMultiProc plugin
     afni_centrality_node.interface.num_threads = num_threads
-    afni_centrality_node.interface.estimated_memory = memory
+    afni_centrality_node.interface.estimated_memory_gb = memory_gb
 
     # Connect input image and mask tempalte
-    centrality_wf.connect(input_node, 'datafile',
+    centrality_wf.connect(input_node, 'in_file',
                           afni_centrality_node, 'in_file')
     centrality_wf.connect(input_node, 'template',
                           afni_centrality_node, 'mask')
@@ -139,7 +285,6 @@ def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_optio
                               convert_thr_node, 'p_value')
         centrality_wf.connect(convert_thr_node, 'rvalue_threshold',
                               afni_centrality_node, 'thresh')
-
     # Sparsity thresholding
     elif threshold_option == 'sparsity':
         # Check to make sure it's not lFCD
@@ -149,77 +294,35 @@ def create_afni_centrality_wf(wf_name, method_option, threshold, threshold_optio
         # Otherwise, connect threshold to sparsity input
         centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'sparsity')
-
     # Correlation thresholding
     elif threshold_option == 'correlation':
         centrality_wf.connect(input_node, 'threshold',
                               afni_centrality_node, 'thresh')
 
-    # Define degree seperate bin/wght node
-    sep_subbriks_node = \
-        pe.Node(util.Function(input_names=['nifti_file', 'out_names'],
-                              output_names=['output_niftis'],
-                              function=utils.sep_nifti_subbriks),
-                name='sep_nifti_subbriks')
-
     # Define outputs node
     output_node = pe.Node(util.IdentityInterface(fields=['outfile_list',
                                                          'oned_output']),
-                          name='output_node')
+                          name='outputspec')
 
-    # Degree centrality
-    if method_option == 'degree':
+    # If we're doing degree or lfcd, need to seprate sub-briks
+    if method_option == 'degree' or method_option == 'lfcd':
+        # Define seperate bin/wght node
+        sep_subbriks_node = \
+            pe.Node(util.Function(input_names=['nifti_file', 'out_names'],
+                                  output_names=['output_niftis'],
+                                  function=utils.sep_nifti_subbriks),
+                    name='sep_nifti_subbriks')
+        sep_subbriks_node.inputs.out_names = out_names
+
         # Connect the degree centrality output image to seperate subbriks node
         centrality_wf.connect(afni_centrality_node, 'out_file',
                               sep_subbriks_node, 'nifti_file')
-        # Name output files
-        sep_subbriks_node.inputs.out_names = ('degree_centrality_binarize',
-                                              'degree_centrality_weighted')
-        # Connect the degree centrality outputs to output_node
         centrality_wf.connect(sep_subbriks_node, 'output_niftis',
                               output_node, 'outfile_list')
-
-    # If running eigenvector centrality, insert additional node
-    elif method_option == 'eigenvector':
-        # Tell 3dDegreeCentrality to create 1D file
-        afni_centrality_node.inputs.oned_file = 'similarity_matrix.1D'
-
-        # Init run eigenvector centrality node
-        run_eigen_node = \
-            pe.Node(util.Function(input_names=['oned_file',
-                                               'num_threads',
-                                               'mask_file'],
-                                  output_names=['eigen_outfiles'],
-                                  function=calc_eigen_from_1d),
-                    name='afni_eigen_centrality')
- 
-        # Limit its num_threads and memory via ResourceMultiProce plugin
-        run_eigen_node.interface.num_threads = num_threads
-        run_eigen_node.interface.estimated_memory = memory
-        # MKL threads for scipy eigenvector built with Intel MKL
-        run_eigen_node.inputs.num_threads = num_threads
- 
-        # Connect in the run eigenvector node to the workflow
-        centrality_wf.connect(afni_centrality_node, 'oned_file',
-                              run_eigen_node, 'oned_file')
-        centrality_wf.connect(input_node, 'template',
-                              run_eigen_node, 'mask_file')
-        # Connect outputs
-        centrality_wf.connect(run_eigen_node, 'eigen_outfiles',
-                              output_node, 'outfile_list')
-        centrality_wf.connect(afni_centrality_node, 'oned_file',
-                              output_node, 'oned_output')
-
-    # lFCD
-    elif method_option == 'lfcd':
-        # Connect the output image to seperate subbriks node
+    else:
         centrality_wf.connect(afni_centrality_node, 'out_file',
-                              sep_subbriks_node, 'nifti_file')
-        # Name output files
-        sep_subbriks_node.inputs.out_names = ('lfcd_binarize', 'lfcd_weighted')
-        # Connect the outputs to output_node
-        centrality_wf.connect(sep_subbriks_node, 'output_niftis',
                               output_node, 'outfile_list')
+
 
     # Return the centrality workflow
     return centrality_wf

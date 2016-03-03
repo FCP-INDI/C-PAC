@@ -2137,14 +2137,17 @@ def check_config_resources(c):
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total/(1024.0**3)
         sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
-    elif c.memoryAllocatedPerSubject < c.memoryAllocatedForDegreeCentrality:
-        err_msg = 'Memory allocated for subject: %d needs to be greater '\
-                  'than the memory allocated for centrality: %d. Fix and '\
-                  'try again.' % (c.memoryAllocatedPerSubject,
-                                  c.memoryAllocatedForDegreeCentrality)
-        raise Exception(err_msg)
     else:
         sub_mem_gb = c.memoryAllocatedPerSubject
+
+    # If centrality is enabled, check to mem_sub >= mem_centrality
+    if c.runNetworkCentrality[0]:
+        if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
+            err_msg = 'Memory allocated for subject: %d needs to be greater '\
+                      'than the memory allocated for centrality: %d. Fix and '\
+                      'try again.' % (c.memoryAllocatedPerSubject,
+                                      c.memoryAllocatedForDegreeCentrality)
+            raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
