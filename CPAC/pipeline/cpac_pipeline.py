@@ -3213,7 +3213,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # Connect pipeline resources to workflow
                 # Dataset
                 workflow.connect(resample_functional_to_template, 'out_file',
-                                 afni_centrality_wf, 'inputspec.datafile')
+                                 afni_centrality_wf, 'inputspec.in_file')
                 # Mask
                 afni_centrality_wf.inputs.inputspec.template = \
                     c.templateSpecificationFile
