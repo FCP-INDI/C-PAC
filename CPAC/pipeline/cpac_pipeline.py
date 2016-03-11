@@ -115,7 +115,7 @@ class strategy:
 
 # Create and prepare C-PAC pipeline workflow
 def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
-                  p_name=None, plugin='ResourceMultiProc', plugin_args=None):
+                  p_name=None, plugin='MultiProc', plugin_args=None):
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      SETUP
@@ -5904,7 +5904,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         '''
 
         #TODO:set memory and num_threads of critical nodes if running 
-        # ResourceMultiProcPlugin
+        # MultiProcPlugin
 
         # Create callback logger
         import logging as cb_logging

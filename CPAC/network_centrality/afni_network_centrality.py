@@ -259,7 +259,7 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
         afni_centrality_node.inputs.out_file = 'lfcd_merged.nii.gz'
         out_names = ('lfcd_binarize', 'lfcd_weighted')
 
-    # Limit its num_threads and memory via ResourceMultiProc plugin
+    # Limit its num_threads and memory via MultiProc plugin
     afni_centrality_node.interface.num_threads = num_threads
     afni_centrality_node.interface.estimated_memory_gb = memory_gb
 
