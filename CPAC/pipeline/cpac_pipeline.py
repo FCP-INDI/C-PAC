@@ -2033,8 +2033,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     node, out_file = strat.get_node_from_resource_pool('motion_correct')
                     workflow.connect(node, out_file, motion_correct_warp, 'in_file')
 
-                    
-
                 except:
                     logConnectionError('Functional Timeseries Registration to MNI space (FSL)', num_strat, strat.get_resource_pool(), '0015')
                     raise
@@ -3209,8 +3207,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # Init the workflow
                 afni_centrality_wf = \
-                    create_afni_centrality_wf(wf_name, method_option, threshold,
-                                              threshold_option, num_threads, memory)
+                    create_afni_centrality_wf(wf_name, method_option, threshold_option,
+                                              threshold, num_threads, memory)
 
                 # Connect pipeline resources to workflow
                 # Dataset

@@ -70,7 +70,60 @@ def _concordance(x, y):
 def _consolidate_results(arr_dict_list):
     '''
     '''
-
+    # Calculate concordance correlation coefficient
+    def _concordance(x, y):
+        '''
+        Return the concordance correlation coefficient as defined by
+        Lin (1989)
+    
+        Parameters
+        ----------
+        x : list or array
+            a list of array of length N of numbers
+        y : list or array
+            a list of array of length N of numbers
+    
+        Returns
+        -------
+        rho_c : numpy.float32
+            the concordance value as a float
+        '''
+    
+        # Import packages
+        import numpy as np
+    
+        # Usage errors check
+        x_shape = np.shape(x)
+        y_shape = np.shape(y)
+        if len(x_shape) != 1 or len(y_shape) != 1:
+            err_msg = 'Inputs must be 1D lists or arrays.'
+            raise ValueError(err_msg)
+        elif x_shape != y_shape:
+            err_msg = 'Length of the two inputs must be equal.\n'\
+                    'Length of x: %d\nLength of y: %d' % (len(x), len(y))
+            raise ValueError(err_msg)
+    
+        # Init variables
+        x_arr = np.array(x).astype('float64')
+        y_arr = np.array(y).astype('float64')
+    
+        # Get pearson correlation
+        rho = np.corrcoef(x_arr, y_arr)[0][1]
+    
+        # Get stdevs
+        sigma_x = np.std(x_arr)
+        sigma_y = np.std(y_arr)
+    
+        # Get means
+        mu_x = np.mean(x_arr)
+        mu_y = np.mean(y_arr)
+    
+        # Comput condordance
+        rho_c = (2*rho*sigma_x*sigma_y) /\
+                (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
+    
+        # Return variables
+        return rho_c
     # Import packages
 
     # Init variables
@@ -319,18 +372,18 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Collect arrays MapNnode
         collect_arrs_node = \
-            pe.MapNode(util.Function(input_names=['afni_outputs',
-                                                  'cpac_outputs'],
+            pe.MapNode(util.Function(input_names=['afni_output',
+                                                  'cpac_output'],
                                      output_names=['arr_dict'],
                                      function=_get_img_arrs),
                         name='extract_arrs',
-                        iterfield=['afni_outputs', 'cpac_outputs'])
+                        iterfield=['afni_output', 'cpac_output'])
 
         # Connect arrays MapNode
         wflow.connect(afni_wflow, 'outputspec.outfile_list',
-                      collect_arrs_node, 'afni_outputs')
+                      collect_arrs_node, 'afni_output')
         wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
-                      collect_arrs_node, 'cpac_outputs')
+                      collect_arrs_node, 'cpac_output')
 
         # Consolidate results node
         consolidate_results_node = \
