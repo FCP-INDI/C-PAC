@@ -3220,7 +3220,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # Connect outputs to merge node
                 workflow.connect(afni_centrality_wf,
-                                 'output_node.outfile_list',
+                                 'outputspec.outfile_list',
                                  merge_node,
                                  out_list)
 
