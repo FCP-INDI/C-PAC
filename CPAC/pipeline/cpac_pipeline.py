@@ -8,6 +8,13 @@ This module prepares and executes the main C-PAC workflow
 import os
 import time
 from time import strftime
+import zlib
+import linecache
+import csv
+import pickle
+import pkg_resources as p
+
+# Nipype packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -17,11 +24,14 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
+
+# INDI-Tools
+from indi_aws import aws_utils, fetch_creds
+
+# CPAC packages
+import CPAC
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
-import pkg_resources as p
-import CPAC
-from CPAC.AWS import aws_utils, fetch_creds
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc, \
                                            create_wf_edit_func
@@ -63,10 +73,6 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
-import zlib
-import linecache
-import csv
-import pickle
 
 # Init variables
 logger = logging.getLogger('workflow')
@@ -5773,7 +5779,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     pipeline_id = p_name
                     #if running multiple pipelines with gui, need to change this in future
                     p_name = None
-    
+
             logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: %s, ---- %s, ---- %s' % (strat_tag, hash_val, pipeline_id))
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
@@ -5781,11 +5787,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # Extract credentials path for output if it exists
             s3_str = 's3://'
             try:
+                # Get path to creds file
                 creds_path = str(c.awsOutputBucketCredentials)
-                # Import packages
-                from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
-                s3_write_access = test_bucket_access(creds_path, c.outputDirectory, sub_dict['subject_id'])
+                # Test for s3 write access
+                s3_write_access = \
+                    aws_utils.test_bucket_access(creds_path,
+                                                 c.outputDirectory,
+                                                 sub_dict['subject_id'])
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:

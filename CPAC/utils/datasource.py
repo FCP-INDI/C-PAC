@@ -65,7 +65,8 @@ def check_for_s3(file_path, creds_path, dl_dir=None):
     # Import packages
     import os
     import botocore.exceptions
-    from CPAC.AWS import fetch_creds
+
+    from indi_aws import fetch_creds
 
     # Init variables
     s3_str = 's3://'

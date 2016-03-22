@@ -202,7 +202,7 @@ def download_cpac_resources_from_s3(local_base):
     # Import packages
     import os
 
-    from CPAC.AWS import aws_utils, fetch_creds
+    from indi_aws import aws_utils, fetch_creds
 
     # Init variables
     bucket_name = default_bucket_name()
