@@ -5793,8 +5793,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # Test for s3 write access
                 s3_write_access = \
                     aws_utils.test_bucket_access(creds_path,
-                                                 c.outputDirectory,
-                                                 sub_dict['subject_id'])
+                                                 c.outputDirectory)
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:
