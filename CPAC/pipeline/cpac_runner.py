@@ -304,7 +304,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     # Set up config dictionary
     config_dict = {'timestamp' : timestamp,
                    'shell' : shell,
-                   'job_name' : 'CPAC ' + pipeline_config.pipelineName,
+                   'job_name' : 'CPAC_' + pipeline_config.pipelineName,
                    'num_tasks' : num_subs,
                    'queue' : pipeline_config.queue,
                    'par_env' : pipeline_config.parallelEnvironment,
