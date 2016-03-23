@@ -229,10 +229,11 @@ class ListBox(wx.Frame):
             
             import CPAC
             from CPAC.utils import Configuration
+            from nipype.pipeline.plugins.callback_log import log_nodes_cb
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
             plugin_args = {'n_procs': c.numCoresPerSubject,
-                           'memory': c.memoryAllocatedPerSubject,
-                           'runtime_profile' : c.runtimeProfile}
+                           'memory_gb': c.memoryAllocatedPerSubject,
+                           'callback_log' : log_nodes_cb}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='MultiProc',

@@ -1,6 +1,7 @@
 # CPAC/pipeline/cpac_runner.py
 #
 # FCP-INDI
+from nipype.pipeline.plugins.callback_log import log_nodes_cb
 
 '''
 This module contains functions used to run a C-PAC pipeline
@@ -250,6 +251,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     import re
     from time import strftime
 
+    from nipype.pipeline.plugins.callback_log import log_nodes_cb
     from CPAC.utils import Configuration
     from indi_schedulers import cluster_templates
 
@@ -289,8 +291,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Init plugin arguments
     plugin_args = {'n_procs': pipeline_config.numCoresPerSubject,
-                   'memory': pipeline_config.memoryAllocatedPerSubject,
-                   'runtime_profile' : pipeline_config.runtimeProfile}
+                   'memory_gb': pipeline_config.memoryAllocatedPerSubject,
+                   'callback_log' : log_nodes_cb}
 
     # Set up run command dictionary
     run_cmd_dict = {'config_file' : config_file,
