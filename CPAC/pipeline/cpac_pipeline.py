@@ -123,13 +123,38 @@ class strategy:
 def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                   p_name=None, plugin='MultiProc', plugin_args=None):
 
-    """""""""""""""""""""""""""""""""""""""""""""""""""
-     SETUP
-    """""""""""""""""""""""""""""""""""""""""""""""""""
+    '''
+    Function to prepare and, optionally, run the C-PAC workflow
 
+    Parameters
+    ----------
+    sub_dict : dictionary
+        subject dictionary with anatomical and functional image paths
+    c : Configuration object
+        CPAC pipelin configuration dictionary object
+    strategies : obj
+        strategies object describing what strategies to run the pipeline
+        through
+    run : boolean
+        flag to indicate whether to run the prepared workflow
+    pipeline_timing_info : list (optional); default=None
+        list of pipeline info for reporting timing information
+    p_name : string (optional); default=None
+        name of pipeline
+    plugin : string (optional); defaule='MultiProc'
+        nipype plugin to utilize when the workflow is ran
+    plugin_args : dictionary (optional); default=None
+        plugin-specific arguments for the workflow plugin
+
+    Returns
+    -------
+    workflow : nipype workflow
+        the prepared nipype workflow object containing the parameters
+        specified in the config
     '''
-    preliminaries
-    '''
+
+    # Import packages
+    from CPAC.utils.utils import check_config_resources
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -137,20 +162,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # tempfile add time to time data structure inside tempfile, and increment
     # number of subjects
 
-
     cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
     # Check pipeline config resources
-    from CPAC.utils.utils import check_config_resources
     sub_mem_gb, num_cores_per_sub, num_ants_cores = \
         check_config_resources(c)
 
-
     if plugin_args:
-        plugin_args['memory'] = sub_mem_gb
+        plugin_args['memory_gb'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
     else:
-        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
+        plugin_args = {'memory_gb': sub_mem_gb, 'n_procs' : num_cores_per_sub}
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
