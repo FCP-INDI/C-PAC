@@ -10,7 +10,6 @@ CPAC/network_centrality/resting_state_centrality.py
 # Import packages
 import unittest
 
-
 # Calculate concordance correlation coefficient
 def _concordance(x, y):
     '''
@@ -75,23 +74,23 @@ def _consolidate_results(arr_dict_list):
         '''
         Return the concordance correlation coefficient as defined by
         Lin (1989)
-    
+
         Parameters
         ----------
         x : list or array
             a list of array of length N of numbers
         y : list or array
             a list of array of length N of numbers
-    
+
         Returns
         -------
         rho_c : numpy.float32
             the concordance value as a float
         '''
-    
+
         # Import packages
         import numpy as np
-    
+
         # Usage errors check
         x_shape = np.shape(x)
         y_shape = np.shape(y)
@@ -102,28 +101,29 @@ def _consolidate_results(arr_dict_list):
             err_msg = 'Length of the two inputs must be equal.\n'\
                     'Length of x: %d\nLength of y: %d' % (len(x), len(y))
             raise ValueError(err_msg)
-    
+
         # Init variables
         x_arr = np.array(x).astype('float64')
         y_arr = np.array(y).astype('float64')
-    
+
         # Get pearson correlation
         rho = np.corrcoef(x_arr, y_arr)[0][1]
-    
+
         # Get stdevs
         sigma_x = np.std(x_arr)
         sigma_y = np.std(y_arr)
-    
+
         # Get means
         mu_x = np.mean(x_arr)
         mu_y = np.mean(y_arr)
-    
+
         # Comput condordance
         rho_c = (2*rho*sigma_x*sigma_y) /\
                 (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
-    
+
         # Return variables
         return rho_c
+
     # Import packages
 
     # Init variables
@@ -205,30 +205,14 @@ def _download_inputs(img_list, sub_idx, inputs_dir):
 # Test case for the run function
 class RestingStateCentralityTestCase(unittest.TestCase):
     '''
-    This class is a test case for the cpac_pipeline.run() function
-
-    Inherits
-    --------
-    unittest.TestCase class
-
-    Attributes (class):
-    ------------------
-    see unittest.TestCase documentation
-
-    Attributes (instance):
-    ----------------------
+    This is a test case for the CPAC/network_centrality subpackage
     '''
 
     # setUp method for the necessary arguments to run cpac_pipeline.run
     def setUp(self):
         '''
         Method to instantiate input arguments for the
-        cpac_pipeline.run() method via instance attributes
-        
-        Parameters
-        ----------
-        self : CPACPippelineRunTestCase
-            a unittest.TestCase-inherited class
+        test case
         '''
 
         # Import packages
@@ -358,15 +342,19 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         wflow.connect(input_node, 'local_path', resamp_node, 'in_file')
 
         # Init the centrality workflows
-        afni_wflow = self._return_afni_centrality_wf(method, thresh_option,
-                                                     thresh*100)
-
         cpac_wflow = self._return_cpac_centrality_wf(method, thresh_option,
                                                      thresh)
-        # Connect in centrality workflow
+        # If it is sparsity thresholding, put into percentage for afni
+        if method == 'sparsity':
+            thresh = 100*thresh
+        afni_wflow = self._return_afni_centrality_wf(method, thresh_option,
+                                                     thresh)
+
+        # Connect resampled functionalin to centrality workflow
         wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
         wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
-        # Connect mask
+
+        # Connect masks
         afni_wflow.inputs.inputspec.template = self.mask_path
         cpac_wflow.inputs.inputspec.template = self.mask_path
 
@@ -414,7 +402,6 @@ class RestingStateCentralityTestCase(unittest.TestCase):
                           plugin_args={'n_procs' : self.num_threads,
                                        'memory_gb' : self.mem_gb_limit,
                                        'status_callback' : log_nodes_cb})
-        print 'hi'
 
 
 # Command-line run-able unittest module
