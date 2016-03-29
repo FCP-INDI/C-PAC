@@ -1,6 +1,5 @@
 # test/unit/network_centrality/resting_state_centrality_test.py
 #
-#
 
 '''
 This module performs testing on the functions in
@@ -10,175 +9,72 @@ CPAC/network_centrality/resting_state_centrality.py
 # Import packages
 import unittest
 
-# Calculate concordance correlation coefficient
-def _concordance(x, y):
+
+def merge_img_paths(cpac_field, afni_field):
     '''
-    Return the concordance correlation coefficient as defined by
-    Lin (1989)
+    Function for nipype JoinNode that will merge the lists of outputs
+    produced by node iterable forking in the centrality workflow
 
     Parameters
     ----------
-    x : list or array
-        a list of array of length N of numbers
-    y : list or array
-        a list of array of length N of numbers
+    cpac_field : list
+        a list where each element is a list of binarized and weighted
+        image files for a given subject - CPAC workflow outputs
+    afni_field : list
+        a list where each element is a list of binarized and weighted
+        image files for a given subject - AFNI workflow outputs
 
     Returns
     -------
-    rho_c : numpy.float32
-        the concordance value as a float
+    map_yaml : string
+        filepath to the mapping dictoinary yaml file between afni
+        and cpac centrality outputs
     '''
 
     # Import packages
-    import numpy as np
-
-    # Usage errors check
-    x_shape = np.shape(x)
-    y_shape = np.shape(y)
-    if len(x_shape) != 1 or len(y_shape) != 1:
-        err_msg = 'Inputs must be 1D lists or arrays.'
-        raise ValueError(err_msg)
-    elif x_shape != y_shape:
-        err_msg = 'Length of the two inputs must be equal.\n'\
-                'Length of x: %d\nLength of y: %d' % (len(x), len(y))
-        raise ValueError(err_msg)
-
-    # Init variables
-    x_arr = np.array(x).astype('float64')
-    y_arr = np.array(y).astype('float64')
-
-    # Get pearson correlation
-    rho = np.corrcoef(x_arr, y_arr)[0][1]
-
-    # Get stdevs
-    sigma_x = np.std(x_arr)
-    sigma_y = np.std(y_arr)
-
-    # Get means
-    mu_x = np.mean(x_arr)
-    mu_y = np.mean(y_arr)
-
-    # Comput condordance
-    rho_c = (2*rho*sigma_x*sigma_y) /\
-            (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
-
-    # Return variables
-    return rho_c
-
-
-def _consolidate_results(arr_dict_list):
-    '''
-    '''
-    # Calculate concordance correlation coefficient
-    def _concordance(x, y):
-        '''
-        Return the concordance correlation coefficient as defined by
-        Lin (1989)
-
-        Parameters
-        ----------
-        x : list or array
-            a list of array of length N of numbers
-        y : list or array
-            a list of array of length N of numbers
-
-        Returns
-        -------
-        rho_c : numpy.float32
-            the concordance value as a float
-        '''
-
-        # Import packages
-        import numpy as np
-
-        # Usage errors check
-        x_shape = np.shape(x)
-        y_shape = np.shape(y)
-        if len(x_shape) != 1 or len(y_shape) != 1:
-            err_msg = 'Inputs must be 1D lists or arrays.'
-            raise ValueError(err_msg)
-        elif x_shape != y_shape:
-            err_msg = 'Length of the two inputs must be equal.\n'\
-                    'Length of x: %d\nLength of y: %d' % (len(x), len(y))
-            raise ValueError(err_msg)
-
-        # Init variables
-        x_arr = np.array(x).astype('float64')
-        y_arr = np.array(y).astype('float64')
-
-        # Get pearson correlation
-        rho = np.corrcoef(x_arr, y_arr)[0][1]
-
-        # Get stdevs
-        sigma_x = np.std(x_arr)
-        sigma_y = np.std(y_arr)
-
-        # Get means
-        mu_x = np.mean(x_arr)
-        mu_y = np.mean(y_arr)
-
-        # Comput condordance
-        rho_c = (2*rho*sigma_x*sigma_y) /\
-                (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
-
-        # Return variables
-        return rho_c
-
-    # Import packages
-
-    # Init variables
-    results_dict = {}
-
-    # Build dictionary
-    for arr_dict in arr_dict_list:
-        sub_id = arr_dict['sub_id']
-        afni_arr = arr_dict['afni_arr']
-        cpac_arr = arr_dict['cpac_arr']
-        img_type = arr_dict['img_type']
-
-        # Calculate concordance
-        rho_c = _concordance(afni_arr, cpac_arr)
-
-        # Populate dictionary
-        if not results_dict.has_key(img_type):
-            results_dict[img_type] = {sub_id : rho_c}
-        else:
-            results_dict[img_type][sub_id] = rho_c
-
-    # Return results
-    return results_dict
-
-
-# Compare and get runtime stats
-def _get_img_arrs(afni_output, cpac_output):
-    '''
-    '''
-
-    # Import packages
+    import yaml
     import os
-    import nibabel as nb
 
-    # Sub id
-    sub_id = afni_output.split(os.path.sep)[-3]
-    img_type = os.path.basename(afni_output).split('.')[0]
+    # Path mapping dict
+    path_map = {}
 
-    # Read in images as arrays and get concordances
-    afni_arr = nb.load(afni_output).get_data().flatten()
-    cpac_arr = nb.load(cpac_output).get_data().flatten()
+    # Iterate through the input lists to merge into a dictionary
+    for idx, paths in enumerate(cpac_field):
+        cpac_bin = paths[0]
+        cpac_wght = paths[1]
+        afni_paths = afni_field[idx]
+        afni_bin = afni_paths[0]
+        afni_wght = afni_paths[1]
+        path_map[cpac_bin] = afni_bin
+        path_map[cpac_wght] = afni_wght
 
-    # Create dictionary
-    arr_dict = {'sub_id' : sub_id,
-                'afni_arr' : afni_arr,
-                'cpac_arr' : cpac_arr,
-                'img_type' : img_type}
+    # Write dictionary to working dir
+    with open('merged_paths.yml', 'w') as fout:
+        fout.write(yaml.dump(path_map))
 
-    # Return array dict
-    return arr_dict
+    # Return the mapping dictionary path
+    map_yaml = os.path.abspath('merged_paths.yml')
+    return map_yaml
 
 
-# Download input data
-def _download_inputs(img_list, sub_idx, inputs_dir):
+def download_inputs(img_list, sub_idx, inputs_dir):
     '''
+    Function to download functional images for input to the centrality
+    workflow from the fcp-indi S3 bucket on AWS
+
+    Parameters
+    ----------
+    img_list : list
+        a list of S3-relative file paths to download
+    sub_idx : integer
+        the index indicating which subject to download from the list
+    inputs_dir : string
+        filepath to the directory for storing local input files
+
+    Returns
+    -------
+    local_path : string
+        filepath to the locally-downloaded file
     '''
 
     # Import packages
@@ -190,6 +86,7 @@ def _download_inputs(img_list, sub_idx, inputs_dir):
     url_path = 'https://s3.amazonaws.com/fcp-indi/' + sub_rel_path
     local_path = os.path.join(inputs_dir, 'sub_%d' % (sub_idx),
                               sub_rel_path.split('/')[-1])
+    # Make directory for downloaded file
     if not os.path.exists(os.path.dirname(local_path)):
         os.makedirs(os.path.dirname(local_path))
 
@@ -223,6 +120,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         import yaml
 
         # Init variables
+        self.rho_thresh = 0.99
         # Limit the amount of memory and threads for the test case
         self.mem_gb_limit = 8.0
         self.num_threads = 1
@@ -272,50 +170,35 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         with open(sublist_yaml, 'r') as yml_in:
             self.img_list = yaml.load(yml_in)
 
-    def _return_cpac_centrality_wf(self, method, thresh_option, thresh):
-        '''
-        '''
-
-        # Import packages
-        from CPAC.network_centrality.resting_state_centrality import \
-            create_resting_state_graphs
-
-        # Init variables
-        wf_name = 'cpac_%s_%s' % (method, thresh_option)
-        cpac_wf = create_resting_state_graphs(wf_name, self.mem_gb_limit)
-
-        # Init workflow run parameters
-        cpac_wf.inputs.inputspec.method_option = method
-        cpac_wf.inputs.inputspec.threshold_option = thresh_option
-        cpac_wf.inputs.inputspec.threshold = thresh
-
-        # Return wf
-        return cpac_wf
-
-    def _return_afni_centrality_wf(self, method, thresh_option, thresh):
-        '''
-        '''
-
-        # Import packages
-        from CPAC.network_centrality.afni_network_centrality import \
-            create_afni_centrality_wf
-
-        # Init variables
-        wf_name = 'afni_%s_%s' % (method, thresh_option)
-        afni_wf = create_afni_centrality_wf(wf_name, method, thresh_option,
-                                            thresh, self.num_threads, self.mem_gb_limit)
-
-        # Return wf
-        return afni_wf
-
     def _init_centrality_wf(self, method, thresh_option, thresh):
         '''
+        Create and return the AFNI/CPAC centrality run and merge
+        workflow
+
+        Parameters
+        ----------
+        method : string
+            options are 'degree', 'eigenvector', 'lfcd'
+        thresh_option : string
+            options are 'sparsity', 'correlation'
+        thresh : float
+            threshold for simliarity matrix
+
+        Returns
+        -------
+        wflow : nipype Workflow
+            the complete workflow for running centrality
         '''
 
         # Import packages
         import nipype.interfaces.fsl as fsl
         import nipype.pipeline.engine as pe
         import nipype.interfaces.utility as util
+
+        from CPAC.network_centrality.resting_state_centrality import \
+            create_resting_state_graphs
+        from CPAC.network_centrality.afni_network_centrality import \
+            create_afni_centrality_wf
 
         # Init workflow
         wflow = pe.Workflow(name='%s_%s_test' % (method, thresh_option))
@@ -324,7 +207,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         input_node = pe.Node(util.Function(input_names=['img_list', 'sub_idx',
                                                         'inputs_dir'],
                                            output_names=['local_path'],
-                                           function=_download_inputs),
+                                           function=download_inputs),
                              name='inputspec')
         input_node.inputs.img_list = self.img_list
         input_node.inputs.inputs_dir = self.inputs_dir
@@ -342,13 +225,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         wflow.connect(input_node, 'local_path', resamp_node, 'in_file')
 
         # Init the centrality workflows
-        cpac_wflow = self._return_cpac_centrality_wf(method, thresh_option,
-                                                     thresh)
+        # Init variables
+        wf_name = 'cpac_%s_%s' % (method, thresh_option)
+        cpac_wflow = create_resting_state_graphs(wf_name, self.mem_gb_limit)
+
+        # Init workflow run parameters
+        cpac_wflow.inputs.inputspec.method_option = method
+        cpac_wflow.inputs.inputspec.threshold_option = thresh_option
+        cpac_wflow.inputs.inputspec.threshold = thresh
+
         # If it is sparsity thresholding, put into percentage for afni
-        if method == 'sparsity':
+        if thresh_option == 'sparsity':
             thresh = 100*thresh
-        afni_wflow = self._return_afni_centrality_wf(method, thresh_option,
-                                                     thresh)
+        wf_name = 'afni_%s_%s' % (method, thresh_option)
+        afni_wflow = create_afni_centrality_wf(wf_name, method, thresh_option,
+                                            thresh, self.num_threads, self.mem_gb_limit)
 
         # Connect resampled functionalin to centrality workflow
         wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
@@ -359,49 +250,196 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         cpac_wflow.inputs.inputspec.template = self.mask_path
 
         # Collect arrays MapNnode
-        collect_arrs_node = \
-            pe.MapNode(util.Function(input_names=['afni_output',
-                                                  'cpac_output'],
-                                     output_names=['arr_dict'],
-                                     function=_get_img_arrs),
-                        name='extract_arrs',
-                        iterfield=['afni_output', 'cpac_output'])
+        merge_outputs_node = pe.JoinNode(util.Function(input_names=['cpac_field',
+                                                                    'afni_field'],
+                                                       output_names=['map_yaml'],
+                                                       function=merge_img_paths),
+                                         name='merge_img_paths',
+                                         joinsource=input_node.name,
+                                         joinfield=['cpac_field', 'afni_field'])
 
-        # Connect arrays MapNode
-        wflow.connect(afni_wflow, 'outputspec.outfile_list',
-                      collect_arrs_node, 'afni_output')
+        # Connect the merge node from cpac/afni outputs
         wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
-                      collect_arrs_node, 'cpac_output')
-
-        # Consolidate results node
-        consolidate_results_node = \
-            pe.Node(util.Function(input_names=['arr_dict_list'],
-                                  output_names=['concord_dict'],
-                                  function=_consolidate_results),
-                    name='consolidate_results')
-
-        # Connect arrays MapNode to consolidate results
-        wflow.connect(collect_arrs_node, 'arr_dict',
-                      consolidate_results_node, 'arr_dict_list')
+                      merge_outputs_node, 'cpac_field')
+        wflow.connect(afni_wflow, 'outputspec.outfile_list',
+                      merge_outputs_node, 'afni_field')
 
         # Return the complete workflow
         return wflow
 
-    def test_degree_sparsity(self):
+    def _read_and_correlate(self, map_yaml):
         '''
+        Read and correlate the paths from the mapping dictionary
+        yaml
+
+        Parameters
+        ----------
+        map_yaml : string
+            filepath to the mapping dictoinary yaml file between afni
+            and cpac centrality outputs
+
+        Returns
+        -------
+        rho_dict : dictionary
+            dictionary of pairwise concordances between the afni and
+            cpac centrality implementations
         '''
 
         # Import packages
+        import os
+        import yaml
+        import nibabel as nib
+
+        from CPAC.utils.test_init import concordance
+
+        # Init variables
+        map_dict = yaml.load(open(map_yaml, 'r'))
+        rho_dict = {}
+
+        # Iteratae through mapping dict
+        for cpac_nii, afni_nii in map_dict.items():
+            cpac_arr = nib.load(cpac_nii).get_data()
+            afni_arr = nib.load(afni_nii).get_data()
+            rho = concordance(cpac_arr.flatten(), afni_arr.flatten())
+            img_type = os.path.split(cpac_nii)[-1].split('.')[0]
+            if rho_dict.has_key(img_type):
+                rho_dict[img_type].append(rho)
+            else:
+                rho_dict[img_type] = [rho]
+
+        # Return the concordance dictionary
+        return rho_dict
+
+    def _run_wf_and_map_outputs(self, method, thresh_option, thresh):
+        '''
+        Build and run the workflow for the desired centrality options
+        and build the pairwise output mappings
+
+        Parameters
+        ----------
+        method : string
+            options are 'degree', 'eigenvector', 'lfcd'
+        thresh_option : string
+            options are 'sparsity', 'correlation'
+        thresh : float
+            threshold for simliarity matrix
+
+        Returns
+        -------
+        map_yaml : string
+            filepath to the mapping dictoinary yaml file between afni
+            and cpac centrality outputs
+        '''
+
+        # Import packages
+        import os
         from nipype.pipeline.plugins.callback_log import log_nodes_cb
 
-        # Init test workflow
-        deg_sparse_wf = self._init_centrality_wf('degree', 'sparsity', .001)
-        deg_sparse_wf.base_dir = self.base_dir
+        # Init workflow
+        centrality_wf = self._init_centrality_wf(method, thresh_option, thresh)
+        centrality_wf.base_dir = self.base_dir
 
-        deg_sparse_wf.run(plugin='MultiProc',
+        centrality_wf.run(plugin='MultiProc',
                           plugin_args={'n_procs' : self.num_threads,
                                        'memory_gb' : self.mem_gb_limit,
                                        'status_callback' : log_nodes_cb})
+
+        # Formulate mapping dictionary path
+        map_yaml = os.path.join(self.base_dir, centrality_wf.name,
+                                'merge_img_paths', 'merged_paths.yml')
+
+        # Return the concordnace dictionary
+        return map_yaml
+
+    def test_degree_sparsity(self):
+        '''
+        Test AFNI and CPAC degree sparsity methods correlate
+        '''
+
+        # Run and correlate afni/cpac workflows
+        deg_sparsity_map_yaml = \
+            self._run_wf_and_map_outputs('degree', 'sparsity', 0.001)
+
+        # Pairwise correlate images
+        degree_sparsity_results = self._read_and_correlate(deg_sparsity_map_yaml)
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in degree_sparsity_results.items():
+            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+
+    def test_degree_correlation(self):
+        '''
+        Test AFNI and CPAC degree correlation methods correlate
+        '''
+
+        # Run and correlate afni/cpac workflows
+        degree_corr_map_yaml = \
+            self._run_wf_and_map_outputs('degree', 'correlation', 0.6)
+
+        # Pairwise correlate images
+        degree_corr_results = self._read_and_correlate(degree_corr_map_yaml)
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in degree_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+
+    def test_eigen_sparsity(self):
+        '''
+        Test AFNI and CPAC eigenvector sparsity methods correlate
+        '''
+
+        # Run and correlate afni/cpac workflows
+        eigen_sparsity_map_yaml = \
+            self._run_wf_and_map_outputs('eigenvector', 'sparsity', 0.001)
+
+        # Pairwise correlate images
+        eigen_sparsity_results = self._read_and_correlate(eigen_sparsity_map_yaml)
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in eigen_sparsity_results.items():
+            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+
+    def test_eigen_correlation(self):
+        '''
+        Test AFNI and CPAC eigenvector correlation methods correlate
+        '''
+
+        # Run and correlate afni/cpac workflows
+        eigen_corr_map_yaml = \
+            self._run_wf_and_map_outputs('eigenvector', 'correlation', 0.6)
+
+        # Pairwise correlate images
+        eigen_corr_results = self._read_and_correlate(eigen_corr_map_yaml)
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in eigen_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+
+    def test_lfcd_correlation(self):
+        '''
+        Test AFNI and CPAC lfcd correlation methods correlate
+        '''
+
+        # Run and correlate afni/cpac workflows
+        lfcd_corr_map_yaml = \
+            self._run_wf_and_map_outputs('lfcd', 'correlation', 0.6)
+
+        # Pairwise correlate images
+        lfcd_corr_results = self._read_and_correlate(lfcd_corr_map_yaml)
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in lfcd_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
 
 
 # Command-line run-able unittest module

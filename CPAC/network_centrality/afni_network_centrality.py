@@ -9,8 +9,7 @@ centrality nipype workflow
 
 # Import packages
 try:
-    import nipype.interfaces.afni.preprocess as afni
-    from afni import DegreeCentrality, ECM, LFCD
+    from nipype.interfaces.afni.preprocess import DegreeCentrality, ECM, LFCD
 except ImportError:
     from afni_centrality_interfaces import DegreeCentrality, ECM, LFCD
 
