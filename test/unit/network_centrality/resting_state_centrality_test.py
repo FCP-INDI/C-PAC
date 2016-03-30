@@ -267,49 +267,6 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Return the complete workflow
         return wflow
 
-    def _read_and_correlate(self, map_yaml):
-        '''
-        Read and correlate the paths from the mapping dictionary
-        yaml
-
-        Parameters
-        ----------
-        map_yaml : string
-            filepath to the mapping dictoinary yaml file between afni
-            and cpac centrality outputs
-
-        Returns
-        -------
-        rho_dict : dictionary
-            dictionary of pairwise concordances between the afni and
-            cpac centrality implementations
-        '''
-
-        # Import packages
-        import os
-        import yaml
-        import nibabel as nib
-
-        from CPAC.utils.test_init import concordance
-
-        # Init variables
-        map_dict = yaml.load(open(map_yaml, 'r'))
-        rho_dict = {}
-
-        # Iteratae through mapping dict
-        for cpac_nii, afni_nii in map_dict.items():
-            cpac_arr = nib.load(cpac_nii).get_data()
-            afni_arr = nib.load(afni_nii).get_data()
-            rho = concordance(cpac_arr.flatten(), afni_arr.flatten())
-            img_type = os.path.split(cpac_nii)[-1].split('.')[0]
-            if rho_dict.has_key(img_type):
-                rho_dict[img_type].append(rho)
-            else:
-                rho_dict[img_type] = [rho]
-
-        # Return the concordance dictionary
-        return rho_dict
-
     def _run_wf_and_map_outputs(self, method, thresh_option, thresh):
         '''
         Build and run the workflow for the desired centrality options
@@ -351,6 +308,227 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Return the concordnace dictionary
         return map_yaml
 
+    def _gen_scatterplot(self, map_yaml, img_desc):
+        '''
+        Function to generate a scatter plot of all of the images
+        ran for a given centrality type
+
+        Parameters
+        ----------
+        map_yaml : string
+            filepath to the mapping dictoinary yaml file between afni
+            and cpac centrality outputs
+        img_desc : string
+            a string describing the type of images being analyzed; this
+            string will be used to title and name the plot png file
+
+        Returns
+        -------
+        out_png : string
+            filepath to the produced output png file
+        '''
+
+        # Import packages
+        import os
+        import yaml
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import nibabel as nib
+
+        # Init variables
+        cpac_bin = np.empty(0)
+        afni_bin = np.empty(0)
+        cpac_wght = np.empty(0)
+        afni_wght = np.empty(0)
+        map_dict = yaml.load(open(map_yaml, 'r'))
+
+        # Extract and build pairwise arrays
+        for cpac, afni in map_dict.items():
+            cpac_arr = nib.load(cpac).get_data().flatten()
+            afni_arr = nib.load(afni).get_data().flatten()
+            if 'binarize' in cpac:
+                cpac_bin = np.concatenate((cpac_bin, cpac_arr))
+                afni_bin = np.concatenate((afni_bin, afni_arr))
+            else:
+                cpac_wght = np.concatenate((cpac_wght, cpac_arr))
+                afni_wght = np.concatenate((afni_wght, afni_arr))
+
+        # Get best fit lines and set up equation strs
+        bin_fit = np.polyfit(cpac_bin, afni_bin, 1)
+        wght_fit = np.polyfit(cpac_wght, afni_wght, 1)
+        bin_eq_str = 'y = %.4fx + %.4f' % (bin_fit[0], bin_fit[1])
+        wght_eq_str = 'y = %.4fx + %.4f' % (wght_fit[0], wght_fit[1])
+
+        # Build plot
+        bin_pts = plt.scatter(cpac_bin, afni_bin, color='b', alpha=0.4,
+                              label='Binarized')
+        wght_pts = plt.scatter(cpac_wght, afni_wght, color='r', alpha=0.4,
+                               label='Weighted')
+        plt.legend(handles=[bin_pts, wght_pts])
+        plt.text(0.25*cpac_bin.max(), 0.75*afni_bin.max(), bin_eq_str, color='b')
+        plt.text(0.75*cpac_bin.max(), 0.25*afni_bin.max(), wght_eq_str, color='r')
+        plt.xlabel('C-PAC values')
+        plt.ylabel('AFNI values')
+        plt.title('CPAC-AFNI image intensities scatterplot: %s' % img_desc)
+        plt.grid()
+
+        # Save figure
+        fig = plt.gcf()
+        fig.set_size_inches(14, 9)
+
+        # Output png
+        out_png = os.path.join(self.base_dir, img_desc + '_scatter.png')
+        plt.savefig(out_png, dpi=150)
+
+        # Clear and close
+        plt.clf()
+        plt.close()
+
+        # Return png path
+        return out_png
+
+    def _read_and_correlate(self, map_yaml):
+        '''
+        Read and correlate the paths from the mapping dictionary
+        yaml
+
+        Parameters
+        ----------
+        map_yaml : string
+            filepath to the mapping dictoinary yaml file between afni
+            and cpac centrality outputs
+
+        Returns
+        -------
+        rho_dict : dictionary
+            dictionary of pairwise concordances between the afni and
+            cpac centrality implementations
+        '''
+
+        # Import packages
+        import os
+        import yaml
+        import nibabel as nib
+
+        from CPAC.utils.test_init import concordance
+
+        # Init variables
+        map_dict = yaml.load(open(map_yaml, 'r'))
+        rho_dict = {}
+
+        # Iteratae through mapping dict
+        for cpac_nii, afni_nii in map_dict.items():
+            cpac_arr = nib.load(cpac_nii).get_data()
+            afni_arr = nib.load(afni_nii).get_data()
+            rho = concordance(cpac_arr.flatten(), afni_arr.flatten())
+            img_type = os.path.split(cpac_nii)[-1].split('.')[0].split('_')[-1]
+            if rho_dict.has_key(img_type):
+                rho_dict[img_type].append(rho)
+            else:
+                rho_dict[img_type] = [rho]
+
+        # Return the concordance dictionary
+        return rho_dict
+
+    def _gen_boxplots(self, rho_dict, img_desc):
+        '''
+        Function to generate a scatter plot of all of the images
+        ran for a given centrality type
+
+        Parameters
+        ----------
+        rho_dict : dictionary
+            dictionary where keys are strings containing centrality
+            output type and values are arrays of concordances
+        img_desc : string
+            a string describing the type of images being analyzed; this
+            string will be used to title and name the plot png file
+
+        Returns
+        -------
+        out_png : string
+            filepath to the produced output png file
+        '''
+
+        # Import packages
+        from collections import OrderedDict
+        import os
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # Set up plot
+        rho_dict = OrderedDict(sorted(rho_dict.items()))
+        plt.boxplot(rho_dict.values())
+        plt.xticks(range(1, len(rho_dict)+1), rho_dict.keys(), rotation=45)
+        plt.ylim([np.min(rho_dict.values())-0.1, 1.1])
+        plt.title('CPAC-AFNI pairwise concordance boxplots: %s' % img_desc)
+        plt.xlabel('Image type')
+        plt.ylabel('Concordance')
+        plt.grid()
+
+        # Save figure
+        fig = plt.gcf()
+        fig.set_size_inches(16, 12)
+        fig.tight_layout()
+
+        # Output png
+        out_png = os.path.join(self.base_dir, img_desc + '_boxplot.png')
+        plt.savefig(out_png, dpi=200)
+
+        # Clear and close
+        plt.clf()
+        plt.close()
+
+        # Return png path
+        return out_png
+
+    def _merge_boxplots(self):
+        '''
+        Function which merges the pre-computed box-plots via the
+        merged_paths.yml files in the working directory
+        '''
+    
+        # Import packages
+        import os
+        import yaml
+    
+        # Init variables
+        yamls = []
+        rho_dicts = {}
+        merged_dict = {}
+    
+        # Collect yamls in base directory
+        for root, dirs, files in os.walk(self.base_dir):
+            yamls.extend([os.path.join(root, file) for file in files \
+                          if file.endswith('merged_paths.yml')])
+    
+        # For each yaml
+        for yaml in yamls:
+            img_type = yaml.split(os.path.sep)[-3].rstrip('_test')
+            rho_dicts[img_type] = self._read_and_correlate(yaml)
+
+        # Expand dict
+        for centrality, rho_dict in rho_dicts.items():
+            for img_type, rhos in rho_dict.items():
+                merged_dict['_'.join([centrality, img_type])] = rhos
+
+        # Generate and return the output
+        out_png = self._gen_boxplots(merged_dict, 'merged')
+        return out_png
+
+    def test_merge(self):
+        '''
+        '''
+
+        # Import packages
+        import os
+
+        # Get output png
+        out_png = self._merge_boxplots()
+        merged_exists = os.path.exists(out_png)
+        err_msg = 'Merge function could not write out merged box plots png!'
+        self.assertTrue(merged_exists, msg=err_msg)
+
     def test_degree_sparsity(self):
         '''
         Test AFNI and CPAC degree sparsity methods correlate
@@ -360,14 +538,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         deg_sparsity_map_yaml = \
             self._run_wf_and_map_outputs('degree', 'sparsity', 0.001)
 
+        # Generate scatter plots
+        out_png = self._gen_scatterplot(deg_sparsity_map_yaml, 'degree_sparsity')
+
         # Pairwise correlate images
         degree_sparsity_results = self._read_and_correlate(deg_sparsity_map_yaml)
 
+        # Generate box plots
+        out_png = self._gen_boxplots(degree_sparsity_results, 'degree_sparsity')
+
         # Iterate through concordances and assert > 0.99
         for img_type, rho_list in degree_sparsity_results.items():
-            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
             for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
     def test_degree_correlation(self):
         '''
@@ -378,14 +563,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         degree_corr_map_yaml = \
             self._run_wf_and_map_outputs('degree', 'correlation', 0.6)
 
+        # Generate scatter plots
+        out_png = self._gen_scatterplot(degree_corr_map_yaml, 'degree_correlation')
+
         # Pairwise correlate images
         degree_corr_results = self._read_and_correlate(degree_corr_map_yaml)
 
+        # Generate box plots
+        out_png = self._gen_boxplots(degree_corr_results, 'degree_correlation')
+
         # Iterate through concordances and assert > 0.99
         for img_type, rho_list in degree_corr_results.items():
-            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
             for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
     def test_eigen_sparsity(self):
         '''
@@ -396,14 +588,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         eigen_sparsity_map_yaml = \
             self._run_wf_and_map_outputs('eigenvector', 'sparsity', 0.001)
 
+        # Generate scatter plots
+        out_png = self._gen_scatterplot(eigen_sparsity_map_yaml, 'eigen_sparsity')
+
         # Pairwise correlate images
         eigen_sparsity_results = self._read_and_correlate(eigen_sparsity_map_yaml)
 
+        # Generate box plots
+        out_png = self._gen_boxplots(eigen_sparsity_results, 'eigen_sparsity')
+
         # Iterate through concordances and assert > 0.99
         for img_type, rho_list in eigen_sparsity_results.items():
-            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
             for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
     def test_eigen_correlation(self):
         '''
@@ -414,14 +613,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         eigen_corr_map_yaml = \
             self._run_wf_and_map_outputs('eigenvector', 'correlation', 0.6)
 
+        # Generate scatter plots
+        out_png = self._gen_scatterplot(eigen_corr_map_yaml, 'eigen_correlation')
+
         # Pairwise correlate images
         eigen_corr_results = self._read_and_correlate(eigen_corr_map_yaml)
 
+        # Generate box plots
+        out_png = self._gen_boxplots(eigen_corr_results, 'eigen_correlation')
+
         # Iterate through concordances and assert > 0.99
         for img_type, rho_list in eigen_corr_results.items():
-            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
             for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
     def test_lfcd_correlation(self):
         '''
@@ -432,14 +638,21 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         lfcd_corr_map_yaml = \
             self._run_wf_and_map_outputs('lfcd', 'correlation', 0.6)
 
+        # Generate scatter plots
+        out_png = self._gen_scatterplot(lfcd_corr_map_yaml, 'lfcd_correlation')
+
         # Pairwise correlate images
         lfcd_corr_results = self._read_and_correlate(lfcd_corr_map_yaml)
 
+        # Generate box plots
+        out_png = self._gen_boxplots(lfcd_corr_results, 'lfcd_correlation')
+
         # Iterate through concordances and assert > 0.99
         for img_type, rho_list in lfcd_corr_results.items():
-            err_msg = 'AFNI and C-PAC concordance is too low for %s!' % img_type
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
             for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh, msg=err_msg)
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
 
 # Command-line run-able unittest module
