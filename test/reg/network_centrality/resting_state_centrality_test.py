@@ -161,7 +161,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Init the centrality workflows
         # Init variables
         wf_name = 'cpac_%s_%s' % (method, thresh_option)
-        cpac_wflow = create_resting_state_graphs(wf_name, self.mem_gb_limit)
+        cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
 
         # Init workflow run parameters
         cpac_wflow.inputs.inputspec.method_option = method
@@ -173,7 +173,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
             thresh = 100*thresh
         wf_name = 'afni_%s_%s' % (method, thresh_option)
         afni_wflow = create_afni_centrality_wf(wf_name, method, thresh_option,
-                                            thresh, self.num_threads, self.mem_gb_limit)
+                                               thresh, 1, 4.0)
 
         # Connect resampled functionalin to centrality workflow
         wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
