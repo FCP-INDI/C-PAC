@@ -68,6 +68,7 @@ import linecache
 import csv
 import pickle
 
+
 # Init variables
 logger = logging.getLogger('workflow')
 
