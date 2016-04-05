@@ -1,6 +1,5 @@
-# CPAC/AWS/s3_sublist.py
+# utils/build_sublist.py
 #
-# Author(s): Daniel Clark, 2015
 
 '''
 This module has functions to build a subject list from S3 and
@@ -476,7 +475,7 @@ def return_s3_filepaths(file_pattern, creds_path=None):
     import os
     import re
 
-    from CPAC.AWS import fetch_creds
+    from indi_aws import fetch_creds
 
     # Init variables
     bucket_name = file_pattern.split('/')[2]

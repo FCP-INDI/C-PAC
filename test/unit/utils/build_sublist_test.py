@@ -1,6 +1,8 @@
 # test/unit/utils/build_sublist_test.py
 #
 # Author(s): Daniel Clark, 2015
+
+# Import packages
 from CPAC.utils.build_sublist import build_sublist
 
 '''
@@ -14,8 +16,7 @@ import unittest
 # Tets case for cpac datasink
 class BuildSublistTestCase(unittest.TestCase):
     '''
-    This class is a test case for the s3_sublist module in
-    CPAC/AWS
+    This class is a test case for the build_sublist.py module
 
     Inherits
     --------
@@ -31,8 +32,7 @@ class BuildSublistTestCase(unittest.TestCase):
     # setUp method
     def setUp(self):
         '''
-        Method to instantiate input arguments for the
-        AWS.fetch_creds() method via instance attributes
+        Init unittest TestCase
 
         Parameters
         ----------

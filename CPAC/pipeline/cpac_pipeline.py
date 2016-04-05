@@ -8,6 +8,13 @@ This module prepares and executes the main C-PAC workflow
 import os
 import time
 from time import strftime
+import zlib
+import linecache
+import csv
+import pickle
+import pkg_resources as p
+
+# Nipype packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -17,11 +24,14 @@ import nipype.interfaces.ants as ants
 import nipype.interfaces.c3 as c3
 from nipype import config
 from nipype import logging
+
+# INDI-Tools
+from indi_aws import aws_utils, fetch_creds
+
+# CPAC packages
+import CPAC
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
-import pkg_resources as p
-import CPAC
-from CPAC.AWS import aws_utils, fetch_creds
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
 from CPAC.func_preproc.func_preproc import create_func_preproc, \
                                            create_wf_edit_func
@@ -63,10 +73,6 @@ from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
-import zlib
-import linecache
-import csv
-import pickle
 
 
 # Init variables
@@ -116,15 +122,40 @@ class strategy:
 
 # Create and prepare C-PAC pipeline workflow
 def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
-                  p_name=None, plugin='ResourceMultiProc', plugin_args=None):
-
-    """""""""""""""""""""""""""""""""""""""""""""""""""
-     SETUP
-    """""""""""""""""""""""""""""""""""""""""""""""""""
+                  p_name=None, plugin='MultiProc', plugin_args=None):
 
     '''
-    preliminaries
+    Function to prepare and, optionally, run the C-PAC workflow
+
+    Parameters
+    ----------
+    sub_dict : dictionary
+        subject dictionary with anatomical and functional image paths
+    c : Configuration object
+        CPAC pipelin configuration dictionary object
+    strategies : obj
+        strategies object describing what strategies to run the pipeline
+        through
+    run : boolean
+        flag to indicate whether to run the prepared workflow
+    pipeline_timing_info : list (optional); default=None
+        list of pipeline info for reporting timing information
+    p_name : string (optional); default=None
+        name of pipeline
+    plugin : string (optional); defaule='MultiProc'
+        nipype plugin to utilize when the workflow is ran
+    plugin_args : dictionary (optional); default=None
+        plugin-specific arguments for the workflow plugin
+
+    Returns
+    -------
+    workflow : nipype workflow
+        the prepared nipype workflow object containing the parameters
+        specified in the config
     '''
+
+    # Import packages
+    from CPAC.utils.utils import check_config_resources
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -132,20 +163,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # tempfile add time to time data structure inside tempfile, and increment
     # number of subjects
 
-
     cores_msg = 'VERSION: CPAC %s' % CPAC.__version__
 
     # Check pipeline config resources
-    from CPAC.utils.utils import check_config_resources
     sub_mem_gb, num_cores_per_sub, num_ants_cores = \
         check_config_resources(c)
 
-
     if plugin_args:
-        plugin_args['memory'] = sub_mem_gb
+        plugin_args['memory_gb'] = sub_mem_gb
         plugin_args['n_procs'] = num_cores_per_sub
     else:
-        plugin_args = {'memory': sub_mem_gb, 'n_procs' : num_cores_per_sub}
+        plugin_args = {'memory_gb': sub_mem_gb, 'n_procs' : num_cores_per_sub}
 
     # perhaps in future allow user to set threads maximum
     # this is for centrality mostly    
@@ -2034,8 +2062,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     node, out_file = strat.get_node_from_resource_pool('motion_correct')
                     workflow.connect(node, out_file, motion_correct_warp, 'in_file')
 
-                    
-
                 except:
                     logConnectionError('Functional Timeseries Registration to MNI space (FSL)', num_strat, strat.get_resource_pool(), '0015')
                     raise
@@ -3210,20 +3236,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # Init the workflow
                 afni_centrality_wf = \
-                    create_afni_centrality_wf(wf_name, method_option, threshold,
-                                              threshold_option, num_threads, memory)
+                    create_afni_centrality_wf(wf_name, method_option, threshold_option,
+                                              threshold, num_threads, memory)
 
                 # Connect pipeline resources to workflow
                 # Dataset
                 workflow.connect(resample_functional_to_template, 'out_file',
-                                 afni_centrality_wf, 'inputspec.datafile')
+                                 afni_centrality_wf, 'inputspec.in_file')
                 # Mask
                 afni_centrality_wf.inputs.inputspec.template = \
                     c.templateSpecificationFile
 
                 # Connect outputs to merge node
                 workflow.connect(afni_centrality_wf,
-                                 'output_node.outfile_list',
+                                 'outputspec.outfile_list',
                                  merge_node,
                                  out_list)
 
@@ -5776,7 +5802,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     pipeline_id = p_name
                     #if running multiple pipelines with gui, need to change this in future
                     p_name = None
-    
+
             logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: %s, ---- %s, ---- %s' % (strat_tag, hash_val, pipeline_id))
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
@@ -5784,11 +5810,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # Extract credentials path for output if it exists
             s3_str = 's3://'
             try:
+                # Get path to creds file
                 creds_path = str(c.awsOutputBucketCredentials)
-                # Import packages
-                from CPAC.AWS.aws_utils import test_bucket_access
                 creds_path = os.path.abspath(creds_path)
-                s3_write_access = test_bucket_access(creds_path, c.outputDirectory, sub_dict['subject_id'])
+                # Test for s3 write access
+                s3_write_access = \
+                    aws_utils.test_bucket_access(creds_path,
+                                                 c.outputDirectory)
                 if not s3_write_access:
                     raise Exception('Not able to write to bucket!')
             except Exception as exc:
@@ -5907,7 +5935,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         '''
 
         #TODO:set memory and num_threads of critical nodes if running 
-        # ResourceMultiProcPlugin
+        # MultiProcPlugin
 
         # Create callback logger
         import logging as cb_logging

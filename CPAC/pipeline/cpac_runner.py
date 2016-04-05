@@ -1,6 +1,5 @@
 # CPAC/pipeline/cpac_runner.py
 #
-# FCP-INDI
 
 '''
 This module contains functions used to run a C-PAC pipeline
@@ -251,7 +250,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     from time import strftime
 
     from CPAC.utils import Configuration
-    from CPAC.pipeline import cluster_templates
+    from indi_schedulers import cluster_templates
 
     # Load in pipeline config
     try:
@@ -280,25 +279,34 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
     user_account = getpass.getuser()
     num_subs = len(sublist)
 
+    # Run CPAC via python -c command
+    python_cpac_str = 'python -c "from CPAC.pipeline.cpac_pipeline import run; '\
+                      'run(\'%(config_file)s\', \'%(subject_list_file)s\', '\
+                      '%(env_arr_idx)s, \'%(strategies_file)s\', '\
+                      '\'%(pipeline_name)s\', plugin=\'MultiProc\', '\
+                      'plugin_args=%(plugin_args)s)"'
+
     # Init plugin arguments
     plugin_args = {'n_procs': pipeline_config.numCoresPerSubject,
-                   'memory': pipeline_config.memoryAllocatedPerSubject,
-                   'runtime_profile' : pipeline_config.runtimeProfile}
+                   'memory_gb': pipeline_config.memoryAllocatedPerSubject}
+
+    # Set up run command dictionary
+    run_cmd_dict = {'config_file' : config_file,
+                    'subject_list_file' : subject_list_file,
+                    'strategies_file' : strategies_file,
+                    'pipeline_name' : pipeline_config.pipelineName,
+                    'plugin_args' : plugin_args}
 
     # Set up config dictionary
-    config_dict = {'config_file' : config_file,
-                   'subject_list_file' : subject_list_file,
-                   'strategies_file' : strategies_file,
-                   'timestamp' : timestamp,
+    config_dict = {'timestamp' : timestamp,
                    'shell' : shell,
-                   'pipeline_name' : pipeline_config.pipelineName,
-                   'num_subs' : num_subs,
+                   'job_name' : 'CPAC_' + pipeline_config.pipelineName,
+                   'num_tasks' : num_subs,
                    'queue' : pipeline_config.queue,
                    'par_env' : pipeline_config.parallelEnvironment,
-                   'cores_per_sub' : pipeline_config.numCoresPerSubject,
+                   'cores_per_task' : pipeline_config.numCoresPerSubject,
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
-                   'plugin_args' : plugin_args,
                    'time_limit' : time_limit}
 
     # Get string template for job scheduler
@@ -320,6 +328,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
 
     # Populate rest of dictionary
     config_dict['env_arr_idx'] = env_arr_idx
+    run_cmd_dict['env_arr_idx'] = env_arr_idx
+    config_dict['run_cmd'] = python_cpac_str % run_cmd_dict
 
     # Populate string from config dict values
     batch_file_contents = batch_file_contents % config_dict

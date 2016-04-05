@@ -479,8 +479,8 @@ def get_centrality_by_sparsity(ts_normd, method_option, threshold, block_size):
 
     # Init wij list
     z = np.array([])
-    wij_global = np.rec.fromarrays([z.astype(ts_normd.dtype), 
-                                    z.astype('int32'), 
+    wij_global = np.rec.fromarrays([z.astype(ts_normd.dtype),
+                                    z.astype('int32'),
                                     z.astype('int32')])
     # Form the initial blockwise mask (to only grab upper triangle of data)
     block_triu = np.triu(np.ones((block_size,block_size)), k=1).astype('bool')
@@ -495,7 +495,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, threshold, block_size):
         logger.info('running block %d: rows %d thru %d' % (block_no, n, m-1))
         # Calculate wij over entire matrix by block
         # Do this for both deg and eig, more efficient way to compute r_value
-        rmat_block = np.dot(ts_normd[:,n:m].T, 
+        rmat_block = np.dot(ts_normd[:,n:m].T,
                             ts_normd[:,n:])
         # Shrink block_mask down on every iteration after the first block
         if n > 0:
@@ -503,7 +503,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, threshold, block_size):
 
         # Get elements as an array
         rmat_block = rmat_block[block_mask]
-        thr_idx = np.where(rmat_block >= r_value)   
+        thr_idx = np.where(rmat_block >= r_value)
         rmat_block = rmat_block[thr_idx]
         logger.info('number of passing correlations is %d' % len(rmat_block))
 

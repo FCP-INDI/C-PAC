@@ -202,7 +202,7 @@ def download_cpac_resources_from_s3(local_base):
     # Import packages
     import os
 
-    from CPAC.AWS import aws_utils, fetch_creds
+    from indi_aws import aws_utils, fetch_creds
 
     # Init variables
     bucket_name = default_bucket_name()
@@ -592,3 +592,59 @@ def setup_test_logger(logger_name, log_file, level, to_screen=False):
 
     # Return the logger
     return logger
+
+
+# Calculate concordance correlation coefficient
+def concordance(x, y):
+    '''
+    Return the concordance correlation coefficient as defined by
+    Lin (1989)
+
+    Parameters
+    ----------
+    x : list or array
+        a list of array of length N of numbers
+    y : list or array
+        a list of array of length N of numbers
+
+    Returns
+    -------
+    rho_c : numpy.float32
+        the concordance value as a float
+    '''
+
+    # Import packages
+    import numpy as np
+
+    # Usage errors check
+    x_shape = np.shape(x)
+    y_shape = np.shape(y)
+    if len(x_shape) != 1 or len(y_shape) != 1:
+        err_msg = 'Inputs must be 1D lists or arrays.'
+        raise ValueError(err_msg)
+    elif x_shape != y_shape:
+        err_msg = 'Length of the two inputs must be equal.\n'\
+                'Length of x: %d\nLength of y: %d' % (len(x), len(y))
+        raise ValueError(err_msg)
+
+    # Init variables
+    x_arr = np.array(x).astype('float64')
+    y_arr = np.array(y).astype('float64')
+
+    # Get pearson correlation
+    rho = np.corrcoef(x_arr, y_arr)[0][1]
+
+    # Get stdevs
+    sigma_x = np.std(x_arr)
+    sigma_y = np.std(y_arr)
+
+    # Get means
+    mu_x = np.mean(x_arr)
+    mu_y = np.mean(y_arr)
+
+    # Comput condordance
+    rho_c = (2*rho*sigma_x*sigma_y) /\
+            (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
+
+    # Return variables
+    return rho_c
