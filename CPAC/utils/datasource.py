@@ -32,12 +32,14 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path'],
+    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path',
+                                                       'img_type'],
                                           output_names=['local_path'],
                                           function=check_for_s3),
                             name='check_for_s3')
     wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    check_s3_node.inputs.img_type = 'func'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                      'rest',
@@ -58,12 +60,13 @@ def get_rest(scan, rest_dict):
 
 
 # Check if passed in file is on S3
-def check_for_s3(file_path, creds_path, dl_dir=None):
+def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
     '''
     '''
 
     # Import packages
     import os
+    import nibabel as nib
     import botocore.exceptions
 
     from indi_aws import fetch_creds
@@ -121,6 +124,17 @@ def check_for_s3(file_path, creds_path, dl_dir=None):
     else:
         local_path = file_path
 
+    # Check image dimensionality
+    img_nii = nib.load(local_path)
+    if img_type == 'anat':
+        if len(img_nii.shape) != 3:
+            raise IOError('File: %s must be an anatomical image with 3 '\
+                          'dimensions but %d dimensions found!' % len(img_nii.shape))
+    elif img_type == 'func':
+        if len(img_nii.shape) != 4:
+            raise IOError('File: %s must be a functional image with 4 '\
+                          'dimensions but %d dimensions found!' % len(img_nii.shape))
+
     # Return the local path
     return local_path
 
@@ -138,15 +152,18 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                 mandatory_inputs=True),
                         name='inputnode')
 
-    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path'],
+    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path',
+                                                       'img_type'],
                                           output_names=['local_path'],
                                           function=check_for_s3),
                             name='check_for_s3')
+
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    check_s3_node.inputs.img_type = 'anat'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
-                                                     'anat' ]),
+                                                        'anat']),
                          name='outputspec')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')

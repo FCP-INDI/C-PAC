@@ -2164,7 +2164,7 @@ def check_config_resources(c):
         num_cores_per_sub = num_cores/c.numCoresPerSubject
 
     # Now check ANTS
-    if c.regOption == 'ANTS':
+    if 'ANTS' in c.regOption:
         if c.num_ants_threads is None:
             num_ants_cores = num_cores_per_sub
         elif c.num_ants_threads > c.numCoresPerSubject:
