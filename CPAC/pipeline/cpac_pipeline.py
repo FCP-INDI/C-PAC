@@ -254,7 +254,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # this section checks all of the file paths provided in the pipeline
     # config yaml file and ensures the files exist and are accessible
 
-    pipeline_config_map = c.return_config_elements()                  
+    pipeline_config_map = c.return_config_elements()
 
     wrong_filepath_list = []
 
@@ -679,8 +679,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
-
     '''
     [SYMMETRIC] T1 -> Symmetric Template, Non-linear registration (FNIRT/ANTS)
     '''
@@ -883,7 +881,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     #node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
                     #workflow.connect(node, out_file,
                     #                 ants_reg_anat_symm_mni, 'inputspec.wait')
-                
+
 
                 except:
                     logConnectionError('Symmetric Anatomical Registration (ANTS)', num_strat, strat.get_resource_pool(), '0003')

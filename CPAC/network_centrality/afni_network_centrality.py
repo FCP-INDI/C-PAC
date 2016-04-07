@@ -46,8 +46,11 @@ def create_afni_centrality_wf(wf_name, method_option, threshold_option,
     import CPAC.network_centrality.utils as utils
 
     # Check the centrality parameters
+    test_thresh = threshold
+    if threshold_option == 'sparsity':
+        test_thresh = threshold/100.0
     method_option, threshold_option = \
-        utils.check_centrality_params(method_option, threshold_option, threshold)
+        utils.check_centrality_params(method_option, threshold_option, test_thresh)
 
     # Init variables
     centrality_wf = pe.Workflow(name=wf_name)
