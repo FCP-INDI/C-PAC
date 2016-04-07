@@ -74,6 +74,7 @@ from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
 from CPAC.sca.sca import create_sca, create_temporal_reg
 
+
 # Init variables
 logger = logging.getLogger('workflow')
 
