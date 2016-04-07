@@ -32,7 +32,7 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
 
     # Init variables
     data = nib.load(nii_path)
-    data_arr = data.get_data()
+    data_arr = data.get_data().astype('float32')
     data_aff = data.get_affine()
     mask = nib.load(mask_path)
     mask_arr = mask.get_data().astype('bool')
@@ -53,8 +53,13 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
     num_voxs = ts_normd.shape[1]
     num_conns = (num_voxs**2-num_voxs)/2.0
 
+
+
     # Calculate similarity matrix and threshold
     sim_mat = np.dot(ts_normd.T, ts_normd)
+    from CPAC.network_centrality import core
+    bin1 = core.degree_centrality(sim_mat, 0.6, method='binarize')
+    wght1 = core.degree_centrality(sim_mat, 0.6, method='weighted')
     if thresh_type == 'sparsity':
         thresh_idx = int(thresh_val*num_conns)
         uptri = np.triu(sim_mat, k=1)
@@ -86,3 +91,8 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
     bin_out_nii.to_filename('eigenvector_%s_binarize.nii.gz' % thresh_type)
     wght_out_nii.to_filename('eigenvector_%s_weighted.nii.gz' % thresh_type)
 
+
+if __name__ == '__main__':
+    eigen_centrality('/home/dclark/work-dir/residual_antswarp_flirt.nii.gz',
+                     '/home/dclark/work-dir/benchmark_centrality_mask.nii.gz',
+                     'correlation', 0.6)

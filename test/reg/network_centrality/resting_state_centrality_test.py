@@ -33,16 +33,16 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Init variables
         self.rho_thresh = 0.99
         # Limit the amount of memory and threads for the test case
-        self.mem_gb_limit = 8.0
-        self.num_threads = 5
+        self.mem_gb_limit = 50
+        self.num_threads = 32
         # Number of subjects to run through centrality test/benchmark
-        self.num_subs = 5
+        self.num_subs = 198
         # Identity matrix for resampling
         self.ident_mat = '/usr/share/fsl/5.0/etc/flirtsch/ident.mat'
 
         # Workflow base directory
         #self.base_dir = tempfile.mkdtemp()
-        self.base_dir = os.getcwd()
+        self.base_dir = '/mnt'
         # Make inputs directory
         self.inputs_dir = os.path.join(self.base_dir, 'inputs')
         if not os.path.exists(self.inputs_dir):

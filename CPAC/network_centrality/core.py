@@ -130,7 +130,7 @@ def eigenvector_centrality(corr_matrix,
     
     # Execute function
     func        = globals()[func_name]
-    func(*func_args)
+    func(corr_matrix, r_value)
     
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
