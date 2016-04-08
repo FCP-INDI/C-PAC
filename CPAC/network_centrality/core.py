@@ -81,7 +81,7 @@ def fast_degree_centrality(m):
 def eigenvector_centrality(corr_matrix, 
                            r_value=None, 
                            method=None, 
-                           to_transform=True, 
+                           to_transform=False, 
                            ret_eigenvalue=False):
     """
     Examples
@@ -129,12 +129,12 @@ def eigenvector_centrality(corr_matrix,
     
     # Execute function
     func        = globals()[func_name]
-    func(corr_matrix, r_value)
+    func(*func_args)
     
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
     eigenValue, eigenVector = LA.eigsh(corr_matrix, k=1, which='LM', maxiter=1000)
-    
+
     if ret_eigenvalue:
         return eigenValue, np.abs(eigenVector)
     else:
