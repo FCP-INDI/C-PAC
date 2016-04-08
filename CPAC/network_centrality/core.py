@@ -96,8 +96,7 @@ def eigenvector_centrality(corr_matrix,
     >>> eigenvector = slow_eigenvector_centrality(mm)
     """
     from scipy.sparse import linalg as LA
-    from scipy.sparse import csc_matrix
-    
+
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
     
