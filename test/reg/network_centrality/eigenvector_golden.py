@@ -53,13 +53,8 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
     num_voxs = ts_normd.shape[1]
     num_conns = (num_voxs**2-num_voxs)/2.0
 
-
-
     # Calculate similarity matrix and threshold
     sim_mat = np.dot(ts_normd.T, ts_normd)
-    from CPAC.network_centrality import core
-    bin1 = core.degree_centrality(sim_mat, 0.6, method='binarize')
-    wght1 = core.degree_centrality(sim_mat, 0.6, method='weighted')
     if thresh_type == 'sparsity':
         thresh_idx = int(thresh_val*num_conns)
         uptri = np.triu(sim_mat, k=1)

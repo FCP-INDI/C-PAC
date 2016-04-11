@@ -295,6 +295,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, r_value, block_s
     '''
     
     # Import packages
+    import copy
     import numpy as np
     import copy
     from nipype import logging
@@ -397,8 +398,11 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, r_value, block_s
         degree_weighted[idx] = degree_weighted[idx]-1
 
     # Perform eigenvector measures
+
     if method_option == 'eigenvector':
         logger.info('...calculating binarize eigenvector')
+        # Have to deepcopy the r_matrix because thresh and sum overwrites
+        # its values via pass-by-reference
         eigen_binarize[:] = \
             core.eigenvector_centrality(copy.deepcopy(r_matrix), r_value,
                                         method='binarize').squeeze()

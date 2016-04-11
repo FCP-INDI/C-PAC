@@ -96,8 +96,7 @@ def eigenvector_centrality(corr_matrix,
     >>> eigenvector = slow_eigenvector_centrality(mm)
     """
     from scipy.sparse import linalg as LA
-    from scipy.sparse import csc_matrix
-    
+
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
     
@@ -135,7 +134,7 @@ def eigenvector_centrality(corr_matrix,
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
     eigenValue, eigenVector = LA.eigsh(corr_matrix, k=1, which='LM', maxiter=1000)
-    
+
     if ret_eigenvalue:
         return eigenValue, np.abs(eigenVector)
     else:
