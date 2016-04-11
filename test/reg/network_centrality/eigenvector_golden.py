@@ -87,9 +87,13 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
 
     # Out nifti images
     bin_out_nii = nib.Nifti1Image(bin_out_arr, data_aff)
+    bin_out_path = 'eigenvector_%s_binarize.nii.gz' % thresh_type
     wght_out_nii = nib.Nifti1Image(wght_out_arr, data_aff)
+    wght_out_path = 'eigenvector_%s_weighted.nii.gz' % thresh_type
     bin_out_nii.to_filename('eigenvector_%s_binarize.nii.gz' % thresh_type)
     wght_out_nii.to_filename('eigenvector_%s_weighted.nii.gz' % thresh_type)
+
+    return [bin_out_path, wght_out_path]
 
 
 if __name__ == '__main__':

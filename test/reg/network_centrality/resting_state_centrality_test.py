@@ -42,7 +42,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Workflow base directory
         #self.base_dir = tempfile.mkdtemp()
-        self.base_dir = '/mnt'
+        self.base_dir = '/home/ubuntu/centrality_results'
         # Make inputs directory
         self.inputs_dir = os.path.join(self.base_dir, 'inputs')
         if not os.path.exists(self.inputs_dir):
@@ -133,6 +133,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
             create_resting_state_graphs
         from CPAC.network_centrality.afni_network_centrality import \
             create_afni_centrality_wf
+        import eigenvector_golden
 
         # Init workflow
         wflow = pe.Workflow(name='%s_%s_test' % (method, thresh_option))
@@ -161,12 +162,24 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Init the centrality workflows
         # Init variables
         wf_name = 'cpac_%s_%s' % (method, thresh_option)
-        cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
+        golden_node = pe.Node(util.Function(input_names=['nii_path',
+                                                         'mask_path',
+                                                         'thresh_type',
+                                                         'thresh_val'],
+                                            output_names=['centrality_outputs'],
+                                            function=eigenvector_golden.eigen_centrality),
+                              name=wf_name)
+        golden_node.interface.estimated_memory_gb = 4.0
+        golden_node.inputs.mask_path = self.mask_path
+        golden_node.inputs.thresh_type = thresh_option
+        golden_node.inputs.thresh_val = thresh
+        wflow.connect(resamp_node, 'out_file', golden_node, 'nii_path')
+        #cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
 
         # Init workflow run parameters
-        cpac_wflow.inputs.inputspec.method_option = method
-        cpac_wflow.inputs.inputspec.threshold_option = thresh_option
-        cpac_wflow.inputs.inputspec.threshold = thresh
+        #cpac_wflow.inputs.inputspec.method_option = method
+        #cpac_wflow.inputs.inputspec.threshold_option = thresh_option
+        #cpac_wflow.inputs.inputspec.threshold = thresh
 
         # If it is sparsity thresholding, put into percentage for afni
         if thresh_option == 'sparsity':
@@ -177,11 +190,11 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Connect resampled functionalin to centrality workflow
         wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
-        wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
+        #wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
 
         # Connect masks
         afni_wflow.inputs.inputspec.template = self.mask_path
-        cpac_wflow.inputs.inputspec.template = self.mask_path
+        #cpac_wflow.inputs.inputspec.template = self.mask_path
 
         # Collect arrays MapNnode
         merge_outputs_node = pe.JoinNode(util.Function(input_names=['cpac_field',
@@ -193,7 +206,9 @@ class RestingStateCentralityTestCase(unittest.TestCase):
                                          joinfield=['cpac_field', 'afni_field'])
 
         # Connect the merge node from cpac/afni outputs
-        wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
+        #wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
+        #              merge_outputs_node, 'cpac_field')
+        wflow.connect(golden_node, 'centrality_outputs',
                       merge_outputs_node, 'cpac_field')
         wflow.connect(afni_wflow, 'outputspec.outfile_list',
                       merge_outputs_node, 'afni_field')
@@ -242,71 +257,71 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Return the concordnace dictionary
         return map_yaml
 
-    def test_degree_sparsity(self):
-        '''
-        Test AFNI and CPAC degree sparsity methods correlate
-        '''
+    #def test_degree_sparsity(self):
+    #    '''
+    #    Test AFNI and CPAC degree sparsity methods correlate
+    #    '''
 
-        # Init callback logger
-        cb_logger = self._init_logger('degree_sparsity')
+    #    # Init callback logger
+    #    cb_logger = self._init_logger('degree_sparsity')
 
-        # Run and correlate afni/cpac workflows
-        deg_sparsity_map_yaml = \
-            self._run_wf_and_map_outputs('degree', 'sparsity', 0.001)
+    #    # Run and correlate afni/cpac workflows
+    #    deg_sparsity_map_yaml = \
+    #        self._run_wf_and_map_outputs('degree', 'sparsity', 0.001)
 
-        # De-init callback logger
-        cb_logger.removeHandler(cb_logger.handlers[0])
+    #    # De-init callback logger
+    #    cb_logger.removeHandler(cb_logger.handlers[0])
 
-        # Generate scatter plots
-        out_png = utils.gen_scatterplot(self.base_dir, deg_sparsity_map_yaml,
-                                        'degree_sparsity')
+    #    # Generate scatter plots
+    #    out_png = utils.gen_scatterplot(self.base_dir, deg_sparsity_map_yaml,
+    #                                    'degree_sparsity')
 
-        # Pairwise correlate images
-        degree_sparsity_results = utils.read_and_correlate(deg_sparsity_map_yaml)
+    #    # Pairwise correlate images
+    #    degree_sparsity_results = utils.read_and_correlate(deg_sparsity_map_yaml)
 
-        # Generate box plots
-        out_png = utils.gen_boxplots(self.base_dir, degree_sparsity_results,
-                                     'degree_sparsity')
+    #    # Generate box plots
+    #    out_png = utils.gen_boxplots(self.base_dir, degree_sparsity_results,
+    #                                 'degree_sparsity')
 
-        # Iterate through concordances and assert > 0.99
-        for img_type, rho_list in degree_sparsity_results.items():
-            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
-            for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh,
-                                   msg=err_msg % (rho, img_type))
+    #    # Iterate through concordances and assert > 0.99
+    #    for img_type, rho_list in degree_sparsity_results.items():
+    #        err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+    #        for rho in rho_list:
+    #            self.assertGreater(rho, self.rho_thresh,
+    #                               msg=err_msg % (rho, img_type))
 
-    def test_degree_correlation(self):
-        '''
-        Test AFNI and CPAC degree correlation methods correlate
-        '''
+    #def test_degree_correlation(self):
+    #    '''
+    #    Test AFNI and CPAC degree correlation methods correlate
+    #    '''
 
-        # Init callback logger
-        cb_logger = self._init_logger('degree_correlation')
+    #    # Init callback logger
+    #    cb_logger = self._init_logger('degree_correlation')
 
-        # Run and correlate afni/cpac workflows
-        degree_corr_map_yaml = \
-            self._run_wf_and_map_outputs('degree', 'correlation', 0.6)
+    #    # Run and correlate afni/cpac workflows
+    #    degree_corr_map_yaml = \
+    #        self._run_wf_and_map_outputs('degree', 'correlation', 0.6)
 
-        # De-init callback logger
-        cb_logger.removeHandler(cb_logger.handlers[0])
+    #    # De-init callback logger
+    #    cb_logger.removeHandler(cb_logger.handlers[0])
 
-        # Generate scatter plots
-        out_png = utils.gen_scatterplot(self.base_dir, degree_corr_map_yaml,
-                                        'degree_correlation')
+    #    # Generate scatter plots
+    #    out_png = utils.gen_scatterplot(self.base_dir, degree_corr_map_yaml,
+    #                                    'degree_correlation')
 
-        # Pairwise correlate images
-        degree_corr_results = utils.read_and_correlate(degree_corr_map_yaml)
+    #    # Pairwise correlate images
+    #    degree_corr_results = utils.read_and_correlate(degree_corr_map_yaml)
 
-        # Generate box plots
-        out_png = utils.gen_boxplots(self.base_dir, degree_corr_results,
-                                     'degree_correlation')
+    #    # Generate box plots
+    #    out_png = utils.gen_boxplots(self.base_dir, degree_corr_results,
+    #                                 'degree_correlation')
 
-        # Iterate through concordances and assert > 0.99
-        for img_type, rho_list in degree_corr_results.items():
-            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
-            for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh,
-                                   msg=err_msg % (rho, img_type))
+    #    # Iterate through concordances and assert > 0.99
+    #    for img_type, rho_list in degree_corr_results.items():
+    #        err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+    #        for rho in rho_list:
+    #            self.assertGreater(rho, self.rho_thresh,
+    #                               msg=err_msg % (rho, img_type))
 
     def test_eigen_sparsity(self):
         '''
@@ -374,37 +389,37 @@ class RestingStateCentralityTestCase(unittest.TestCase):
                 self.assertGreater(rho, self.rho_thresh,
                                    msg=err_msg % (rho, img_type))
 
-    def test_lfcd_correlation(self):
-        '''
-        Test AFNI and CPAC lfcd correlation methods correlate
-        '''
+    #def test_lfcd_correlation(self):
+    #    '''
+    #    Test AFNI and CPAC lfcd correlation methods correlate
+    #    '''
 
-        # Init callback logger
-        cb_logger = self._init_logger('lfcd_correlation')
+    #    # Init callback logger
+    #    cb_logger = self._init_logger('lfcd_correlation')
 
-        # Run and correlate afni/cpac workflows
-        lfcd_corr_map_yaml = \
-            self._run_wf_and_map_outputs('lfcd', 'correlation', 0.6)
+    #    # Run and correlate afni/cpac workflows
+    #    lfcd_corr_map_yaml = \
+    #        self._run_wf_and_map_outputs('lfcd', 'correlation', 0.6)
 
-        # De-init callback logger
-        cb_logger.removeHandler(cb_logger.handlers[0])
+    #    # De-init callback logger
+    #    cb_logger.removeHandler(cb_logger.handlers[0])
 
-        # Generate scatter plots
-        out_png = utils.gen_scatterplot(self.base_dir, lfcd_corr_map_yaml,
-                                        'lfcd_correlation')
+    #    # Generate scatter plots
+    #    out_png = utils.gen_scatterplot(self.base_dir, lfcd_corr_map_yaml,
+    #                                    'lfcd_correlation')
 
-        # Pairwise correlate images
-        lfcd_corr_results = utils.read_and_correlate(lfcd_corr_map_yaml)
+    #    # Pairwise correlate images
+    #    lfcd_corr_results = utils.read_and_correlate(lfcd_corr_map_yaml)
 
-        # Generate box plots
-        out_png = utils.gen_boxplots(self.base_dir, lfcd_corr_results, 'lfcd_correlation')
+    #    # Generate box plots
+    #    out_png = utils.gen_boxplots(self.base_dir, lfcd_corr_results, 'lfcd_correlation')
 
-        # Iterate through concordances and assert > 0.99
-        for img_type, rho_list in lfcd_corr_results.items():
-            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
-            for rho in rho_list:
-                self.assertGreater(rho, self.rho_thresh,
-                                   msg=err_msg % (rho, img_type))
+    #    # Iterate through concordances and assert > 0.99
+    #    for img_type, rho_list in lfcd_corr_results.items():
+    #        err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+    #        for rho in rho_list:
+    #            self.assertGreater(rho, self.rho_thresh,
+    #                               msg=err_msg % (rho, img_type))
 
 
 # Command-line run-able unittest module

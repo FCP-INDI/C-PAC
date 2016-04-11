@@ -296,6 +296,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, r_value, block_s
     
     # Import packages
     import numpy as np
+    import copy
     from nipype import logging
 
     from CPAC.network_centrality.utils import cluster_data
@@ -399,7 +400,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, r_value, block_s
     if method_option == 'eigenvector':
         logger.info('...calculating binarize eigenvector')
         eigen_binarize[:] = \
-            core.eigenvector_centrality(r_matrix, r_value,
+            core.eigenvector_centrality(copy.deepcopy(r_matrix), r_value,
                                         method='binarize').squeeze()
         logger.info('...calculating weighted eigenvector')
         eigen_weighted[:] = \
@@ -440,6 +441,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, threshold, block_size):
     '''
 
     # Import packages
+    import copy
     import numpy as np
     import scipy as sp
     from nipype import logging
@@ -576,7 +578,7 @@ def get_centrality_by_sparsity(ts_normd, method_option, threshold, block_size):
         # Finally compute centrality using full matrix and r_value
         logger.info('...calculating binarize eigenvector')
         eigen_binarize[:] = \
-            core.eigenvector_centrality(r_matrix, r_value,
+            core.eigenvector_centrality(copy.deepcopy(r_matrix), r_value,
                                         method='binarize').squeeze()
         logger.info('...calculating weighted eigenvector')
         eigen_weighted[:] = \
