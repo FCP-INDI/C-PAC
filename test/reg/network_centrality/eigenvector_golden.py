@@ -81,17 +81,14 @@ def eigen_centrality(nii_path, mask_path, thresh_type, thresh_val):
         wght_out_arr[x, y, z] = wght_eigen_vec[idx]
 
     # Out nifti images
+    import os
+    cwd = os.getcwd()
     bin_out_nii = nib.Nifti1Image(bin_out_arr, data_aff)
-    bin_out_path = 'eigenvector_%s_binarize.nii.gz' % thresh_type
+    bin_out_path = os.path.join(cwd, 'eigenvector_%s_binarize.nii.gz' % thresh_type)
     wght_out_nii = nib.Nifti1Image(wght_out_arr, data_aff)
-    wght_out_path = 'eigenvector_%s_weighted.nii.gz' % thresh_type
-    bin_out_nii.to_filename('eigenvector_%s_binarize.nii.gz' % thresh_type)
-    wght_out_nii.to_filename('eigenvector_%s_weighted.nii.gz' % thresh_type)
+    wght_out_path = os.path.join(cwd, 'eigenvector_%s_weighted.nii.gz' % thresh_type)
+    bin_out_nii.to_filename(bin_out_path)
+    wght_out_nii.to_filename(wght_out_path)
 
     return [bin_out_path, wght_out_path]
 
-
-if __name__ == '__main__':
-    eigen_centrality('/home/dclark/work-dir/residual_antswarp_flirt.nii.gz',
-                     '/home/dclark/work-dir/benchmark_centrality_mask.nii.gz',
-                     'correlation', 0.6)
