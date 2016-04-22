@@ -297,6 +297,7 @@ def get_centrality_by_rvalue(ts_normd, template, method_option, r_value, block_s
     # Import packages
     import copy
     import numpy as np
+    import copy
     from nipype import logging
 
     from CPAC.network_centrality.utils import cluster_data

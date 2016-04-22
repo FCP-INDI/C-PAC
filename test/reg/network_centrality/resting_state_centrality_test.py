@@ -42,7 +42,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Workflow base directory
         #self.base_dir = tempfile.mkdtemp()
-        self.base_dir = '/mnt'
+        self.base_dir = '/home/ubuntu/centrality_results'
         # Make inputs directory
         self.inputs_dir = os.path.join(self.base_dir, 'inputs')
         if not os.path.exists(self.inputs_dir):
@@ -133,6 +133,7 @@ class RestingStateCentralityTestCase(unittest.TestCase):
             create_resting_state_graphs
         from CPAC.network_centrality.afni_network_centrality import \
             create_afni_centrality_wf
+        import eigenvector_golden
 
         # Init workflow
         wflow = pe.Workflow(name='%s_%s_test' % (method, thresh_option))
@@ -161,12 +162,24 @@ class RestingStateCentralityTestCase(unittest.TestCase):
         # Init the centrality workflows
         # Init variables
         wf_name = 'cpac_%s_%s' % (method, thresh_option)
-        cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
+        golden_node = pe.Node(util.Function(input_names=['nii_path',
+                                                         'mask_path',
+                                                         'thresh_type',
+                                                         'thresh_val'],
+                                            output_names=['centrality_outputs'],
+                                            function=eigenvector_golden.eigen_centrality),
+                              name=wf_name)
+        golden_node.interface.estimated_memory_gb = 4.0
+        golden_node.inputs.mask_path = self.mask_path
+        golden_node.inputs.thresh_type = thresh_option
+        golden_node.inputs.thresh_val = thresh
+        wflow.connect(resamp_node, 'out_file', golden_node, 'nii_path')
+        #cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
 
         # Init workflow run parameters
-        cpac_wflow.inputs.inputspec.method_option = method
-        cpac_wflow.inputs.inputspec.threshold_option = thresh_option
-        cpac_wflow.inputs.inputspec.threshold = thresh
+        #cpac_wflow.inputs.inputspec.method_option = method
+        #cpac_wflow.inputs.inputspec.threshold_option = thresh_option
+        #cpac_wflow.inputs.inputspec.threshold = thresh
 
         # If it is sparsity thresholding, put into percentage for afni
         if thresh_option == 'sparsity':
@@ -177,11 +190,11 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Connect resampled functionalin to centrality workflow
         wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
-        wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
+        #wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
 
         # Connect masks
         afni_wflow.inputs.inputspec.template = self.mask_path
-        cpac_wflow.inputs.inputspec.template = self.mask_path
+        #cpac_wflow.inputs.inputspec.template = self.mask_path
 
         # Collect arrays MapNnode
         merge_outputs_node = pe.JoinNode(util.Function(input_names=['cpac_field',
@@ -193,7 +206,9 @@ class RestingStateCentralityTestCase(unittest.TestCase):
                                          joinfield=['cpac_field', 'afni_field'])
 
         # Connect the merge node from cpac/afni outputs
-        wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
+        #wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
+        #              merge_outputs_node, 'cpac_field')
+        wflow.connect(golden_node, 'centrality_outputs',
                       merge_outputs_node, 'cpac_field')
         wflow.connect(afni_wflow, 'outputspec.outfile_list',
                       merge_outputs_node, 'afni_field')
