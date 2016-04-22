@@ -2198,7 +2198,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         create_wf_apply_ants_warp(0,
                                                   name='apply_ants_warp_%s_%d' % \
                                                        (func_name, num_strat),
-                                                  int(num_ants_cores))
+                                                  ants_threads=int(num_ants_cores))
 
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             reference_image = reference
@@ -3391,7 +3391,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             apply_ants_warp = create_wf_apply_ants_warp(map_node,
                                                         name='%s_to_standard_%d' % (output_name, num_strat),
-                                                        int(num_ants_cores))
+                                                        ants_threads=int(num_ants_cores))
 
             apply_ants_warp.inputs.inputspec.dimension = 3
             apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
