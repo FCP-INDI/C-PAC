@@ -14,7 +14,7 @@ from CPAC.registration import create_wf_calculate_ants_warp, \
                               create_wf_collect_transforms, \
                               create_wf_apply_ants_warp
 
-def create_vmhc(use_ants, name='vmhc_workflow'):
+def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
 
     """
     Compute the map of brain functional homotopy, the high degree of synchrony in spontaneous activity between geometrically corresponding interhemispheric (i.e., homotopic) regions.
@@ -270,7 +270,7 @@ def create_vmhc(use_ants, name='vmhc_workflow'):
 
         collect_transforms_vmhc = create_wf_collect_transforms(0, name='collect_transforms_vmhc')
 
-        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(0,name='apply_ants_xfm_vmhc')
+        apply_ants_xfm_vmhc = create_wf_apply_ants_warp(0, ants_threads, name='apply_ants_xfm_vmhc')
 
         # this has to be 3 instead of default 0 because it is a 4D file
         apply_ants_xfm_vmhc.inputs.inputspec.input_image_type = 3

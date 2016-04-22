@@ -828,7 +828,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
 
 
-def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
+def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_threads=1):
 
     """
     Applies previously calculated ANTS registration transforms to input
@@ -899,6 +899,7 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
                 'transforms'])
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
+    apply_ants_warp.interface.num_threads = ants_threads
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
             name='outputspec')

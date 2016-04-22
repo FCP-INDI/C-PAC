@@ -180,8 +180,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # import mkl
     numThreads = '1'
 
-    os.environ['OMP_NUM_THREADS'] = str(num_cores_per_sub)
-    os.environ['MKL_NUM_THREADS'] = str(num_cores_per_sub)
+    os.environ['OMP_NUM_THREADS'] = '1'#str(num_cores_per_sub)
+    os.environ['MKL_NUM_THREADS'] = '1'#str(num_cores_per_sub)
     os.environ['ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS'] = str(num_ants_cores)
 
     # calculate maximum potential use of cores according to current pipeline
@@ -2194,9 +2194,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         reference, interp, input_image_type, func_name):
 
                     # apply ants warps
-                    apply_ants_warp_func_mni = create_wf_apply_ants_warp(0, \
-                            name='apply_ants_warp_%s_%d' % \
-                            (func_name, num_strat))
+                    apply_ants_warp_func_mni = \
+                        create_wf_apply_ants_warp(0,
+                                                  name='apply_ants_warp_%s_%d' % \
+                                                       (func_name, num_strat),
+                                                  int(num_ants_cores))
 
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             reference_image = reference
@@ -2310,7 +2312,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if 'func_mni_fsl_warp' in nodes:
                 vmhc = create_vmhc(False, 'vmhc_%d' % num_strat)
             else:
-                vmhc = create_vmhc(True, 'vmhc_%d' % num_strat)
+                vmhc = create_vmhc(True, 'vmhc_%d' % num_strat, int(num_ants_cores))
 
             vmhc.inputs.inputspec.standard_for_func = c.template_skull_for_func
             vmhc.inputs.fwhm_input.fwhm = c.fwhm
@@ -3387,8 +3389,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     name='%s_collect_transforms_%d' \
                     % (output_name, num_strat))
 
-            apply_ants_warp = create_wf_apply_ants_warp(map_node, name= \
-                    '%s_to_standard_%d' % (output_name, num_strat))
+            apply_ants_warp = create_wf_apply_ants_warp(map_node,
+                                                        name='%s_to_standard_%d' % (output_name, num_strat),
+                                                        int(num_ants_cores))
 
             apply_ants_warp.inputs.inputspec.dimension = 3
             apply_ants_warp.inputs.inputspec.interpolation = 'Linear'
