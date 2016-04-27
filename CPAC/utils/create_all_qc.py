@@ -538,19 +538,19 @@ def make_group_htmls(pip_path):
                     try:
                         meanFD, meanDvars = get_power_params(qc_path, file_)
 
-                    except:
-                        print "Error: some power params lost."
+                    except Exception as exc:
+                        print("Error: %s\nSome power params lost" % exc)
                         meanFD = 0.0
                         meanDvars = 0.0
                         pass
 
                     try:
                         mean_rms, max_rms = get_motion_params(qc_path, file_)
-                    except:
-                        print "Error: some motion params lost."
+                    except Exception as exc:
+                        print("Error: %s\nSome motion params lost." % exc)
                         mean_rms = 0.0
                         max_rms = 0.0
-                        pass                        
+                        pass
 
 
                     populate_htmls(html_, os.path.join(qc_path, file_), subj, \

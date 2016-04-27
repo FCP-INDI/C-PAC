@@ -2118,6 +2118,43 @@ def setup_logger(logger_name, file_path, level, to_screen=False):
     return logger
 
 
+def check_system_deps(check_ants=False):
+    '''
+    Function to check system for neuroimaging tools AFNI, C3D, FSL,
+    and (optionally) ANTs
+    '''
+
+    # Import packages
+    import os
+
+    # Init variables
+    missing_install = []
+
+    # Check AFNI
+    if os.system("3dcalc >/dev/null") == 32512:
+        missing_install.append("AFNI")
+    # Check FSL
+    if os.system("fslmaths >/dev/null") == 32512:
+        missing_install.append("FSL")
+    # Check ANTs/C3D
+    if check_ants:
+        if os.system("c3d_affine_tool >/dev/null") == 32512:
+            missing_install.append("C3D")
+        if os.system("antsRegistration >/dev/null") == 32512:
+            missing_install.append("ANTS")
+
+    # If we're missing deps, raise Exception
+    if len(missing_install) > 0:
+        missing_string = ""
+        for string in missing_install:
+            missing_string = missing_string + string + "\n"
+        err = "\n\n[!] CPAC says: It appears the following software " \
+              "packages are not installed or configured properly:\n\n%s\n" \
+              "Consult the CPAC Installation Guide for instructions.\n\n" \
+              % missing_string
+        raise Exception(err)
+
+
 # Check pipeline config againts computer resources
 def check_config_resources(c):
     '''

@@ -57,6 +57,7 @@ from CPAC.network_centrality import create_resting_state_graphs, \
                                     get_cent_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
+
 ### no create_log_template here, move in CPAC/utils/utils.py
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
@@ -155,7 +156,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     '''
 
     # Import packages
-    from CPAC.utils.utils import check_config_resources
+    from CPAC.utils.utils import check_config_resources, check_system_deps
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -290,39 +291,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         else:
             raise Exception
 
-    # this checks to make sure the user has appropriately installed and
-    # configured necessary tools (i.e. AFNI, FSL, ANTS..)
-    
-    missing_install = []
-    
-    if os.system("3dcalc >/dev/null") == 32512:
-        missing_install.append("AFNI")
-          
-    if os.system("fslmaths >/dev/null") == 32512:
-        missing_install.append("FSL")
-    
-    if "ANTS" in c.regOption:
-    
-        if os.system("c3d_affine_tool >/dev/null") == 32512:
-            missing_install.append("C3D")
-    
-        if os.system("antsRegistration >/dev/null") == 32512:
-            missing_install.append("ANTS")
-            
-            
-    if len(missing_install) > 0:
-   
-        missing_string = ""
-        
-        for string in missing_install:
-            missing_string = missing_string + string + "\n"
-   
-        err = "\n\n[!] CPAC says: It appears the following software " \
-              "packages are not installed or configured properly:\n\n%s\n" \
-              "Consult the CPAC Installation Guide for instructions.\n\n" \
-              % missing_string
-        raise Exception(err)
-
+    # Check system dependencies
+    if 'ANTS' in c.regOption:
+        check_ants = True
+    else:
+        check_ants = False
+    check_system_deps(check_ants)
 
     '''
     workflow preliminary setup
@@ -408,6 +382,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     num_strat = 0
 
     strat_initial = strategy()
+
+    #bundle_node = pe.Node(util.Function(input_names=))
 
     # Extract credentials path if it exists
     try:
@@ -5594,14 +5570,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Run the pipeline only if the user signifies.
     # otherwise, only construct the pipeline (above)
     if run == 1:
-
         try:
             workflow.write_graph(graph2use='orig')
         except:
             pass
-   
-   
-   
+
         ## this section creates names for the different branched strategies.
         ## it identifies where the pipeline has forked and then appends the
         ## name of the forked nodes to the branch name in the output directory

@@ -79,9 +79,9 @@ def create_anat_preproc(already_skullstripped=False):
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),
                         name='inputspec')
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                    'reorient',
-                                                    'skullstrip',
-                                                    'brain']),
+                                                        'reorient',
+                                                        'skullstrip',
+                                                        'brain']),
                          name='outputspec')
     anat_deoblique = pe.Node(interface=preprocess.Refit(),
                          name='anat_deoblique')
