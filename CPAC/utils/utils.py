@@ -1749,25 +1749,21 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     return out_file
 
 
-def create_log(wf_name = "log", scan_id=None):
-    
+def create_log(wf_name="log", scan_id=None):
     """
     Workflow to create log 
-    
     """
-    
+
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
-    
+
     wf = pe.Workflow(name=wf_name)
-    
+
     inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
                                                        'log_dir',
                                                        'index',
-                                                       'inputs'
-                                                    ]),
+                                                       'inputs']),
                         name='inputspec')
-
 
     outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
                         name='outputspec')
@@ -1797,7 +1793,7 @@ def create_log(wf_name = "log", scan_id=None):
                outputNode, 'out_file')
     
     return wf
-    
+
 
 def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
    
