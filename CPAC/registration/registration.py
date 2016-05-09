@@ -900,6 +900,7 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_t
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = ants_threads
+    apply_ants_warp.interface.estimated_memory_gb = 1.5
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
             name='outputspec')
