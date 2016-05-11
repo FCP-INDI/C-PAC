@@ -444,7 +444,6 @@ def create_nuisance(use_ants, name='nuisance'):
 
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'reference')
- 
 
     # Resampling the masks from 1mm to 2mm, but remaining in subject space
     csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm_flirt_applyxfm')
@@ -454,7 +453,6 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'reference')
 
-    
     # Resampling the masks from 1mm to 2mm, but remaining in subject space
     gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm_flirt_applyxfm')
     gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
@@ -466,6 +464,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
     func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'
+    func_to_2mm.interface.estimated_memory_gb = 2.0
 
     nuisance.connect(inputspec, 'subject', func_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', func_to_2mm, 'reference')
@@ -513,7 +512,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
                                          function=extract_tissue_data),
                            name='tissue_masks')
-    
+    tissue_masks._interface.estimated_memory_gb = 3.0
 
 
     nuisance.connect(func_to_2mm, 'out_file', tissue_masks, 'data_file')

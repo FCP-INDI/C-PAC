@@ -297,6 +297,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     segment.inputs.segments = True
     segment.inputs.probability_maps = True
     segment.inputs.out_basename = 'segment'
+    segment.interface.estimated_memory_gb = 1.5
 
     #connections
 
