@@ -1995,13 +1995,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 if 1 in c.resample_ts:
 
                     resample_func = pe.Node(interface=fsl.FLIRT(),
-                                            name='resample_func_%d' & num_strat)
+                                            name='resample_func_%d' % num_strat)
 
                     resample_motion = pe.Node(interface=fsl.FLIRT(),
                                               name='resample_motion_%d' %  num_strat)
 
-                    resample_func.inputs.apply_isoxfm = c.resample_ts_resolution[0]
-                    resample_motion.inputs.apply_isoxfm = c.resample_ts_resolution[0]
+                    resample_func.iterables = ('apply_isoxfm', c.resample_ts_resolution)
+                    resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
                 
     
                 try:
@@ -2067,8 +2067,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'mean_functional_in_mni':(mean_functional_warp, 'out_file'),
                                             'motion_correct_to_standard':(motion_correct_warp, 'out_file')})
                 if 1 in c.resample_ts:
-                    strat.update_resource_pool({'functional_mni_%s' % str(c.resample_ts_resolution[0]):(resample_func, 'out_file'),
-                                                'motion_correct_to_standard_%s' % str(c.resample_ts_resolution[0]):(resample_motion, 'out_file')})
+                    strat.update_resource_pool({'functional_mni_resampled':(resample_func, 'out_file'),
+                                                'motion_correct_to_standard_resampled':(resample_motion, 'out_file')})
                 strat.append_name(func_mni_warp.name)
                 create_log_node(func_mni_warp, 'out_file', num_strat)
             
@@ -2222,7 +2222,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             resample_func = pe.Node(interface=fsl.FLIRT(),
                                                     name='resample_ants_warped_func_%d' % num_strat)
 
-                            #resample_func.inputs.apply_isoxfm = c.resample_ts_resolution
                             resample_func.iterables = ('apply_isoxfm', c.resample_ts_resolution)
 
 
@@ -2230,7 +2229,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             resample_motion = pe.Node(interface=fsl.FLIRT(),
                                                       name='resample_ants_warped_motion_%d' % num_strat)
 
-                            #resample_motion.inputs.apply_isoxfm = c.resample_ts_resolution
                             resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
 
                     try:
@@ -2655,7 +2653,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-                #roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "Avg" in sca_analysis_dict.keys():
             
@@ -2670,7 +2667,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_sca = create_roi_mask_dataflow(sca_analysis_dict["Avg"], 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
-                #roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "MultReg" in sca_analysis_dict.keys():
             
@@ -2685,7 +2681,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_multreg = create_roi_mask_dataflow(sca_analysis_dict["MultReg"], 'roi_dataflow_for_mult_reg_%d' % num_strat)
     
                 roi_timeseries_for_multreg = get_roi_timeseries('roi_timeseries_for_mult_reg_%d' % num_strat)
-                #roi_timeseries_for_multreg.inputs.inputspec.output_type = c.roiTSOutputs
 
             try:
 

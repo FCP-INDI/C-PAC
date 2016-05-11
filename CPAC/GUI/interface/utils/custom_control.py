@@ -183,6 +183,53 @@ class TextBoxFrame(wx.Frame):
 
 
 
+class ResampleNumBoxFrame(wx.Frame):
+
+    def __init__(self, parent, values):
+        wx.Frame.__init__(self, parent, \
+                              title="Enter Resolution to Resample To", \
+                              size = (350,100))
+        
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15) 
+        
+        label1 = wx.StaticText(panel, -1, label = 'Resolution (in mm)')
+        self.box1 = NumCtrl(panel, id = wx.ID_ANY, value= values[0],
+                            integerWidth=2, fractionWidth = 3, 
+                            allowNegative=False, allowNone = True)
+        
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
+               
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+    
+    def onButtonClick(self,event):
+        parent = self.Parent
+                  
+        if type(self.box1.GetValue()) is not float:
+            dlg = wx.MessageDialog(self, "Resolution must be a decimal " \
+                                   "value, such as 2.5 or 3.0.",
+                                   'Error!',
+                               wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+        else:
+            val = self.box1.GetValue()
+            parent.listbox.Append(str(val))
+            self.Close()
+
+
+
 class FilepathBoxFrame(wx.Frame):
 
     def __init__(self, parent):
@@ -555,6 +602,8 @@ class ListBoxCombo(wx.Panel):
             CheckBox(self, self.values)
         elif self.ctype == 2:    
             TextBoxFrame(self, self.values)
+        elif self.ctype == 6:
+            ResampleNumBoxFrame(self, self.values)
         elif self.ctype == 3:
             ConfigFslFrame(self, self.values)
         elif self.ctype == 4:
