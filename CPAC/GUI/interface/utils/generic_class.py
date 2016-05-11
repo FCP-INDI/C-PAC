@@ -125,6 +125,9 @@ class GenericClass(wx.ScrolledWindow):
         elif control == 10:
             self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
+        #elif control == 11:
+        #    self.parent.Bind(wx.EVT_SPINCTRLDOUBLE, lambda event: self.EvtSpinCtrlDouble, id= ctrl.get_id())
+        #    self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
 
     def EvtChoice(self, event, ctrl):
@@ -185,6 +188,9 @@ class GenericClass(wx.ScrolledWindow):
         else:
             #print "label to be removed -->", label, index
             ctrl.set_selection(label,index, True)
+
+    #def EvtSpinCtrlDouble(self, event, ctrl):
+    #    ctrl.set_selection(ctrl.get_ctrl().GetValue())
         
         
     
@@ -345,6 +351,15 @@ class Control(wx.Control):
                                              size= wx.DefaultSize)
             
             self.selection = self.ctrl.GetGridSelection()
+
+
+        #elif type == 11:
+        #    self.ctrl = wx.SpinCtrlDouble(parent, id = wx.ID_ANY, 
+        #                       value = values, style = style,
+        #                       validator = wx.DefaultValidator, 
+        #                       size = size)
+        #
+        #    self.selection = self.ctrl.GetValue()
             
                 
         self.set_id()

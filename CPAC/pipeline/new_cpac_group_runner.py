@@ -72,6 +72,7 @@ def collect_group_config_info(pipeline_config):
 
     ga_configs = {}
     ga_partlists = {}
+    full_deriv_list = []
 
     for group_config_file in pipeline_config.modelConfigs:
 
@@ -93,6 +94,13 @@ def collect_group_config_info(pipeline_config):
 
         ga_configs[ga_config.model_name] = (ga_config, group_config_file)
 
+        # create a list of all derivatives being run for group analysis
+        # across ALL group models - this is used to prune the search width
+        # in the output path collection
+        for deriv in ga_config.derivative_list:
+            if deriv not in full_deriv_list:
+                full_deriv_list.append(deriv)
+
 
     # now the group participant lists
     #     NOTE: it is assumed the participant IDs listed in these text files
@@ -106,7 +114,7 @@ def collect_group_config_info(pipeline_config):
         ga_partlists[ga_config.model_name] = ga_partlist
 
 
-    return ga_configs, ga_partlists
+    return ga_configs, ga_partlists, full_deriv_list
 
 
 
@@ -168,7 +176,8 @@ def assign_output_name(fullpath, deriv_folder_name):
 
 
 
-def collect_output_paths(output_path_file, ga_configs, ga_partlists):
+def collect_output_paths(output_path_file, ga_configs, ga_partlists, \
+                             full_deriv_list):
 
     import os
 
@@ -177,7 +186,12 @@ def collect_output_paths(output_path_file, ga_configs, ga_partlists):
     matched_ders = []
 
     # collect relevant output paths from individual-level analysis   
-    for root, folders, files in os.walk(output_path_file):
+    for root, folders, files in os.walk(output_path_file, topdown=True):
+
+        #full_deriv_list = [os.path.join(root,d) for d in full_deriv_list]
+        #print full_deriv_list
+        # prune the search by modifying "folders" in-place
+        #folders[:] = [f for f in folders if f not in full_deriv_list]
     
         split_output_dir_path = output_path_file.split("/")
     
@@ -191,17 +205,20 @@ def collect_output_paths(output_path_file, ga_configs, ga_partlists):
                 
                 # unique_part_ID format: {participant}_{site}_{session} ID
                 unique_part_ID = \
-                    split_fullpath[len(split_output_dir_path)]
+                    str(split_fullpath[len(split_output_dir_path)])
 
                 deriv_folder_name = \
                     split_fullpath[len(split_output_dir_path)+1]
 
                 series_id = \
-                    split_fullpath[len(split_output_dir_path)+2]
+                    str(split_fullpath[len(split_output_dir_path)+2])
+
+                #full_strategy = \
+                #    "/".join(split_fullpath[len(split_output_dir_path)+3:-1])
 
                 # for repeated measures (potentially)
                 full_ID = unique_part_ID + "," + series_id
-                  
+
                 for group_model in ga_configs.keys():
 
                     ga_config = ga_configs[group_model][0]
@@ -228,13 +245,35 @@ def collect_output_paths(output_path_file, ga_configs, ga_partlists):
                         if key not in output_paths.keys():
                         	output_paths[key] = {}
 
+                        # if the group analysis sublist is set up for
+                        # repeated measures (across multiple series, not
+                        # sessions), then place all of the included series
+                        # within one dict key called "multiple_series"
+                        if full_ID in ga_partlists[group_model]:
+                            series_id = "multiple_series"
+
                         if series_id not in output_paths[key].keys():
                         	output_paths[key][series_id] = {}
 
                         if output_name not in output_paths[key][series_id].keys():
-                        	output_paths[key][series_id][output_name] = []
+                        	output_paths[key][series_id][output_name] = {}
 
-                        output_paths[key][series_id][output_name].append(fullpath)
+                        new_dict = {}
+                        new_key = (unique_part_ID, series_id)
+                        new_dict[new_key] = fullpath
+
+                        # why do we have series_id keying in two places?
+                        #   because the "upper" level (here) is for easily
+                        #   sending off the different groups of outputs per
+                        #   series_id into different runs (normal)
+                        #     the "lower" level (inside new_key) is in case
+                        #     we are running repeated measures with multiple
+                        #     series_id's and we want each file to be easily
+                        #     identified by series_id (all within one model)
+                        #     note: in this case, you will have to send in
+                        #           multiple series_id keys of this dictionary
+                        #           at the same time into the one model run
+                        output_paths[key][series_id][output_name].update(new_dict)
 
                         # keep track of which participants from the
                         # participant list have been found in the output paths
@@ -257,20 +296,20 @@ def collect_output_paths(output_path_file, ga_configs, ga_partlists):
     if len(ga_config.derivative_list) != len(matched_ders):
 
         empty_ders = set(ga_config.derivative_list) - set(matched_ders)
+        empty_ders = "\n".join(empty_ders)
 
         err = "[!] CPAC says: No individual-level analysis outputs " \
               "were found for the following selected derivatives within " \
               "the pipeline output directory path you provided.\n\n" \
-              "Pipeline Output Directory provided: %s\nDerivatives with no " \
-              "completed participants:\n%s\n\nEither make sure your " \
+              "Pipeline Output Directory provided: %s\n\nDerivatives with " \
+              "no completed participants:\n%s\n\nEither make sure your " \
               "selections are correct, or that individual-level analysis " \
               "completed successfully for the derivative in " \
-              "question.\n\n" % (output_path_file, str(empty_ders))
+              "question.\n\n" % (output_path_file, empty_ders)
         raise Exception(err)
 
 
     return output_paths, matched_parts
-
 
 
 
@@ -352,7 +391,7 @@ def run(config_file, output_path_file):
 
     import os 
 
-    # Load the MAIN PIPELINE config file into 'c'
+    # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
     c = load_config_yml(config_file)
 
     if len(c.modelConfigs) == 0:
@@ -365,13 +404,14 @@ def run(config_file, output_path_file):
 
     # load the group model configs and the group participant lists into
     # dictionaries, with the model names as keys
-    ga_configs, ga_partlists = collect_group_config_info(c)
+    ga_configs, ga_partlists, full_deriv_list = collect_group_config_info(c)
 
 
     # gather output file paths from individual level analysis
     # return only the ones appropriate for each model and participant list
     output_paths, matched_parts = \
-        collect_output_paths(output_path_file, ga_configs, ga_partlists)
+        collect_output_paths(output_path_file, ga_configs, ga_partlists, \
+                                 full_deriv_list)
 
 
     # warn the user of any missing participants
@@ -397,6 +437,9 @@ def run(config_file, output_path_file):
 
         		for output_name in output_paths[key][series_id].keys():
 
+                    # resource = general derivative name, like "sca_roi_" etc.
+                    # output_name = derivative name and details (mask, ROI,
+                    #               type of centrality, etc.)
         			resource = output_name.split("/")[0]
 
                     # just make sure the .split above worked - ideally we
@@ -427,7 +470,7 @@ def run(config_file, output_path_file):
                         procss.append(Process(target = \
                         	prep_group_analysis_workflow, args = \
                         	    (c, group_config_file, resource, \
-            		             output_paths[group_model_config][SERIES???][output_name], \
+            		             output_paths[group_model_config][series_id][output_name], \
             		             output_path_file, scrub_threshold)))
             
                     else:

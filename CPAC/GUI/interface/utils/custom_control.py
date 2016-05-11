@@ -853,7 +853,10 @@ class CheckBoxGrid(wx.Panel):
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know
         # when to provide a scrollbar in the scrollWin object
-        self.grid_sizer.Add(self.row_panel, pos=(0,0))
+        try:
+            self.grid_sizer.Add(self.row_panel, pos=(0,0))
+        except:
+            pass
 
         w,h = self.grid_sizer.GetMinSize()
         self.scrollWin.SetVirtualSize((w,h))
