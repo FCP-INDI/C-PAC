@@ -3149,7 +3149,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # Connect resampled (to template/mask resolution)
                 # functional_mni to inputspec
                 workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.datafile')
+                                 network_centrality, 'inputspec.in_file')
                 # Subject mask/parcellation image
                 network_centrality.inputs.inputspec.template = \
                 c.templateSpecificationFile
