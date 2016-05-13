@@ -3211,9 +3211,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 thresholdOption
                 # Connect threshold value (float)
                 network_centrality.inputs.inputspec.threshold = threshold
-                # List of two booleans, first for binary, second for weighted
-                network_centrality.inputs.inputspec.weight_options = \
-                weightOptions
 
                 # Merge output with others via merge_node connection
                 workflow.connect(network_centrality,
