@@ -1991,6 +1991,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 
                 motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(), name="motion_correct_fsl_warp_%d" % num_strat)
                 motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
+
+                if 1 in c.resample_ts:
+
+                    resample_func = pe.Node(interface=fsl.FLIRT(),
+                                            name='resample_func_%d' % num_strat)
+
+                    resample_motion = pe.Node(interface=fsl.FLIRT(),
+                                              name='resample_motion_%d' %  num_strat)
+
+                    resample_func.iterables = ('apply_isoxfm', c.resample_ts_resolution)
+                    resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
                 
     
                 try:
@@ -2036,6 +2047,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     node, out_file = strat.get_node_from_resource_pool('motion_correct')
                     workflow.connect(node, out_file, motion_correct_warp, 'in_file')
 
+                    if 1 in c.resample_ts:
+
+                        # make connections, func_mni_warp out_file to flirt
+                        #                   motion_correct_warp out_file to flirt
+                        workflow.connect(func_mni_warp, 'out_file', resample_func, 'in_file')
+                        workflow.connect(func_mni_warp, 'out_file', resample_func, 'reference')
+
+                        workflow.connect(motion_correct_warp, 'out_file', resample_motion, 'in_file')
+                        workflow.connect(motion_correct_warp, 'out_file', resample_motion, 'reference')
+
+
                 except:
                     logConnectionError('Functional Timeseries Registration to MNI space (FSL)', num_strat, strat.get_resource_pool(), '0015')
                     raise
@@ -2044,6 +2066,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file'),
                                             'mean_functional_in_mni':(mean_functional_warp, 'out_file'),
                                             'motion_correct_to_standard':(motion_correct_warp, 'out_file')})
+                if 1 in c.resample_ts:
+                    strat.update_resource_pool({'functional_mni_resampled':(resample_func, 'out_file'),
+                                                'motion_correct_to_standard_resampled':(resample_motion, 'out_file')})
                 strat.append_name(func_mni_warp.name)
                 create_log_node(func_mni_warp, 'out_file', num_strat)
             
@@ -2191,6 +2216,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             input_image_type = input_image_type
 
+                    if 1 in c.resample_ts:
+
+                        if func_name == "functional_mni":
+                            resample_func = pe.Node(interface=fsl.FLIRT(),
+                                                    name='resample_ants_warped_func_%d' % num_strat)
+
+                            resample_func.iterables = ('apply_isoxfm', c.resample_ts_resolution)
+
+
+                        if func_name == "motion_correct_to_standard":
+                            resample_motion = pe.Node(interface=fsl.FLIRT(),
+                                                      name='resample_ants_warped_motion_%d' % num_strat)
+
+                            resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
+
                     try:
 
                         # this <node, out_file> pulls in directly because
@@ -2204,6 +2244,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                 apply_ants_warp_func_mni,
                                 'inputspec.transforms')
 
+                        if 1 in c.resample_ts:
+
+                            if func_name == "functional_mni":
+                                workflow.connect(apply_ants_warp_func_mni, 'outputspec.output_image', resample_func, 'in_file')
+                                workflow.connect(apply_ants_warp_func_mni, 'outputspec.output_image', resample_func, 'reference')
+
+                            if func_name == "motion_correct_to_standard":
+                                workflow.connect(apply_ants_warp_func_mni, 'outputspec.output_image', resample_motion, 'in_file')
+                                workflow.connect(apply_ants_warp_func_mni, 'outputspec.output_image', resample_motion, 'reference')
 
                     except:
                         logConnectionError('Functional Timeseries ' \
@@ -2214,6 +2263,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.update_resource_pool({func_name: \
                             (apply_ants_warp_func_mni, \
                             'outputspec.output_image')})
+
+                    if 1 in c.resample_ts:
+                        if func_name == "functional_mni":
+                            strat.update_resource_pool({"functional_mni_resampled": (resample_func, 'out_file')})
+                        if func_name == "motion_correct_to_standard":
+                            strat.update_resource_pool({"motion_correct_to_standard_resampled": (resample_motion, 'out_file')})
 
                     strat.append_name(apply_ants_warp_func_mni.name)
                     create_log_node(apply_ants_warp_func_mni, \
@@ -2230,7 +2285,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'Linear', 3, 'functional_mni')
 
 
-
                 # FUNCTIONAL MASK apply warp
                 fsl_to_itk_conversion('functional_brain_mask', 'anatomical_brain', 'functional_brain_mask_to_standard')
                 collect_transforms_func_mni('functional_brain_mask_to_standard')
@@ -2238,7 +2292,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node, out_file = strat.get_node_from_resource_pool('func' \
                         'tional_brain_mask')
                 ants_apply_warps_func_mni(node, out_file, c.template_brain_only_for_func, 'NearestNeighbor', 0, 'functional_brain_mask_to_standard')
-
 
 
                 # FUNCTIONAL MEAN apply warp
@@ -2600,7 +2653,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow = create_roi_mask_dataflow(ts_analysis_dict["Avg"], 'roi_dataflow_%d' % num_strat)
     
                 roi_timeseries = get_roi_timeseries('roi_timeseries_%d' % num_strat)
-                #roi_timeseries.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "Avg" in sca_analysis_dict.keys():
             
@@ -2615,7 +2667,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_sca = create_roi_mask_dataflow(sca_analysis_dict["Avg"], 'roi_dataflow_for_sca_%d' % num_strat)
     
                 roi_timeseries_for_sca = get_roi_timeseries('roi_timeseries_for_sca_%d' % num_strat)
-                #roi_timeseries_for_sca.inputs.inputspec.output_type = c.roiTSOutputs
 
             if "MultReg" in sca_analysis_dict.keys():
             
@@ -2630,7 +2681,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 roi_dataflow_for_multreg = create_roi_mask_dataflow(sca_analysis_dict["MultReg"], 'roi_dataflow_for_mult_reg_%d' % num_strat)
     
                 roi_timeseries_for_multreg = get_roi_timeseries('roi_timeseries_for_mult_reg_%d' % num_strat)
-                #roi_timeseries_for_multreg.inputs.inputspec.output_type = c.roiTSOutputs
 
             try:
 

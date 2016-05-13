@@ -199,6 +199,37 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values = str(os.path.join(fsl,"etc/flirtsch/ident.mat")),
                     comment="Matrix containing all 1's. Used as an identity matrix during registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
+
+        self.page.add(label="Resample Normalized Functional ",
+                      control=control.CHOICE_BOX,
+                      name="resample_ts",
+                      type=dtype.LSTR,
+                      values=["Off","On"],
+                      comment="Resample the normalized functional timeseries to a resolution of your choice.")
+
+        self.page.add(label="Resolutions to Resample to ",
+                      control = control.LISTBOX_COMBO,
+                      name = "resample_ts_resolution",
+                      type = dtype.LOFL,
+                      values = [2.0],
+                      comment = "The resolutions to resample the normalized "\
+                                "functional timeseries to, if you have " \
+                                "selected to do so. Click the green + to " \
+                                "input resolutions (in mm).",
+                      size = (200,100),
+                      combo_type = 6)
+
+        #self.page.add(label="Resample to Resolution",
+        #              control=control.TEXT_BOX, 
+        #              name='resample_ts_resolution', 
+        #              type=dtype.LNUM, 
+        #              values= "2.0",
+        #              validator = CharValidator("no-alpha"),
+                      #control=control.SPIN_BOX_FLOAT,
+                      #name="resample_ts_resolution",
+                      #type=dtype.LSTR,
+                      #values="2.0",
+        #              comment="The resolution to resample the normalized functional timeseries to, if you have selected to do so.")
                     
      
         self.page.set_sizer()

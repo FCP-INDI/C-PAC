@@ -12,7 +12,8 @@ control = enum(CHOICE_BOX = 0,
                LISTBOX_COMBO = 7,
                TEXTBOX_COMBO = 8,
                CHECKBOX_GRID = 9,
-               GPA_CHECKBOX_GRID = 10)
+               GPA_CHECKBOX_GRID = 10,
+               SPIN_BOX_FLOAT = 11)
 
 dtype = enum(BOOL = 0,
              STR= 1,
