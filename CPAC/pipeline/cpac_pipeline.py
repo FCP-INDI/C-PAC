@@ -2011,11 +2011,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     resample_motion = pe.Node(interface=fsl.FLIRT(),
                                               name='resample_motion_%d' % num_strat)
 
-                    resample_func_mask = pe.Node(interface=fsl.FLIRT(),
+                    resample_mask_for_func = pe.Node(interface=fsl.FLIRT(),
                                                  name='resample_warped_func_mask_%d' % num_strat)
-                    resample_func_mask.interp = 'nearestneighbour'
-                    resample_func_mask.inputs.apply_xfm = True
-                    resample_func_mask.inputs.in_matrix_file = c.identityMatrix
+                    resample_mask_for_func.interp = 'nearestneighbour'
+                    resample_mask_for_func.inputs.apply_xfm = True
+                    resample_mask_for_func.inputs.in_matrix_file = c.identityMatrix
+
+                    resample_mask_for_motion = pe.Node(interface=fsl.FLIRT(),
+                                                 name='resample_warped_motion_mask_%d' % num_strat)
+                    resample_mask_for_motion.interp = 'nearestneighbour'
+                    resample_mask_for_motion.inputs.apply_xfm = True
+                    resample_mask_for_motion.inputs.in_matrix_file = c.identityMatrix
 
                     resample_func.iterables = ('apply_isoxfm', c.resample_ts_resolution)
                     resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
@@ -2080,8 +2086,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(motion_correct_warp, 'out_file', resample_motion, 'in_file')
                         workflow.connect(motion_correct_warp, 'out_file', resample_motion, 'reference')
 
-                        workflow.connect(functional_brain_mask_to_standard, 'out_file', resample_func_mask, 'in_file')
-                        workflow.connect(resample_func, 'out_file', resample_func_mask, 'reference')
+                        workflow.connect(functional_brain_mask_to_standard, 'out_file', resample_mask_for_func, 'in_file')
+                        workflow.connect(resample_func, 'out_file', resample_mask_for_func, 'reference')
+
+                        workflow.connect(functional_brain_mask_to_standard, 'out_file', resample_mask_for_motion, 'in_file')
+                        workflow.connect(resample_motion, 'out_file', resample_mask_for_motion, 'reference')
 
                         workflow.connect(resample_func, 'out_file', resample_func_smooth, 'in_file')
                         workflow.connect(resample_motion, 'out_file', resample_motion_smooth, 'in_file')
@@ -2092,8 +2101,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                              resample_motion_smooth, 'op_string')
 
-                        workflow.connect(resample_func_mask, 'out_file', resample_func_smooth, 'operand_files')
-                        workflow.connect(resample_func_mask, 'out_file', resample_motion_smooth, 'operand_files')
+                        workflow.connect(resample_mask_for_func, 'out_file', resample_func_smooth, 'operand_files')
+                        workflow.connect(resample_mask_for_motion, 'out_file', resample_motion_smooth, 'operand_files')
 
                 except:
                     logConnectionError('Functional Timeseries Registration to MNI space (FSL)', num_strat, strat.get_resource_pool(), '0015')
@@ -2329,11 +2338,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                               name='resample_ants_warped_motion_%d' % num_strat)
                     resample_motion.iterables = ('apply_isoxfm', c.resample_ts_resolution)
 
-                    resample_func_mask = pe.Node(interface=fsl.FLIRT(),
+                    resample_mask_for_func = pe.Node(interface=fsl.FLIRT(),
                                                  name='resample_ants_warped_func_mask_%d' % num_strat)
-                    resample_func_mask.interp = 'nearestneighbour'
-                    resample_func_mask.inputs.apply_xfm = True
-                    resample_func_mask.inputs.in_matrix_file = c.identityMatrix
+                    resample_mask_for_func.interp = 'nearestneighbour'
+                    resample_mask_for_func.inputs.apply_xfm = True
+                    resample_mask_for_func.inputs.in_matrix_file = c.identityMatrix
+
+                    resample_mask_for_motion = pe.Node(interface=fsl.FLIRT(),
+                                                 name='resample_ants_warped_motion_mask_%d' % num_strat)
+                    resample_mask_for_motion.interp = 'nearestneighbour'
+                    resample_mask_for_motion.inputs.apply_xfm = True
+                    resample_mask_for_motion.inputs.in_matrix_file = c.identityMatrix
 
                     # have to do the smoothing here to keep the iterable
                     # flow together
@@ -2353,8 +2368,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file, resample_motion, 'reference')
 
                         node, out_file = strat.get_node_from_resource_pool("functional_brain_mask_to_standard")
-                        workflow.connect(node, out_file, resample_func_mask, 'in_file')
-                        workflow.connect(resample_func, 'out_file', resample_func_mask, 'reference')
+                        workflow.connect(node, out_file, resample_mask_for_func, 'in_file')
+                        workflow.connect(resample_func, 'out_file', resample_mask_for_func, 'reference')
+
+                        workflow.connect(node, out_file, resample_mask_for_motion, 'in_file')
+                        workflow.connect(resample_motion, 'out_file', resample_mask_for_motion, 'reference')
 
                         workflow.connect(resample_func, 'out_file', resample_func_smooth, 'in_file')
                         workflow.connect(resample_motion, 'out_file', resample_motion_smooth, 'in_file')
@@ -2365,8 +2383,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
                                              resample_motion_smooth, 'op_string')
 
-                        workflow.connect(resample_func_mask, 'out_file', resample_func_smooth, 'operand_files')
-                        workflow.connect(resample_func_mask, 'out_file', resample_motion_smooth, 'operand_files')
+                        workflow.connect(resample_mask_for_func, 'out_file', resample_func_smooth, 'operand_files')
+                        workflow.connect(resample_mask_for_motion, 'out_file', resample_motion_smooth, 'operand_files')
 
                     except:
                         logConnectionError('Functional Timeseries ' \
