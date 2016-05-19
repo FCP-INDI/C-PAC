@@ -69,6 +69,7 @@ files_folders_wf = {
     'functional_mni_resampled':'func',
     'functional_mni_resampled_smooth':'func',
     'functional_brain_mask_to_standard':'func',
+    'functional_brain_mask_to_standard_resampled':'func',
     'mean_functional_in_mni' : 'func',
     'functional_to_anat_linear_xfm':'registration',
     'functional_to_mni_linear_xfm':'registration',

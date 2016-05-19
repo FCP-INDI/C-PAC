@@ -176,140 +176,200 @@ def assign_output_name(fullpath, deriv_folder_name):
 
 
 
-def collect_output_paths(output_path_file, ga_configs, ga_partlists, \
-                             full_deriv_list):
+def gather_nifti_globs(pipeline_output_folder, resource_list):
+
+    # the number of directory levels under each participant's output folder
+    # can vary depending on what preprocessing strategies were chosen, and
+    # there may be several output filepaths with varying numbers of directory
+    # levels
+
+    # this parses them quickly while also catching each preprocessing strategy
 
     import os
+    import glob
+    from __builtin__ import all as b_all
 
-    output_paths = {}
-    matched_parts = {}
-    matched_ders = []
+    ext = ".nii"
+    nifti_globs = []
 
-    # collect relevant output paths from individual-level analysis   
-    for root, folders, files in os.walk(output_path_file, topdown=True):
-
-        #full_deriv_list = [os.path.join(root,d) for d in full_deriv_list]
-        #print full_deriv_list
-        # prune the search by modifying "folders" in-place
-        #folders[:] = [f for f in folders if f not in full_deriv_list]
-    
-        split_output_dir_path = output_path_file.split("/")
-    
-        for filename in files:
-        
-            if ".nii" in filename:
-    
-                fullpath = os.path.join(root, filename)
-            
-                split_fullpath = fullpath.split("/")
-                
-                # unique_part_ID format: {participant}_{site}_{session} ID
-                unique_part_ID = \
-                    str(split_fullpath[len(split_output_dir_path)])
-
-                deriv_folder_name = \
-                    split_fullpath[len(split_output_dir_path)+1]
-
-                series_id = \
-                    str(split_fullpath[len(split_output_dir_path)+2])
-
-                #full_strategy = \
-                #    "/".join(split_fullpath[len(split_output_dir_path)+3:-1])
-
-                # for repeated measures (potentially)
-                full_ID = unique_part_ID + "," + series_id
-
-                for group_model in ga_configs.keys():
-
-                    ga_config = ga_configs[group_model][0]
-                    ga_config_file = ga_configs[group_model][1]
-
-                    # include output path if the participant is in the group
-                    # model's participant list, and if the derivative is one
-                    # of the group model's selected derivatives
-                    if ((unique_part_ID in ga_partlists[group_model]) or \
-                    	(full_ID in ga_partlists[group_model])) and \
-                        (deriv_folder_name in ga_config.derivative_list):
-
-                        # let's keep track of which derivatives have at least
-                        # one participant completed for it
-                        if deriv_folder_name not in matched_ders:
-                        	matched_ders.append(deriv_folder_name)
-
-                        # create "output_name" for analysis_map_gp keying
-                        output_name = assign_output_name(fullpath, \
-                        	                             deriv_folder_name)
-        
-                        key = (group_model, ga_config_file)
-
-                        if key not in output_paths.keys():
-                        	output_paths[key] = {}
-
-                        # if the group analysis sublist is set up for
-                        # repeated measures (across multiple series, not
-                        # sessions), then place all of the included series
-                        # within one dict key called "multiple_series"
-                        if full_ID in ga_partlists[group_model]:
-                            series_id = "multiple_series"
-
-                        if series_id not in output_paths[key].keys():
-                        	output_paths[key][series_id] = {}
-
-                        if output_name not in output_paths[key][series_id].keys():
-                        	output_paths[key][series_id][output_name] = {}
-
-                        new_dict = {}
-                        new_key = (unique_part_ID, series_id)
-                        new_dict[new_key] = fullpath
-
-                        # why do we have series_id keying in two places?
-                        #   because the "upper" level (here) is for easily
-                        #   sending off the different groups of outputs per
-                        #   series_id into different runs (normal)
-                        #     the "lower" level (inside new_key) is in case
-                        #     we are running repeated measures with multiple
-                        #     series_id's and we want each file to be easily
-                        #     identified by series_id (all within one model)
-                        #     note: in this case, you will have to send in
-                        #           multiple series_id keys of this dictionary
-                        #           at the same time into the one model run
-                        output_paths[key][series_id][output_name].update(new_dict)
-
-                        # keep track of which participants from the
-                        # participant list have been found in the output paths
-                        if key not in matched_parts.keys():
-                            matched_parts[key] = {}
-
-                        if series_id not in matched_parts[key].keys():
-                        	matched_parts[key][series_id] = {}
-
-                        if output_name not in matched_parts[key][series_id].keys():
-                        	matched_parts[key][series_id][output_name] = []
-
-                        if unique_part_ID not in \
-                            matched_parts[key][series_id][output_name]:
-
-                            matched_parts[key][series_id][output_name].append(unique_part_ID)
-
-
-    # see if there were no output files found for the derivative
-    if len(ga_config.derivative_list) != len(matched_ders):
-
-        empty_ders = set(ga_config.derivative_list) - set(matched_ders)
-        empty_ders = "\n".join(empty_ders)
-
-        err = "[!] CPAC says: No individual-level analysis outputs " \
-              "were found for the following selected derivatives within " \
-              "the pipeline output directory path you provided.\n\n" \
-              "Pipeline Output Directory provided: %s\n\nDerivatives with " \
-              "no completed participants:\n%s\n\nEither make sure your " \
-              "selections are correct, or that individual-level analysis " \
-              "completed successfully for the derivative in " \
-              "question.\n\n" % (output_path_file, empty_ders)
+    if len(resource_list) == 0:
+        err = "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
 
+    # remove any extra /'s
+    pipeline_output_folder = pipeline_output_folder.rstrip("/")
 
-    return output_paths, matched_parts
+    # grab MeanFD_Jenkinson just in case
+    resource_list.append("power_params")
+
+    print "\n\nGathering the output file paths from %s..." \
+          % pipeline_output_folder
+
+    for resource_name in resource_list:
+
+        glob_string = os.path.join(pipeline_output_folder, "*", \
+                                       resource_name, "*", "*")
+
+        # get all glob strings that result in a list of paths where every path
+        # ends with a NIFTI file
+        
+        prog_string = ".."
+
+        while len(glob.glob(glob_string)) != 0:
+
+            if b_all(ext in x for x in glob.glob(glob_string)) == True:
+                nifti_globs.append(glob_string)
+        
+            glob_string = os.path.join(glob_string, "*")
+            prog_string = prog_string + "."
+            print prog_string
+
+    if len(nifti_globs) == 0:
+        err = "\n\n[!] No output filepaths found in the pipeline output " \
+              "directory provided for the derivatives selected!\n\nPipeline "\
+              "output directory provided: %s\nDerivatives selected:\s\n\n" \
+              % (pipeline_output_folder, resource_list)
+        raise Exception(err)
+
+    return nifti_globs
+
+
+
+def create_output_dict_list(nifti_globs, pipeline_output_folder, \
+    session_list=None, get_raw_score=False):
+
+    import glob
+
+    # parse each result of each "valid" glob string
+    output_dict_list = {}
+    output_df_dict = {}
+
+    for nifti_glob_string in nifti_globs:
+
+        nifti_paths = glob.glob(nifti_glob_string)   
+
+        for filepath in nifti_paths:
+        
+            second_half_filepath = filepath.split(pipeline_output_folder)[1]
+            filename = filepath.split("/")[-1]
+            
+            resource_id = second_half_filepath.split("/")[2]
+            series_id_string = second_half_filepath.split("/")[3]
+            strat_info = second_half_filepath.split(series_id_string)[1]
+            
+            unique_resource_id = (resource_id,strat_info)
+                        
+            if unique_resource_id not in output_dict_list.keys():
+                output_dict_list[unique_resource_id] = []
+            
+            unique_id = second_half_filepath.split("/")[1]
+
+            series_id = series_id_string.replace("_scan_","")
+            series_id = series_id.replace("_rest","")
+            
+            new_row_dict = {}
+            
+            new_row_dict["Participant"] = unique_id
+            new_row_dict["Series"] = series_id
+            
+            if session_list:
+                for session in session_list:
+                    if session in second_half_filepath:
+                        new_row_dict["Session"] = session
+                        break
+                        
+            new_row_dict["Filepath"] = filepath
+                        
+            if get_raw_score:
+                # grab raw score for measure mean just in case
+                if "vmhc" in resource_id:
+                    raw_score_path = filepath.replace(resource_id,"vmhc_raw_score")
+                    raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
+                    raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
+                else:                   
+                    raw_score_path = filepath.replace("_zstd","")
+                    raw_score_path = raw_score_path.replace("_fisher","")
+                    raw_score_path = raw_score_path.replace("_zstat","")
+                    
+                    if "sca_roi_files_to_standard" in resource_id:
+                        sub_folder = raw_score_path.split("/")[-2] + "/"
+                        if "z_score" in sub_folder:
+                            raw_score_path = raw_score_path.replace(sub_folder,"")
+                    elif "sca_tempreg_maps_zstat" in resource_id:
+                        sca_filename = raw_score_path.split("/")[-1]
+                        globpath = raw_score_path.replace(sca_filename, "*")
+                        globpath = os.path.join(globpath, sca_filename)
+                        raw_score_path = glob.glob(globpath)[0]     
+                    elif "dr_tempreg_maps" in resource_id:
+                        raw_score_path = raw_score_path.replace("map_z_","map_")
+                        raw_filename = raw_score_path.split("/")[-1]
+                        raw_score_path = raw_score_path.replace(raw_filename,"")
+                        raw_score_path = glob.glob(os.path.join(raw_score_path,"*",raw_filename))[0]       
+                    else:
+                        # in case filenames are different between z-standardized and raw
+                        raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
+                        raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
+                
+                if not os.path.exists(raw_score_path):
+                    err = "\n\n[!] The filepath for the raw score of " \
+                          "%s can not be found.\nFilepath: %s\n\nThis " \
+                          "is needed for the Measure Mean calculation." \
+                          "\n\n" % (resource_id, raw_score_path)
+                    raise Exception(err)
+                    
+                new_row_dict["Raw_Filepath"] = raw_score_path
+                       
+            # unique_resource_id is tuple (resource_id,strat_info)
+            output_dict_list[unique_resource_id].append(new_row_dict)
+
+    return output_dict_list
+
+
+
+def create_output_df_dict(output_dict_list, inclusion_list=None, \
+    session_list=None, series_list=None):
+
+    import pandas as pd
+
+    for unique_resource_id in output_dict_list.keys():
+    
+        new_df = pd.DataFrame(output_dict_list[unique_resource_id])
+        
+        # drop whatever is not in the inclusion lists
+        if inclusion_list:
+            new_df = new_df[new_df.Participant.isin(inclusion_list)]
+        
+        if series_list:
+            new_df = new_df[new_df.Series.isin(series_list)]
+            
+        if session_list:
+            new_df = new_df[new_df.Session.isin(session_list)]
+    
+        # unique_resource_id is tuple (resource_id,strat_info)
+        if unique_resource_id not in output_df_dict.keys():
+            output_df_dict[unique_resource_id] = new_df
+            
+            
+    return output_df_dict
+
+
+
+def load_pheno_csv_into_df(pheno_file):
+
+    import os
+    import pandas as pd
+
+    if not os.path.isfile(pheno_file):
+        err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
+              "provided does not exist!\nPath provided: %s\n\n" \
+              % pheno_file
+        raise Exception(err)
+
+    with open(os.path.abspath(pheno_file),"r") as f:
+        pheno_dataframe = pd.read_csv(f)
+
+
+    return pheno_dataframe
 
 
 
@@ -404,6 +464,8 @@ def run(config_file, output_path_file):
 
     # load the group model configs and the group participant lists into
     # dictionaries, with the model names as keys
+
+    # BREAK THIS OUT INTO A MAP!!!!!!!!
     ga_configs, ga_partlists, full_deriv_list = collect_group_config_info(c)
 
 
