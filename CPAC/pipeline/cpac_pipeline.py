@@ -3256,7 +3256,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # Connect resampled (to template/mask resolution)
                 # functional_mni to inputspec
                 workflow.connect(resample_functional_to_template, 'out_file',
-                                 network_centrality, 'inputspec.datafile')
+                                 network_centrality, 'inputspec.in_file')
                 # Subject mask/parcellation image
                 network_centrality.inputs.inputspec.template = \
                 c.templateSpecificationFile
@@ -3268,9 +3268,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 thresholdOption
                 # Connect threshold value (float)
                 network_centrality.inputs.inputspec.threshold = threshold
-                # List of two booleans, first for binary, second for weighted
-                network_centrality.inputs.inputspec.weight_options = \
-                weightOptions
 
                 # Merge output with others via merge_node connection
                 workflow.connect(network_centrality,
