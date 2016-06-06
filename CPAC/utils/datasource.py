@@ -129,11 +129,11 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
     if img_type == 'anat':
         if len(img_nii.shape) != 3:
             raise IOError('File: %s must be an anatomical image with 3 '\
-                          'dimensions but %d dimensions found!' % len(img_nii.shape))
+                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
     elif img_type == 'func':
         if len(img_nii.shape) != 4:
             raise IOError('File: %s must be a functional image with 4 '\
-                          'dimensions but %d dimensions found!' % len(img_nii.shape))
+                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
 
     # Return the local path
     return local_path
