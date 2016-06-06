@@ -696,7 +696,7 @@ class MainFrame(wx.Frame):
             output_dir = '/'.join(output_dir_sp)
 
         if type(output_dir) is str and output_dir.lower().startswith(s3_str):
-            from CPAC.AWS import fetch_creds
+            from indi_aws import fetch_creds
             creds_path = c.awsOutputBucketCredentials
             bucket_name = output_dir.split(s3_str)[1].split('/')[0]
             try:
