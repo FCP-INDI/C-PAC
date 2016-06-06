@@ -434,7 +434,7 @@ class MainFrame(wx.Frame):
                 if func_file.lower().startswith(s3_str):
                     dl_dir = tempfile.mkdtemp()
                     creds_path = sub['creds_path']
-                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir)
+                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
                     checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):
