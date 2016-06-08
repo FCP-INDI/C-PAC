@@ -5773,7 +5773,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             forkName = ''
            
             for fork in forkPoint:
-
+                forklabel = ''
                 if 'ants' in fork:
                     forklabel = 'ANTS'
                 if 'fnirt' in fork:
