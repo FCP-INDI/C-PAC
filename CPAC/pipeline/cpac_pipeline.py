@@ -123,7 +123,7 @@ class strategy:
 
 # Create and prepare C-PAC pipeline workflow
 def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
-                  p_name=None, plugin='MultiProc', plugin_args=None):
+                  p_name=None, plugin='ResourceMultiProc', plugin_args=None):
 
     '''
     Function to prepare and, optionally, run the C-PAC workflow
@@ -143,7 +143,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         list of pipeline info for reporting timing information
     p_name : string (optional); default=None
         name of pipeline
-    plugin : string (optional); defaule='MultiProc'
+    plugin : string (optional); defaule='ResourceMultiProc'
         nipype plugin to utilize when the workflow is ran
     plugin_args : dictionary (optional); default=None
         plugin-specific arguments for the workflow plugin
@@ -5246,7 +5246,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         '''
 
         #TODO:set memory and num_threads of critical nodes if running 
-        # MultiProcPlugin
+        # ResourceMultiProcPlugin
 
         # Create callback logger
         import logging as cb_logging
@@ -5273,7 +5273,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         except ImportError as exc:
             import nipype
             err_msg = 'Version of nipype found in %s does not contain the '\
-                      'MultiProc plugin. Please check installation is the '\
+                      'ResourceMultiProc plugin. Please check installation is the '\
                       'most up-to-date or download and install the FCP-INDI '\
                       'nipype repo at https:/github.com/fcp-indi/nipype.\n'\
                       'Error: %s' %(os.path.dirname(nipype.__file__), exc)

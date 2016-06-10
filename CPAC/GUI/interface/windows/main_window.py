@@ -236,7 +236,7 @@ class ListBox(wx.Frame):
                            'callback_log' : log_nodes_cb}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
-                                          plugin='MultiProc',
+                                          plugin='ResourceMultiProc',
                                           plugin_args=plugin_args)
         
         except ImportError, e:
