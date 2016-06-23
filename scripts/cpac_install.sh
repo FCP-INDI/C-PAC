@@ -164,7 +164,12 @@ echo '########## CLEANING UP... ##########'
 # --- Remove unnexessary files ---
 apt-get autoremove -y
 # --- Re-source env vars and exit ---
-chmod -R 777 ~/.matplotlib
+if [ -d ~/.matplotlib ]; then
+    chmod -R 777 ~/.matplotlib
+fi
+if [ -d ~/.config/matlplotlib ]; then
+    chmod -R 777 ~/.config/matlplotlib
+fi
 exit
 . /etc/profile.d/cpac_env.sh
 #
