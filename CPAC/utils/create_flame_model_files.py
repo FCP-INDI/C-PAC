@@ -87,6 +87,8 @@ def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
         print >>f, '/Matrix'
         np.savetxt(f, grp_file_vector, fmt='%d', delimiter='\t')
 
+    return out_file
+
 
 
 def create_con_file(con_dict, col_names, model_name, current_output, out_dir):

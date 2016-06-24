@@ -1011,7 +1011,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0], \
         model_name, resource_id, model_path)
 
-
     # workflow time
     wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
     wf = pe.Workflow(name=wf_name)
@@ -1049,7 +1048,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     #     if c.mixedScanAnalysis == True:
     #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
-    ds.inputs.base_directory = out_dir
+    ds.inputs.base_directory = str(out_dir)
     ds.inputs.container = ''
         
     ds.inputs.regexp_substitutions = [(r'(?<=rendered)(.)*[/]','/'),
