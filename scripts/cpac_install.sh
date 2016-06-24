@@ -168,7 +168,7 @@ if [ -d ~/.matplotlib ]; then
     chmod -R 777 ~/.matplotlib
 fi
 if [ -d ~/.config/matlplotlib ]; then
-    chmod -R 777 ~/.config/matlplotlib
+    chmod -R 777 ~/.config/matplotlib
 fi
 exit
 . /etc/profile.d/cpac_env.sh
