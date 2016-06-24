@@ -131,7 +131,8 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
 
 
 
-def check_mask_file_resolution(data_file, roi_mask, out_dir, output_id=None):
+def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
+    output_id=None):
 
     import os
     import subprocess
@@ -156,9 +157,9 @@ def check_mask_file_resolution(data_file, roi_mask, out_dir, output_id=None):
                                          "resampled_%s" \
                                          % os.path.basename(roi_mask))
 
-        resample_str = ["flirt", "-in", roi_mask, "-ref", roi_mask, \
-                        "-applyisoxfm", str(raw_file_dims[0]), "-out", \
-                        resampled_outfile]
+        resample_str = ["flirt", "-in", roi_mask, "-ref", group_mask, \
+                        "-applyisoxfm", str(raw_file_dims[0]), "-interp", \
+                        "nearestneighbour", "-out", resampled_outfile]
 
         try:
             retcode = subprocess.check_output(resample_str)
@@ -220,10 +221,7 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
             raise Exception(err)
 
         # process the output string
-        roi_means_string = retcode.split(raw_file)[1].rstrip("\n")
-
-        if "\t[0]?\t" in roi_means_string:
-            roi_means_string = roi_means_string.replace("\t[0]?\t","")
+        roi_means_string = str(retcode.split(raw_file)[1].rstrip("\n"))
 
         roi_means_string_list = roi_means_string.split("\t")
 
@@ -231,14 +229,19 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
         roi_means_list = []
         for roi_mean in roi_means_string_list:
             try:
-                roi_means_list.append(float(roi_mean))
+                roi_mean = float(roi_mean)
             except:
-                err = "\n\n[!] Something went wrong with parsing the output "\
-                      "of AFNI's 3dROIstats during the calculation of the " \
-                      "custom ROI means.\n\nOutput file: %s\n\nCustom ROI " \
-                      "mask file: %s\n\n3dROIstats output: %s\n\n" \
-                      % (raw_file, roi_mask, retcode)
-                raise Exception(err)
+                continue
+
+            roi_means_list.append(roi_mean)
+
+        if len(roi_means_list) != retcode.count("Mean_"):
+            err = "\n\n[!] Something went wrong with parsing the output "\
+                  "of AFNI's 3dROIstats during the calculation of the " \
+                  "custom ROI means.\n\nOutput file: %s\n\nCustom ROI " \
+                  "mask file: %s\n\n3dROIstats output: %s\n\n" \
+                  % (raw_file, roi_mask, retcode)
+            raise Exception(err)
 
         # add in the custom ROI means!
         roi_dict = {}
@@ -354,6 +357,10 @@ def patsify_design_formula(formula, categorical_list):
         if ev in formula:
             new_ev = "C(" + ev + ")"
             formula = formula.replace(ev, new_ev)
+
+    # remove Intercept - if user wants one, they should add "+ 1" when
+    # specifying the design formula
+    formula = formula + "- 1"
 
     return formula
 
@@ -898,8 +905,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # make sure the custom ROI mask file is the same resolution as the
         # output files - if not, resample and warn the user
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0], \
-                                              custom_roi_mask, model_path, \
-                                              resource_id)
+                                              custom_roi_mask, merge_mask, \
+                                              model_path, resource_id)
 
         # if using group merged mask, trim the custom ROI mask to be within
         # its constraints
@@ -910,6 +917,18 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
         # calculate
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
+
+        # update the design formula
+        new_design_substring = ""
+        for col in model_df.columns:
+            if "Custom_ROI_Mean_" in str(col):
+                if str(col) == "Custom_ROI_Mean_1":
+                    new_design_substring = new_design_substring + " %s" % col
+                else:
+                    new_design_substring = new_design_substring +" + %s" % col
+        design_formula = design_formula.replace("Custom_ROI_Mean", \
+                                                new_design_substring)
+
 
     cat_list = []
     if "categorical" in group_config_obj.ev_selections.keys():
@@ -954,7 +973,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         err = "\n\n[!] Something went wrong with processing the group model "\
               "design matrix using the Python Patsy package. Patsy might " \
               "not be properly installed, or there may be an issue with the "\
-              "formatting of the design matrix.\n\nError details: %s\n\n" % e
+              "formatting of the design matrix.\n\nPatsy-formatted design " \
+              "formula: %s\n\nError details: %s\n\n" \
+              % (model_df.columns, design_formula, e)
         raise Exception(err)
 
     # check the model for multicollinearity - Patsy takes care of this, but
@@ -970,21 +991,22 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
-              "subjects currently included in the model for %s. There must " \
-              "be more subjects than EVs in the design.\n\nNumber of " \
-              "subjects: %d\nNumber of EVs: %d\n\nNote: An 'Intercept' " \
-              "column gets added to the design as an EV, so there will be " \
-              "one more EV than you may have specified in your design. In " \
-              "addition, if you specified to model group variances " \
-              "separately, an Intercept column will not be included, but " \
-              "the amount of EVs can nearly double once they are split " \
-              "along the grouping variable.\n\n" \
+              "participants currently included in the model for %s. There " \
+              "must be more participants than EVs in the design.\n\nNumber " \
+              "of participants: %d\nNumber of EVs: %d\n\nEV/covariate list: "\
+              "%s\n\nNote: An " \
+              "'Intercept' column gets added to the design as an EV, so " \
+              "there will be one more EV than you may have specified in " \
+              "your design. In addition, if you specified to model group " \
+              "variances separately, an Intercept column will not be " \
+              "included, but the amount of EVs can nearly double once they " \
+              "are split along the grouping variable.\n\n" \
               "If the number of subjects is lower than the number of " \
               "subjects in your group analysis subject list, this may be " \
               "because not every subject in the subject list has an output " \
               "for %s in the individual-level analysis output directory.\n\n"\
-              % (current_output, num_subjects, len(column_names), \
-              current_output)
+              % (resource_id, num_subjects, len(column_names), column_names, \
+                 resource_id)
         raise Exception(err)
 
     # time for contrasts
