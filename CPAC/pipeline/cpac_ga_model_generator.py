@@ -1,7 +1,3 @@
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.io as nio
-
 import re
 import os
 import sys
@@ -13,73 +9,729 @@ from CPAC.utils.utils import prepare_gp_links
 from CPAC.group_analysis import create_group_analysis
 
 
+def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
 
-def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, subject_infos, threshold_val):
-    
-    #
-    # this function runs once per derivative type during group analysis
-    #
+    # write the new participant list
+    new_sub_file = os.path.join(current_mod_path, \
+                                    os.path.basename(subject_list))
 
-    import yaml
-    import commands
+    try:
+        with open(new_sub_file, "w") as f:
+            for part_ID in new_participant_list:
+                print >>f, part_ID
+    except Exception as e:
+        err = "\n\n[!] CPAC says: Could not write new participant list for " \
+              "current model and derivative in group-level analysis. Ensure "\
+              "you have write access to the directory:\n%s\n\nError " \
+              "details: %s\n\n" % (current_mod_path, e)
+        raise Exception(err)
+
+    return new_sub_file
+
+
+
+def create_merged_copefile(list_of_output_files, merged_outfile):
+
+    import subprocess
+
+    merge_string = ["fslmerge", "-t", merged_outfile]
+
+    merge_string = merge_string + list_of_output_files
+
+    try:
+        retcode = subprocess.check_output(merge_string)
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with FSL's fslmerge during the " \
+              "creation of the 4D merged file for group analysis.\n\n" \
+              "Attempted to create file: %s\n\nLength of list of files to " \
+              "merge: %d\n\nError details: %s\n\n" \
+              % (merged_outfile, len(list_of_output_files), e)
+        raise Exception(err)
+
+    return merged_outfile
+
+
+
+def create_merge_mask(merged_file, mask_outfile):
+
+    import subprocess
+
+    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin", \
+                   mask_outfile]
+
+    try:
+        retcode = subprocess.check_output(mask_string)
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with FSL's fslmaths during the " \
+              "creation of the merged copefile group mask.\n\nAttempted to " \
+              "create file: %s\n\nMerged file: %s\n\nError details: %s\n\n" \
+              % (mask_outfile, merged_file, e)
+        raise Exception(err)
+
+    return mask_outfile
+
+
+
+def calculate_measure_mean_in_df(model_df, merge_mask):
+
+    import subprocess
     import pandas as pd
 
-    # p_id = a list of pipeline IDs, i.e. the name of the output folder for
-    #        the strat
+    mm_dict_list = []
     
-    # s_ids = a list of all the subject IDs
+    for raw_file in list(model_df["Raw_Filepath"]):
+    
+        mask_string = ["3dmaskave", "-mask", merge_mask, raw_file]
+        
+        # calculate
+        try:
+            retcode = subprocess.check_output(mask_string)
+        except Exception as e:
+            err = "\n\n[!] AFNI's 3dMaskAve failed for raw output: %s\n" \
+                  "Error details: %s\n\n" % (raw_file, e)
+            raise Exception(err)
+        
+        # if this breaks, 3dmaskave output to STDOUT has changed
+        try:
+            mean = retcode.split(" ")[0]
+        except Exception as e:
+            err = "\n\n[!] Something went wrong with parsing the output of " \
+                  "AFNI's 3dMaskAve - this is used in calculating the " \
+                  "Measure Mean in group analysis.\n\nError details: %s\n\n" \
+                  % e
+            raise Exception(err)
+        
+        mm_dict = {}
+        mm_dict["Raw_Filepath"] = raw_file
+        mm_dict["Measure_Mean"] = mean
+        mm_dict_list.append(mm_dict)
+        
+    mm_df = pd.DataFrame(mm_dict_list)
+    
+    # demean!
+    mm_df["Measure_Mean"] = mm_df["Measure_Mean"].astype(float)
+    mm_df["Measure_Mean"] = mm_df["Measure_Mean"].sub(mm_df["Measure_Mean"].mean())
+    
+    model_df = pd.merge(model_df, mm_df, how="inner", on=["Raw_Filepath"])
+    
+    return model_df
 
-    # series_ids = same as "scan_ids", but if a scan ID isn't provided in the
-    #              group subject list during repeated measures, this stays as
-    #              None. the point of this is to communicate whether or not
-    #              repeated measures is including different scans in one model
-
-    # scan_ids = a list of scan IDs
-
-    # s_paths = a list of all of the filepaths of this particular output
-    #           file that prep_group_analysis_workflow is being called for
-
-    p_id, s_ids, session_ids, series_ids, scan_ids, s_paths = \
-        (list(tup) for tup in zip(*subject_infos))
 
 
-    # load group analysis model configuration file
+def check_mask_file_resolution(data_file, roi_mask, out_dir, output_id=None):
+
+    import os
+    import subprocess
+    import nibabel as nb
+
+    # let's check if we need to resample the custom ROI mask
+    raw_file_img = nb.load(data_file)
+    raw_file_hdr = raw_file_img.get_header()
+    roi_mask_img = nb.load(roi_mask)
+    roi_mask_hdr = roi_mask_img.get_header()
+
+    raw_file_dims = raw_file_hdr.get_zooms()
+    roi_mask_dims = roi_mask_hdr.get_zooms()
+
+    if raw_file_dims != roi_mask_dims:
+        print "\n\nWARNING: The custom ROI mask file is a different " \
+              "resolution than the output data! Resampling the ROI mask " \
+              "file to match the original output data!\n\nCustom ROI mask " \
+              "file: %s\n\nOutput measure: %s\n\n" % (roi_mask, output_id)
+
+        resampled_outfile = os.path.join(out_dir, \
+                                         "resampled_%s" \
+                                         % os.path.basename(roi_mask))
+
+        resample_str = ["flirt", "-in", roi_mask, "-ref", roi_mask, \
+                        "-applyisoxfm", str(raw_file_dims[0]), "-out", \
+                        resampled_outfile]
+
+        try:
+            retcode = subprocess.check_output(resample_str)
+        except Exception as e:
+            err = "\n\n[!] Something went wrong with running FSL FLIRT for " \
+                  "the purpose of resampling the custom ROI mask to match " \
+                  "the original output file's resolution.\n\nCustom ROI " \
+                  "mask file: %s\n\nError details: %s\n\n" % (roi_mask, e)
+            raise Exception(err)
+
+        roi_mask = resampled_outfile
+
+    return roi_mask
+
+
+
+def trim_mask(input_mask, ref_mask, output_mask_path):
+
+    import os
+    import subprocess
+
+    # mask the mask
+    mask_string = ["fslmaths", input_mask, "-mul", ref_mask, output_mask_path]
+
     try:
-        with open(os.path.realpath(group_config_file),"r") as f:
-            group_conf = Configuration(yaml.load(f))
+        retcode = subprocess.check_output(mask_string)
     except Exception as e:
-        err_string = "\n\n[!] CPAC says: Could not read group model " \
-                     "configuration YML file. Ensure you have read access " \
-                     "for the file and that it is formatted properly.\n\n" \
-                     "Configuration file: %s\n\nError details: %s" \
-                     % (group_config_file, e)
-        raise Exception(err_string)
+        err = "\n\n[!] Something went wrong with running FSL's fslmaths for "\
+              "the purpose of trimming the custom ROI masks to fit within " \
+              "the merged group mask.\n\nCustom ROI mask file: %s\n\nMerged "\
+              "group mask file: %s\n\nError details: %s\n\n" \
+              % (roi_mask, merge_mask, e)
+        raise Exception(err)
 
+    return output_mask_path
+
+
+
+def calculate_custom_roi_mean_in_df(model_df, roi_mask):   
+
+    import os
+    import subprocess
+    import pandas as pd
+
+    # calculate the ROI means
+    roi_dict_list = []
+    
+    for raw_file in list(model_df["Raw_Filepath"]):
+        
+        roi_string = ["3dROIstats", "-mask", roi_mask, raw_file]
+
+        try:
+            retcode = subprocess.check_output(roi_string)
+        except Exception as e:
+            err = "\n\n[!] Something went wrong with running AFNI's " \
+                  "3dROIstats while calculating the custom ROI means.\n\n" \
+                  "Custom ROI mask file: %s\n\nRaw output filepath: %s\n\n" \
+                  "Error details: %s\n\n" % (roi_mask, raw_file, e)
+            raise Exception(err)
+
+        # process the output string
+        roi_means_string = retcode.split(raw_file)[1].rstrip("\n")
+
+        if "\t[0]?\t" in roi_means_string:
+            roi_means_string = roi_means_string.replace("\t[0]?\t","")
+
+        roi_means_string_list = roi_means_string.split("\t")
+
+        # check
+        roi_means_list = []
+        for roi_mean in roi_means_string_list:
+            try:
+                roi_means_list.append(float(roi_mean))
+            except:
+                err = "\n\n[!] Something went wrong with parsing the output "\
+                      "of AFNI's 3dROIstats during the calculation of the " \
+                      "custom ROI means.\n\nOutput file: %s\n\nCustom ROI " \
+                      "mask file: %s\n\n3dROIstats output: %s\n\n" \
+                      % (raw_file, roi_mask, retcode)
+                raise Exception(err)
+
+        # add in the custom ROI means!
+        roi_dict = {}
+        roi_dict["Raw_Filepath"] = raw_file
+
+        i = 1
+        for roi_mean in roi_means_list:
+            roi_label = "Custom_ROI_Mean_%d" % i
+            roi_dict[roi_label] = roi_mean
+            i += 1
+
+        roi_dict_list.append(roi_dict)
+
+
+    roi_df = pd.DataFrame(roi_dict_list)
+    
+    # demean!
+    i = 1
+    for roi_mean in roi_means_list:
+        roi_label = "Custom_ROI_Mean_%d" % i
+        i += 1  
+        roi_df[roi_label] = roi_df[roi_label].astype(float)
+        roi_df[roi_label] = roi_df[roi_label].sub(roi_df[roi_label].mean())
+    
+    model_df = pd.merge(model_df, roi_df, how="inner", on=["Raw_Filepath"])
+    
+    return model_df
+
+
+
+def parse_out_covariates(design_formula):
+
+    patsy_ops = ["~","+","-","*","/",":","**",")","("]
+
+    for op in patsy_ops:
+        if op in design_formula:
+            design_formula = design_formula.replace(op," ")
+
+    words = design_formula.split(" ")
+
+    covariates = [x for x in words if x != ""]
+
+    return covariates
+
+
+
+def split_groups(pheno_df, group_ev, ev_list, cat_list):   
+            
+    import pandas as pd
+        
+    new_ev_list = []
+    new_cat_list = []
+        
+    # map for the .grp file for FLAME
+    idx = 1
+    keymap = {}
+    for val in pheno_df[group_ev]:
+        if val not in keymap.keys():
+            keymap[val] = idx
+            idx += 1
+    grp_vector = list(pheno_df[group_ev].map(keymap))
+            
+    # start the split
+    pheno_df["subject_key"] = pheno_df["Participant"]
+    join_column = ["subject_key"]
+        
+    if "Session" in pheno_df:
+        pheno_df["session_key"] = pheno_df["Session"]
+        join_column.append("session_key")
+            
+    if "Series" in pheno_df:
+        pheno_df["series_key"] = pheno_df["Series"]
+        join_column.append("series_key")
+        
+    group_levels = list(set(pheno_df[group_ev]))
+
+    level_df_list = []
+    for level in group_levels:
+        level_df = pheno_df[pheno_df[group_ev] == level]
+        rename = {}
+        for col in level_df.columns:
+            if (col != group_ev) and (col not in join_column) and (col in ev_list):
+                rename[col] = col + "__FOR_%s::%s" % (group_ev, level)
+                if rename[col] not in new_ev_list:
+                    new_ev_list.append(rename[col])
+                if (col in cat_list) and (rename[col] not in new_cat_list):
+                    new_cat_list.append(rename[col])
+        for other_lev in group_levels:
+            if other_lev != level:
+                for col in level_df.columns:
+                    if (col != group_ev) and (col not in join_column) and (col in ev_list):
+                        newcol = col + "__FOR_%s::%s" % (group_ev, other_lev)
+                        level_df[newcol] = 0
+                        if newcol not in new_ev_list:
+                            ev_list.append(newcol)
+                        if col in cat_list:
+                            if newcol not in cat_list:
+                                cat_list.append(newcol)
+        level_df.rename(columns=rename, inplace=True)
+        level_df_list.append(level_df)
+
+    # get it back into order!
+    pheno_df = pheno_df[join_column].merge(pd.concat(level_df_list), on=join_column)
+    pheno_df = pheno_df.drop(join_column,1)
+
+    return pheno_df, grp_vector, new_ev_list, new_cat_list
+
+
+
+def patsify_design_formula(formula, categorical_list):
+
+    for ev in categorical_list:
+        if ev in formula:
+            new_ev = "C(" + ev + ")"
+            formula = formula.replace(ev, new_ev)
+
+    return formula
+
+
+
+def check_multicollinearity(matrix):
+
+    import numpy as np
+
+    print "\nChecking for multicollinearity in the model.."
+
+    U, s, V = np.linalg.svd(matrix)
+
+    max_singular = np.max(s)
+    min_singular = np.min(s)
+
+    print "Max singular: ", max_singular
+    print "Min singular: ", min_singular
+    print "Rank: ", np.linalg.matrix_rank(matrix), "\n"
+
+    if min_singular == 0:
+
+        print '[!] CPAC warns: Detected multicollinearity in the ' \
+                  'computed group-level analysis model. Please double-' \
+                  'check your model design.\n\n'
+
+    else:
+
+        condition_number = float(max_singular)/float(min_singular)
+        print "Condition number: %f\n\n" % condition_number
+        if condition_number > 30:
+
+            print '[!] CPAC warns: Detected multicollinearity in the ' \
+                      'computed group-level analysis model. Please double-' \
+                      'check your model design.\n\n'
+
+
+
+def process_contrast(parsed_contrast, operator, categorical_list, group_sep, \
+                         grouping_var, coding_scheme):
+
+    # take the contrast strings and process them appropriately
+    #     extract the two separate contrasts (if there are two), and then
+    #     identify which are categorical - adapting the string if so
+
+    parsed_EVs_in_contrast = []
+
+    EVs_in_contrast = parsed_contrast.split(operator)
+
+    if '' in EVs_in_contrast:
+        EVs_in_contrast.remove('')
+
+
+    for EV in EVs_in_contrast:
+
+        skip = 0
+
+        # they need to be put back into Patsy formatted header titles
+        # because the dmatrix gets passed into the function that writes
+        # out the contrast matrix
+        if len(categorical_list) > 0:
+            for cat_EV in categorical_list:
+
+                # second half of this if clause is in case group variances
+                # are being modeled separately, and we don't want the EV
+                # that is the grouping variable (which is now present in
+                # other EV names) to confound this operation
+                if group_sep == True:
+                    gpvar = grouping_var
+                else:
+                    gpvar = "..."
+                    
+                if (cat_EV in EV) and not (gpvar in EV and \
+                    "__" in EV):
+
+                    # handle interactions
+                    if ":" in EV:
+                        temp_split_EV = EV.split(":")
+                        for interaction_EV in temp_split_EV:
+                            if cat_EV in interaction_EV:
+                                current_EV = interaction_EV
+                    else:
+                        current_EV = EV
+
+                    if coding_scheme == 'Treatment':
+                        cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + \
+                                                         ')[T.' + current_EV+\
+                                                             ']')
+
+                    elif coding_scheme == 'Sum':
+                        cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + \
+                                                     ', Sum)[S.' + \
+                                                     current_EV + ']')
+
+                    parsed_EVs_in_contrast.append(cat_EV_contrast)
+                    skip = 1
+                    
+        if skip == 0:
+
+            parsed_EVs_in_contrast.append(EV)
+
+        # handle interactions
+        if ":" in EV and len(parsed_EVs_in_contrast) == 2:
+
+            parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0] + ":" + \
+                                         parsed_EVs_in_contrast[1]]
+
+        if ":" in EV and len(parsed_EVs_in_contrast) == 3:
+
+            parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0], \
+                                      parsed_EVs_in_contrast[1] + ":" + \
+                                      parsed_EVs_in_contrast[2]]
+
+
+    return parsed_EVs_in_contrast
+
+
+
+def positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var):
+
+    import numpy as np
+
+    # this is also where the "Intercept" column gets introduced into
+    # the contrasts columns, for when the user uses the model builder's
+    # contrast builder
+    evs = dmat_col_indexes
+    con = np.zeros(dmat_shape)
+
+    if group_sep == True:
+            
+        if "__" in a and grouping_var in a:
+            ev_desc = a.split("__")
+                    
+            for ev in evs:
+                count = 0
+                for desc in ev_desc:
+                    if desc in ev:
+                        count += 1
+                if count == len(ev_desc):
+                    con[evs[ev]] = 1
+                    break
+                            
+            else:
+                # it is a dropped term so make all other terms in that
+                # category at -1
+                term = a.split('[')[0]
+
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+                                
+        elif len(a.split(grouping_var)) > 2:
+                
+            # this is if the current parsed contrast is the actual
+            # grouping variable, as the Patsified name will have the
+            # variable's name string in it twice
+                    
+            for ev in evs:
+                if a.split(".")[1] in ev:
+                    con[evs[ev]] = 1
+                    break
+            else:
+                # it is a dropped term so make all other terms in that
+                # category at -1
+                term = a.split('[')[0]
+
+                for ev in evs:
+                    if ev.startswith(term):
+                        con[evs[ev]]= -1
+
+    # else not modeling group variances separately
+    else:
+
+        if a in evs:
+            con[evs[a]] = 1
+        else:
+            # it is a dropped term so make all other terms in that category
+            # at -1
+            term = a.split('[')[0]
+
+            for ev in evs:
+                if ev.startswith(term):
+                    con[evs[ev]]= -1
      
+        if coding == "Treatment":     
+            # make Intercept 0
+            con[0] = 0
+        elif coding == "Sum":
+            # make Intercept 1
+            con[1] = 1
 
-    # list of subjects for which paths which DO exist
-    exist_paths = []
-
-    # paths to the actual derivatives for those subjects
-    derivative_paths = []
-    derivative_paths = s_paths
+    return con
 
 
-    z_threshold = float(group_conf.z_threshold[0])
 
-    p_threshold = float(group_conf.p_threshold[0])
+def greater_than(dmat_col_indexes, dmat_shape, a, b, coding, group_sep, grouping_var):
+    c1 = positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var)
+    c2 = positive(dmat_col_indexes, dmat_shape, b, coding, group_sep, grouping_var)
+    return c1-c2
 
+
+
+def negative(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var):
+    con = 0-positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var)
+    return con
+
+
+
+def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
+    dmat_shape, group_sep=None, grouping_var=None, coding_scheme="Treatment"):
+
+    contrasts_dict = {}
+        
+    for contrast in contrasts_list:
+
+        # each 'contrast' is a string the user input of the desired contrast
+
+        # remove all spaces
+        parsed_contrast = contrast.replace(' ', '')
+
+        EVs_in_contrast = []
+        parsed_EVs_in_contrast = []
+
+        if '>' in parsed_contrast:
+
+            parsed_EVs_in_contrast = \
+                process_contrast(parsed_contrast, '>', categorical_list, \
+                                 group_sep, grouping_var, coding_scheme)
+
+            contrasts_dict[parsed_contrast] = \
+                greater_than(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
+                             parsed_EVs_in_contrast[1], coding_scheme, \
+                             group_sep, grouping_var)
+
+
+        elif '<' in parsed_contrast:
+
+            parsed_EVs_in_contrast = \
+                process_contrast(parsed_contrast, '<', categorical_list, \
+                                 group_sep, grouping_var, coding_scheme)
+
+            contrasts_dict[parsed_contrast] = \
+                greater_than(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[1], \
+                             parsed_EVs_in_contrast[0], coding_scheme, \
+                             group_sep, grouping_var)
+
+
+        else:
+
+            contrast_string = parsed_contrast.replace('+',',+,')
+            contrast_string = contrast_string.replace('-',',-,')
+            contrast_items = contrast_string.split(',')
+
+            if '' in contrast_items:
+                contrast_items.remove('')
+
+            if '+' in contrast_items and len(contrast_items) == 2:
+
+                parsed_EVs_in_contrast = \
+                    process_contrast(parsed_contrast, '+', categorical_list, \
+                                     group_sep, grouping_var, coding_scheme)
+
+                contrasts_dict[parsed_contrast] = \
+                    positive(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
+                             coding_scheme, group_sep, grouping_var)
+
+            elif '-' in contrast_items and len(contrast_items) == 2:
+
+                parsed_EVs_in_contrast = \
+                    process_contrast(parsed_contrast, '-', categorical_list, \
+                                     group_sep, grouping_var, coding_scheme)
+
+                contrasts_dict[parsed_contrast] = \
+                    negative(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
+                             coding_scheme, group_sep, grouping_var)
+
+
+            if len(contrast_items) > 2:
+
+                idx = 0
+                for item in contrast_items:
+
+                    # they need to be put back into Patsy formatted header
+                    # titles because the dmatrix gets passed into the function
+                    # that writes out the contrast matrix
+                    if len(categorical_list) > 0:
+                        for cat_EV in categorical_list:
+
+                            if cat_EV in item:
+
+                                if coding_scheme == 'Treatment':
+                                    item = item.replace(item, \
+                                          'C(' + cat_EV + ')[T.' + item + ']')
+
+                                elif coding_scheme == 'Sum':
+                                    item = item.replace(item, \
+                                     'C(' + cat_EV + ', Sum)[S.' + item + ']')
+
+                    if idx == 0:
+
+                        if item != '+' and item != '-':
+
+                            contrast_vector = positive(dmatrix, item)
+
+                            if parsed_contrast not in contrasts_dict.keys():
+                                contrasts_dict[parsed_contrast] = contrast_vector
+                            else:
+                                contrasts_dict[parsed_contrast] += contrast_vector
+
+                    elif idx != 0:
+
+                        if item != '+' and item != '-':
+
+                            if contrast_items[idx-1] == '+':
+
+                                contrast_vector = positive(dmat_col_indexes, dmat_shape, item, \
+                                                    coding_scheme, group_sep,\
+                                                    grouping_var)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+                            if contrast_items[idx-1] == '-':
+
+                                contrast_vector = negative(dmat_col_indexes, dmat_shape, item, \
+                                                    coding_scheme, group_sep,\
+                                                    grouping_var)
+
+                                if parsed_contrast not in contrasts_dict.keys():
+                                    contrasts_dict[parsed_contrast] = contrast_vector
+                                else:
+                                    contrasts_dict[parsed_contrast] += contrast_vector
+
+                    idx += 1        
+
+    return contrasts_dict
+
+
+
+def prep_group_analysis_workflow(model_df, pipeline_config_path, \
+    model_name, group_config_path, resource_id, preproc_strat, \
+    series_or_repeated_label):
+    
+    #
+    # this function runs once per derivative type and preproc strat combo
+    # during group analysis
+    #
+
+    import os
+
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+    import nipype.interfaces.io as nio
+
+    from CPAC.pipeline.new_cpac_group_runner import load_config_yml
+    from CPAC.utils.create_flame_model_files import create_flame_model_files
+
+    pipeline_config_obj = load_config_yml(pipeline_config_path)
+    group_config_obj = load_config_yml(group_config_path)
+
+    pipeline_ID = pipeline_config_obj.pipeline_name
+
+    # remove file names from preproc_strat
+    preproc_strat = preproc_strat.replace(preproc_strat.split("/")[-1],"")
+    preproc_strat = preproc_strat.lstrip("/").rstrip("/")
+
+    # get thresholds
+    z_threshold = float(group_config_obj.z_threshold[0])
+
+    p_threshold = float(group_config_obj.p_threshold[0])
+
+    sub_id_label = group_config_obj.participant_id_label
+
+    ftest_list = []
 
     # determine if f-tests are included or not
-    custom_confile = group_conf.custom_contrasts
+    custom_confile = group_config_obj.custom_contrasts
 
     if ((custom_confile == None) or (custom_confile == '') or \
-            ("None" in custom_confile)):
+            ("None" in custom_confile) or ("none" in custom_confile)):
 
-        if (len(group_conf.f_tests) == 0) or (group_conf.f_tests == None):
+        custom_confile = None
+
+        if (len(group_config_obj.f_tests) == 0) or \
+            (group_config_obj.f_tests == None):
             fTest = False
         else:
             fTest = True
+            ftest_list = group_config_obj.f_tests
 
     else:
 
@@ -90,7 +742,9 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
                      "entered.\n\nFilepath: %s\n\n" % custom_confile
             raise Exception(errmsg)
 
-        evs = open(custom_confile, 'r').readline()
+        with open(custom_confile,"r") as f:
+            evs = f.readline()
+
         evs = evs.rstrip('\r\n').split(',')
         count_ftests = 0
 
@@ -102,325 +756,280 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
 
         if count_ftests > 0:
             fTest = True
-      
-
-    # create the path string for the group analysis output
-    out_dir = os.path.dirname(s_paths[0]).split(p_id[0] + '/')
-    out_dir = os.path.join(group_conf.output_dir, out_dir[1])
-    out_dir = out_dir.replace(s_ids[0], 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
-
-    if (group_conf.repeated_measures == True) and (series_ids[0] != None):
-        out_dir = out_dir.replace(series_ids[0] + "/", "multiple_series")
-
-    model_out_dir = os.path.join(group_conf.output_dir, 'group_analysis_results_%s/_grp_model_%s'%(p_id[0],group_conf.model_name))
-
-    mod_path = os.path.join(model_out_dir, 'model_files')
-
-    if not os.path.isdir(mod_path):
-        os.makedirs(mod_path)
-
-    # current_mod_path = folder under
-    #   "/gpa_output/_grp_model_{model name}/model_files/{current derivative}"
-    current_mod_path = os.path.join(mod_path, resource)
-
-    if not os.path.isdir(current_mod_path):
-        os.makedirs(current_mod_path)
-
-        
-    # write the new participant list
-    new_sublist_columns = new_sublist[0]
-    new_sublist = new_sublist[1:]
-
-    # create new participant list dataframe
-    new_sublist = pd.DataFrame(new_sublist, \
-                               columns=new_sublist_columns)
-
-    new_sub_file = os.path.join(current_mod_path, \
-                                    os.path.basename(group_conf.subject_list))
-
-    with open(new_sub_file, "w") as f:
-        new_sublist.to_csv(f)
 
 
-    group_conf.update('subject_list',new_sub_file)
-    
+    # create path for output directory
+    out_dir = os.path.join(group_config_obj.output_dir, \
+        "group_analysis_results_%s" % pipeline_ID, \
+        "group_model_%s" % model_name, resource_id, \
+        series_or_repeated_label, preproc_strat)
 
-    sub_id_label = group_conf.subject_id_label
-
-
-    # Run 'create_fsl_model' script to extract phenotypic data from
-    # the phenotypic file for each of the subjects in the subject list
-
-    # get the motion statistics parameter file, if present
-    # get the parameter file so it can be passed to create_fsl_model.py
-    # so MeanFD or other measures can be included in the design matrix
-
-    measure_list = ['MeanFD_Power', 'MeanFD_Jenkinson', 'MeanDVARS']
-
-    for measure in measure_list:
-    
-        if (measure in group_conf.design_formula):    
-
-            parameter_file = os.path.join(c.outputDirectory, p_id[0], \
-                                          '%s%s_all_params.csv' % \
-                                          (scan_ids[0].strip('_'),\
-                                          threshold_val))
-
-            if not os.path.exists(parameter_file):
-                print '\n\n[!] CPAC says: Could not find or open the motion ' \
-                      'parameter file. This is necessary if you have included ' \
-                      'any of the MeanFD measures in your group model.\n\n' \
-                      'If Generate Motion Statistics is enabled, this file can ' \
-                      'usually be found in the output directory of your ' \
-                      'individual-level analysis runs. If it is not there, ' \
-                      'double-check to see if individual-level analysis had ' \
-                      'completed successfully.\n'
-                print 'Path not found: ', parameter_file, '\n\n'
-                raise Exception
-                
-            break
-            
-    else:
-    
-        parameter_file = None
-
-
-
-    # path to the pipeline folder to be passed to create_fsl_model.py
-    # so that certain files like output_means.csv can be accessed
-    pipeline_path = os.path.join(c.outputDirectory, p_id[0])
-
-    # the current output that cpac_group_analysis_pipeline.py and
-    # create_fsl_model.py is currently being run for
-    current_output = resource #s_paths[0].replace(pipeline_path, '').split('/')[2]
+    model_path = os.path.join(out_dir, 'model_files')
 
     # generate working directory for this output's group analysis run
-    workDir = '%s/group_analysis/%s/%s' % (c.workingDirectory, group_conf.model_name, resource)
+    work_dir = os.path.join(pipeline_config_obj.workingDirectory, \
+        "group_analysis", model_name, resource_id, series_or_repeated_label, \
+        preproc_strat)
 
-    # s_paths is a list of paths to each subject's derivative (of the current
-    # derivative gpa is being run on) - s_paths_dirList is a list of each directory
-    # in this path separated into list elements
-             
-    # this makes strgy_path basically the directory path of the folders after
-    # the resource/derivative folder level         
-    strgy_path = os.path.dirname(s_paths[0]).split(resource)[1]
+    log_dir = os.path.join(pipeline_config_obj.logDirectory, \
+        "group_analysis", model_name, resource_id, series_or_repeated_label, \
+        preproc_strat)
 
-    # get rid of periods in the path
-    for ch in ['.']:
-        if ch in strgy_path:
-            strgy_path = strgy_path.replace(ch, "")
-                
-    # create nipype-workflow-name-friendly strgy_path
-    # (remove special characters)
-    strgy_path_name = strgy_path.replace('/', "_")
-
-    workDir = workDir + '/' + strgy_path_name
-
-
-
-    # merge the remaining subjects for this current output
-    # then, take the group mask, and iterate over the list of subjects
-    # remaining to extract the mean of each subject using the group
-    # mask
-
-    merge_input = " "
-
-    merge_output_dir = workDir + "/merged_files"
-
-    if not os.path.exists(merge_output_dir):
-        os.makedirs(merge_output_dir)
-
-    merge_output = merge_output_dir + "/" + current_output + "_merged.nii.gz"
-    merge_mask_output = merge_output_dir + "/" + current_output + "_merged_mask.nii.gz"
-
-    # create a string per derivative filled with every subject's path to the
-    # derivative output file
-    for derivative_path in derivative_paths:
-        merge_input = merge_input + " " + derivative_path
-        
-    merge_string = "fslmerge -t %s %s" % (merge_output, merge_input)
-
-    # MERGE the remaining outputs
-    try:
-        commands.getoutput(merge_string)
-    except Exception as e:
-        print "[!] CPAC says: FSL Merge failed for output: %s" % current_output
-        print "Error details: %s\n\n" % e
-        raise
-
-    merge_mask_string = "fslmaths %s -abs -Tmin -bin %s" % (merge_output, merge_mask_output)
-
-    # CREATE A MASK of the merged file
-    try:
-        commands.getoutput(merge_mask_string)
-    except Exception as e:
-        print "[!] CPAC says: FSL Mask failed for output: %s" % current_output
-        print "Error details: %s\n\n" % e
-        raise
-
-
-    derivative_means_dict = {}
-    roi_means_dict = {}
-
-    
-    # CALCULATE THE MEANS of each remaining output using the group mask
-    for derivative_path in derivative_paths:
-
+    # create the actual directories
+    if not os.path.isdir(model_path):
         try:
-            if "Group Mask" in group_conf.mean_mask:
-                maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (merge_mask_output, derivative_path))
-            elif "Individual Mask" in group_conf.mean_mask:
-                maskave_output = commands.getoutput("3dmaskave -mask %s %s" % (derivative_path, derivative_path))
+            os.makedirs(model_path)
         except Exception as e:
-            print "[!] CPAC says: AFNI 3dmaskave failed for output: %s\n" \
-                  "(Measure Mean calculation)" % current_output
-            print "Error details: %s\n\n" % e
-            raise
+            err = "\n\n[!] Could not create the group analysis output " \
+                  "directories.\n\nAttempted directory creation: %s\n\n" \
+                  "Error details: %s\n\n" % (model_path, e)
+            raise Exception(err)
 
-        # get the subject ID of the current derivative path reliably
-        derivative_path_subID = derivative_path.replace(pipeline_path,"").strip("/").split("/")[0]
+    if not os.path.isdir(work_dir):
+        try:
+            os.makedirs(work_dir)
+        except Exception as e:
+            err = "\n\n[!] Could not create the group analysis working " \
+                  "directories.\n\nAttempted directory creation: %s\n\n" \
+                  "Error details: %s\n\n" % (model_path, e)
+            raise Exception(err)
 
-        # this crazy-looking command simply extracts the mean from the
-        # verbose AFNI 3dmaskave output string
-        derivative_means_dict[derivative_path_subID] = maskave_output.split("\n")[-1].split(" ")[0]
-
-        # derivative_means_dict is now something like this:
-        # { 'sub001': 0.3124, 'sub002': 0.2981, .. }
-
- 
-        # if custom ROI means are included in the model, do the same for those
-        if "Custom_ROI_Mean" in group_conf.design_formula:
-
-            try:
-            
-                if "centrality" in derivative_path:
-                
-                    # resample custom roi mask to 3mm, then use that
-                    resampled_roi_mask = merge_output_dir + "/" + current_output + "_resampled_roi_mask.nii.gz"
-                    
-                    commands.getoutput("flirt -in %s -ref %s -o %s -applyxfm -init %s -interp nearestneighbour" % (group_conf.custom_roi_mask, derivative_path, resampled_roi_mask, c.identityMatrix))
-                    
-                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (resampled_roi_mask, derivative_path))
-                    
-                else:    
-                        
-                    ROIstats_output = commands.getoutput("3dROIstats -mask %s %s" % (group_conf.custom_roi_mask, derivative_path))
-                    
-            except Exception as e:
-                print "[!] CPAC says: AFNI 3dROIstats failed for output: %s" \
-                      "\n(Custom ROI Mean calculation)" % current_output
-                print "Error details: %s\n\n" % e
-                raise
-
-            ROIstats_list = ROIstats_output.split("\t")
-
-            # calculate the number of ROIs - 3dROIstats output can be split
-            # into a list, and the actual ROI means begin at a certain point
-            num_rois = (len(ROIstats_list)-3)/2
-
-            roi_means = []
-
-            # create a list of the ROI means - each derivative of each subject
-            # will have N number of ROIs depending on how many ROIs were
-            # specified in the custom ROI mask
-            for num in range(num_rois+3,len(ROIstats_list)):
-
-                roi_means.append(ROIstats_list[num])
+    if not os.path.isdir(log_dir):
+        try:
+            os.makedirs(log_dir)
+        except Exception as e:
+            err = "\n\n[!] Could not create the group analysis logfile " \
+                  "directories.\n\nAttempted directory creation: %s\n\n" \
+                  "Error details: %s\n\n" % (model_path, e)
+            raise Exception(err)
 
 
-            roi_means_dict[derivative_path_subID] = roi_means
+    # create new subject list based on which subjects are left after checking
+    # for missing outputs
+    new_participant_list = []
+    for part in list(model_df["Participant"]):
+        # do this instead of using "set" just in case, to preserve order
+        #   only reason there may be duplicates is because of multiple-series
+        #   repeated measures runs
+        if part not in new_participant_list:
+            new_participant_list.append(part)
 
-        else:
+    new_sub_file = write_new_sub_file(model_path, \
+                                      group_config_obj.participant_list, \
+                                      new_participant_list)
 
-            roi_means_dict = None
+    group_config_obj.update('participant_list',new_sub_file)
 
-
-
-    if len(derivative_means_dict.keys()) == 0:
-        err_string = "[!] CPAC says: Something went wrong with the " \
-                     "calculation of the output means via the group mask.\n\n"
-        raise Exception(err_string)
-                     
-
-
-    # run create_fsl_model.py to generate the group analysis models
-    
-    from CPAC.utils import create_fsl_model
-    create_fsl_model.run(group_conf, current_output, parameter_file, \
-                             derivative_means_dict, roi_means_dict, \
-                                 current_mod_path, True)
+    num_subjects = len(list(model_df["Participant"]))
 
 
-    # begin GA workflow setup
+    # start processing the dataframe further
+    design_formula = group_config_obj.design_formula
 
-    if not os.path.exists(new_sub_file):
-        raise Exception("path to input subject list %s is invalid" % new_sub_file)
-        
-    #if c.mixedScanAnalysis == True:
-    #    wf = pe.Workflow(name = 'group_analysis/%s/grp_model_%s'%(resource, os.path.basename(model)))
-    #else:
+    # demean EVs set for demeaning
+    for demean_EV in group_config_obj.ev_selections["demean"]:
+        model_df[demean_EV] = model_df[demean_EV].astype(float)
+        model_df[demean_EV] = model_df[demean_EV].sub(model_df[demean_EV].mean())
 
-    wf = pe.Workflow(name = resource)
+    # demean the motion params
+    if ("MeanFD" in design_formula) or ("MeanDVARS" in design_formula):
+        params = ["MeanFD_Power", "MeanFD_Jenkinson", "MeanDVARS"]
+        for param in params:
+            model_df[param] = model_df[param].astype(float)
+            model_df[param] = model_df[param].sub(model_df[param].mean())
 
-    wf.base_dir = workDir
-    wf.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-    log_dir = os.path.join(group_conf.output_dir, 'logs', 'group_analysis', resource, 'model_%s' % (group_conf.model_name))
-        
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    # create 4D merged copefile, in the correct order, identical to design
+    # matrix
+    merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
+    merge_outfile = os.path.join(model_path, merge_outfile)
+
+    merge_file = create_merged_copefile(list(model_df["Filepath"]), \
+                                        merge_outfile)
+
+    # create merged group mask
+    if "Group Mask" in group_config_obj.mean_mask:
+        merge_mask_outfile = model_name + "_" + resource_id + \
+                                 "_merged_mask.nii.gz"
+        merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
+        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
     else:
+        #....HOW ARE WE HANDLING INDIVIDUAL MASKS WITH THIS NEW SETUP???....
         pass
 
+    # calculate measure means, and demean
+    if "Measure_Mean" in design_formula:
+        model_df = calculate_measure_mean_in_df(model_df, merge_mask)
 
-    # gp_flow
-    # Extracts the model files (.con, .grp, .mat, .fts) from the model
-    # directory and sends them to the create_group_analysis workflow gpa_wf
+    # calculate custom ROIs, and demean (in workflow?)
+    if "Custom_ROI_Mean" in design_formula:
 
-    gp_flow = create_grp_analysis_dataflow("gp_dataflow_%s" % resource)
-    gp_flow.inputs.inputspec.grp_model = os.path.join(mod_path, current_output)
-    gp_flow.inputs.inputspec.model_name = group_conf.model_name
-    gp_flow.inputs.inputspec.ftest = fTest
-  
+        custom_roi_mask = group_config_obj.custom_roi_mask
+
+        if (custom_roi_mask == None) or (custom_roi_mask == "None") or \
+            (custom_roi_mask == "none") or (custom_roi_mask == ""):
+            err = "\n\n[!] You included 'Custom_ROI_Mean' in your design " \
+                  "formula, but you didn't supply a custom ROI mask file." \
+                  "\n\nDesign formula: %s\n\n" % design_formula
+            raise Exception(err)
+
+        # make sure the custom ROI mask file is the same resolution as the
+        # output files - if not, resample and warn the user
+        roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0], \
+                                              custom_roi_mask, model_path, \
+                                              resource_id)
+
+        # if using group merged mask, trim the custom ROI mask to be within
+        # its constraints
+        if merge_mask:
+            output_mask = os.path.join(model_path, "group_masked_%s" \
+                                       % os.path.basename(roi_mask))
+            roi_mask = trim_mask(roi_mask, merge_mask, output_mask)
+
+        # calculate
+        model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
+
+    cat_list = []
+    if "categorical" in group_config_obj.ev_selections.keys():
+        cat_list = group_config_obj.ev_selections["categorical"]
+
+    # prep design for repeated measures, if applicable
+    if group_config_obj.repeated_sessions:
+        design_formula = design_formula + " + Session"
+        cat_list.append("Session")
+    if group_config_obj.repeated_series:
+        design_formula = design_formula + " + Series"
+        cat_list.append("Series")
+    for col in list(model_df.columns):
+        if "participant_" in col:
+            design_formula = design_formula + " + %s" % col
+            cat_list.append(col)
+
+
+    # parse out the EVs in the design formula at this point in time
+    #   this is essentially a list of the EVs that are to be included
+    ev_list = parse_out_covariates(design_formula)
+
+
+    # SPLIT GROUPS here.
+    #   CURRENT PROBLEMS: was creating a few doubled-up new columns
+
+    if group_config_obj.group_sep:
+        # model group variances separately
+        model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
+                                group_config_obj.grouping_var, \
+                                ev_list, cat_list)
+
+    # prep design formula for Patsy
+    design_formula = patsify_design_formula(design_formula, cat_list)
+
+    # send to Patsy
+    try:
+        dmatrix = patsy.dmatrix(design_formula, model_df)
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with processing the group model "\
+              "design matrix using the Python Patsy package. Patsy might " \
+              "not be properly installed, or there may be an issue with the "\
+              "formatting of the design matrix.\n\nError details: %s\n\n" % e
+        raise Exception(err)
+
+    # check the model for multicollinearity - Patsy takes care of this, but
+    # just in case
+    check_multicollinearity(np.array(dmatrix))
+
+    # prepare for final stages
+    design_matrix = np.array(dmatrix, dtype=np.float16)
+
+    column_names = dmatrix.design_info.column_names
+      
+        
+    # check to make sure there are more time points than EVs!
+    if len(column_names) >= num_subjects:
+        err = "\n\n[!] CPAC says: There are more EVs than there are " \
+              "subjects currently included in the model for %s. There must " \
+              "be more subjects than EVs in the design.\n\nNumber of " \
+              "subjects: %d\nNumber of EVs: %d\n\nNote: An 'Intercept' " \
+              "column gets added to the design as an EV, so there will be " \
+              "one more EV than you may have specified in your design. In " \
+              "addition, if you specified to model group variances " \
+              "separately, an Intercept column will not be included, but " \
+              "the amount of EVs can nearly double once they are split " \
+              "along the grouping variable.\n\n" \
+              "If the number of subjects is lower than the number of " \
+              "subjects in your group analysis subject list, this may be " \
+              "because not every subject in the subject list has an output " \
+              "for %s in the individual-level analysis output directory.\n\n"\
+              % (current_output, num_subjects, len(column_names), \
+              current_output)
+        raise Exception(err)
+
+    # time for contrasts
+    contrasts_dict = None
+
+    if ((custom_confile == None) or (custom_confile == '') or \
+            ("None" in custom_confile) or ("none" in custom_confile)):
+
+        # if no custom contrasts matrix CSV provided (i.e. the user
+        # specified contrasts in the GUI)
+        contrasts_list = group_config_obj.contrasts
+
+        dmat_col_indexes = dmat.design_info.column_name_indexes
+        dmat_shape = dmat.shape[1]
+
+        contrasts_dict = create_contrasts_dict(contrasts_list, cat_list, \
+            dmat_col_indexes, dmat_shape, group_config_obj.group_sep, \
+            group_config_obj.grouping_var, group_config_obj.coding_scheme[0])
+
+
+    # send off the info so the FLAME input model files can be generated!
+    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
+        column_names, contrasts_dict, custom_confile, ftest_list, \
+        group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0], \
+        model_name, resource_id, model_path)
+
+
+    # workflow time
+    wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
+    wf = pe.Workflow(name=wf_name)
+
+    wf.base_dir = work_dir
+    crash_dir = os.path.join(pipeline_config_obj.crashLogDirectory, \
+                             "group_analysis", model_name)
+
+    wf.config['execution'] = {'hash_method': 'timestamp', \
+                              'crashdump_dir': crash_dir} 
 
     # gpa_wf
     # Creates the actual group analysis workflow
+    gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % wf_name)
 
-    gpa_wf = create_group_analysis(fTest, "gp_analysis_%s" % resource)
-
-    gpa_wf.inputs.inputspec.merged_file = merge_output
-    gpa_wf.inputs.inputspec.merge_mask = merge_mask_output
+    gpa_wf.inputs.inputspec.merged_file = merge_file
+    gpa_wf.inputs.inputspec.merge_mask = merge_mask
 
     gpa_wf.inputs.inputspec.z_threshold = z_threshold
     gpa_wf.inputs.inputspec.p_threshold = p_threshold
-    gpa_wf.inputs.inputspec.parameters = (c.FSLDIR, 'MNI152')
-    
-   
-    wf.connect(gp_flow, 'outputspec.mat',
-               gpa_wf, 'inputspec.mat_file')
-    wf.connect(gp_flow, 'outputspec.con',
-               gpa_wf, 'inputspec.con_file')
-    wf.connect(gp_flow, 'outputspec.grp',
-                gpa_wf, 'inputspec.grp_file')
-           
+    gpa_wf.inputs.inputspec.parameters = (pipeline_config_obj.FSLDIR, \
+                                          'MNI152')
+
+    gpa_wf.inputs.inputspec.mat_file = mat_file
+    gpa_wf.inputs.inputspec.con_file = con_file
+    gpa_wf.inputs.inputspec.grp_file = grp_file
+
     if fTest:
-        wf.connect(gp_flow, 'outputspec.fts',
-                   gpa_wf, 'inputspec.fts_file')
-        
+        gpa_wf.inputs.inputspec.fts_file = fts_file      
 
     # ds
     # Creates the datasink node for group analysis
-       
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
      
     if 'sca_roi' in resource:
         out_dir = os.path.join(out_dir, \
-            re.search('sca_roi_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            re.search('sca_roi_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
             
             
     if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource:
         out_dir = os.path.join(out_dir, \
-            re.search('temp_reg_map_z_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            re.search('temp_reg_map_z_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
             
             
     if 'centrality' in resource:
@@ -429,13 +1038,13 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
                  'lfcd_binarize', 'lfcd_weighted']
 
         for name in names:
-            if name in os.path.basename(s_paths[0]):
+            if name in os.path.basename(output_file_list[0]):
                 out_dir = os.path.join(out_dir, name)
                 break
 
     if 'tempreg_maps' in resource:
         out_dir = os.path.join(out_dir, \
-            re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(s_paths[0]))[0])[0]).group(0))
+            re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
         
 #     if c.mixedScanAnalysis == True:
 #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
@@ -453,31 +1062,18 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
    
-    '''
-    if 1 in c.runSymbolicLinks:
-  
-        link_node = pe.MapNode(interface=util.Function(
-                            input_names=['in_file',
-                                        'resource'],
-                                output_names=[],
-                                function=prepare_gp_links),
-                                name='link_gp_', iterfield=['in_file'])
-        link_node.inputs.resource = resource
-        wf.connect(ds, 'out_file', link_node, 'in_file')
-    '''
-    
 
     ########datasink connections#########
-    if fTest:
-        wf.connect(gp_flow, 'outputspec.fts',
-                   ds, 'model_files.@0') 
+    #if fTest:
+    #    wf.connect(gp_flow, 'outputspec.fts',
+    #               ds, 'model_files.@0') 
         
-    wf.connect(gp_flow, 'outputspec.mat',
-               ds, 'model_files.@1' )
-    wf.connect(gp_flow, 'outputspec.con',
-               ds, 'model_files.@2')
-    wf.connect(gp_flow, 'outputspec.grp',
-               ds, 'model_files.@3')
+    #wf.connect(gp_flow, 'outputspec.mat',
+    #           ds, 'model_files.@1' )
+    #wf.connect(gp_flow, 'outputspec.con',
+    #           ds, 'model_files.@2')
+    #wf.connect(gp_flow, 'outputspec.grp',
+    #           ds, 'model_files.@3')
     wf.connect(gpa_wf, 'outputspec.merged',
                ds, 'merged')
     wf.connect(gpa_wf, 'outputspec.zstats',
@@ -512,22 +1108,7 @@ def prep_group_analysis_workflow(c, group_config_file, resource, new_sublist, su
     # Run the actual group analysis workflow
     wf.run()
 
-    '''
-    except:
-
-        print "Error: Group analysis workflow run command did not complete successfully."
-        print "subcount: ", subcount
-        print "pathcount: ", pathcount
-        print "sublist: ", sublist_items
-        print "input subject list: "
-        print "conf: ", conf.subjectListFile
-            
-        raise Exception
-    '''
-    
-    print "**Workflow finished for model %s and resource %s"%(os.path.basename(group_conf.output_dir), resource)
-        
-    #diag.close()
+    print "\n\nWorkflow finished for model %s\n\n" % wf_name
 
 
 
@@ -542,7 +1123,8 @@ def run(config, subject_infos, resource):
     
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
     
-    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), pickle.load(open(subject_infos, 'r')))
+    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), \
+        pickle.load(open(subject_infos, 'r')))
 
 
 
