@@ -30,6 +30,19 @@ def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
 
 
 
+def create_dir(dir_path, description):
+
+    if not os.path.isdir(dir_path):
+        try:
+            os.makedirs(dir_path)
+        except Exception as e:
+            err = "\n\n[!] Could not create the %s directory.\n\n" \
+                  "Attempted directory creation: %s\n\n" \
+                  "Error details: %s\n\n" % (description, dir_path, e)
+            raise Exception(err)
+
+
+
 def create_merged_copefile(list_of_output_files, merged_outfile):
 
     import subprocess
@@ -177,7 +190,7 @@ def trim_mask(input_mask, ref_mask, output_mask_path):
               "the purpose of trimming the custom ROI masks to fit within " \
               "the merged group mask.\n\nCustom ROI mask file: %s\n\nMerged "\
               "group mask file: %s\n\nError details: %s\n\n" \
-              % (roi_mask, merge_mask, e)
+              % (input_mask, ref_mask, e)
         raise Exception(err)
 
     return output_mask_path
@@ -692,21 +705,24 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     #
 
     import os
+    import patsy
+    import numpy as np
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
     import nipype.interfaces.io as nio
 
-    from CPAC.pipeline.new_cpac_group_runner import load_config_yml
+    from CPAC.pipeline.cpac_group_runner import load_config_yml
     from CPAC.utils.create_flame_model_files import create_flame_model_files
 
     pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_path)
 
-    pipeline_ID = pipeline_config_obj.pipeline_name
+    pipeline_ID = pipeline_config_obj.pipelineName
 
     # remove file names from preproc_strat
-    preproc_strat = preproc_strat.replace(preproc_strat.split("/")[-1],"")
+    filename = preproc_strat.split("/")[-1]
+    preproc_strat = preproc_strat.replace(filename,"")
     preproc_strat = preproc_strat.lstrip("/").rstrip("/")
 
     # get thresholds
@@ -764,44 +780,50 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         "group_model_%s" % model_name, resource_id, \
         series_or_repeated_label, preproc_strat)
 
+    if 'sca_roi' in resource_id:
+        out_dir = os.path.join(out_dir, \
+            re.search('sca_roi_(\d)+',os.path.splitext(\
+                os.path.splitext(os.path.basename(\
+                    model_df["Filepath"][0]))[0])[0]).group(0))
+            
+    if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource_id:
+        out_dir = os.path.join(out_dir, \
+            re.search('temp_reg_map_z_(\d)+',os.path.splitext(\
+                os.path.splitext(os.path.basename(\
+                    model_df["Filepath"][0]))[0])[0]).group(0))
+            
+    if 'centrality' in resource_id:
+        names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+                 'eigenvector_centrality_binarize', \
+                 'eigenvector_centrality_weighted', \
+                 'lfcd_binarize', 'lfcd_weighted']
+
+        for name in names:
+            if name in filename:
+                out_dir = os.path.join(out_dir, name)
+                break
+
+    if 'tempreg_maps' in resource_id:
+        out_dir = os.path.join(out_dir, re.search('\w*[#]*\d+', \
+            os.path.splitext(os.path.splitext(os.path.basename(\
+                model_df["Filepath"][0]))[0])[0]).group(0))
+
     model_path = os.path.join(out_dir, 'model_files')
+
+    second_half_out = \
+        out_dir.split("group_analysis_results_%s" % pipeline_ID)[1]
 
     # generate working directory for this output's group analysis run
     work_dir = os.path.join(pipeline_config_obj.workingDirectory, \
-        "group_analysis", model_name, resource_id, series_or_repeated_label, \
-        preproc_strat)
+        "group_analysis", second_half_out.lstrip("/"))
 
     log_dir = os.path.join(pipeline_config_obj.logDirectory, \
-        "group_analysis", model_name, resource_id, series_or_repeated_label, \
-        preproc_strat)
+        "group_analysis", second_half_out.lstrip("/"))       
 
     # create the actual directories
-    if not os.path.isdir(model_path):
-        try:
-            os.makedirs(model_path)
-        except Exception as e:
-            err = "\n\n[!] Could not create the group analysis output " \
-                  "directories.\n\nAttempted directory creation: %s\n\n" \
-                  "Error details: %s\n\n" % (model_path, e)
-            raise Exception(err)
-
-    if not os.path.isdir(work_dir):
-        try:
-            os.makedirs(work_dir)
-        except Exception as e:
-            err = "\n\n[!] Could not create the group analysis working " \
-                  "directories.\n\nAttempted directory creation: %s\n\n" \
-                  "Error details: %s\n\n" % (model_path, e)
-            raise Exception(err)
-
-    if not os.path.isdir(log_dir):
-        try:
-            os.makedirs(log_dir)
-        except Exception as e:
-            err = "\n\n[!] Could not create the group analysis logfile " \
-                  "directories.\n\nAttempted directory creation: %s\n\n" \
-                  "Error details: %s\n\n" % (model_path, e)
-            raise Exception(err)
+    create_dir(model_path, "group analysis output")
+    create_dir(work_dir, "group analysis working")
+    create_dir(log_dir, "group analysis logfile")
 
 
     # create new subject list based on which subjects are left after checking
@@ -914,6 +936,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns
 
+    grp_vector = [1] * num_subjects
+
     if group_config_obj.group_sep:
         # model group variances separately
         model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
@@ -973,8 +997,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
 
-        dmat_col_indexes = dmat.design_info.column_name_indexes
-        dmat_shape = dmat.shape[1]
+        dmat_col_indexes = dmatrix.design_info.column_name_indexes
+        dmat_shape = dmatrix.shape[1]
 
         contrasts_dict = create_contrasts_dict(contrasts_list, cat_list, \
             dmat_col_indexes, dmat_shape, group_config_obj.group_sep, \
@@ -1022,32 +1046,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # Creates the datasink node for group analysis
     ds = pe.Node(nio.DataSink(), name='gpa_sink')
      
-    if 'sca_roi' in resource:
-        out_dir = os.path.join(out_dir, \
-            re.search('sca_roi_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
-            
-            
-    if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource:
-        out_dir = os.path.join(out_dir, \
-            re.search('temp_reg_map_z_(\d)+',os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
-            
-            
-    if 'centrality' in resource:
-        names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
-                 'eigenvector_centrality_binarize', 'eigenvector_centrality_weighted', \
-                 'lfcd_binarize', 'lfcd_weighted']
-
-        for name in names:
-            if name in os.path.basename(output_file_list[0]):
-                out_dir = os.path.join(out_dir, name)
-                break
-
-    if 'tempreg_maps' in resource:
-        out_dir = os.path.join(out_dir, \
-            re.search('\w*[#]*\d+', os.path.splitext(os.path.splitext(os.path.basename(output_file_list[0]))[0])[0]).group(0))
-        
-#     if c.mixedScanAnalysis == True:
-#         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
+    #     if c.mixedScanAnalysis == True:
+    #         out_dir = re.sub(r'(\w)*scan_(\w)*(\d)*(\w)*[/]', '', out_dir)
               
     ds.inputs.base_directory = out_dir
     ds.inputs.container = ''

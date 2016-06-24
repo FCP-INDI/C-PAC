@@ -1,4 +1,13 @@
 
+def create_dummy_string(length):
+    ppstring = ""
+    for i in range(0, length):
+        ppstring += '\t' + '%1.5e' %(1.0)
+    ppstring += '\n' 
+    return ppstring
+
+
+
 def write_mat_file(design_matrix, output_dir, model_name, \
                        depatsified_EV_names, current_output=None):
 
@@ -53,8 +62,7 @@ def write_mat_file(design_matrix, output_dir, model_name, \
 
 
 
-def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
-                        model_name, current_output=None):
+def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
 
     import os
     import numpy as np
@@ -68,33 +76,16 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
     else:
         dimx, dimy = design_matrix.shape
 
-    design_matrix_ones = np.ones(dimx)
+    filename = "grouping.grp"
 
-    if not (grouping_var_id_dict == None):
-        i = 1
-        for key in sorted(grouping_var_id_dict.keys()):
-
-            for index in grouping_var_id_dict[key]:
-                design_matrix_ones[index] = i
-
-            i += 1
-
-
-    filename = model_name + ".grp"
-
-    out_file = os.path.join(output_dir, filename)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
+    out_file = os.path.join(output_dir, model_name + ".grp")
 
     with open(out_file, "wt") as f:
 
         print >>f, '/NumWaves\t1'
         print >>f, '/NumPoints\t%d\n' %dimx
         print >>f, '/Matrix'
-        np.savetxt(f, design_matrix_ones, fmt='%d', delimiter='\t')
-
-    return out_file
+        np.savetxt(f, grp_file_vector, fmt='%d', delimiter='\t')
 
 
 
@@ -397,11 +388,11 @@ def create_flame_model_files(design_matrix, col_names, contrasts_dict, \
 	custom_contrasts_csv, ftest_list, group_sep, grouping_vector, \
 	coding_scheme, model_name, output_measure, output_dir):
 
-	mat_file = write_mat_file(design_matrix, output_dir, model_name, \
-		col_names, output_measure)
+    mat_file = write_mat_file(design_matrix, output_dir, model_name, \
+        col_names, output_measure)
 
-	grp_file = create_grp_file(design_matrix, grouping_vector, output_dir, \
-        model_name, output_measure)
+    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir, \
+        model_name)
 
     if contrasts_dict:
         con_file = create_con_file(contrasts_dict, col_names, model_name, \
@@ -413,10 +404,10 @@ def create_flame_model_files(design_matrix, col_names, contrasts_dict, \
         else:
             fts_file = None
 
-	elif custom_contrasts_csv:
+    elif custom_contrasts_csv:
         con_file, fts_file = create_con_ftst_file(custom_contrasts_csv, \
-        	model_name, output_measure, output_dir, col_names, coding_scheme,\
-        	group_sep)
+            model_name, output_measure, output_dir, col_names, coding_scheme,\
+            group_sep)
 
     return mat_file, grp_file, con_file, fts_file
 
