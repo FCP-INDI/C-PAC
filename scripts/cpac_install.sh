@@ -167,7 +167,7 @@ apt-get autoremove -y
 if [ -d ~/.matplotlib ]; then
     chmod -R 777 ~/.matplotlib
 fi
-if [ -d ~/.config/matlplotlib ]; then
+if [ -d ~/.config/matplotlib ]; then
     chmod -R 777 ~/.config/matplotlib
 fi
 exit
