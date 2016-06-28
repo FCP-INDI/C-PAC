@@ -459,7 +459,7 @@ class Control(wx.Control):
     
         import ast
 
-        if val == None or val =="":
+        if (val == None) or (val =="") or (val == "None") or (val == "none"):
             val = self.get_values()
         else:
             if self.get_type()==7:

@@ -52,8 +52,8 @@ class ModelDesign(wx.Frame):
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
         
-        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
             errSubID = wx.MessageDialog(
                 self, 'Please enter the name of the subject ID column' \
@@ -417,7 +417,7 @@ class ModelDesign(wx.Frame):
                                 'CPAC subject list (see template_' \
                                 'phenotypic.csv).'))
 
-        config_list.append(('subject_id_label', vals['subject_id_label'], 1, \
+        config_list.append(('participant_id_label', vals['participant_id_label'], 1, \
                                 'Name of the subjects column in your EV ' \
                                 'file.'))
 
@@ -466,7 +466,7 @@ class ModelDesign(wx.Frame):
                                 "Choose the derivatives to run the group " \
                                 "model on.\n\nThese must be written out " \
                                 "as a list, and must be one of the options " \
-                                "listed below.\n\nFor z-scored analyses:\n" \
+                                "listed below.\n\n" \
                                 "'alff_to_standard_zstd', " \
                                 "'alff_to_standard_smooth_zstd', " \
                                 "'falff_to_standard_zstd', " \
@@ -485,23 +485,6 @@ class ModelDesign(wx.Frame):
                                 "'sca_tempreg_maps_zstat_files_smooth', " \
                                 "'centrality_outputs_zstd', " \
                                 "'centrality_outputs_smoothed_zstd'\n\n" \
-                                "For raw (non-z-scored) analyses:\n" \
-                                "'alff_to_standard', " \
-                                "'alff_to_standard_smooth', " \
-                                "'falff_to_standard', " \
-                                "'falff_to_standard_smooth', " \
-                                "'reho_to_standard', " \
-                                "'reho_to_standard_smooth', " \
-                                "'sca_roi_to_standard', " \
-                                "'sca_roi_to_standard_smooth', " \
-                                "'sca_seed_to_standard', " \
-                                "'sca_seed_to_standard_smooth', " \
-                                "'centrality_outputs', " \
-                                "'centrality_outputs_smoothed', " \
-                                "'dr_tempreg_maps_files_to_standard', " \
-                                "'dr_tempreg_maps_files_to_standard_smooth', " \
-                                "'sca_tempreg_maps_files', " \
-                                "'sca_tempreg_maps_files_smooth'\n\n" \
                                 "Example input: derivative_list :  ['alff_to" \
                                 "_standard_smooth_zstd', 'sca_roi_to_" \
                                 "standard_smooth_fisher_zstd']\n"))
@@ -537,11 +520,17 @@ class ModelDesign(wx.Frame):
                                 'when doing cluster correction for multiple ' \
                                 'comparisons.'))
 
-        config_list.append(('repeated_measures', vals['repeated_measures'], 0, \
-                                'Run repeated measures to compare different ' \
-                                'scans (must use the group analysis subject ' \
-                                'list and phenotypic file formatted for ' \
-                                'repeated measures.'))
+        config_list.append(('sessions_list', vals['sessions_list'], 8, \
+                                'For repeated measures only. This is a list '\
+                                'of session names that you wish to include ' \
+                                'in a single model to run repeated measures '\
+                                'or within-subject analysis.'))
+
+        config_list.append(('series_list', vals['series_list'], 8, \
+                                'For repeated measures only. This is a list '\
+                                'of series/scan names that you wish to ' \
+                                'include in a single model to run repeated ' \
+                                'measures or within-subject analysis.'))
 
         config_list.append(('contrasts', vals['contrasts'], 8, \
                                 'A list of contrast descriptions.'))

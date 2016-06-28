@@ -123,7 +123,50 @@ class CheckBox(wx.Frame):
                     val = sel
             parent.listbox.Append(val)
             self.Close()
+
+
+
+class StringBoxFrame(wx.Frame):
+
+    def __init__(self, parent, values, title, label):
+
+        wx.Frame.__init__(self, parent, title=title, \
+                size = (300,80))
         
+        self.values = values
+
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+        
+        label1 = wx.StaticText(panel, -1, label=label)
+        self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, size=(200,-1))
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)      
+        
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+
+    def onButtonClick(self,event):
+        parent = self.Parent
+        if self.box1.GetCheckedStrings():
+            val=""
+            for sel in self.box1.GetCheckedStrings():
+                if val:
+                    val = val+ "," + sel
+                else:
+                    val = sel
+            parent.listbox.Append(val)
+            self.Close()
+
 
 
 class TextBoxFrame(wx.Frame):
@@ -412,7 +455,11 @@ class ContrastsFrame(wx.Frame):
 
             for contrast in contrasts_in_string:
 
-                if contrast not in self.avail_cons:
+                # for non-Contrasts use of the Listbox control
+                if self.avail_cons == None:
+                    pass
+
+                elif contrast not in self.avail_cons:
 
                     errmsg = 'CPAC says: The contrast \'%s\' you ' \
                         'entered within the string \'%s\' is not ' \
@@ -632,6 +679,11 @@ class ListBoxCombo(wx.Panel):
             else:
 
                 f_test_frame(self, input_contrasts)
+        elif self.ctype == 6:
+            # because we need a nice generic configurable checkbox list...
+            StringBoxFrame(self, self.values, "Add Session Name", "Session")
+        elif self.ctype == 7:
+            StringBoxFrame(self, self.values, "Add Series Name", "Series")
 
         
     def GetListBoxCtrl(self):
