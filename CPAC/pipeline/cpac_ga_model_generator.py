@@ -61,6 +61,36 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
               % (merged_outfile, len(list_of_output_files), e)
         raise Exception(err)
 
+    # make sure the order is correct
+    i = 0
+    for output_file in list_of_output_files:
+        test_string = ["3ddot", "-demean", output_file, \
+            merged_outfile + "[" + str(i) + "]"]
+
+        try:
+            retcode = subprocess.check_output(test_string)
+        except Exception as e:
+            err = "\n\n[!] Something went wrong while trying to run AFNI's " \
+                  "3ddot for the purpose of testing the merge file output." \
+                  "\n\nError details: %s\n\n" % e
+            raise Exception(err)
+
+        retcode = retcode.rstrip("\n").rstrip("\t")
+
+        if retcode != "1":
+            err = "\n\n[!] The volumes of the merged file do not correspond "\
+                  "to the correct order of output files as described in the "\
+                  "phenotype matrix. If you are seeing this error, " \
+                  "something possibly went wrong with FSL's fslmerge.\n\n" \
+                  "Merged file: %s\n\nMismatch between merged file volume " \
+                  "%d and derivative file %s\n\nEach volume should " \
+                  "correspond to the derivative output file for each " \
+                  "participant in the model.\n\n" \
+                  % (merged_outfile, i, output_file)
+            raise Exception(err)
+
+        i += 1
+
     return merged_outfile
 
 
@@ -399,318 +429,14 @@ def check_multicollinearity(matrix):
 
 
 
-def process_contrast(parsed_contrast, operator, categorical_list, group_sep, \
-                         grouping_var, coding_scheme):
-
-    # take the contrast strings and process them appropriately
-    #     extract the two separate contrasts (if there are two), and then
-    #     identify which are categorical - adapting the string if so
-
-    parsed_EVs_in_contrast = []
-
-    EVs_in_contrast = parsed_contrast.split(operator)
-
-    if '' in EVs_in_contrast:
-        EVs_in_contrast.remove('')
-
-
-    for EV in EVs_in_contrast:
-
-        skip = 0
-
-        # they need to be put back into Patsy formatted header titles
-        # because the dmatrix gets passed into the function that writes
-        # out the contrast matrix
-        if len(categorical_list) > 0:
-            for cat_EV in categorical_list:
-
-                # second half of this if clause is in case group variances
-                # are being modeled separately, and we don't want the EV
-                # that is the grouping variable (which is now present in
-                # other EV names) to confound this operation
-                if group_sep == True:
-                    gpvar = grouping_var
-                else:
-                    gpvar = "..."
-                    
-                if (cat_EV in EV) and not (gpvar in EV and \
-                    "__" in EV):
-
-                    # handle interactions
-                    if ":" in EV:
-                        temp_split_EV = EV.split(":")
-                        for interaction_EV in temp_split_EV:
-                            if cat_EV in interaction_EV:
-                                current_EV = interaction_EV
-                    else:
-                        current_EV = EV
-
-                    if coding_scheme == 'Treatment':
-                        cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + \
-                                                         ')[T.' + current_EV+\
-                                                             ']')
-
-                    elif coding_scheme == 'Sum':
-                        cat_EV_contrast = EV.replace(EV, 'C(' + cat_EV + \
-                                                     ', Sum)[S.' + \
-                                                     current_EV + ']')
-
-                    parsed_EVs_in_contrast.append(cat_EV_contrast)
-                    skip = 1
-                    
-        if skip == 0:
-
-            parsed_EVs_in_contrast.append(EV)
-
-        # handle interactions
-        if ":" in EV and len(parsed_EVs_in_contrast) == 2:
-
-            parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0] + ":" + \
-                                         parsed_EVs_in_contrast[1]]
-
-        if ":" in EV and len(parsed_EVs_in_contrast) == 3:
-
-            parsed_EVs_in_contrast = [parsed_EVs_in_contrast[0], \
-                                      parsed_EVs_in_contrast[1] + ":" + \
-                                      parsed_EVs_in_contrast[2]]
-
-
-    return parsed_EVs_in_contrast
-
-
-
-def positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var):
-
-    import numpy as np
-
-    # this is also where the "Intercept" column gets introduced into
-    # the contrasts columns, for when the user uses the model builder's
-    # contrast builder
-    evs = dmat_col_indexes
-    con = np.zeros(dmat_shape)
-
-    if group_sep == True:
-            
-        if "__" in a and grouping_var in a:
-            ev_desc = a.split("__")
-                    
-            for ev in evs:
-                count = 0
-                for desc in ev_desc:
-                    if desc in ev:
-                        count += 1
-                if count == len(ev_desc):
-                    con[evs[ev]] = 1
-                    break
-                            
-            else:
-                # it is a dropped term so make all other terms in that
-                # category at -1
-                term = a.split('[')[0]
-
-                for ev in evs:
-                    if ev.startswith(term):
-                        con[evs[ev]]= -1
-                                
-        elif len(a.split(grouping_var)) > 2:
-                
-            # this is if the current parsed contrast is the actual
-            # grouping variable, as the Patsified name will have the
-            # variable's name string in it twice
-                    
-            for ev in evs:
-                if a.split(".")[1] in ev:
-                    con[evs[ev]] = 1
-                    break
-            else:
-                # it is a dropped term so make all other terms in that
-                # category at -1
-                term = a.split('[')[0]
-
-                for ev in evs:
-                    if ev.startswith(term):
-                        con[evs[ev]]= -1
-
-    # else not modeling group variances separately
-    else:
-
-        if a in evs:
-            con[evs[a]] = 1
-        else:
-            # it is a dropped term so make all other terms in that category
-            # at -1
-            term = a.split('[')[0]
-
-            for ev in evs:
-                if ev.startswith(term):
-                    con[evs[ev]]= -1
-     
-        if coding == "Treatment":
-            # make Intercept 0
-            con[0] = 0
-        elif coding == "Sum":
-            # make Intercept 1
-            con[1] = 1
-        print con
-    return con
-
-
-
-def greater_than(dmat_col_indexes, dmat_shape, a, b, coding, group_sep, grouping_var):
-    c1 = positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var)
-    c2 = positive(dmat_col_indexes, dmat_shape, b, coding, group_sep, grouping_var)
-    return c1-c2
-
-
-
-def negative(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var):
-    con = 0-positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var)
-    return con
-
-
-
-def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
-    dmat_shape, group_sep=None, grouping_var=None, coding_scheme="Treatment"):
+def create_contrasts_dict(dmatrix_obj, contrasts_list):
 
     contrasts_dict = {}
-    print contrasts_list
-    for contrast in contrasts_list:
 
-        # each 'contrast' is a string the user input of the desired contrast
-
-        # remove all spaces
-        parsed_contrast = contrast.replace(' ', '')
-
-        EVs_in_contrast = []
-        parsed_EVs_in_contrast = []
-
-        if '>' in parsed_contrast:
-
-            # puts each individual EV back into Patsy format
-            parsed_EVs_in_contrast = \
-                process_contrast(parsed_contrast, '>', categorical_list, \
-                                 group_sep, grouping_var, coding_scheme)
-            print "parsed EVs: ", parsed_EVs_in_contrast
-            print "dmat_col_indexes: ", dmat_col_indexes
-
-            ''' just use the dmat_col_indexes... '''
-
-            contrasts_dict[parsed_contrast] = \
-                greater_than(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
-                             parsed_EVs_in_contrast[1], coding_scheme, \
-                             group_sep, grouping_var)
-
-
-        elif '<' in parsed_contrast:
-
-            parsed_EVs_in_contrast = \
-                process_contrast(parsed_contrast, '<', categorical_list, \
-                                 group_sep, grouping_var, coding_scheme)
-
-            contrasts_dict[parsed_contrast] = \
-                greater_than(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[1], \
-                             parsed_EVs_in_contrast[0], coding_scheme, \
-                             group_sep, grouping_var)
-
-
-        else:
-
-            contrast_string = parsed_contrast.replace('+',',+,')
-            contrast_string = contrast_string.replace('-',',-,')
-            contrast_items = contrast_string.split(',')
-
-            if '' in contrast_items:
-                contrast_items.remove('')
-
-            if '+' in contrast_items and len(contrast_items) == 2:
-
-                parsed_EVs_in_contrast = \
-                    process_contrast(parsed_contrast, '+', categorical_list, \
-                                     group_sep, grouping_var, coding_scheme)
-
-                contrasts_dict[parsed_contrast] = \
-                    positive(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
-                             coding_scheme, group_sep, grouping_var)
-
-            elif '-' in contrast_items and len(contrast_items) == 2:
-
-                parsed_EVs_in_contrast = \
-                    process_contrast(parsed_contrast, '-', categorical_list, \
-                                     group_sep, grouping_var, coding_scheme)
-
-                contrasts_dict[parsed_contrast] = \
-                    negative(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
-                             coding_scheme, group_sep, grouping_var)
-
-            if len(contrast_items) > 2:
-
-                idx = 0
-                for item in contrast_items:
-
-                    # they need to be put back into Patsy formatted header
-                    # titles because the dmatrix gets passed into the function
-                    # that writes out the contrast matrix
-                    if len(categorical_list) > 0:
-                        for cat_EV in categorical_list:
-
-                            if cat_EV in item:
-
-                                if coding_scheme == 'Treatment':
-                                    if "T." in item:
-                                        item = item.replace(item, \
-                                          'C(' + cat_EV + ')[T.' + item + ']')
-                                    else:
-                                        item = item.replace(item, \
-                                          'C(' + cat_EV + ')[' + item + ']')                                 
-
-                                elif coding_scheme == 'Sum':
-                                    if "S." in item:
-                                        item = item.replace(item, \
-                                            'C(' + cat_EV + ', Sum)[S.' + \
-                                            item + ']')
-                                    else:
-                                        item = item.replace(item, \
-                                            'C(' + cat_EV + ')[' + \
-                                            item + ']')
-
-                    if idx == 0:
-
-                        if item != '+' and item != '-':
-
-                            contrast_vector = positive(dmatrix, item)
-
-                            if parsed_contrast not in contrasts_dict.keys():
-                                contrasts_dict[parsed_contrast] = contrast_vector
-                            else:
-                                contrasts_dict[parsed_contrast] += contrast_vector
-
-                    elif idx != 0:
-
-                        if item != '+' and item != '-':
-
-                            if contrast_items[idx-1] == '+':
-
-                                contrast_vector = positive(dmat_col_indexes, dmat_shape, item, \
-                                                    coding_scheme, group_sep,\
-                                                    grouping_var)
-
-                                if parsed_contrast not in contrasts_dict.keys():
-                                    contrasts_dict[parsed_contrast] = contrast_vector
-                                else:
-                                    contrasts_dict[parsed_contrast] += contrast_vector
-
-                            if contrast_items[idx-1] == '-':
-
-                                contrast_vector = negative(dmat_col_indexes, dmat_shape, item, \
-                                                    coding_scheme, group_sep,\
-                                                    grouping_var)
-
-                                if parsed_contrast not in contrasts_dict.keys():
-                                    contrasts_dict[parsed_contrast] = contrast_vector
-                                else:
-                                    contrasts_dict[parsed_contrast] += contrast_vector
-
-                    idx += 1        
+    for con_equation in contrasts_list:
+        lincon = dmatrix_obj.design_info.linear_constraint(str(con_equation))
+        con_vec = lincon.coefs[0]
+        contrasts_dict[con_equation] = con_vec
 
     return contrasts_dict
 
@@ -735,6 +461,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     from CPAC.pipeline.cpac_group_runner import load_config_yml
     from CPAC.utils.create_flame_model_files import create_flame_model_files
+    from CPAC.utils.create_group_analysis_info_files import write_design_matrix_csv
 
     pipeline_config_obj = load_config_yml(pipeline_config_path)
     group_config_obj = load_config_yml(group_config_path)
@@ -1007,13 +734,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
               "participants currently included in the model for %s. There " \
               "must be more participants than EVs in the design.\n\nNumber " \
               "of participants: %d\nNumber of EVs: %d\n\nEV/covariate list: "\
-              "%s\n\nNote: An " \
-              "'Intercept' column gets added to the design as an EV, so " \
-              "there will be one more EV than you may have specified in " \
-              "your design. In addition, if you specified to model group " \
-              "variances separately, an Intercept column will not be " \
-              "included, but the amount of EVs can nearly double once they " \
-              "are split along the grouping variable.\n\n" \
+              "%s\n\nNote: If you specified to model group " \
+              "variances separately, the amount of EVs can nearly double " \
+              "once they are split along the grouping variable.\n\n" \
               "If the number of subjects is lower than the number of " \
               "subjects in your group analysis subject list, this may be " \
               "because not every subject in the subject list has an output " \
@@ -1031,19 +754,16 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
-
-        contrasts_dict = {}
-
-        for con_equation in contrasts_list:
-            lincon = dmatrix.design_info.linear_constraint(str(con_equation))
-            con_vec = lincon.coefs[0]
-            contrasts_dict[con_equation] = con_vec
+        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list)
 
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
         column_names, contrasts_dict, custom_confile, ftest_list, \
         group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0], \
         model_name, resource_id, model_path)
+
+    dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
+    write_design_matrix_csv(model_df, dmat_csv_path)
 
     # workflow time
     wf_name = "%s_%s" % (resource_id, series_or_repeated_label)
