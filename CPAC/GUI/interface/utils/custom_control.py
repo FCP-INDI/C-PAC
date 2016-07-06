@@ -157,14 +157,8 @@ class StringBoxFrame(wx.Frame):
 
     def onButtonClick(self,event):
         parent = self.Parent
-        if self.box1.GetCheckedStrings():
-            val=""
-            for sel in self.box1.GetCheckedStrings():
-                if val:
-                    val = val+ "," + sel
-                else:
-                    val = sel
-            parent.listbox.Append(val)
+        if self.box1.GetValue():
+            parent.listbox.Append(self.box1.GetValue())
             self.Close()
 
 
@@ -386,7 +380,6 @@ class ConfigFslFrame(wx.Frame):
 
     def onOK(self, event):
         parent = self.Parent
-        print parent
         if self.box2.GetValue():
             val = str(self.box2.GetValue())
             parent.listbox.Append(val)

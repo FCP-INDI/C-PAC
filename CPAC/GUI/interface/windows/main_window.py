@@ -236,7 +236,7 @@ class ListBox(wx.Frame):
                            'callback_log' : log_nodes_cb}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
-                                          plugin='ResourceMultiProc',
+                                          plugin='MultiProc',
                                           plugin_args=plugin_args)
         
         except ImportError, e:
@@ -754,7 +754,7 @@ class runCPAC(wx.Frame):
  
         log.AppendText("running for pipeline --> %s \n"%p)
         log.AppendText("pipeline config --> %s \n"%pipeline)
-        log.AppendText("subject list --> %s \n"%sublist)
+        log.AppendText("participant list --> %s \n"%sublist)
         log.AppendText("process ids ---> %s \n"%pid)
 
        

@@ -65,7 +65,6 @@ class ModelDesign(wx.Frame):
             raise Exception
         
 
-
         # build 'Available contrasts' string
         contrasts_text = 'Available EVs for contrasts:\n'
 
@@ -323,36 +322,6 @@ class ModelDesign(wx.Frame):
 
 
 
-    '''
-    def get_custom_contrasts(self.window):
-
-        self.collect_input()
-
-        confilepath = self.gpa_settings['custom_contrasts']
-
-        con_names = []
-
-        if (confilepath != None) or (confilepath != '') or \
-            ("None" not in confilepath):
-
-            if os.path.exists(confilepath):
-
-                confile = open(confilepath, 'rb')
-
-                for con in confile.readlines():
-
-                    con_names.append(con.split(",")[0])
-
-                # get rid of "Contrasts" header label that came from the first
-                # row in the file (if formatted properly)
-                del con_names[0]
-
-        return con_names
-    '''
-
-
-
-
     def back(self, event):
 
         self.collect_input()
@@ -375,13 +344,6 @@ class ModelDesign(wx.Frame):
         '''
 
 
-
-    def collect_contrasts(self):
-        pass
-
-
-
-
     def save(self, event, flag):
 
         # runs when user clicks 'Save Settings', saves a YAML (.yml/.yaml)
@@ -395,7 +357,7 @@ class ModelDesign(wx.Frame):
 
         vals = self.gpa_settings
 
-        config_list.append(('subject_list', vals['subject_list'], 1, \
+        config_list.append(('participant_list', vals['participant_list'], 1, \
                                 'Full path to a list of subjects to be ' \
                                 'included in the model.\n\nThis should be ' \
                                 'a text file with one subject per line.\n' \
@@ -456,11 +418,6 @@ class ModelDesign(wx.Frame):
                                 'in the mask file) if you include ' \
                                 '\'Custom_ROI_Mean\' in the Design Matrix ' \
                                 'Formula.'))
-
-        config_list.append(('use_zscore', vals['use_zscore'], 0, \
-                                'Run the group analysis model on the ' \
-                                'z-score standardized version of the ' \
-                                'derivatives you choose in the list below.'))
 
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
                                 "Choose the derivatives to run the group " \
@@ -567,7 +524,6 @@ class ModelDesign(wx.Frame):
                                 'Full path to the directory where CPAC ' \
                                 'should place model files.'))
             
-
 
         try:
 

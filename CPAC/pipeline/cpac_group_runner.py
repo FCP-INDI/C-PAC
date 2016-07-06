@@ -593,20 +593,33 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
             new_pheno_df = pheno_df.copy()
             
-            if group_model.repeated_measures == True:
+            repeated_measures = False
+            repeated_sessions = False
+            repeated_series = False
 
-                if group_model.repeated_sessions == True:
+            if len(group_model.sessions_list) > 0:
+                repeated_sessions = True
+
+            if len(group_model.series_list) > 0:
+                repeated_series = True
+
+            if repeated_sessions or repeated_series:
+                repeated_measures = True
+
+            if repeated_measures == True:
+
+                if repeated_sessions == True:
                     new_pheno_df = pheno_sessions_to_repeated_measures( \
                                        new_pheno_df, \
                                        group_model.sessions_list)
 
                 # create new rows for all of the series, if applicable
                 #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
-                if group_model.repeated_series == True:
+                if repeated_series == True:
                     new_pheno_df = pheno_series_to_repeated_measures( \
                                        new_pheno_df, \
                                        group_model.series_list, \
-                                       group_model.repeated_sessions)
+                                       group_model.sessions_list)
 
 
                 # drop the pheno rows - if there are participants missing in

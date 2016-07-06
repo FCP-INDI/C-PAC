@@ -314,13 +314,15 @@ class ModelConfig(wx.Frame):
                         if "'" in value:
                             value = value.replace("'","")
                         values = value.split(",")
+                    else:
+                        # instead, is a list- most likely when clicking
+                        # "Back" on the modelDesign_window
+                        values = value
 
                     new_derlist = []
 
                     for val in values:
-                        if " " in val:
-                            val = val.replace(" ","")
-                        new_derlist.append(val)                           
+                        new_derlist.append(val)                      
 
                     ctrl.set_value(new_derlist)
 
@@ -695,19 +697,14 @@ class ModelConfig(wx.Frame):
                 self.gpa_settings['grouping_var'] = ctrl.get_selection()
 
 
-            if name == 'derivative_list':
+            if ("list" in name) and (name != "participant_list"):
 
-                # grab this for below
-                derlist_ctrl = ctrl
+                self.gpa_settings[name] = []
+                for option in list(ctrl.get_selection()):
+                    self.gpa_settings[name].append(option)
 
             else:
                 self.gpa_settings[name] = str(ctrl.get_selection())
-
-
-        self.gpa_settings['derivative_list'] = []
-
-        for derivative in list(derlist_ctrl.get_selection()):
-            self.gpa_settings['derivative_list'].append(derivative)
 
 
         self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], \
@@ -1025,19 +1022,18 @@ class ModelConfig(wx.Frame):
         print list(self.gpa_settings["sessions_list"])
         print len(list(self.gpa_settings["sessions_list"]))
 
-        print list(self.gpa_settings["series_list"])
-        print len(list(self.gpa_settings["series_list"]))
-
         # if repeated measures
         if len(list(self.gpa_settings["sessions_list"])) > 0:
             from CPAC.pipeline.cpac_group_runner import pheno_sessions_to_repeated_measures
             pheno_df = pheno_sessions_to_repeated_measures(pheno_df, list(self.gpa_settings["sessions_list"]))
             self.gpa_settings["ev_selections"]["categorical"].append("Session")
+            formula = formula + " + Session"
 
         if len(list(self.gpa_settings["series_list"])) > 0:
             from CPAC.pipeline.cpac_group_runner import pheno_series_to_repeated_measures
             pheno_df = pheno_series_to_repeated_measures(pheno_df, list(self.gpa_settings["series_list"]))
             self.gpa_settings["ev_selections"]["categorical"].append("Series")
+            formula = formula + " + Series"
 
 
         # categorical-ize design formula
@@ -1049,6 +1045,9 @@ class ModelConfig(wx.Frame):
                 elif self.gpa_settings['coding_scheme'] == 'Sum':
                     formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
+        # let's avoid an Intercept unless the user explicitly wants one
+        #   (then they need to include "+ 1" into the formula)
+        formula = formula + "- 1"
 
         # create the dmatrix in Patsy just to see what the design matrix
         # columns are going to be
@@ -1066,7 +1065,7 @@ class ModelConfig(wx.Frame):
             raise Exception
 
 
-        column_names = dmatrix.design_info.column_names     
+        column_names = dmatrix.design_info.column_names
         
         subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
 
@@ -1074,7 +1073,7 @@ class ModelConfig(wx.Frame):
         self.subs = []
         
         for sub in sub_IDs:
-            self.subs.append(sub.rstrip("\n"))        
+            self.subs.append(sub.rstrip("\n"))
         
         # check to make sure there are more subjects than EVs!!
         if len(column_names) >= len(self.subs):
@@ -1109,31 +1108,24 @@ class ModelConfig(wx.Frame):
             # this loop leaves it with only "adhd0" in this case, for the
             # contrasts list for the next GUI page
 
-            column_string = column
+            column_string = column     
 
-            string_for_removal = ''
+            if "C(" in column_string:
+                column_string = column_string.replace("C(","")
+            if ")[" in column_string:
+                column_string = column_string.replace(")[","_")
+            if "T." in column_string:
+                column_string = column_string.replace("T.","")
+            if "S." in column_string:
+                column_string = column_string.replace("S.","")
+            if "]" in column_string:
+                column_string = column_string.replace("]","")
 
-            for char in column_string:
-
-                string_for_removal = string_for_removal + char
-
-                if char == '.':
-                    column_string = column_string.replace(string_for_removal, '')
-                    string_for_removal = ''
-
-            column_string = column_string.replace(']', '')
-            
-            if ":" in column_string:
-                try:
-                    column_string = column_string.split("[")[1]
-                except:
-                    pass
-            
             raw_column_strings.append(column_string)
             
             
         
-        if str(self.gpa_settings["group_sep"]) == "On":     
+        if str(self.gpa_settings["group_sep"]) == "On":
 
             grouping_options = []
             idx = 0
@@ -1152,7 +1144,7 @@ class ModelConfig(wx.Frame):
                     # grouping_var_idx is the column numbers in the design matrix
                     # which holds the grouping variable (and its possible levels)
 
-                idx += 1               
+                idx += 1
 
 
             # all the categorical values/levels of the grouping variable
@@ -1193,7 +1185,8 @@ class ModelConfig(wx.Frame):
 
 
         # open the next window!
-        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
+        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, \
+                                       var_list_for_contrasts)
 
 
         self.Close()

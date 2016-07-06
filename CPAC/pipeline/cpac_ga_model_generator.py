@@ -545,13 +545,13 @@ def positive(dmat_col_indexes, dmat_shape, a, coding, group_sep, grouping_var):
                 if ev.startswith(term):
                     con[evs[ev]]= -1
      
-        if coding == "Treatment":     
+        if coding == "Treatment":
             # make Intercept 0
             con[0] = 0
         elif coding == "Sum":
             # make Intercept 1
             con[1] = 1
-
+        print con
     return con
 
 
@@ -573,7 +573,7 @@ def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
     dmat_shape, group_sep=None, grouping_var=None, coding_scheme="Treatment"):
 
     contrasts_dict = {}
-        
+    print contrasts_list
     for contrast in contrasts_list:
 
         # each 'contrast' is a string the user input of the desired contrast
@@ -586,9 +586,14 @@ def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
 
         if '>' in parsed_contrast:
 
+            # puts each individual EV back into Patsy format
             parsed_EVs_in_contrast = \
                 process_contrast(parsed_contrast, '>', categorical_list, \
                                  group_sep, grouping_var, coding_scheme)
+            print "parsed EVs: ", parsed_EVs_in_contrast
+            print "dmat_col_indexes: ", dmat_col_indexes
+
+            ''' just use the dmat_col_indexes... '''
 
             contrasts_dict[parsed_contrast] = \
                 greater_than(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
@@ -637,7 +642,6 @@ def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
                     negative(dmat_col_indexes, dmat_shape, parsed_EVs_in_contrast[0], \
                              coding_scheme, group_sep, grouping_var)
 
-
             if len(contrast_items) > 2:
 
                 idx = 0
@@ -652,12 +656,22 @@ def create_contrasts_dict(contrasts_list, categorical_list, dmat_col_indexes,\
                             if cat_EV in item:
 
                                 if coding_scheme == 'Treatment':
-                                    item = item.replace(item, \
+                                    if "T." in item:
+                                        item = item.replace(item, \
                                           'C(' + cat_EV + ')[T.' + item + ']')
+                                    else:
+                                        item = item.replace(item, \
+                                          'C(' + cat_EV + ')[' + item + ']')                                 
 
                                 elif coding_scheme == 'Sum':
-                                    item = item.replace(item, \
-                                     'C(' + cat_EV + ', Sum)[S.' + item + ']')
+                                    if "S." in item:
+                                        item = item.replace(item, \
+                                            'C(' + cat_EV + ', Sum)[S.' + \
+                                            item + ']')
+                                    else:
+                                        item = item.replace(item, \
+                                            'C(' + cat_EV + ')[' + \
+                                            item + ']')
 
                     if idx == 0:
 
@@ -935,10 +949,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         cat_list = group_config_obj.ev_selections["categorical"]
 
     # prep design for repeated measures, if applicable
-    if group_config_obj.repeated_sessions:
+    if len(group_config_obj.sessions_list) > 0:
         design_formula = design_formula + " + Session"
         cat_list.append("Session")
-    if group_config_obj.repeated_series:
+    if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
         cat_list.append("Series")
     for col in list(model_df.columns):
@@ -954,7 +968,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns
-
     grp_vector = [1] * num_subjects
 
     if group_config_obj.group_sep:
@@ -1025,7 +1038,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         contrasts_dict = create_contrasts_dict(contrasts_list, cat_list, \
             dmat_col_indexes, dmat_shape, group_config_obj.group_sep, \
             group_config_obj.grouping_var, group_config_obj.coding_scheme[0])
-
+        raise
 
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
