@@ -10,9 +10,28 @@ import modelconfig_window
 ID_RUN = 11
 
 
+def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+
+    import wx
+    import patsy
+
+    try:
+        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
+    except Exception as e:
+        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
+        errSubID = wx.MessageDialog(frame, errmsg,
+            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+        errSubID.ShowModal()
+        errSubID.Destroy()
+        raise Exception
+
+    return 0
+
+
+
 class ModelDesign(wx.Frame):
 
-    def __init__(self, parent, gpa_settings, varlist):
+    def __init__(self, parent, gpa_settings, dmatrix_obj, varlist):
 
         wx.Frame.__init__(
             self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
@@ -20,6 +39,8 @@ class ModelDesign(wx.Frame):
         self.parent = parent
 
         self.gpa_settings = gpa_settings
+
+        self.dmatrix_obj = dmatrix_obj
 
         self.contrasts_list = varlist
 
@@ -101,6 +122,7 @@ class ModelDesign(wx.Frame):
             name = ctrl.get_name()
             if name == 'contrasts':
                 ctrl.set_available_contrasts(varlist)
+                ctrl.set_design_matrix(self.dmatrix_obj)
 
 
         self.page.add(label = 'f-Tests ',
@@ -224,31 +246,13 @@ class ModelDesign(wx.Frame):
 
                 for option in ctrl.get_selection(): #listbox_options():
 
-                    # first, make sure the contrasts are valid!
-                    contrasts = self.parse_contrast(option)
-       
-                    # check to make sure the contrast names are contrasts that
-                    # are actually valid - this will only really ever happen
-                    # if the user hand-edits the config file; otherwise the GUI
-                    # catches invalid contrasts when entered
-                    for contrast in contrasts:
-                        if contrast not in self.contrasts_list:
+                    # run this through Patsy design_info.linear_constraint
+                    # to see if it works first!
+                    frame = self
+                    ret = check_contrast_equation(frame, self.dmatrix_obj, option)
 
-                            errmsg = 'CPAC says: The contrast \'%s\' you ' \
-                                'entered within the string \'%s\' is not ' \
-                                'one of the available contrast selections.' \
-                                '\n\nPlease enter only the contrast labels ' \
-                                'listed under \'Available Contrasts\'.' \
-                                % (contrast, option)
-
-                            errSubID = wx.MessageDialog(self, errmsg,
-                                'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-                            errSubID.ShowModal()
-                            errSubID.Destroy()
-                            raise Exception
-                            
-                    self.gpa_settings['contrasts'].append(option)
-
+                    if ret == 0:
+                        self.gpa_settings['contrasts'].append(option)
 
 
             if name == 'f_tests':

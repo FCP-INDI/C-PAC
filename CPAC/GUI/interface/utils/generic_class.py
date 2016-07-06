@@ -380,6 +380,10 @@ class Control(wx.Control):
     def set_available_contrasts(self, avail_cons):
         if self.get_type() == 7:
             self.ctrl.set_available_contrasts(avail_cons)
+
+    def set_design_matrix(self, design_matrix):
+        if self.get_type() == 7:
+            self.ctrl.set_design_matrix(design_matrix)
         
         
     def set_id(self):

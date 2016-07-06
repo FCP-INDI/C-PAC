@@ -828,8 +828,8 @@ class ModelConfig(wx.Frame):
                                  'part of the interaction \'%s\' is not a ' \
                                  'valid EV option.\n\nPlease enter only ' \
                                  'the EVs in your phenotype file or the ' \
-                                 'MeanFD, MeanFD_Jenkinson, Custom_ROI_' \
-                                 'Mean, or Measure_Mean options.' \
+                                 'MeanFD_Power, MeanFD_Jenkinson, Custom_ROI'\
+                                 '_Mean, or Measure_Mean options.' \
                                  % (interaction_EV,EV)
 
                         errSubID = wx.MessageDialog(self, errmsg,
@@ -1094,7 +1094,9 @@ class ModelConfig(wx.Frame):
                 
             raise Exception
         
-
+        # if we're going to give the dmatrix headers straight up to the
+        # modelDesign window for EVs for contrasts, then we don't need this:
+        '''
         raw_column_strings = []
         
         # remove the header formatting Patsy creates for categorical variables
@@ -1182,11 +1184,12 @@ class ModelConfig(wx.Frame):
 
                 if column_string != 'Intercept':
                     var_list_for_contrasts.append(column_string)
+        '''
 
 
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, \
-                                       var_list_for_contrasts)
+                                       dmatrix, column_names) #var_list_for_contrasts)
 
 
         self.Close()

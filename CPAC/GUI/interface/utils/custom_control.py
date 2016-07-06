@@ -404,12 +404,13 @@ class ConfigFslFrame(wx.Frame):
 
 class ContrastsFrame(wx.Frame):
 
-    def __init__(self, parent, values, avail_cons):
+    def __init__(self, parent, values, dmatrix_obj):
 
         wx.Frame.__init__(self, parent, title="Add Contrast Description", \
                 size = (300,80))
         
-        self.avail_cons = avail_cons
+        self.dmatrix_obj = dmatrix_obj
+        #self.avail_cons = avail_cons
 
         panel = wx.Panel(self)
         
@@ -434,84 +435,24 @@ class ContrastsFrame(wx.Frame):
 
     def onButtonClick(self, event):
 
+        frame = self
         parent = self.Parent
 
         add_con = 0
         
         if self.box1.GetValue():
           
+            from CPAC.GUI.interface.utils.modelDesign_window import check_contrast_equation
+
             val = self.box1.GetValue()
 
-            # do validation first
+            ret = check_contrast_equation(frame, self.dmatrix_obj, val)
 
-            contrasts_in_string = self.parse_contrast(val)
-
-            for contrast in contrasts_in_string:
-
-                # for non-Contrasts use of the Listbox control
-                if self.avail_cons == None:
-                    pass
-
-                elif contrast not in self.avail_cons:
-
-                    errmsg = 'CPAC says: The contrast \'%s\' you ' \
-                        'entered within the string \'%s\' is not ' \
-                        'one of the available contrast selections.' \
-                        '\n\nPlease enter only the contrast labels ' \
-                        'listed under \'Available Contrasts\'.' \
-                        % (contrast, val)
-
-                    errSubID = wx.MessageDialog(self, errmsg,
-                        'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-                    errSubID.ShowModal()
-                    errSubID.Destroy()
-
-                    add_con += 1
-
-
-            if add_con == 0:
-
+            if ret == 0:
                 parent.listbox.Append(str(val))
                 parent.options.append(str(val))
                 parent.raise_listbox_options()
-                self.Close()
-
-
-
-    def parse_contrast(self, contrast_string):
-
-        orig_string = contrast_string
-
-        contrast_string = contrast_string.replace(' ', '')
-
-        if '>' in contrast_string:
-            split_contrast = contrast_string.split('>')
-        elif '<' in contrast_string:
-            split_contrast = contrast_string.split('<')
-        elif '+' in contrast_string:
-            split_contrast = contrast_string.split('+')
-        elif '-' in contrast_string:
-            split_contrast = contrast_string.split('-')
-        else:
-
-            errmsg = 'CPAC says: The contrast \'%s\' did not contain any ' \
-                     'valid operators.\n\nValid operators: > , < , + , -' \
-                     % orig_string
-
-            errCon = wx.MessageDialog(self, errmsg, 'Invalid Operator',
-                         wx.OK | wx.ICON_ERROR)
-            errCon.ShowModal()
-            errCon.Destroy()
-
-
-
-        # in the case of the '+' or '-' contrast operators, which result in
-        # the split_contrast list containing a blank element ''
-        for item in split_contrast:
-            if item == '':
-                split_contrast.remove(item)
-
-        return split_contrast
+                self.Close()              
 
 
 
@@ -647,18 +588,12 @@ class ListBoxCombo(wx.Panel):
         elif self.ctype == 3:
             ConfigFslFrame(self, self.values)
         elif self.ctype == 4:
-            ContrastsFrame(self, self.values, self.avail_cons)
+            ContrastsFrame(self, self.values, self.dmatrix_obj)
         elif self.ctype == 5:         
 
-            # here: get the contrasts.csv and populate 
-            # "self.parent.input_contrasts" if custom_contrasts is a thing:
-
+            # self.parent.input_contrasts will only be populated if the user
+            # has input contrasts via ContrastsFrame
             input_contrasts = self.parent.input_contrasts
-
-            #custom_cons = self.parent.get_custom_contrasts()
-
-            #if len(custom_cons) > 0:
-            #    input_contrasts = custom_cons
 
             if len(input_contrasts) < 2:
 
@@ -670,8 +605,8 @@ class ListBoxCombo(wx.Panel):
                 errCon.Destroy()
 
             else:
-
                 f_test_frame(self, input_contrasts)
+
         elif self.ctype == 6:
             # because we need a nice generic configurable checkbox list...
             StringBoxFrame(self, self.values, "Add Session Name", "Session")
@@ -718,6 +653,9 @@ class ListBoxCombo(wx.Panel):
         # placed into the contrast strings - this gets passed to
         # ContrastsFrame so it can do string checking immediately
         self.avail_cons = avail_cons
+
+    def set_design_matrix(self, design_matrix_obj):
+        self.dmatrix_obj = design_matrix_obj
 
 
     #def get_listbox_selections(self):

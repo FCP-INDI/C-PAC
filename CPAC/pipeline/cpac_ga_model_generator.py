@@ -1032,13 +1032,12 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
 
-        dmat_col_indexes = dmatrix.design_info.column_name_indexes
-        dmat_shape = dmatrix.shape[1]
+        contrasts_dict = {}
 
-        contrasts_dict = create_contrasts_dict(contrasts_list, cat_list, \
-            dmat_col_indexes, dmat_shape, group_config_obj.group_sep, \
-            group_config_obj.grouping_var, group_config_obj.coding_scheme[0])
-        raise
+        for con_equation in contrasts_list:
+            lincon = dmatrix.design_info.linear_constraint(str(con_equation))
+            con_vec = lincon.coefs[0]
+            contrasts_dict[con_equation] = con_vec
 
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
