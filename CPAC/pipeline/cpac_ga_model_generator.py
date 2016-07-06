@@ -61,6 +61,34 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
               % (merged_outfile, len(list_of_output_files), e)
         raise Exception(err)
 
+    return merged_outfile
+
+
+
+def create_merge_mask(merged_file, mask_outfile):
+
+    import subprocess
+
+    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin", \
+                   mask_outfile]
+
+    try:
+        retcode = subprocess.check_output(mask_string)
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with FSL's fslmaths during the " \
+              "creation of the merged copefile group mask.\n\nAttempted to " \
+              "create file: %s\n\nMerged file: %s\n\nError details: %s\n\n" \
+              % (mask_outfile, merged_file, e)
+        raise Exception(err)
+
+    return mask_outfile
+
+
+
+def check_merged_file(list_of_output_files, merged_outfile):
+
+    import subprocess
+
     # make sure the order is correct
     i = 0
     for output_file in list_of_output_files:
@@ -90,28 +118,6 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
             raise Exception(err)
 
         i += 1
-
-    return merged_outfile
-
-
-
-def create_merge_mask(merged_file, mask_outfile):
-
-    import subprocess
-
-    mask_string = ["fslmaths", merged_file, "-abs", "-Tmin", "-bin", \
-                   mask_outfile]
-
-    try:
-        retcode = subprocess.check_output(mask_string)
-    except Exception as e:
-        err = "\n\n[!] Something went wrong with FSL's fslmaths during the " \
-              "creation of the merged copefile group mask.\n\nAttempted to " \
-              "create file: %s\n\nMerged file: %s\n\nError details: %s\n\n" \
-              % (mask_outfile, merged_file, e)
-        raise Exception(err)
-
-    return mask_outfile
 
 
 
@@ -755,6 +761,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
         contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list)
+
+    # check the merged file's order
+    check_merged_file(model_df["Filepath"], merge_file)
 
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
