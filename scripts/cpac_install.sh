@@ -1,8 +1,8 @@
 #! /bin/bash
 
-# cpac_provision.sh
+# cpac_install.sh
 # =================================================================================================
-# Version: 0.3.9
+# Version: 0.4.0
 # Author(s): John Pellman, Daniel Clark
 # Based off of cpac_install.sh by Daniel Clark.
 # Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
@@ -22,7 +22,7 @@
 # -h : Bring up the help dialog.
 # =================================================================================================
 # Example usage:
-#	cpac_provision.sh -n "fsl afni"
+#	cpac_install.sh -n "fsl afni"
 #	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
 #	In this case, FSL would first be installed before AFNI.
 # TODO: Use Juju for local installations. Prompt user to ask if they would like to do an entirely local install.
@@ -39,12 +39,12 @@ function install_system_dependencies {
 		if [ $DISTRO == 'CENTOS' ]; then
 			yum update -y
 			cd /tmp && wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm && rpm -Uvh epel-release-7-5.noarch.rpm 
-			yum install -y cmake git make unzip netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libcanberra-gtk2 libXp.x86_64 mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel
+			yum install -y cmake git make unzip netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libcanberra-gtk2 libXp.x86_64 mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel libxml-devel libxslt-devel python-devel
 			yum autoremove -y
 		elif [ $DISTRO == 'UBUNTU' ]; then
 			apt-get update
 			apt-get upgrade -y
-			apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential
+			apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential libxml2-dev libxslt-dev python-dev
 			apt-get autoremove -y
 		else
 			echo Linux distribution not recognized.  System-level dependencies cannot be installed.
@@ -113,9 +113,13 @@ function install_python_dependencies {
 		conda create -y -n cpac python
 		source activate cpac
 		conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython
- 		pip install lockfile pygraphviz nibabel nipype patsy memory_profiler psutil
-		source deactivate
+ 		pip install future prov simplejson lockfile pygraphviz nibabel nipype patsy memory_profiler psutil 
 		echo 'source activate cpac' >> ~/cpac_env.sh
+        cd /tmp
+        git clone https://github.com/FCP-INDI/INDI-Tools.git
+        cd INDI-Tools/
+        python setup.py install
+		source deactivate
 	fi
 }
 
@@ -561,9 +565,9 @@ while getopts ":spn:alrh" opt; do
 			;;
            	 h)
 			echo "
-cpac_provision.sh 
+cpac_install.sh 
  =================================================================================================
- Version: 0.3.9
+ Version: 0.4.0
  Author(s): John Pellman, Daniel Clark
  Based off of cpac_install.sh by Daniel Clark.
  Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
@@ -583,7 +587,7 @@ cpac_provision.sh
  -h : Bring up the help dialog.
 =================================================================================================
  Example usage:
-	cpac_provision.sh -n \"fsl afni\"
+	cpac_install.sh -n \"fsl afni\"
 	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
 	In this case, FSL would first be installed before AFNI.
 					"
