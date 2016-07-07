@@ -124,11 +124,11 @@ function install_python_dependencies {
 }
 
 function python_dependencies_installed {
-	if [ ! -d ~/miniconda/envs/cpac ] || [ ! -d /usr/local/bin/miniconda/envs/cpac ]; then
+	if [ ! -d ~/miniconda/envs/cpac ] && [ ! -d /usr/local/bin/miniconda/envs/cpac ]; then
 		return 1
 	fi
 	source activate cpac &> /dev/null
-	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx" 2> /dev/null && which ipython &> /dev/null
+	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx, prov, future, simplejson, memory_profiler, psutil" 2> /dev/null && which ipython &> /dev/null
 	status=$?
 	source deactivate &> /dev/null
 	return $status
