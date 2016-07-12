@@ -1,31 +1,31 @@
 #! /bin/bash
 
-# cpac_install.sh
-# =================================================================================================
-# Version: 0.4.0
-# Author(s): John Pellman, Daniel Clark
-# Based off of cpac_install.sh by Daniel Clark.
-# Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
-# Checks for user privileges and performs installation either locally or system-wide.
-# Can be customized using flags.
-# =================================================================================================
-# Flags:
-# -s : System-level dependencies only.
-# -p : Python dependencies only
-# -n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:
-#	afni, fsl, c3d, ants, cpac
-#	will issue warnings if dependencies for these neuroimaging packages are not fulfilled.
-#	If multiple packages are to be specified, they must be surrounded by quotation marks.
-# -a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.
-# -l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. 
-# -r : Root install.  Equivalent to -spa
-# -h : Bring up the help dialog.
-# =================================================================================================
-# Example usage:
-#	cpac_install.sh -n "fsl afni"
-#	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
-#	In this case, FSL would first be installed before AFNI.
-# TODO: Use Juju for local installations. Prompt user to ask if they would like to do an entirely local install.
+usage="
+cpac_install.sh\n
+=================================================================================================\n
+Version: 0.4.0\n
+Author(s): John Pellman, Daniel Clark\n
+Based off of cpac_install.sh by Daniel Clark.\n
+Description: Will perform specific operations to install C-PAC dependencies and C-PAC.\n
+Checks for user privileges and performs installation either locally or system-wide.\n
+Can be customized using flags.\n
+=================================================================================================\n
+Flags:\n\n
+-s : System-level dependencies only.\n
+-p : Python dependencies only\n
+-n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:\n
+\tafni, fsl, c3d, ants, cpac\n
+\twill issue warnings if dependencies for these neuroimaging packages are not fulfilled.\n
+\tIf multiple packages are to be specified, they must be surrounded by quotation marks.\n
+-a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.\n
+-l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. \n
+-r : Root install.  Equivalent to -spa\n
+-h : Bring up the help dialog.\n
+=================================================================================================\n
+Example usage:\n
+\tcpac_install.sh -n \"fsl afni\"\n
+\tWill install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.\n
+\tIn this case, FSL would first be installed before AFNI.\n"
 
 function install_system_dependencies {
 	echo "Installing C-PAC system dependencies..."
@@ -564,33 +564,7 @@ while getopts ":spn:alrh" opt; do
 			install_cpac_env
 			;;
            	 h)
-			echo "
-cpac_install.sh 
- =================================================================================================
- Version: 0.4.0
- Author(s): John Pellman, Daniel Clark
- Based off of cpac_install.sh by Daniel Clark.
- Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
- Checks for user privileges and performs installation either locally or system-wide.
- Can be customized using flags.
- =================================================================================================
- Flags:
- -s : System-level dependencies only.
- -p : Python dependencies only
- -n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:
-	afni, fsl, c3d, ants, cpac
-	will issue warnings if dependencies for these neuroimaging packages are not fulfilled.
-	If multiple packages are to be specified, they must be surrounded by quotation marks.
- -a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.
- -l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. 
- -r : Root install.  Equivalent to -spa
- -h : Bring up the help dialog.
-=================================================================================================
- Example usage:
-	cpac_install.sh -n \"fsl afni\"
-	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
-	In this case, FSL would first be installed before AFNI.
-					"
+			echo -e ${usage}
 			;;
    		\?)
      			echo "Invalid option: -$OPTARG" >&2
