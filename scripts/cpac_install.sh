@@ -39,7 +39,7 @@ function install_system_dependencies {
 		if [ $DISTRO == 'CENTOS' ]; then
 			yum update -y
 			cd /tmp && wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm && rpm -Uvh epel-release-7-5.noarch.rpm 
-			yum install -y cmake git make unzip netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libcanberra-gtk2 libXp.x86_64 mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel libxml-devel libxslt-devel python-devel
+			yum install -y cmake git make unzip bzip2 netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libcanberra-gtk2 libXp.x86_64 mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel libxml-devel libxslt-devel python-devel libpng12.x86_64
 			yum autoremove -y
 		elif [ $DISTRO == 'UBUNTU' ]; then
 			apt-get update
@@ -124,11 +124,11 @@ function install_python_dependencies {
 }
 
 function python_dependencies_installed {
-	if [ ! -d ~/miniconda/envs/cpac ] || [ ! -d /usr/local/bin/miniconda/envs/cpac ]; then
+	if [ ! -d ~/miniconda/envs/cpac ] && [ ! -d /usr/local/bin/miniconda/envs/cpac ]; then
 		return 1
 	fi
 	source activate cpac &> /dev/null
-	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx" 2> /dev/null && which ipython &> /dev/null
+	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx, prov, future, simplejson, memory_profiler, psutil" 2> /dev/null && which ipython &> /dev/null
 	status=$?
 	source deactivate &> /dev/null
 	return $status
