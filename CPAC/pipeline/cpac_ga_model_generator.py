@@ -90,6 +90,8 @@ def check_merged_file(list_of_output_files, merged_outfile):
     import subprocess
 
     # make sure the order is correct
+    #   we are ensuring each volume of the merge file correlates perfectly
+    #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
         test_string = ["3ddot", "-demean", output_file, \
@@ -394,9 +396,18 @@ def patsify_design_formula(formula, categorical_list):
             new_ev = "C(" + ev + ")"
             formula = formula.replace(ev, new_ev)
 
-    # remove Intercept - if user wants one, they should add "+ 1" when
+    # remove Intercept - if user wants one, they should add "+ Intercept" when
     # specifying the design formula
-    formula = formula + "- 1"
+    if ("Intercept" not in formula) and ("intercept" not in formula):
+        formula = formula + " - 1"
+    else:
+        # having "Intercept" in the formula is really just a flag to prevent
+        # "- 1" from being added to the formula - we don't actually want
+        # "Intercept" in the formula
+        formula = formula.replace("+ Intercept", "")
+        formula = formula.replace("+Intercept", "")
+        formula = formula.replace("+ intercept", "")
+        formula = formula.replace("+intercept", "")
 
     return formula
 
@@ -487,6 +498,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     sub_id_label = group_config_obj.participant_id_label
 
     ftest_list = []
+    readme_flags = []
 
     # determine if f-tests are included or not
     custom_confile = group_config_obj.custom_contrasts
@@ -572,7 +584,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         "group_analysis", second_half_out.lstrip("/"))
 
     log_dir = os.path.join(pipeline_config_obj.logDirectory, \
-        "group_analysis", second_half_out.lstrip("/"))       
+        "group_analysis", second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")
@@ -624,18 +636,28 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
                                         merge_outfile)
 
     # create merged group mask
+    merge_mask_outfile = model_name + "_" + resource_id + \
+                             "_merged_mask.nii.gz"
+    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
+    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+
     if "Group Mask" in group_config_obj.mean_mask:
-        merge_mask_outfile = model_name + "_" + resource_id + \
-                                 "_merged_mask.nii.gz"
-        merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
-        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+        mask_for_means = merge_mask
     else:
-        #....HOW ARE WE HANDLING INDIVIDUAL MASKS WITH THIS NEW SETUP???....
-        pass
+        individual_masks_dir = os.path.join(model_path, "individual_masks")
+        create_dir(individual_masks_dir, "individual masks")
+        for unique_id, series_id, raw_filepath in zip(model_df["Participant"],
+            model_df["Series"], model_df["Raw_Filepath"]):
+            
+            mask_for_means_path = os.path.join(individual_masks_dir,
+                "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
+            mask_for_means = create_merge_mask(raw_filepath, 
+                                               mask_for_means_path)
+        readme_flags.append("individual_masks")
 
     # calculate measure means, and demean
     if "Measure_Mean" in design_formula:
-        model_df = calculate_measure_mean_in_df(model_df, merge_mask)
+        model_df = calculate_measure_mean_in_df(model_df, mask_for_means)
 
     # calculate custom ROIs, and demean (in workflow?)
     if "Custom_ROI_Mean" in design_formula:
@@ -652,15 +674,14 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # make sure the custom ROI mask file is the same resolution as the
         # output files - if not, resample and warn the user
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0], \
-                                              custom_roi_mask, merge_mask, \
+                                              custom_roi_mask, mask_for_means, \
                                               model_path, resource_id)
 
-        # if using group merged mask, trim the custom ROI mask to be within
-        # its constraints
-        if merge_mask:
-            output_mask = os.path.join(model_path, "group_masked_%s" \
-                                       % os.path.basename(roi_mask))
-            roi_mask = trim_mask(roi_mask, merge_mask, output_mask)
+        # trim the custom ROI mask to be within mask constraints
+        output_mask = os.path.join(model_path, "masked_%s" \
+                                   % os.path.basename(roi_mask))
+        roi_mask = trim_mask(roi_mask, mask_for_means, output_mask)
+        readme_flags.append("custom_roi_mask_trimmed")
 
         # calculate
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
@@ -684,10 +705,12 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         design_formula = design_formula + " + Session"
-        cat_list.append("Session")
+        if "Session" not in cat_list:
+            cat_list.append("Session")
     if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
-        cat_list.append("Series")
+        if "Series" not in cat_list:
+            cat_list.append("Series")
     for col in list(model_df.columns):
         if "participant_" in col:
             design_formula = design_formula + " + %s" % col
@@ -711,7 +734,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     # prep design formula for Patsy
     design_formula = patsify_design_formula(design_formula, cat_list)
-
+    print design_formula
     # send to Patsy
     try:
         dmatrix = patsy.dmatrix(design_formula, model_df)
@@ -724,15 +747,18 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
               % (model_df.columns, design_formula, e)
         raise Exception(err)
 
+    print dmatrix
+
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
     check_multicollinearity(np.array(dmatrix))
 
     # prepare for final stages
-    design_matrix = np.array(dmatrix, dtype=np.float16)
-
     column_names = dmatrix.design_info.column_names
-      
+
+    # what is this for?
+    design_matrix = np.array(dmatrix, dtype=np.float16)
+    
         
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
@@ -765,6 +791,31 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)
 
+    # we must demean the categorical regressors if the Intercept/Grand Mean
+    # is included in the model, otherwise FLAME produces blank outputs
+    if "Intercept" in column_names:
+
+        cat_indices = []
+        col_name_indices = dmatrix.design_info.column_name_indexes
+        for col_name in col_name_indices.keys():
+            if "C(" in col_name:
+                cat_indices.append(int(col_name_indices[col_name]))
+
+        # note: dmat_T is now no longer a DesignMatrix Patsy object, but only
+        # an array
+        dmat_T = dmatrix.transpose()
+
+        for index in cat_indices:
+            new_row = []
+            for val in dmat_T[index]:
+                new_row.append(val - dmat_T[index].mean())
+            dmat_T[index] = new_row
+
+        # we can go back, but we won't be the same
+        dmatrix = dmat_T.transpose()
+
+        readme_flags.append("cat_demeaned")
+
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
         column_names, contrasts_dict, custom_confile, ftest_list, \
@@ -772,7 +823,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(model_df, dmat_csv_path)
+    write_design_matrix_csv(dmatrix, model_df["Participant"], column_names, \
+        dmat_csv_path)
 
     # workflow time
     wf_name = "%s_%s" % (resource_id, series_or_repeated_label)

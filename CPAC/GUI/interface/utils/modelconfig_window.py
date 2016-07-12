@@ -105,13 +105,6 @@ class ModelConfig(wx.Frame):
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 
-        self.page.add(label="Measure Mean Generation ", 
-                 control=control.CHOICE_BOX, 
-                 name='mean_mask', 
-                 type=dtype.LSTR, 
-                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' regressor in your Design Matrix Formula.", 
-                 values=["Group Mask","Individual Mask"])
-
         self.page.add(label="Custom ROI Mean Mask ",
                       control=control.COMBO_BOX,
                       name="custom_roi_mask",
@@ -147,6 +140,13 @@ class ModelConfig(wx.Frame):
                      type=dtype.LSTR, 
                      comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
                      values=["Treatment", "Sum"])
+
+        self.page.add(label="Mask for Means Calculation ", 
+                 control=control.CHOICE_BOX, 
+                 name='mean_mask', 
+                 type=dtype.LSTR, 
+                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' or 'Custom_ROI_Mean' regressors in your Design Matrix Formula.", 
+                 values=["Group Mask","Individual Mask"])
 
         self.page.add(label="Z threshold ", 
                      control=control.FLOAT_CTRL, 
@@ -192,7 +192,7 @@ class ModelConfig(wx.Frame):
                                 'directories you marked as {session} while ' \
                                 'creating the CPAC participant list.',
                       size = (200,100),
-                      combo_type = 6)
+                      combo_type = 7)
 
         self.page.add(label = 'Series/Scans (Repeated Measures Only) ',
                       control = control.LISTBOX_COMBO,
@@ -210,7 +210,7 @@ class ModelConfig(wx.Frame):
                                 '{series} while creating the CPAC ' \
                                 'participant list.',
                       size = (200,100),
-                      combo_type = 7)
+                      combo_type = 8)
 
 
         self.page.set_sizer()
@@ -404,11 +404,14 @@ class ModelConfig(wx.Frame):
                 # by the code directly above
 
                 if ("list" in name) and (name != "participant_list"):
-                    value = [s_map.get(item)
+
+                    mapped_values = [s_map.get(item)
                                  for item in value if s_map.get(item) != None]
-                    if not value:
+                    if not mapped_values:
                         value = [str(item) for item in value]
-                    
+                    else:
+                        value = mapped_values
+
                     new_derlist = []
 
                     for val in value:
@@ -843,7 +846,8 @@ class ModelConfig(wx.Frame):
 
                 if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD_Power' \
                     and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
-                    and EV != 'Custom_ROI_Mean':
+                    and EV != 'Custom_ROI_Mean' and EV != "Intercept" and \
+                    EV != "intercept":
 
                     errmsg = 'CPAC says: The regressor \'%s\' you ' \
                              'entered within the design formula is not ' \
@@ -861,7 +865,7 @@ class ModelConfig(wx.Frame):
                     raise Exception
 
 
-        ''' design formula/input parameters checks '''
+        # design formula/input parameters checks
 
         if "Custom_ROI_Mean" in formula and \
             (self.gpa_settings['custom_roi_mask'] == None or \
@@ -1022,16 +1026,24 @@ class ModelConfig(wx.Frame):
         print list(self.gpa_settings["sessions_list"])
         print len(list(self.gpa_settings["sessions_list"]))
 
+        print list(self.gpa_settings["series_list"])
+        print len(list(self.gpa_settings["series_list"]))
+
+        repeated_sessions = False
+
         # if repeated measures
         if len(list(self.gpa_settings["sessions_list"])) > 0:
             from CPAC.pipeline.cpac_group_runner import pheno_sessions_to_repeated_measures
             pheno_df = pheno_sessions_to_repeated_measures(pheno_df, list(self.gpa_settings["sessions_list"]))
             self.gpa_settings["ev_selections"]["categorical"].append("Session")
             formula = formula + " + Session"
+            repeated_sessions = True
 
         if len(list(self.gpa_settings["series_list"])) > 0:
             from CPAC.pipeline.cpac_group_runner import pheno_series_to_repeated_measures
-            pheno_df = pheno_series_to_repeated_measures(pheno_df, list(self.gpa_settings["series_list"]))
+            pheno_df = pheno_series_to_repeated_measures(pheno_df, \
+                                    list(self.gpa_settings["series_list"]), \
+                                    repeated_sessions)
             self.gpa_settings["ev_selections"]["categorical"].append("Series")
             formula = formula + " + Series"
 
@@ -1046,11 +1058,22 @@ class ModelConfig(wx.Frame):
                     formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
         # let's avoid an Intercept unless the user explicitly wants one
-        #   (then they need to include "+ 1" into the formula)
-        formula = formula + "- 1"
+        #   (then they need to include "+ Intercept" into the formula)
+        if ("Intercept" not in formula) and ("intercept" not in formula):
+            formula = formula + " - 1"
+        else:
+            # having "Intercept" in the formula is really just a flag to
+            # prevent "- 1" from being added to the formula - we don't
+            # actually want "Intercept" in the formula
+            formula = formula.replace("+ Intercept", "")
+            formula = formula.replace("+Intercept", "")
+            formula = formula.replace("+ intercept", "")
+            formula = formula.replace("+intercept", "")
 
         # create the dmatrix in Patsy just to see what the design matrix
         # columns are going to be
+        print formula
+        print pheno_df
         try:
             dmatrix = patsy.dmatrix(formula, pheno_df)
         except Exception as e:
@@ -1094,99 +1117,6 @@ class ModelConfig(wx.Frame):
                 
             raise Exception
         
-        # if we're going to give the dmatrix headers straight up to the
-        # modelDesign window for EVs for contrasts, then we don't need this:
-        '''
-        raw_column_strings = []
-        
-        # remove the header formatting Patsy creates for categorical variables
-        # because we are going to use var_list_for_contrasts as a label for
-        # users to know what contrasts are available to them
-        for column in column_names:
-
-            # if using Sum encoding, a column name may look like this:
-            #     C(adhd, Sum)[S.adhd0]
-
-            # this loop leaves it with only "adhd0" in this case, for the
-            # contrasts list for the next GUI page
-
-            column_string = column     
-
-            if "C(" in column_string:
-                column_string = column_string.replace("C(","")
-            if ")[" in column_string:
-                column_string = column_string.replace(")[","_")
-            if "T." in column_string:
-                column_string = column_string.replace("T.","")
-            if "S." in column_string:
-                column_string = column_string.replace("S.","")
-            if "]" in column_string:
-                column_string = column_string.replace("]","")
-
-            raw_column_strings.append(column_string)
-            
-            
-        
-        if str(self.gpa_settings["group_sep"]) == "On":
-
-            grouping_options = []
-            idx = 0
-            
-            for column_string in raw_column_strings:
-
-                if self.gpa_settings["grouping_var"] in column_string:
-
-                    grouping_variable_info = []
-
-                    grouping_variable_info.append(column_string)
-                    grouping_variable_info.append(idx)
-
-                    grouping_options.append(grouping_variable_info)
-
-                    # grouping_var_idx is the column numbers in the design matrix
-                    # which holds the grouping variable (and its possible levels)
-
-                idx += 1
-
-
-            # all the categorical values/levels of the grouping variable
-            grouping_var_levels = []
-
-            for gv_idx in grouping_options:
-            
-                for subject in dmatrix:
-                
-                    if self.gpa_settings["grouping_var"] in self.gpa_settings["ev_selections"]["categorical"]:
-                        level_num = str(int(subject[gv_idx[1]]))
-                    else:
-                        level_num = str(subject[gv_idx[1]])
-
-                    level_label = '__' + self.gpa_settings["grouping_var"] + level_num
-
-                    if level_label not in grouping_var_levels:
-                        grouping_var_levels.append(level_label)
-
-
-            # make the new header for the reorganized data
-            for column_string in raw_column_strings:
-            
-                if column_string != "Intercept":
-            
-                    if self.gpa_settings["grouping_var"] not in column_string:
-                        for level in grouping_var_levels:
-                            var_list_for_contrasts.append(column_string + level)
-                    elif self.gpa_settings["grouping_var"] in column_string:
-                        var_list_for_contrasts.append(column_string)
-
-        else:
-        
-            for column_string in raw_column_strings:
-
-                if column_string != 'Intercept':
-                    var_list_for_contrasts.append(column_string)
-        '''
-
-
         # open the next window!
         modelDesign_window.ModelDesign(self.parent, self.gpa_settings, \
                                        dmatrix, column_names) #var_list_for_contrasts)

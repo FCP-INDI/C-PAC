@@ -392,18 +392,20 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
                 # generate/update sessions categorical column
                 sessions_col.append(session)
                 part_id = participant_unique_id.replace(session, "")
+                header_title = "participant_%s" % part_id
                 # generate/update participant ID column (1's or 0's)
-                if part_id not in participant_id_cols.keys():
+                if header_title not in participant_id_cols.keys():
                     part_col[i] = 1
-                    participant_id_cols["participant_%s" % part_id] = part_col
+                    participant_id_cols[header_title] = part_col
                 else:
-                    participant_id_cols["participant_%s" % part_id][i] = 1
+                    participant_id_cols[header_title][i] = 1
         i += 1
-
+    
     pheno_df["Session"] = sessions_col
-
+    print len(participant_id_cols.keys())
     for new_col in participant_id_cols.keys():
         pheno_df[new_col] = participant_id_cols[new_col]
+    
 
     return pheno_df
 
@@ -427,20 +429,24 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
         sub_pheno_df["Series"] = series
         new_rows.append(sub_pheno_df)
     pheno_df = pd.concat(new_rows)
-
-    if not repeated_sessions:
-
+    print "rep sess: ", repeated_sessions
+    if repeated_sessions == False:
+        print "\n\nare we running? \n\n"
         # participant IDs new columns
         participant_id_cols = {}
         i = 0
 
         for participant_unique_id in pheno_df["Participant"]:
+
             part_col = [0] * len(pheno_df["Participant"])
-            if participant_unique_id not in participant_id_cols.keys():
+            header_title = "participant_%s" % participant_unique_id
+
+            if header_title not in participant_id_cols.keys():
                 part_col[i] = 1
-                participant_id_cols["participant_%s" % participant_unique_id] = part_col
+                participant_id_cols[header_title] = part_col
             else:
-                participant_id_cols["participant_%s" % participant_unique_id][i] = 1
+                participant_id_cols[header_title][i] = 1
+
             i += 1
 
         for new_col in participant_id_cols.keys():
@@ -619,7 +625,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     new_pheno_df = pheno_series_to_repeated_measures( \
                                        new_pheno_df, \
                                        group_model.series_list, \
-                                       group_model.sessions_list)
+                                       repeated_sessions)
 
 
                 # drop the pheno rows - if there are participants missing in
