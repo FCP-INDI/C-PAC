@@ -446,12 +446,25 @@ def check_multicollinearity(matrix):
 
 
 
-def create_contrasts_dict(dmatrix_obj, contrasts_list):
+def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
     contrasts_dict = {}
 
     for con_equation in contrasts_list:
-        lincon = dmatrix_obj.design_info.linear_constraint(str(con_equation))
+
+        try:
+            lincon = dmatrix_obj.design_info.linear_constraint(str(con_equation))
+        except Exception as e:
+            err = "\n\n[!] Could not process contrast equation:\n%s\n\n" \
+                  "Design matrix EVs/covariates:\n%s\n\nError details:\n%s" \
+                  "\n\nNote: If the design matrix EVs are different than " \
+                  "what was shown in the model design creator, this may be " \
+                  "because missing participants, sessions, or series for " \
+                  "this measure (%s) may have altered the group design.\n\n" \
+                  % (str(con_equation), dmatrix_obj.design_info.column_names,\
+                     e, output_measure)
+            raise Exception(err)
+
         con_vec = lincon.coefs[0]
         contrasts_dict[con_equation] = con_vec
 
@@ -747,6 +760,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
               % (model_df.columns, design_formula, e)
         raise Exception(err)
 
+    print dmatrix.design_info.column_names
     print dmatrix
 
     # check the model for multicollinearity - Patsy takes care of this, but
@@ -786,7 +800,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
-        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list)
+        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list,
+            resource_id)
 
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)
