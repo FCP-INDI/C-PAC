@@ -332,7 +332,13 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         
     new_ev_list = []
     new_cat_list = []
-        
+    print group_ev
+    print cat_list
+    if group_ev not in cat_list:
+        err = "\n\n[!] The grouping variable must be one of the categorical "\
+              "covariates!\n\n"
+        raise Exception(err)
+
     # map for the .grp file for FLAME
     idx = 1
     keymap = {}
@@ -358,28 +364,34 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
     level_df_list = []
     for level in group_levels:
+
         level_df = pheno_df[pheno_df[group_ev] == level]
         rename = {}
+
         for col in level_df.columns:
             if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                rename[col] = col + "__FOR_%s::%s" % (group_ev, level)
+                rename[col] = col + "__FOR_%s_%s" % (group_ev, level)
                 if rename[col] not in new_ev_list:
                     new_ev_list.append(rename[col])
                 if (col in cat_list) and (rename[col] not in new_cat_list):
                     new_cat_list.append(rename[col])
+
         for other_lev in group_levels:
             if other_lev != level:
                 for col in level_df.columns:
                     if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                        newcol = col + "__FOR_%s::%s" % (group_ev, other_lev)
+                        newcol = col + "__FOR_%s_%s" % (group_ev, other_lev)
                         level_df[newcol] = 0
                         if newcol not in new_ev_list:
-                            ev_list.append(newcol)
+                            new_ev_list.append(newcol)
                         if col in cat_list:
-                            if newcol not in cat_list:
-                                cat_list.append(newcol)
+                            if newcol not in new_cat_list:
+                                new_cat_list.append(newcol)
         level_df.rename(columns=rename, inplace=True)
         level_df_list.append(level_df)
+
+    # the grouping variable has to be in the categorical list too
+    #new_cat_list.append(group_ev)
 
     # get it back into order!
     pheno_df = pheno_df[join_column].merge(pd.concat(level_df_list), on=join_column)
@@ -389,11 +401,17 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
 
 
-def patsify_design_formula(formula, categorical_list):
+def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
+
+    closer = ")"
+    if encoding == "Treatment":
+        closer = ")"
+    elif encoding == "Sum":
+        closer = ", Sum)"
 
     for ev in categorical_list:
         if ev in formula:
-            new_ev = "C(" + ev + ")"
+            new_ev = "C(" + ev + closer
             formula = formula.replace(ev, new_ev)
 
     # remove Intercept - if user wants one, they should add "+ Intercept" when
@@ -715,6 +733,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
 
+
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         design_formula = design_formula + " + Session"
@@ -740,13 +759,39 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     grp_vector = [1] * num_subjects
 
     if group_config_obj.group_sep:
+
         # model group variances separately
+        old_ev_list = ev_list
+
         model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
                                 group_config_obj.grouping_var, \
                                 ev_list, cat_list)
 
+        # make the grouping variable categorical for Patsy (if we try to
+        # do this automatically below, it will categorical-ize all of 
+        # the substrings too)
+        design_formula = design_formula.replace(group_config_obj.grouping_var, \
+                                  "C(" + group_config_obj.grouping_var + ")")
+        if group_config_obj.coding_scheme == "Sum":
+            design_formula = design_formula.replace(")", ", Sum)")
+
+        # update design formula
+        rename = {}
+        for old_ev in old_ev_list:
+            for new_ev in ev_list:
+                if old_ev + "__FOR" in new_ev:
+                    if old_ev not in rename.keys():
+                        rename[old_ev] = []
+                    rename[old_ev].append(new_ev)
+
+        for old_ev in rename.keys():
+            design_formula = design_formula.replace(old_ev, \
+                                                   " + ".join(rename[old_ev]))
+
+
     # prep design formula for Patsy
-    design_formula = patsify_design_formula(design_formula, cat_list)
+    design_formula = patsify_design_formula(design_formula, cat_list, \
+                         group_config_obj.coding_scheme[0])
     print design_formula
     # send to Patsy
     try:

@@ -944,41 +944,8 @@ class ModelConfig(wx.Frame):
             for num in range(0,num_rois):
                 custom_roi_labels.append("Custom_ROI_Mean_%d" % int(num+1))
                 
-        
-        if str(self.gpa_settings["group_sep"]) == "On":
-        
-            if (self.gpa_settings["grouping_var"] == "None") or \
-                (self.gpa_settings["grouping_var"] is None) or \
-                (self.gpa_settings["grouping_var"] == "none"):
-                
-                warn_string = "Note: You have selected to model group " \
-                    "variances separately, but you have not specified a " \
-                    "grouping variable."
 
-                errSubID = wx.MessageDialog(self, warn_string,
-                    'No Grouping Variable Specified', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-        
-            if self.gpa_settings["grouping_var"] not in formula:           
-                
-                warn_string = "Note: You have specified '%s' as your " \
-                    "grouping variable for modeling the group variances " \
-                    "separately, but you have not included this variable " \
-                    "in your design formula.\n\nPlease include this " \
-                    "variable in your design, or choose a different " \
-                    "grouping variable." % self.gpa_settings["grouping_var"]
-
-                errSubID = wx.MessageDialog(self, warn_string,
-                    'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-
-
+        # pull in phenotype file
         try:
             pheno_df = pd.read_csv(self.gpa_settings["pheno_file"])
         except Exception as e:
@@ -1023,11 +990,6 @@ class ModelConfig(wx.Frame):
 
             formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
 
-        print list(self.gpa_settings["sessions_list"])
-        print len(list(self.gpa_settings["sessions_list"]))
-
-        print list(self.gpa_settings["series_list"])
-        print len(list(self.gpa_settings["series_list"]))
 
         repeated_sessions = False
 
@@ -1046,6 +1008,89 @@ class ModelConfig(wx.Frame):
                                     repeated_sessions)
             self.gpa_settings["ev_selections"]["categorical"].append("Series")
             formula = formula + " + Series"
+
+
+        # if modeling group variances separately
+        if str(self.gpa_settings["group_sep"]) == "On":
+        
+            from CPAC.pipeline.cpac_ga_model_generator import parse_out_covariates, \
+                                                              split_groups
+
+            if (self.gpa_settings["grouping_var"] == "None") or \
+                (self.gpa_settings["grouping_var"] is None) or \
+                (self.gpa_settings["grouping_var"] == "none"):
+                
+                warn_string = "Note: You have selected to model group " \
+                    "variances separately, but you have not specified a " \
+                    "grouping variable."
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'No Grouping Variable Specified', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+        
+            if self.gpa_settings["grouping_var"] not in formula:           
+                
+                warn_string = "Note: You have specified '%s' as your " \
+                    "grouping variable for modeling the group variances " \
+                    "separately, but you have not included this variable " \
+                    "in your design formula.\n\nPlease include this " \
+                    "variable in your design, or choose a different " \
+                    "grouping variable." % self.gpa_settings["grouping_var"]
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+
+            if self.gpa_settings["grouping_var"] not in \
+                self.gpa_settings["ev_selections"]["categorical"]:           
+                
+                warn_string = "Note: The grouping variable must be one of " \
+                              "the categorical covariates."
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
+
+
+            # get ev list
+            ev_list = parse_out_covariates(formula)
+
+            # split up the groups
+            pheno_df, grp_vector, new_ev_list, cat_list = split_groups(pheno_df, \
+                              self.gpa_settings["grouping_var"], ev_list, \
+                              self.gpa_settings["ev_selections"]["categorical"])
+
+            self.gpa_settings["ev_selections"]["categorical"] = cat_list
+
+            # make the grouping variable categorical for Patsy (if we try to
+            # do this automatically below, it will categorical-ize all of 
+            # the substrings too)
+            formula = formula.replace(self.gpa_settings["grouping_var"], \
+                                      "C(" + self.gpa_settings["grouping_var"] \
+                                      + ")")
+            if self.gpa_settings["coding_scheme"] == "Sum":
+                formula = formula.replace(")", ", Sum)")
+
+            # update design formula
+            rename = {}
+            for old_ev in ev_list:
+                for new_ev in new_ev_list:
+                    if old_ev + "__FOR" in new_ev:
+                        if old_ev not in rename.keys():
+                            rename[old_ev] = []
+                        rename[old_ev].append(new_ev)
+
+            for old_ev in rename.keys():
+                formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
 
 
         # categorical-ize design formula
