@@ -583,8 +583,6 @@ class ListBoxCombo(wx.Panel):
             CheckBox(self, self.values)
         elif self.ctype == 2:    
             TextBoxFrame(self, self.values)
-        elif self.ctype == 6:
-            ResampleNumBoxFrame(self, self.values)
         elif self.ctype == 3:
             ConfigFslFrame(self, self.values)
         elif self.ctype == 4:
@@ -608,9 +606,11 @@ class ListBoxCombo(wx.Panel):
                 f_test_frame(self, input_contrasts)
 
         elif self.ctype == 6:
+            ResampleNumBoxFrame(self, self.values)
+        elif self.ctype == 7:
             # because we need a nice generic configurable checkbox list...
             StringBoxFrame(self, self.values, "Add Session Name", "Session")
-        elif self.ctype == 7:
+        elif self.ctype == 8:
             StringBoxFrame(self, self.values, "Add Series Name", "Series")
 
         

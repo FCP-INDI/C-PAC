@@ -90,6 +90,8 @@ def check_merged_file(list_of_output_files, merged_outfile):
     import subprocess
 
     # make sure the order is correct
+    #   we are ensuring each volume of the merge file correlates perfectly
+    #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
         test_string = ["3ddot", "-demean", output_file, \
@@ -330,7 +332,13 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         
     new_ev_list = []
     new_cat_list = []
-        
+    print group_ev
+    print cat_list
+    if group_ev not in cat_list:
+        err = "\n\n[!] The grouping variable must be one of the categorical "\
+              "covariates!\n\n"
+        raise Exception(err)
+
     # map for the .grp file for FLAME
     idx = 1
     keymap = {}
@@ -356,28 +364,34 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
     level_df_list = []
     for level in group_levels:
+
         level_df = pheno_df[pheno_df[group_ev] == level]
         rename = {}
+
         for col in level_df.columns:
             if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                rename[col] = col + "__FOR_%s::%s" % (group_ev, level)
+                rename[col] = col + "__FOR_%s_%s" % (group_ev, level)
                 if rename[col] not in new_ev_list:
                     new_ev_list.append(rename[col])
                 if (col in cat_list) and (rename[col] not in new_cat_list):
                     new_cat_list.append(rename[col])
+
         for other_lev in group_levels:
             if other_lev != level:
                 for col in level_df.columns:
                     if (col != group_ev) and (col not in join_column) and (col in ev_list):
-                        newcol = col + "__FOR_%s::%s" % (group_ev, other_lev)
+                        newcol = col + "__FOR_%s_%s" % (group_ev, other_lev)
                         level_df[newcol] = 0
                         if newcol not in new_ev_list:
-                            ev_list.append(newcol)
+                            new_ev_list.append(newcol)
                         if col in cat_list:
-                            if newcol not in cat_list:
-                                cat_list.append(newcol)
+                            if newcol not in new_cat_list:
+                                new_cat_list.append(newcol)
         level_df.rename(columns=rename, inplace=True)
         level_df_list.append(level_df)
+
+    # the grouping variable has to be in the categorical list too
+    #new_cat_list.append(group_ev)
 
     # get it back into order!
     pheno_df = pheno_df[join_column].merge(pd.concat(level_df_list), on=join_column)
@@ -387,16 +401,31 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
 
 
-def patsify_design_formula(formula, categorical_list):
+def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
+
+    closer = ")"
+    if encoding == "Treatment":
+        closer = ")"
+    elif encoding == "Sum":
+        closer = ", Sum)"
 
     for ev in categorical_list:
         if ev in formula:
-            new_ev = "C(" + ev + ")"
+            new_ev = "C(" + ev + closer
             formula = formula.replace(ev, new_ev)
 
-    # remove Intercept - if user wants one, they should add "+ 1" when
+    # remove Intercept - if user wants one, they should add "+ Intercept" when
     # specifying the design formula
-    formula = formula + "- 1"
+    if ("Intercept" not in formula) and ("intercept" not in formula):
+        formula = formula + " - 1"
+    else:
+        # having "Intercept" in the formula is really just a flag to prevent
+        # "- 1" from being added to the formula - we don't actually want
+        # "Intercept" in the formula
+        formula = formula.replace("+ Intercept", "")
+        formula = formula.replace("+Intercept", "")
+        formula = formula.replace("+ intercept", "")
+        formula = formula.replace("+intercept", "")
 
     return formula
 
@@ -435,12 +464,25 @@ def check_multicollinearity(matrix):
 
 
 
-def create_contrasts_dict(dmatrix_obj, contrasts_list):
+def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
     contrasts_dict = {}
 
     for con_equation in contrasts_list:
-        lincon = dmatrix_obj.design_info.linear_constraint(str(con_equation))
+
+        try:
+            lincon = dmatrix_obj.design_info.linear_constraint(str(con_equation))
+        except Exception as e:
+            err = "\n\n[!] Could not process contrast equation:\n%s\n\n" \
+                  "Design matrix EVs/covariates:\n%s\n\nError details:\n%s" \
+                  "\n\nNote: If the design matrix EVs are different than " \
+                  "what was shown in the model design creator, this may be " \
+                  "because missing participants, sessions, or series for " \
+                  "this measure (%s) may have altered the group design.\n\n" \
+                  % (str(con_equation), dmatrix_obj.design_info.column_names,\
+                     e, output_measure)
+            raise Exception(err)
+
         con_vec = lincon.coefs[0]
         contrasts_dict[con_equation] = con_vec
 
@@ -487,6 +529,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     sub_id_label = group_config_obj.participant_id_label
 
     ftest_list = []
+    readme_flags = []
 
     # determine if f-tests are included or not
     custom_confile = group_config_obj.custom_contrasts
@@ -572,7 +615,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         "group_analysis", second_half_out.lstrip("/"))
 
     log_dir = os.path.join(pipeline_config_obj.logDirectory, \
-        "group_analysis", second_half_out.lstrip("/"))       
+        "group_analysis", second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")
@@ -624,18 +667,28 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
                                         merge_outfile)
 
     # create merged group mask
+    merge_mask_outfile = model_name + "_" + resource_id + \
+                             "_merged_mask.nii.gz"
+    merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
+    merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+
     if "Group Mask" in group_config_obj.mean_mask:
-        merge_mask_outfile = model_name + "_" + resource_id + \
-                                 "_merged_mask.nii.gz"
-        merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
-        merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
+        mask_for_means = merge_mask
     else:
-        #....HOW ARE WE HANDLING INDIVIDUAL MASKS WITH THIS NEW SETUP???....
-        pass
+        individual_masks_dir = os.path.join(model_path, "individual_masks")
+        create_dir(individual_masks_dir, "individual masks")
+        for unique_id, series_id, raw_filepath in zip(model_df["Participant"],
+            model_df["Series"], model_df["Raw_Filepath"]):
+            
+            mask_for_means_path = os.path.join(individual_masks_dir,
+                "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
+            mask_for_means = create_merge_mask(raw_filepath, 
+                                               mask_for_means_path)
+        readme_flags.append("individual_masks")
 
     # calculate measure means, and demean
     if "Measure_Mean" in design_formula:
-        model_df = calculate_measure_mean_in_df(model_df, merge_mask)
+        model_df = calculate_measure_mean_in_df(model_df, mask_for_means)
 
     # calculate custom ROIs, and demean (in workflow?)
     if "Custom_ROI_Mean" in design_formula:
@@ -652,15 +705,14 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # make sure the custom ROI mask file is the same resolution as the
         # output files - if not, resample and warn the user
         roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0], \
-                                              custom_roi_mask, merge_mask, \
+                                              custom_roi_mask, mask_for_means, \
                                               model_path, resource_id)
 
-        # if using group merged mask, trim the custom ROI mask to be within
-        # its constraints
-        if merge_mask:
-            output_mask = os.path.join(model_path, "group_masked_%s" \
-                                       % os.path.basename(roi_mask))
-            roi_mask = trim_mask(roi_mask, merge_mask, output_mask)
+        # trim the custom ROI mask to be within mask constraints
+        output_mask = os.path.join(model_path, "masked_%s" \
+                                   % os.path.basename(roi_mask))
+        roi_mask = trim_mask(roi_mask, mask_for_means, output_mask)
+        readme_flags.append("custom_roi_mask_trimmed")
 
         # calculate
         model_df = calculate_custom_roi_mean_in_df(model_df, roi_mask)
@@ -681,13 +733,16 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
 
+
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
         design_formula = design_formula + " + Session"
-        cat_list.append("Session")
+        if "Session" not in cat_list:
+            cat_list.append("Session")
     if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
-        cat_list.append("Series")
+        if "Series" not in cat_list:
+            cat_list.append("Series")
     for col in list(model_df.columns):
         if "participant_" in col:
             design_formula = design_formula + " + %s" % col
@@ -704,14 +759,40 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     grp_vector = [1] * num_subjects
 
     if group_config_obj.group_sep:
+
         # model group variances separately
+        old_ev_list = ev_list
+
         model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
                                 group_config_obj.grouping_var, \
                                 ev_list, cat_list)
 
-    # prep design formula for Patsy
-    design_formula = patsify_design_formula(design_formula, cat_list)
+        # make the grouping variable categorical for Patsy (if we try to
+        # do this automatically below, it will categorical-ize all of 
+        # the substrings too)
+        design_formula = design_formula.replace(group_config_obj.grouping_var, \
+                                  "C(" + group_config_obj.grouping_var + ")")
+        if group_config_obj.coding_scheme == "Sum":
+            design_formula = design_formula.replace(")", ", Sum)")
 
+        # update design formula
+        rename = {}
+        for old_ev in old_ev_list:
+            for new_ev in ev_list:
+                if old_ev + "__FOR" in new_ev:
+                    if old_ev not in rename.keys():
+                        rename[old_ev] = []
+                    rename[old_ev].append(new_ev)
+
+        for old_ev in rename.keys():
+            design_formula = design_formula.replace(old_ev, \
+                                                   " + ".join(rename[old_ev]))
+
+
+    # prep design formula for Patsy
+    design_formula = patsify_design_formula(design_formula, cat_list, \
+                         group_config_obj.coding_scheme[0])
+    print design_formula
     # send to Patsy
     try:
         dmatrix = patsy.dmatrix(design_formula, model_df)
@@ -724,15 +805,19 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
               % (model_df.columns, design_formula, e)
         raise Exception(err)
 
+    print dmatrix.design_info.column_names
+    print dmatrix
+
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
     check_multicollinearity(np.array(dmatrix))
 
     # prepare for final stages
-    design_matrix = np.array(dmatrix, dtype=np.float16)
-
     column_names = dmatrix.design_info.column_names
-      
+
+    # what is this for?
+    design_matrix = np.array(dmatrix, dtype=np.float16)
+    
         
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
@@ -760,10 +845,36 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
-        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list)
+        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list,
+            resource_id)
 
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)
+
+    # we must demean the categorical regressors if the Intercept/Grand Mean
+    # is included in the model, otherwise FLAME produces blank outputs
+    if "Intercept" in column_names:
+
+        cat_indices = []
+        col_name_indices = dmatrix.design_info.column_name_indexes
+        for col_name in col_name_indices.keys():
+            if "C(" in col_name:
+                cat_indices.append(int(col_name_indices[col_name]))
+
+        # note: dmat_T is now no longer a DesignMatrix Patsy object, but only
+        # an array
+        dmat_T = dmatrix.transpose()
+
+        for index in cat_indices:
+            new_row = []
+            for val in dmat_T[index]:
+                new_row.append(val - dmat_T[index].mean())
+            dmat_T[index] = new_row
+
+        # we can go back, but we won't be the same
+        dmatrix = dmat_T.transpose()
+
+        readme_flags.append("cat_demeaned")
 
     # send off the info so the FLAME input model files can be generated!
     mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
@@ -772,7 +883,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(model_df, dmat_csv_path)
+    write_design_matrix_csv(dmatrix, model_df["Participant"], column_names, \
+        dmat_csv_path)
 
     # workflow time
     wf_name = "%s_%s" % (resource_id, series_or_repeated_label)

@@ -380,6 +380,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # there are no new rows, since the phenotype file will have all of the
     # subject_site_session combo unique IDs on each row!!!
     sessions_col = []
+    part_ids_col = []
 
     # participant IDs new columns
     participant_id_cols = {}
@@ -390,18 +391,23 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         for session in sessions_list:
             if session in participant_unique_id:
                 # generate/update sessions categorical column
-                sessions_col.append(session)
                 part_id = participant_unique_id.replace(session, "")
+                part_id = part_id.replace("_","")
+                part_ids_col.append(part_id)
+                sessions_col.append(session)
+                header_title = "participant_%s" % part_id
                 # generate/update participant ID column (1's or 0's)
-                if part_id not in participant_id_cols.keys():
+                if header_title not in participant_id_cols.keys():
                     part_col[i] = 1
-                    participant_id_cols["participant_%s" % part_id] = part_col
+                    participant_id_cols[header_title] = part_col
                 else:
-                    participant_id_cols["participant_%s" % part_id][i] = 1
+                    participant_id_cols[header_title][i] = 1
         i += 1
-
+    
     pheno_df["Session"] = sessions_col
+    pheno_df["Participant_ID"] = part_ids_col
 
+    # add new participant ID columns
     for new_col in participant_id_cols.keys():
         pheno_df[new_col] = participant_id_cols[new_col]
 
@@ -428,25 +434,62 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
         new_rows.append(sub_pheno_df)
     pheno_df = pd.concat(new_rows)
 
-    if not repeated_sessions:
+    if repeated_sessions == False:
 
         # participant IDs new columns
         participant_id_cols = {}
         i = 0
 
         for participant_unique_id in pheno_df["Participant"]:
+
             part_col = [0] * len(pheno_df["Participant"])
-            if participant_unique_id not in participant_id_cols.keys():
+            header_title = "participant_%s" % participant_unique_id
+
+            if header_title not in participant_id_cols.keys():
                 part_col[i] = 1
-                participant_id_cols["participant_%s" % participant_unique_id] = part_col
+                participant_id_cols[header_title] = part_col
             else:
-                participant_id_cols["participant_%s" % participant_unique_id][i] = 1
+                participant_id_cols[header_title][i] = 1
+
             i += 1
 
         for new_col in participant_id_cols.keys():
             pheno_df[new_col] = participant_id_cols[new_col]
         
     return pheno_df
+
+
+
+def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
+
+    # this is for repeated measures only.
+    # if the user selects a participant list like this:
+    #    sub001_session_1
+    #    sub001_session_2
+    #    sub002_session_1
+    #    sub002_session_2
+    #    sub003_session_1
+    # then have this drop "sub003_session_1", because repeated measures
+    # requires a uniform balance of repeats
+
+    from collections import Counter
+
+    part_ID_count = Counter(pheno_df["Participant_ID"])
+
+    if series_list:
+        sessions_x_series = len(sessions_list) * len(series_list)
+    else:
+        sessions_x_series = len(sessions_list)
+
+    dropped_parts = []
+
+    for part_ID in part_ID_count.keys():
+        if part_ID_count[part_ID] != sessions_x_series:
+            pheno_df = pheno_df[pheno_df.Participant_ID != part_ID]
+            del pheno_df["participant_%s" % part_ID]
+            dropped_parts.append(part_ID)
+
+    return pheno_df, dropped_parts
 
 
 
@@ -619,8 +662,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     new_pheno_df = pheno_series_to_repeated_measures( \
                                        new_pheno_df, \
                                        group_model.series_list, \
-                                       group_model.sessions_list)
-
+                                       repeated_sessions)
 
                 # drop the pheno rows - if there are participants missing in
                 # the output files (ex. if ReHo did not complete for 2 of the
@@ -655,19 +697,44 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     new_pheno_df = pd.merge(new_pheno_df, output_df, how="inner",\
                         on=join_columns)
 
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_multiple_series")] = \
+                    if repeated_sessions == True:
+                        # this can be removed/modified once sessions are no
+                        # longer integrated in the full unique participant IDs
+                        new_pheno_df, dropped_parts = \
+                            balance_repeated_measures(new_pheno_df, \
+                                                      group_model.sessions_list, \
+                                                      group_model.series_list)
+
+                        run_label = "repeated_measures_multiple_sessions_and_series"
+                    else:
+                        run_label = "repeated_measures_multiple_series"
+
+                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
                         new_pheno_df
 
                 else:
-                    # split up the series here
-                    # iterate over the Series/Scans
+                    # this runs if there are repeated sessions but not
+                    # repeated series
+                    #   split up the series here
+                    #   iterate over the Series/Scans
                     for series_df_tuple in output_df.groupby("Series"):
+
                         series = series_df_tuple[0]
-                        # series_df = output_df but with only one of the Series
+
+                        # series_df is output_df but with only one of the Series
                         series_df = series_df_tuple[1]
+
                         # trim down the pheno DF to match the output DF and merge
                         newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
                         newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
+
+                        # this can be removed/modified once sessions are no
+                        # longer integrated in the full unique participant IDs
+                        newer_pheno_df, dropped_parts = \
+                            balance_repeated_measures(newer_pheno_df, \
+                                                      group_model.sessions_list, \
+                                                      None)
+
                         # unique_resource =
                         #              (output_measure_type, preprocessing strategy)
                         analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df

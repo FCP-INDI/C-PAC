@@ -2575,7 +2575,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # flip the dictionary
         for roi_path in tsa_roi_dict.keys():
 
-            for analysis_type in tsa_roi_dict[roi_path]:
+            for analysis_type in tsa_roi_dict[roi_path].split(","):
 
                 if analysis_type not in ts_analysis_dict.keys():
                     ts_analysis_dict[analysis_type] = []
@@ -2596,7 +2596,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # flip the dictionary
         for roi_path in sca_roi_dict.keys():
 
-            for analysis_type in sca_roi_dict[roi_path]:
+            for analysis_type in sca_roi_dict[roi_path].split(","):
 
                 if analysis_type not in sca_analysis_dict.keys():
                     sca_analysis_dict[analysis_type] = []
