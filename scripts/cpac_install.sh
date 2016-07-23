@@ -1,31 +1,31 @@
 #! /bin/bash
 
-# cpac_install.sh
-# =================================================================================================
-# Version: 0.4.0
-# Author(s): John Pellman, Daniel Clark
-# Based off of cpac_install.sh by Daniel Clark.
-# Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
-# Checks for user privileges and performs installation either locally or system-wide.
-# Can be customized using flags.
-# =================================================================================================
-# Flags:
-# -s : System-level dependencies only.
-# -p : Python dependencies only
-# -n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:
-#	afni, fsl, c3d, ants, cpac
-#	will issue warnings if dependencies for these neuroimaging packages are not fulfilled.
-#	If multiple packages are to be specified, they must be surrounded by quotation marks.
-# -a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.
-# -l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. 
-# -r : Root install.  Equivalent to -spa
-# -h : Bring up the help dialog.
-# =================================================================================================
-# Example usage:
-#	cpac_install.sh -n "fsl afni"
-#	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
-#	In this case, FSL would first be installed before AFNI.
-# TODO: Use Juju for local installations. Prompt user to ask if they would like to do an entirely local install.
+usage="
+cpac_install.sh\n
+=================================================================================================\n
+Version: 0.4.0\n
+Author(s): John Pellman, Daniel Clark\n
+Based off of cpac_install.sh by Daniel Clark.\n
+Description: Will perform specific operations to install C-PAC dependencies and C-PAC.\n
+Checks for user privileges and performs installation either locally or system-wide.\n
+Can be customized using flags.\n
+=================================================================================================\n
+Flags:\n\n
+-s : System-level dependencies only.\n
+-p : Python dependencies only\n
+-n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:\n
+\tafni, fsl, c3d, ants, cpac\n
+\twill issue warnings if dependencies for these neuroimaging packages are not fulfilled.\n
+\tIf multiple packages are to be specified, they must be surrounded by quotation marks.\n
+-a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.\n
+-l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. \n
+-r : Root install.  Equivalent to -spa\n
+-h : Bring up the help dialog.\n
+=================================================================================================\n
+Example usage:\n
+\tcpac_install.sh -n \"fsl afni\"\n
+\tWill install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.\n
+\tIn this case, FSL would first be installed before AFNI.\n"
 
 function install_system_dependencies {
 	echo "Installing C-PAC system dependencies..."
@@ -37,10 +37,28 @@ function install_system_dependencies {
 	fi
 	if [ $LOCAL -eq 0 ]; then
 		if [ $DISTRO == 'CENTOS' ]; then
+            version=$(rpm -q --queryformat '%{VERSION}' centos-release)
+            case ${version} in 
+                5)
+                    epel_url=http://dl.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm
+                    epel_rpm=epel-release-5-4.noarch.rpm
+                    ver_pkgs="mesa-libGLU-6.5.1-7.11.el5_9.i386 gsl-1.13-3.el5.x86_64 libxml2-devel libpng-1.2.10-17.el5_8.i386"
+                    ;;
+                6)
+                    epel_url=http://dl.fedoraproject.org/pub/epel/6/x86_64/e/epel-release-6-8.noarch.rpm
+                    epel_rpm=epel-release-6-8.noarch.rpm
+                    ver_pkgs="mesa-libGLU-11.0.7-4.el6.x86_64 gsl-1.13-1.el6.x86_64 libcanberra-gtk2 libxml2-devel  libpng-1.2.49-2.el6_7.i686"
+                    ;;
+                7)
+                    epel_url=http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+                    epel_rpm=epel-release-7-5.noarch.rpm
+                    ver_pkgs="mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 libcanberra-gtk2 libxml-devel libpng12.x86_64"
+                    ;;
+            esac
 			yum update -y
-			cd /tmp && wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm && rpm -Uvh epel-release-7-5.noarch.rpm 
-			yum install -y cmake git make unzip bzip2 netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libcanberra-gtk2 libXp.x86_64 mesa-libGLU-9.0.0-4.el7.x86_64 gsl-1.15-13.el7.x86_64 wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel libxml-devel libxslt-devel python-devel libpng12.x86_64
-			yum autoremove -y
+			cd /tmp && wget ${epel_url} && rpm -Uvh ${epel_rpm}
+			yum install -y cmake git make unzip bzip2 netpbm gcc python-devel gcc-gfortran gcc-c++ libgfortran lapack lapack-devel blas libXp.x86_64  wxBase wxGTK wxGTK-gl wxPython graphviz graphviz-devel.x86_64 zlib-devel libxslt-devel python-devel 
+            yum install -y ${ver_pkgs}
 		elif [ $DISTRO == 'UBUNTU' ]; then
 			apt-get update
 			apt-get upgrade -y
@@ -345,7 +363,7 @@ function install_c3d {
     		i386 )
         		C3D_DOWNLOAD=c3d-0.8.2-Linux-i386
         		;;
-   		i686 )
+   		    i686 )
         		C3D_DOWNLOAD=c3d-0.8.2-Linux-i686
      			;;
 	esac
@@ -564,33 +582,7 @@ while getopts ":spn:alrh" opt; do
 			install_cpac_env
 			;;
            	 h)
-			echo "
-cpac_install.sh 
- =================================================================================================
- Version: 0.4.0
- Author(s): John Pellman, Daniel Clark
- Based off of cpac_install.sh by Daniel Clark.
- Description: Will perform specific operations to install C-PAC dependencies and C-PAC.
- Checks for user privileges and performs installation either locally or system-wide.
- Can be customized using flags.
- =================================================================================================
- Flags:
- -s : System-level dependencies only.
- -p : Python dependencies only
- -n : Install specific neuroimaging packages.  Accepts any number of the following as arguments:
-	afni, fsl, c3d, ants, cpac
-	will issue warnings if dependencies for these neuroimaging packages are not fulfilled.
-	If multiple packages are to be specified, they must be surrounded by quotation marks.
- -a : Install all neuroimaging suites not already installed.  Will also tell you if all neuroimaging suites are already installed and on the path.
- -l : Local install. Equivalent to -pa ; will not run FSL installer, but will issue a warning if running on Ubuntu. 
- -r : Root install.  Equivalent to -spa
- -h : Bring up the help dialog.
-=================================================================================================
- Example usage:
-	cpac_install.sh -n \"fsl afni\"
-	Will install FSL and AFNI.  The list of neuroimaging suites to install is iterated through sequentially.
-	In this case, FSL would first be installed before AFNI.
-					"
+			echo -e ${usage}
 			;;
    		\?)
      			echo "Invalid option: -$OPTARG" >&2
