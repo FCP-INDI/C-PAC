@@ -324,6 +324,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
                              name='3dROIstats')
+    timeseries_roi.inputs.quiet=True
 
     '''
     process_output = pe.Node(util.Function(input_names=['data_file',

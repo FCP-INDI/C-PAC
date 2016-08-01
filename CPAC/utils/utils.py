@@ -499,21 +499,16 @@ def safe_shape(*vol_data):
 
 
 def extract_one_d(list_timeseries):
-
+    if isinstance(list_timeseries, basestring): 
+        if '.1D' in list_timeseries or '.csv' in list_timeseries:
+            return  list_timeseries
 
     for timeseries in list_timeseries:
+        if '.1D' in timeseries or '.csv' in timeseries:
+            return  timeseries
 
-        if '1D' in timeseries:
-
-
-            return timeseries
-
-        else:
-
-            print "Error : ROI/Voxel TimeSeries 1D file not found"
-
-            return None
-
+    raise Exception("Unable to retrieve roi timeseries 1D or csv"\
+                    " file. Files found:" + list_timeseries)
 
 def extract_txt(list_timeseries):
     """
