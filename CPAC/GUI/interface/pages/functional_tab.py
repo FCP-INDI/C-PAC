@@ -209,7 +209,7 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
 
         self.page.add(label="Resolutions to Resample to ",
                       control = control.LISTBOX_COMBO,
-                      name = "resample_ts_resolution",
+                      name = "resolution_for_func_derivative",
                       type = dtype.LOFL,
                       values = [2.0],
                       comment = "The resolutions to resample the normalized "\
