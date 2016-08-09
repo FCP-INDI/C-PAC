@@ -57,7 +57,7 @@ Functional to MNI Registration
 
 #. **Run Functional to MNI Registration - [On, Off]:** Register functional images to a standard MNI152 template. This option must be enabled if you wish to calculate any derivatives.
 
-#. **Functional Standard Resolution - [1mm, 2mm, 3mm]:** The resolution (in mm) to which functional images are transformed during registration.
+#. **Functional Standard Resolution - [1mm, 2mm, 3mm, 4mm]:** The resolution (in mm) to which functional images are transformed during registration.
 
 #. **Standard Brain only Template (functional resolution) - [path]:** Standard FSL Skull Stripped Template. Used as a reference image for functional registration.
 

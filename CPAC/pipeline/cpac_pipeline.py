@@ -2004,38 +2004,36 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                               name="motion_correct_fsl_warp_%d" % num_strat)
                 motion_correct_warp.inputs.ref_file = c.template_brain_only_for_func
 
-                if 1 in c.resample_ts:
+                # resample the templates to new resolution(s) so that we
+                # can write out the timeseries to these resolutions also
+                resample_brain_template = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_brain_template_%d' % num_strat)
+                resample_brain_template.inputs.in_file = c.template_brain_only_for_func
+                resample_brain_template.inputs.reference = c.template_brain_only_for_func
+                resample_brain_template.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
 
-                    # resample the templates to new resolution(s) so that we
-                    # can write out the timeseries to these resolutions also
-                    resample_brain_template = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_brain_template_%d' % num_strat)
-                    resample_brain_template.inputs.in_file = c.template_brain_only_for_func
-                    resample_brain_template.inputs.reference = c.template_brain_only_for_func
-                    resample_brain_template.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
+                resample_head_template = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_head_template_%d' % num_strat)
+                resample_head_template.inputs.in_file = c.template_skull_only_for_func
+                resample_head_template.inputs.reference = c.template_skull_only_for_func
+                resample_head_template.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
 
-                    resample_head_template = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_head_template_%d' % num_strat)
-                    resample_head_template.inputs.in_file = c.template_skull_only_for_func
-                    resample_head_template.inputs.reference = c.template_skull_only_for_func
-                    resample_head_template.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
+                alt_func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                            name='alt_func_mni_fsl_warp_%d' % num_strat)
 
-                    alt_func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                                name='alt_func_mni_fsl_warp_%d' % num_strat)
+                alt_motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(),
+                                                  name="alt_motion_correct_fsl_warp_%d" % num_strat)
 
-                    alt_motion_correct_warp = pe.Node(interface=fsl.ApplyWarp(),
-                                                      name="alt_motion_correct_fsl_warp_%d" % num_strat)
-    
-                    alt_functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
-                                                                    name='alt_func_mni_fsl_warp_mask_%d' % num_strat)
-                    alt_functional_brain_mask_to_standard.inputs.interp = 'nn'
-               
-                    # have to do the smoothing here to keep the iterable
-                    # flow together
-                    alt_func_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                              name='alt_func_smooth_%d' % num_strat)
-                    alt_motion_smooth = pe.Node(interface=fsl.MultiImageMaths(),
-                                                name='alt_motion_smooth_%d' % num_strat)
+                alt_functional_brain_mask_to_standard = pe.Node(interface=fsl.ApplyWarp(),
+                                                                name='alt_func_mni_fsl_warp_mask_%d' % num_strat)
+                alt_functional_brain_mask_to_standard.inputs.interp = 'nn'
+           
+                # have to do the smoothing here to keep the iterable
+                # flow together
+                alt_func_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                          name='alt_func_smooth_%d' % num_strat)
+                alt_motion_smooth = pe.Node(interface=fsl.MultiImageMaths(),
+                                            name='alt_motion_smooth_%d' % num_strat)
 
                 try:
 
@@ -2080,63 +2078,62 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     node, out_file = strat.get_node_from_resource_pool('motion_correct')
                     workflow.connect(node, out_file, motion_correct_warp, 'in_file')
 
-                    if 1 in c.resample_ts:
   
-                        # input files
-                        node, out_file = strat.get_leaf_properties()
-                        workflow.connect(node, out_file,
-                                         alt_func_mni_warp, 'in_file')
+                    # input files
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file,
+                                     alt_func_mni_warp, 'in_file')
 
-                        node, out_file = strat.get_node_from_resource_pool('motion_correct')
-                        workflow.connect(node, out_file,
-                                         alt_motion_correct_warp, 'in_file')
+                    node, out_file = strat.get_node_from_resource_pool('motion_correct')
+                    workflow.connect(node, out_file,
+                                     alt_motion_correct_warp, 'in_file')
 
-                        node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                        workflow.connect(node, out_file,
-                                         alt_functional_brain_mask_to_standard, 'in_file')
+                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                    workflow.connect(node, out_file,
+                                     alt_functional_brain_mask_to_standard, 'in_file')
 
-                        # reference files
-                        workflow.connect(resample_brain_template, 'out_file',
-                                         alt_func_mni_warp, 'ref_file')
-                        workflow.connect(resample_brain_template, 'out_file',
-                                         alt_motion_correct_warp, 'ref_file')
-                        workflow.connect(resample_head_template, 'out_file',
-                                         alt_functional_brain_mask_to_standard, 'ref_file')
+                    # reference files
+                    workflow.connect(resample_brain_template, 'out_file',
+                                     alt_func_mni_warp, 'ref_file')
+                    workflow.connect(resample_brain_template, 'out_file',
+                                     alt_motion_correct_warp, 'ref_file')
+                    workflow.connect(resample_head_template, 'out_file',
+                                     alt_functional_brain_mask_to_standard, 'ref_file')
 
-                        # functional to anatomical linear warp
-                        node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                        workflow.connect(node, out_file,
-                                         alt_func_mni_warp, 'premat')
-                        workflow.connect(node, out_file,
-                                         alt_motion_correct_warp, 'premat') 
-                        workflow.connect(node, out_file,
-                                         alt_functional_brain_mask_to_standard, 'premat') 
+                    # functional to anatomical linear warp
+                    node, out_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                    workflow.connect(node, out_file,
+                                     alt_func_mni_warp, 'premat')
+                    workflow.connect(node, out_file,
+                                     alt_motion_correct_warp, 'premat') 
+                    workflow.connect(node, out_file,
+                                     alt_functional_brain_mask_to_standard, 'premat') 
 
-                        # anatomical to template nonlinear warp
-                        node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
-                        workflow.connect(node, out_file,
-                                         alt_func_mni_warp, 'field_file')
-                        workflow.connect(node, out_file,
-                                         alt_motion_correct_warp, 'field_file')
-                        workflow.connect(node, out_file,
-                                         alt_functional_brain_mask_to_standard, 'field_file')
+                    # anatomical to template nonlinear warp
+                    node, out_file = strat.get_node_from_resource_pool('anatomical_to_mni_nonlinear_xfm')
+                    workflow.connect(node, out_file,
+                                     alt_func_mni_warp, 'field_file')
+                    workflow.connect(node, out_file,
+                                     alt_motion_correct_warp, 'field_file')
+                    workflow.connect(node, out_file,
+                                     alt_functional_brain_mask_to_standard, 'field_file')
 
-                        # smoothing (have to do it here to keep the iterable
-                        # flowing smoothly)
-                        workflow.connect(alt_func_mni_warp, 'out_file',
-                                         alt_func_smooth, 'in_file')
-                        workflow.connect(alt_motion_correct_warp, 'out_file',
-                                         alt_motion_smooth, 'in_file')
+                    # smoothing (have to do it here to keep the iterable
+                    # flowing smoothly)
+                    workflow.connect(alt_func_mni_warp, 'out_file',
+                                     alt_func_smooth, 'in_file')
+                    workflow.connect(alt_motion_correct_warp, 'out_file',
+                                     alt_motion_smooth, 'in_file')
 
-                        workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                             alt_func_smooth, 'op_string')
-                        workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                             alt_motion_smooth, 'op_string')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                         alt_func_smooth, 'op_string')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                         alt_motion_smooth, 'op_string')
 
-                        workflow.connect(alt_functional_brain_mask_to_standard, 'out_file',
-                                         alt_func_smooth, 'operand_files')
-                        workflow.connect(alt_functional_brain_mask_to_standard, 'out_file',
-                                         alt_motion_smooth, 'operand_files')
+                    workflow.connect(alt_functional_brain_mask_to_standard, 'out_file',
+                                     alt_func_smooth, 'operand_files')
+                    workflow.connect(alt_functional_brain_mask_to_standard, 'out_file',
+                                     alt_motion_smooth, 'operand_files')
 
                 except:
                     logConnectionError('Functional Timeseries Registration to MNI space (FSL)', num_strat, strat.get_resource_pool(), '0015')
@@ -2146,11 +2143,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'functional_brain_mask_to_standard':(functional_brain_mask_to_standard, 'out_file'),
                                             'mean_functional_in_mni':(mean_functional_warp, 'out_file'),
                                             'motion_correct_to_standard':(motion_correct_warp, 'out_file')})
-                if 1 in c.resample_ts:
-                    strat.update_resource_pool({'functional_mni_other_resolutions':(alt_func_mni_warp, 'out_file'),
-                                                'motion_correct_to_standard_other_resolutions':(alt_motion_correct_warp, 'out_file'),
-                                                'functional_mni_other_resolutions_smooth':(alt_func_smooth, 'out_file'),
-                                                'motion_correct_to_standard_other_resolutions_smooth':(alt_motion_smooth, 'out_file')})
+
+                strat.update_resource_pool({'functional_mni_other_resolutions':(alt_func_mni_warp, 'out_file'),
+                                            'motion_correct_to_standard_other_resolutions':(alt_motion_correct_warp, 'out_file'),
+                                            'functional_mni_other_resolutions_smooth':(alt_func_smooth, 'out_file'),
+                                            'motion_correct_to_standard_other_resolutions_smooth':(alt_motion_smooth, 'out_file')})
                 strat.append_name(func_mni_warp.name)
                 create_log_node(func_mni_warp, 'out_file', num_strat)
             
@@ -2382,87 +2379,85 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                           'mean_functional_in_mni')
 
 
-                if 1 in c.resample_ts:
+                # resample the templates to new resolution(s) so that we
+                # can write out the timeseries to these resolutions also
+                resample_brain_template_for_ants = pe.Node(interface=fsl.FLIRT(),
+                                                  name='resample_brain_template_for_ants_%d' % num_strat)
+                resample_brain_template_for_ants.inputs.in_file = c.template_brain_only_for_func
+                resample_brain_template_for_ants.inputs.reference = c.template_brain_only_for_func
+                resample_brain_template_for_ants.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
 
-                    # resample the templates to new resolution(s) so that we
-                    # can write out the timeseries to these resolutions also
-                    resample_brain_template_for_ants = pe.Node(interface=fsl.FLIRT(),
-                                                      name='resample_brain_template_for_ants_%d' % num_strat)
-                    resample_brain_template_for_ants.inputs.in_file = c.template_brain_only_for_func
-                    resample_brain_template_for_ants.inputs.reference = c.template_brain_only_for_func
-                    resample_brain_template_for_ants.iterables = ('apply_isoxfm', c.resolution_for_func_derivative)
+                node2, out_file2 = (resample_brain_template_for_ants, 'out_file')
 
-                    node2, out_file2 = (resample_brain_template_for_ants, 'out_file')
+                # 4D FUNCTIONAL apply warp
+                fsl_to_itk_conversion('mean_functional',
+                                      'anatomical_brain',
+                                      'functional_mni_other_resolutions')
+                collect_transforms_func_mni('functional_mni_other_resolutions')
 
-                    # 4D FUNCTIONAL apply warp
-                    fsl_to_itk_conversion('mean_functional',
-                                          'anatomical_brain',
+                node, out_file = strat.get_leaf_properties()
+                ants_apply_warps_func_mni(node, out_file,
+                                          (node2, out_file2),
+                                          'Linear', 3,
                                           'functional_mni_other_resolutions')
-                    collect_transforms_func_mni('functional_mni_other_resolutions')
 
-                    node, out_file = strat.get_leaf_properties()
-                    ants_apply_warps_func_mni(node, out_file,
-                                              (node2, out_file2),
-                                              'Linear', 3,
-                                              'functional_mni_other_resolutions')
+                # 4D FUNCTIONAL MOTION-CORRECTED apply warp
+                fsl_to_itk_conversion('mean_functional',
+                                      'anatomical_brain',
+                                      'motion_correct_to_standard_other_resolutions')
+                collect_transforms_func_mni('motion_correct_to_standard_other_resolutions')
 
-                    # 4D FUNCTIONAL MOTION-CORRECTED apply warp
-                    fsl_to_itk_conversion('mean_functional',
-                                          'anatomical_brain',
+                node, out_file = strat.get_node_from_resource_pool('motion_correct')
+                ants_apply_warps_func_mni(node, out_file,
+                                          (node2, out_file2),
+                                          'Linear', 3,
                                           'motion_correct_to_standard_other_resolutions')
-                    collect_transforms_func_mni('motion_correct_to_standard_other_resolutions')
 
-                    node, out_file = strat.get_node_from_resource_pool('motion_correct')
-                    ants_apply_warps_func_mni(node, out_file,
-                                              (node2, out_file2),
-                                              'Linear', 3,
-                                              'motion_correct_to_standard_other_resolutions')
+                # FUNCTIONAL MASK apply warp
+                fsl_to_itk_conversion('functional_brain_mask',
+                                      'anatomical_brain',
+                                      'functional_brain_mask_to_standard_other_resolutions')
+                collect_transforms_func_mni('functional_brain_mask_to_standard_other_resolutions')
 
-                    # FUNCTIONAL MASK apply warp
-                    fsl_to_itk_conversion('functional_brain_mask',
-                                          'anatomical_brain',
+                node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                ants_apply_warps_func_mni(node, out_file,
+                                          (node2, out_file2),
+                                          'NearestNeighbor', 0,
                                           'functional_brain_mask_to_standard_other_resolutions')
-                    collect_transforms_func_mni('functional_brain_mask_to_standard_other_resolutions')
+                
+                # have to do the smoothing here to keep the iterable
+                # flow together
+                alt_func_smooth_for_ants = pe.Node(interface=fsl.MultiImageMaths(),
+                                                        name='alt_func_smooth_for_ants_%d' % num_strat)
+                alt_motion_smooth_for_ants = pe.Node(interface=fsl.MultiImageMaths(),
+                                                          name='alt_motion_smooth_for_ants_%d' % num_strat)
 
-                    node, out_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                    ants_apply_warps_func_mni(node, out_file,
-                                              (node2, out_file2),
-                                              'NearestNeighbor', 0,
-                                              'functional_brain_mask_to_standard_other_resolutions')
-                    
-                    # have to do the smoothing here to keep the iterable
-                    # flow together
-                    alt_func_smooth_for_ants = pe.Node(interface=fsl.MultiImageMaths(),
-                                                            name='alt_func_smooth_for_ants_%d' % num_strat)
-                    alt_motion_smooth_for_ants = pe.Node(interface=fsl.MultiImageMaths(),
-                                                              name='alt_motion_smooth_for_ants_%d' % num_strat)
+                try:
 
-                    try:
+                    node, out_file = strat.get_node_from_resource_pool("functional_mni_other_resolutions")
+                    workflow.connect(node, out_file, alt_func_smooth_for_ants, 'in_file')
 
-                        node, out_file = strat.get_node_from_resource_pool("functional_mni_other_resolutions")
-                        workflow.connect(node, out_file, alt_func_smooth_for_ants, 'in_file')
+                    node, out_file = strat.get_node_from_resource_pool("motion_correct_to_standard_other_resolutions")
+                    workflow.connect(node, out_file, alt_motion_smooth_for_ants, 'in_file')
 
-                        node, out_file = strat.get_node_from_resource_pool("motion_correct_to_standard_other_resolutions")
-                        workflow.connect(node, out_file, alt_motion_smooth_for_ants, 'in_file')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                         alt_func_smooth_for_ants, 'op_string')
 
-                        workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                             alt_func_smooth_for_ants, 'op_string')
+                    workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
+                                         alt_motion_smooth_for_ants, 'op_string')
 
-                        workflow.connect(inputnode_fwhm, ('fwhm', set_gauss),
-                                             alt_motion_smooth_for_ants, 'op_string')
+                    node, out_file = strat.get_node_from_resource_pool("functional_brain_mask_to_standard_other_resolutions")
+                    workflow.connect(node, out_file, alt_func_smooth_for_ants, 'operand_files')
+                    workflow.connect(node, out_file, alt_motion_smooth_for_ants, 'operand_files')
 
-                        node, out_file = strat.get_node_from_resource_pool("functional_brain_mask_to_standard_other_resolutions")
-                        workflow.connect(node, out_file, alt_func_smooth_for_ants, 'operand_files')
-                        workflow.connect(node, out_file, alt_motion_smooth_for_ants, 'operand_files')
+                except:
+                    logConnectionError('Functional Timeseries ' \
+                        'in Standard Space Resampling (ANTS)', num_strat, \
+                        strat.get_resource_pool(), '0058')
+                    raise
 
-                    except:
-                        logConnectionError('Functional Timeseries ' \
-                            'in Standard Space Resampling (ANTS)', num_strat, \
-                            strat.get_resource_pool(), '0058')
-                        raise
-
-                    strat.update_resource_pool({"functional_mni_other_resolutions_smooth": (alt_func_smooth_for_ants, 'out_file')})
-                    strat.update_resource_pool({"motion_correct_to_standard_other_resolutions_smooth": (alt_motion_smooth_for_ants, 'out_file')})
+                strat.update_resource_pool({"functional_mni_other_resolutions_smooth": (alt_func_smooth_for_ants, 'out_file')})
+                strat.update_resource_pool({"motion_correct_to_standard_other_resolutions_smooth": (alt_motion_smooth_for_ants, 'out_file')})
 
                 num_strat += 1
 

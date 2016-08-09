@@ -176,7 +176,7 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      control=control.CHOICE_BOX, 
                      name='resolution_for_func_preproc', 
                      type=dtype.STR, 
-                     values = ["3mm", "2mm", "1mm"],
+                     values = ["4mm", "3mm", "2mm", "1mm"],
                      comment="The resolution (in mm) to which functional images are transformed during registration")
         
         self.page.add(label="Standard Brain only Template (functional resolution) ", 
@@ -199,13 +199,6 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values = str(os.path.join(fsl,"etc/flirtsch/ident.mat")),
                     comment="Matrix containing all 1's. Used as an identity matrix during registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
-
-        self.page.add(label="Resample Normalized Functional ",
-                      control=control.CHOICE_BOX,
-                      name="resample_ts",
-                      type=dtype.LSTR,
-                      values=["Off","On"],
-                      comment="Resample the normalized functional timeseries to a resolution of your choice.")
 
         self.page.add(label="Resolutions to Resample to ",
                       control = control.LISTBOX_COMBO,
