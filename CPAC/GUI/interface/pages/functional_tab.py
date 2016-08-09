@@ -201,16 +201,13 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                     comment="Matrix containing all 1's. Used as an identity matrix during registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
 
         self.page.add(label="Resolutions to Resample to ",
-                      control = control.LISTBOX_COMBO,
+                      control = control.CHOICE_BOX,
                       name = "resolution_for_func_derivative",
-                      type = dtype.LOFL,
-                      values = [2.0],
+                      type = dtype.STR,
+                      values = ["4mm", "3mm", "2mm", "1mm"],
                       comment = "The resolutions to resample the normalized "\
                                 "functional timeseries to, if you have " \
-                                "selected to do so. Click the green + to " \
-                                "input resolutions (in mm).",
-                      size = (200,100),
-                      combo_type = 6)
+                                "selected to do so.")
 
         #self.page.add(label="Resample to Resolution",
         #              control=control.TEXT_BOX, 
