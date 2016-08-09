@@ -46,7 +46,7 @@ func_reg_input,Use as Functional-to-Anatomical Registration Input,Functional to 
 func_reg_input_volume,Functional Volume to Use as Input (Selected Functional Volume only),Functional to Anatomical Registration
 functionalMasking,Functional Masking,Functional to Anatomical Registration
 runRegisterFuncToMNI,Run Functional to MNI Registration,Functional to MNI Registration
-resolution_for_func,Functional Standard Resolution,Functional to MNI Registration
+resolution_for_func_preproc,Functional Standard Resolution,Functional to MNI Registration
 template_brain_only_for_func,Standard Brain only Template (functional resolution),Functional to MNI Registration
 template_skull_for_func,Standard Template with Skull (functional resolution),Functional to MNI Registration
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration

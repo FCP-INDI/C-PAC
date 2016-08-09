@@ -278,11 +278,11 @@ resolution_for_func_derivatives :  2mm
 
 # Standard FSL Skull Stripped Template. Used as a reference image for functional
 # registration
-template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz
+template_brain_only_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz
 
 
 # Standard FSL Anatomical Brain Image with Skull
-template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func}.nii.gz
+template_skull_for_func :  /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz
 
 
 # Matrix containing all 1's. Used as an identity matrix during registration.
