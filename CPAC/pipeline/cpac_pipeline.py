@@ -2010,13 +2010,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                   name='resample_brain_template_%d' % num_strat)
                 resample_brain_template.inputs.in_file = c.template_brain_only_for_func
                 resample_brain_template.inputs.reference = c.template_brain_only_for_func
-                resample_brain_template.iterables = ('apply_isoxfm', [int(c.resolution_for_func_derivative[0])])
+                resample_brain_template.inputs.apply_isoxfm = float(c.resolution_for_func_derivative[0])
 
                 resample_head_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_head_template_%d' % num_strat)
                 resample_head_template.inputs.in_file = c.template_skull_only_for_func
                 resample_head_template.inputs.reference = c.template_skull_only_for_func
-                resample_head_template.iterables = ('apply_isoxfm', [int(c.resolution_for_func_derivative[0])])
+                resample_head_template.inputs.apply_isoxfm = float(c.resolution_for_func_derivative[0])
 
                 alt_func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
                                             name='alt_func_mni_fsl_warp_%d' % num_strat)
@@ -2385,7 +2385,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                   name='resample_brain_template_for_ants_%d' % num_strat)
                 resample_brain_template_for_ants.inputs.in_file = c.template_brain_only_for_func
                 resample_brain_template_for_ants.inputs.reference = c.template_brain_only_for_func
-                resample_brain_template_for_ants.iterables = ('apply_isoxfm', [int(c.resolution_for_func_derivative[0])])
+                resample_brain_template_for_ants.inputs.apply_isoxfm = float(c.resolution_for_func_derivative[0])
 
                 node2, out_file2 = (resample_brain_template_for_ants, 'out_file')
 
