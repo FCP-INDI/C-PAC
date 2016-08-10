@@ -205,9 +205,7 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                       name = "resolution_for_func_derivative",
                       type = dtype.STR,
                       values = ["4mm", "3mm", "2mm", "1mm"],
-                      comment = "The resolutions to resample the normalized "\
-                                "functional timeseries to, if you have " \
-                                "selected to do so.")
+                      comment = "The resolutions to resample the normalized functional timeseries to")
 
         #self.page.add(label="Resample to Resolution",
         #              control=control.TEXT_BOX, 

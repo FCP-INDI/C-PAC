@@ -608,7 +608,7 @@ class ListBox(wx.Frame):
         # If any missing parameters, notify user
         if missingParams:
             message = 'The following parameters are missing from your pipeline configuration file:\n\n'
-
+            print missingParams
             for param in missingParams:
                 message = message + "\"" + str(param[1]) + "\"" + "\n" + "which can be found in tab:" + "\n" +  "\"" + str(param[2]) + "\"\n\n"
 

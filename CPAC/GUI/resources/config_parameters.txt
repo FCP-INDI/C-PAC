@@ -50,8 +50,7 @@ resolution_for_func_preproc,Functional Standard Resolution,Functional to MNI Reg
 template_brain_only_for_func,Standard Brain only Template (functional resolution),Functional to MNI Registration
 template_skull_for_func,Standard Template with Skull (functional resolution),Functional to MNI Registration
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration
-Resample Normalized Functional,Functional to MNI Registration
-resolution_for_func_derivative,Resample to Resolution,Functional to MNI Registration
+resolution_for_func_derivative,Resample Normalized Functional,Functional to MNI Registration
 runNuisance,Run Nuisance Signal Regression,Nuisance Regression
 lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regression
 Regressors,Regressors,Nuisance Regression
