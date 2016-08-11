@@ -326,15 +326,6 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
                              name='3dROIstats')
     timeseries_roi.inputs.quiet=True
 
-    '''
-    process_output = pe.Node(util.Function(input_names=['data_file',
-                                                        'template',
-                                                        'output_type'],
-                                                  output_names=['out_file'],
-                                                  function=gen_roi_timeseries),
-                                                  name='timeseries_roi')
-    '''
-
     wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'in_file')
     #wflow.connect(inputNode, 'output_type',

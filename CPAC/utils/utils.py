@@ -399,13 +399,21 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
-    for timeseries_file_string in timeseries_one_d:
-        if ".1D" in timeseries_file_string:
-            timeseries_file = timeseries_file_string
+
+    if isinstance(list_timeseries, basestring): 
+        if '.1D' in list_timeseries or '.csv' in list_timeseries:
+            timeseries_file = list_timeseries
+
+    else:
+        for timeseries in list_timeseries:
+            if '.1D' in timeseries or '.csv' in timeseries:
+                timeseries_file =  timeseries
+
 
     roi_numbers = []
-    if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
-        roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
+
+    tsfile = open(timeseries_file, "rb")
+    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
 
 
     # get the specific roi number
