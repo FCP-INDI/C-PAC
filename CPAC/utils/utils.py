@@ -400,12 +400,12 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import os
 
 
-    if isinstance(list_timeseries, basestring): 
-        if '.1D' in list_timeseries or '.csv' in list_timeseries:
+    if isinstance(timeseries_one_d, basestring): 
+        if '.1D' in timeseries_one_d or '.csv' in list_timeseries:
             timeseries_file = list_timeseries
 
     else:
-        for timeseries in list_timeseries:
+        for timeseries in timeseries_one_d:
             if '.1D' in timeseries or '.csv' in timeseries:
                 timeseries_file =  timeseries
 
