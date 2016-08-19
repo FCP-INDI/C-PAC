@@ -2014,8 +2014,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 resample_head_template = pe.Node(interface=fsl.FLIRT(),
                                                   name='resample_head_template_%d' % num_strat)
-                resample_head_template.inputs.in_file = c.template_skull_only_for_func
-                resample_head_template.inputs.reference = c.template_skull_only_for_func
+                resample_head_template.inputs.in_file = c.template_skull_for_func
+                resample_head_template.inputs.reference = c.template_skull_for_func
                 resample_head_template.inputs.apply_isoxfm = float(c.resolution_for_func_derivative[0])
 
                 alt_func_mni_warp = pe.Node(interface=fsl.ApplyWarp(),
