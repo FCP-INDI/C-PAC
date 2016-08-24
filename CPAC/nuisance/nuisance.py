@@ -169,19 +169,26 @@ def calc_residuals(subject,
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
             raise ValueError('White matter signals length %d do not match data timepoints %d' % (wm_sigs.shape[1], data.shape[3]))
+        if wm_sigs.size == 0:
+            raise ValueError('White matter signal file %s is empty'%(wm_sig_file))
     if csf_sig_file is not None:
         csf_sigs = np.load(csf_sig_file)
         if csf_sigs.shape[1] != data.shape[3]:
             raise ValueError('CSF signals length %d do not match data timepoints %d' % (csf_sigs.shape[1], data.shape[3]))
+        if csf_sigs.size == 0:
+            raise ValueError('CSF signal file %s is empty'%(csf_sig_file))
     if gm_sig_file is not None:
         gm_sigs = np.load(gm_sig_file)
         if gm_sigs.shape[1] != data.shape[3]:
             raise ValueError('Grey matter signals length %d do not match data timepoints %d' % (gm_sigs.shape[1], data.shape[3]))
-        
+        if gm_sig_file.size == 0:
+            raise ValueError('Grey matter signal file %s is empty'%(gm_sig_file))
     if motion_file is not None:
         motion = np.genfromtxt(motion_file)
         if motion.shape[0] != data.shape[3]:
             raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[3]) )
+        if motion.size == 0:
+            raise ValueError('Motion signal file %s is empty'%(motion_file))
 
     #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
