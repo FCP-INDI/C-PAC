@@ -20,10 +20,10 @@ def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
             for part_ID in new_participant_list:
                 print >>f, part_ID
     except Exception as e:
-        err = "\n\n[!] CPAC says: Could not write new participant list for "
+        err = "\n\n[!] CPAC says: Could not write new participant list for "\
               "current model and derivative in group-level analysis. Ensure "\
               "you have write access to the directory:\n%s\n\nError " \
-              "details: %s\n\n"
+              "details: %s\n\n" \
               % (current_mod_path, e)
         raise Exception(err)
 

@@ -298,26 +298,29 @@ def get_operand_string(mean, std_dev):
     return op_string
 
 
-
 def get_roi_num_list(timeseries_file, prefix=None):
 
     tsfile = open(timeseries_file, "rb")
 
-    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
+    roi_list = tsfile.readlines()[0].strip("\r\n")
+
+    if "#" in roi_list:
+        roi_list = roi_list.replace("#","").split("\t")
+    else:
+        num_rois = len(roi_list.split("\t"))
+        roi_list = range(1,num_rois)
 
     if prefix != None:
 
         temp_rois = []
 
         for roi in roi_list:
-            roi = prefix + "_" + roi
+            roi = prefix + "_" + str(roi)
             temp_rois.append(roi)
 
         roi_list = temp_rois
 
-
     return roi_list
-
 
 
 def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):

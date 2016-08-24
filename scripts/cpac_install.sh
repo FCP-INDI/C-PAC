@@ -61,7 +61,7 @@ function install_system_dependencies {
             yum install -y ${ver_pkgs}
 		elif [ $DISTRO == 'UBUNTU' ]; then
 			apt-get update
-			apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential libxml2-dev libxslt-dev python-dev
+			apt-get install -y cmake git make unzip libcanberra-gtk-module libxp6 netpbm libglu1-mesa gsl-bin zlib1g-dev graphviz graphviz-dev pkg-config build-essential libxml2-dev libxslt-dev python-dev xvfb
 		else
 			echo Linux distribution not recognized.  System-level dependencies cannot be installed.
 			echo '[ '$(date)' ] : C-PAC system dependencies could not be installed (Linux distribution not recognized).' >> ~/cpac.log
