@@ -3,6 +3,7 @@ import os
 import sys
 import commands
 import nipype.pipeline.engine as pe
+from nipype.interfaces.utility import Function
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
@@ -10,7 +11,7 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 from nipype.interfaces.ants import WarpImageMultiTransform
-from CPAC.seg_preproc.utils import *
+from CPAC.seg_preproc.utils import * 
 
 def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
@@ -299,6 +300,11 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     segment.inputs.out_basename = 'segment'
     segment.interface.estimated_memory_gb = 1.5
 
+
+    check_wm = pe.Node(name='check_wm', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
+    check_gm = pe.Node(name='check_gm', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
+    check_csf = pe.Node(name='check_csf', interface=Function(function=check_if_file_is_empty, input_names=['in_file'], output_names=['out_file']))
+
     #connections
 
     preproc.connect(inputNode, 'brain',
@@ -337,8 +343,15 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     outputNode, 'csf_mni2t1')
     preproc.connect(process_csf, 'outputspec.segment_combo',
                     outputNode, 'csf_combo')
+
+
+    preproc.connect(process_csf, 'outputspec.segment_bin',
+                    check_csf, 'in_file')
     preproc.connect(process_csf, 'outputspec.segment_bin',
                     outputNode, 'csf_bin')
+
+
+
     preproc.connect(process_csf, 'outputspec.segment_mask',
                     outputNode, 'csf_mask')
 
@@ -366,6 +379,9 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     outputNode, 'wm_mni2t1')
     preproc.connect(process_wm, 'outputspec.segment_combo',
                     outputNode, 'wm_combo')
+
+    preproc.connect(process_wm, 'outputspec.segment_bin',
+                    check_wm, 'in_file')
     preproc.connect(process_wm, 'outputspec.segment_bin',
                     outputNode, 'wm_bin')
     preproc.connect(process_wm, 'outputspec.segment_mask',
@@ -396,7 +412,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     preproc.connect(process_gm, 'outputspec.segment_combo',
                     outputNode, 'gm_combo')
     preproc.connect(process_gm, 'outputspec.segment_bin',
-                    outputNode, 'gm_bin')
+                    check_gm, 'in_file')
     preproc.connect(process_gm, 'outputspec.segment_mask',
                     outputNode, 'gm_mask')
 
