@@ -300,24 +300,35 @@ def get_operand_string(mean, std_dev):
 
 def get_roi_num_list(timeseries_file, prefix=None):
 
-    tsfile = open(timeseries_file, "rb")
+    # extracts the ROI labels from the 3dROIstats output CSV file
 
-    roi_list = tsfile.readlines()[0].strip("\r\n")
+    with open(timeseries_file, "r") as f:
+        roi_file_lines = f.read().splitlines()
 
-    if "#" in roi_list:
-        roi_list = roi_list.replace("#","").split("\t")
+    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
+              "timeseries, was not in the expected format.\n\nROI output " \
+              "file: %s\n\n" % timeseries_file
+
+    for line in roi_file_lines:
+        if "Mean_" in line:
+            try:
+                roi_list = line.split("\t")
+                # clear out any blank strings/non ROI labels in the list
+                roi_list = [x for x in roi_list if "Mean" in x]
+                # rename labels
+                roi_list = [x.replace("Mean","ROI").replace(" ","") \
+                                for x in roi_list]
+            except:
+                raise Exception(roi_err)
+            break
     else:
-        num_rois = len(roi_list.split("\t"))
-        roi_list = range(1,num_rois)
+        raise Exception(roi_err)
 
     if prefix != None:
-
         temp_rois = []
-
         for roi in roi_list:
             roi = prefix + "_" + str(roi)
             temp_rois.append(roi)
-
         roi_list = temp_rois
 
     return roi_list

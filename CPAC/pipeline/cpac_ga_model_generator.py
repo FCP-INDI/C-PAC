@@ -161,7 +161,8 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
     
     # demean!
     mm_df["Measure_Mean"] = mm_df["Measure_Mean"].astype(float)
-    mm_df["Measure_Mean"] = mm_df["Measure_Mean"].sub(mm_df["Measure_Mean"].mean())
+    mm_df["Measure_Mean"] = \
+        mm_df["Measure_Mean"].sub(mm_df["Measure_Mean"].mean())
     
     model_df = pd.merge(model_df, mm_df, how="inner", on=["Raw_Filepath"])
     
