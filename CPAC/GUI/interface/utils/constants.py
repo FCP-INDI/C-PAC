@@ -25,7 +25,6 @@ dtype = enum(BOOL = 0,
              COMBO = 7,
              LDICT= 8 ) 
 
-
 substitution_map = {'On': 1,
                     'Off': 0,
                     'On/Off': 10,
@@ -50,7 +49,6 @@ substitution_map = {'On': 1,
                     'ROI Average Time Series Extraction': 'roi_average',
                     'ROI Voxelwise Time Series Extraction': 'roi_voxelwise',
                    }
-
 
 multiple_value_wfs = ['runAnatomicalPreprocessing',
                       'runFunctionalPreprocessing',
