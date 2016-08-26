@@ -353,22 +353,21 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
     outputNode = pe.Node(util.IdentityInterface(fields=['fisher_z_score_img']),
                           name='outputspec')
 
-
     if map_node == 0:
-
-        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
-                                   output_names=['out_file'],
+        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file',
+                                                            'timeseries_one_d',
+                                                            'input_name'],
+                                               output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score')
 
     else:
-
         # node to separate out 
-
-        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
-                                   output_names=['out_file'],
+        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file',
+                                                               'timeseries_one_d',
+                                                               'input_name'],
+                                                  output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score',
                      iterfield=['correlation_file'])
-
 
     fisher_z_score.inputs.input_name = input_name
 
@@ -376,11 +375,8 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
                 fisher_z_score, 'correlation_file')
     wflow.connect(inputNode, 'timeseries_one_d',
                 fisher_z_score, 'timeseries_one_d')
-
-
     wflow.connect(fisher_z_score, 'out_file',
                 outputNode, 'fisher_z_score_img')
-
 
     return wflow
 
@@ -413,7 +409,6 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
-
     if isinstance(timeseries_one_d, basestring): 
         if '.1D' in timeseries_one_d or '.csv' in timeseries_one_d:
             timeseries_file = timeseries_one_d
@@ -423,17 +418,16 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
             if '.1D' in timeseries or '.csv' in timeseries:
                 timeseries_file =  timeseries
 
-
     roi_numbers = []
 
-    tsfile = open(timeseries_file, "rb")
-    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
-
+    with open(timeseries_file, "r") as f:
+        roi_list = f.read().splitlines()[0].replace("#","").split("\t")
 
     # get the specific roi number
     filename = correlation_file.split("/")[-1]
-    filename = filename.replace(".nii.gz","")
-
+    filename = filename.replace(".nii","")
+    if ".gz" in filename:
+        filename = filename.replace(".gz","")
 
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
@@ -462,12 +456,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
             corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
 
-
-        #for i in range(0, len(roi_numbers)):
-
         sub_data = corr_data
-        #if len(dims) == 5:
-        #    sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
         sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
@@ -477,23 +466,18 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
         out_file.append(sub_z_score_file)
 
-
     # if the correlation file is a single volume image
     else:
 
         z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
 
-        z_score_file = os.path.join(os.getcwd(), input_name + '_fisher_zstd.nii.gz')
+        z_score_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
         z_score_img.to_filename(z_score_file)
 
         out_file.append(z_score_file)
 
-
     return out_file
-
-
-
 
 
 def safe_shape(*vol_data):
@@ -562,7 +546,6 @@ def set_gauss(fwhm):
     return op_string
 
 
-
 def get_path_score(path, entry):
 
     import os
@@ -572,7 +555,6 @@ def get_path_score(path, entry):
     dirs = parent_dir.split('/')
     dirs.remove('')
 
-
     score = 0
 
     for element in entry:
@@ -580,7 +562,6 @@ def get_path_score(path, entry):
         if element in dirs:
 
             score += 1
-
 
     return score
 
@@ -609,7 +590,6 @@ def get_strategies_for_path(path, strategies):
     return score_dict[str(max_score)]
 
 
-
 def get_workflow(remainder_path):
 
     # this iterates over the hard-coded list at the top of this file
@@ -623,7 +603,6 @@ def get_workflow(remainder_path):
     lst = [x for x in lst if not ('' == x) ]
 
     return lst[0], files_folders_wf[lst[0]], remainder_path.split(lst[0])[1]
-
 
 
 def get_session(remainder_path):
@@ -650,7 +629,6 @@ def get_session(remainder_path):
     return session
 
 
-
 def get_hplpfwhmseed_(parameter, remainder_path):
 
     # this function extracts the filtering and smoothing parameters info from
@@ -663,7 +641,6 @@ def get_hplpfwhmseed_(parameter, remainder_path):
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_') + value
-
 
 
 def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
