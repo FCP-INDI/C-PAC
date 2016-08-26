@@ -314,7 +314,7 @@ def extract_tissue_data(data_file,
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
-    csf_mask = (csf_seg > csf_0)*(lat_ventricles_mask==1)
+    csf_mask = (csf_seg > 0)*(lat_ventricles_mask==1)
     csf_sigs = data[csf_mask]
     file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
     np.save(file_csf, csf_sigs)
