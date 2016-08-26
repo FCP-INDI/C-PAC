@@ -367,7 +367,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     process_gm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_GRAY', 
                     process_gm, 'inputspec.tissue_prior')
-    preproc.connect(segment, ('tissue_class_map', pick_wm_1), 
+    preproc.connect(segment, 'tissue_class_map', 
                     process_gm, 'inputspec.probability_map')
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_gm, 'inputspec.standard2highres_mat')
@@ -505,11 +505,16 @@ def process_segment_map(wf_name, use_ants):
 
         preproc.connect(collect_linear_transforms, 'out', tissueprior_mni_to_t1, 'transforms')
 
-        # create segment mask
-        preproc.connect(tissueprior_mni_to_t1, 'output_image', segment_mask, 'operand_files')
+        #create segment mask
+        preproc.connect(inputNode, 'probability_map',
+                        segment_mask, 'in_file')
+        preproc.connect(tissueprior_mni_to_t1, 'output_image', 
+                        segment_mask, 'operand_files')
 
-        # connect to output nodes
-        preproc.connect(tissueprior_mni_to_t1, 'output_image', outputNode, 'tissueprior_mni2t1')
+
+        #connect to output nodes
+        preproc.connect(tissueprior_mni_to_t1, 'output_image', 
+                        outputNode, 'tissueprior_mni2t1')
         preproc.connect(segment_mask, 'out_file', outputNode, 'segment_mask')
 
     else:
