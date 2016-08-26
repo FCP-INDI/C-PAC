@@ -319,7 +319,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     process_csf, 'inputspec.tissue_prior')
 
     #tissue_class_map = binary segmented volume file one val for each class
-    preproc.connect(segment, 'tissue_class_map',
+    preproc.connect(segment, ('tissue_class_files', pick_wm_0),
                     process_csf, 'inputspec.probability_map')
     
 
@@ -343,7 +343,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     process_wm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_WHITE',
                     process_wm, 'inputspec.tissue_prior')
-    preproc.connect(segment, 'tissue_class_map',
+    preproc.connect(segment, ('tissue_class_files', pick_wm_2),
                     process_wm, 'inputspec.probability_map')
 
     preproc.connect(inputNode, 'standard2highres_mat',
@@ -367,7 +367,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                     process_gm, 'inputspec.brain',)
     preproc.connect(inputNode, 'PRIOR_GRAY', 
                     process_gm, 'inputspec.tissue_prior')
-    preproc.connect(segment, 'tissue_class_map', 
+    preproc.connect(segment, ('tissue_class_files', pick_wm_1),
                     process_gm, 'inputspec.probability_map')
     preproc.connect(inputNode, 'standard2highres_mat',
                     process_gm, 'inputspec.standard2highres_mat')

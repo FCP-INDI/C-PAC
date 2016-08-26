@@ -239,6 +239,9 @@ def calc_residuals(subject,
     
     print 'Regressors dim: ', X.shape, ' starting regression'
     
+    if np.isnan(X).any() or np.isnan(X).any():
+        raise ValueError('Regressor file contains NaN')
+
     Y = data[global_mask].T
     B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
     Y_res = Y - X.dot(B)
