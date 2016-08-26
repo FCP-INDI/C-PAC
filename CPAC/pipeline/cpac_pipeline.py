@@ -3811,10 +3811,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 (z_score_std, 'outputspec.z_score_img')})
 
 
-
     def fisher_z_score_standardize(output_name, output_resource, timeseries_oned_file, strat, num_strat, map_node=0):
 
-        fisher_z_score_std = get_fisher_zscore(output_resource, map_node, 'fisher_z_score_std_%s_%d' % (output_name, num_strat))
+        fisher_z_score_std = get_fisher_zscore(output_resource, map_node, \
+                                               'fisher_z_score_std_%s_%d' \
+                                               % (output_name, num_strat))
 
         try:
 
@@ -3890,7 +3891,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     '''
     Transforming Dual Regression outputs to MNI
     '''
-
     new_strat_list = []
     num_strat = 0
 
@@ -3910,11 +3910,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     Transforming alff/falff outputs to MNI
     '''
-
     new_strat_list = []
     num_strat = 0
 
@@ -3930,12 +3928,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
-
     '''
     Transforming ReHo outputs to MNI
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -3948,7 +3943,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-
 
 
     '''
@@ -4053,11 +4047,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
     
     
-    
     '''
     calc averages of sca_tempreg outputs
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4078,7 +4070,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
             
     strat_list += new_strat_list
-
 
 
     '''
@@ -4158,11 +4149,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     calc averages of dr_tempreg outputs
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4187,11 +4176,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     Smoothing motion-corrected functional to MNI output
     '''
-
     new_strat_list = []
     num_strat = 0
     if (1 in c.runRegisterFuncToMNI) and (c.fwhm != None):
@@ -4204,11 +4191,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''    
     Smoothing ALFF fALFF Z scores and or possibly Z scores in MNI 
     '''
-    
     new_strat_list = []
     num_strat = 0
     if (1 in c.runALFF) and c.fwhm != None:
@@ -4222,11 +4207,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     calc averages of alff/falff outputs
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4257,11 +4240,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     z-standardize alff/falff MNI-standardized outputs
     '''
-
     new_strat_list = []
     num_strat = 0
 
@@ -4281,11 +4262,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     Smoothing ReHo outputs and or possibly ReHo outputs in MNI 
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4299,11 +4278,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     calc averages of reho outputs
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4330,11 +4307,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     z-standardize ReHo MNI-standardized outputs
     '''
-
     new_strat_list = []
     num_strat = 0
 
@@ -4352,7 +4327,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
 
 
-
     '''
     Smoothing SCA roi based Z scores and or possibly Z scores in MNI 
     '''
@@ -4367,11 +4341,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
     
     
-    
     '''
     calc averages of SCA files outputs
     '''
-    
     new_strat_list = []
     num_strat = 0
 
@@ -4398,24 +4370,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list += new_strat_list
     
 
-
     '''
     fisher-z-standardize SCA ROI MNI-standardized outputs
     '''
-
     new_strat_list = []
     num_strat = 0
 
-    if 1 in c.runZScoring and (1 in c.runSCA) and ("Avg" in sca_analysis_dict.keys()): #(1 in c.runROITimeseries):
+    if 1 in c.runZScoring and (1 in c.runSCA) and \
+        ("Avg" in sca_analysis_dict.keys()):
 
         for strat in strat_list:
 
             if c.fwhm != None:
-                #fisher_z_score_standardize('sca_roi_stack', 'sca_roi_stack_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat)
-                fisher_z_score_standardize('sca_roi_files_fisher_zstd', 'sca_roi_files_to_standard_smooth', 'roi_timeseries_for_SCA', strat, num_strat, 1)
+                fisher_z_score_standardize('sca_roi_files_to_standard_smooth', \
+                                           'sca_roi_files_to_standard_smooth', \
+                                           'roi_timeseries_for_SCA', \
+                                           strat, num_strat, 1)
             
-            #fisher_z_score_standardize('sca_roi_stack', 'sca_roi_stack_to_standard', 'roi_timeseries_for_SCA', strat, num_strat)
-            fisher_z_score_standardize('sca_roi_files', 'sca_roi_files_to_standard', 'roi_timeseries_for_SCA', strat, num_strat, 1)
+            fisher_z_score_standardize('sca_roi_files_to_standard', \
+                                       'sca_roi_files_to_standard', \
+                                       'roi_timeseries_for_SCA', \
+                                       strat, num_strat, 1)
 
             num_strat += 1
 
