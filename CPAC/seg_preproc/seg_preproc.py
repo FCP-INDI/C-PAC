@@ -544,6 +544,7 @@ def process_segment_map(wf_name, use_ants):
 
         segment_mask = pe.Node(interface=fsl.MultiImageMaths(),
                               name='%s_mask' % (wf_name))
+        segment_mask.inputs.op_string = ' -bin -mas %s'
 
         #mni to t1
         preproc.connect(inputNode, 'tissue_prior',
@@ -555,8 +556,11 @@ def process_segment_map(wf_name, use_ants):
 
 
         #create segment mask
-        preproc.connect(tissueprior_mni_to_t1, 'out_file',
+        preproc.connect(inputNode, 'probability_map',
                         segment_mask, 'in_file')
+
+        preproc.connect(tissueprior_mni_to_t1, 'out_file',
+                        segment_mask, 'operand_files')
 
 
         #connect to output nodes
