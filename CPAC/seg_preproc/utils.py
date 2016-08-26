@@ -7,6 +7,33 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
+
+def check_if_file_is_empty(in_file):
+    """
+    Raise exception if regressor fie is empty.
+
+    Parameters
+    ----------
+
+    in_file : nii file (string)
+        regressor file
+
+    Returns
+    -------
+
+    in_file : string
+        return same file
+
+    """
+    import nibabel as nb
+    import numpy as np
+    nii = nb.load(in_file)
+    data = nii.get_data()
+    if data.size == 0 or np.all(data==0) or np.all(data==np.nan):
+        raise ValueError('File %s is empty. Use a lower threshold or turn off regressors'%(in_file))
+    return in_file
+
+
 def pick_wm_0(probability_maps):
 
     """
