@@ -268,16 +268,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
                         name='inputspec')
 
 
-    ########## remove ################
-    inputnode_wm_threshold = pe.Node(util.IdentityInterface(
-                                    fields=['wm_threshold']),
-                             name='wm_threshold')
-
-    inputnode_gm_threshold = pe.Node(util.IdentityInterface(
-                                    fields=['gm_threshold']),
-                             name='gm_threshold')
-    ########## remove ################
-
 
     outputNode = pe.Node(util.IdentityInterface(fields=['csf_mni2t1',
                                                         'csf_mask',

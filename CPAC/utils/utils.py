@@ -800,10 +800,9 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
 
         try:
 
-            short_names = {'_threshold':'SCRUB_', '_csf_threshold':'CSF_',
-                    '_gm_threshold':'GM_',
+            short_names = {'_threshold':'SCRUB_',
                     '_compcor_':'compcor',
-                    '_target_angle_deg':'MEDIANangle_', '_wm_threshold':'WM_'}
+                    '_target_angle_deg':'MEDIANangle_'}
 
             strategy_identifier = ''
 
@@ -1149,15 +1148,6 @@ def prepare_gp_links(in_file, resource):
     if '/_threshold_' in in_file:
         scrub = get_param_val_('/_threshold_', in_file)
         strategy_identifier = 'SCRUB_%s' % scrub + '_' + strategy_identifier
-
-    if '/_wm_threshold' in in_file:
-        strategy_identifier += '_wmT_' + get_param_val_('/_wm_threshold_', in_file)
-
-    if '/_csf_threshold' in in_file:
-        strategy_identifier += '_csfT_' + get_param_val_('/_csf_threshold_', in_file)
-
-    if '/_gm_threshold' in in_file:
-        strategy_identifier += '_gmT_' + get_param_val_('/_gm_threshold_', in_file)
 
 
     if not scan_info == '':

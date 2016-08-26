@@ -266,17 +266,12 @@ def calc_residuals(subject,
 
 def extract_tissue_data(data_file,
                         ventricles_mask_file,
-                        wm_seg_file, csf_seg_file, gm_seg_file,
-                        wm_threshold=0.0, csf_threshold=0.0, gm_threshold=0.0):
+                        wm_seg_file, csf_seg_file, gm_seg_file):
     import numpy as np
     import nibabel as nb
     import os    
     from CPAC.nuisance import erode_mask
     from CPAC.utils import safe_shape
-    
-    print 'Tissues extraction thresholds wm %d, csf %d, gm %d' % (wm_threshold,
-                                                                  csf_threshold,
-                                                                  gm_threshold)
 
     try:
         data = nb.load(data_file).get_data().astype('float64')
@@ -302,7 +297,7 @@ def extract_tissue_data(data_file,
     if not safe_shape(data, wm_seg):
         raise ValueError('Spatial dimensions for data, white matter segment do not match')
 
-    wm_mask = erode_mask(wm_seg > wm_threshold)
+    wm_mask = erode_mask(wm_seg > 0)
     wm_sigs = data[wm_mask]
     file_wm = os.path.join(os.getcwd(), 'wm_signals.npy')
     np.save(file_wm, wm_sigs)
@@ -319,7 +314,7 @@ def extract_tissue_data(data_file,
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
-    csf_mask = (csf_seg > csf_threshold)*(lat_ventricles_mask==1)
+    csf_mask = (csf_seg > csf_0)*(lat_ventricles_mask==1)
     csf_sigs = data[csf_mask]
     file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
     np.save(file_csf, csf_sigs)
@@ -336,7 +331,7 @@ def extract_tissue_data(data_file,
         raise ValueError('Spatial dimensions for data, gray matter segment do not match')
 
 
-    gm_mask = erode_mask(gm_seg > gm_threshold)
+    gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
     np.save(file_gm, gm_sigs)
@@ -514,8 +509,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
     tissue_masks = pe.Node(util.Function(input_names=['data_file',
                                                       'ventricles_mask_file',
-                                                      'wm_seg_file', 'csf_seg_file', 'gm_seg_file',
-                                                      'wm_threshold', 'csf_threshold', 'gm_threshold'],
+                                                      'wm_seg_file', 'csf_seg_file', 'gm_seg_file'],
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
                                          function=extract_tissue_data),
                            name='tissue_masks')
