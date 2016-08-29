@@ -58,18 +58,12 @@ class DataConfig(wx.Frame):
                  name = "anatomicalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Anatomical Files\n\n"
-<<<<<<< HEAD
-                           "Replace the site- and subject-level directories with %s.\n\n"
-                           "See User Guide for more detailed instructions.",
-                 values ="None",
-=======
                            "Place tags for the appropriate data directory " \
                            "levels with tags such as {site}, {participant}, "\
                            "{session}, and {series}. These are not all " \
                            "required.\n\nSee User Guide for more detailed " \
                            "instructions.",
                  values ="",
->>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
         
@@ -78,18 +72,12 @@ class DataConfig(wx.Frame):
                  name = "functionalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Functional Files\n\n"
-<<<<<<< HEAD
-                           "Replace the site- and subject-level directories with %s.\n\n"
-                           "See User Guide for more detailed instructions.",
-                 values ="None",
-=======
                            "Place tags for the appropriate data directory " \
                            "levels with tags such as {site}, {participant}, "\
                            "{session}, and {series}. These are not all " \
                            "required.\n\nSee User Guide for more detailed " \
                            "instructions.",
                  values ="",
->>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
@@ -304,13 +292,13 @@ class DataConfig(wx.Frame):
             print "Error loading data config file", exc
             return -1
         # Catch any other exceptions
-        except Exception as exc:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%exc,
-                               'Error!',
-                           wx.OK | wx.ICON_ERROR)
-            dlg2.ShowModal()
-            dlg2.Destroy()
-            return -1
+        #except Exception as exc:
+        #    dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%exc,
+        #                       'Error!',
+        #                   wx.OK | wx.ICON_ERROR)
+        #    dlg2.ShowModal()
+        #    dlg2.Destroy()
+        #    return -1
 
     # Save data config
     def save(self, event, flag):
@@ -337,7 +325,9 @@ class DataConfig(wx.Frame):
                     subject_list_name = value
 
                 if len(value) == 0:
-                    display(win,"%s field must contain some text!"%ctrl.get_name())
+                    if name != "bidsBaseDir" and name != "anatomicalTemplate" and \
+                        name != "functionalTemplate":
+                        display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
                     if value.startswith('%s'):
@@ -382,7 +372,6 @@ class DataConfig(wx.Frame):
                     else:
                         value =[val.strip() for val in ctrl[1].split(',')]
                     
-                    print name, ":", value, "\n"
                     print >>f, ctrl[0], " : ", value, "\n"
                 
                 f.close()

@@ -13,6 +13,13 @@ sess_kw = '{session}'
 ser_kw = '{series}'
 kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
+def read_subj_txtfile(filepath):
+    with open(filepath,"r") as f:
+        sub_ids = f.read().splitlines()
+        sub_ids = filter(None,sub_ids)
+    return sub_ids
+
+
 # Check for glob-style patterns
 def check_for_glob_patterns(delim, filepath, suffix_flag=False):
     '''
@@ -174,7 +181,6 @@ def extract_keyword_from_path(filepath, keyword, template):
         kw_idx = temp_split.index(kw_dirname)
         # Extract directory with key string in it from filepath
         key_str = fp_split[kw_idx]
-
         # Get the prefix and suffix surrounding keyword
         kw_prefix = kw_dirname.split(keyword)[0]
         kw_suffix = kw_dirname.split(keyword)[1]
@@ -335,6 +341,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     '''
 
     # Import packages
+    import os
     import logging
 
     # Init variables
@@ -366,6 +373,14 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     # Include only
     elif include_subs is not None:
         keep_subj_paths = []
+        if ".txt" in include_subs:
+            if os.path.exists(include_subs):
+                include_subs = read_subj_txtfile(include_subs)
+            else:
+                err = "\n\n[!] The filepath to the subject inclusion " \
+                      "list does not exist!\nFilepath: %s\n\n" \
+                      % include_subs
+                raise Exception(err)
         if type(include_subs) is not list:
             include_subs = [include_subs]
         logger.info('Only including subjects: %s' % include_subs)
@@ -378,6 +393,14 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     # Or exclude only
     elif exclude_subs is not None:
         keep_subj_paths = []
+        if ".txt" in exclude_subs:
+            if os.path.exists(exclude_subs):
+                exclude_subs = read_subj_txtfile(exclude_subs)
+            else:
+                err = "\n\n[!] The filepath to the subject exclusion " \
+                      "list does not exist!\nFilepath: %s\n\n" \
+                      % exclude_subs
+                raise Exception(err)
         if type(exclude_subs) is not list:
             exclude_subs = [exclude_subs]
         logger.info('Including all subjects but: %s' % exclude_subs)
@@ -397,6 +420,42 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
 
     # Return kept paths
     return keep_subj_paths
+
+
+# Get site, ppant, session-level directory indicies
+def return_dir_indices(path_template):
+    '''
+    Function to return the site, particpant, and session-level
+    directory indicies based on splitting the path template by
+    directory seperation '/'
+    Parameters
+    ----------
+    path_template : string
+        filepath template in the form of:
+        's3://bucket_name/base_dir/{site}/{participant}/{session}/..
+        ../file.nii.gz'
+    Returns
+    -------
+    site_idx : integer
+        the directory level of site folders
+    ppant_idx : integer
+        the directory level of participant folders
+    sess_idx : integer
+        the directory level of the session folders
+    '''
+
+    # Get folder level indices of site and subject - anat
+    fp_split = path_template.split('/')
+    site_idx = fp_split.index('{site}')
+    ppant_idx = fp_split.index('{participant}')
+    # Session level isn't required, but recommended
+    try:
+        sess_idx = fp_split.index('{session}')
+    except ValueError as exc:
+        sess_idx = ppant_idx+1
+
+    # Return indices
+    return site_idx, ppant_idx, sess_idx
 
 
 # Return matching filepaths
@@ -433,9 +492,16 @@ def return_local_filepaths(path_template, bids_flag=False):
         file_pattern = path_template
     else:
         file_pattern = path_template.replace('{site}', '*').\
-                       replace('{participant}', '*').replace('{session}', '*')
+                       replace('{participant}', '*').\
+                       replace('{session}', '*').\
+                       replace('{series}', '*')
 
     local_filepaths = glob.glob(file_pattern)
+
+    if len(local_filepaths) == 0:
+        err = "\n\n[!] No data filepaths were found with the path template " \
+              "given:\n%s\n\n" % path_template
+        raise Exception(err)
 
     # Restrict filepaths and pattern to be of same directory depth
     # as fnmatch will expand /*/ recursively to .../*/*/...
@@ -489,6 +555,8 @@ def return_s3_filepaths(path_template, creds_path=None, bids_flag=False):
     import os
     import re
 
+    from CPAC.AWS import fetch_creds
+
     # Check for errors
     if not bids_flag:
         if not ('{site}' in path_template and '{participant}' in path_template):
@@ -500,6 +568,9 @@ def return_s3_filepaths(path_template, creds_path=None, bids_flag=False):
     # Init variables
     bucket_name = path_template.split('/')[2]
     s3_prefix = '/'.join(path_template.split('/')[:3])
+
+    # Get logger
+    logger = logging.getLogger('sublist_builder')
 
     # Extract base prefix to search through in S3
     if bids_flag:
@@ -659,6 +730,7 @@ def build_sublist(data_config_yml):
     import yaml
 
     from CPAC.utils import bids_metadata
+    from CPAC.utils.utils import setup_logger
 
     # Init variables
     tmp_dict = {}
@@ -761,7 +833,7 @@ def build_sublist(data_config_yml):
     logger.info('Filtering anatomical files...')
     anat_paths = filter_sub_paths(anat_paths, include_sites,
                                   include_subs, exclude_subs,
-                                  anat_site_idx, anat_ppant_idx)
+                                  site_kw, ppant_kw, anat_template)
     print 'Filtered down to %d anatomical files' % len(anat_paths)
 
     func_paths = filter_sub_paths(func_paths, include_sites,
@@ -826,7 +898,7 @@ def build_sublist(data_config_yml):
             scan = func_sp[-2]
 
         # Build tmp key and get subject dictionary from tmp dictionary
-        tmp_key = '_'.join([site, ppant, session])
+        tmp_key = '_'.join([subj, site, sess])
 
         # Try and find the associated anat scan
         try:
@@ -837,7 +909,7 @@ def build_sublist(data_config_yml):
             continue
 
         # Set the rest dictionary with the scan
-        subj_d['rest'][series] = func
+        subj_d['rest'][scan] = func
         # And replace it back in the dictionary
         tmp_dict[tmp_key] = subj_d
 
