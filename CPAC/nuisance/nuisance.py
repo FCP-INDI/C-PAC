@@ -181,7 +181,7 @@ def calc_residuals(subject,
         gm_sigs = np.load(gm_sig_file)
         if gm_sigs.shape[1] != data.shape[3]:
             raise ValueError('Grey matter signals length %d do not match data timepoints %d' % (gm_sigs.shape[1], data.shape[3]))
-        if gm_sig_file.size == 0:
+        if gm_sigs.size == 0:
             raise ValueError('Grey matter signal file %s is empty'%(gm_sig_file))
     if motion_file is not None:
         motion = np.genfromtxt(motion_file)
