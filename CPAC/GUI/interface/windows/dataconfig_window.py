@@ -25,7 +25,7 @@ class DataConfig(wx.Frame):
     # Init method
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,520))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -34,18 +34,42 @@ class DataConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel)
         
         self.page = GenericClass(self.window, "Subject List Setup")
-        
+
+        self.page.add(label="Data format ",
+                      control=control.CHOICE_BOX,
+                      name='dataFormat',
+                      type=dtype.BOOL,
+                      comment="Select if data is organized using BIDS standard "\
+                              "or custom format",
+                      values=["BIDS", "Custom"],
+                      wkf_switch=True)
+
+        self.page.add(label= "BIDS Base Directory ",
+                 control = control.DIR_COMBO_BOX,
+                 name = "bidsBaseDir",
+                 type = dtype.STR,
+                 comment = "Base directory of BIDS-organized data",
+                 values ="")#,
+                 #style= wx.EXPAND | wx.ALL,
+                 #size = (532,-1))
+
         self.page.add(label= "Anatomical File Path Template ",
                  control = control.TEXT_BOX,
                  name = "anatomicalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Anatomical Files\n\n"
+<<<<<<< HEAD
+                           "Replace the site- and subject-level directories with %s.\n\n"
+                           "See User Guide for more detailed instructions.",
+                 values ="None",
+=======
                            "Place tags for the appropriate data directory " \
                            "levels with tags such as {site}, {participant}, "\
                            "{session}, and {series}. These are not all " \
                            "required.\n\nSee User Guide for more detailed " \
                            "instructions.",
                  values ="",
+>>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
         
@@ -54,12 +78,18 @@ class DataConfig(wx.Frame):
                  name = "functionalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Functional Files\n\n"
+<<<<<<< HEAD
+                           "Replace the site- and subject-level directories with %s.\n\n"
+                           "See User Guide for more detailed instructions.",
+                 values ="None",
+=======
                            "Place tags for the appropriate data directory " \
                            "levels with tags such as {site}, {participant}, "\
                            "{session}, and {series}. These are not all " \
                            "required.\n\nSee User Guide for more detailed " \
                            "instructions.",
                  values ="",
+>>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
@@ -305,7 +335,7 @@ class DataConfig(wx.Frame):
 
                 if name == 'subjectListName':
                     subject_list_name = value
-                      
+
                 if len(value) == 0:
                     display(win,"%s field must contain some text!"%ctrl.get_name())
                             
