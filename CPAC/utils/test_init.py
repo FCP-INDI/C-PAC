@@ -33,16 +33,11 @@ def populate_template_config(config_type):
     resource_dir = return_resource_dir()
     templates_dir = return_resource_subfolder('templates')
     yamls = ['data_config', 'pipeline_config']
-    texts = ['centrality_spec', 'map_spec', 'mask_spec',
-             'roi_spec', 'seed_spec', 'spatial_maps_spec']
 
     # Check config type and build path
     if config_type in yamls:
         ext = '.yml'
         out_name = 'configs'
-    elif config_type in texts:
-        ext = '.txt'
-        out_name = 'resources'
     else:
         # Check if it's supported, otherwise raise an Exception
         err_msg = 'config_type parameter: %s is unsupported' % config_type
@@ -131,13 +126,14 @@ def return_aws_creds():
     if not creds_path:
         err_msg = 'CPAC_AWS_CREDS environment variable not set!\n' \
                   'Set this to the filepath location of your AWS credentials.'
-        raise Exception(err_msg)
+        print err_msg
+        creds_path = raw_input('Enter path to AWS credentials file: ')
     else:
         return creds_path
 
 
 # Get the default test bucket name
-def return_bucket_name():
+def default_bucket_name():
     '''
     Function to return the default S3 bucket name used in test suite
 
@@ -191,6 +187,56 @@ def return_all_niis(base_dir):
     return nii_list
 
 
+# Download the CPAC resource dir from S3
+def download_cpac_resources_from_s3(local_base):
+    '''
+    Function to download the CPAC testing resources directory from
+    S3
+
+    Parameters
+    ----------
+    local_base : string
+        the local directory to save the 'cpac_resources' contents
+    '''
+
+    # Import packages
+    import os
+
+    from indi_aws import aws_utils, fetch_creds
+
+    # Init variables
+    bucket_name = default_bucket_name()
+    resource_folder = 'cpac_resources'
+    s3_prefix = os.path.join('data/test_resources', resource_folder)
+
+    # Get bucket object
+    bucket = fetch_creds.return_bucket(None, bucket_name)
+
+    # Gather files from bucket
+    for obj in bucket.objects.filter(Prefix=s3_prefix):
+        bkey = obj.key
+        # If the object is just a folder, move on to next object
+        if bkey.endswith('/'):
+            continue
+
+        # Form local path from key
+        local_path = os.path.join(local_base,
+                                  bkey.split(resource_folder)[-1].lstrip('/'))
+
+        # Make download directories
+        local_dir = os.path.dirname(local_path)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+
+        # Download file if it doesn't exist
+        if not os.path.exists(local_path):
+            bucket.download_file(bkey, local_path,
+                                 Callback=aws_utils.ProgressPercentage(obj))
+
+    # Print done
+    print 'CPAC resources folder in %s is complete!' % local_base
+
+
 # Look for CPAC_RESOURCE_DIR to be in environment
 def return_resource_dir():
     '''
@@ -214,11 +260,24 @@ def return_resource_dir():
 
     # Check if set
     if not resource_dir:
-        err_msg = 'CPAC_RESOURCE_DIR environment variable not set!\n' \
-                  'Set this to the directory of the cpac_resources folder'
+        # Print notification of cpac resources directory
+        print_msg = 'CPAC_RESOURCE_DIR environment variable not set! Enter '\
+                    'directory of the cpac_resources folder.\n\n*If the folder '\
+                    'does not exist, it will be downloaded under the directory '\
+                    'specified.'
+        print print_msg
+        # Get user input
+        resource_dir = raw_input('Enter C-PAC resources directory: ')
+
+    # Check and download any new or missing resources from S3 copy
+    try:
+        download_cpac_resources_from_s3(resource_dir)
+    except Exception as exc:
+        err_msg = 'There was a problem downloading the cpac_resources '\
+                  'folder from S3.\nError: %s' % exc
         raise Exception(err_msg)
-    else:
-        return resource_dir
+
+    return resource_dir
 
 
 # Return any subfolder of the resource directory
@@ -387,14 +446,17 @@ def return_test_subj():
 
     # Check if set and exists
     if not test_subj:
-        err_msg = 'CPAC_TEST_SUBJ environment variable not set!\n' \
-                  'Set this to the subject id of the desired subject to test' \
-                  'from the cpac_resources folder.'
-        raise Exception(err_msg)
-    elif test_subj not in subs:
+        info_msg = 'CPAC_TEST_SUBJ environment variable not set!'
+        print info_msg
+        # Get user input
+        test_subj = raw_input('Enter C-PAC benchmark test subject id: ')
+
+    # Check to make sure their input files exist
+    if test_subj not in subs:
         err_msg = 'Test subject %s is not in the cpac_resources subject ' \
                   'directory %s. Please specify different CPAC_TEST_SUBJ.' \
                   %(test_subj, site_dir)
+        raise Exception(err_msg)
     else:
         return test_subj
 
@@ -467,15 +529,17 @@ def download_resource_from_s3(s3_url_path):
 
     # Import packages
     import os
+    import tempfile
     import urllib
 
     # Init variables
+    temp_dir = tempfile.mkdtemp()
     url_open = urllib.URLopener()
     base_name = os.path.basename(s3_url_path)
-    dl_path = os.path.join('/tmp', base_name)
+    dl_path = os.path.join(temp_dir, base_name)
 
-    # Download file to /tmp
-    url_open.retrieve(s3_url_path, os.path.join('/tmp', dl_path))
+    # Download file
+    url_open.retrieve(s3_url_path, dl_path)
 
     # Return the downloaded path
     return dl_path
@@ -528,3 +592,59 @@ def setup_test_logger(logger_name, log_file, level, to_screen=False):
 
     # Return the logger
     return logger
+
+
+# Calculate concordance correlation coefficient
+def concordance(x, y):
+    '''
+    Return the concordance correlation coefficient as defined by
+    Lin (1989)
+
+    Parameters
+    ----------
+    x : list or array
+        a list of array of length N of numbers
+    y : list or array
+        a list of array of length N of numbers
+
+    Returns
+    -------
+    rho_c : numpy.float32
+        the concordance value as a float
+    '''
+
+    # Import packages
+    import numpy as np
+
+    # Usage errors check
+    x_shape = np.shape(x)
+    y_shape = np.shape(y)
+    if len(x_shape) != 1 or len(y_shape) != 1:
+        err_msg = 'Inputs must be 1D lists or arrays.'
+        raise ValueError(err_msg)
+    elif x_shape != y_shape:
+        err_msg = 'Length of the two inputs must be equal.\n'\
+                'Length of x: %d\nLength of y: %d' % (len(x), len(y))
+        raise ValueError(err_msg)
+
+    # Init variables
+    x_arr = np.array(x).astype('float64')
+    y_arr = np.array(y).astype('float64')
+
+    # Get pearson correlation
+    rho = np.corrcoef(x_arr, y_arr)[0][1]
+
+    # Get stdevs
+    sigma_x = np.std(x_arr)
+    sigma_y = np.std(y_arr)
+
+    # Get means
+    mu_x = np.mean(x_arr)
+    mu_y = np.mean(y_arr)
+
+    # Comput condordance
+    rho_c = (2*rho*sigma_x*sigma_y) /\
+            (sigma_x**2 + sigma_y**2 + (mu_x-mu_y)**2)
+
+    # Return variables
+    return rho_c

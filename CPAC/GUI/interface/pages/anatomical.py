@@ -21,7 +21,6 @@ class AnatomicalPreprocessing(wx.html.HtmlWindow):
         return self.counter
             
 
-
 class Segmentation(wx.ScrolledWindow):
 
     def __init__(self, parent, counter =0):
@@ -44,30 +43,6 @@ class Segmentation(wx.ScrolledWindow):
                  values=["On","Off","On/Off"],
                  wkf_switch = True)
 
-        self.page.add(label= "White Matter Probability Threshold ",
-                 control=control.TEXT_BOX, 
-                 name='whiteMatterThreshold', 
-                 type=dtype.LNUM, 
-                 values= "0.96",
-                 validator = CharValidator("no-alpha"),
-                 comment="Only voxels with a White Matter probability greater than this value will be classified as White Matter.\n\nCan be a single value or a list of values separated by commas.")
-        
-        self.page.add(label = "Gray Matter Probability Threshold ",
-                 control =control.TEXT_BOX,
-                 name = 'grayMatterThreshold',
-                 type =dtype.LNUM,
-                 values= "0.7",
-                 validator = CharValidator("no-alpha"),
-                 comment= "Only voxels with a Gray Matter probability greater than this value will be classified as Gray Matter.\n\nCan be a single value or a list of values separated by commas.")
-
-        self.page.add(label= "CSF Probability Threshold ",
-                 control=control.TEXT_BOX, 
-                 name='cerebralSpinalFluidThreshold', 
-                 type=dtype.LNUM, 
-                 values = "0.96",
-                 validator = CharValidator("no-alpha"),
-                 comment="Only voxels with a CSF probability greater than this value will be classified as CSF.\n\nCan be a single value or a list of values separated by commas.")
-        
         self.page.add(label= "Priors Directory ",
                  control=control.DIR_COMBO_BOX, 
                  name='priors_path', 
@@ -101,7 +76,6 @@ class Segmentation(wx.ScrolledWindow):
 
     def get_counter(self):
         return self.counter
-    
 
     
 class Registration(wx.ScrolledWindow):

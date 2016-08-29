@@ -21,8 +21,6 @@ ID_RUN_MEXT = 12
 
 # DataConfig wx.Frame class
 class DataConfig(wx.Frame):
-    '''
-    '''
 
     # Init method
     def __init__(self, parent):
@@ -60,9 +58,18 @@ class DataConfig(wx.Frame):
                  name = "anatomicalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Anatomical Files\n\n"
+<<<<<<< HEAD
                            "Replace the site- and subject-level directories with %s.\n\n"
                            "See User Guide for more detailed instructions.",
                  values ="None",
+=======
+                           "Place tags for the appropriate data directory " \
+                           "levels with tags such as {site}, {participant}, "\
+                           "{session}, and {series}. These are not all " \
+                           "required.\n\nSee User Guide for more detailed " \
+                           "instructions.",
+                 values ="",
+>>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
         
@@ -71,9 +78,18 @@ class DataConfig(wx.Frame):
                  name = "functionalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Functional Files\n\n"
+<<<<<<< HEAD
                            "Replace the site- and subject-level directories with %s.\n\n"
                            "See User Guide for more detailed instructions.",
                  values ="None",
+=======
+                           "Place tags for the appropriate data directory " \
+                           "levels with tags such as {site}, {participant}, "\
+                           "{session}, and {series}. These are not all " \
+                           "required.\n\nSee User Guide for more detailed " \
+                           "instructions.",
+                 values ="",
+>>>>>>> 0.4.0_development
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
@@ -212,8 +228,6 @@ class DataConfig(wx.Frame):
 
     # Generate the subject list from config
     def run(self, config):
-        '''
-        '''
         
         # Import packages
         import CPAC
@@ -311,10 +325,8 @@ class DataConfig(wx.Frame):
         
         try:
             for ctrl in self.page.get_ctrl_list():
-                #print "validating ctrl-->", ctrl.get_name()
+
                 win = ctrl.get_ctrl()
-                #print "ctrl.get_selection()", ctrl.get_selection()
-                #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
                 value = value.strip()
@@ -379,13 +391,10 @@ class DataConfig(wx.Frame):
                 if flag == 'run':
                     if self.run(path) >0:
                         self.Close()
-                    
-            
+
 
     # Load in data configuration file
     def load(self, event):
-        '''
-        '''
 
         dlg = wx.FileDialog(
         self, message="Choose the config yaml file",
@@ -453,3 +462,4 @@ class DataConfig(wx.Frame):
 
             # Close dialog
             dlg.Destroy()
+            

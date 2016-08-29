@@ -1,6 +1,6 @@
 # test/unit/nipype/datasource_test.py
 #
-#
+# Author(s): Daniel Clark, 
 
 '''
 This module performs unit testing on the DataSink class from nipype
@@ -57,6 +57,7 @@ class DataSinkTestCase(unittest.TestCase):
         # Import packages
         import os
         import sys
+        import tempfile
 
         import nipype.pipeline.engine as pe
         import nipype.interfaces.io as nio
@@ -68,14 +69,15 @@ class DataSinkTestCase(unittest.TestCase):
             input_dir = test_init.return_resource_subfolder('input')
             subj_id = test_init.return_test_subj()
             creds_path = test_init.return_aws_creds()
+            bucket_name = test_init.default_bucket_name()
         except Exception as exc:
             print 'Unable to locate testing resources.\nError: %s' % exc
             sys.exit()
 
         # Datasink parameters
-        base_dir = '/tmp/'
+        base_dir = tempfile.mkdtemp()
 
-        # Get the input file as an anatomical scan from the CPAC_RESOURCES
+        # Get the input file as an anatomical scan from th     e CPAC_RESOURCES
         in_file = os.path.join(input_dir, 'site_1', subj_id, 'session_1',
                                'anat_1', 'mprage.nii.gz')
 
@@ -85,6 +87,7 @@ class DataSinkTestCase(unittest.TestCase):
 
         # Add instance variables to TestCase
         self.base_dir = base_dir
+        self.bucket_name = bucket_name
         self.creds_path = creds_path
         self.data_sink = data_sink
         self.ds_node = ds_node
@@ -121,13 +124,20 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink_src_d = data_sink.inputs._outputs
         in_out_dict = {}
         out_files = []
+        s3_str = 's3://'
+
+        # Explicitly lower-case the "s3"
+        if base_directory.lower().startswith(s3_str):
+            base_dir_sp = base_directory.split('/')
+            base_dir_sp[0] = base_dir_sp[0].lower()
+            base_directory = '/'.join(base_dir_sp)
+            s3_strip = '/'.join(base_directory.split('/')[:3])
 
         # Get datasink out base
         out_prefix = os.path.join(base_directory, container)
 
         # If S3 in path, strip out s3_prefix (e.g. 's3://fcp-indi/')
-        if 's3://' in base_directory:
-            s3_strip = '/'.join(out_prefix.split('/')[:3])
+        if base_directory.startswith(s3_str):
             out_prefix = out_prefix.replace(s3_strip, '')
 
         # Iterate over defined attribute keys and input sources
@@ -296,8 +306,7 @@ class DataSinkTestCase(unittest.TestCase):
     # Test datasink node will write to base directory
     def test_datasink_node(self):
         '''
-        Method to test the datasink running as its own node is working
-        as producing the expected output
+        Method to test the datasink node for local output file
 
         Paramters
         ---------
@@ -339,8 +348,7 @@ class DataSinkTestCase(unittest.TestCase):
     # Test datasink node will write to base directory
     def test_datasink_node_folder(self):
         '''
-        Method to test the datasink running as its own node is working
-        as producing the expected output
+        Method to test the datasink node for local output folder
 
         Paramters
         ---------
@@ -440,8 +448,7 @@ class DataSinkTestCase(unittest.TestCase):
     # Test datasink node writes to S3
     def test_s3_datasink_node(self):
         '''
-        Method to test the datasink running as its own node is working
-        as producing the expected output
+        Method to test the datasink node for s3 output file
 
         Paramters
         ---------
@@ -460,22 +467,18 @@ class DataSinkTestCase(unittest.TestCase):
         # Import packages
         import os
 
-        from CPAC.utils import test_init
-
         # Init variables
         attr_folder = 'input_scan'
         container = 'test_datasink'
         data_sink = self.data_sink
 
         # Init AWS variables
-        bucket_name = test_init.return_bucket_name()
-        creds_path = self.creds_path
-        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+        s3_output_dir = os.path.join('S3://', self.bucket_name, 'data/unittest')
 
         # Set up datasink
         data_sink.inputs.base_directory = s3_output_dir
         data_sink.inputs.container = container
-        data_sink.inputs.creds_path = creds_path
+        data_sink.inputs.creds_path = self.creds_path
 
         # Feed input to input_file
         setattr(data_sink.inputs, attr_folder, self.in_file)
@@ -484,7 +487,7 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink.run()
 
         # Grab datasink bucket
-        bucket = data_sink._fetch_bucket(bucket_name)
+        bucket = data_sink._fetch_bucket(self.bucket_name)
 
         # Check if output exists
         s3_out_exists, s3_out_msg = self._check_output_exists_s3(data_sink, bucket)
@@ -495,8 +498,7 @@ class DataSinkTestCase(unittest.TestCase):
     # Test datasink node writes to S3
     def test_s3_datasink_node_folder(self):
         '''
-        Method to test the datasink running as its own node is working
-        as producing the expected output
+        Method to test the datasink node for s3 output folder
 
         Paramters
         ---------
@@ -515,22 +517,18 @@ class DataSinkTestCase(unittest.TestCase):
         # Import packages
         import os
 
-        from CPAC.utils import test_init
-
         # Init variables
         attr_folder = 'input_scan'
         container = 'test_datasink'
         data_sink = self.data_sink
 
         # Init AWS variables
-        bucket_name = test_init.return_bucket_name()
-        creds_path = self.creds_path
-        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+        s3_output_dir = os.path.join('s3://', self.bucket_name, 'data/unittest')
 
         # Set up datasink
         data_sink.inputs.base_directory = s3_output_dir
         data_sink.inputs.container = container
-        data_sink.inputs.creds_path = creds_path
+        data_sink.inputs.creds_path = self.creds_path
 
         # Feed input to input_file
         setattr(data_sink.inputs, attr_folder, os.path.dirname(self.in_file))
@@ -539,7 +537,7 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink.run()
 
         # Grab datasink bucket
-        bucket = data_sink._fetch_bucket(bucket_name)
+        bucket = data_sink._fetch_bucket(self.bucket_name)
 
         # Check if output exists
         s3_out_exists, s3_out_msg = \
@@ -572,7 +570,6 @@ class DataSinkTestCase(unittest.TestCase):
         # Import packages
         import os
         from botocore.exceptions import ClientError
-        from CPAC.utils import test_init
 
         # Init variables
         attr_folder = 'input_scan'
@@ -580,8 +577,7 @@ class DataSinkTestCase(unittest.TestCase):
         data_sink = self.data_sink
 
         # Init AWS variables
-        bucket_name = test_init.return_bucket_name()
-        s3_output_dir = os.path.join('s3://', bucket_name, 'data/unittest')
+        s3_output_dir = os.path.join('s3://', self.bucket_name, 'data/unittest')
 
         # Set up datasink
         data_sink.inputs.base_directory = s3_output_dir

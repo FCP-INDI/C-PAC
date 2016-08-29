@@ -10,9 +10,28 @@ import modelconfig_window
 ID_RUN = 11
 
 
+def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
+
+    import wx
+    import patsy
+
+    try:
+        dmatrix_obj.design_info.linear_constraint(str(contrast_equation))
+    except Exception as e:
+        errmsg = "This contrast equation is invalid.\n\nDetails:\n%s" % e
+        errSubID = wx.MessageDialog(frame, errmsg,
+            'Invalid Contrast', wx.OK | wx.ICON_ERROR)
+        errSubID.ShowModal()
+        errSubID.Destroy()
+        raise Exception
+
+    return 0
+
+
+
 class ModelDesign(wx.Frame):
 
-    def __init__(self, parent, gpa_settings, varlist):
+    def __init__(self, parent, gpa_settings, dmatrix_obj, varlist):
 
         wx.Frame.__init__(
             self, parent=parent, title="CPAC - Create New FSL Model", size=(850, 650))
@@ -20,6 +39,8 @@ class ModelDesign(wx.Frame):
         self.parent = parent
 
         self.gpa_settings = gpa_settings
+
+        self.dmatrix_obj = dmatrix_obj
 
         self.contrasts_list = varlist
 
@@ -52,8 +73,8 @@ class ModelDesign(wx.Frame):
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
         
-        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
             errSubID = wx.MessageDialog(
                 self, 'Please enter the name of the subject ID column' \
@@ -64,7 +85,6 @@ class ModelDesign(wx.Frame):
             errSubID.Destroy()
             raise Exception
         
-
 
         # build 'Available contrasts' string
         contrasts_text = 'Available EVs for contrasts:\n'
@@ -102,6 +122,7 @@ class ModelDesign(wx.Frame):
             name = ctrl.get_name()
             if name == 'contrasts':
                 ctrl.set_available_contrasts(varlist)
+                ctrl.set_design_matrix(self.dmatrix_obj)
 
 
         self.page.add(label = 'f-Tests ',
@@ -225,31 +246,13 @@ class ModelDesign(wx.Frame):
 
                 for option in ctrl.get_selection(): #listbox_options():
 
-                    # first, make sure the contrasts are valid!
-                    contrasts = self.parse_contrast(option)
-       
-                    # check to make sure the contrast names are contrasts that
-                    # are actually valid - this will only really ever happen
-                    # if the user hand-edits the config file; otherwise the GUI
-                    # catches invalid contrasts when entered
-                    for contrast in contrasts:
-                        if contrast not in self.contrasts_list:
+                    # run this through Patsy design_info.linear_constraint
+                    # to see if it works first!
+                    frame = self
+                    ret = check_contrast_equation(frame, self.dmatrix_obj, option)
 
-                            errmsg = 'CPAC says: The contrast \'%s\' you ' \
-                                'entered within the string \'%s\' is not ' \
-                                'one of the available contrast selections.' \
-                                '\n\nPlease enter only the contrast labels ' \
-                                'listed under \'Available Contrasts\'.' \
-                                % (contrast, option)
-
-                            errSubID = wx.MessageDialog(self, errmsg,
-                                'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-                            errSubID.ShowModal()
-                            errSubID.Destroy()
-                            raise Exception
-                            
-                    self.gpa_settings['contrasts'].append(option)
-
+                    if ret == 0:
+                        self.gpa_settings['contrasts'].append(option)
 
 
             if name == 'f_tests':
@@ -323,36 +326,6 @@ class ModelDesign(wx.Frame):
 
 
 
-    '''
-    def get_custom_contrasts(self.window):
-
-        self.collect_input()
-
-        confilepath = self.gpa_settings['custom_contrasts']
-
-        con_names = []
-
-        if (confilepath != None) or (confilepath != '') or \
-            ("None" not in confilepath):
-
-            if os.path.exists(confilepath):
-
-                confile = open(confilepath, 'rb')
-
-                for con in confile.readlines():
-
-                    con_names.append(con.split(",")[0])
-
-                # get rid of "Contrasts" header label that came from the first
-                # row in the file (if formatted properly)
-                del con_names[0]
-
-        return con_names
-    '''
-
-
-
-
     def back(self, event):
 
         self.collect_input()
@@ -375,13 +348,6 @@ class ModelDesign(wx.Frame):
         '''
 
 
-
-    def collect_contrasts(self):
-        pass
-
-
-
-
     def save(self, event, flag):
 
         # runs when user clicks 'Save Settings', saves a YAML (.yml/.yaml)
@@ -395,7 +361,7 @@ class ModelDesign(wx.Frame):
 
         vals = self.gpa_settings
 
-        config_list.append(('subject_list', vals['subject_list'], 1, \
+        config_list.append(('participant_list', vals['participant_list'], 1, \
                                 'Full path to a list of subjects to be ' \
                                 'included in the model.\n\nThis should be ' \
                                 'a text file with one subject per line.\n' \
@@ -417,7 +383,7 @@ class ModelDesign(wx.Frame):
                                 'CPAC subject list (see template_' \
                                 'phenotypic.csv).'))
 
-        config_list.append(('subject_id_label', vals['subject_id_label'], 1, \
+        config_list.append(('participant_id_label', vals['participant_id_label'], 1, \
                                 'Name of the subjects column in your EV ' \
                                 'file.'))
 
@@ -457,16 +423,11 @@ class ModelDesign(wx.Frame):
                                 '\'Custom_ROI_Mean\' in the Design Matrix ' \
                                 'Formula.'))
 
-        config_list.append(('use_zscore', vals['use_zscore'], 0, \
-                                'Run the group analysis model on the ' \
-                                'z-score standardized version of the ' \
-                                'derivatives you choose in the list below.'))
-
         config_list.append(('derivative_list', vals['derivative_list'], 6, \
                                 "Choose the derivatives to run the group " \
                                 "model on.\n\nThese must be written out " \
                                 "as a list, and must be one of the options " \
-                                "listed below.\n\nFor z-scored analyses:\n" \
+                                "listed below.\n\n" \
                                 "'alff_to_standard_zstd', " \
                                 "'alff_to_standard_smooth_zstd', " \
                                 "'falff_to_standard_zstd', " \
@@ -485,23 +446,6 @@ class ModelDesign(wx.Frame):
                                 "'sca_tempreg_maps_zstat_files_smooth', " \
                                 "'centrality_outputs_zstd', " \
                                 "'centrality_outputs_smoothed_zstd'\n\n" \
-                                "For raw (non-z-scored) analyses:\n" \
-                                "'alff_to_standard', " \
-                                "'alff_to_standard_smooth', " \
-                                "'falff_to_standard', " \
-                                "'falff_to_standard_smooth', " \
-                                "'reho_to_standard', " \
-                                "'reho_to_standard_smooth', " \
-                                "'sca_roi_to_standard', " \
-                                "'sca_roi_to_standard_smooth', " \
-                                "'sca_seed_to_standard', " \
-                                "'sca_seed_to_standard_smooth', " \
-                                "'centrality_outputs', " \
-                                "'centrality_outputs_smoothed', " \
-                                "'dr_tempreg_maps_files_to_standard', " \
-                                "'dr_tempreg_maps_files_to_standard_smooth', " \
-                                "'sca_tempreg_maps_files', " \
-                                "'sca_tempreg_maps_files_smooth'\n\n" \
                                 "Example input: derivative_list :  ['alff_to" \
                                 "_standard_smooth_zstd', 'sca_roi_to_" \
                                 "standard_smooth_fisher_zstd']\n"))
@@ -537,11 +481,17 @@ class ModelDesign(wx.Frame):
                                 'when doing cluster correction for multiple ' \
                                 'comparisons.'))
 
-        config_list.append(('repeated_measures', vals['repeated_measures'], 0, \
-                                'Run repeated measures to compare different ' \
-                                'scans (must use the group analysis subject ' \
-                                'list and phenotypic file formatted for ' \
-                                'repeated measures.'))
+        config_list.append(('sessions_list', vals['sessions_list'], 8, \
+                                'For repeated measures only. This is a list '\
+                                'of session names that you wish to include ' \
+                                'in a single model to run repeated measures '\
+                                'or within-subject analysis.'))
+
+        config_list.append(('series_list', vals['series_list'], 8, \
+                                'For repeated measures only. This is a list '\
+                                'of series/scan names that you wish to ' \
+                                'include in a single model to run repeated ' \
+                                'measures or within-subject analysis.'))
 
         config_list.append(('contrasts', vals['contrasts'], 8, \
                                 'A list of contrast descriptions.'))
@@ -578,7 +528,6 @@ class ModelDesign(wx.Frame):
                                 'Full path to the directory where CPAC ' \
                                 'should place model files.'))
             
-
 
         try:
 

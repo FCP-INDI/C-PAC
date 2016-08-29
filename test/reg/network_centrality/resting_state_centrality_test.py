@@ -1,377 +1,427 @@
-# test/reg/network_centrality/resting_state_centrality_test.py
+# test/unit/network_centrality/resting_state_centrality_test.py
 #
-# Contributing authors (please append):
-# Daniel Clark
 
 '''
-This module performs regression testing on the outputs from the network
-centrality workflow in
+This module performs testing on the functions in
 CPAC/network_centrality/resting_state_centrality.py
 '''
 
-# Collect test outputs and compare
-def compare_results(out_dir, pass_thr):
+# Import packages
+import unittest
+import utils
+
+
+# Test case for the run function
+class RestingStateCentralityTestCase(unittest.TestCase):
     '''
-    Function to collect the precomputed and test outputs and
-    compare the images
-    '''
-
-    # Import packages
-    import glob
-    import logging
-    import os
-    import nibabel as nb
-    import nose
-    import numpy as np
-
-    # Init variables
-    outputs_to_test = {}
-    test_dir = out_dir.replace('output', 'test')
-
-    # Get logger
-    cent_test_log = logging.getLogger('cent_test_log')
-
-    # Grab precomputed outputs and corresponding test outputs
-    niis = glob.glob(os.path.join(out_dir, '*.nii.gz'))
-
-    # For each precomputed output nifti
-    for nii in niis:
-        nii_file = os.path.basename(nii)
-        f_list = []
-        # Collect test outputs
-        for root, dirs, files in os.walk(test_dir):
-            if files:
-                f_list.extend([os.path.join(root, file) for file in files \
-                          if file == nii_file])
-
-        # If found more than one matching file for the nifti, raise Exception
-        if len(f_list) > 1:
-            err_msg = 'More than one file found for %s in %s; '\
-                      'please use only one' % (nii_file, str(f_list))
-            raise Exception(err_msg)
-        # Else, if we didn't find any, skip
-        elif len(f_list) == 0:
-            cent_test_log.info('No test outputs found for %s, skipping ' \
-                               'comparison' % nii_file)
-        # Otherwise, add to test dictionary
-        else:
-            outputs_to_test[nii] = f_list[0]
-
-    # Iterate through dictionary and assert correlations\
-    err_msg = 'Test failed: correlation < %.3f' % pass_thr
-    for precomp, test in outputs_to_test.items():
-        # Load in pre-computed and test images for comparison
-        img1 = nb.load(precomp).get_data()
-        img2 = nb.load(test).get_data()
-
-        # Compute pearson correlation on flattened 4D images
-        cent_test_log.info('Comparing %s outputs...' % \
-                           (os.path.basename(test.rstrip('.nii.gz'))))
-        corr = np.corrcoef(img1.flatten(), img2.flatten())[0,1]
-        cent_test_log.info('Correlation = %.3f' % corr)
-
-        # Assert the correlation is >= pass_threshold
-        nose.tools.assert_greater_equal(corr, pass_thr, err_msg)
-
-
-# Get centrality workflow parameters
-def get_wflow_params(reg_type):
-    '''
-    Function to get basic running parameters for the centrality
-    workflows
-
-    Parameters
-    ----------
-    reg_type : string
-        registration sub-folder to set as the base directory of the
-        centrality workflows
-
-    Returns
-    -------
-    func_mni : string
-        filepath to the resampled functional mni input to workflow
-    mask_template : string
-        filepath to the centrality mask template
-    memory_gb : float
-        the amount of memory (GB) allocated to computing centrality
-    out_dir : string
-        filepath to the base directory where previous computed
-        centrality outputs reside
-    thr_dict : dictionary
-        dictionary of the threshold values for each of the centrality
-        workflow types (degree, eigenvalue, and lfcd)
-    fwhm : float
-        the FWHM for the Gaussian smoothing kernel
+    This is a test case for the CPAC/network_centrality subpackage
     '''
 
-    # Import packages
-    import os
-    import yaml
-    from CPAC.utils import test_init
+    # setUp method for the necessary arguments to run cpac_pipeline.run
+    def setUp(self):
+        '''
+        Method to instantiate input arguments for the
+        test case
+        '''
 
-    # Init variables
-    # Populate config file and load it
-    config_path = test_init.populate_template_config('pipeline_config')
-    pipeline_config = yaml.load(open(config_path, 'r'))
+        # Import packages
+        import os
+        import tempfile
+        import urllib
+        import yaml
 
-    # Get workflow configuration parameters
-    fwhm = pipeline_config['fwhm'][0]
-    mask_txt_path = pipeline_config['templateSpecificationFile']
-    memory_gb = pipeline_config['memoryAllocatedForDegreeCentrality']
+        # Init variables
+        self.rho_thresh = 0.99
+        # Limit the amount of memory and threads for the test case
+        self.mem_gb_limit = 50
+        self.num_threads = 32
+        # Number of subjects to run through centrality test/benchmark
+        self.num_subs = 198
+        # Identity matrix for resampling
+        self.ident_mat = '/usr/share/fsl/5.0/etc/flirtsch/ident.mat'
 
-    # Get threshold values and make dictionary
-    deg_thr = pipeline_config['degCorrelationThreshold']
-    eig_thr = pipeline_config['eigCorrelationThreshold']
-    lfcd_thr = pipeline_config['lfcdCorrelationThreshold']
+        # Workflow base directory
+        #self.base_dir = tempfile.mkdtemp()
+        self.base_dir = '/home/ubuntu/centrality_results'
+        # Make inputs directory
+        self.inputs_dir = os.path.join(self.base_dir, 'inputs')
+        if not os.path.exists(self.inputs_dir):
+            os.makedirs(self.inputs_dir)
 
-    thr_dict = {'deg' : deg_thr,
-                'eig' : eig_thr,
-                'lfcd' : lfcd_thr}
+        # Init sublist yaml
+        sublist_url = 'https://s3.amazonaws.com/fcp-indi/data/test_resources/'\
+                      'cpac_resources/settings/resources/s3_subs_iba_trt.yml'
+        sublist_filename = sublist_url.split('/')[-1]
+        sublist_yaml = os.path.join(self.inputs_dir, sublist_filename)
+        # Download sublist yaml
+        if not os.path.exists(sublist_yaml):
+            print('Downloading %s to %s\n' % (sublist_url, sublist_yaml))
+            urllib.urlretrieve(sublist_url, sublist_yaml)
 
-    # Get centrality mask path from txt file
-    mask_template = []
-    with open(mask_txt_path, 'r') as txt_f:
-        mask_template.extend([line for line in txt_f])
-    mask_template = mask_template[0].rstrip('\n')
+        # Init centrality mask file
+        mask_url = 'https://s3.amazonaws.com/fcp-indi/data/test_resources/'\
+                   'cpac_resources/settings/resources/benchmark_centrality_mask.nii.gz'
+        mask_filename = mask_url.split('/')[-1]
+        mask_path = os.path.join(self.inputs_dir, mask_filename)
+        # Download centrality mask file
+        if not os.path.exists(mask_path):
+            print('Downloading %s to %s\n' % (mask_url, mask_path))
+            urllib.urlretrieve(mask_url, mask_path)
+        self.mask_path = mask_path
 
-    # Get precomputed centrality files directory
-    out_dirs = test_init.return_subj_measure_dirs('network_centrality')
-    # Only grab registration strategy of interest
-    out_dir = [reg_dir for reg_dir in out_dirs \
-                if reg_dir.split('/')[-4] == reg_type][0]
+        # Read in yaml and set img_list attribute
+        with open(sublist_yaml, 'r') as yml_in:
+            self.img_list = yaml.load(yml_in)
 
-    # Grab functional mni as subject input for that strategy
-    func_mni_dir = out_dir.replace('network_centrality', 'functional_mni')
-    func_mni = os.path.join(func_mni_dir, 'functional_mni_centrality.nii.gz')
+    def _init_logger(self, centrality_method):
+        '''
+        Function to init logger filehandler path to write to method
+        specific log name
 
-    # Return parameters
-    return func_mni, mask_template, memory_gb, out_dir, thr_dict, fwhm
+        Parameters
+        ----------
+        centrality_method : string
+            string describing the centrality method/threshold option
+
+        Returns
+        -------
+        cb_logger : logging.Logger obj
+            logger which writes 'callback' log results to file
+        '''
+
+        # Import packages
+        import logging
+        import os
+
+        # Log path
+        callback_logpath = os.path.join(self.base_dir, '%s.log' % centrality_method)
+        # Add handler to callback log file
+        cb_logger = logging.getLogger('callback')
+        cb_logger.setLevel(logging.DEBUG)
+        handler = logging.FileHandler(callback_logpath)
+        cb_logger.addHandler(handler)
+
+        # Return logger
+        return cb_logger
+
+    def _init_centrality_wf(self, method, thresh_option, thresh):
+        '''
+        Create and return the AFNI/CPAC centrality run and merge
+        workflow
+
+        Parameters
+        ----------
+        method : string
+            options are 'degree', 'eigenvector', 'lfcd'
+        thresh_option : string
+            options are 'sparsity', 'correlation'
+        thresh : float
+            threshold for simliarity matrix
+
+        Returns
+        -------
+        wflow : nipype Workflow
+            the complete workflow for running centrality
+        '''
+
+        # Import packages
+        import nipype.interfaces.fsl as fsl
+        import nipype.pipeline.engine as pe
+        import nipype.interfaces.utility as util
+
+        from CPAC.network_centrality.resting_state_centrality import \
+            create_resting_state_graphs
+        from CPAC.network_centrality.afni_network_centrality import \
+            create_afni_centrality_wf
+        import eigenvector_golden
+
+        # Init workflow
+        wflow = pe.Workflow(name='%s_%s_test' % (method, thresh_option))
+
+        # Set up iterable input node
+        input_node = pe.Node(util.Function(input_names=['img_list', 'sub_idx',
+                                                        'inputs_dir'],
+                                           output_names=['local_path'],
+                                           function=utils.download_inputs),
+                             name='inputspec')
+        input_node.inputs.img_list = self.img_list
+        input_node.inputs.inputs_dir = self.inputs_dir
+        input_node.iterables = ('sub_idx', range(self.num_subs))
+
+        # Set up resample node
+        resamp_node = pe.Node(fsl.FLIRT(), name='resamp_wf')
+        resamp_node.inputs.interp = 'trilinear'
+        resamp_node.inputs.apply_xfm = True
+        resamp_node.inputs.in_matrix_file = self.ident_mat
+        resamp_node.inputs.reference = self.mask_path
+        resamp_node.interface.estimated_memory_gb = 2.0
+
+        # Connect input node to resample
+        wflow.connect(input_node, 'local_path', resamp_node, 'in_file')
+
+        # Init the centrality workflows
+        # Init variables
+        wf_name = 'cpac_%s_%s' % (method, thresh_option)
+        golden_node = pe.Node(util.Function(input_names=['nii_path',
+                                                         'mask_path',
+                                                         'thresh_type',
+                                                         'thresh_val'],
+                                            output_names=['centrality_outputs'],
+                                            function=eigenvector_golden.eigen_centrality),
+                              name=wf_name)
+        golden_node.interface.estimated_memory_gb = 4.0
+        golden_node.inputs.mask_path = self.mask_path
+        golden_node.inputs.thresh_type = thresh_option
+        golden_node.inputs.thresh_val = thresh
+        wflow.connect(resamp_node, 'out_file', golden_node, 'nii_path')
+        #cpac_wflow = create_resting_state_graphs(wf_name, 4.0)
+
+        # Init workflow run parameters
+        #cpac_wflow.inputs.inputspec.method_option = method
+        #cpac_wflow.inputs.inputspec.threshold_option = thresh_option
+        #cpac_wflow.inputs.inputspec.threshold = thresh
+
+        # If it is sparsity thresholding, put into percentage for afni
+        if thresh_option == 'sparsity':
+            thresh = 100*thresh
+        wf_name = 'afni_%s_%s' % (method, thresh_option)
+        afni_wflow = create_afni_centrality_wf(wf_name, method, thresh_option,
+                                               thresh, 1, 4.0)
+
+        # Connect resampled functionalin to centrality workflow
+        wflow.connect(resamp_node, 'out_file', afni_wflow, 'inputspec.in_file')
+        #wflow.connect(resamp_node, 'out_file', cpac_wflow, 'inputspec.in_file')
+
+        # Connect masks
+        afni_wflow.inputs.inputspec.template = self.mask_path
+        #cpac_wflow.inputs.inputspec.template = self.mask_path
+
+        # Collect arrays MapNnode
+        merge_outputs_node = pe.JoinNode(util.Function(input_names=['cpac_field',
+                                                                    'afni_field'],
+                                                       output_names=['map_yaml'],
+                                                       function=utils.merge_img_paths),
+                                         name='merge_img_paths',
+                                         joinsource=input_node.name,
+                                         joinfield=['cpac_field', 'afni_field'])
+
+        # Connect the merge node from cpac/afni outputs
+        #wflow.connect(cpac_wflow, 'outputspec.centrality_outputs',
+        #              merge_outputs_node, 'cpac_field')
+        wflow.connect(golden_node, 'centrality_outputs',
+                      merge_outputs_node, 'cpac_field')
+        wflow.connect(afni_wflow, 'outputspec.outfile_list',
+                      merge_outputs_node, 'afni_field')
+
+        # Return the complete workflow
+        return wflow
+
+    def _run_wf_and_map_outputs(self, method, thresh_option, thresh):
+        '''
+        Build and run the workflow for the desired centrality options
+        and build the pairwise output mappings
+
+        Parameters
+        ----------
+        method : string
+            options are 'degree', 'eigenvector', 'lfcd'
+        thresh_option : string
+            options are 'sparsity', 'correlation'
+        thresh : float
+            threshold for simliarity matrix
+
+        Returns
+        -------
+        map_yaml : string
+            filepath to the mapping dictoinary yaml file between afni
+            and cpac centrality outputs
+        '''
+
+        # Import packages
+        import os
+        from nipype.pipeline.plugins.callback_log import log_nodes_cb
+
+        # Init workflow
+        centrality_wf = self._init_centrality_wf(method, thresh_option, thresh)
+        centrality_wf.base_dir = self.base_dir
+
+        centrality_wf.run(plugin='MultiProc',
+                          plugin_args={'n_procs' : self.num_threads,
+                                       'memory_gb' : self.mem_gb_limit,
+                                       'status_callback' : log_nodes_cb})
+
+        # Formulate mapping dictionary path
+        map_yaml = os.path.join(self.base_dir, centrality_wf.name,
+                                'merge_img_paths', 'merged_paths.yml')
+
+        # Return the concordnace dictionary
+        return map_yaml
+
+    def test_degree_sparsity(self):
+        '''
+        Test AFNI and CPAC degree sparsity methods correlate
+        '''
+
+        # Init callback logger
+        cb_logger = self._init_logger('degree_sparsity')
+
+        # Run and correlate afni/cpac workflows
+        deg_sparsity_map_yaml = \
+            self._run_wf_and_map_outputs('degree', 'sparsity', 0.001)
+
+        # De-init callback logger
+        cb_logger.removeHandler(cb_logger.handlers[0])
+
+        # Generate scatter plots
+        out_png = utils.gen_scatterplot(self.base_dir, deg_sparsity_map_yaml,
+                                        'degree_sparsity')
+
+        # Pairwise correlate images
+        degree_sparsity_results = utils.read_and_correlate(deg_sparsity_map_yaml)
+
+        # Generate box plots
+        out_png = utils.gen_boxplots(self.base_dir, degree_sparsity_results,
+                                     'degree_sparsity')
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in degree_sparsity_results.items():
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
+
+    def test_degree_correlation(self):
+        '''
+        Test AFNI and CPAC degree correlation methods correlate
+        '''
+
+        # Init callback logger
+        cb_logger = self._init_logger('degree_correlation')
+
+        # Run and correlate afni/cpac workflows
+        degree_corr_map_yaml = \
+            self._run_wf_and_map_outputs('degree', 'correlation', 0.6)
+
+        # De-init callback logger
+        cb_logger.removeHandler(cb_logger.handlers[0])
+
+        # Generate scatter plots
+        out_png = utils.gen_scatterplot(self.base_dir, degree_corr_map_yaml,
+                                        'degree_correlation')
+
+        # Pairwise correlate images
+        degree_corr_results = utils.read_and_correlate(degree_corr_map_yaml)
+
+        # Generate box plots
+        out_png = utils.gen_boxplots(self.base_dir, degree_corr_results,
+                                     'degree_correlation')
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in degree_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
+
+    def test_eigen_sparsity(self):
+        '''
+        Test AFNI and CPAC eigenvector sparsity methods correlate
+        '''
+
+        # Init callback logger
+        cb_logger = self._init_logger('eigen_sparsity')
+
+        # Run and correlate afni/cpac workflows
+        eigen_sparsity_map_yaml = \
+            self._run_wf_and_map_outputs('eigenvector', 'sparsity', 0.001)
+
+        # De-init callback logger
+        cb_logger.removeHandler(cb_logger.handlers[0])
+
+        # Generate scatter plots
+        out_png = utils.gen_scatterplot(self.base_dir, eigen_sparsity_map_yaml,
+                                        'eigen_sparsity')
+
+        # Pairwise correlate images
+        eigen_sparsity_results = utils.read_and_correlate(eigen_sparsity_map_yaml)
+
+        # Generate box plots
+        out_png = utils.gen_boxplots(self.base_dir, eigen_sparsity_results,
+                                     'eigen_sparsity')
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in eigen_sparsity_results.items():
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
+
+    def test_eigen_correlation(self):
+        '''
+        Test AFNI and CPAC eigenvector correlation methods correlate
+        '''
+
+        # Init callback logger
+        cb_logger = self._init_logger('eigen_correlation')
+
+        # Run and correlate afni/cpac workflows
+        eigen_corr_map_yaml = \
+            self._run_wf_and_map_outputs('eigenvector', 'correlation', 0.6)
+
+        # De-init callback logger
+        cb_logger.removeHandler(cb_logger.handlers[0])
+
+        # Generate scatter plots
+        out_png = utils.gen_scatterplot(self.base_dir, eigen_corr_map_yaml,
+                                        'eigen_correlation')
+
+        # Pairwise correlate images
+        eigen_corr_results = utils.read_and_correlate(eigen_corr_map_yaml)
+
+        # Generate box plots
+        out_png = utils.gen_boxplots(self.base_dir, eigen_corr_results,
+                                     'eigen_correlation')
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in eigen_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
+
+    def test_lfcd_correlation(self):
+        '''
+        Test AFNI and CPAC lfcd correlation methods correlate
+        '''
+
+        # Init callback logger
+        cb_logger = self._init_logger('lfcd_correlation')
+
+        # Run and correlate afni/cpac workflows
+        lfcd_corr_map_yaml = \
+            self._run_wf_and_map_outputs('lfcd', 'correlation', 0.6)
+
+        # De-init callback logger
+        cb_logger.removeHandler(cb_logger.handlers[0])
+
+        # Generate scatter plots
+        out_png = utils.gen_scatterplot(self.base_dir, lfcd_corr_map_yaml,
+                                        'lfcd_correlation')
+
+        # Pairwise correlate images
+        lfcd_corr_results = utils.read_and_correlate(lfcd_corr_map_yaml)
+
+        # Generate box plots
+        out_png = utils.gen_boxplots(self.base_dir, lfcd_corr_results, 'lfcd_correlation')
+
+        # Iterate through concordances and assert > 0.99
+        for img_type, rho_list in lfcd_corr_results.items():
+            err_msg = 'AFNI and C-PAC concordance: %.6f is too low for %s!'
+            for rho in rho_list:
+                self.assertGreater(rho, self.rho_thresh,
+                                   msg=err_msg % (rho, img_type))
 
 
-# Set up workflow
-def init_wflow(func_mni, mask_template, memory_gb):
-    '''
-    Function which inits a nipype workflow using network_centrality's
-    create_resting_state_graphs() function to be used for testing
-
-    Parameters
-    ----------
-    func_mni : string
-        filepath to the input image to the centrality workflow; this
-        is currently the registered functional to mni, resampled to the
-        mask being used
-    mask_template : string
-        filepath to the centrality mask
-    memory_gb : float
-        the amount of memory, in GB, the workflow can use during
-        computation
-
-    Returns
-    -------
-    wflow : nipype.pipeline.engine.Workflow
-        nipype Workflow object that runs to compute the centrality
-        map; this workflow does not have all of the input parameters
-        specified, just input image, mask, and allocated memory
-    '''
-
-    # Import packages
-    from CPAC.network_centrality import resting_state_centrality
-
-    # Init variables
-    wflow = resting_state_centrality.\
-            create_resting_state_graphs(allocated_memory=memory_gb)
-
-    # Set up workflow parameters
-    wflow.inputs.inputspec.subject = func_mni
-    wflow.inputs.inputspec.template = mask_template
-
-    # Return the workflow
-    return wflow
-
-
-# Run and record memory of function
-def run_and_get_max_memory(func_tuple):
-    '''
-    Function to run and record memory usage of a function
-
-    Parameters
-    ----------
-    func_tuple : tuple
-        tuple contaning the function and any arguments in the form of
-        (func, *args, **kwargs)
-
-    Returns
-    -------
-    max_mem_gb : float
-        the high watermark of memory usage by the function specified
-    '''
-
-    # Import packages
-    import memory_profiler
-
-    # Get memory
-    max_mem = memory_profiler.memory_usage(func_tuple, max_usage=True)
-    max_mem_gb = max_mem[0]/1024.0
-
-    # Return memory watermark in GB
-    return max_mem_gb
-
-
-# Test the ants registration strategy
-def run_wflow(wflow, thr_type, meth_type, test_dir, threshold):
-    '''
-    Function to run the centrality workflows for degree, eigenvector,
-    and lFCD.
-
-    Parameters
-    ----------
-    wflow : nipype.pipeline.engine.Workflow
-        centrality workflow with subject, template, and
-        allocated_memory parameters populated
-    thr_type : string
-        the type of thresholding to perform when creating the output
-        centrality image; must be 'pval', 'sparse', or 'rval'
-    meth_type : string
-        the type of centrality to run; must be 'deg', 'eig', or 'lfcd'
-    test_dir : string
-        filepath to the base test output directory to run the workflow
-        in
-    threshold : float
-        correlation/significance/sparsity threshold on data to use
-
-    Returns
-    -------
-    None
-        this function does not return a value; it runs the workflows
-        in their respective directories
-    '''
-
-    # Import packages
-    import datetime
-    import logging
-    import os
-
-    # Check parameters
-    # Thresholding type
-    if thr_type == 'pval':
-        thr_opt = 0
-    elif thr_type == 'sparse':
-        thr_opt = 1
-    elif thr_type == 'rval':
-        thr_opt = 2
-    else:
-        err_msg = 'Threshold type %s not compatible' % thr_type
-        raise Exception(err_msg)
-
-    # Centrality type
-    if meth_type == 'deg':
-        meth_opt = 0
-    elif meth_type == 'eig':
-        meth_opt = 1
-    elif meth_type == 'lfcd':
-        meth_opt = 2
-    else:
-        err_msg = 'Threshold type %s not compatible' % thr_type
-        raise Exception(err_msg)
-
-    # Get logger
-    cent_test_log = logging.getLogger('cent_test_log')
-
-    # Set up centrality workflow
-    wflow.base_dir = os.path.join(test_dir, thr_type, meth_type)
-    wflow.inputs.inputspec.method_option = meth_opt
-    wflow.inputs.inputspec.weight_options = [True, True]
-    wflow.inputs.inputspec.threshold_option = thr_opt
-    wflow.inputs.inputspec.threshold = threshold
-
-    # Time for log and run
-    cent_test_log.info('starting workflow execution...')
-    start = datetime.datetime.now()
-
-    # Run workflow
-    #wflow.run()
-    max_mem_gb = run_and_get_max_memory((wflow.run,))
-
-    # Get and log stats
-    runtime = (datetime.datetime.now()-start).total_seconds()
-    cent_test_log.info('workflow took %.3f seconds to run and %.3f GB ' \
-                       'of memory' % (runtime, max_mem_gb))
-
-
-# Run and test centrality
-def run_and_test_centrality(reg_type, pass_thr):
-    '''
-    Function to init, run, and test the outputs of the network
-    centrality workflow
-
-    Parameters
-    ----------
-    reg_type : string
-        the type of registration used for the functional image (in MNI)
-    pass_thr : float
-        the correlation threshold to be greater than to ensure the new
-        centrality workflow outputs are accurate
-    '''
-
-    # Import packages
-    import logging
-    import os
-    from CPAC.utils import test_init
-
-    # Init variables
-    thr_types = ['pval', 'sparse', 'rval']
-    meth_types = ['deg', 'eig', 'lfcd']
-
-    # Init test log file
-    log_path = os.path.join(os.getcwd(), 'centrality_test.log')
-    cent_test_log = test_init.setup_test_logger('cent_test_log', log_path,
-                                                logging.INFO, to_screen=True)
-    cent_test_log.info('Running centrality correlations tests. Storing log ' \
-                       'in %s...' % log_path)
-
-    # Init variables
-    func_mni, mask_template, mem_gb, out_dir, thr_dict, fwhm = \
-            get_wflow_params(reg_type)
-
-    # Log parameters
-    cent_test_log.info('Centrality workflow parameters:\ninput img: %s\n' \
-                       'template file: %s\nallocated memory (GB): %.3f\n' \
-                       'thresholds: %s\nfwhm: %d' % \
-                       (func_mni, mask_template, mem_gb, str(thr_dict), fwhm))
-
-    # Initialize common workflow
-    common_wflow = init_wflow(func_mni, mask_template, mem_gb)
-
-    # Run the p-value, sparsity, and r-value thresholding
-    test_dir = out_dir.replace('output', 'test')
-    # For each threshold type
-    for thr_type in thr_types:
-        # For each centrality method
-        for meth_type in meth_types:
-            # If it's lFCD and non r-value, skip it
-            if (meth_type == 'lfcd' and thr_type != 'rval'):
-                cent_test_log.info('lfcd non-rvalue method is not supported' \
-                                   ' skipping...')
-                continue
-
-            # Run workflow
-            threshold = thr_dict[meth_type]
-            cent_test_log.info('Running %s workflow with %s thresholding ' \
-                               'with a %.3f threshold...' % \
-                               (meth_type, thr_type, threshold))
-            run_wflow(common_wflow, thr_type, meth_type, test_dir, threshold)
-
-        # Get output directories for threshold type and compare
-        out_type_dir = os.path.join(out_dir, thr_type)
-        compare_results(out_type_dir, pass_thr)
-
-
-# Make module executable
+# Command-line run-able unittest module
 if __name__ == '__main__':
-
-    # Init variables
-    reg_type = 'ants'
-    pass_thr = 0.98
-
-    # Run and test centrality
-    run_and_test_centrality(reg_type, pass_thr)
+    unittest.main()

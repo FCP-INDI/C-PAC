@@ -19,6 +19,53 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
 ID_SUBMIT = 6
 
 
+
+def gen_checkboxgrid_config_string(label, value):
+
+    # example inputs
+    #     label (string): "tsa_roi_paths" (the name of the input control)
+    #     value (dictionary):
+    #         {'/path/to/roi.nii.gz': ['Voxel', 'Avg']}
+
+    string = ""
+
+    if len(value.keys()) == 0:
+        string = string + label + ": None\n"
+        return string
+    else:
+        string = string + label + ":\n"
+
+    flag = 0                  
+
+    for entry in value.keys():
+
+        # each "entry" is a filepath to an ROI .nii.gz file
+        # each "value[entry]" is a list of selected analysis types (strings)
+
+        if flag == 0:
+            string = string + "  - "
+            flag = 1
+        else:
+            string = string + "    "
+
+        string = string + entry + ": "
+
+        firstnum = 0
+
+        selection_string = str(value[entry])
+        selection_string = selection_string.replace("'", "")
+        selection_string = selection_string.replace("[", "")
+        selection_string = selection_string.replace("]", "")
+
+        string = string + selection_string
+
+        string = string + "\n"
+
+
+    return string
+
+
+
 class Mybook(wx.Treebook):
 
     def __init__(self, parent):
@@ -295,65 +342,77 @@ class MainFrame(wx.Frame):
     def test_sublist(self, sublist):
         '''
         Instance method to test a subject list for errors
-        
+
         Parameters
         ----------
         self : MainFrame (wx.Frame object)
             the method is aware of the instance as self
         sublist : list (dict)
             a C-PAC-formatted subject list (yaml list of dictionaries)
-        
+
         Returns
         -------
         pass_flg : boolean
             flag which indicates whether the subject list passed testing
         '''
-        
+
         # Import packages
-        import nibabel as nb
         import os
-        
+        import tempfile
+        import nibabel as nb
+
+
+        from CPAC.utils.datasource import check_for_s3
+
         # Init variables
         err_str = ''
         err_msg = ''
         not_found_flg = False
         bad_dim_flg = False
         pass_flg = False
-        
+        checked_s3 = False
+        s3_str = 's3://'
+
         # Check to ensure the user is providing an actual subject
         # list and not some other kind of file
         try:
             subInfo = sublist[0]
         except:
-            errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - ' \
-                      'check if you loaded the correct file? \n\n' \
-                        'Error name: config_window_0001',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - ' \
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0001'
+            errDlg4 = wx.MessageDialog(self, msg, 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg4.ShowModal()
             errDlg4.Destroy()
-    
-            raise Exception  
-            
+
+            # Raise Exception
+            raise Exception
+
         # Another check to ensure the actual subject list was generated
         # properly and that it will work
         if 'subject_id' not in subInfo:
-            errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - '
-                      'check if you loaded the correct file? \n\n' \
-                        'Error name: config_window_0002',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - '\
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0002'
+            errDlg3 = wx.MessageDialog(self, msg , 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg3.ShowModal()
             errDlg3.Destroy()
-    
+
+            # Raise Exception
             raise Exception
-        
+
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
             func_files = sub['rest']
+            if anat_file.lower().startswith(s3_str):
+                if checked_s3:
+                    break
+                dl_dir = tempfile.mkdtemp()
+                creds_path = sub['creds_path']
+                anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -372,6 +431,11 @@ class MainFrame(wx.Frame):
                 err_str = err_str + err_str_suffix
             # For each functional file
             for func_file in func_files.values():
+                if func_file.lower().startswith(s3_str):
+                    dl_dir = tempfile.mkdtemp()
+                    creds_path = sub['creds_path']
+                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
+                    checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):
                     img = nb.load(func_file)
@@ -388,6 +452,14 @@ class MainFrame(wx.Frame):
                     not_found_flg = True
                     err_str_suffix = 'File not found: %s\n' % func_file
                     err_str = err_str + err_str_suffix
+                # If we're just checking s3 files, remove the temporarily downloaded
+                if checked_s3:
+                    try:
+                        os.remove(anat_file)
+                        os.remove(func_file)
+                    except:
+                        pass
+                    break
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
@@ -407,12 +479,12 @@ class MainFrame(wx.Frame):
                 raise Exception(err_str)
             else:
                 pass_flg = True
-        
+
         # Return the flag
         return pass_flg
 
+    # Test pipeline config file
     def testConfig(self, event):
-        
         '''
         This function runs when the user clicks the "Test Configuration"
         button in the pipeline configuration window.
@@ -423,21 +495,22 @@ class MainFrame(wx.Frame):
         config will run or not depending on if the pipeline gets built
         successfully.
         '''
-        
+
+        # Import packages
         import os
         import yaml
         from CPAC.utils import Configuration
-        
+
         from CPAC.pipeline.cpac_pipeline import prep_workflow
         from CPAC.pipeline.cpac_runner import build_strategies
-        
+
         def display(win, msg, changeBg=True):
             wx.MessageBox(msg, "Error")
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
             win.Refresh()
-        
+
         # Collect a sample subject list and parse it in
         testDlg0 = wx.MessageDialog(
             self, 'This tool will run a quick check on the current pipeline '\
@@ -459,11 +532,12 @@ class MainFrame(wx.Frame):
             subListPath = dlg.GetPath()
         
         # Load and test the subject list
+        print 'Checking subject list: %s...' % subListPath
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
-        
+        print 'Subject list looks good!'
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
 
@@ -491,7 +565,7 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
-                
+
                 #validating
                 if (switch == None or validate) and ctrl.get_validation() \
                     and (option_name != 'derivativeList') and \
@@ -536,28 +610,16 @@ class MainFrame(wx.Frame):
                             return
                     
                 config_list.append(ctrl)
-                
-        
 
-        # Get the user's CPAC output directory for use in this script
-        for config in config_list:
-
-            if config.get_name() == 'outputDirectory':
-                outDir = config.get_selection()
-        
-        
         # Write out a pipeline_config file, read it in and then delete it
         # (Will revise the data structure of the config files later so this
         # can just pass the data structure instead of doing it this way)
         try:
-            
-            self.write(outDir + 'testConfig.yml', config_list)
-            c = Configuration(yaml.load(open(os.path.realpath(outDir + 'testConfig.yml'), 'r')))
-        
-            os.remove(outDir + 'testConfig.yml')
-        
+            test_cfg_yml = '/tmp/test_config.yml'
+            self.write(test_cfg_yml, config_list)
+            c = Configuration(yaml.load(open(os.path.realpath(test_cfg_yml), 'r')))
+            os.remove(test_cfg_yml)
         except:
-        
             errDlg2 = wx.MessageDialog(
                 self, 'A problem occurred with preparing the pipeline test run. \n\n' \
                       'Please ensure you have rights access to the directories you' \
@@ -567,23 +629,18 @@ class MainFrame(wx.Frame):
             errDlg2.ShowModal()
             errDlg2.Destroy()
 
-
-        
-        if (1 in c.runNuisance) or (c.Corrections != None):
+        if (1 in c.runNuisance) or (c.Regressors != None):
             strategies = sorted(build_strategies(c))
         else:
             strategies = None
-        
-        
+
         # Run the actual pipeline building prep and see if it works or not
         testDlg1 = wx.MessageDialog(
             self, 'Click OK to run the test. This should take only a few seconds.',
             'Running Test',
             wx.OK | wx.ICON_INFORMATION)
         testDlg1.ShowModal()
-           
 
-            
         # Check file paths first
         
         # Just getting proper names of config file parameters
@@ -629,8 +686,35 @@ class MainFrame(wx.Frame):
                     wx.OK | wx.ICON_ERROR)
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
-        
-        
+
+        # Check S3 output bucket access if writing to S3
+        output_dir = c.outputDirectory
+        s3_str = 's3://'
+        if output_dir.lower().startswith(s3_str):
+            output_dir_sp = output_dir.split('/')
+            output_dir_sp[0] = output_dir_sp[0].lower()
+            output_dir = '/'.join(output_dir_sp)
+
+        if type(output_dir) is str and output_dir.lower().startswith(s3_str):
+            from indi_aws import fetch_creds
+            creds_path = c.awsOutputBucketCredentials
+            bucket_name = output_dir.split(s3_str)[1].split('/')[0]
+            try:
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                print 'Connection with output bucket "%s" successful!' % bucket_name
+            except Exception as exc:
+                err_msg = 'Unable to access output S3 bucket: "%s" with '\
+                          'credentials in: "%s". Check bucket name '\
+                          'and credentials file and try again'\
+                          % (bucket_name, creds_path)
+                testDlg1.Destroy()
+
+                errDlg1 = wx.MessageDialog(self, err_msg, 'Pipeline Not Ready',
+                                           wx.OK | wx.ICON_ERROR)
+                errDlg1.ShowModal()
+                errDlg1.Destroy()
+                return
+
         testFile(c.template_brain_only_for_anat, \
                      'template_brain_only_for_anat',[1])
         testFile(c.template_skull_for_anat,'template_skull_for_anat',[1])
@@ -656,17 +740,15 @@ class MainFrame(wx.Frame):
         testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
         testFile(c.templateSpecificationFile,'templateSpecificationFile', \
                      c.runNetworkCentrality)
-    
-        for roi_path in c.tsa_roi_paths[0].keys():
-            testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
 
-        for roi_path in c.sca_roi_paths[0].keys():
-            testFile(roi_path, "sca_roi_paths", c.runSCA)
-            
-            
+        if c.tsa_roi_paths and type(c.tsa_roi_paths[0]) == dict:
+            for roi_path in c.tsa_roi_paths[0].keys():
+                testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
+        if c.sca_roi_paths and type(c.sca_roi_paths[0]) == dict:
+            for roi_path in c.sca_roi_paths[0].keys():
+                testFile(roi_path, "sca_roi_paths", c.runSCA)
         try:
-            
-            # Run the pipeline building           
+            # Run the pipeline building
             prep_workflow(sublist[0], c, strategies, 0)
 
         except Exception as xxx:
@@ -1076,39 +1158,10 @@ class MainFrame(wx.Frame):
 
                 elif dtype == 9:
 
-                    if len(value.keys()) == 0:
-                        print >>f, label,": None\n"
-                        continue
-                    else:
-                        print >>f, label,":"
+                    # checkbox grid (ROI extraction etc.)
+                    string = gen_checkboxgrid_config_string(label, value)
 
-                    flag = 0                  
-
-                    for entry in value.keys():
-
-                        if flag == 0:
-                            string = "  - "
-                            flag = 1
-                        else:
-                            string = "    "
-
-                        string = string + entry + ": "
-
-                        firstnum = 0
-
-                        for tsa_type in sample_list:
-
-                            if firstnum > 0:
-                                string = string + ","
-                            firstnum = 1
-
-                            if tsa_type in value[entry]:
-                                string = string + "1"
-                            else:
-                                string = string + "0"
-
-                        print >>f, string
-
+                    print >>f, string
                     print >>f, "\n"
 
 

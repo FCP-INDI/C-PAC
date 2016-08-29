@@ -1,6 +1,5 @@
 # CPAC/network_centrality/utils.py
 #
-# Contributing authors (please append):
 #
 
 '''
@@ -44,8 +43,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
 
     # Import packages
     import numpy as np
+    from nipype import logging
 
     # Init variables
+    logger = logging.getLogger('workflow')
     block_size = 1000   # default
 
     nvoxs   = timeseries.shape[0]
@@ -73,6 +74,7 @@ def calc_blocksize(timeseries, memory_allocated=None,
         # If we're doing degree/sparisty thresholding, calculate block_size
         if sparsity_thresh:
             # k - block_size, v - nvoxs, d - nbytes, m - memory_allocated
+            # Polynomial for sparsity algorithm memory usage
             # Solve for k: (-d/2 - 20.5)*k^2 + (41*v + d*v -d/2 - 20.5)*k - m = 0
             coeffs = np.zeros(3)
             coeffs[0] = -nbytes/2 - 20.5
@@ -119,10 +121,10 @@ def calc_blocksize(timeseries, memory_allocated=None,
     else:
         memory_usage = (needed_memory + block_size*nvoxs*nbytes)/1024.0**3
 
-    # Print information
-    print 'block_size -> %i voxels' % block_size
-    print '# of blocks -> %i' % np.ceil(float(nvoxs)/block_size)
-    print 'expected usage -> %.2fGB' % memory_usage
+    # Log information
+    logger.info('block_size -> %i voxels' % block_size)
+    logger.info('# of blocks -> %i' % np.ceil(float(nvoxs)/block_size))
+    logger.info('expected usage -> %.2fGB' % memory_usage)
 
     return block_size
 
@@ -198,16 +200,16 @@ def cluster_data(img, thr, xyz_a, k=26):
 
 
 # Convert probability threshold value to correlation threshold
-def convert_pvalue_to_r(p_value, scans, two_tailed=False):
+def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     '''
     Method to calculate correlation threshold from p_value
 
     Parameters
     ----------
+    datafile : string
+        filepath to dataset to extract number of time pts from
     p_value : float
         significance threshold p-value
-    scans : int
-        Total number of scans in the data
     two_tailed : boolean (optional); default=False
         flag to indicate whether to calculate the two-tailed t-test
         threshold for the returned correlation value
@@ -219,17 +221,21 @@ def convert_pvalue_to_r(p_value, scans, two_tailed=False):
     '''
 
     # Import packages
+    import nibabel as nb
     import numpy as np
     import scipy.stats
-    #import math
 
     # Init variables
     # Get two-tailed distribution
     if two_tailed:
         p_value = p_value/2
 
+    # Load in data and number of time pts
+    img = nb.load(datafile).get_data()
+    t_pts = img.shape[-1]
+
     # N-2 degrees of freedom with Pearson correlation (two sample means)
-    deg_freedom = scans-2
+    deg_freedom = t_pts-2
 
     # Inverse Survival Function (Inverse of SF)
     # Note: survival function (SF) is also known as the complementary
@@ -344,9 +350,14 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
     Exception
     '''
 
-    import nibabel as nib
+    # Import packages
     import os
+    import nibabel as nib
     import numpy as np
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     try:
         out_file, matrix = centrality_matrix
@@ -354,7 +365,7 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         out_file = os.path.join(os.getcwd(), out_file + '.nii.gz')
         sparse_m = np.zeros((mask.shape), dtype=float)
 
-        print 'mapping centrality matrix to nifti image...', out_file
+        logger.info('mapping centrality matrix to nifti image: %s' % out_file)
 
         if int(template_type) == 0:
             cords = np.argwhere(mask)
@@ -383,9 +394,10 @@ def map_centrality_matrix(centrality_matrix, aff, mask, template_type):
         nifti_img.to_filename(out_file)
 
         return out_file
-    except:
-        print 'Error in mapping centrality matrix to nifti image'
-        raise
+    except Exception as exc:
+        err_msg = 'Error in mapping centrality matrix to nifti image. '\
+                  'Error: %s' % exc
+        raise Exception(err_msg)
 
 
 # Function to actually do the list merging
@@ -434,23 +446,6 @@ def sep_nifti_subbriks(nifti_file, out_names):
     return output_niftis
 
 
-def get_rval_from_pval(dataset, mask, p_val, two_tailed=False):
-    '''
-    '''
-
-    # Import packages
-    from CPAC.network_centrality import load, convert_pvalue_to_r
-
-    # Get info
-    timeseries, aff, final_mask, template_type, scans = load(dataset, mask)
-
-    # Convert pval thresh to rval
-    r_val = convert_pvalue_to_r(p_val, scans, two_tailed)
-
-    # Return scans
-    return r_val
-
-
 # Calculate eigenvector centrality from one_d file
 def parse_and_return_mats(one_d_file, mask_arr):
     '''
@@ -459,27 +454,26 @@ def parse_and_return_mats(one_d_file, mask_arr):
     # Import packages
     import numpy as np
     import scipy.sparse as sparse
+    from nipype import logging
 
-    # Init variables
-    # Capture all positive/negative floats/ints
-    reg_pattern = r'[-+]?\d*\.\d+|[-+]?\d+'
-
-    # Parse one_d file
-    print 'Reading 1D file...'
-    with open(one_d_file, 'r') as fopen:
-        lines = fopen.readlines()
+    # Init logger
+    logger = logging.getLogger('workflow')
 
     # Parse out numbers
-    print 'Parsing contents...'
+    logger.info('Parsing contents...')
     graph_arr = np.loadtxt(one_d_file, skiprows=6)
 
     # Cast as numpy arrays and extract i, j, w
-    print 'Creating arrays...'
+    logger.info('Creating arrays...')
     one_d_rows = graph_arr.shape[0]
 
     # Extract 3d indices
-    ijk1 = graph_arr[:,2:5].astype('int32')
+    ijk1 = graph_arr[:, 2:5].astype('int32')
     ijk2 = graph_arr[:, 5:8].astype('int32')
+    # Weighted array and binarized array
+    w_arr = graph_arr[:,-1].astype('float32')
+    del graph_arr
+    b_arr = np.ones(w_arr.shape)
 
     # Non-zero elements from mask is size of similarity matrix
     mask_idx = np.argwhere(mask_arr)
@@ -488,17 +482,15 @@ def parse_and_return_mats(one_d_file, mask_arr):
     # Extract the ijw's from 1D file
     i_arr = [np.where((mask_idx == ijk1[ii]).all(axis=1))[0][0] \
              for ii in range(one_d_rows)]
+    del ijk1
     j_arr = [np.where((mask_idx == ijk2[ii]).all(axis=1))[0][0] \
              for ii in range(one_d_rows)]
+    del ijk2
     i_arr = np.array(i_arr, dtype='int32')
     j_arr = np.array(j_arr, dtype='int32')
 
-    # Weighted array and binarized array
-    w_arr = graph_arr[:,-1].astype('float32')
-    b_arr = np.ones(w_arr.shape)
-
     # Construct the sparse matrix
-    print 'Constructing sparse matrix...'
+    logger.info('Constructing sparse matrix...')
     wmat_upper_tri = sparse.coo_matrix((w_arr, (i_arr, j_arr)),
                                        shape=(mask_voxs, mask_voxs))
     bmat_upper_tri = sparse.coo_matrix((b_arr, (i_arr, j_arr)),
@@ -510,3 +502,93 @@ def parse_and_return_mats(one_d_file, mask_arr):
 
     # Return the symmetric matrices and affine
     return b_similarity_matrix, w_similarity_matrix
+
+
+# Check centrality parameters
+def check_centrality_params(method_option, threshold_option, threshold):
+    '''
+    Function to check the centrality parameters
+    '''
+
+    # Check method option
+    if type(method_option) is int:
+        if method_option == 0:
+            method_option = 'degree'
+        elif method_option == 1:
+            method_option = 'eigenvector'
+        elif method_option == 2:
+            method_option = 'lfcd'
+        else:
+            err_msg = 'Method option: %d not supported' % method_option
+            raise Exception(err_msg)
+    elif type(method_option) is not str:
+        err_msg = 'Method option must be a string, but type: %s provided' \
+                  % str(type(method_option))
+
+    # Check threshold option
+    if type(threshold_option) is list:
+        threshold_option = threshold_option[0]
+    if type(threshold_option) is int:
+        if threshold_option == 0:
+            threshold_option = 'significance'
+        elif threshold_option == 1:
+            threshold_option = 'sparsity'
+        elif threshold_option == 2:
+            threshold_option = 'correlation'
+        else:
+            err_msg = 'Threshold option: %s not supported for network centrality '\
+                      'measure: %s; fix this in the pipeline config'\
+                      % (str(threshold_option), str(method_option))
+            raise Exception(err_msg)
+    elif type(threshold_option) is not str:
+        err_msg = 'Threshold option must be a string, but type: %s provided' \
+                  % str(type(threshold_option))
+
+    # Init lists of acceptable strings
+    acceptable_methods = ['degree', 'eigenvector', 'lfcd']
+    acceptable_thresholds = ['significance', 'sparsity', 'correlation']
+
+    # Format input strings
+    method_option = method_option.lower().replace('centrality', '').rstrip(' ')
+    threshold_option = threshold_option.lower().replace('threshold', '').rstrip(' ')
+
+    # Check for strings properly formatted
+    if method_option not in acceptable_methods:
+        err_msg = 'Method option: %s not supported' % method_option
+        raise Exception(err_msg)
+
+    # Check for strings properly formatted
+    if threshold_option not in acceptable_thresholds:
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
+        raise Exception(err_msg)
+
+    # If it's significance/sparsity thresholding, check for (0,1]
+    if threshold_option == 'significance' or threshold_option == 'sparsity':
+        if threshold <= 0 or threshold > 1:
+            err_msg = 'Threshold value must be a positive number greater than '\
+                      '0 and less than or equal to 1.\nCurrently it is set '\
+                      'at %f' % threshold
+            raise Exception(err_msg)
+    # If it's correlation, check for [-1,1]
+    elif threshold_option == 'correlation':
+        if threshold < -1 or threshold > 1:
+            err_msg = 'Threshold value must be greater than or equal to -1 and '\
+                      'less than or equal to 1.\n Current it is set at %f'\
+                      % threshold
+            raise Exception(err_msg)
+    else:
+        err_msg = 'Threshold option: %s not supported for network centrality '\
+                  'measure: %s; fix this in the pipeline config'\
+                  % (str(threshold_option), str(method_option))
+        raise Exception(err_msg)
+    # 
+    if method_option == 'lfcd' and threshold_option == 'sparsity':
+        err_msg = 'lFCD must use significance or correlation-type '\
+                  'thresholding. Check the pipline configuration has '\
+                  'this setting'
+        raise Exception(err_msg)
+
+    # Return valid method and threshold options
+    return method_option, threshold_option

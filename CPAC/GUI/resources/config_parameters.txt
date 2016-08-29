@@ -6,12 +6,14 @@ queue,SGE Queue,Computer Settings
 numCoresPerSubject,Number of Cores Per Subject,Computer Settings
 numSubjectsAtOnce,Number of Subjects to Run Simultaneously,Computer Settings
 num_ants_threads,Number of Cores for Anatomical Registration (ANTS only),Computer Settings
+memoryAllocatedPerSubject,Memory Per Subject (GB),Computer Settings
 pipelineName,Pipeline Name,Output Settings
 workingDirectory,Working Directory,Output Settings
 crashLogDirectory,Crash Log Directory,Output Settings
+logDirectory,Log Directory,Output Settings
 outputDirectory,Output Directory,Output Settings
-awsOutputBucketCredentials,AWS Output Bucket Credentials,AWS Output Bucket Credentials
-s3Encryption,S3 Encryption,S3 Encryption
+awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
+s3Encryption,S3 Encryption,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
 generateQualityControlImages,Enable Quality Control Interface,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
@@ -44,10 +46,11 @@ func_reg_input,Use as Functional-to-Anatomical Registration Input,Functional to 
 func_reg_input_volume,Functional Volume to Use as Input (Selected Functional Volume only),Functional to Anatomical Registration
 functionalMasking,Functional Masking,Functional to Anatomical Registration
 runRegisterFuncToMNI,Run Functional to MNI Registration,Functional to MNI Registration
-resolution_for_func,Functional Standard Resolution,Functional to MNI Registration
+resolution_for_func_preproc,Functional Standard Resolution,Functional to MNI Registration
 template_brain_only_for_func,Standard Brain only Template (functional resolution),Functional to MNI Registration
 template_skull_for_func,Standard Template with Skull (functional resolution),Functional to MNI Registration
 identityMatrix,Standard Identity Matrix,Functional to MNI Registration
+resolution_for_func_derivative,Resample Normalized Functional,Functional to MNI Registration
 runNuisance,Run Nuisance Signal Regression,Nuisance Regression
 lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regression
 Regressors,Regressors,Nuisance Regression

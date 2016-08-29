@@ -174,23 +174,23 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
 
         self.page.add(label="Functional Standard Resolution ", 
                      control=control.CHOICE_BOX, 
-                     name='resolution_for_func', 
+                     name='resolution_for_func_preproc', 
                      type=dtype.STR, 
-                     values = ["3mm", "2mm", "1mm"],
+                     values = ["4mm", "3mm", "2mm", "1mm"],
                      comment="The resolution (in mm) to which functional images are transformed during registration")
         
         self.page.add(label="Standard Brain only Template (functional resolution) ", 
                       control=control.COMBO_BOX, 
                       name='template_brain_only_for_func', 
                       type=dtype.STR, 
-                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}_brain.nii.gz")),
+                      values = str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func_preproc}_brain.nii.gz")),
                       comment="Standard FSL Skull Stripped Template. Used as a reference image for functional registration")
         
         self.page.add(label="Standard Template with Skull (functional resolution) ", 
                       control=control.COMBO_BOX, 
                       name='template_skull_for_func', 
                       type=dtype.STR, 
-                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func}.nii.gz")),
+                      values =  str(os.path.join(fsl,"data/standard/MNI152_T1_${resolution_for_func_preproc}.nii.gz")),
                       comment="Standard FSL Anatomical Brain Image with Skull")
         
         self.page.add(label="Standard Identity Matrix ", 
@@ -199,6 +199,25 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values = str(os.path.join(fsl,"etc/flirtsch/ident.mat")),
                     comment="Matrix containing all 1's. Used as an identity matrix during registration.\n\nIt is not necessary to change this path unless you intend to use non-standard MNI registration.")
+
+        self.page.add(label="Resolutions to Resample to ",
+                      control = control.CHOICE_BOX,
+                      name = "resolution_for_func_derivative",
+                      type = dtype.STR,
+                      values = ["4mm", "3mm", "2mm", "1mm"],
+                      comment = "The resolutions to resample the normalized functional timeseries to")
+
+        #self.page.add(label="Resample to Resolution",
+        #              control=control.TEXT_BOX, 
+        #              name='resample_ts_resolution', 
+        #              type=dtype.LNUM, 
+        #              values= "2.0",
+        #              validator = CharValidator("no-alpha"),
+                      #control=control.SPIN_BOX_FLOAT,
+                      #name="resample_ts_resolution",
+                      #type=dtype.LSTR,
+                      #values="2.0",
+        #              comment="The resolution to resample the normalized functional timeseries to, if you have selected to do so.")
                     
      
         self.page.set_sizer()

@@ -171,39 +171,6 @@ def create_cwas_batches(mask_file, batches):
     
     return batch_list
 
-def compile_theano_functions():
-    """
-    Returns compiled theano functions.  
-    
-    Notes
-    -----
-    Originally used to speedup multiplication of large matrices and vectors.  Caused strange 
-    issue in nipype where nipype unecessarily reran nodes that use these compiled functions.
-    Not used in current implementation.
-    """
-    import theano.tensor as T
-    import theano
-    
-    def TnormCols(X):
-        """
-        Theano expression which centers and normalizes columns of X `||x_i|| = 1`
-        """
-        Xc = X - X.mean(0)
-        return Xc/T.sqrt( (Xc**2.).sum(0) )
-    
-    def TzscorrCols(Xn):
-        """
-        Theano expression which returns Fisher transformed correlation values between columns of a
-        normalized input, `X_n`.  Diagonal is set to zero.
-        """
-        C_X = T.dot(Xn.T, Xn)-T.eye(Xn.shape[1])
-        return 0.5*T.log((1+C_X)/(1-C_X))
-    
-    X,Y = T.dmatrices('X','Y')
-    tdot = theano.function([X,Y], T.dot(X,Y))
-    tnormcols = theano.function([X], TnormCols(X))
-
-    return tdot, tnormcols
 
 def create_cwas(name='cwas'):
     """
@@ -311,11 +278,6 @@ def create_cwas(name='cwas'):
                                                  'p_file'],
                                    function=merge_cwas_batches),
                      name='cwas_volumes')
-
-#    ctf = pe.Node(util.Function(input_names=[],
-#                                output_names=['compiled_dot_norm'],
-#                                function=compile_theano_functions),
-#                  name='theano_functions')
     
     jmask = pe.Node(util.Function(input_names=['subjects_file_list', 
                                                'mask_file'],

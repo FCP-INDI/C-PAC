@@ -6,7 +6,6 @@ import yaml
 
 import modelDesign_window
 
-
 ID_RUN = 11
 
 
@@ -21,16 +20,16 @@ class ModelConfig(wx.Frame):
 
         if gpa_settings == None:
             self.gpa_settings = {}
-            self.gpa_settings['subject_list'] = ''
+            self.gpa_settings['participant_list'] = ''
             self.gpa_settings['pheno_file'] = ''
-            self.gpa_settings['subject_id_label'] = ''
+            self.gpa_settings['participant_id_label'] = ''
             self.gpa_settings['design_formula'] = ''
             self.gpa_settings['mean_mask'] = ''
             self.gpa_settings['custom_roi_mask'] = 'None'
             self.gpa_settings['coding_scheme'] = ''
-            self.gpa_settings['use_zscore'] = True
             self.gpa_settings['derivative_list'] = ''
-            self.gpa_settings['repeated_measures'] = ''
+            self.gpa_settings['sessions_list'] = []
+            self.gpa_settings['series_list'] = []
             self.gpa_settings['group_sep'] = ''
             self.gpa_settings['grouping_var'] = 'None'
             self.gpa_settings['z_threshold'] = ''
@@ -50,15 +49,19 @@ class ModelConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel, size=(-1,300))
         
 
-
         self.page = generic_class.GenericClass(self.window, " FSL Model Setup")
 
-        self.page.add(label="Subject List ",
+        self.page.add(label="Participant List ",
                       control=control.COMBO_BOX,
-                      name="subject_list",
+                      name="participant_list",
                       type=dtype.STR,
-                      comment="Full path to a list of subjects to be included in the model.\n\nThis should be a text file with one subject per line.\n\nTip 1: A list in this format contaning all subjects run through CPAC was generated along with the main CPAC subject list (see subject_list_group_analysis.txt).\n\nTIp 2: An easy way to manually create this file is to copy the subjects column from your Regressor/EV spreadsheet.",
-                      values=self.gpa_settings['subject_list'])
+                      comment="Full path to a list of participants to be " \
+                              "included in the model.\n\nThis should be a " \
+                              "CSV file with at least one column marked " \
+                              "'Participant', and columns marked 'Session' " \
+                              "and/or 'Series' if repeated measures " \
+                              "analysis is to be run.\n\n",
+                      values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
@@ -67,12 +70,12 @@ class ModelConfig(wx.Frame):
                       comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
                       values=self.gpa_settings['pheno_file'])
 
-        self.page.add(label="Subjects Column Name ",
+        self.page.add(label="Participant Column Name ",
                       control=control.TEXT_BOX,
-                      name="subject_id_label",
+                      name="participant_id_label",
                       type=dtype.STR,
-                      comment="Name of the subjects column in your EV file.",
-                      values=self.gpa_settings['subject_id_label'],
+                      comment="Name of the participants column in your EV file.",
+                      values=self.gpa_settings['participant_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
 
@@ -86,8 +89,6 @@ class ModelConfig(wx.Frame):
 
         self.page.add_pheno_load_panel(load_panel_sizer)
 
-
-        # experimental checkbox row stuff
         self.page.add(label = "Model Setup ",
                       control = control.GPA_CHECKBOX_GRID,
                       name = "model_setup",
@@ -104,28 +105,12 @@ class ModelConfig(wx.Frame):
                       values= self.gpa_settings['design_formula'],
                       size=(450, -1))
 
-        self.page.add(label="Measure Mean Generation ", 
-                 control=control.CHOICE_BOX, 
-                 name='mean_mask', 
-                 type=dtype.LSTR, 
-                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' regressor in your Design Matrix Formula.", 
-                 values=["Group Mask","Individual Mask"])
-
         self.page.add(label="Custom ROI Mean Mask ",
                       control=control.COMBO_BOX,
                       name="custom_roi_mask",
                       type=dtype.STR,
                       comment="Optional: Full path to a NIFTI file containing one or more ROI masks. The means of the masked regions will then be computed for each subject's output and will be included in the model as regressors (one for each ROI in the mask file) if you include 'Custom_ROI_Mean' in the Design Matrix Formula.",
                       values=self.gpa_settings['custom_roi_mask'])
-
-        self.page.add(label="Use z-score Standardized Derivatives ", 
-                     control=control.CHOICE_BOX, 
-                     name='use_zscore', 
-                     type=dtype.BOOL, 
-                     comment="Run the group analysis model on the z-score " \
-                             "standardized version of the derivatives you " \
-                             "choose in the list below.",
-                     values=["True","False"])
 
         self.page.add(label = "Select Derivatives ",
                     control = control.CHECKLIST_BOX,
@@ -155,7 +140,28 @@ class ModelConfig(wx.Frame):
                      type=dtype.LSTR, 
                      comment="Choose the coding scheme to use when generating your model. 'Treatment' encoding is generally considered the typical scheme. Consult the User Guide for more information.", 
                      values=["Treatment", "Sum"])
-                     
+
+        self.page.add(label="Mask for Means Calculation ", 
+                 control=control.CHOICE_BOX, 
+                 name='mean_mask', 
+                 type=dtype.LSTR, 
+                 comment = "Choose whether to use a group mask or individual-specific mask when calculating the output means to be used as a regressor.\n\nThis only takes effect if you include the 'Measure_Mean' or 'Custom_ROI_Mean' regressors in your Design Matrix Formula.", 
+                 values=["Group Mask","Individual Mask"])
+
+        self.page.add(label="Z threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='z_threshold', 
+                     type=dtype.NUM, 
+                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
+                     values=2.3)
+
+        self.page.add(label="Cluster Significance Threshold ", 
+                     control=control.FLOAT_CTRL, 
+                     name='p_threshold', 
+                     type=dtype.NUM, 
+                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
+                     values=0.05)
+
         self.page.add(label="Model Group Variances Separately ",
                       control=control.CHOICE_BOX,
                       name='group_sep',
@@ -171,30 +177,40 @@ class ModelConfig(wx.Frame):
                       values=self.gpa_settings['grouping_var'],
                       size=(160, -1))
 
-        self.page.add(label="Run Repeated Measures ", 
-                     control=control.CHOICE_BOX, 
-                     name='repeated_measures', 
-                     type=dtype.BOOL, 
-                     comment="Run repeated measures to compare different " \
-                             "scans (must use the group analysis subject " \
-                             "list and phenotypic file formatted for " \
-                             "repeated measures.", 
-                     values=["False","True"])
-        
-        self.page.add(label="Z threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='z_threshold', 
-                     type=dtype.NUM, 
-                     comment="Only voxels with a Z-score higher than this value will be considered significant.", 
-                     values=2.3)
+        self.page.add(label = 'Sessions (Repeated Measures Only) ',
+                      control = control.LISTBOX_COMBO,
+                      name = 'sessions_list',
+                      type = dtype.LSTR,
+                      values = self.gpa_settings['sessions_list'],
+                      comment = 'Enter the session names in your dataset ' \
+                                'that you wish to include within the same ' \
+                                'model (this is for repeated measures/' \
+                                'within-subject designs).\n\nTip: These ' \
+                                'will be the names listed as "unique_id" in '\
+                                'the original individual-level participant ' \
+                                'list, or the labels in the original data ' \
+                                'directories you marked as {session} while ' \
+                                'creating the CPAC participant list.',
+                      size = (200,100),
+                      combo_type = 7)
 
-        self.page.add(label="Cluster Significance Threshold ", 
-                     control=control.FLOAT_CTRL, 
-                     name='p_threshold', 
-                     type=dtype.NUM, 
-                     comment="Significance threshold (P-value) to use when doing cluster correction for multiple comparisons.", 
-                     values=0.05)
-
+        self.page.add(label = 'Series/Scans (Repeated Measures Only) ',
+                      control = control.LISTBOX_COMBO,
+                      name = 'series_list',
+                      type = dtype.LSTR,
+                      values = self.gpa_settings['series_list'],
+                      comment = 'Enter the series names in your dataset ' \
+                                'that you wish to include within the same ' \
+                                'model (this is for repeated measures/' \
+                                'within-subject designs).\n\nTip: These ' \
+                                'will be the labels listed under "rest:"" '\
+                                'in the original individual-level ' \
+                                'participant list, or the labels in the ' \
+                                'original data directories you marked as ' \
+                                '{series} while creating the CPAC ' \
+                                'participant list.',
+                      size = (200,100),
+                      combo_type = 8)
 
 
         self.page.set_sizer()
@@ -213,15 +229,11 @@ class ModelConfig(wx.Frame):
                     elif self.gpa_settings['group_sep'] == False:
                         ctrl.set_value('Off')
 
-        
-
 
         mainSizer.Add(self.window, 1, wx.EXPAND)
 
-
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-
 
         buffer = wx.StaticText(btnPanel, label="\t\t\t\t\t\t")
         hbox.Add(buffer)
@@ -242,18 +254,7 @@ class ModelConfig(wx.Frame):
 
         # reminder: functions bound to buttons require arguments
         #           (self, event)
-        
-
         btnPanel.SetSizer(hbox)
-
-
-
-        #text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #measure_text = wx.StaticText(self.window, label='Note: Regressor options \'MeanFD\' and \'Measure_Mean\' are automatically demeaned prior to being inserted into the model.')
-        #text_sizer.Add(measure_text)
-
-        #mainSizer.Add(text_sizer)
-
 
         mainSizer.Add(
             btnPanel, 0.5,  flag=wx.ALIGN_RIGHT | wx.RIGHT, border=20)
@@ -261,7 +262,6 @@ class ModelConfig(wx.Frame):
         self.panel.SetSizer(mainSizer)
 
         self.Show()
-
 
         # this fires only if we're coming BACK to this page from the second
         # page, and these parameters are already pre-loaded. this is to
@@ -273,7 +273,7 @@ class ModelConfig(wx.Frame):
 
             phenoHeaderString = phenoFile.readline().rstrip('\r\n')
             phenoHeaderItems = phenoHeaderString.split(',')
-            phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+            phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
 
             # update the 'Model Setup' box and populate it with the EVs and
             # their associated checkboxes for categorical and demean
@@ -291,17 +291,11 @@ class ModelConfig(wx.Frame):
                 if name == 'mean_mask':
                     ctrl.set_value(self.gpa_settings['mean_mask'])
 
-                if name == 'repeated_measures':
-                    ctrl.set_value(self.gpa_settings['repeated_measures'])
-
                 if name == 'z_threshold':
                     ctrl.set_value(self.gpa_settings['z_threshold'][0])
 
                 if name == 'p_threshold':
                     ctrl.set_value(self.gpa_settings['p_threshold'])
-
-                if name == 'use_zscore':
-                    ctrl.set_value(self.gpa_settings['use_zscore'])
                     
                 if name == 'group_sep':
                     ctrl.set_value(self.gpa_settings['group_sep'])
@@ -309,26 +303,28 @@ class ModelConfig(wx.Frame):
                 if name == 'grouping_var':
                     ctrl.set_value(self.gpa_settings['grouping_var'])
 
-                if name == 'derivative_list':
+                if ("list" in name) and (name != "participant_list"):
 
-                    value = self.gpa_settings['derivative_list']
+                    value = self.gpa_settings[name]
 
                     if isinstance(value, str):
-                        value = value.replace("['","").replace("']","").split("', '")
+                        value = value.replace("[","").replace("]","")
+                        if "\"" in value:
+                            value = value.replace("\"","")
+                        if "'" in value:
+                            value = value.replace("'","")
+                        values = value.split(",")
+                    else:
+                        # instead, is a list- most likely when clicking
+                        # "Back" on the modelDesign_window
+                        values = value
 
                     new_derlist = []
 
-                    # remove the _z if they are there, just so it can
-                    # repopulate the listbox through the substitution map
-                    for val in value:
-                        if "_z" in val:
-                            val = val.replace("_z","")
-                            new_derlist.append(val)
-                        else:
-                            new_derlist.append(val)                           
+                    for val in values:
+                        new_derlist.append(val)                      
 
                     ctrl.set_value(new_derlist)
-
 
 
     def cancel(self, event):
@@ -377,8 +373,6 @@ class ModelConfig(wx.Frame):
                 errDlgFileTest.Destroy()
                 raise Exception
             
-
-
             # repopulate the model setup checkbox grid, since this has to be
             # done specially
             if 'pheno_file' in self.gpa_settings.keys():
@@ -387,7 +381,7 @@ class ModelConfig(wx.Frame):
 
                 phenoHeaderString = phenoFile.readline().rstrip('\r\n')
                 phenoHeaderItems = phenoHeaderString.split(',')
-                phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+                phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
 
                 # update the 'Model Setup' box and populate it with the EVs and
                 # their associated checkboxes for categorical and demean
@@ -409,25 +403,24 @@ class ModelConfig(wx.Frame):
                 # get repopulated the standard way. instead it is repopulated
                 # by the code directly above
 
-                if name == 'derivative_list':
-                    value = [s_map.get(item)
+                if ("list" in name) and (name != "participant_list"):
+
+                    mapped_values = [s_map.get(item)
                                  for item in value if s_map.get(item) != None]
-                    if not value:
+                    if not mapped_values:
                         value = [str(item) for item in value]
-                    
+                    else:
+                        value = mapped_values
+
                     new_derlist = []
 
                     for val in value:
-                        if "_z" in val:
-                            val = val.replace("_z","")
-                            new_derlist.append(val)
-                        else:
-                            new_derlist.append(val)
+                        new_derlist.append(val)
 
-                    ctrl.set_value(new_derlist)
-
-                elif name == 'repeated_measures' or name == 'use_zscore':
-                    ctrl.set_value(str(value))
+                    if len(new_derlist) > 0:
+                        ctrl.set_value(new_derlist)
+                    else:
+                        ctrl.set_value(None)
 
                 elif name == 'z_threshold' or name == 'p_threshold':
                     value = value[0]
@@ -537,20 +530,20 @@ class ModelConfig(wx.Frame):
                 raise Exception
                 
         
-        testFile(self.gpa_settings['subject_list'], 'Subject List')
+        testFile(self.gpa_settings['participant_list'], 'Participant List')
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
-        subFile = open(os.path.abspath(self.gpa_settings['subject_list']))
+        subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
 
-        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
             errSubID = wx.MessageDialog(
-                self, 'Please enter the name of the subject ID column' \
+                self, 'Please enter the name of the participant ID column' \
                 ' as it is labeled in the phenotype file.',
                 'Blank/Incorrect Subject Header Input',
                 wx.OK | wx.ICON_ERROR)
@@ -579,42 +572,28 @@ class ModelConfig(wx.Frame):
                 # taken from the pheno, move on. if it goes through the entire
                 # subject list and never finds a match, kick off the "else"
                 # clause below containing the error message
-                for sub in self.subs:
+                for sub in self.subs:  
+                    if sub in row:
+                        break
                 
-                    # for repeated measures-formatted files
-                    if "," in sub:
-                    
-                        # make the comma separator an underscore to match the
-                        # repeated measures-formatted pheno file
-                        if sub.replace(",","_") in row:
-                            break
-                            
-                    # for normal
-                    else:
-                
-                        if sub in row:
-                            break
-                            
-                else:
-                    errSubID = wx.MessageDialog(
-                        self, "Your phenotype file contains a subject ID " \
-                        "that is not present in your group analysis " \
-                        "subject list.\n\nPhenotype file row with subject " \
-                        "ID not in subject list:\n%s" \
-                        % row,
-                        "Subject Not In List",
-                        wx.OK | wx.ICON_ERROR)
-                    errSubID.ShowModal()
-                    errSubID.Destroy()
-                    raise Exception
-
 
         for ctrl in self.page.get_ctrl_list():
 
             # update the 'Model Setup' box and populate it with the EVs and
             # their associated checkboxes for categorical and demean
             if ctrl.get_name() == 'model_setup':
-                ctrl.set_value(self.phenoHeaderItems)
+
+                evs_for_checkbox = []
+                for EV in self.phenoHeaderItems:
+                    evs_for_checkbox.append(EV)
+
+                if "session" in evs_for_checkbox:
+                    evs_for_checkbox.remove("session")
+
+                if "series" in evs_for_checkbox:
+                    evs_for_checkbox.remove("series")
+
+                ctrl.set_value(evs_for_checkbox)
 
             # populate the design formula text box with a formula which
             # includes all of the EVs, and two of the measures (MeanFD and
@@ -640,6 +619,7 @@ class ModelConfig(wx.Frame):
     def load_next_stage(self, event):
 
         import patsy
+        import pandas as pd
 
         for ctrl in self.page.get_ctrl_list():
             
@@ -669,7 +649,7 @@ class ModelConfig(wx.Frame):
                 raise Exception
                 
         
-        testFile(self.gpa_settings['subject_list'], 'Subject List')
+        testFile(self.gpa_settings['participant_list'], 'Participant List')
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
      
@@ -678,8 +658,8 @@ class ModelConfig(wx.Frame):
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
         self.phenoHeaderItems = phenoHeaderString.split(',')
 
-        if self.gpa_settings['subject_id_label'] in self.phenoHeaderItems:
-            self.phenoHeaderItems.remove(self.gpa_settings['subject_id_label'])
+        if self.gpa_settings['participant_id_label'] in self.phenoHeaderItems:
+            self.phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
         else:
             errSubID = wx.MessageDialog(
                 self, 'Please enter the name of the subject ID column' \
@@ -720,35 +700,18 @@ class ModelConfig(wx.Frame):
                 self.gpa_settings['grouping_var'] = ctrl.get_selection()
 
 
+            if ("list" in name) and (name != "participant_list"):
 
-            if name == 'derivative_list':
-
-                # grab this for below
-                derlist_ctrl = ctrl
+                self.gpa_settings[name] = []
+                for option in list(ctrl.get_selection()):
+                    self.gpa_settings[name].append(option)
 
             else:
                 self.gpa_settings[name] = str(ctrl.get_selection())
 
 
-
-        self.gpa_settings['derivative_list'] = []
-
-        for derivative in list(derlist_ctrl.get_selection()):
-            if self.gpa_settings['use_zscore'] == "True":
-                
-                self.gpa_settings['derivative_list'].append(derivative + "_z")
-                
-            else:
-            
-                self.gpa_settings['derivative_list'].append(derivative)
-
-
-
-
-
-        self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'])
-
-
+        self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], \
+                                                    self.gpa_settings['ev_selections'])
 
         try:
             phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']))
@@ -770,17 +733,13 @@ class ModelConfig(wx.Frame):
         # take the user-provided design formula and break down the included
         # terms into a list, and use this to create the list of available
         # contrasts
-                
-
         formula = self.gpa_settings['design_formula']
-            
 
         # need to cycle through the EVs inside parentheses just to make
         # sure they are valid
 
         # THEN you have to treat the entire parentheses thing as one EV when
         # it comes to including it in the list for contrasts
-
         formula_strip = formula.replace('+',' ')
         formula_strip = formula_strip.replace('-',' ')
         formula_strip = formula_strip.replace('**(', '**')
@@ -788,7 +747,6 @@ class ModelConfig(wx.Frame):
         formula_strip = formula_strip.replace('(',' ')
         formula_strip = formula_strip.replace(')',' ')
         EVs_to_test = formula_strip.split()
-
 
 
         # ensure the design formula only has valid EVs in it
@@ -846,7 +804,6 @@ class ModelConfig(wx.Frame):
                 
                     raise Exception
 
-
                     
             # ensure these interactions are input correctly
             elif (':' in EV) or ('/' in EV) or ('*' in EV):
@@ -874,8 +831,8 @@ class ModelConfig(wx.Frame):
                                  'part of the interaction \'%s\' is not a ' \
                                  'valid EV option.\n\nPlease enter only ' \
                                  'the EVs in your phenotype file or the ' \
-                                 'MeanFD, MeanFD_Jenkinson, Custom_ROI_' \
-                                 'Mean, or Measure_Mean options.' \
+                                 'MeanFD_Power, MeanFD_Jenkinson, Custom_ROI'\
+                                 '_Mean, or Measure_Mean options.' \
                                  % (interaction_EV,EV)
 
                         errSubID = wx.MessageDialog(self, errmsg,
@@ -889,7 +846,8 @@ class ModelConfig(wx.Frame):
 
                 if (EV not in self.pheno_data_dict.keys()) and EV != 'MeanFD_Power' \
                     and EV != 'MeanFD_Jenkinson' and EV != 'Measure_Mean' \
-                    and EV != 'Custom_ROI_Mean':
+                    and EV != 'Custom_ROI_Mean' and EV != "Intercept" and \
+                    EV != "intercept":
 
                     errmsg = 'CPAC says: The regressor \'%s\' you ' \
                              'entered within the design formula is not ' \
@@ -907,10 +865,7 @@ class ModelConfig(wx.Frame):
                     raise Exception
 
 
-
-
-
-        ''' design formula/input parameters checks '''
+        # design formula/input parameters checks
 
         if "Custom_ROI_Mean" in formula and \
             (self.gpa_settings['custom_roi_mask'] == None or \
@@ -928,7 +883,6 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
 
             raise Exception
-
 
 
         if "Custom_ROI_Mean" not in formula and \
@@ -952,43 +906,6 @@ class ModelConfig(wx.Frame):
             raise Exception
             
             
-        if str(self.gpa_settings["use_zscore"]) == "True":
-        
-            if "Measure_Mean" in formula:
-            
-                warn_string = "Note: You have included Measure_Mean as a " \
-                    "regressor in your model, but you have selected to run " \
-                    "the group-level analysis with the z-score standardized "\
-                    "version of the outputs.\n\nThe mean of any z-score " \
-                    "standardized output will always be zero."
-
-                errSubID = wx.MessageDialog(self, warn_string,
-                    'Measure_Mean Included With z-scored Outputs', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-        
-        else:
-        
-            for deriv in self.gpa_settings["derivative_list"]:
-            
-                if "VMHC" in deriv:
-                
-                    warn_string = "Note: You have selected to run group-" \
-                        "level analysis using raw outputs (non-z-score " \
-                        "standardized), but you have also included VMHC " \
-                        "as one of the outputs to include in your model."
-
-                    errSubID = wx.MessageDialog(self, warn_string,
-                        'VMHC Cannot Be Included As Raw Output', wx.OK | wx.ICON_ERROR)
-                    errSubID.ShowModal()
-                    errSubID.Destroy()
-
-                    raise Exception
-
-
-
         # if there is a custom ROI mean mask file provided, and the user
         # includes it as a regressor in their design matrix formula, calculate
         # the number of ROIs in the file and generate the column names so that
@@ -1027,10 +944,78 @@ class ModelConfig(wx.Frame):
             for num in range(0,num_rois):
                 custom_roi_labels.append("Custom_ROI_Mean_%d" % int(num+1))
                 
-                
-        
+
+        # pull in phenotype file
+        try:
+            pheno_df = pd.read_csv(self.gpa_settings["pheno_file"])
+        except Exception as e:
+            err = "\n\n[!] Something went wrong with reading in the " \
+                  "phenotype CSV file.\n\nPhenotype file path: %s\n\nError " \
+                  "details: %s\n\n" % (self.gpa_settings["pheno_file"], e)
+            raise Exception(err)
+
+
+        # enforce the sub ID label to "Participant"
+        pheno_df.rename(columns={self.gpa_settings["participant_id_label"]:"Participant"}, \
+                        inplace=True)   
+        pheno_df["Participant"] = pheno_df["Participant"].astype(str)
+
+
+        # let's create dummy columns for MeanFD, Measure_Mean, and
+        # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
+        # can get an accurate list of EVs Patsy will generate
+        new_measures = ["MeanFD_Power", "MeanFD_Jenkinson", "Measure_Mean"]
+
+        for measure in new_measures:
+            if measure in formula:
+                pheno_df[measure] = [0] * len(pheno_df.index)
+
+        if 'Custom_ROI_Mean' in formula:
+
+            add_formula_string = ""
+
+            for col_label in custom_roi_labels:
+
+                pheno_df[col_label] = [0] * len(pheno_df.index)
+
+                # create a string of all the new custom ROI regressor column
+                # names to be inserted into the design formula, so that Patsy
+                # will accept the phenotypic data dictionary that now has these
+                # columns
+                if add_formula_string == "":
+                    add_formula_string = add_formula_string + col_label
+                else:
+                    add_formula_string = add_formula_string + " + " + col_label
+   
+
+            formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
+
+
+        repeated_sessions = False
+
+        # if repeated measures
+        if len(list(self.gpa_settings["sessions_list"])) > 0:
+            from CPAC.pipeline.cpac_group_runner import pheno_sessions_to_repeated_measures
+            pheno_df = pheno_sessions_to_repeated_measures(pheno_df, list(self.gpa_settings["sessions_list"]))
+            self.gpa_settings["ev_selections"]["categorical"].append("Session")
+            formula = formula + " + Session"
+            repeated_sessions = True
+
+        if len(list(self.gpa_settings["series_list"])) > 0:
+            from CPAC.pipeline.cpac_group_runner import pheno_series_to_repeated_measures
+            pheno_df = pheno_series_to_repeated_measures(pheno_df, \
+                                    list(self.gpa_settings["series_list"]), \
+                                    repeated_sessions)
+            self.gpa_settings["ev_selections"]["categorical"].append("Series")
+            formula = formula + " + Series"
+
+
+        # if modeling group variances separately
         if str(self.gpa_settings["group_sep"]) == "On":
         
+            from CPAC.pipeline.cpac_ga_model_generator import parse_out_covariates, \
+                                                              split_groups
+
             if (self.gpa_settings["grouping_var"] == "None") or \
                 (self.gpa_settings["grouping_var"] is None) or \
                 (self.gpa_settings["grouping_var"] == "none"):
@@ -1062,164 +1047,53 @@ class ModelConfig(wx.Frame):
 
                 raise Exception
 
+            if self.gpa_settings["grouping_var"] not in \
+                self.gpa_settings["ev_selections"]["categorical"]:           
+                
+                warn_string = "Note: The grouping variable must be one of " \
+                              "the categorical covariates."
+
+                errSubID = wx.MessageDialog(self, warn_string,
+                    'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
+                errSubID.ShowModal()
+                errSubID.Destroy()
+
+                raise Exception
 
 
+            # get ev list
+            ev_list = parse_out_covariates(formula)
 
-        def read_phenotypic(pheno_file, ev_selections, formula, subject_id_label):
+            # split up the groups
+            pheno_df, grp_vector, new_ev_list, cat_list = split_groups(pheno_df, \
+                              self.gpa_settings["grouping_var"], ev_list, \
+                              self.gpa_settings["ev_selections"]["categorical"])
 
-            import csv
-            import numpy as np
+            self.gpa_settings["ev_selections"]["categorical"] = cat_list
 
-            ph = pheno_file
+            # make the grouping variable categorical for Patsy (if we try to
+            # do this automatically below, it will categorical-ize all of 
+            # the substrings too)
+            formula = formula.replace(self.gpa_settings["grouping_var"], \
+                                      "C(" + self.gpa_settings["grouping_var"] \
+                                      + ")")
+            if self.gpa_settings["coding_scheme"] == "Sum":
+                formula = formula.replace(")", ", Sum)")
 
-            # Read in the phenotypic CSV file into a dictionary named pheno_dict
-            # while preserving the header fields as they correspond to the data
-            p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+            # update design formula
+            rename = {}
+            for old_ev in ev_list:
+                for new_ev in new_ev_list:
+                    if old_ev + "__FOR" in new_ev:
+                        if old_ev not in rename.keys():
+                            rename[old_ev] = []
+                        rename[old_ev].append(new_ev)
 
-            # dictionary to store the data in a format Patsy can use
-            # i.e. a dictionary where each header is a key, and the value is a
-            # list of all of that header's values
-            pheno_data_dict = {}
-
-            for line in p_reader:
-
-                # here, each instance of 'line' is really a dictionary where the
-                # keys are the pheno headers, and their values are the values of
-                # each EV for that one subject - each iteration of this loop is
-                # one subject
-
-                for key in line.keys():
-
-                    if (key in formula) and (key != ""):
-
-                        if key not in pheno_data_dict.keys():
-                            pheno_data_dict[key] = []
-
-                        # create a list within one of the dictionary values for that
-                        # EV if it is categorical; formats this list into a form
-                        # Patsy can understand regarding categoricals:
-                        #     example: { ADHD: ['adhd1', 'adhd1', 'adhd0', 'adhd1'] }
-                        #                instead of just [1, 1, 0, 1], etc.
-                        if 'categorical' in ev_selections.keys():
-                            if key in ev_selections['categorical']:
-                                pheno_data_dict[key].append(key + str(line[key]))
-
-                            elif key == subject_id_label:
-                                pheno_data_dict[key].append(line[key])
-
-                            else:
-                                try:
-                                    pheno_data_dict[key].append(float(line[key]))
-                                except:
-                                    print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
-                                    raise Exception
-
-                        elif key == subject_id_label:
-                            pheno_data_dict[key].append(line[key])
-
-                        else:
-                            try:
-                                pheno_data_dict[key].append(float(line[key]))
-                            except:
-                                print "\n[!] There are words or blank spaces in the EV column '%s', which is designated as continuous.\n\n" % key
-                                raise Exception
+            for old_ev in rename.keys():
+                formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
 
 
-
-            # this needs to run after each list in each key has been fully
-            # populated above
-            for key in pheno_data_dict.keys():
-
-                # demean the EVs marked for demeaning
-                if 'demean' in ev_selections.keys():
-                    if key in ev_selections['demean']:
-
-                        new_demeaned_evs = []
-
-                        mean_evs = 0.0
-
-                        # populate a dictionary, a key for each demeanable EV, with
-                        # the value being the sum of all the values (which need to be
-                        # converted to float first)
-                        for val in pheno_data_dict[key]:
-                            mean_evs += float(val)
-
-                        # calculate the mean of the current EV in this loop
-                        mean_evs = mean_evs / len(pheno_data_dict[key])
-
-                        # remove the EV's mean from each value of this EV
-                        # (demean it!)
-                        for val in pheno_data_dict[key]:
-                            new_demeaned_evs.append(float(val) - mean_evs)
-
-                        # replace
-                        pheno_data_dict[key] = new_demeaned_evs
-
-
-                # converts non-categorical EV lists into NumPy arrays
-                # so that Patsy may read them in properly
-                if 'categorical' in ev_selections.keys():
-                    if key not in ev_selections['categorical']:
-            
-                        pheno_data_dict[key] = np.array(pheno_data_dict[key])
-
-
-            return pheno_data_dict
-
-
-        patsy_formatted_pheno = read_phenotypic(self.gpa_settings['pheno_file'], self.gpa_settings['ev_selections'], self.gpa_settings['design_formula'], self.gpa_settings['subject_id_label'])
-
-
-        # let's create dummy columns for MeanFD, Measure_Mean, and
-        # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
-        # can get an accurate list of EVs Patsy will generate
-
-        def create_regressor_column(regressor):
-
-            # regressor should be a string of the name of the regressor
-
-            import numpy as np
-
-            regressor_list = []
-
-            for key in patsy_formatted_pheno.keys():
-               for val in patsy_formatted_pheno[key]:
-                   regressor_list.append(0.0)
-               break
-
-            regressor_list = np.array(regressor_list)
-
-            patsy_formatted_pheno[regressor] = regressor_list
-
-
-        if 'MeanFD_Power' in formula:
-            create_regressor_column('MeanFD_Power')
-        if 'MeanFD_Jenkinson' in formula:
-            create_regressor_column('MeanFD_Jenkinson')
-        if 'Measure_Mean' in formula:
-            create_regressor_column('Measure_Mean')
-
-        if 'Custom_ROI_Mean' in formula:
-
-            add_formula_string = ""
-
-            for col_label in custom_roi_labels:
-
-                create_regressor_column(col_label)
-
-                # create a string of all the new custom ROI regressor column
-                # names to be inserted into the design formula, so that Patsy
-                # will accept the phenotypic data dictionary that now has these
-                # columns
-                if add_formula_string == "":
-                    add_formula_string = add_formula_string + col_label
-                else:
-                    add_formula_string = add_formula_string + " + " + col_label
-   
-
-            formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
-
-
+        # categorical-ize design formula
         if 'categorical' in self.gpa_settings['ev_selections']:
             for EV_name in self.gpa_settings['ev_selections']['categorical']:
 
@@ -1228,38 +1102,46 @@ class ModelConfig(wx.Frame):
                 elif self.gpa_settings['coding_scheme'] == 'Sum':
                     formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
 
-
+        # let's avoid an Intercept unless the user explicitly wants one
+        #   (then they need to include "+ Intercept" into the formula)
+        if ("Intercept" not in formula) and ("intercept" not in formula):
+            formula = formula + " - 1"
+        else:
+            # having "Intercept" in the formula is really just a flag to
+            # prevent "- 1" from being added to the formula - we don't
+            # actually want "Intercept" in the formula
+            formula = formula.replace("+ Intercept", "")
+            formula = formula.replace("+Intercept", "")
+            formula = formula.replace("+ intercept", "")
+            formula = formula.replace("+intercept", "")
 
         # create the dmatrix in Patsy just to see what the design matrix
         # columns are going to be
+        print formula
+        print pheno_df
         try:
-            dmatrix = patsy.dmatrix(formula, patsy_formatted_pheno)
+            dmatrix = patsy.dmatrix(formula, pheno_df)
         except Exception as e:
             print '\n\n[!] CPAC says: Design matrix creation wasn\'t ' \
                     'successful - do the terms in your formula correctly ' \
                     'correspond to the EVs listed in your phenotype file?\n'
             print 'Phenotype file provided: '
             print self.gpa_settings['pheno_file'], '\n\n'
-            print "Formula: %s" % formula
-            print "Patsy-format pheno: %s" % patsy_formatted_pheno
-            print "Patsy error: %s" % e
+            print "Formula: %s\n" % formula
+            print "Phenotypic matrix (not demeaned yet):\n %s\n\n" % pheno_df
+            print "Patsy error: %s\n\n" % e
             raise Exception
-
 
 
         column_names = dmatrix.design_info.column_names
         
-        
-        
-        subFile = open(os.path.abspath(self.gpa_settings['subject_list']))
+        subFile = open(os.path.abspath(self.gpa_settings['participant_list']))
 
         sub_IDs = subFile.readlines()
         self.subs = []
         
         for sub in sub_IDs:
-            self.subs.append(sub.rstrip("\n"))        
-        
-
+            self.subs.append(sub.rstrip("\n"))
         
         # check to make sure there are more subjects than EVs!!
         if len(column_names) >= len(self.subs):
@@ -1280,229 +1162,9 @@ class ModelConfig(wx.Frame):
                 
             raise Exception
         
-
-
-        raw_column_strings = []
-        
-        # remove the header formatting Patsy creates for categorical variables
-        # because we are going to use var_list_for_contrasts as a label for
-        # users to know what contrasts are available to them
-        for column in column_names:
-
-            # if using Sum encoding, a column name may look like this:
-            #     C(adhd, Sum)[S.adhd0]
-
-            # this loop leaves it with only "adhd0" in this case, for the
-            # contrasts list for the next GUI page
-
-            column_string = column
-
-            string_for_removal = ''
-
-            for char in column_string:
-
-                string_for_removal = string_for_removal + char
-
-                if char == '.':
-                    column_string = column_string.replace(string_for_removal, '')
-                    string_for_removal = ''
-
-            column_string = column_string.replace(']', '')
-            
-            if ":" in column_string:
-                try:
-                    column_string = column_string.split("[")[1]
-                except:
-                    pass
-            
-            raw_column_strings.append(column_string)
-            
-            
-        
-        if str(self.gpa_settings["group_sep"]) == "On":     
-
-            grouping_options = []
-            idx = 0
-            
-            for column_string in raw_column_strings:
-
-                if self.gpa_settings["grouping_var"] in column_string:
-
-                    grouping_variable_info = []
-
-                    grouping_variable_info.append(column_string)
-                    grouping_variable_info.append(idx)
-
-                    grouping_options.append(grouping_variable_info)
-
-                    # grouping_var_idx is the column numbers in the design matrix
-                    # which holds the grouping variable (and its possible levels)
-
-                idx += 1               
-
-
-            # all the categorical values/levels of the grouping variable
-            grouping_var_levels = []
-
-            for gv_idx in grouping_options:
-            
-                for subject in dmatrix:
-                
-                    if self.gpa_settings["grouping_var"] in self.gpa_settings["ev_selections"]["categorical"]:
-                        level_num = str(int(subject[gv_idx[1]]))
-                    else:
-                        level_num = str(subject[gv_idx[1]])
-
-                    level_label = '__' + self.gpa_settings["grouping_var"] + level_num
-
-                    if level_label not in grouping_var_levels:
-                        grouping_var_levels.append(level_label)
-
-
-            # make the new header for the reorganized data
-            for column_string in raw_column_strings:
-            
-                if column_string != "Intercept":
-            
-                    if self.gpa_settings["grouping_var"] not in column_string:
-                        for level in grouping_var_levels:
-                            var_list_for_contrasts.append(column_string + level)
-                    elif self.gpa_settings["grouping_var"] in column_string:
-                        var_list_for_contrasts.append(column_string)
-
-
-        else:
-        
-            for column_string in raw_column_strings:
-
-                if column_string != 'Intercept':
-                    var_list_for_contrasts.append(column_string)
-
-
-
-        # check for repeated measures file formatting!
-
-        group_sublist_file = open(self.gpa_settings['subject_list'], 'r')
-
-        group_sublist_items = group_sublist_file.readlines()
-
-        group_sublist = [line.rstrip('\n') for line in group_sublist_items \
-                          if not (line == '\n') and not line.startswith('#')]
-
-        for ga_sub in group_sublist:
-
-            # ga_sub = subject ID taken off the group analysis subject list
-
-            # let's check to make sure the subject list is formatted for
-            # repeated measures properly if repeated measures is enabled
-            # and vice versa
-            if (self.gpa_settings['repeated_measures'] == "True") and \
-                (',' not in ga_sub):
-
-                errmsg = "The group analysis subject list is not in the " \
-                         "appropriate format for repeated measures. Please " \
-                         "use the appropriate format as described in the " \
-                         "CPAC User Guide, or turn off Repeated Measures." \
-                         "\n\nNote: CPAC generates a properly-formatted " \
-                         "group analysis subject list meant for running " \
-                         "repeated measures when you create your original " \
-                         "subject list. Look for 'subject_list_group_" \
-                         "analysis_repeated_measures.txt' in the directory " \
-                         "where you created your subject list."
-
-                errSubID = wx.MessageDialog(self, errmsg,
-                    'Subject List Format', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-
-            elif (self.gpa_settings['repeated_measures'] == "False") and \
-                (',' in ga_sub):
-
-                errmsg = "It looks like your group analysis subject list is " \
-                         "formatted for running repeated measures, but " \
-                         "'Run Repeated Measures' is not enabled."
-
-                errSubID = wx.MessageDialog(self, errmsg,
-                    'Subject List Format', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-
-
-        # make sure the sub IDs in the sublist and pheno files match!
-
-        group_pheno_file = open(self.gpa_settings['pheno_file'], 'r')
-
-        group_pheno_lines = group_pheno_file.readlines()
-
-        # gather the subject IDs from the phenotype file
-        def get_pheno_subjects(delimiter):
-
-            for item in group_pheno_lines[0].split(delimiter):
-                if item == self.gpa_settings['subject_id_label']:
-                    index = group_pheno_lines[0].index(item)
-
-            group_pheno_subs = group_pheno_lines[1:len(group_pheno_lines)]
-
-            pheno_subs = []
-
-            for pheno_sub_line in group_pheno_subs:
-                pheno_subs.append(pheno_sub_line.split(delimiter)[index])
-
-            return pheno_subs
-
-
-        pheno_subs = []
-
-        if "," in group_pheno_lines[0]:
-            pheno_subs = get_pheno_subjects(",")
-
-        '''
-        # now make sure the group sublist and pheno subject IDs match, at least
-        # for the ones that exist (i.e. may be less sub IDs in the sublist)
-        for sublist_subID, pheno_subID in zip(group_sublist, pheno_subs):
-
-            # if group sublist is formatted for repeated measures
-            if "," in sublist_subID:
-                sublist_subID = sublist_subID.replace(",","_")
-
-            if sublist_subID != pheno_subID:
-
-                if self.gpa_settings['repeated_measures'] == "False":
-
-                    errmsg = "The subject IDs in your group subject list " \
-                             "and your phenotype file do not match. Please " \
-                             "make sure these have been set up correctly."
-
-                else:
-
-                    errmsg = "The subject IDs in your group subject list " \
-                             "and your phenotype file do not match. Please " \
-                             "make sure these have been set up correctly." \
-                             "\n\nNote: Repeated measures is enabled - does "\
-                             "your phenotype file have properly-formatted " \
-                             "subject IDs matching your repeated measures " \
-                             "group analysis subject list?"
-
-                errSubID = wx.MessageDialog(self, errmsg,
-                    'Subject ID Mismatch', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
-
-                raise Exception
-        '''
-
-
-
         # open the next window!
-        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, var_list_for_contrasts)  # !!! may need to pass the actual dmatrix as well
+        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, \
+                                       dmatrix, column_names) #var_list_for_contrasts)
 
 
         self.Close()
-
-        
-        
-

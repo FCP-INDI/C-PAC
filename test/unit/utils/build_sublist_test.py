@@ -2,6 +2,9 @@
 #
 # Author(s): Daniel Clark, 2015
 
+# Import packages
+from CPAC.utils.build_sublist import build_sublist
+
 '''
 This module performs unit testing on functions in the buildsublist
 module in the CPAC/utils subpackage
@@ -13,8 +16,7 @@ import unittest
 # Tets case for cpac datasink
 class BuildSublistTestCase(unittest.TestCase):
     '''
-    This class is a test case for the s3_sublist module in
-    CPAC/AWS
+    This class is a test case for the build_sublist.py module
 
     Inherits
     --------
@@ -30,8 +32,7 @@ class BuildSublistTestCase(unittest.TestCase):
     # setUp method
     def setUp(self):
         '''
-        Method to instantiate input arguments for the
-        AWS.fetch_creds() method via instance attributes
+        Init unittest TestCase
 
         Parameters
         ----------
@@ -205,9 +206,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add include sites to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -241,10 +242,10 @@ class BuildSublistTestCase(unittest.TestCase):
         include_subs = ['0050142', '0050143', '0050144']
 
         # Set up S3 templates
-        anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
-        func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+        anat_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
+        func_s3_template = 'S3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add include subs to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -258,7 +259,7 @@ class BuildSublistTestCase(unittest.TestCase):
         properly_filtered, filter_msg = \
             self._check_filepaths(filepaths, include_subs, include=True)
 
-        # Assert resulting list is properly filtered
+        # Assert resulting lst is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
 
     # Test for excluding specific subs
@@ -279,9 +280,9 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Set up S3 templates
         anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/anat_1/mprage.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/mprage.nii.gz'
         func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
-                           'RawData/{site}/{participant}/{session}/rest_1/rest.nii.gz'
+                           'RawData/{site}/{participant}/{session}/{series}/rest.nii.gz'
 
         # Add excluded subs to data config dictionary
         data_config_dict['anatomicalTemplate'] = anat_s3_template
@@ -294,6 +295,42 @@ class BuildSublistTestCase(unittest.TestCase):
         # And check them
         properly_filtered, filter_msg = \
             self._check_filepaths(filepaths, exclude_subs, include=False)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_s3_sublist_regexp_match(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        sites_match_regex = ['CMU_a', 'CMU_b', 'Caltech', 'Yale']
+
+        # Set up S3 templates
+        anat_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+                           'RawData/[CY]*/{participant}/*/{series}/mprage.nii.gz'
+        func_s3_template = 's3://fcp-indi/data/Projects/ABIDE_Initiative/'\
+                           'RawData/[CY]*/{participant}/*/{series}/rest.nii.gz'
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_s3_template
+        data_config_dict['functionalTemplate'] = func_s3_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, sites_match_regex, include=True)
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
@@ -319,12 +356,12 @@ class BuildSublistTestCase(unittest.TestCase):
         include_sites = ['site_1']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary
@@ -363,12 +400,12 @@ class BuildSublistTestCase(unittest.TestCase):
         include_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary
@@ -407,12 +444,12 @@ class BuildSublistTestCase(unittest.TestCase):
         exclude_subs = ['0010042', '0010064', '0010128']
         base_dir = test_init.return_resource_subfolder('input')
 
-        # Set up S3 templates
+        # Set up local templates
         anat_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/anat_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'mprage.nii.gz')
         func_template = os.path.join(base_dir,
-                                     '{site}/{participant}/{session}/rest_1/'\
+                                     '{site}/{participant}/{session}/{series}/'\
                                      'rest.nii.gz')
 
         # Add include sites to data config dictionary
@@ -429,6 +466,159 @@ class BuildSublistTestCase(unittest.TestCase):
 
         # Assert resulting list is properly filtered
         self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_local_sublist_reorg(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     'site{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     'site{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Test for regular expression matching
+    def test_local_sublist_regexp_match(self):
+        '''
+        Method to test that the subject list builder includes only
+        desired sites from S3
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import test_init
+
+        # Init variables
+        data_config_dict = self.data_config_dict
+        subs_match_regex = ['0010042', '0010064', '0010128', '0021019', '0023008',
+                            '0023008', '0023012', '0027011', '0027018',
+                            '0027034', '0027037', '1019436', '1206380', '1418396']
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '[si]?*{site}_mprage_sub{participant}_sess{session}_ser_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     '?[si]*{site}_rest_sub{participant}_sess{session}_ser_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Return found filepaths from subject list
+        filepaths = self._return_sublist_filepaths(data_config_dict)
+
+        # And check them
+        properly_filtered, filter_msg = \
+            self._check_filepaths(filepaths, subs_match_regex, include=True)
+
+        # Assert resulting list is properly filtered
+        self.assertTrue(properly_filtered, msg=filter_msg)
+
+    # Function to test the custom glob pattern matcher
+    def test_check_glob_for_patterns(self):
+        '''
+        '''
+
+        # Import packages
+        from CPAC.utils import build_sublist
+
+        # Init variables
+        prefix_delim = 's?[si]ite_[a-z]?'
+        filepath = 'sisite_hi_sub001_sess1.nii.gz'
+        correct_delim = 'sisite_hi'
+
+        # Return filtered delimeter
+        new_delim = build_sublist.check_for_glob_patterns(prefix_delim, filepath)
+
+        # Assert equal
+        err_msg = 'returned delim: %s does not match %s! Check function!' % \
+                  (new_delim, correct_delim)
+        self.assertEqual(new_delim, correct_delim, err_msg)
+
+    # Test for un-specific template
+    def test_ambiguous_template(self):
+        '''
+        Function that tests the subject list cannot be built properly
+        with an over-ambiguous path template
+
+        Parameters
+        ----------
+        self : BuildSublistTestCase
+            a unittest.TestCase-inherited class
+        '''
+
+        # Import packages
+        import os
+        from CPAC.utils import build_sublist, test_init
+
+        # Init variables
+        # Init variables
+        data_config_dict = self.data_config_dict
+
+        # Copy original inputs to all same folder with
+        # {participant}_{series} in filenames
+        base_dir = test_init.return_resource_subfolder('input_reorg_files')
+
+        # Set up local templates
+        anat_template = os.path.join(base_dir,
+                                     '{site}_mprage_{participant}_{session}_{series}.nii.gz')
+        func_template = os.path.join(base_dir,
+                                     '{site}_rest_{participant}_{session}_{series}.nii.gz')
+
+        # Add include sites to data config dictionary
+        data_config_dict['anatomicalTemplate'] = anat_template
+        data_config_dict['functionalTemplate'] = func_template
+
+        # Build subject list
+        try:
+            self._return_sublist_filepaths(data_config_dict)
+        except Exception as exc:
+            self.assertIsInstance(exc, Exception)
 
 # Make module executable
 if __name__ == '__main__':

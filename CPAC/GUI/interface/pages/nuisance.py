@@ -52,7 +52,6 @@ class NuisanceRegression(wx.ScrolledWindow):
                      comment="Standard Lateral Ventricles Binary Mask")
 
         self.page.add(label = "Select Regressors:",
-                      #control = control.CHECKLISTBOX_COMBO,
                       control = control.LISTBOX_COMBO,
                       name = "Regressors",
                       type = dtype.LDICT,

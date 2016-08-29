@@ -123,7 +123,44 @@ class CheckBox(wx.Frame):
                     val = sel
             parent.listbox.Append(val)
             self.Close()
+
+
+
+class StringBoxFrame(wx.Frame):
+
+    def __init__(self, parent, values, title, label):
+
+        wx.Frame.__init__(self, parent, title=title, \
+                size = (300,80))
         
+        self.values = values
+
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15)
+        
+        label1 = wx.StaticText(panel, -1, label=label)
+        self.box1 = wx.TextCtrl(panel, id=wx.ID_ANY, size=(200,-1))
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)      
+        
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+
+    def onButtonClick(self,event):
+        parent = self.Parent
+        if self.box1.GetValue():
+            parent.listbox.Append(self.box1.GetValue())
+            self.Close()
+
 
 
 class TextBoxFrame(wx.Frame):
@@ -180,6 +217,53 @@ class TextBoxFrame(wx.Frame):
                 val = [self.box1.GetValue() , self.box2.GetValue()]
                 parent.listbox.Append(str(val))
                 self.Close()
+
+
+
+class ResampleNumBoxFrame(wx.Frame):
+
+    def __init__(self, parent, values):
+        wx.Frame.__init__(self, parent, \
+                              title="Enter Resolution to Resample To", \
+                              size = (350,100))
+        
+        panel = wx.Panel(self)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        flexsizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=15) 
+        
+        label1 = wx.StaticText(panel, -1, label = 'Resolution (in mm)')
+        self.box1 = NumCtrl(panel, id = wx.ID_ANY, value= values[0],
+                            integerWidth=2, fractionWidth = 3, 
+                            allowNegative=False, allowNone = True)
+        
+    
+        flexsizer.Add(label1)
+        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
+               
+        button = wx.Button(panel, -1, 'OK', size= (90,30))
+        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(button,0, wx.ALIGN_CENTER)
+        panel.SetSizer(sizer)
+        
+        self.Show()
+    
+    def onButtonClick(self,event):
+        parent = self.Parent
+                  
+        if type(self.box1.GetValue()) is not float:
+            dlg = wx.MessageDialog(self, "Resolution must be a decimal " \
+                                   "value, such as 2.5 or 3.0.",
+                                   'Error!',
+                               wx.OK | wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+        else:
+            val = self.box1.GetValue()
+            parent.listbox.Append(str(val))
+            self.Close()
 
 
 
@@ -296,7 +380,6 @@ class ConfigFslFrame(wx.Frame):
 
     def onOK(self, event):
         parent = self.Parent
-        print parent
         if self.box2.GetValue():
             val = str(self.box2.GetValue())
             parent.listbox.Append(val)
@@ -321,12 +404,13 @@ class ConfigFslFrame(wx.Frame):
 
 class ContrastsFrame(wx.Frame):
 
-    def __init__(self, parent, values, avail_cons):
+    def __init__(self, parent, values, dmatrix_obj):
 
         wx.Frame.__init__(self, parent, title="Add Contrast Description", \
                 size = (300,80))
         
-        self.avail_cons = avail_cons
+        self.dmatrix_obj = dmatrix_obj
+        #self.avail_cons = avail_cons
 
         panel = wx.Panel(self)
         
@@ -351,80 +435,24 @@ class ContrastsFrame(wx.Frame):
 
     def onButtonClick(self, event):
 
+        frame = self
         parent = self.Parent
 
         add_con = 0
         
         if self.box1.GetValue():
           
+            from CPAC.GUI.interface.utils.modelDesign_window import check_contrast_equation
+
             val = self.box1.GetValue()
 
-            # do validation first
+            ret = check_contrast_equation(frame, self.dmatrix_obj, val)
 
-            contrasts_in_string = self.parse_contrast(val)
-
-            for contrast in contrasts_in_string:
-
-                if contrast not in self.avail_cons:
-
-                    errmsg = 'CPAC says: The contrast \'%s\' you ' \
-                        'entered within the string \'%s\' is not ' \
-                        'one of the available contrast selections.' \
-                        '\n\nPlease enter only the contrast labels ' \
-                        'listed under \'Available Contrasts\'.' \
-                        % (contrast, val)
-
-                    errSubID = wx.MessageDialog(self, errmsg,
-                        'Invalid Contrast', wx.OK | wx.ICON_ERROR)
-                    errSubID.ShowModal()
-                    errSubID.Destroy()
-
-                    add_con += 1
-
-
-            if add_con == 0:
-
+            if ret == 0:
                 parent.listbox.Append(str(val))
                 parent.options.append(str(val))
                 parent.raise_listbox_options()
-                self.Close()
-
-
-
-    def parse_contrast(self, contrast_string):
-
-        orig_string = contrast_string
-
-        contrast_string = contrast_string.replace(' ', '')
-
-        if '>' in contrast_string:
-            split_contrast = contrast_string.split('>')
-        elif '<' in contrast_string:
-            split_contrast = contrast_string.split('<')
-        elif '+' in contrast_string:
-            split_contrast = contrast_string.split('+')
-        elif '-' in contrast_string:
-            split_contrast = contrast_string.split('-')
-        else:
-
-            errmsg = 'CPAC says: The contrast \'%s\' did not contain any ' \
-                     'valid operators.\n\nValid operators: > , < , + , -' \
-                     % orig_string
-
-            errCon = wx.MessageDialog(self, errmsg, 'Invalid Operator',
-                         wx.OK | wx.ICON_ERROR)
-            errCon.ShowModal()
-            errCon.Destroy()
-
-
-
-        # in the case of the '+' or '-' contrast operators, which result in
-        # the split_contrast list containing a blank element ''
-        for item in split_contrast:
-            if item == '':
-                split_contrast.remove(item)
-
-        return split_contrast
+                self.Close()              
 
 
 
@@ -558,18 +586,12 @@ class ListBoxCombo(wx.Panel):
         elif self.ctype == 3:
             ConfigFslFrame(self, self.values)
         elif self.ctype == 4:
-            ContrastsFrame(self, self.values, self.avail_cons)
+            ContrastsFrame(self, self.values, self.dmatrix_obj)
         elif self.ctype == 5:         
 
-            # here: get the contrasts.csv and populate 
-            # "self.parent.input_contrasts" if custom_contrasts is a thing:
-
+            # self.parent.input_contrasts will only be populated if the user
+            # has input contrasts via ContrastsFrame
             input_contrasts = self.parent.input_contrasts
-
-            #custom_cons = self.parent.get_custom_contrasts()
-
-            #if len(custom_cons) > 0:
-            #    input_contrasts = custom_cons
 
             if len(input_contrasts) < 2:
 
@@ -581,8 +603,15 @@ class ListBoxCombo(wx.Panel):
                 errCon.Destroy()
 
             else:
-
                 f_test_frame(self, input_contrasts)
+
+        elif self.ctype == 6:
+            ResampleNumBoxFrame(self, self.values)
+        elif self.ctype == 7:
+            # because we need a nice generic configurable checkbox list...
+            StringBoxFrame(self, self.values, "Add Session Name", "Session")
+        elif self.ctype == 8:
+            StringBoxFrame(self, self.values, "Add Series Name", "Series")
 
         
     def GetListBoxCtrl(self):
@@ -624,6 +653,9 @@ class ListBoxCombo(wx.Panel):
         # placed into the contrast strings - this gets passed to
         # ContrastsFrame so it can do string checking immediately
         self.avail_cons = avail_cons
+
+    def set_design_matrix(self, design_matrix_obj):
+        self.dmatrix_obj = design_matrix_obj
 
 
     #def get_listbox_selections(self):
@@ -787,7 +819,7 @@ class CheckBoxGrid(wx.Panel):
         #self.idx = 100
         self.y_pos = 0
 
-        self.onReload_set_selections(self.choiceDict, internal=True)
+        self.onReload_set_selections(self.choiceDict)
 
 
     def add_checkbox_grid_value(self, entry):
@@ -853,7 +885,10 @@ class CheckBoxGrid(wx.Panel):
         # add the panel that contains all of the rows (labels and checkboxes)
         # to the grid sizer. the grid sizer is necessary for wxPython to know
         # when to provide a scrollbar in the scrollWin object
-        self.grid_sizer.Add(self.row_panel, pos=(0,0))
+        try:
+            self.grid_sizer.Add(self.row_panel, pos=(0,0))
+        except:
+            pass
 
         w,h = self.grid_sizer.GetMinSize()
         self.scrollWin.SetVirtualSize((w,h))
@@ -1001,48 +1036,14 @@ class CheckBoxGrid(wx.Panel):
         #      "Voxel": ["/path/to/ROI1.nii.gz","/path/to/ROI3.nii.gz"]}
 
 
-    def onReload_set_selections(self, choice_dict, internal=False):
+    def onReload_set_selections(self, choice_dict):
 
         for entry in choice_dict.keys():
 
             # re-populate the box with entries (but not selections)
             self.add_checkbox_grid_value(entry)
 
-            if not internal:
-
-                # file_selections is the string of digits loaded from the
-                # pipeline config YAML file denoting the user's choices for
-                # each ROI path entry, ex. "1,1,0,0"
-                file_selections = choice_dict[entry]
-                file_selections = file_selections.split(",")
-
-                choice_dict[entry] = []
-
-                # convert the digits back into the string names of the
-                # selections for each ROI path
-                for digit,option in zip(file_selections,self.selections):
-                    if digit == "1":
-                        choice_dict[entry].append(option)
-
         # re-populate selections
-
-        '''
-        for cb_id in self.cbValuesDict.keys():
-            
-            # path to file
-            cb_name = self.cbValuesDict[cb_id][0]
-
-            # selection name (ex. Avg, Voxel, PC1, etc..)
-            cb_option = self.cbValuesDict[cb_id][1]
-
-            if cb_option in choice_dict[cb_name]:
-                #try:
-                cb = wx.FindWindowById(cb_id)
-                cb.SetValue(True)
-                #except:
-                #    pass
-        '''
-
         for entry in self.entry_controls:
 
             for ctrl in self.entry_controls[entry]:

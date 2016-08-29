@@ -11,7 +11,6 @@ def configuration(parent_package='', top_path=None):
         if '__init__.py' in filenames:
             config.add_subpackage(dirname)
     
-    config.add_subpackage('interfaces/afni')
     config.add_subpackage('GUI/interface')
     config.add_subpackage('GUI/interface/pages')
     config.add_subpackage('GUI/interface/windows')

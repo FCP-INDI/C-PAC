@@ -33,7 +33,13 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
     -------
     out : numpy.ndarray
     """
-    
+
+    # Import packages
+    from nipype import logging
+
+    # Init logger
+    logger = logging.getLogger('workflow')
+
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
     
@@ -46,7 +52,7 @@ def degree_centrality(corr_matrix, r_value, method, out=None):
     
     if out is None:
         out = np.zeros(corr_matrix.shape[0], dtype=corr_matrix.dtype)
-    print 'about to call thresh_and_sum'
+    logger.info('about to call thresh_and_sum')
     func_name   = "centrality_%s_%s" % (method, dtype)
     func        = globals()[func_name]
     func(corr_matrix, out, r_value)
@@ -75,7 +81,7 @@ def fast_degree_centrality(m):
 def eigenvector_centrality(corr_matrix, 
                            r_value=None, 
                            method=None, 
-                           to_transform=True, 
+                           to_transform=False, 
                            ret_eigenvalue=False):
     """
     Examples
@@ -90,8 +96,7 @@ def eigenvector_centrality(corr_matrix,
     >>> eigenvector = slow_eigenvector_centrality(mm)
     """
     from scipy.sparse import linalg as LA
-    from scipy.sparse import csc_matrix
-    
+
     if method not in ["binarize", "weighted"]:
         raise Exception("Method must be one of binarize or weighted and not %s" % method)
     
@@ -129,7 +134,7 @@ def eigenvector_centrality(corr_matrix,
     #using scipy method, which is a wrapper to the ARPACK functions
     #http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
     eigenValue, eigenVector = LA.eigsh(corr_matrix, k=1, which='LM', maxiter=1000)
-    
+
     if ret_eigenvalue:
         return eigenValue, np.abs(eigenVector)
     else:

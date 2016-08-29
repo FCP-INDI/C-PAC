@@ -57,7 +57,7 @@ Functional to MNI Registration
 
 #. **Run Functional to MNI Registration - [On, Off]:** Register functional images to a standard MNI152 template. This option must be enabled if you wish to calculate any derivatives.
 
-#. **Functional Standard Resolution - [1mm, 2mm, 3mm]:** The resolution (in mm) to which functional images are transformed during registration.
+#. **Functional Standard Resolution - [1mm, 2mm, 3mm, 4mm]:** The resolution (in mm) to which functional images are transformed during registration.
 
 #. **Standard Brain only Template (functional resolution) - [path]:** Standard FSL Skull Stripped Template. Used as a reference image for functional registration.
 
@@ -71,7 +71,7 @@ Configuration Using a YAML File
 To configure functional to MNI registration options within a YAML file, add the following lines to your file (with appropriate substitutions for paths)::
 
     runRegisterFuncToMNI : [1]
-    resolution_for_func : 2mm
+    resolution_for_func_preproc : 2mm
     template_brain_only_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}_brain.nii.gz
     template_skull_for_anat : /usr/share/fsl/5.0/data/standard/MNI152_T1_${resolution_for_anat}.nii.gz
     identityMatrix : /usr/share/fsl/5.0/etc/flirtsch/ident.mat

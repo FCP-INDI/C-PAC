@@ -169,19 +169,26 @@ def calc_residuals(subject,
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
             raise ValueError('White matter signals length %d do not match data timepoints %d' % (wm_sigs.shape[1], data.shape[3]))
+        if wm_sigs.size == 0:
+            raise ValueError('White matter signal file %s is empty'%(wm_sig_file))
     if csf_sig_file is not None:
         csf_sigs = np.load(csf_sig_file)
         if csf_sigs.shape[1] != data.shape[3]:
             raise ValueError('CSF signals length %d do not match data timepoints %d' % (csf_sigs.shape[1], data.shape[3]))
+        if csf_sigs.size == 0:
+            raise ValueError('CSF signal file %s is empty'%(csf_sig_file))
     if gm_sig_file is not None:
         gm_sigs = np.load(gm_sig_file)
         if gm_sigs.shape[1] != data.shape[3]:
             raise ValueError('Grey matter signals length %d do not match data timepoints %d' % (gm_sigs.shape[1], data.shape[3]))
-        
+        if gm_sigs.size == 0:
+            raise ValueError('Grey matter signal file %s is empty'%(gm_sig_file))
     if motion_file is not None:
         motion = np.genfromtxt(motion_file)
         if motion.shape[0] != data.shape[3]:
             raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[3]) )
+        if motion.size == 0:
+            raise ValueError('Motion signal file %s is empty'%(motion_file))
 
     #Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
@@ -232,6 +239,9 @@ def calc_residuals(subject,
     
     print 'Regressors dim: ', X.shape, ' starting regression'
     
+    if np.isnan(X).any() or np.isnan(X).any():
+        raise ValueError('Regressor file contains NaN')
+
     Y = data[global_mask].T
     B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
     Y_res = Y - X.dot(B)
@@ -259,17 +269,12 @@ def calc_residuals(subject,
 
 def extract_tissue_data(data_file,
                         ventricles_mask_file,
-                        wm_seg_file, csf_seg_file, gm_seg_file,
-                        wm_threshold=0.0, csf_threshold=0.0, gm_threshold=0.0):
+                        wm_seg_file, csf_seg_file, gm_seg_file):
     import numpy as np
     import nibabel as nb
     import os    
     from CPAC.nuisance import erode_mask
     from CPAC.utils import safe_shape
-    
-    print 'Tissues extraction thresholds wm %d, csf %d, gm %d' % (wm_threshold,
-                                                                  csf_threshold,
-                                                                  gm_threshold)
 
     try:
         data = nb.load(data_file).get_data().astype('float64')
@@ -295,7 +300,7 @@ def extract_tissue_data(data_file,
     if not safe_shape(data, wm_seg):
         raise ValueError('Spatial dimensions for data, white matter segment do not match')
 
-    wm_mask = erode_mask(wm_seg > wm_threshold)
+    wm_mask = erode_mask(wm_seg > 0)
     wm_sigs = data[wm_mask]
     file_wm = os.path.join(os.getcwd(), 'wm_signals.npy')
     np.save(file_wm, wm_sigs)
@@ -312,7 +317,7 @@ def extract_tissue_data(data_file,
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
-    csf_mask = (csf_seg > csf_threshold)*(lat_ventricles_mask==1)
+    csf_mask = (csf_seg > 0)*(lat_ventricles_mask==1)
     csf_sigs = data[csf_mask]
     file_csf = os.path.join(os.getcwd(), 'csf_signals.npy')
     np.save(file_csf, csf_sigs)
@@ -329,7 +334,7 @@ def extract_tissue_data(data_file,
         raise ValueError('Spatial dimensions for data, gray matter segment do not match')
 
 
-    gm_mask = erode_mask(gm_seg > gm_threshold)
+    gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
     np.save(file_gm, gm_sigs)
@@ -444,7 +449,6 @@ def create_nuisance(use_ants, name='nuisance'):
 
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'wm_mask', wm_anat_to_2mm, 'reference')
- 
 
     # Resampling the masks from 1mm to 2mm, but remaining in subject space
     csf_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='csf_anat_to_2mm_flirt_applyxfm')
@@ -454,7 +458,6 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', csf_anat_to_2mm, 'reference')
 
-    
     # Resampling the masks from 1mm to 2mm, but remaining in subject space
     gm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='gm_anat_to_2mm_flirt_applyxfm')
     gm_anat_to_2mm.inputs.args = '-applyisoxfm 2'
@@ -466,6 +469,7 @@ def create_nuisance(use_ants, name='nuisance'):
 
     func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'
+    func_to_2mm.interface.estimated_memory_gb = 2.0
 
     nuisance.connect(inputspec, 'subject', func_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'csf_mask', func_to_2mm, 'reference')
@@ -508,12 +512,11 @@ def create_nuisance(use_ants, name='nuisance'):
 
     tissue_masks = pe.Node(util.Function(input_names=['data_file',
                                                       'ventricles_mask_file',
-                                                      'wm_seg_file', 'csf_seg_file', 'gm_seg_file',
-                                                      'wm_threshold', 'csf_threshold', 'gm_threshold'],
+                                                      'wm_seg_file', 'csf_seg_file', 'gm_seg_file'],
                                          output_names=['file_wm', 'file_csf', 'file_gm'],
                                          function=extract_tissue_data),
                            name='tissue_masks')
-    
+    tissue_masks._interface.estimated_memory_gb = 3.0
 
 
     nuisance.connect(func_to_2mm, 'out_file', tissue_masks, 'data_file')

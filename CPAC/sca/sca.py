@@ -1,5 +1,4 @@
 import sys
-#from CPAC.interfaces.afni import preprocess
 from nipype.interfaces.afni import preprocess
 import os
 import commands
@@ -132,13 +131,13 @@ def create_sca(name_sca='sca'):
         # also write out volumes as individual files
         split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
         split.inputs.dimension = 't'
+        split.inputs.out_base_name = 'sca_'
 
-        split.inputs.out_base_name = 'sca_roi_'
-
-
-        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'], output_names=['roi_list'], function=get_roi_num_list), name='get_roi_num_list')
-
-        get_roi_num_list.inputs.prefix = "sca_roi"
+        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'],
+                                                 output_names=['roi_list'],
+                                                 function=get_roi_num_list), 
+                                   name='get_roi_num_list')
+        get_roi_num_list.inputs.prefix = "sca"
 
         rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
                           iterfield=['in_file','format_string'])

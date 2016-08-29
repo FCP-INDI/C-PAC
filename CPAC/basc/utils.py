@@ -41,6 +41,8 @@ def timeseries_bootstrap(tseries, block_size):
            [ 4, 14, 24, 34, 44]])
 
     """
+    import numpy as np
+    
     k = np.ceil(float(tseries.shape[0])/block_size)
     r_ind = np.floor(np.random.rand(1,k)*tseries.shape[0])
     

@@ -215,6 +215,7 @@ def find_power_params_file(filepath, resource_id, series_id):
     for root, dirs, files in os.walk(power_first_half):
         for filename in files:
             filepath = os.path.join(root, filename)
+            print filepath
             if "pow_params.txt" in filepath:
                 power_params_file = filepath
 
@@ -380,43 +381,19 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     # there are no new rows, since the phenotype file will have all of the
     # subject_site_session combo unique IDs on each row!!!
     sessions_col = []
-    part_ids_col = []
 
-    # participant IDs new columns
-    participant_id_cols = {}
-    i = 0
-
-    for participant_unique_id in list(pheno_df["Participant"]):
-        part_col = [0] * len(pheno_df["Participant"])
-        for session in sessions_list:
+    for session in sessions_list:
+        for participant_unique_id in pheno_df["Participant"]:
             if session in participant_unique_id:
-                # generate/update sessions categorical column
-                part_id = participant_unique_id.replace(session, "")
-                part_id = part_id.replace("_","")
-                part_ids_col.append(part_id)
                 sessions_col.append(session)
-                header_title = "participant_%s" % part_id
-                # generate/update participant ID column (1's or 0's)
-                if header_title not in participant_id_cols.keys():
-                    part_col[i] = 1
-                    participant_id_cols[header_title] = part_col
-                else:
-                    participant_id_cols[header_title][i] = 1
-        i += 1
-    
-    pheno_df["Session"] = sessions_col
-    pheno_df["Participant_ID"] = part_ids_col
 
-    # add new participant ID columns
-    for new_col in participant_id_cols.keys():
-        pheno_df[new_col] = participant_id_cols[new_col]
+    pheno_df["Session"] = sessions_col
 
     return pheno_df
 
 
 
-def pheno_series_to_repeated_measures(pheno_df, series_list, \
-    repeated_sessions=False):
+def pheno_series_to_repeated_measures(pheno_df, series_list):
 
     # take in the selected series/scans, and create all of the permutations
     # of unique participant IDs (participant_site_session) and series/scans
@@ -432,64 +409,9 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
         sub_pheno_df = pheno_df.copy()
         sub_pheno_df["Series"] = series
         new_rows.append(sub_pheno_df)
-    pheno_df = pd.concat(new_rows)
-
-    if repeated_sessions == False:
-
-        # participant IDs new columns
-        participant_id_cols = {}
-        i = 0
-
-        for participant_unique_id in pheno_df["Participant"]:
-
-            part_col = [0] * len(pheno_df["Participant"])
-            header_title = "participant_%s" % participant_unique_id
-
-            if header_title not in participant_id_cols.keys():
-                part_col[i] = 1
-                participant_id_cols[header_title] = part_col
-            else:
-                participant_id_cols[header_title][i] = 1
-
-            i += 1
-
-        for new_col in participant_id_cols.keys():
-            pheno_df[new_col] = participant_id_cols[new_col]
+    pheno_df = pd.concat(new_rows)       
         
     return pheno_df
-
-
-
-def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
-
-    # this is for repeated measures only.
-    # if the user selects a participant list like this:
-    #    sub001_session_1
-    #    sub001_session_2
-    #    sub002_session_1
-    #    sub002_session_2
-    #    sub003_session_1
-    # then have this drop "sub003_session_1", because repeated measures
-    # requires a uniform balance of repeats
-
-    from collections import Counter
-
-    part_ID_count = Counter(pheno_df["Participant_ID"])
-
-    if series_list:
-        sessions_x_series = len(sessions_list) * len(series_list)
-    else:
-        sessions_x_series = len(sessions_list)
-
-    dropped_parts = []
-
-    for part_ID in part_ID_count.keys():
-        if part_ID_count[part_ID] != sessions_x_series:
-            pheno_df = pheno_df[pheno_df.Participant_ID != part_ID]
-            del pheno_df["participant_%s" % part_ID]
-            dropped_parts.append(part_ID)
-
-    return pheno_df, dropped_parts
 
 
 
@@ -520,8 +442,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     group_models = []
 
     for group_config_file in c.modelConfigs:
-        group_models.append((group_config_file, \
-                             load_config_yml(group_config_file)))
+        group_models.append(load_config_yml(group_config_file))
 
 
     # get the lowest common denominator of group model config choices
@@ -533,9 +454,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     get_motion = False
     get_raw_score = False
     
-    for group_model_tuple in group_models:
-
-        group_model = group_model_tuple[1]
+    for group_model in group_models:
 
         inclusion = load_text_file(group_model.participant_list, \
             "group-level analysis participant list")
@@ -586,10 +505,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
     group_model_names = []
 
-    for group_model_tuple in group_models:
-
-        group_config_file = group_model_tuple[0]
-        group_model = group_model_tuple[1]
+    for group_model in group_models:
 
         model_name = group_model.model_name
 
@@ -636,33 +552,20 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
             new_pheno_df = pheno_df.copy()
             
-            repeated_measures = False
-            repeated_sessions = False
-            repeated_series = False
+            if group_model.repeated_measures == True:
 
-            if len(group_model.sessions_list) > 0:
-                repeated_sessions = True
-
-            if len(group_model.series_list) > 0:
-                repeated_series = True
-
-            if repeated_sessions or repeated_series:
-                repeated_measures = True
-
-            if repeated_measures == True:
-
-                if repeated_sessions == True:
+                if group_model.repeated_sessions == True:
                     new_pheno_df = pheno_sessions_to_repeated_measures( \
                                        new_pheno_df, \
                                        group_model.sessions_list)
 
                 # create new rows for all of the series, if applicable
                 #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
-                if repeated_series == True:
+                if group_model.repeated_series == True:
                     new_pheno_df = pheno_series_to_repeated_measures( \
                                        new_pheno_df, \
-                                       group_model.series_list, \
-                                       repeated_sessions)
+                                       group_model.series_list)
+
 
                 # drop the pheno rows - if there are participants missing in
                 # the output files (ex. if ReHo did not complete for 2 of the
@@ -697,47 +600,22 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     new_pheno_df = pd.merge(new_pheno_df, output_df, how="inner",\
                         on=join_columns)
 
-                    if repeated_sessions == True:
-                        # this can be removed/modified once sessions are no
-                        # longer integrated in the full unique participant IDs
-                        new_pheno_df, dropped_parts = \
-                            balance_repeated_measures(new_pheno_df, \
-                                                      group_model.sessions_list, \
-                                                      group_model.series_list)
-
-                        run_label = "repeated_measures_multiple_sessions_and_series"
-                    else:
-                        run_label = "repeated_measures_multiple_series"
-
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
+                    analysis_dict[(model_name, group_model, resource_id, strat_info, "repeated_measures_multiple_series")] = \
                         new_pheno_df
 
                 else:
-                    # this runs if there are repeated sessions but not
-                    # repeated series
-                    #   split up the series here
-                    #   iterate over the Series/Scans
+                    # split up the series here
+                    # iterate over the Series/Scans
                     for series_df_tuple in output_df.groupby("Series"):
-
                         series = series_df_tuple[0]
-
-                        # series_df is output_df but with only one of the Series
+                        # series_df = output_df but with only one of the Series
                         series_df = series_df_tuple[1]
-
                         # trim down the pheno DF to match the output DF and merge
                         newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
                         newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
-
-                        # this can be removed/modified once sessions are no
-                        # longer integrated in the full unique participant IDs
-                        newer_pheno_df, dropped_parts = \
-                            balance_repeated_measures(newer_pheno_df, \
-                                                      group_model.sessions_list, \
-                                                      None)
-
                         # unique_resource =
                         #              (output_measure_type, preprocessing strategy)
-                        analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df
+                        analysis_dict[(model_name, group_model, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df
 
             else:
                 # no repeated measures
@@ -757,35 +635,27 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
                     newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
                     # send it in
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
+                    analysis_dict[(model_name, group_model, resource_id, strat_info, series)] = newer_pheno_df
 
     return analysis_dict
 
 
 
-def run(config_file, pipeline_output_folder):
+def run(analysis_dict):
 
-    import os
-    from multiprocessing import Process
-
-    # create the analysis DF dictionary
-    analysis_dict = prep_analysis_df_dict(config_file, pipeline_output_folder)
-
-    # get MAIN pipeline config loaded
-    c = load_config_yml(config_file)
-
-    # let's get the show on the road   
+    # let's get the show on the road
+    
     procss = []
     
     for unique_resource_id in analysis_dict.keys():
 
         # unique_resource_id is a 5-long tuple:
-        #    ( model name, group model config file, output measure name,
+        #    ( model name, group model config OBJECT, output measure name,
         #          preprocessing strategy string,
         #          series_id or "repeated_measures" )
         
         model_name = unique_resource_id[0]
-        group_config_file = unique_resource_id[1]
+        group_config = unique_resource_id[1]
         resource_id = unique_resource_id[2]
         preproc_strat = unique_resource_id[3]
         series_or_repeated = unique_resource_id[4]
@@ -798,8 +668,8 @@ def run(config_file, pipeline_output_folder):
                 prep_group_analysis_workflow
 
             procss.append(Process(target=prep_group_analysis_workflow, \
-                                  args = (model_df, config_file, model_name, \
-                                          group_config_file, resource_id, \
+                                  args = (model_df, c, model_name, \
+                                          group_config, resource_id, \
                                           preproc_strat, series_or_repeated)))
             
         else:

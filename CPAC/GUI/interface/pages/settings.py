@@ -63,8 +63,11 @@ class ComputerSettings(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='resourceManager',
                       type=dtype.STR,
-                      values=["SGE", "PBS"],
-                      comment="Sun Grid Engine (SGE) or Portable Batch System (PBS).\n\nOnly applies if you are running on a grid or compute cluster.")
+                      values=["SGE", "PBS", "SLURM"],
+                      comment="Sun Grid Engine (SGE), "\
+                              "Portable Batch System (PBS), or "
+                              "Simple Linux Utility for Resource Management (SLURM)."\
+                              "\n\nOnly applies if you are running on a grid or compute cluster.")
 
         self.page.add(label='SGE Parallel Environment ',
                       control=control.TEXT_BOX,
@@ -79,6 +82,13 @@ class ComputerSettings(wx.ScrolledWindow):
                       type=dtype.STR,
                       comment='SGE Queue to use when running CPAC.\n\nOnly applies when you are running on a grid or compute cluster using SGE.',
                       values='all.q')
+
+        self.page.add(label="Memory Per Subject (GB) ",
+                      control=control.INT_CTRL,
+                      name='memoryAllocatedPerSubject',
+                      type=dtype.NUM,
+                      comment="Memory to allocate per subject.\n\nIMPORTANT: \'Memory Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' must not be more than the total amount of RAM",
+                      values=1)
 
         self.page.add(label="Number of Cores Per Subject ",
                       control=control.INT_CTRL,
@@ -135,6 +145,13 @@ class DirectorySettings(wx.ScrolledWindow):
                       name='crashLogDirectory',
                       type=dtype.STR,
                       comment="Directory where CPAC should write crash logs.",
+                      validation_req=False)
+
+        self.page.add(label="Log Directory ",
+                      control=control.DIR_COMBO_BOX,
+                      name='logDirectory',
+                      type=dtype.STR,
+                      comment="Directory where CPAC should place run logs.",
                       validation_req=False)
 
         self.page.add(label="Output Directory ",
