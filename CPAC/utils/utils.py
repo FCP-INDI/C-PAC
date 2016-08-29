@@ -521,6 +521,9 @@ def extract_txt(list_timeseries):
     Method to extract txt file containing 
     roi timeseries required for dual regression
     """
+    if isinstance(list_timeseries, basestring):
+        if timeseries.endswith('.txt'):
+            return  list_timeseries
 
     out_file = None
     for timeseries in list_timeseries:
@@ -529,7 +532,8 @@ def extract_txt(list_timeseries):
 
     if not out_file:
         raise Exception("Unable to retrieve roi timeseries txt"\
-                          " file required for dual regression")
+                          " file required for dual regression."\
+                          " Existing files are:%s"%(list_timeseries))
 
     return out_file
 

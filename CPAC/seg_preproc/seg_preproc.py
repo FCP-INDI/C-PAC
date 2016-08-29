@@ -17,8 +17,8 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
 
     """
-    Segment the subject's snatomical brain into cerebral spinal fluids, white matter and gray matter.
-    Threshold and binarize them.
+    Segment the subject's anatomical brain into cerebral spinal fluids, white matter and gray matter
+    and binarize them.
 
     Parameters
     ----------
@@ -40,16 +40,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_ 
 
     Workflow Inputs: ::
- 
-        csf_threshold.csf_threshold : list (float)
-            Threshold of Cerebral Spinal Fluid probabilities 
-    
-        wm_threshold.wm_threshold : list (float) 
-            Threshold of White Matter probabilities
-    
-        gm_threshold.gm_threshold : list (float) 
-            Threshold of Gray Matter probabilities
-    
         inputspec.brain : string (existing nifti file)
             Anatomical image(without skull)
     
@@ -69,39 +59,15 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 
         outputspec.csf_mni2t1 : string (nifti file)
             outputs CSF prior template(in MNI space) registered to anatomical space
-    
-        outputspec.csf_combo : string (nifti file)
-            outputs Image containing overlap between csf probability map and 
-            csf tissue prior in t1 native space
-    
-        outputspec.csf_bin : string (nifti file)
-            outputs image after Thresholding and binarizing csf_combo
-    
-        outputspec.csf_mask : string (nifti file)
-            outputs image after masking csf_combo with csf prior in t1 space
         
         outputspec.gm_mni2t1 : string (nifti file)
             outputs gray matter prior template registered to anatomical space
-    
-        outputspec.gm_combo : string (nifti file)
-            outputs image containing overlap between gray matter probability map 
-            and gm tissue prior in t1 native space
-    
-        outputspec.gm_bin : string (nifti file)
-            outputs image after thresholding and binarizing gm_combo
     
         outputspec.gm_mask : string (nifti file)
             outputs image after masking gm_combo with gm prior in t1 space
     
         outputspec.wm_mni2t1 : string (nifti file)
             outputs White Matter prior template(in MNI space) registered to anatomical space
-        
-        outputspec.wm_combo : string (nifti file)
-            outputs image containing overlap between white matter(wm) probability map 
-            and wm tissue prior in t1 native space
-            
-        outputspec.wm_bin : string (nifti file)
-            outputs image after Thresholding and binarizing wm_combo
     
         outputspec.wm_mask : string (nifti file)
             outputs image after masking wm_combo with white matter(wm) prior in t1 space
@@ -139,18 +105,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
         -init standard2highres_inv.mat
         -out csf_mni2t1
 
-
-
-    ###### remove ############
-    - Find overlap between csf probability map and csf_mni2t1. For details see  `fslmaths <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Fslutils>_::
-
-        fslmaths
-        segment_prob_0.nii.gz
-        -mas csf_mni2t1.nii.gz
-        csf_combo.nii.gz
-
-
-    ###### remove, just binarize ############
     - Threshold and binarize CSF probability map ::
 
         fslmaths
@@ -175,14 +129,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
         -init standard2highres.mat
         -out wm_mni2t1
 
-
-    - Find overlap between wm probability mask and wm_mni2t1 ::
-
-        fslmaths
-        segment_prob_2.nii.gz
-        -mas wm_mni2t1.nii.gz
-        wm_combo.nii.gz
-
     - Threshold and binarize WM probability map ::
 
         fslmaths
@@ -205,14 +151,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
         -applyxfm
         -init standard2highres.mat
         -out gm_mni2t1
-
-    ###### remove ############
-    - Find overlap between gm probability map and gm_mni2t1 ::
-
-        fslmaths
-        segment_prob_1.nii.gz
-        -mas gm_mni2t1.nii.gz
-        gm_combo.nii.gz
 
     - Threshold and binarize GM probability map ::
 
@@ -238,9 +176,6 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     >>> seg.inputs.inputspec.PRIOR_WHITE = '/home/data/Projects/C-PAC/tissuepriors/2mm/avg152T1_white_bin.nii.gz'
     >>> seg.inputs.inputspec.PRIOR_GRAY = '/home/data/Projects/C-PAC/tissuepriors/2mm/avg152T1_gray_bin.nii.gz'
     >>> seg.inputs.inputspec.brain = '/home/data/Projects/C-PAC/working_directory/s1001/anat_preproc/mprage_brain.nii.gz'
-    >>> seg.inputs.csf_threshold.csf_threshold = 0.4
-    >>> seg.inputs.wm_threshold.wm_threshold = 0.66
-    >>> seg.inputs.gm_threshold.gm_threshold = 0.2
     >>> seg_preproc.run() # doctest: +SKIP
     
     
@@ -318,7 +253,7 @@ def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
     preproc.connect(inputNode, 'PRIOR_CSF',
                     process_csf, 'inputspec.tissue_prior')
 
-    #tissue_class_map = binary segmented volume file one val for each class
+    #tissue_class_files = binary segmented volume file one val for each class
     preproc.connect(segment, ('tissue_class_files', pick_wm_0),
                     process_csf, 'inputspec.probability_map')
     
@@ -417,9 +352,6 @@ def process_segment_map(wf_name, use_ants):
         inputspec.tissue_prior : string (existing nifti file)
             path to FSL Standard Tissue prior image 
             
-        inputspec.threshold : string (float)
-            threshold of Segmentation Probaility Maps
-            
         inputspec.probability_map : string (nifti file)
             tissue Probability map obtained from fsl FAST
         
@@ -428,12 +360,6 @@ def process_segment_map(wf_name, use_ants):
         outputspec.segment_mni2t1 : string (nifti file)
             path to output CSF prior template(in MNI space) registered to anatomical space
     
-        outputspec.segment_combo : string (nifti file)
-            path to output image containing overlap between csf probability map and segment_mni2t1
-    
-        outputspec.segment_bin : string (nifti file)
-            path to output image after Thresholding and binarizing segment_combo
-    
         outputspec.segment_mask : string (nifti file)
             path to output image after masking segment_combo with its tissue prior in t1 space
         
@@ -441,8 +367,6 @@ def process_segment_map(wf_name, use_ants):
     Order of commands:
  
     - Register tissue prior in MNI space to t1 space. 
-    
-    - Find overlap between segment probability map and tissue prior in t1 native space.
     
     - Threshold and binarize segment probability map 
     

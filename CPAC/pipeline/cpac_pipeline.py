@@ -941,19 +941,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 seg_preproc.inputs.inputspec.PRIOR_GRAY = c.PRIORS_GRAY
                 seg_preproc.inputs.inputspec.PRIOR_WHITE = c.PRIORS_WHITE
 
-                # seg_preproc.inputs.csf_threshold.csf_threshold = \
-                #                         c.cerebralSpinalFluidThreshold
-                # seg_preproc.inputs.wm_threshold.wm_threshold = \
-                #                         c.whiteMatterThreshold
-                # seg_preproc.inputs.gm_threshold.gm_threshold = \
-                #                         c.grayMatterThreshold
-                # seg_preproc.get_node('csf_threshold').iterables = ('csf_threshold',
-                #                         c.cerebralSpinalFluidThreshold)
-                # seg_preproc.get_node('wm_threshold').iterables = ('wm_threshold',
-                #                         c.whiteMatterThreshold)
-                # seg_preproc.get_node('gm_threshold').iterables = ('gm_threshold',
-                #                         c.grayMatterThreshold)
-
 
             except:
                 logConnectionError('Segmentation Preprocessing', num_strat, strat.get_resource_pool(), '0004')
