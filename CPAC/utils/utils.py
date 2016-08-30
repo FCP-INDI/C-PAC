@@ -1538,13 +1538,13 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr, tpatt
     last_tr=''
 
     if 'scan_parameters' in subject_map.keys():
-        # get details from the configuration
-        TR = float(check('tr', False))
-        pattern = str(check('acquisition', False))
-        ref_slice = int(check('reference', False))
-        first_tr = check2(check('first_tr', False))
-        last_tr = check2(check('last_tr', False))
-
+        if len(subject_map['scan_parameters']) > 0:
+            # get details from the configuration
+            TR = float(check('tr', False))
+            pattern = str(check('acquisition', False))
+            ref_slice = int(check('reference', False))
+            first_tr = check2(check('first_tr', False))
+            last_tr = check2(check('last_tr', False))
 
     # if values are still empty, override with GUI config
     if TR == '':
