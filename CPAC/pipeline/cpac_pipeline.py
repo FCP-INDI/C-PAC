@@ -995,7 +995,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         Add in nodes to get parameters from configuration file
         """
         try:
-            # a node which checks if scan _parameters are present for each scan
+            # a node which checks if scan_parameters are present for each scan
             scan_params = pe.Node(util.Function(input_names=['subject',
                                                                 'scan',
                                                                 'subject_map',

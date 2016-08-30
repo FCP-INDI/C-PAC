@@ -865,7 +865,7 @@ def build_sublist(data_config_yml):
             site = anat_sp[anat_site_idx]
         subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
                   'subject_id' : subj, 'unique_id' : sess,
-                  'scan_parameters': {}}
+                  'scan_parameters': site_scan_params}
         tmp_key = '_'.join([subj, site, sess])
         tmp_dict[tmp_key] = subj_d
 

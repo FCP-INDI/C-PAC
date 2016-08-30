@@ -27,9 +27,6 @@ ref_mask,FSL FNIRT Reference Mask (FSL only),Anatomical Registration
 regWithSkull,Use skull-on image to calculate transform? (ANTS only),Anatomical Registration
 already_skullstripped,Inputs Already Skull-stripped?,Anatomical Registration
 runSegmentationPreprocessing,Run Tissue Segmentation,Tissue Segmentation
-whiteMatterThreshold,White Matter Probability Threshold,Tissue Segmentation
-grayMatterThreshold,Gray Matter Probability Threshold,Tissue Segmentation
-cerebralSpinalFluidThreshold,CSF Probability Threshold,Tissue Segmentation
 priors_path,Priors Directory,Tissue Segmentation
 PRIORS_WHITE,White Matter Prior Probability Map,Tissue Segmentation
 PRIORS_GRAY,Gray Matter Prior Probability Map,Tissue Segmentation
