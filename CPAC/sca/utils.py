@@ -81,6 +81,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
     return out_file
 
+
 def check_ts(in_file):
     import numpy as np
     try:

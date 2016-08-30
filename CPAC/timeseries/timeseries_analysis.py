@@ -324,7 +324,7 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     timeseries_roi = pe.Node(interface=afni.ROIStats(),
                              name='3dROIstats')
-    timeseries_roi.inputs.quiet=False
+    timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
 
     wflow.connect(inputNode, 'rest',
