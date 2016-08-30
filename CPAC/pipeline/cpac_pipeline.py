@@ -3115,7 +3115,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  sc_temp_reg, 'inputspec.subject_rest')
 
-                workflow.connect(node2, (out_file2, extract_txt),
+                workflow.connect(node2, (out_file2, extract_one_d),
                                  sc_temp_reg, 'inputspec.subject_timeseries')
 
                 workflow.connect(node3, out_file3,

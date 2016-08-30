@@ -522,7 +522,7 @@ def extract_txt(list_timeseries):
     roi timeseries required for dual regression
     """
     if isinstance(list_timeseries, basestring):
-        if timeseries.endswith('.txt'):
+        if list_timeseries.endswith('.txt'):
             return  list_timeseries
 
     out_file = None
