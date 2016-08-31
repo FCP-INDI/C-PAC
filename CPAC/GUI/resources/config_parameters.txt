@@ -15,7 +15,6 @@ outputDirectory,Output Directory,Output Settings
 awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
 s3Encryption,S3 Encryption,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
-generateQualityControlImages,Enable Quality Control Interface,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
 reGenerateOutputs,Regenerate Outputs,Output Settings
 resolution_for_anat,Anatomical Template Resolution,Anatomical Registration

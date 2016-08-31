@@ -4389,10 +4389,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
-     QUALITY CONTROL
+     QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
-
+    '''
     if 1 in c.generateQualityControlImages:
 
         #register color palettes
@@ -4836,7 +4836,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             QA_montages('reho_to_standard_fisher_zstd', 18)
 
 
-            '''
+            
             # SCA ROI QA montages
             if (1 in c.runSCA) and (1 in c.runROITimeseries):
 
@@ -4853,7 +4853,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                         else:
                             QA_montages('sca_roi_to_standard_fisher_zstd', 21)
-            '''
+            
 
 
             # SCA Seed QA montages
@@ -4886,7 +4886,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
 
 
-            '''
+            
             # Dual Regression QA montages
             if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
 
@@ -4900,7 +4900,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if c.fwhm != None:
                         QA_montages('dr_tempreg_maps_files_to_standard_smooth', 35)
                         QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 36)
-            '''
+            
 
 
             # VMHC QA montages
@@ -4923,7 +4923,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
             num_strat += 1
-            
+    '''
                 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
@@ -5366,6 +5366,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
 
         # If QC is enabled
+        '''
         if 1 in c.generateQualityControlImages:
             # For each pipeline ID, generate the QC pages
             for pip_id in pip_ids:
@@ -5377,6 +5378,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                 qc_montage_id_s, qc_plot_id, qc_hist_id)
                 # Automatically generate QC index page
                 create_all_qc.run(pipeline_out_base)
+        '''
 
         # pipeline timing code starts here
 
