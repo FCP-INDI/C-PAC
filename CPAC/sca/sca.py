@@ -393,7 +393,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
         rename_maps_zstat = pe.MapNode(interface=util.Rename(),
                                  name='rename_maps_zstat',
                                  iterfield=['in_file',
-                                              'format_string'])
+                                            'format_string'])
         rename_maps_zstat.inputs.keep_ext = True
 
         wflow.connect(get_roi_order_zstat, 'labels',

@@ -145,16 +145,35 @@ def map_to_roi(timeseries, maps):
             raise Exception('The number of timepoints is smaller than the'
                             + ' number of ROIs to run - therefore the'
                             + ' GLM is underspecified and can\'t run.')
-        labels = open(timeseries, 'r').readline().split()
-        
+
+        # pull in the ROI labels from the header of the extracted timeseries
+        # CSV file
+        with open(timeseries, "r") as f:
+            roi_file_lines = f.read().splitlines()
+
+        roi_err = "\n\n[!] The output of 3dROIstats, used in extracting " \
+                  "the timeseries, was not in the expected format.\n\nROI " \
+                  "output file: %s\n\n" % timeseries
+
+        for line in roi_file_lines:
+            if "Mean_" in line:
+                try:
+                    roi_list = line.split("\t")
+                    # clear out any blank strings/non ROI labels in the list
+                    roi_list = [x for x in roi_list if "Mean" in x]
+                    # rename labels
+                    roi_list = [x.replace("Mean","sca_tempreg_z_maps_roi").\
+                                    replace(" ","") for x in roi_list]
+                except:
+                    raise Exception(roi_err)
+                break
+        else:
+            raise Exception(roi_err)
+
         new_labels = []
-        
-        for l in labels:
-        
-            if "#" in l:
-                l = l.replace("#","")        
-                new_labels.append(os.path.join(os.getcwd(), \
-                    'sca_tempreg_z_maps_roi_' + str(l)))
+        for roi_label in roi_list:
+            new_labels.append(os.path.join(os.getcwd(),roi_label))
+
         numMaps = len(maps)
         maps.sort()
         if not numMaps / 2 == rois:
@@ -162,8 +181,8 @@ def map_to_roi(timeseries, maps):
                             + ' only ' + str(numMaps / 2) + ' spatial maps were'
                             + ' generated')
         maps = maps[:rois]
-        # output = zip(labels, component_maps)
-        print "labels, maps", new_labels, maps
+
     except Exception:
         print "Error while mapping roi to dual regression split 3d volumes"
-    return new_labels, maps
+
+    return roi_list, maps

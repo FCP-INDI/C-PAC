@@ -301,7 +301,6 @@ def get_operand_string(mean, std_dev):
 def get_roi_num_list(timeseries_file, prefix=None):
 
     # extracts the ROI labels from the 3dROIstats output CSV file
-
     with open(timeseries_file, "r") as f:
         roi_file_lines = f.read().splitlines()
 
@@ -324,7 +323,7 @@ def get_roi_num_list(timeseries_file, prefix=None):
     else:
         raise Exception(roi_err)
 
-    if prefix != None:
+    if prefix:
         temp_rois = []
         for roi in roi_list:
             roi = prefix + "_" + str(roi)
