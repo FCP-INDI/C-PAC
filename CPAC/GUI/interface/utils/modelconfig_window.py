@@ -1092,6 +1092,9 @@ class ModelConfig(wx.Frame):
             for old_ev in rename.keys():
                 formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
 
+        # remove duplicates
+        self.gpa_settings["ev_selections"]["categorical"] = \
+            list(set(self.gpa_settings["ev_selections"]["categorical"]))
 
         # categorical-ize design formula
         if 'categorical' in self.gpa_settings['ev_selections']:
@@ -1117,8 +1120,6 @@ class ModelConfig(wx.Frame):
 
         # create the dmatrix in Patsy just to see what the design matrix
         # columns are going to be
-        print formula
-        print pheno_df
         try:
             dmatrix = patsy.dmatrix(formula, pheno_df)
         except Exception as e:
