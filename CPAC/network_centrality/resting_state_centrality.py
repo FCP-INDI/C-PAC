@@ -111,7 +111,12 @@ def create_resting_state_graphs(wf_name='resting_state_graph',
     >>> wflow.run()
     
     '''
-    
+
+    # Import packages
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    # Init variables
     # Instantiate workflow with input name
     wf = pe.Workflow(name = wf_name)
     
