@@ -11,7 +11,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan'],
+                                fields=['subject', 'scan', 'creds_path'],
                                 mandatory_inputs=True),
                         name='inputnode')
     inputnode.iterables = [('scan', rest_dict.keys())]
@@ -39,7 +39,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(selectrest, 'rest', outputnode, 'rest')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     return wf
@@ -137,7 +137,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'anat'],
+                                fields=['subject', 'anat', 'creds_path'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -156,8 +156,9 @@ def create_anat_datasource(wf_name='anat_datasource'):
                          name='outputspec')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(inputnode, 'anat', outputnode, 'anat')
+    wf.connect(check_s3_node, 'local_path', outputnode, 'anat')
 
+    # Return the workflow
     return wf
 
 

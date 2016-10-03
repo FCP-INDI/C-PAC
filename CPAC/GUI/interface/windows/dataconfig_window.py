@@ -351,72 +351,71 @@ class DataConfig(wx.Frame):
     def load(self, event):
 
         dlg = wx.FileDialog(
-        self, message="Choose the config yaml file",
+        self, message="Choose the config fsl yaml file",
             defaultDir=os.getcwd(), 
             defaultFile="",
             wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
             style=wx.OPEN | wx.CHANGE_DIR)
+        
         # Once user click's OK
         if dlg.ShowModal() == wx.ID_OK:
             # Try and load in the data config file to GUI
             try:
                 path = dlg.GetPath()
-                # Try and load in file contents
-                try:
-                    path = dlg.GetPath()
-                    # Check for path existence
-                    if os.path.exists(path):
-                        path = os.path.realpath(path)
-                        # Try and load in file contents
-                        try:
-                            config_map = yaml.load(open(path, 'r'))
-                        except Exception as e:
-                            print 'Unable to load in the specified file: %s' \
-                                  % path
-                            print 'Error:\n%s' % e
-                        # If it's a dictionary, check it has anat template key
-                        if type(config_map) == dict:
-                            if not config_map.has_key('anatomicalTemplate'):
-                                err_msg = 'File is not a data configuration '\
-                                          'file. It might be a pipeline '\
-                                          'configuration file.'
-                                raise Exception(err_msg)
-                        # It didn't load in as a dictionary, report error
-                        else:
+                # Check for path existence
+                if os.path.exists(path):
+                    path = os.path.realpath(path)
+                    # Try and load in file contents
+                    try:
+                        config_map = yaml.load(open(path, 'r'))
+                    except Exception as e:
+                        print 'Unable to load in the specified file: %s' \
+                              % path
+                        print 'Error:\n%s' % e
+                    # If it's a dictionary, check it has anat template key
+                    if type(config_map) == dict:
+                        if not config_map.has_key('anatomicalTemplate'):
                             err_msg = 'File is not a data configuration '\
-                                      'file. It might be a subject list file.'
+                                      'file. It might be a pipeline '\
+                                      'configuration file.'
                             raise Exception(err_msg)
-                    # Otherwise, report error
+                    # It didn't load in as a dictionary, report error
                     else:
-                        err_msg = 'File %s does not exist. Check and try '\
-                                  'again' % path
+                        err_msg = 'File is not a data configuration '\
+                                  'file. It might be a subject list file.'
                         raise Exception(err_msg)
-                    # Populate GUI fields
-                    for ctrl in self.page.get_ctrl_list():
-                        name = ctrl.get_name()
-                        value = config_map.get(name)
-                        dtype = ctrl.get_datatype()
-                        if isinstance(value, list):
-                            val = None
-                            for v in value:
-                                if val:
-                                    val = val + "," + str(v)
-                                else:
-                                    val = str(v)
-                        else:
-                            val = value
-                
-                        ctrl.set_value(str(val))
-                # There was an error loading parameters, report it
-                except Exception as e:
-                    errdlg = wx.MessageDialog(self, "CPAC could not load " \
-                               "your subject list information. Double-" \
-                               "check the formatting of your data_config " \
-                               "YAML file.\n\nIssue info:\n%s" % e,
-                               'Error!',
-                           wx.OK | wx.ICON_ERROR)
-                    errdlg.ShowModal()
-                    errdlg.Destroy()
+
+                # Otherwise, report error
+                else:
+                    err_msg = 'File %s does not exist. Check and try '\
+                              'again' % path
+                    raise Exception(err_msg)
+                # Populate GUI fields
+                for ctrl in self.page.get_ctrl_list():
+                    name = ctrl.get_name()
+                    value = config_map.get(name)
+                    dtype = ctrl.get_datatype()
+                    if isinstance(value, list):
+                        val = None
+                        for v in value:
+                            if val:
+                                val = val + "," + str(v)
+                            else:
+                                val = str(v)
+                    else:
+                        val = value
+            
+                    ctrl.set_value(str(val))
+            # There was an error loading parameters, report it
+            except Exception as e:
+                errdlg = wx.MessageDialog(self, "CPAC could not load " \
+                           "your subject list information. Double-" \
+                           "check the formatting of your data_config " \
+                           "YAML file.\n\nIssue info:\n%s" % e,
+                           'Error!',
+                       wx.OK | wx.ICON_ERROR)
+                errdlg.ShowModal()
+                errdlg.Destroy()
 
             # Close dialog
             dlg.Destroy()

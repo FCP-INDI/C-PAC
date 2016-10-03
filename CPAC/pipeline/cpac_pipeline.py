@@ -414,7 +414,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     strat_list.append(strat_initial)
 
 
-
     '''
     Inserting Anatomical Preprocessing workflow
     '''
