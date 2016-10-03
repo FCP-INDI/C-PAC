@@ -1,13 +1,3 @@
-# CPAC/utils/datasource.py
-#
-#
-
-'''
-This module contains classes and functions used to interface with data
-access
-'''
-
-# Import packages
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -21,7 +11,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path'],
+                                fields=['subject', 'scan'],
                                 mandatory_inputs=True),
                         name='inputnode')
     inputnode.iterables = [('scan', rest_dict.keys())]
@@ -49,7 +39,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
+    wf.connect(selectrest, 'rest', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     return wf
@@ -139,7 +129,6 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
     return local_path
 
 
-# Anatomical datasource
 def create_anat_datasource(wf_name='anat_datasource'):
 
     import nipype.pipeline.engine as pe
@@ -148,7 +137,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'anat', 'creds_path'],
+                                fields=['subject', 'anat'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -167,14 +156,12 @@ def create_anat_datasource(wf_name='anat_datasource'):
                          name='outputspec')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
-    wf.connect(check_s3_node, 'local_path', outputnode, 'anat')
+    wf.connect(inputnode, 'anat', outputnode, 'anat')
 
-    # Return the workflow
     return wf
 
 
 def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
-
 
     import nipype.interfaces.io as nio
     import os
@@ -354,3 +341,5 @@ def create_grp_analysis_dataflow(wf_name='gp_dataflow'):
 
 
         return wf
+
+

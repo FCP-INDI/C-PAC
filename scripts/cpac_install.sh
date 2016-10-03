@@ -595,4 +595,3 @@ while getopts ":spn:alrh" opt; do
 	esac
 done
 cd $INIT_DIR
-
