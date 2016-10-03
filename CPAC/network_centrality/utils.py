@@ -216,7 +216,7 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
 
     Returns
     -------
-    rvalue : float
+    r_value : float
         correlation threshold value 
     '''
 
@@ -237,7 +237,18 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     # N-2 degrees of freedom with Pearson correlation (two sample means)
     deg_freedom = t_pts-2
 
-    return rvalue
+    # Inverse Survival Function (Inverse of SF)
+    # Note: survival function (SF) is also known as the complementary
+    # cumulative distribution function (CCDF): F_(x) = p = P(X > x) = 1 - F(x)
+    # The inverse will yield: x = F_^-1(p) = F_^-1(P(X > x))
+    # where x is a value under the distribution of the random variable X
+    # such that the probability of getting greater than x, is p
+    t_value = scipy.stats.t.isf(p_value, deg_freedom)
+    r_value = np.sqrt(t_value**2/(deg_freedom+t_value**2))
+    #r_value = math.sqrt(math.pow(t_value, 2)/(deg_freedom+ math.pow(t_value,2)))
+
+    # Return correlation coefficient
+    return r_value
 
 
 # Borrowed from nipy.graph.graph
