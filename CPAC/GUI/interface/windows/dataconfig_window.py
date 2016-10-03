@@ -10,11 +10,11 @@ ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
 
 class DataConfig(wx.Frame):
-        
-    
+
+    # Init method
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,450))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -23,14 +23,35 @@ class DataConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel)
         
         self.page = GenericClass(self.window, "Subject List Setup")
-        
+
+        self.page.add(label="Data format ",
+                      control=control.CHOICE_BOX,
+                      name='dataFormat',
+                      type=dtype.BOOL,
+                      comment="Select if data is organized using BIDS standard "\
+                              "or custom format",
+                      values=["BIDS", "Custom"],
+                      wkf_switch=True)
+
+        self.page.add(label= "BIDS Base Directory ",
+                 control = control.DIR_COMBO_BOX,
+                 name = "bidsBaseDir",
+                 type = dtype.STR,
+                 comment = "Base directory of BIDS-organized data",
+                 values ="")#,
+                 #style= wx.EXPAND | wx.ALL,
+                 #size = (532,-1))
+
         self.page.add(label= "Anatomical File Path Template ",
                  control = control.TEXT_BOX,
                  name = "anatomicalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Anatomical Files\n\n"
-                           "Replace the site- and subject-level directories with %s.\n\n"
-                           "See User Guide for more detailed instructions.",
+                           "Place tags for the appropriate data directory " \
+                           "levels with tags such as {site}, {participant}, "\
+                           "{session}, and {series}. These are not all " \
+                           "required.\n\nSee User Guide for more detailed " \
+                           "instructions.",
                  values ="",
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
@@ -40,8 +61,11 @@ class DataConfig(wx.Frame):
                  name = "functionalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Functional Files\n\n"
-                           "Replace the site- and subject-level directories with %s.\n\n"
-                           "See User Guide for more detailed instructions.",
+                           "Place tags for the appropriate data directory " \
+                           "levels with tags such as {site}, {participant}, "\
+                           "{session}, and {series}. These are not all " \
+                           "required.\n\nSee User Guide for more detailed " \
+                           "instructions.",
                  values ="",
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
@@ -168,7 +192,8 @@ class DataConfig(wx.Frame):
     def onHelp(self, event):
             comment = "Check the box only if the scans have different slice timing infomation."
             wx.TipWindow(self, comment, 500)
-        
+
+    # Generate the subject list from config
     def run(self, config):
             
         try:  
@@ -189,6 +214,14 @@ class DataConfig(wx.Frame):
             import CPAC
             
             if multiscan:
+                # Didn't set up s3-ification for multiscan yet...
+                if 's3://' in config_map.get('anatomicalTemplate').lower() or \
+                   's3://' in config_map.get('functionalTemplate').lower():
+                    err_msg = 'S3 interaction currently not setup for multiscan '\
+                              'subject lists'
+                    raise Exception(err_msg)
+
+                # Build subject list from multiscan data
                 CPAC.utils.extract_data_multiscan.run(config)
             else:
                 CPAC.utils.extract_data.run(config)
@@ -221,15 +254,15 @@ class DataConfig(wx.Frame):
             print "Error importing CPAC"
             print e
             return -1
-        
-        except Exception, e:
-            dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%e,
-                               'Error!',
-                           wx.OK | wx.ICON_ERROR)
-            dlg2.ShowModal()
-            dlg2.Destroy()
-            return -1
-         
+
+        # Catch any other exceptions
+        #except Exception as exc:
+        #    dlg2 = wx.MessageDialog(self, "Error Creating CPAC Subject List.\n%s"%exc,
+        #                       'Error!',
+        #                   wx.OK | wx.ICON_ERROR)
+        #    dlg2.ShowModal()
+        #    dlg2.Destroy()
+        #    return -1
 
     def save(self, event, flag):
         
@@ -243,10 +276,8 @@ class DataConfig(wx.Frame):
         
         try:
             for ctrl in self.page.get_ctrl_list():
-                #print "validating ctrl-->", ctrl.get_name()
+
                 win = ctrl.get_ctrl()
-                #print "ctrl.get_selection()", ctrl.get_selection()
-                #print "type(ctrl.get_selection())", type(ctrl.get_selection())
                         
                 value = str(ctrl.get_selection())
                 value = value.strip()
@@ -255,9 +286,11 @@ class DataConfig(wx.Frame):
 
                 if name == 'subjectListName':
                     subject_list_name = value
-                      
+
                 if len(value) == 0:
-                    display(win,"%s field must contain some text!"%ctrl.get_name())
+                    if name != "bidsBaseDir" and name != "anatomicalTemplate" and \
+                        name != "functionalTemplate":
+                        display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
                     if value.count('%s') != 2:
@@ -305,7 +338,6 @@ class DataConfig(wx.Frame):
                     else:
                         value =[val.strip() for val in ctrl[1].split(',')]
                     
-                    print name, ":", value, "\n"
                     print >>f, ctrl[0], " : ", value, "\n"
                 
                 f.close()
@@ -314,19 +346,22 @@ class DataConfig(wx.Frame):
                 if flag == 'run':
                     if self.run(path) >0:
                         self.Close()
-                    
-            
+
 
     def load(self, event):
-            dlg = wx.FileDialog(
-            self, message="Choose the config fsl yaml file",
-                defaultDir=os.getcwd(), 
-                defaultFile="",
-                wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
-                style=wx.OPEN | wx.CHANGE_DIR)
-            # Once user click's OK
-            if dlg.ShowModal() == wx.ID_OK:
-                # Try and load in the data config file to GUI
+
+        dlg = wx.FileDialog(
+        self, message="Choose the config yaml file",
+            defaultDir=os.getcwd(), 
+            defaultFile="",
+            wildcard= "YAML files(*.yaml, *.yml)|*.yaml;*.yml",
+            style=wx.OPEN | wx.CHANGE_DIR)
+        # Once user click's OK
+        if dlg.ShowModal() == wx.ID_OK:
+            # Try and load in the data config file to GUI
+            try:
+                path = dlg.GetPath()
+                # Try and load in file contents
                 try:
                     path = dlg.GetPath()
                     # Check for path existence
@@ -383,5 +418,5 @@ class DataConfig(wx.Frame):
                     errdlg.ShowModal()
                     errdlg.Destroy()
 
-                # Close dialog
-                dlg.Destroy()
+            # Close dialog
+            dlg.Destroy()

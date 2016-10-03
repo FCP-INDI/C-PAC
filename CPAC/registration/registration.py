@@ -462,7 +462,7 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     
 
 
-def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_input=0):
+def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_input=0, num_threads=1):
 
     '''
     Calculates the nonlinear ANTS registration transform. This workflow
@@ -608,6 +608,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calculate_ants_warp.inputs.initial_moving_transform_com = 0
     '''
     calculate_ants_warp = pe.Node(interface=util.Function(input_names=['anatomical_brain', 'reference_brain', 'anatomical_skull', 'reference_skull', 'wait'], output_names=['warp_list', 'warped_image'], function=hardcoded_reg), name='calc_ants_warp')
+    calculate_ants_warp.interface.num_threads = num_threads
 
     select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
@@ -827,7 +828,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
 
 
-def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
+def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_threads=1):
 
     """
     Applies previously calculated ANTS registration transforms to input
@@ -898,6 +899,8 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp'):
                 'transforms'])
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
+    apply_ants_warp.interface.num_threads = ants_threads
+    apply_ants_warp.interface.estimated_memory_gb = 1.5
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
             name='outputspec')

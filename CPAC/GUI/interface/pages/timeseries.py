@@ -6,6 +6,7 @@ from ..utils.constants import control, dtype
 from ..utils.validator import CharValidator
 import pkg_resources as p
 
+
 class TimeSeries(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter=0):
@@ -17,19 +18,11 @@ class TimeSeries(wx.html.HtmlWindow):
         self.counter = counter
         self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/tse.html'))
 
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/tse.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/tse.html')
-#            else:
-#                self.LoadFile('html/tse.html')
-#        except:
-#            self.LoadFile('html/tse.html')
-
     def get_counter(self):
         return self.counter
 
 
+'''
 class GenerateSeeds(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
@@ -71,27 +64,44 @@ class GenerateSeeds(wx.ScrolledWindow):
 
     def get_counter(self):
             return self.counter
+'''
 
 
 class ROITimeseries(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
+
         import os
 
         wx.ScrolledWindow.__init__(self, parent)
 
         self.counter = counter
 
-        self.page = GenericClass(self, "ROI Average TSE Options")
+        self.page = GenericClass(self, "ROI TSE Options")
 
-        self.page.add(label="Extract ROI Average Time Series ",
+        self.page.add(label="Extract ROI Time Series ",
                       control=control.CHOICE_BOX,
                       name='runROITimeseries',
                       type=dtype.LSTR,
-                      comment="Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run Seed-based Correlation Analysis.",
+                      comment="Extract the average time series of one or " \
+                              "more ROIs/seeds. Must be enabled if you wish "\
+                              "to run Seed-based Correlation Analysis.",
                       values=["Off", "On"],
                       wkf_switch=True)
+
+        self.page.add(label = "TSE ROI Paths ",
+                      control = control.CHECKBOX_GRID,
+                      name = "tsa_roi_paths",
+                      type = 9,
+                      values = '',
+                      selections = ["Avg","Voxel","SpatialReg"],
+                      comment="Enter paths to region-of-interest (ROI) " \
+                              "NIFTI files (.nii or .nii.gz) to be used for "\
+                              "time-series extraction, and then select " \
+                              "which types of analyses to run.",
+                      size = (450, -1))
         
+        '''
         self.page.add(label="ROI Specification File (TSE only) ",
                       control=control.COMBO_BOX,
                       name="roiSpecificationFile",
@@ -117,13 +127,17 @@ class ROITimeseries(wx.ScrolledWindow):
                               '\n\nNote that all ROI masks values are converted '
                               'to integers within C-PAC.',
                       values="None")
+        '''
 
         self.page.add(label="Output Options ",
                       control=control.CHECKLIST_BOX,
                       name="roiTSOutputs",
                       type=dtype.LBOOL,
                       values=['CSV', 'NUMPY'],
-                      comment="By default, extracted time series are written as both a text file and a 1D file. Additional output formats are as a .csv spreadsheet or a Numpy array.")
+                      comment="By default, extracted time series are " \
+                              "written as both a text file and a 1D file. " \
+                              "Additional output formats are as a .csv " \
+                              "spreadsheet or a Numpy array.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -132,6 +146,7 @@ class ROITimeseries(wx.ScrolledWindow):
             return self.counter
 
 
+'''
 class VOXELTimeseries(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
@@ -177,6 +192,7 @@ class VOXELTimeseries(wx.ScrolledWindow):
             return self.counter
 
 
+
 class SpatialRegression(wx.ScrolledWindow):
 
     def __init__(self, parent, counter=0):
@@ -213,6 +229,8 @@ class SpatialRegression(wx.ScrolledWindow):
 
     def get_counter(self):
             return self.counter
+
+
 
 
 class VerticesTimeSeries(wx.ScrolledWindow):
@@ -264,3 +282,5 @@ class VerticesTimeSeries(wx.ScrolledWindow):
 
     def get_counter(self):
             return self.counter
+'''
+

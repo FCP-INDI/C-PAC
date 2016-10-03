@@ -3,6 +3,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 import nipype.interfaces.freesurfer as fs
+import nipype.interfaces.afni as afni
 
 from nipype import logging
 
@@ -321,20 +322,19 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     outputNode = pe.Node(util.IdentityInterface(fields=['roi_outputs']),
                         name='outputspec')
 
-    timeseries_roi = pe.Node(util.Function(input_names=['data_file',
-                                                        'template',
-                                                        'output_type'],
-                                                  output_names=['out_file'],
-                                                  function=gen_roi_timeseries),
-                                                  name='timeseries_roi')
-    wflow.connect(inputNode, 'rest',
-                  timeseries_roi, 'data_file')
-    wflow.connect(inputNode, 'output_type',
-                  timeseries_roi, 'output_type')
-    wflow.connect(inputnode_roi, 'roi',
-                  timeseries_roi, 'template')
+    timeseries_roi = pe.Node(interface=afni.ROIStats(),
+                             name='3dROIstats')
+    timeseries_roi.inputs.quiet = False
+    timeseries_roi.inputs.args = "-1Dformat"
 
-    wflow.connect(timeseries_roi, 'out_file',
+    wflow.connect(inputNode, 'rest',
+                  timeseries_roi, 'in_file')
+    #wflow.connect(inputNode, 'output_type',
+    #              timeseries_roi, 'output_type')
+    wflow.connect(inputnode_roi, 'roi',
+                  timeseries_roi, 'mask')
+
+    wflow.connect(timeseries_roi, 'stats',
                   outputNode, 'roi_outputs')
 
 
@@ -598,10 +598,9 @@ def gen_roi_timeseries(data_file,
     vol = img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception('Invalid Shape Error.'\
-                        'Please check the voxel dimensions.'\
-                        'Data and roi should have'\
-                        'same shape')
+        raise Exception('\n\n[!] CPAC says: Invalid Shape Error.'\
+                        'Please check the voxel dimensions. '\
+                        'Data and roi should have the same shape.\n\n')
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
@@ -735,12 +734,10 @@ def gen_voxel_timeseries(data_file,
     vol_dict = {}
     out_list = []
 
-    if unit_data.shape != img_data.shape[:3]:
-        raise Exception('Invalid Shape Error.'\
-                        'Please check the voxel dimensions.'\
-                        'Data and mask should have same shape')
-
-
+    #if unit_data.shape != img_data.shape[:3]:
+    #    raise Exception('Invalid Shape Error.'\
+    #                    'Please check the voxel dimensions.'\
+    #                    'Data and mask should have same shape')
 
     tmp_file = os.path.splitext(
                   os.path.basename(template))[0]

@@ -33,8 +33,12 @@ files_folders_wf = {
     'motion_correct':'func',
     'motion_correct_smooth':'func',
     'itk_func_anat_affine_motion_correct_to_standard':'func',
+    'itk_func_anat_affine_functional_mni_other_resolutions':'func',
     'itk_collected_warps_motion_correct_to_standard':'func',
+    'itk_collected_warps_motion_correct_to_standard_other_resolutions':'func',
     'motion_correct_to_standard':'func',
+    'motion_correct_to_standard_other_resolutions':'func',
+    'motion_correct_to_standard_other_resolutions_smooth':'func',
     'motion_correct_to_standard_smooth':'func',
     'mean_functional_in_anat' : 'func',
     'coordinate_transformation' : 'func',
@@ -59,12 +63,19 @@ files_folders_wf = {
     'scrubbed_preprocessed':'func',
     'itk_func_anat_affine_functional_mni':'func',
     'itk_func_anat_affine_functional_brain_mask_to_standard':'func',
+    'itk_func_anat_affine_functional_brain_mask_to_standard_other_resolutions':'func',
+    'itk_func_anat_affine_motion_correct_to_standard_other_resolutions':'func',
     'itk_func_anat_affine_mean_functional_in_mni' : 'func',
     'itk_collected_warps_functional_mni':'func',
+    'itk_collected_warps_functional_mni_other_resolutions':'func',
     'itk_collected_warps_functional_brain_mask_to_standard':'func',
-    'itk_collected_warps_mean_functional_in_mni' : 'func', 
+    'itk_collected_warps_functional_brain_mask_to_standard_other_resolutions':'func',
+    'itk_collected_warps_mean_functional_in_mni' : 'func',
     'functional_mni':'func',
+    'functional_mni_other_resolutions':'func',
+    'functional_mni_other_resolutions_smooth':'func',
     'functional_brain_mask_to_standard':'func',
+    'functional_brain_mask_to_standard_other_resolutions':'func',
     'mean_functional_in_mni' : 'func',
     'functional_to_anat_linear_xfm':'registration',
     'functional_to_mni_linear_xfm':'registration',
@@ -101,15 +112,9 @@ files_folders_wf = {
     'reho_to_standard_zstd':'reho',
     'reho_to_standard_smooth_zstd':'reho',
     'voxel_timeseries':'timeseries',
-    'voxel_timeseries_for_SCA':'timeseries',
     'roi_timeseries':'timeseries',
     'roi_timeseries_for_SCA':'timeseries',
-    'sca_seed_correlation_files':'sca_mask',
-    'sca_seed_smooth':'sca_mask',
-    'sca_seed_to_standard':'sca_mask',
-    'sca_seed_to_standard_smooth':'sca_mask',
-    'sca_seed_to_standard_fisher_zstd':'sca_mask',
-    'sca_seed_to_standard_smooth_fisher_zstd':'sca_mask',
+    'roi_timeseries_for_SCA_multreg':'timeseries',
     'sca_roi_correlation_stack':'sca_roi',
     'sca_roi_correlation_files':'sca_roi',
     'sca_roi_stack_smooth':'sca_roi',
@@ -135,7 +140,8 @@ files_folders_wf = {
     'seg_mixeltype': 'anat',
     'seg_partial_volume_map': 'anat',
     'seg_partial_volume_files': 'anat',
-    'spatial_map_timeseries': 'timeseries',
+    'spatial_map_timeseries':'timeseries',
+    'spatial_map_timeseries_for_DR':'timeseries',
     'dr_tempreg_maps_stack': 'spatial_regression',
     'dr_tempreg_maps_files': 'spatial_regression',
     'dr_tempreg_maps_zstat_stack': 'spatial_regression',
@@ -292,26 +298,39 @@ def get_operand_string(mean, std_dev):
     return op_string
 
 
-
 def get_roi_num_list(timeseries_file, prefix=None):
 
-    tsfile = open(timeseries_file, "rb")
+    # extracts the ROI labels from the 3dROIstats output CSV file
+    with open(timeseries_file, "r") as f:
+        roi_file_lines = f.read().splitlines()
 
-    roi_list = tsfile.readlines()[0].strip("\r\n").replace("#","").split("\t")
+    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
+              "timeseries, was not in the expected format.\n\nROI output " \
+              "file: %s\n\n" % timeseries_file
 
-    if prefix != None:
+    for line in roi_file_lines:
+        if "Mean_" in line:
+            try:
+                roi_list = line.split("\t")
+                # clear out any blank strings/non ROI labels in the list
+                roi_list = [x for x in roi_list if "Mean" in x]
+                # rename labels
+                roi_list = [x.replace("Mean","ROI").replace(" ","") \
+                                for x in roi_list]
+            except:
+                raise Exception(roi_err)
+            break
+    else:
+        raise Exception(roi_err)
 
+    if prefix:
         temp_rois = []
-
         for roi in roi_list:
-            roi = prefix + "_" + roi
+            roi = prefix + "_" + str(roi)
             temp_rois.append(roi)
-
         roi_list = temp_rois
 
-
     return roi_list
-
 
 
 def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
@@ -333,22 +352,21 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
     outputNode = pe.Node(util.IdentityInterface(fields=['fisher_z_score_img']),
                           name='outputspec')
 
-
     if map_node == 0:
-
-        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
-                                   output_names=['out_file'],
+        fisher_z_score = pe.Node(util.Function(input_names=['correlation_file',
+                                                            'timeseries_one_d',
+                                                            'input_name'],
+                                               output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score')
 
     else:
-
         # node to separate out 
-
-        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file', 'timeseries_one_d', 'input_name'],
-                                   output_names=['out_file'],
+        fisher_z_score = pe.MapNode(util.Function(input_names=['correlation_file',
+                                                               'timeseries_one_d',
+                                                               'input_name'],
+                                                  output_names=['out_file'],
                      function=compute_fisher_z_score), name='fisher_z_score',
                      iterfield=['correlation_file'])
-
 
     fisher_z_score.inputs.input_name = input_name
 
@@ -356,11 +374,8 @@ def get_fisher_zscore(input_name, map_node, wf_name = 'fisher_z_score'):
                 fisher_z_score, 'correlation_file')
     wflow.connect(inputNode, 'timeseries_one_d',
                 fisher_z_score, 'timeseries_one_d')
-
-
     wflow.connect(fisher_z_score, 'out_file',
                 outputNode, 'fisher_z_score_img')
-
 
     return wflow
 
@@ -393,19 +408,25 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import os
 
-    for timeseries_file_string in timeseries_one_d:
-        if ".1D" in timeseries_file_string:
-            timeseries_file = timeseries_file_string
+    if isinstance(timeseries_one_d, basestring): 
+        if '.1D' in timeseries_one_d or '.csv' in timeseries_one_d:
+            timeseries_file = timeseries_one_d
+
+    else:
+        for timeseries in timeseries_one_d:
+            if '.1D' in timeseries or '.csv' in timeseries:
+                timeseries_file =  timeseries
 
     roi_numbers = []
-    if '#' in open(timeseries_file, 'r').readline().rstrip('\r\n'):
-        roi_numbers = open(timeseries_file, 'r').readline().rstrip('\r\n').replace('#', '').split('\t')
 
+    with open(timeseries_file, "r") as f:
+        roi_list = f.read().splitlines()[0].replace("#","").split("\t")
 
     # get the specific roi number
     filename = correlation_file.split("/")[-1]
-    filename = filename.replace(".nii.gz","")
-
+    filename = filename.replace(".nii","")
+    if ".gz" in filename:
+        filename = filename.replace(".gz","")
 
     corr_img = nb.load(correlation_file)
     corr_data = corr_img.get_data()
@@ -434,12 +455,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
             corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
 
-
-        #for i in range(0, len(roi_numbers)):
-
         sub_data = corr_data
-        #if len(dims) == 5:
-        #    sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
         sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
 
@@ -449,23 +465,18 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
         out_file.append(sub_z_score_file)
 
-
     # if the correlation file is a single volume image
     else:
 
         z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
 
-        z_score_file = os.path.join(os.getcwd(), input_name + '_fisher_zstd.nii.gz')
+        z_score_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
         z_score_img.to_filename(z_score_file)
 
         out_file.append(z_score_file)
 
-
     return out_file
-
-
-
 
 
 def safe_shape(*vol_data):
@@ -493,27 +504,25 @@ def safe_shape(*vol_data):
 
 
 def extract_one_d(list_timeseries):
-
+    if isinstance(list_timeseries, basestring): 
+        if '.1D' in list_timeseries or '.csv' in list_timeseries:
+            return  list_timeseries
 
     for timeseries in list_timeseries:
+        if '.1D' in timeseries or '.csv' in timeseries:
+            return  timeseries
 
-        if '1D' in timeseries:
-
-
-            return timeseries
-
-        else:
-
-            print "Error : ROI/Voxel TimeSeries 1D file not found"
-
-            return None
-
+    raise Exception("Unable to retrieve roi timeseries 1D or csv"\
+                    " file. Files found:" + list_timeseries)
 
 def extract_txt(list_timeseries):
     """
     Method to extract txt file containing 
     roi timeseries required for dual regression
     """
+    if isinstance(list_timeseries, basestring):
+        if list_timeseries.endswith('.txt'):
+            return list_timeseries
 
     out_file = None
     for timeseries in list_timeseries:
@@ -522,7 +531,8 @@ def extract_txt(list_timeseries):
 
     if not out_file:
         raise Exception("Unable to retrieve roi timeseries txt"\
-                          " file required for dual regression")
+                          " file required for dual regression."\
+                          " Existing files are:%s"%(list_timeseries))
 
     return out_file
 
@@ -539,7 +549,6 @@ def set_gauss(fwhm):
     return op_string
 
 
-
 def get_path_score(path, entry):
 
     import os
@@ -549,7 +558,6 @@ def get_path_score(path, entry):
     dirs = parent_dir.split('/')
     dirs.remove('')
 
-
     score = 0
 
     for element in entry:
@@ -557,7 +565,6 @@ def get_path_score(path, entry):
         if element in dirs:
 
             score += 1
-
 
     return score
 
@@ -586,7 +593,6 @@ def get_strategies_for_path(path, strategies):
     return score_dict[str(max_score)]
 
 
-
 def get_workflow(remainder_path):
 
     # this iterates over the hard-coded list at the top of this file
@@ -600,7 +606,6 @@ def get_workflow(remainder_path):
     lst = [x for x in lst if not ('' == x) ]
 
     return lst[0], files_folders_wf[lst[0]], remainder_path.split(lst[0])[1]
-
 
 
 def get_session(remainder_path):
@@ -627,7 +632,6 @@ def get_session(remainder_path):
     return session
 
 
-
 def get_hplpfwhmseed_(parameter, remainder_path):
 
     # this function extracts the filtering and smoothing parameters info from
@@ -640,7 +644,6 @@ def get_hplpfwhmseed_(parameter, remainder_path):
     value = partial_parameter_value.split('/')[0]
 
     return parameter.lstrip('/_') + value
-
 
 
 def create_seeds_(seedOutputLocation, seed_specification_file, FSLDIR):
@@ -738,8 +741,7 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
 
     import os
     import commands
-    from CPAC.utils.utils import get_workflow, get_session, \
-                     get_hplpfwhmseed_
+    from CPAC.utils.utils import get_workflow, get_session, get_hplpfwhmseed_
 
     # path (one of the inputs of this function) is a path to a file output by
     # individual-level analysis, and this function runs once per output file
@@ -772,17 +774,15 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id, c
                 # don't raise an exception here because multiple runs of the
                 # same os.makedirs are expected
                 pass
-        
 
         strategy_identifier = None
 
 
         try:
 
-            short_names = {'_threshold':'SCRUB_', '_csf_threshold':'CSF_',
-                    '_gm_threshold':'GM_',
+            short_names = {'_threshold':'SCRUB_',
                     '_compcor_':'compcor',
-                    '_target_angle_deg':'MEDIANangle_', '_wm_threshold':'WM_'}
+                    '_target_angle_deg':'MEDIANangle_'}
 
             strategy_identifier = ''
 
@@ -1128,15 +1128,6 @@ def prepare_gp_links(in_file, resource):
     if '/_threshold_' in in_file:
         scrub = get_param_val_('/_threshold_', in_file)
         strategy_identifier = 'SCRUB_%s' % scrub + '_' + strategy_identifier
-
-    if '/_wm_threshold' in in_file:
-        strategy_identifier += '_wmT_' + get_param_val_('/_wm_threshold_', in_file)
-
-    if '/_csf_threshold' in in_file:
-        strategy_identifier += '_csfT_' + get_param_val_('/_csf_threshold_', in_file)
-
-    if '/_gm_threshold' in in_file:
-        strategy_identifier += '_gmT_' + get_param_val_('/_gm_threshold_', in_file)
 
 
     if not scan_info == '':
@@ -1546,13 +1537,13 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr, tpatt
     last_tr=''
 
     if 'scan_parameters' in subject_map.keys():
-        # get details from the configuration
-        TR = float(check('tr', False))
-        pattern = str(check('acquisition', False))
-        ref_slice = int(check('reference', False))
-        first_tr = check2(check('first_tr', False))
-        last_tr = check2(check('last_tr', False))
-
+        if len(subject_map['scan_parameters']) > 0:
+            # get details from the configuration
+            TR = float(check('tr', False))
+            pattern = str(check('acquisition', False))
+            ref_slice = int(check('reference', False))
+            first_tr = check2(check('first_tr', False))
+            last_tr = check2(check('last_tr', False))
 
     # if values are still empty, override with GUI config
     if TR == '':
@@ -1756,26 +1747,21 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id ):
     return out_file
 
 
-def create_log( wf_name = "log", 
-                scan_id = None):
-    
+def create_log(wf_name="log", scan_id=None):
     """
     Workflow to create log 
-    
     """
-    
+
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
-    
+
     wf = pe.Workflow(name=wf_name)
-    
+
     inputNode = pe.Node(util.IdentityInterface(fields=['workflow',
                                                        'log_dir',
                                                        'index',
-                                                       'inputs'
-                                                    ]),
+                                                       'inputs']),
                         name='inputspec')
-
 
     outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
                         name='outputspec')
@@ -1805,7 +1791,7 @@ def create_log( wf_name = "log",
                outputNode, 'out_file')
     
     return wf
-    
+
 
 def create_log_template(pip_ids, wf_list, scan_ids, subject_id, log_dir):
    
@@ -2077,3 +2063,150 @@ def dbg_file_lineno():
     return cf.f_back.f_code.co_filename, cf.f_back.f_lineno
 
 
+# Setup log file
+def setup_logger(logger_name, file_path, level, to_screen=False):
+    '''
+    Function to initialize and configure a logger that can write to file
+    and (optionally) the screen.
+
+    Parameters
+    ----------
+    logger_name : string
+        name of the logger
+    file_path : string
+        file path to the log file on disk
+    level : integer
+        indicates the level at which the logger should log; this is
+        controlled by integers that come with the python logging
+        package. (e.g. logging.INFO=20, logging.DEBUG=10)
+    to_screen : boolean (optional)
+        flag to indicate whether to enable logging to the screen
+
+    Returns
+    -------
+    logger : logging.Logger object
+        Python logging.Logger object which is capable of logging run-
+        time information about the program to file and/or screen
+    '''
+
+    # Import packages
+    import logging
+
+    # Init logger, formatter, filehandler, streamhandler
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s : %(message)s')
+
+    # Write logs to file
+    fileHandler = logging.FileHandler(file_path)
+    fileHandler.setFormatter(formatter)
+    logger.addHandler(fileHandler)
+
+    # Write to screen, if desired
+    if to_screen:
+        streamHandler = logging.StreamHandler()
+        streamHandler.setFormatter(formatter)
+        logger.addHandler(streamHandler)
+
+    # Return the logger
+    return logger
+
+
+def check_system_deps(check_ants=False):
+    '''
+    Function to check system for neuroimaging tools AFNI, C3D, FSL,
+    and (optionally) ANTs
+    '''
+
+    # Import packages
+    import os
+
+    # Init variables
+    missing_install = []
+
+    # Check AFNI
+    if os.system("3dcalc >/dev/null") == 32512:
+        missing_install.append("AFNI")
+    # Check FSL
+    if os.system("fslmaths >/dev/null") == 32512:
+        missing_install.append("FSL")
+    # Check ANTs/C3D
+    if check_ants:
+        if os.system("c3d_affine_tool >/dev/null") == 32512:
+            missing_install.append("C3D")
+        if os.system("antsRegistration >/dev/null") == 32512:
+            missing_install.append("ANTS")
+
+    # If we're missing deps, raise Exception
+    if len(missing_install) > 0:
+        missing_string = ""
+        for string in missing_install:
+            missing_string = missing_string + string + "\n"
+        err = "\n\n[!] CPAC says: It appears the following software " \
+              "packages are not installed or configured properly:\n\n%s\n" \
+              "Consult the CPAC Installation Guide for instructions.\n\n" \
+              % missing_string
+        raise Exception(err)
+
+
+# Check pipeline config againts computer resources
+def check_config_resources(c):
+    '''
+    docstring
+    '''
+
+    # Import packages
+    import psutil
+    from multiprocessing import cpu_count
+
+    # Init variables
+    sys_virt_mem = psutil.virtual_memory()
+    num_cores = cpu_count()
+
+    # Check for pipeline memory for subject
+    if c.memoryAllocatedPerSubject is None:
+        # Get system memory and numSubsAtOnce
+        sys_mem_gb = sys_virt_mem.total/(1024.0**3)
+        sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
+    else:
+        sub_mem_gb = c.memoryAllocatedPerSubject
+
+    # If centrality is enabled, check to mem_sub >= mem_centrality
+    if c.runNetworkCentrality[0]:
+        if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
+            err_msg = 'Memory allocated for subject: %d needs to be greater '\
+                      'than the memory allocated for centrality: %d. Fix and '\
+                      'try again.' % (c.memoryAllocatedPerSubject,
+                                      c.memoryAllocatedForDegreeCentrality)
+            raise Exception(err_msg)
+
+    # Check for pipeline threads
+    # Check if user specified cores
+    if c.numCoresPerSubject:
+        total_user_cores = c.numSubjectsAtOnce*c.numCoresPerSubject
+        if total_user_cores > num_cores:
+            err_msg = 'Config file specifies more subjects running in '\
+                      'parallel than number of threads available. Change '\
+                      'this and try again'
+            raise Exception(err_msg)
+        else:
+            num_cores_per_sub = c.numCoresPerSubject
+    else:
+        num_cores_per_sub = num_cores/c.numCoresPerSubject
+
+    # Now check ANTS
+    if 'ANTS' in c.regOption:
+        if c.num_ants_threads is None:
+            num_ants_cores = num_cores_per_sub
+        elif c.num_ants_threads > c.numCoresPerSubject:
+            err_msg = 'Number of threads for ANTS: %d is greater than the '\
+                      'number of threads per subject: %d. Change this and '\
+                      'try again.'
+            raise Exception(err_msg)
+        else:
+            num_ants_cores = c.num_ants_threads
+    else:
+        num_ants_cores = 1
+
+    # Return memory and cores
+    return sub_mem_gb, num_cores_per_sub, num_ants_cores

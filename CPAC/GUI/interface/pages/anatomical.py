@@ -6,6 +6,7 @@ from ..utils.validator import CharValidator
 import os
 import pkg_resources as p
 
+
 class AnatomicalPreprocessing(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
@@ -14,17 +15,7 @@ class AnatomicalPreprocessing(wx.html.HtmlWindow):
         self.SetStandardFonts()
         
         self.counter = counter
-        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/anat.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/anat.html')
-#            else:
-#                self.LoadFile('html/anat.html')
-#        except:
-#            self.LoadFile('html/anat.html')
-            
+        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/anat.html'))            
             
     def get_counter(self):
         return self.counter
@@ -52,30 +43,6 @@ class Segmentation(wx.ScrolledWindow):
                  values=["On","Off","On/Off"],
                  wkf_switch = True)
 
-        self.page.add(label= "White Matter Probability Threshold ",
-                 control=control.TEXT_BOX, 
-                 name='whiteMatterThreshold', 
-                 type=dtype.LNUM, 
-                 values= "0.96",
-                 validator = CharValidator("no-alpha"),
-                 comment="Only voxels with a White Matter probability greater than this value will be classified as White Matter.\n\nCan be a single value or a list of values separated by commas.")
-        
-        self.page.add(label = "Gray Matter Probability Threshold ",
-                 control =control.TEXT_BOX,
-                 name = 'grayMatterThreshold',
-                 type =dtype.LNUM,
-                 values= "0.7",
-                 validator = CharValidator("no-alpha"),
-                 comment= "Only voxels with a Gray Matter probability greater than this value will be classified as Gray Matter.\n\nCan be a single value or a list of values separated by commas.")
-
-        self.page.add(label= "CSF Probability Threshold ",
-                 control=control.TEXT_BOX, 
-                 name='cerebralSpinalFluidThreshold', 
-                 type=dtype.LNUM, 
-                 values = "0.96",
-                 validator = CharValidator("no-alpha"),
-                 comment="Only voxels with a CSF probability greater than this value will be classified as CSF.\n\nCan be a single value or a list of values separated by commas.")
-        
         self.page.add(label= "Priors Directory ",
                  control=control.DIR_COMBO_BOX, 
                  name='priors_path', 
@@ -109,6 +76,7 @@ class Segmentation(wx.ScrolledWindow):
 
     def get_counter(self):
         return self.counter
+
     
 class Registration(wx.ScrolledWindow):
     def __init__(self, parent, counter = 0):
@@ -121,15 +89,7 @@ class Registration(wx.ScrolledWindow):
         fsl = os.environ.get('FSLDIR')
         if not fsl:
             fsl = "$FSLDIR"
-        
-        self.page.add(label="Run Anatomical Registration ", 
-                     control=control.CHOICE_BOX, 
-                     name='runRegistrationPreprocessing', 
-                     type=dtype.LSTR, 
-                     comment="Register anatomical images to a template.", 
-                     values=["On","Off","On/Off"],
-                     wkf_switch = True)
-        
+               
         self.page.add(label="Anatomical Template Resolution ", 
                       control=control.CHOICE_BOX, 
                       name='resolution_for_anat', 
@@ -180,6 +140,13 @@ class Registration(wx.ScrolledWindow):
                      comment="Register skull-on anatomical image to a template.", 
                      values=["Off","On"],
                      wkf_switch = True)
+
+        self.page.add(label="Inputs Already Skull-stripped? ",
+                      control=control.CHOICE_BOX,
+                      name='already_skullstripped',
+                      type=dtype.LSTR,
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
+                      values=["Off", "On"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

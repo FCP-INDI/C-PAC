@@ -1,25 +1,69 @@
 import wx
 from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
-from CPAC.GUI.interface.pages import WorkflowConfig, Motion, AnatomicalPreprocessing, \
-    DerivativesConfig, Segmentation,  Registration, FunctionalPreProcessing,\
-    MotionOptions, Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
+from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
+    Segmentation, Registration, FunctionalPreProcessing,\
+    Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
-    SCA, SCASettings, MultipleRegressionSCA,\
+    SCA, SCASettings, \
     Settings, ComputerSettings, DirectorySettings, \
-    Nuisance, NuisanceCorrection, MedianAngleCorrection,\
+    Nuisance, NuisanceRegression, MedianAngleCorrection,\
     CentralitySettings, Centrality,\
     ALFF, ALFFSettings,\
-    Smoothing, SmoothingSettings,\
-    Filtering, FilteringSettings,\
-    TimeSeries, ROITimeseries, VOXELTimeseries, \
-    SpatialRegression, GenerateSeeds, VerticesTimeSeries,\
-    GroupAnalysis, GPASettings, BASCSettings,\
-    BASC, CWAS, CWASSettings,\
-    DualRegression, DualRegressionOptions, TimeSeriesOptions
+    AfterWarping, AfterWarpingOptions,\
+    FilteringSettings,\
+    TimeSeries, ROITimeseries, \
+    GroupAnalysis, GPASettings, TimeSeriesOptions
 
 
 ID_SUBMIT = 6
+
+
+
+def gen_checkboxgrid_config_string(label, value):
+
+    # example inputs
+    #     label (string): "tsa_roi_paths" (the name of the input control)
+    #     value (dictionary):
+    #         {'/path/to/roi.nii.gz': ['Voxel', 'Avg']}
+
+    string = ""
+
+    if len(value.keys()) == 0:
+        string = string + label + ": None\n"
+        return string
+    else:
+        string = string + label + ":\n"
+
+    flag = 0                  
+
+    for entry in value.keys():
+
+        # each "entry" is a filepath to an ROI .nii.gz file
+        # each "value[entry]" is a list of selected analysis types (strings)
+
+        if flag == 0:
+            string = string + "  - "
+            flag = 1
+        else:
+            string = string + "    "
+
+        string = string + entry + ": "
+
+        firstnum = 0
+
+        selection_string = str(value[entry])
+        selection_string = selection_string.replace("'", "")
+        selection_string = selection_string.replace("[", "")
+        selection_string = selection_string.replace("]", "")
+
+        string = string + selection_string
+
+        string = string + "\n"
+
+
+    return string
+
 
 
 class Mybook(wx.Treebook):
@@ -33,8 +77,6 @@ class Mybook(wx.Treebook):
         page1 = Settings(self)
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
-        page4 = WorkflowConfig(self)
-        page47 = DerivativesConfig(self)
 
         page5 = AnatomicalPreprocessing(self)
         page6 = Registration(self, 1)
@@ -46,29 +88,18 @@ class Mybook(wx.Treebook):
         page11 = FuncToMNIRegistration(self, 6)
 
         page12 = Nuisance(self)
-        page13 = NuisanceCorrection(self, 7)
+        page13 = NuisanceRegression(self, 7)
         page14 = MedianAngleCorrection(self, 8)
 
-        page15 = Filtering(self)
         page16 = FilteringSettings(self, 9)
 
-        page17 = Motion(self)
-        page18 = MotionOptions(self)
         page19 = Scrubbing(self, 4)
 
         page20 = TimeSeries(self)
-        page21 = GenerateSeeds(self)
         page22 = ROITimeseries(self)
-        page23 = VOXELTimeseries(self)
-        page24 = VerticesTimeSeries(self)
-        page25 = SpatialRegression(self)
 
         page26 = SCA(self)
         page27 = SCASettings(self)
-        page28 = MultipleRegressionSCA(self)
-
-        page29 = DualRegression(self)
-        page30 = DualRegressionOptions(self)
 
         page31 = VMHC(self)
         page32 = VMHCSettings(self)
@@ -82,14 +113,8 @@ class Mybook(wx.Treebook):
         page37 = Centrality(self)
         page38 = CentralitySettings(self)
         
-        page39 = Smoothing(self)
-        page40 = SmoothingSettings(self)
-
-        page41 = BASC(self)
-        page42 = BASCSettings(self)
-
-        page43 = CWAS(self)
-        page44 = CWASSettings(self)
+        page39 = AfterWarping(self)
+        page40 = AfterWarpingOptions(self)
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
@@ -98,8 +123,6 @@ class Mybook(wx.Treebook):
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
-        self.AddSubPage(page4, "Preprocessing Workflow Options", wx.ID_ANY)
-        self.AddSubPage(page47, "Derivatives Settings", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
@@ -111,29 +134,18 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page11, "Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page12, "Nuisance", wx.ID_ANY)
-        self.AddSubPage(page13, "Nuisance Correction", wx.ID_ANY)
+        self.AddSubPage(page13, "Nuisance Regression", wx.ID_ANY)
         self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
 
-        self.AddPage(page15, "Temporal Filtering", wx.ID_ANY)
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
 
-        self.AddPage(page17, "Motion Correction", wx.ID_ANY)
-        self.AddSubPage(page18, "Motion Correction Options", wx.ID_ANY)
         self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
-        self.AddSubPage(page21, "Define New Seeds", wx.ID_ANY)
-        self.AddSubPage(page22, "ROI Average TSE", wx.ID_ANY)
-        self.AddSubPage(page23, "ROI Voxelwise TSE", wx.ID_ANY)
-        self.AddSubPage(page24, "Surface Vertices TSE", wx.ID_ANY)
-        self.AddSubPage(page25, "Spatial Regression", wx.ID_ANY)
+        self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
 
         self.AddPage(page26, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page27, "SCA Options", wx.ID_ANY)
-        self.AddSubPage(page28, "Mutiple Regression SCA Options", wx.ID_ANY)
-
-        self.AddPage(page29, "Dual Regression", wx.ID_ANY)
-        self.AddSubPage(page30, "Dual Regression Options", wx.ID_ANY)
 
         self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
         self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
@@ -147,14 +159,8 @@ class Mybook(wx.Treebook):
         self.AddPage(page37, "Network Centrality", wx.ID_ANY)
         self.AddSubPage(page38, "Network Centrality Options", wx.ID_ANY)
         
-        self.AddPage(page39, "Spatial Smoothing", wx.ID_ANY)
-        self.AddSubPage(page40, "Spatial Smoothing Options", wx.ID_ANY)
-
-        self.AddPage(page41, "Bootstrap Analysis of Stable Clusters", wx.ID_ANY)
-        self.AddSubPage(page42, "BASC Settings", wx.ID_ANY)
-
-        self.AddPage(page43, "CWAS", wx.ID_ANY)
-        self.AddSubPage(page44, "CWAS Settings", wx.ID_ANY)
+        self.AddPage(page39, "After Warping", wx.ID_ANY)
+        self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis", wx.ID_ANY)
         self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
@@ -196,7 +202,8 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id=""):
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC Pipeline Configuration", size=(1200, 520))
+            self, parent=parent, title="CPAC Pipeline Configuration", \
+            size=(1200, 520))
 
         # Here we create a panel and a notebook on the panel
         self.p = wx.Panel(self)
@@ -209,18 +216,18 @@ class MainFrame(wx.Frame):
         btnPanel = wx.Panel(self.p, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", (
-            280, 10), wx.DefaultSize, 0)
+        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", \
+            (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
         
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration", (
-            350, 10), wx.DefaultSize, 0)
+        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",\
+            (350, 10), wx.DefaultSize, 0)
         hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
-        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", (
-            220, 10), wx.DefaultSize, 0)
+        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", \
+            (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         
@@ -249,12 +256,6 @@ class MainFrame(wx.Frame):
             raise Exception("Error importing file - %s , Make"
                       " sure it is in correct yaml format")
 
-
-        #for config in config_file_map:
-        #    print "\n\n config: ", config, " selection: ", config_file_map[config]
-
-
-
         for page in self.nb.get_page_list():
 
             ctrl_list = page.page.get_ctrl_list()
@@ -265,9 +266,8 @@ class MainFrame(wx.Frame):
 
                 val = config_file_map.get(str(name))
 
-                #print "loading ctrl ->", name, "->", val
                 sample_list = ctrl.get_values()
-                #print "sample_list -->", sample_list
+
                 s_map = dict((v, k)
                             for k, v in substitution_map.iteritems())
                 if val:
@@ -310,8 +310,13 @@ class MainFrame(wx.Frame):
                                 value = [ str(item) for item in val]
                             
                                 
-                        elif ctrl.get_datatype() == 5 and ctrl.get_type() == 6:
+                        elif ctrl.get_datatype() == 5 and \
+                            ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
+
+                        elif ctrl.get_datatype() == 9:
+
+                            value = val[0] # pass the dictionary straight up
                                 
                         else:
                             value = None
@@ -321,81 +326,93 @@ class MainFrame(wx.Frame):
                                 else:
                                     value = str(v)
                     else:
-                        if ctrl.get_datatype() == 2 and ctrl.get_type() == 0 and\
-                        str(val) not in sample_list:
+                        if ctrl.get_datatype() == 2 and \
+                            ctrl.get_type() == 0 and \
+                                str(val) not in sample_list:
                                 value = sample_list[val]
                         else:
                             value = str(val)
                 else:
                     value = ""
 
-                #print "setting value in ctrl -->", value
-                #print "type -->", type(value)
                 ctrl.set_value(value)
+
 
     # Test the subject list
     def test_sublist(self, sublist):
         '''
         Instance method to test a subject list for errors
-        
+
         Parameters
         ----------
         self : MainFrame (wx.Frame object)
             the method is aware of the instance as self
         sublist : list (dict)
             a C-PAC-formatted subject list (yaml list of dictionaries)
-        
+
         Returns
         -------
         pass_flg : boolean
             flag which indicates whether the subject list passed testing
         '''
-        
+
         # Import packages
-        import nibabel as nb
         import os
-        
+        import tempfile
+        import nibabel as nb
+
+
+        from CPAC.utils.datasource import check_for_s3
+
         # Init variables
         err_str = ''
         err_msg = ''
         not_found_flg = False
         bad_dim_flg = False
         pass_flg = False
-        
+        checked_s3 = False
+        s3_str = 's3://'
+
         # Check to ensure the user is providing an actual subject
         # list and not some other kind of file
         try:
             subInfo = sublist[0]
         except:
-            errDlg4 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0001',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - ' \
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0001'
+            errDlg4 = wx.MessageDialog(self, msg, 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg4.ShowModal()
             errDlg4.Destroy()
-    
-            raise Exception  
-            
+
+            # Raise Exception
+            raise Exception
+
         # Another check to ensure the actual subject list was generated
         # properly and that it will work
         if 'subject_id' not in subInfo:
-            errDlg3 = wx.MessageDialog(
-                self, 'ERROR: Subject list file not in proper format - check if you' \
-                        ' loaded the correct file? \n\n' \
-                        'Error name: config_window_0002',
-                'Subject List Error',
-                wx.OK | wx.ICON_ERROR)
+            msg = 'ERROR: Subject list file not in proper format - '\
+                  'check if you loaded the correct file? \n\n'\
+                  'Error name: config_window_0002'
+            errDlg3 = wx.MessageDialog(self, msg , 'Subject List Error',
+                                       wx.OK | wx.ICON_ERROR)
             errDlg3.ShowModal()
             errDlg3.Destroy()
-    
+
+            # Raise Exception
             raise Exception
-        
+
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
             func_files = sub['rest']
+            if anat_file.lower().startswith(s3_str):
+                if checked_s3:
+                    break
+                dl_dir = tempfile.mkdtemp()
+                creds_path = sub['creds_path']
+                anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -414,6 +431,11 @@ class MainFrame(wx.Frame):
                 err_str = err_str + err_str_suffix
             # For each functional file
             for func_file in func_files.values():
+                if func_file.lower().startswith(s3_str):
+                    dl_dir = tempfile.mkdtemp()
+                    creds_path = sub['creds_path']
+                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
+                    checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):
                     img = nb.load(func_file)
@@ -430,6 +452,14 @@ class MainFrame(wx.Frame):
                     not_found_flg = True
                     err_str_suffix = 'File not found: %s\n' % func_file
                     err_str = err_str + err_str_suffix
+                # If we're just checking s3 files, remove the temporarily downloaded
+                if checked_s3:
+                    try:
+                        os.remove(anat_file)
+                        os.remove(func_file)
+                    except:
+                        pass
+                    break
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
@@ -449,12 +479,12 @@ class MainFrame(wx.Frame):
                 raise Exception(err_str)
             else:
                 pass_flg = True
-        
+
         # Return the flag
         return pass_flg
 
+    # Test pipeline config file
     def testConfig(self, event):
-        
         '''
         This function runs when the user clicks the "Test Configuration"
         button in the pipeline configuration window.
@@ -465,25 +495,27 @@ class MainFrame(wx.Frame):
         config will run or not depending on if the pipeline gets built
         successfully.
         '''
-        
+
+        # Import packages
         import os
         import yaml
         from CPAC.utils import Configuration
-        
+
         from CPAC.pipeline.cpac_pipeline import prep_workflow
         from CPAC.pipeline.cpac_runner import build_strategies
-        
+
         def display(win, msg, changeBg=True):
             wx.MessageBox(msg, "Error")
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
             win.Refresh()
-        
+
         # Collect a sample subject list and parse it in
         testDlg0 = wx.MessageDialog(
-            self, 'This tool will run a quick check on the current pipeline configuration.' \
-                  ' Click OK to provide a subject list you will be using with this setup.',
+            self, 'This tool will run a quick check on the current pipeline '\
+                  'configuration. Click OK to provide a subject list you ' \
+                  'will be using with this setup.',
             'Subject List',
             wx.OK | wx.ICON_INFORMATION)
         testDlg0.ShowModal()
@@ -500,11 +532,12 @@ class MainFrame(wx.Frame):
             subListPath = dlg.GetPath()
         
         # Load and test the subject list
+        print 'Checking subject list: %s...' % subListPath
         sublist = yaml.load(open(os.path.realpath(subListPath), 'r'))
         sub_flg = self.test_sublist(sublist)
         if not sub_flg:
             raise Exception
-        
+        print 'Subject list looks good!'
         # Following code reads in the parameters and selections from the
         # pipeline configuration window and populate the config_list
 
@@ -521,7 +554,9 @@ class MainFrame(wx.Frame):
             if switch:
                 switch_val = str(switch.get_selection()).lower()
 
-                if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
+                if switch_val == 'on' or switch_val == 'true' or \
+                    switch_val == '1':
+
                     validate = True
                     wf_counter.append(page.get_counter())
 
@@ -530,10 +565,11 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
-                
+
                 #validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                    and (option_name != 'derivativeList') and \
+                        (option_name != 'modelConfigs'):
 
                     win = ctrl.get_ctrl()
                     
@@ -541,8 +577,20 @@ class MainFrame(wx.Frame):
                         value = ctrl.get_selection()
                         if not value:
                             display(
-                                win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
+                                win, "%s field is empty or the items are " \
+                                     "not checked!" % ctrl.get_name(), False)
                             return
+
+                    elif (option_name == "tsa_roi_paths") or \
+                             (option_name == "sca_roi_paths"):
+
+                        # fires if the control is the checkbox grid for
+                        # multiple paths assigned to multiple options
+                        # (i.e. timeseries analysis)
+
+                        config_list.append(ctrl)
+                        continue
+
                     else:
                         value = str(ctrl.get_selection())
 
@@ -550,36 +598,28 @@ class MainFrame(wx.Frame):
                         display(win, "%s field is empty!" % ctrl.get_name())
                         return
                         
-                    if '/' in value and '$' not in value and not isinstance(value, list):
+                    if '/' in value and '$' not in value and not \
+                        isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
+                        if not os.path.exists(ctrl.get_selection()) and \
+                            value != 'On/Off':
+
                             display(
-                                win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
+                                win, "%s field contains incorrect path. " \
+                                "Please update the path!" % ctrl.get_name())
                             return
                     
                 config_list.append(ctrl)
-                
-        
 
-        # Get the user's CPAC output directory for use in this script
-        for config in config_list:
-
-            if config.get_name() == 'outputDirectory':
-                outDir = config.get_selection()
-        
-        
         # Write out a pipeline_config file, read it in and then delete it
         # (Will revise the data structure of the config files later so this
         # can just pass the data structure instead of doing it this way)
         try:
-            
-            self.write(outDir + 'testConfig.yml', config_list)
-            c = Configuration(yaml.load(open(os.path.realpath(outDir + 'testConfig.yml'), 'r')))
-        
-            os.remove(outDir + 'testConfig.yml')
-        
+            test_cfg_yml = '/tmp/test_config.yml'
+            self.write(test_cfg_yml, config_list)
+            c = Configuration(yaml.load(open(os.path.realpath(test_cfg_yml), 'r')))
+            os.remove(test_cfg_yml)
         except:
-        
             errDlg2 = wx.MessageDialog(
                 self, 'A problem occurred with preparing the pipeline test run. \n\n' \
                       'Please ensure you have rights access to the directories you' \
@@ -589,23 +629,18 @@ class MainFrame(wx.Frame):
             errDlg2.ShowModal()
             errDlg2.Destroy()
 
-
-        
-        if (1 in c.runNuisance) or (c.Corrections != None):
+        if (1 in c.runNuisance) or (c.Regressors != None):
             strategies = sorted(build_strategies(c))
         else:
             strategies = None
-        
-        
+
         # Run the actual pipeline building prep and see if it works or not
         testDlg1 = wx.MessageDialog(
             self, 'Click OK to run the test. This should take only a few seconds.',
             'Running Test',
             wx.OK | wx.ICON_INFORMATION)
         testDlg1.ShowModal()
-           
 
-            
         # Check file paths first
         
         # Just getting proper names of config file parameters
@@ -642,8 +677,8 @@ class MainFrame(wx.Frame):
                         break
                     
                 errDlgFileTest = wx.MessageDialog(
-                    self, 'Error reading file - either it does not exist or you' \
-                          ' do not have read access. \n\n' \
+                    self, 'Error reading file - either it does not exist or '\
+                          'you do not have read access. \n\n' \
                           'Parameter: %s \n' \
                           'In tab: %s \n\n' \
                           'Path: %s' % (paramTitle, paramGroup, filepath),
@@ -651,37 +686,69 @@ class MainFrame(wx.Frame):
                     wx.OK | wx.ICON_ERROR)
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
-        
-        
-        testFile(c.template_brain_only_for_anat,'template_brain_only_for_anat',c.runRegistrationPreprocessing)
-        testFile(c.template_skull_for_anat,'template_skull_for_anat',c.runRegistrationPreprocessing)
+
+        # Check S3 output bucket access if writing to S3
+        output_dir = c.outputDirectory
+        s3_str = 's3://'
+        if output_dir.lower().startswith(s3_str):
+            output_dir_sp = output_dir.split('/')
+            output_dir_sp[0] = output_dir_sp[0].lower()
+            output_dir = '/'.join(output_dir_sp)
+
+        if type(output_dir) is str and output_dir.lower().startswith(s3_str):
+            from indi_aws import fetch_creds
+            creds_path = c.awsOutputBucketCredentials
+            bucket_name = output_dir.split(s3_str)[1].split('/')[0]
+            try:
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                print 'Connection with output bucket "%s" successful!' % bucket_name
+            except Exception as exc:
+                err_msg = 'Unable to access output S3 bucket: "%s" with '\
+                          'credentials in: "%s". Check bucket name '\
+                          'and credentials file and try again'\
+                          % (bucket_name, creds_path)
+                testDlg1.Destroy()
+
+                errDlg1 = wx.MessageDialog(self, err_msg, 'Pipeline Not Ready',
+                                           wx.OK | wx.ICON_ERROR)
+                errDlg1.ShowModal()
+                errDlg1.Destroy()
+                return
+
+        testFile(c.template_brain_only_for_anat, \
+                     'template_brain_only_for_anat',[1])
+        testFile(c.template_skull_for_anat,'template_skull_for_anat',[1])
         testFile(c.PRIORS_WHITE,'PRIORS_WHITE',c.runSegmentationPreprocessing)
         testFile(c.PRIORS_GRAY,'PRIORS_GRAY',c.runSegmentationPreprocessing)
         testFile(c.PRIORS_CSF,'PRIORS_CSF',c.runSegmentationPreprocessing)
-        testFile(c.template_brain_only_for_func,'template_brain_only_for_func',c.runRegisterFuncToMNI)
-        testFile(c.template_skull_for_func,'template_skull_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_brain_only_for_func, \
+                     'template_brain_only_for_func',c.runRegisterFuncToMNI)
+        testFile(c.template_skull_for_func,'template_skull_for_func', \
+                     c.runRegisterFuncToMNI)
         testFile(c.identityMatrix,'identityMatrix',c.runRegisterFuncToMNI)
-        testFile(c.boundaryBasedRegistrationSchedule,'boundaryBasedRegistrationSchedule',c.runRegisterFuncToAnat)
-        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask',c.runNuisance)
-        testFile(c.seedSpecificationFile,'seedSpecificationFile',[1])
-        testFile(c.roiSpecificationFile,'roiSpecificationFile',c.runROITimeseries)
-        testFile(c.roiSpecificationFileForSCA,'roiSpecificationFileForSCA',c.runROITimeseries)
-        testFile(c.maskSpecificationFile,'maskSpecificationFile',c.runVoxelTimeseries)
-        testFile(c.maskSpecificationFileForSCA,'maskSpecificationFileForSCA',c.runVoxelTimeseries)
-        testFile(c.spatialPatternMaps,'spatialPatternMaps',c.runSpatialRegression)
-        testFile(c.template_symmetric_brain_only,'template_symmetric_brain_only',c.runVMHC)
-        testFile(c.template_symmetric_skull,'template_symmetric_skull',c.runVMHC)
-        testFile(c.dilated_symmetric_brain_mask,'dilated_symmetric_brain_mask',c.runVMHC)
+        testFile(c.boundaryBasedRegistrationSchedule, \
+                     'boundaryBasedRegistrationSchedule', \
+                     c.runRegisterFuncToAnat)
+        testFile(c.lateral_ventricles_mask,'lateral_ventricles_mask', \
+                     c.runNuisance)
+        testFile(c.template_symmetric_brain_only, \
+                     'template_symmetric_brain_only',c.runVMHC)
+        testFile(c.template_symmetric_skull,'template_symmetric_skull', \
+                     c.runVMHC)
+        testFile(c.dilated_symmetric_brain_mask, \
+                     'dilated_symmetric_brain_mask',c.runVMHC)
         testFile(c.configFileTwomm,'configFileTwomm',c.runVMHC)
-        testFile(c.templateSpecificationFile,'templateSpecificationFile',c.runNetworkCentrality)
-        testFile(c.bascAffinityThresholdFile,'bascAffinityThresholdFile',c.runBASC)
-        testFile(c.cwasROIFile,'cwasROIFile',c.runCWAS)
-        testFile(c.cwasRegressorFile,'cwasRegressorFile',c.runCWAS)
-             
-            
+        testFile(c.templateSpecificationFile,'templateSpecificationFile', \
+                     c.runNetworkCentrality)
+
+        if c.tsa_roi_paths and type(c.tsa_roi_paths[0]) == dict:
+            for roi_path in c.tsa_roi_paths[0].keys():
+                testFile(roi_path, "tsa_roi_paths", c.runROITimeseries)
+        if c.sca_roi_paths and type(c.sca_roi_paths[0]) == dict:
+            for roi_path in c.sca_roi_paths[0].keys():
+                testFile(roi_path, "sca_roi_paths", c.runSCA)
         try:
-            
-            # Run the pipeline building           
+            # Run the pipeline building
             prep_workflow(sublist[0], c, strategies, 0)
 
         except Exception as xxx:
@@ -706,8 +773,8 @@ class MainFrame(wx.Frame):
             testDlg1.Destroy()
             
             okDlg1 = wx.MessageDialog(
-                self, 'The current configuration will run successfully. You can safely' \
-                      ' save and run this setup!',
+                self, 'The current configuration will run successfully. You '\
+                      'can safely save and run this setup!',
                 'Pipeline Ready',
                 wx.OK | wx.ICON_INFORMATION)
             okDlg1.ShowModal()
@@ -716,6 +783,7 @@ class MainFrame(wx.Frame):
 
 
     def submit_item(self, event):
+
         import os
         import linecache
 
@@ -739,9 +807,12 @@ class MainFrame(wx.Frame):
             validate = False
 
             if switch:
+
                 switch_val = str(switch.get_selection()).lower()
-                #print "switch_val ---->", switch_val
-                if switch_val == 'on' or switch_val == 'true' or switch_val == '1':
+
+                if switch_val == 'on' or switch_val == 'true' or \
+                    switch_val == '1':
+
                     validate = True
                     wf_counter.append(page.get_counter())
 
@@ -750,9 +821,11 @@ class MainFrame(wx.Frame):
                 # option_name will be the selection name as it is written
                 # as the dictionary key of the config.yml dictionary
                 option_name = ctrl.get_name()
+
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and (option_name != 'modelConfigs'):
+                    and (option_name != 'derivativeList') and \
+                        (option_name != 'modelConfigs'):
                 
                     win = ctrl.get_ctrl()
                     
@@ -765,20 +838,50 @@ class MainFrame(wx.Frame):
 
                         if not value:
                             display(
-                                win, "%s field is empty or the items are not checked!" % ctrl.get_name(), False)
+                                win, "%s field is empty or the items are " \
+                                     "not checked!" % ctrl.get_name(), False)
                             return
+
+                    elif (option_name == "tsa_roi_paths") or \
+                             (option_name == "sca_roi_paths"):
+
+                        # fires if the control is the checkbox grid for
+                        # multiple paths assigned to multiple options
+                        # (i.e. timeseries analysis)
+
+                        config_list.append(ctrl)
+                        continue
+
+                    elif option_name == "templateSpecificationFile":
+
+                        # let's make sure this is a NIFTI file
+                        if not ctrl.get_selection().endswith(".nii") and \
+                            not ctrl.get_selection().endswith(".nii.gz"):
+
+                            display(
+                                win, "The Mask Specification File field " \
+                                    "must contain a NIFTI file (ending in " \
+                                    ".nii or .nii.gz).", False)
+                            return
+
                     else:
+
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
                         display(win, "%s field is empty!" % ctrl.get_name())
                         return
 
-                    if '/' in value and '$' not in value and not isinstance(value, list):
+                    if '/' in value and '$' not in value and \
+                        not isinstance(value, list):
 
-                        if not os.path.exists(ctrl.get_selection()) and value != 'On/Off':
+                        if not os.path.exists(ctrl.get_selection()) and \
+                            value != 'On/Off':
+
                             display(
-                                win, "%s field contains incorrect path. Please update the path!" % ctrl.get_name())
+                                win, "%s field contains incorrect path. " \
+                                     "Please update the path!" \
+                                     % ctrl.get_name())
                             return
 
                 config_list.append(ctrl)
@@ -885,9 +988,11 @@ class MainFrame(wx.Frame):
 
 
     def write(self, path, config_list):
+
         import ast
 
         try:
+
             f = open(path, 'w')
 
             for item in config_list:
@@ -899,6 +1004,7 @@ class MainFrame(wx.Frame):
                 
 
                 sample_list = item.get_values()
+
                 comment = item.get_help()
 
                 for line in comment.split("\n"):
@@ -922,7 +1028,8 @@ class MainFrame(wx.Frame):
 
                     # Add check for ReHo cluster
                     if label == 'clusterSize':
-                        print 'Using ReHo cluster size of ', value
+                        #print 'Using ReHo cluster size of ', value
+                        pass
                     elif item_type == 0:
                         value = sample_list.index(value)
                     else:
@@ -1046,6 +1153,15 @@ class MainFrame(wx.Frame):
                             else:
                                 print>>f, space, sample, ": ", 0
 
+                    print >>f, "\n"
+
+
+                elif dtype == 9:
+
+                    # checkbox grid (ROI extraction etc.)
+                    string = gen_checkboxgrid_config_string(label, value)
+
+                    print >>f, string
                     print >>f, "\n"
 
 

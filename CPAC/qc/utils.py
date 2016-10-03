@@ -261,7 +261,6 @@ def second_pass_organizing_files(qc_path):
                 raise
 
 
-
 def organize(dict_, all_ids, png_, new_dict):
 
     """
@@ -291,8 +290,8 @@ def organize(dict_, all_ids, png_, new_dict):
     """
 
     for id_no, png_type in dict_.items():
-
-        if png_type in png_:
+        # Check if folder name is png type
+        if png_type + '/' in png_:
             if not id_no in new_dict.keys():
                 new_dict[id_no] = [png_]
             else:
@@ -304,7 +303,6 @@ def organize(dict_, all_ids, png_, new_dict):
                 all_ids.append(id_no)
 
     return  all_ids
-
 
 
 def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
@@ -357,24 +355,25 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
         list of png id nos
     """
 
+    # Import packages
     from CPAC.qc.utils import organize
 
+    # Init variables
     dict_a = {}
     dict_s = {}
     dict_hist = {}
     dict_plot = {}
-
     all_ids = []
+
+    # For each png, organize the ids into respective dictoinaries
     for png_ in pngs_:
-
-
         all_ids = organize(qc_montage_id_a, all_ids, png_, dict_a)
         all_ids = organize(qc_montage_id_s, all_ids, png_, dict_s)
         all_ids = organize(qc_plot_id, all_ids, png_, dict_plot)
         all_ids = organize(qc_hist_id, all_ids, png_, dict_hist)
 
-    return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
-
+    return dict(dict_a), dict(dict_s), dict(dict_hist),\
+           dict(dict_plot), list(all_ids)
 
 
 def add_head(f_html_, f_html_0, f_html_1):
@@ -843,7 +842,6 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
-    #print 'id_ :', id_
     if id_ in dict_a:
 
         dict_a[id_] = sorted(dict_a[id_])
@@ -893,10 +891,8 @@ def feed_lines_html(id_,
                 id_a = '_'.join([id_a, str(idx), 'a'])
                 id_s = '_'.join([id_s, str(idx), 's'])
                 id_h = '_'.join([id_h, str(idx), 'h' ])
-            
 
             if idx == 0:
-
                 # add general user readable link names for QC navigation bar
                 if image_name_a_nav == 'skullstrip_vis':
                     image_readable = 'Visual Result of Skull Strip'
@@ -1069,6 +1065,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
 
         for id_ in sorted(all_ids):
+            print 'id: ', id_
             feed_lines_html(id_,
                               dict_a,
                               dict_s,
@@ -1087,12 +1084,9 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
         f_html_0.close()
         f_html_1.close()
 
-    except:
-
-        print '\n\nWarning: QC HTML pages could not be generated because' \
-              ' the file names have become too long. Clear out the .html' \
-              ' files present in the output directory and in the' \
-              ' qc_files_here folders within the subject directories.\n\n'
+    except Exception as exc:
+        print '\n\nWarning: QC HTML pages could not be generated. Error: %s' \
+              % exc
         raise Exception
 
     
@@ -1654,7 +1648,7 @@ def gen_histogram(measure_file, measure):
                     type_, fname = fname.split('centrality_')
                     fname = type_ + 'centrality_' + fname.split('_')[0]
                     measure = fname
-                elif 'lFCD_' in fname:
+                elif 'lfcd_' in fname.lower():
                     fname = 'lFCD_' + fname.split('_')[1]
                     measure = fname
 

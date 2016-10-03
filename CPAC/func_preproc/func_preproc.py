@@ -4,7 +4,6 @@ logger = logging.getLogger('workflow')
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-#import CPAC.interfaces.afni.preprocess as preprocess
 from nipype.interfaces.afni import preprocess
 from CPAC.utils import dbg_file_lineno
 

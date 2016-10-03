@@ -1,6 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
+
 def calc_friston_twenty_four(in_file):
     """
     Method to calculate friston twenty four parameters
@@ -356,20 +357,21 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            output_names=['out_file'],
                                            function=calculate_DVARS),
                              name='cal_DVARS')
+
     ##calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
     
     ###Calculating mean Framewise Displacement as per power et al., 2012
-    calculate_FD = pe.Node(util.Function(input_names=['in_file'],
+    calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_P),
                              name='calculate_FD')
     
     pm.connect(inputNode, 'movement_parameters', 
-               calculate_FD, 'in_file' )
+               calculate_FDP, 'in_file' )
     
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                outputNode, 'FD_1D')
     
     ###Calculating mean Framewise Displacement as per jenkinson et al., 2002   
@@ -393,7 +395,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            function=set_frames_ex),
                              name='exclude_frames')
 
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                exclude_frames, 'in_file')
     pm.connect(scrubbing_input, 'threshold', 
                exclude_frames, 'threshold')
@@ -412,7 +414,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            output_names=['out_file'],
                                            function=set_frames_in),
                              name='include_frames')
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FDP, 'out_file', 
                include_frames, 'in_file')
     pm.connect(scrubbing_input, 'threshold', 
                include_frames, 'threshold')
@@ -445,7 +447,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
 
     calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
-                                                                "FD_1D",
+                                                                "FDP_1D",
                                                                 "FDJ_1D", 
                                                                 "threshold",
                                                                 "DVARS"],
@@ -458,8 +460,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                calc_power_parameters, 'scan_id')
     pm.connect(cal_DVARS, 'out_file',
                calc_power_parameters, 'DVARS')
-    pm.connect(calculate_FD, 'out_file',
-               calc_power_parameters, 'FD_1D')
+    pm.connect(calculate_FDP, 'out_file',
+               calc_power_parameters, 'FDP_1D')
     pm.connect(calculate_FDJ, 'out_file',
                calc_power_parameters, 'FDJ_1D')
     pm.connect(scrubbing_input, 'threshold',
@@ -895,7 +897,8 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 1.0):
+def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS, \
+                             threshold = 1.0):
     
     """
     Method to generate Power parameters for scrubbing
@@ -926,53 +929,62 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     import numpy as np
     from numpy import loadtxt
 
-    out_file = os.path.join(os.getcwd(), 'pow_params.txt')
-
-    f= open(out_file,'w')
-    print >>f, "Subject,Scan,MeanFD,MeanFD_Jenkinson," \
-    "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
-    "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
-
-    f.write("%s," % subject_id)
-    f.write("%s," % scan_id)
-
-    powersFD_data = loadtxt(FD_1D)
+    powersFD_data = loadtxt(FDP_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
     #Mean (across time/frames) of the absolute values 
     #for Framewise Displacement (FD)
-    meanFD  = np.mean(powersFD_data)
-    f.write('%.4f,' % meanFD)
+    meanFD_Power  = np.mean(powersFD_data)
     
     #Mean FD Jenkinson
     meanFD_Jenkinson = np.mean(jenkFD_data)
-    f.write('%.4f,' % meanFD_Jenkinson)
     
     #Number of frames (time points) where movement 
     #(FD) exceeded threshold
     numFD = float(jenkFD_data[jenkFD_data > threshold].size)
-    f.write('%.4f,' % numFD)
     
     #Root mean square (RMS; across time/frames) 
     #of the absolute values for FD
     rmsFD = np.sqrt(np.mean(jenkFD_data))
-    f.write('%.4f,' % rmsFD)
 
     #Mean of the top quartile of FD is $FDquartile
     quat=int(len(jenkFD_data)/4)
     FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
-    f.write('%.4f,' % FDquartile)
 
     ##NUMBER OF FRAMES >threshold FD as percentage of total num frames
     count = np.float(jenkFD_data[jenkFD_data>threshold].size)
     percentFD = (count*100/(len(jenkFD_data)+1))
-    f.write('%.4f,' %percentFD)
 
     #Mean DVARS 
     meanDVARS = np.mean(np.load(DVARS))
-    f.write('%.4f,' % meanDVARS)
+
+
+    out_file = os.path.join(os.getcwd(), 'pow_params.txt')
+
+    with open(out_file,'w') as f:
+      
+        print >>f, "Subject,Scan,MeanFD_Power,MeanFD_Jenkinson," \
+        "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
+        "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
+
+        f.write("%s," % subject_id)
+        f.write("%s," % scan_id)
+
+        f.write('%.4f,' % meanFD_Power)
+
+        f.write('%.4f,' % meanFD_Jenkinson)
+
+        f.write('%.4f,' % numFD)
+
+        f.write('%.4f,' % rmsFD)
+
+        f.write('%.4f,' % FDquartile)
+
+        f.write('%.4f,' % percentFD)
+
+        f.write('%.4f' % meanDVARS)
+
     
-    f.close()
     return out_file
 
 

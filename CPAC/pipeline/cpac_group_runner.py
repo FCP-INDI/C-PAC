@@ -1,229 +1,514 @@
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
-import nipype.interfaces.io as nio
-from time import strftime
-
-from multiprocessing import Process
-
-import re
-import os
-import sys
-import glob
-import time
-import csv
-
-from nipype import logging
-
-from CPAC.utils import Configuration
-
-def split_folders(path):
-    folders = []
-    
-    while 1:
-        path, folder = os.path.split(path)
-        if folder != "":
-            folders.append(folder)
-        else:
-            if path != "":
-                folders.append(path)
-            break
-
-    folders.reverse()
-    #print folders
-    return folders
-
-def run_sge_jobs(c, config_file, resource, subject_infos):
 
 
-    import commands
-    import pickle
-    from time import strftime
+def load_config_yml(config_file):
 
-    temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
-    resource_file = os.path.join(temp_files_dir, 'resource.obj')
-    f = open(resource_file, 'w')
-    pickle.dump(resource, f)
-    f.close()
+	# loads a configuration YAML file
+    #
+    # input
+    #   config_file: full filepath to YAML (.yml) file
+    #
+    # output
+    #   config: Configuration object
 
-    subject_infos_file = os.path.join(temp_files_dir, 'subject_infos.obj')
-    f = open(subject_infos_file, 'w')
-    pickle.dump(subject_infos, f)
-    f.close()
-
-
-
-
-    shell = commands.getoutput('echo $SHELL')
-
-
-    subject_bash_file = ''
-    if c.runBASC:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_BASC_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-
-    if c.runCWAS:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_CWAS_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-
-    if c.runGroupAnalysis:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_GroupAnalysis_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-
-    f = open(subject_bash_file, 'w')
-    print >>f, '#! %s' % shell
-    print >>f, '#$ -cwd'
-    print >>f, '#$ -S %s' % shell
-    print >>f, '#$ -V'
-    print >>f, '#$ -q %s' % c.queue
-    print >>f, '#$ -pe %s %d' % (c.parallelEnvironment, c.numCoresPerSubject)
-    print >>f, '#$ -e %s' % os.path.join(temp_files_dir, 'c-pac_%s.err' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, '#$ -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, 'source ~/.bashrc'
-
-    if c.runBASC:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
-
-    elif c.runCWAS:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
-
-    elif c.runGroupAnalysis:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
-
-
-    f.close()
-
-    commands.getoutput('chmod +x %s' % subject_bash_file )
-#    print commands.getoutput('qsub  %s ' % (subject_bash_file))
-    print 'qsub  %s ' % (subject_bash_file)
-
-
-
-def run_pbs_jobs(c, config_file, resource, subject_infos):
-
-    import commands
-    import pickle
-    from time import strftime
-
-    temp_files_dir = os.path.join(os.getcwd(), 'cluster_temp_files')
-    resource_file = os.path.join(temp_files_dir, 'resource.obj')
-    f = open(resource_file, 'w')
-    pickle.dump(resource, f)
-    f.close()
-
-    subject_infos_file = os.path.join(temp_files_dir, 'subject_infos.obj')
-    f = open(subject_infos_file, 'w')
-    pickle.dump(subject_infos, f)
-    f.close()
-
-    subject_bash_file = ''
-    shell = commands.getoutput('echo $SHELL')
-    if c.runBASC:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_BASC_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-
-    if c.runCWAS:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_CWAS_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-
-    if c.runGroupAnalysis:
-        subject_bash_file = os.path.join(temp_files_dir, 'submit_GroupAnalysis_%s.sge' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    f = open(subject_bash_file, 'w')
-    print >>f, '#! %s' % shell
-    print >>f, '#PBS -S %s' % shell
-    print >>f, '#PBS -V'
-    print >>f, '#PBS -q %s' % c.queue
-    print >>f, '#PBS -l nodes=1:ppn=%d' % c.numCoresPerSubject
-    print >>f, '#PBS -e %s' % os.path.join(temp_files_dir, 'c-pac_%s.err' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, '#PBS -o %s' % os.path.join(temp_files_dir, 'c-pac_%s.out' % str(strftime("%Y_%m_%d_%H_%M_%S")))
-    print >>f, 'source ~/.bashrc'
-
-    if c.runBASC:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_basc_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
-
-    elif c.runCWAS:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_cwas_pipeline.run(\\\"%s\\\" , \\\"%s\\\") \" " % (str(config_file), subject_infos_file)
-
-    elif c.runGroupAnalysis:
-
-        print >>f, "python -c \"import CPAC; CPAC.pipeline.cpac_group_analysis_pipeline.run(\\\"%s\\\" , \\\"%s\\\", \\\"%s\\\") \" " % (str(config_file), subject_infos_file, resource_file)
-
-
-    f.close()
-
-    commands.getoutput('chmod +x %s' % subject_bash_file )
-    print commands.getoutput('qsub  %s ' % (subject_bash_file))
-
-
-
-def run(config_file, subject_list_file, output_path_file):
-    
-    # Runs group analysis
-
+    import os
     import yaml
+    from CPAC.utils import Configuration
 
-    # Load the config file into 'c'
-    c = Configuration(yaml.load(open(os.path.realpath(config_file), 'r')))
-
-
-    # load the subject list (in the main GUI window, not the group analysis
-    # one), and parse the yaml so that the subIDs and session IDs can be
-    # accessed for below
     try:
-        sublist = yaml.load(open(os.path.realpath(subject_list_file), 'r'))
-    except:
-        print "Subject list is not in proper YAML format. Please check your file"
-        raise Exception
+
+        config_path = os.path.realpath(config_file)
+
+        with open(config_path,"r") as f:
+            config_dict = yaml.load(f)
+
+        config = Configuration(config_dict)
+
+    except Exception as e:
+        err = "\n\n[!] CPAC says: Could not load or read the configuration " \
+        	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
+        raise Exception(err)
+
+    return config
 
 
-    subject_paths = []
+
+def load_text_file(filepath, label="file"):
+
+    # loads a text file and returns the lines in a list
+    #
+    # input
+    #   filepath: full filepath to the text file
+    #
+    # output
+    #   lines_list: list of lines from text file
+
+    if not filepath.endswith(".txt"):
+        err = "\n\n[!] CPAC says: The %s should be a text file (.txt).\n" \
+              "Path provided: %s\n\n" % (label, filepath)
+        raise Exception(err)
+
+    try:
+        with open(filepath,"r") as f:
+            lines_list = f.readlines()
+    except Exception as e:
+    	err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
+              "Details: %s\n\n" % (label, filepath, e)
+    	raise Exception(err)
+
+    # get rid of those \n's that love to show up everywhere
+    lines_list = [i.rstrip("\n") for i in lines_list]
+
+    return lines_list
 
 
-    # 'output_path_file' is the wildcard-filled path to the 'Derivative Path
-    # File' provided in the dialog box when group analysis is first run
-    #for file in glob.glob(os.path.abspath(output_path_file)):
-    #    path_list = open(file, 'r').readlines()
-    #    subject_paths.extend([s.rstrip('\r\n') for s in path_list])
+
+def load_pheno_csv_into_df(pheno_file):
+
+    import os
+    import pandas as pd
+
+    if not os.path.isfile(pheno_file):
+        err = "\n\n[!] CPAC says: The group-level analysis phenotype file "\
+              "provided does not exist!\nPath provided: %s\n\n" \
+              % pheno_file
+        raise Exception(err)
+
+    if not pheno_file.endswith(".csv"):
+        err = "\n\n[!] CPAC says: The group-level analysis phenotype " \
+              "file should be a CSV file (.csv).\nPath provided: %s\n\n" \
+              % pheno_file
+        raise Exception(err)
+
+    with open(os.path.abspath(pheno_file),"r") as f:
+        pheno_dataframe = pd.read_csv(f)
+
+
+    return pheno_dataframe
+
+
+
+def gather_nifti_globs(pipeline_output_folder, resource_list):
+
+    # the number of directory levels under each participant's output folder
+    # can vary depending on what preprocessing strategies were chosen, and
+    # there may be several output filepaths with varying numbers of directory
+    # levels
+
+    # this parses them quickly while also catching each preprocessing strategy
+
+    import os
+    import glob
+    from __builtin__ import any as b_any
+
+    ext = ".nii"
+    nifti_globs = []
+
+    if len(resource_list) == 0:
+        err = "\n\n[!] No derivatives selected!\n\n"
+        raise Exception(err)
+
+    # remove any extra /'s
+    pipeline_output_folder = pipeline_output_folder.rstrip("/")
+
+    # grab MeanFD_Jenkinson just in case
+    resource_list.append("power_params")
+
+    print "\n\nGathering the output file paths from %s..." \
+          % pipeline_output_folder
+
+    for resource_name in resource_list:
+
+        glob_string = os.path.join(pipeline_output_folder, "*", \
+                                       resource_name, "*", "*")
+
+        # get all glob strings that result in a list of paths where every path
+        # ends with a NIFTI file
         
-           
-    ind_outputs = ['alff_to_standard_zstd', 'alff_to_standard_smooth_zstd', 'falff_to_standard_zstd', 'falff_to_standard_smooth_zstd', 'reho_to_standard_zstd', 'reho_to_standard_smooth_zstd', 'sca_roi_files_to_standard_fisher_zstd', 'sca_roi_files_to_standard_smooth_fisher_zstd', 'sca_seed_to_standard_fisher_zstd', 'sca_seed_to_standard_smooth_fisher_zstd', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_fisher_zstd', 'vmhc_fisher_zstd_zstat_map', 'centrality_outputs_zstd', 'centrality_outputs_smoothed_zstd', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth', 'alff_to_standard', 'alff_to_standard_smooth', 'falff_to_standard', 'falff_to_standard_smooth', 'reho_to_standard', 'reho_to_standard_smooth', 'sca_roi_files_to_standard', 'sca_roi_files_to_standard_smooth', 'sca_seed_to_standard', 'sca_seed_to_standard_smooth', 'sca_tempreg_maps_files', 'sca_tempreg_maps_files_smooth', 'sca_tempreg_maps_zstat_files', 'sca_tempreg_maps_zstat_files_smooth', 'vmhc_raw_score', 'centrality_outputs', 'centrality_outputs_smoothed', 'dr_tempreg_maps_files_to_standard', 'dr_tempreg_maps_files_to_standard_smooth', 'dr_tempreg_maps_zstat_files_to_standard', 'dr_tempreg_maps_zstat_files_to_standard_smooth']
-            
-            
-    
-    # collect all of the output paths
-    
-    for root, folders, files in os.walk(output_path_file):
-    
-        split_output_dir_path = output_path_file.split("/")
-    
-        for filename in files:
+        prog_string = ".."
+
+        while len(glob.glob(glob_string)) != 0:
+
+            if b_any(ext in x for x in glob.glob(glob_string)) == True:
+                nifti_globs.append(glob_string)
         
-            if filename.endswith("nii.gz"):
-    
-                fullpath = os.path.join(root, filename)
-            
-                split_fullpath = fullpath.split("/")
+            glob_string = os.path.join(glob_string, "*")
+            prog_string = prog_string + "."
+            print prog_string
+
+    if len(nifti_globs) == 0:
+        err = "\n\n[!] No output filepaths found in the pipeline output " \
+              "directory provided for the derivatives selected!\n\nPipeline "\
+              "output directory provided: %s\nDerivatives selected:\s\n\n" \
+              % (pipeline_output_folder, resource_list)
+        raise Exception(err)
+
+    return nifti_globs
+
+
+
+def grab_raw_score_filepath(filepath, resource_id):
+
+    # this lives in the output path collector
+
+    import os
+    import glob
+
+    if "vmhc" in resource_id:
+        raw_score_path = filepath.replace(resource_id,"vmhc_raw_score")
+        raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
+        raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
+    else:                   
+        raw_score_path = filepath.replace("_zstd","")
+        raw_score_path = raw_score_path.replace("_fisher","")
+        raw_score_path = raw_score_path.replace("_zstat","")
+                    
+        if "sca_roi_files_to_standard" in resource_id:
+            sub_folder = raw_score_path.split("/")[-2] + "/"
+            if "z_score" in sub_folder:
+                raw_score_path = raw_score_path.replace(sub_folder,"")
+        elif "sca_tempreg_maps_zstat" in resource_id:
+            sca_filename = raw_score_path.split("/")[-1]
+            globpath = raw_score_path.replace(sca_filename, "*")
+            globpath = os.path.join(globpath, sca_filename)
+            raw_score_path = glob.glob(globpath)[0]     
+        elif "dr_tempreg_maps" in resource_id:
+            raw_score_path = raw_score_path.replace("map_z_","map_")
+            raw_filename = raw_score_path.split("/")[-1]
+            raw_score_path = raw_score_path.replace(raw_filename,"")
+            raw_score_path = glob.glob(os.path.join(raw_score_path,"*",raw_filename))[0]       
+        else:
+            # in case filenames are different between z-standardized and raw
+            raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
+            try:
+                raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
+            except:
+                raw_score_path = os.path.join(raw_score_path,"*")
                 
-                #subID = split_fullpath[len(split_output_dir_path)]
-                deriv_folder_name = split_fullpath[len(split_output_dir_path)+1]
-            
-                #second_half_filepath = fullpath.split(subID)
-            
-                for output_name in ind_outputs:
-            
-                    if output_name == deriv_folder_name:
+    if (raw_score_path is None) or (not os.path.exists(raw_score_path)):
+        err = "\n\n[!] The filepath for the raw score of " \
+              "%s can not be found.\nFilepath: %s\n\nThis " \
+              "is needed for the Measure Mean calculation." \
+              "\n\n" % (resource_id, raw_score_path)
+        raise Exception(err)
+
+    return raw_score_path
+
+
+
+def find_power_params_file(filepath, resource_id, series_id):
+
+    import os
+
+    try:
+        power_path = filepath.replace(resource_id, "power_params", 1)
+        series_id_string = "_scan_%s" % series_id
+        power_first_half = power_path.split(series_id_string)[0]
+        power_first_half = os.path.join(power_first_half, series_id_string)
+        participant_id = power_first_half.split("/")[-3]
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with finding the power " \
+              "parameters file for at least one of the participants.\n\n" \
+              "Error details: %s\n\n" % e
+        raise Exception(err)
+    
+    power_params_file = None
+    for root, dirs, files in os.walk(power_first_half):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            if "pow_params.txt" in filepath:
+                power_params_file = filepath
+
+    if not power_params_file:
+        err = "\n\n[!] Could not find the power parameters file for the " \
+              "following participant and series..\nParticipant: %s\n" \
+              "Series: %s\n\nIt should be available here: %s\n\n" \
+              % (participant_id, series_id, power_first_half)
+        raise Exception(err)
+
+    return power_params_file
+
+
+
+def extract_power_params(power_params_lines, power_params_filepath):
+
+    # check formatting
+    if len(power_params_lines) != 2:
+        err = "\n\n[!] There is something wrong with the formatting of the " \
+              "power parameters file.\nFilepath: %s\n\n" \
+              % power_params_filepath
+        raise Exception(err)
+
+    names_list = power_params_lines[0].split(",")
+    values_list = power_params_lines[1].split(",")
+
+    # let's make extra sure
+    if (values_list[0] not in power_params_filepath) or \
+        (values_list[1] not in power_params_filepath):
+        err = "\n\n[!] There is a mismatch between the contents of the " \
+              "power parameters file and where it is located!\n" \
+              "Filepath: %s\n\n" % power_params_filepath
+        raise Exception(err)
+
+    if (names_list[2] != "MeanFD_Power") or \
+        (names_list[3] != "MeanFD_Jenkinson") or \
+            (names_list[-1] != "MeanDVARS"):
+        err = "\n\n[!] There is a mismatch between the power parameters " \
+              "format and what is expected!!\nFilepath: %s\n\n" \
+              % power_params_filepath
+        raise Exception(err)
+
+    meanfd_power = values_list[2]
+    meanfd_jenk = values_list[3]
+    meandvars = values_list[-1]
+
+    return meanfd_power, meanfd_jenk, meandvars
+ 
+
+
+def create_output_dict_list(nifti_globs, pipeline_output_folder, \
+                                get_motion=False, get_raw_score=False):
+
+    import os
+    import glob
+
+    ext = ".nii"
+
+    # parse each result of each "valid" glob string
+    output_dict_list = {}
+    output_df_dict = {}
+
+    for nifti_glob_string in nifti_globs:
+
+        nifti_paths = glob.glob(nifti_glob_string + ext + "*")   
+
+        for filepath in nifti_paths:
         
-                        subject_paths.append(fullpath)  
+            second_half_filepath = filepath.split(pipeline_output_folder)[1]
+            filename = filepath.split("/")[-1]
+            
+            resource_id = second_half_filepath.split("/")[2]
+            series_id_string = second_half_filepath.split("/")[3]
+            strat_info = second_half_filepath.split(series_id_string)[1]
+            
+            unique_resource_id = (resource_id,strat_info)
+                        
+            if unique_resource_id not in output_dict_list.keys():
+                output_dict_list[unique_resource_id] = []
+            
+            unique_id = second_half_filepath.split("/")[1]
+
+            series_id = series_id_string.replace("_scan_","")
+            series_id = series_id.replace("_rest","")
+            
+            new_row_dict = {}
+            
+            new_row_dict["Participant"] = unique_id
+            new_row_dict["Series"] = series_id
+                                   
+            new_row_dict["Filepath"] = filepath
+                        
+            if get_motion:
+                # if we're including motion measures
+                power_params_file = find_power_params_file(filepath, \
+                    resource_id, series_id)
+                power_params_lines = load_text_file(power_params_file, \
+                    "power parameters file")
+                meanfd_p, meanfd_j, meandvars = \
+                    extract_power_params(power_params_lines, \
+                                         power_params_file)
+                new_row_dict["MeanFD_Power"] = meanfd_p
+                new_row_dict["MeanFD_Jenkinson"] = meanfd_j
+                new_row_dict["MeanDVARS"] = meandvars
+
+            if get_raw_score:
+                # grab raw score for measure mean just in case
+                raw_score_path = grab_raw_score_filepath(filepath, \
+                                                         resource_id)                    
+                new_row_dict["Raw_Filepath"] = raw_score_path
+                       
+            # unique_resource_id is tuple (resource_id,strat_info)
+            output_dict_list[unique_resource_id].append(new_row_dict)
+
+    return output_dict_list
+
+
+
+def create_output_df_dict(output_dict_list, inclusion_list=None):
+
+    import pandas as pd
+
+    output_df_dict = {}
+
+    # unique_resource_id is tuple (resource_id,strat_info)
+    for unique_resource_id in output_dict_list.keys():
+    
+        new_df = pd.DataFrame(output_dict_list[unique_resource_id])
         
+        # drop whatever is not in the inclusion lists
+        if inclusion_list:
+            new_df = new_df[new_df.Participant.isin(inclusion_list)]
+                   
+        # unique_resource_id is tuple (resource_id,strat_info)
+        if unique_resource_id not in output_df_dict.keys():
+            output_df_dict[unique_resource_id] = new_df
+            
+    return output_df_dict
 
 
-    if len(subject_paths) == 0:
-        print '[!] CPAC says: No individual-level analysis outputs were ' \
-              'found given the path file you provided.\n\nPipeline Output ' \
-              'Directory provided: ', output_path_file, '\n\nEither make ' \
-              'sure your Output Directory path is correct, or that ' \
-              'individual-level analysis completed successfully.\n\n'
-        raise Exception
 
+def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
+                       get_motion, get_raw_score):
+
+    # probably won't have a session list due to subject ID format!
+
+    nifti_globs = gather_nifti_globs(pipeline_folder, resource_list)
+    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder, \
+                           get_motion, get_raw_score)
+    output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
+
+    return output_df_dict
+
+
+
+def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
+
+    # take in the selected sessions, and match them to the participant
+    # unique IDs appropriately
+
+    import pandas as pd
+
+    # there are no new rows, since the phenotype file will have all of the
+    # subject_site_session combo unique IDs on each row!!!
+    sessions_col = []
+    part_ids_col = []
+
+    # participant IDs new columns
+    participant_id_cols = {}
+    i = 0
+
+    for participant_unique_id in list(pheno_df["Participant"]):
+        part_col = [0] * len(pheno_df["Participant"])
+        for session in sessions_list:
+            if session in participant_unique_id:
+                # generate/update sessions categorical column
+                part_id = participant_unique_id.replace(session, "")
+                part_id = part_id.replace("_","")
+                part_ids_col.append(part_id)
+                sessions_col.append(session)
+                header_title = "participant_%s" % part_id
+                # generate/update participant ID column (1's or 0's)
+                if header_title not in participant_id_cols.keys():
+                    part_col[i] = 1
+                    participant_id_cols[header_title] = part_col
+                else:
+                    participant_id_cols[header_title][i] = 1
+        i += 1
+    
+    pheno_df["Session"] = sessions_col
+    pheno_df["Participant_ID"] = part_ids_col
+
+    # add new participant ID columns
+    for new_col in participant_id_cols.keys():
+        pheno_df[new_col] = participant_id_cols[new_col]
+
+    return pheno_df
+
+
+
+def pheno_series_to_repeated_measures(pheno_df, series_list, \
+    repeated_sessions=False):
+
+    # take in the selected series/scans, and create all of the permutations
+    # of unique participant IDs (participant_site_session) and series/scans
+    # and populate the pheno
+    #   this is so the user does not have to have a specially-formatted
+    #   version of the phenotype CSV for repeated measures; they can just
+    #   enter the regular one
+
+    import pandas as pd
+   
+    new_rows = []
+    for series in series_list:
+        sub_pheno_df = pheno_df.copy()
+        sub_pheno_df["Series"] = series
+        new_rows.append(sub_pheno_df)
+    pheno_df = pd.concat(new_rows)
+
+    if repeated_sessions == False:
+
+        # participant IDs new columns
+        participant_id_cols = {}
+        i = 0
+
+        for participant_unique_id in pheno_df["Participant"]:
+
+            part_col = [0] * len(pheno_df["Participant"])
+            header_title = "participant_%s" % participant_unique_id
+
+            if header_title not in participant_id_cols.keys():
+                part_col[i] = 1
+                participant_id_cols[header_title] = part_col
+            else:
+                participant_id_cols[header_title][i] = 1
+
+            i += 1
+
+        for new_col in participant_id_cols.keys():
+            pheno_df[new_col] = participant_id_cols[new_col]
+        
+    return pheno_df
+
+
+
+def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
+
+    # this is for repeated measures only.
+    # if the user selects a participant list like this:
+    #    sub001_session_1
+    #    sub001_session_2
+    #    sub002_session_1
+    #    sub002_session_2
+    #    sub003_session_1
+    # then have this drop "sub003_session_1", because repeated measures
+    # requires a uniform balance of repeats
+
+    from collections import Counter
+
+    part_ID_count = Counter(pheno_df["Participant_ID"])
+
+    if series_list:
+        sessions_x_series = len(sessions_list) * len(series_list)
+    else:
+        sessions_x_series = len(sessions_list)
+
+    dropped_parts = []
+
+    for part_ID in part_ID_count.keys():
+        if part_ID_count[part_ID] != sessions_x_series:
+            pheno_df = pheno_df[pheno_df.Participant_ID != part_ID]
+            del pheno_df["participant_%s" % part_ID]
+            dropped_parts.append(part_ID)
+
+    return pheno_df, dropped_parts
+
+
+
+def prep_analysis_df_dict(config_file, pipeline_output_folder):
+    
+    # Preps group analysis run
+
+    # config_file: filepath to the main CPAC pipeline configuration YAML
+    #              (not the group analysis config YAML)
+    # pipeline_output_folder: filepath to the CPAC pipeline individual-level
+    #                   analysis output directory
+    #                   example:
+    #                     /home/cpac_run_1/output/pipeline_040_ANTS
+
+    import os
+    import pandas as pd
+
+    # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
+    c = load_config_yml(config_file)
 
     if len(c.modelConfigs) == 0:
         print '[!] CPAC says: You do not have any models selected ' \
@@ -231,270 +516,302 @@ def run(config_file, subject_list_file, output_path_file):
               'configuration file and create or select at least one.\n\n'
         raise Exception
 
+    # load the group model configs
+    group_models = []
+
+    for group_config_file in c.modelConfigs:
+        group_models.append((group_config_file, \
+                             load_config_yml(group_config_file)))
 
 
-    # 'subject_paths' is a list of every output from every subject included
-    # in the output folder of the run
+    # get the lowest common denominator of group model config choices
+    #   - create full participant list
+    #   - create full output measure list
+    #   - see if any of the models will require the raw scores
+    full_inclusion_list = []
+    full_output_measure_list = []
+    get_motion = False
+    get_raw_score = False
+    
+    for group_model_tuple in group_models:
 
-    # converts the subject_paths list into a set to enforce no duplicates
-    set_subject_paths = set(subject_paths)
+        group_model = group_model_tuple[1]
 
-    # converts the set back into a list
-    subject_paths = list(set_subject_paths)
+        inclusion = load_text_file(group_model.participant_list, \
+            "group-level analysis participant list")
+        full_inclusion_list = full_inclusion_list + inclusion
 
+        full_output_measure_list = full_output_measure_list + \
+                                       group_model.derivative_list
 
-    #base_path = os.path.dirname(os.path.commonprefix(subject_paths))
-    base_path = c.outputDirectory
+        # if any of the models will require motion parameters
+        if ("MeanFD" in group_model.design_formula) or \
+            ("MeanDVARS" in group_model.design_formula):
+            get_motion = True
 
-
-    from collections import defaultdict
-    analysis_map = defaultdict(list)
-    analysis_map_gp = defaultdict(list)
-
-
-    print "Parsing through output paths. This may take a little while " \
-          "depending on how many subjects, group analysis models, or " \
-          "selected derivatives you have..\n"
-
-    count = 0
-
-    for subject_path in subject_paths:
-
-        # each 'subject_path' is a full filepath to one of the output files
-
-        # Remove the base bath offset
-        #rs_path = subject_path.replace(base_path, "", 1)
-        #rs_path = rs_path.lstrip('/')
-
-        # rs_path is now the path to the output file, except everything before
-        # the pipeline folder (named with the pipeline ID) is stripped from
-        # the path
-
-        #folders = split_folders(rs_path)
- 
-        #pipeline_id = folders[0]
-        #subject_unique_id = folders[1]
-        #resource_id = folders[2]
-        #scan_id = folders[3]
-
-
-        split_output_dir_path = output_path_file.split("/")
-        split_fullpath = subject_path.split("/")
-
-        pipeline_id = split_fullpath[len(split_output_dir_path)-1]
-        subject_unique_id = split_fullpath[len(split_output_dir_path)]
-        resource_id = split_fullpath[len(split_output_dir_path)+1]
-        scan_id = split_fullpath[len(split_output_dir_path)+2]
-
-        
-        # add auxiliary stuff to resource_id if applicable
-        
-        if ("_mask_" in subject_path) and (("sca_roi" in subject_path) or \
-            ("sca_tempreg" in subject_path)):
-            
-            for dirname in split_fullpath:
-                if "_mask_" in dirname:
-                    maskname = dirname
-                    
-            filename = split_fullpath[-1]
-            
-            if ".nii.gz" in filename:
-                filename = filename.replace(".nii.gz","")
-            elif ".nii" in filename:
-                filename = filename.replace(".nii","")
-            
-            resource_name = resource_id + "_%s_%s" % (maskname, filename)
-
-            
-        elif ("_spatial_map_" in subject_path) and \
-            ("dr_tempreg" in subject_path):
-            
-            for dirname in split_fullpath:
-                if "_spatial_map_" in dirname:
-                    mapname = dirname
-                    
-            filename = split_fullpath[-1]
-            
-            if ".nii.gz" in filename:
-                filename = filename.replace(".nii.gz","")
-            elif ".nii" in filename:
-                filename = filename.replace(".nii","")
-            
-            resource_name = resource_id + "_%s_%s" % (mapname, filename)
-            
-            
-        elif ("_mask_" in subject_path) and ("centrality" in subject_path):
-            
-            for dirname in split_fullpath:
-                if "_mask_" in dirname:
-                    maskname = dirname
-                    
-            filename = split_fullpath[-1]
-            
-            if ".nii.gz" in filename:
-                filename = filename.replace(".nii.gz","")
-            elif ".nii" in filename:
-                filename = filename.replace(".nii","")
-            
-            resource_name = resource_id + "_%s_%s" % (maskname, filename)
-            
-            
+        # make sure "None" gets processed properly here...
+        if (group_model.custom_roi_mask == "None") or \
+            (group_model.custom_roi_mask == "none"):
+            custom_roi_mask = None
         else:
+            custom_roi_mask = group_model.custom_roi_mask
+
+        if ("Measure_Mean" in group_model.design_formula) or \
+            (custom_roi_mask != None):
+            get_raw_score = True
+
+    full_inclusion_list = list(set(full_inclusion_list))
+    full_output_measure_list = list(set(full_output_measure_list))
+
+    # sammin sammin mmmm samin in gray v
+
+    # create encompassing output dataframe dictionary
+    #     note, it is still limited to the lowest common denominator of all
+    #     group model choices- it does not pull in the entire output directory
+    # - there will be a dataframe for each combination of output measure
+    #   type and preprocessing strategy
+    # - each dataframe will contain output filepaths and their associated
+    #   information, and each dataframe will include ALL SERIES/SCANS
+    # - the dataframes will be pruned for each model LATER
+    output_df_dict = gather_outputs(pipeline_output_folder, \
+                                        full_output_measure_list, \
+                                        full_inclusion_list, \
+                                        get_motion, \
+                                        get_raw_score)
+
+
+    # alright, group model processing time
+    #   going to merge the phenotype DFs with the output file DF
+    analysis_dict = {}
+
+    group_model_names = []
+
+    for group_model_tuple in group_models:
+
+        group_config_file = group_model_tuple[0]
+        group_model = group_model_tuple[1]
+
+        model_name = group_model.model_name
+
+        if model_name in group_model_names:
+            err = "\n\n[!] You have two group analysis models with the same "\
+                  "name!\n\nDuplicate name: %s\n\n" % model_name
+            raise Exception(err)
+        else:
+            group_model_names.append(model_name)
+
+        # load original phenotype CSV into a dataframe
+        pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
+
+        # enforce the sub ID label to "Participant"
+        pheno_df.rename(columns={group_model.participant_id_label:"Participant"}, \
+                        inplace=True)   
+        pheno_df["Participant"] = pheno_df["Participant"].astype(str)
+
+        # unique_resource = (output_measure_type, preprocessing strategy)
+        # output_df_dict[unique_resource] = dataframe
+        for unique_resource in output_df_dict.keys():
+
+            resource_id = unique_resource[0]
+
+            if resource_id not in group_model.derivative_list:
+                continue
+
+            strat_info = unique_resource[1]
         
-            resource_name = resource_id
+            # output_df has the information for ALL of the output files for
+            # this unique_resource_id- all series, and if applicable, motion
+            # params numbers, and paths to raw outputs (for measure mean or
+            # custom ROI means)
+            #   then cut it down and merge with the phenotype DF as needed
+            #   depending on the analysis
+            output_df = output_df_dict[unique_resource]
 
+            # prune the output_df for this specific group model and output +
+            # preprocessing strategy
+            inclusion_list = load_text_file(group_model.participant_list, \
+                "group-level analysis participant list")
+            output_df = \
+                output_df[output_df["Participant"].isin(inclusion_list)]
 
-        # get list of all unique IDs (session IDs)
-        # loop through them and check subject_path for existence of any of the
-        # session IDs
-        # if it exists, load it into unique_id
+            new_pheno_df = pheno_df.copy()
+            
+            repeated_measures = False
+            repeated_sessions = False
+            repeated_series = False
 
-        # init subject_id to None
-        subject_id = None
-        for sub in sublist:
-            if sub['subject_id'] in subject_unique_id:
-                subject_id = sub['subject_id']
+            if len(group_model.sessions_list) > 0:
+                repeated_sessions = True
 
-        # If subject_id never gets set for this specific subject, move on to next subject
-        if not subject_id:
-            continue
+            if len(group_model.series_list) > 0:
+                repeated_series = True
 
-        # 'resource_id' is each type of output
-        # 'key' is a path to each and every individual output file,
-        # except with the subject ID replaced with a wildcard (*)
+            if repeated_sessions or repeated_series:
+                repeated_measures = True
 
-        # loop here to replace the one below it:
-        #     go through model configs, make a list of all ders included
-        #     enumerate list of selected derivatives and the models they are in
-        #     like: (resource_id, group_model, key)
-        for group_config_file in c.modelConfigs:
+            if repeated_measures == True:
 
-            try:
-                ga_config = Configuration(yaml.load(open(os.path.realpath(group_config_file), 'r')))
-            except:
-                raise Exception("\n\nError in reading %s configuration file\n\n" % group_config_file)
+                if repeated_sessions == True:
+                    new_pheno_df = pheno_sessions_to_repeated_measures( \
+                                       new_pheno_df, \
+                                       group_model.sessions_list)
 
-            if len(ga_config.derivative_list) == 0:
-                print '[!] CPAC says: You do not have any derivatives selected ' \
-                      'to run for group-level analysis. Return to your group-analysis ' \
-                      'configuration file and select at least one.'
-                print 'Group analysis configuration file: %s\n\n' % group_config_file
-                raise Exception
+                # create new rows for all of the series, if applicable
+                #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
+                if repeated_series == True:
+                    new_pheno_df = pheno_series_to_repeated_measures( \
+                                       new_pheno_df, \
+                                       group_model.series_list, \
+                                       repeated_sessions)
 
+                # drop the pheno rows - if there are participants missing in
+                # the output files (ex. if ReHo did not complete for 2 of the
+                # participants, etc.), then drop these rows from the phenotype
+                #   we are dropping all instances of this participant, all
+                #   sessions and all series, because in repeated measures/
+                #   within-subject, if one goes, they all have to go    
+                new_pheno_df = \
+                    new_pheno_df[pheno_df["Participant"].isin(output_df["Participant"])]
 
-            if resource_id in ga_config.derivative_list:
+                if len(new_pheno_df) == 0:
+                    err = "\n\n[!] There is a mis-match between the "\
+                          "participant IDs in the output directory/particip" \
+                          "ant list and the phenotype file.\n\n"
+                    raise Exception(err)
 
-                # include all of the scans and sessions in one model if True
-                if ga_config.repeated_measures == True:
-                    key = subject_path.replace(subject_unique_id, '*')
-                    key = key.replace(scan_id, '*')
-                else:
-                    # each group of subjects from each session go into their own
-                    # separate model, instead of combining all sessions into one
-                    try:
-                        key = subject_path.replace(subject_id, '*')
-                    except:
-                        # this fires if 'subject_id' was never given a value basically
-                        print '\n\n[!] CPAC says: Either the derivative path file ' \
-                              'you provided does not contain the output directory ' \
-                              'given in the pipeline configuration file.\n'
-                        print 'Derivative path file: ', output_path_file, '\n'
-                        print 'Output directory: ', c.outputDirectory, '\n'
-                        print '- OR -\n'
-                        print 'Your subject list does not contain all of the ' \
-                              'subjects you wish to run group-level analysis on.\n'
-                        print 'Please correct this and try again.\n\n\n'
-                        raise Exception
+                join_columns = ["Participant"]
 
+                # if Series is one of the categorically-encoded covariates,
+                # make sure we only are including the series the user has
+                # selected to include in the repeated measures analysis
+                if "Series" in new_pheno_df:
+                    # check in case the pheno has series IDs that doesn't
+                    # exist in the output directory, first
+                    new_pheno_df = \
+                        new_pheno_df[new_pheno_df["Series"].isin(output_df["Series"])]
+                    # okay, now check against the user-specified series list
+                    new_pheno_df = \
+                        new_pheno_df[new_pheno_df["Series"].isin(group_model.series_list)]
+                    join_columns.append("Series")
+                    # pull together the pheno DF and the output files DF!
+                    new_pheno_df = pd.merge(new_pheno_df, output_df, how="inner",\
+                        on=join_columns)
 
-                analysis_map[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+                    if repeated_sessions == True:
+                        # this can be removed/modified once sessions are no
+                        # longer integrated in the full unique participant IDs
+                        new_pheno_df, dropped_parts = \
+                            balance_repeated_measures(new_pheno_df, \
+                                                      group_model.sessions_list, \
+                                                      group_model.series_list)
 
-                analysis_map_gp[(resource_name, group_config_file, key)].append((pipeline_id, subject_id, scan_id, subject_path))
+                        run_label = "repeated_measures_multiple_sessions_and_series"
+                    else:
+                        run_label = "repeated_measures_multiple_series"
 
-        count += 1
-
-        if count == int(len(subject_paths)*0.7):
-            print "Almost finished parsing output paths.."     
-
-        # with this loop, 'analysis_map_gp' is a dictionary with a key for
-        # each individual output file - and each entry is a list of tuples,
-        # one tuple for each subject in the subject list, containing
-        # 'subject_path', which is a full path to that output file for that
-        # one particular subject
-
-
-    print "Finished parsing through output paths!\n"
-
-
-
-    for resource, group_model, glob_key in analysis_map.keys():
-        if resource == 'functional_mni':
-
-
-            if 1 in c.runBASC:
-
-                if not c.runOnGrid:
-                    from CPAC.pipeline.cpac_basc_pipeline import prep_basc_workflow
-                    prep_basc_workflow(c, analysis_map[(resource, group_model, glob_key)])
-                else:
-                    if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
-
-                    elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
-
-
-            if 1 in c.runCWAS:
-
-                if not c.runOnGrid:
-
-                    from CPAC.pipeline.cpac_cwas_pipeline import prep_cwas_workflow
-                    prep_cwas_workflow(c, analysis_map[(resource, group_model, glob_key)])
+                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
+                        new_pheno_df
 
                 else:
-                    if 'sge' in c.resourceManager.lower():
-                        run_sge_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
+                    # this runs if there are repeated sessions but not
+                    # repeated series
+                    #   split up the series here
+                    #   iterate over the Series/Scans
+                    for series_df_tuple in output_df.groupby("Series"):
 
-                    elif 'pbs' in c.resourceManager.lower():
-                        run_pbs_jobs(c, config_file, resource, analysis_map[(resource, group_model, glob_key)])
+                        series = series_df_tuple[0]
+
+                        # series_df is output_df but with only one of the Series
+                        series_df = series_df_tuple[1]
+
+                        # trim down the pheno DF to match the output DF and merge
+                        newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
+                        newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
+
+                        # this can be removed/modified once sessions are no
+                        # longer integrated in the full unique participant IDs
+                        newer_pheno_df, dropped_parts = \
+                            balance_repeated_measures(newer_pheno_df, \
+                                                      group_model.sessions_list, \
+                                                      None)
+
+                        # unique_resource =
+                        #              (output_measure_type, preprocessing strategy)
+                        analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df
+
+            else:
+                # no repeated measures
+
+                # split up the output files list DataFrame by series, then
+                # merge with the pheno DataFrame and send it off for analysis
+            
+                # essentially, make sure each series combination goes into its
+                # own model (and dataframe) for this unique_resource_id
+
+                # iterate over the Series/Scans
+                for series_df_tuple in output_df.groupby("Series"):
+                    series = series_df_tuple[0]
+                    # series_df = output_df but with only one of the Series
+                    series_df = series_df_tuple[1]
+                    # trim down the pheno DF to match the output DF and merge
+                    newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
+                    newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
+                    # send it in
+                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
+
+    return analysis_dict
 
 
 
+def run(config_file, pipeline_output_folder):
+
+    import os
+    from multiprocessing import Process
+
+    # create the analysis DF dictionary
+    analysis_dict = prep_analysis_df_dict(config_file, pipeline_output_folder)
+
+    # get MAIN pipeline config loaded
+    c = load_config_yml(config_file)
+
+    # let's get the show on the road   
     procss = []
     
+    for unique_resource_id in analysis_dict.keys():
 
-    for resource, group_model, glob_key in analysis_map_gp.keys():
+        # unique_resource_id is a 5-long tuple:
+        #    ( model name, group model config file, output measure name,
+        #          preprocessing strategy string,
+        #          series_id or "repeated_measures" )
+        
+        model_name = unique_resource_id[0]
+        group_config_file = unique_resource_id[1]
+        resource_id = unique_resource_id[2]
+        preproc_strat = unique_resource_id[3]
+        series_or_repeated = unique_resource_id[4]
 
-        # 'resource' is each type of output
-        # 'glob_key' is a path to each and every individual output file,
-        # except with the subject ID replaced with a wildcard (*)
-                      
-        #get all the motion parameters across subjects
-
-        print "Pulling motion parameters for all subjects..\n"
-
-        from CPAC.utils import extract_parameters
-        scrub_threshold = extract_parameters.run(c.outputDirectory, c.runScrubbing)
+        model_df = analysis_dict[unique_resource_id]
 
         if not c.runOnGrid:
-                    
-            print "Starting group analysis pipeline setup..\n"
 
-            from CPAC.pipeline.cpac_ga_model_generator import prep_group_analysis_workflow
-            procss.append(Process(target=prep_group_analysis_workflow, args=(c, group_model, resource, analysis_map_gp[(resource, group_model, glob_key)], scrub_threshold)))
+            from CPAC.pipeline.cpac_ga_model_generator import \
+                prep_group_analysis_workflow
+
+            procss.append(Process(target=prep_group_analysis_workflow, \
+                                  args = (model_df, config_file, model_name, \
+                                          group_config_file, resource_id, \
+                                          preproc_strat, series_or_repeated)))
             
         else:
-        
-            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
-                  "been implemented to handle runs on a cluster or grid.\n\n"\
-                  "Please turn off 'Run CPAC On A Cluster/Grid' in order " \
-                  "to continue with group-level analysis. This will submit " \
+            print "\n\n[!] CPAC says: Group-level analysis has not yet been "\
+                  "implemented to handle runs on a cluster or grid.\n\n" \
+                  "Please turn off 'Run CPAC On A Cluster/Grid' in order to "\
+                  "continue with group-level analysis. This will submit " \
                   "the job to only one node, however.\n\nWe will update " \
                   "users on when this feature will be available through " \
-                  "release note announcements.\n\n"
-
-    
+                  "release note announcements.\n\n"  
           
+    # start kicking it off
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
                         
     jobQueue = []
@@ -541,9 +858,5 @@ def run(config_file, subject_list_file, output_path_file):
                 
                         jobQueue.append(procss[idx])
                         idx += 1
-
                 
     pid.close()
-    
-    
-

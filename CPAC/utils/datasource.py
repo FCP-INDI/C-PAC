@@ -22,6 +22,15 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
 
+    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='check_for_s3')
+    wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    check_s3_node.inputs.img_type = 'func'
+
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
                                                      'rest',
                                                      'scan' ]),
@@ -40,6 +49,85 @@ def get_rest(scan, rest_dict):
     return rest_dict[scan]
 
 
+# Check if passed in file is on S3
+def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
+    '''
+    '''
+
+    # Import packages
+    import os
+    import nibabel as nib
+    import botocore.exceptions
+
+    from indi_aws import fetch_creds
+
+    # Init variables
+    s3_str = 's3://'
+    if dl_dir is None:
+        dl_dir = os.getcwd()
+
+    # Explicitly lower-case the "s3"
+    if file_path.lower().startswith(s3_str):
+        file_path_sp = file_path.split('/')
+        file_path_sp[0] = file_path_sp[0].lower()
+        file_path = '/'.join(file_path_sp)
+
+    # Check for s3 string in filepaths
+    if file_path.startswith(s3_str):
+        # Get bucket name and bucket object
+        bucket_name = file_path.replace(s3_str, '').split('/')[0]
+        bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+        # Extract relative key path from bucket and local path
+        s3_prefix = os.path.join(s3_str, bucket_name)
+        s3_key = file_path.replace(s3_prefix, '').lstrip('/')
+        local_path = os.path.join(dl_dir, os.path.basename(s3_key))
+
+        # Get local directory and create folders if they dont exist
+        local_dir = os.path.dirname(local_path)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+
+        # Download file
+        try:
+            bucket.download_file(Key=s3_key, Filename=local_path)
+        except botocore.exceptions.ClientError as exc:
+            error_code = int(exc.response['Error']['Code'])
+            if error_code == 403:
+                err_msg = 'Access to bucket: "%s" is denied; using credentials '\
+                          'in subject list: "%s"; cannot access the file "%s"'\
+                          % (bucket_name, creds_path, file_path)
+                raise Exception(err_msg)
+            elif error_code == 404:
+                err_msg = 'Bucket: "%s" does not exist; check spelling and try '\
+                          'again' % bucket_name
+                raise Exception(err_msg)
+            else:
+                err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                          % (bucket_name, exc)
+        except Exception as exc:
+            err_msg = 'Unable to connect to bucket: "%s". Error message:\n%s'\
+                      % (bucket_name, exc)
+            raise Exception(err_msg)
+
+    # Otherwise just return what was passed in
+    else:
+        local_path = file_path
+
+    # Check image dimensionality
+    img_nii = nib.load(local_path)
+    if img_type == 'anat':
+        if len(img_nii.shape) != 3:
+            raise IOError('File: %s must be an anatomical image with 3 '\
+                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
+    elif img_type == 'func':
+        if len(img_nii.shape) != 4:
+            raise IOError('File: %s must be a functional image with 4 '\
+                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
+
+    # Return the local path
+    return local_path
+
 
 def create_anat_datasource(wf_name='anat_datasource'):
 
@@ -53,8 +141,18 @@ def create_anat_datasource(wf_name='anat_datasource'):
                                 mandatory_inputs=True),
                         name='inputnode')
 
+    check_s3_node = pe.Node(util.Function(input_names=['file_path', 'creds_path',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='check_for_s3')
+
+    wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
+    wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    check_s3_node.inputs.img_type = 'anat'
+
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
-                                                     'anat' ]),
+                                                        'anat']),
                          name='outputspec')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
@@ -63,40 +161,12 @@ def create_anat_datasource(wf_name='anat_datasource'):
     return wf
 
 
-
-def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask'):
+def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
     import nipype.interfaces.io as nio
     import os
 
-    wf = pe.Workflow(name=wf_name)
-
-    if mask_type == 'roi':
-        tab = 'ROI Average TSE'
-    elif mask_type == 'voxel':
-        tab = 'ROI Voxelwise TSE'
-    elif mask_type == 'centrality':
-        tab = 'Network Centrality'
-
-
-    if '.nii' in dir_path:
-
-        masks = []
-        masks.append(dir_path)
-
-    elif '.txt' in dir_path:
-        
-        masks = open(dir_path, 'r').readlines()
-
-    else:
-
-        print '\n\n[!] CPAC says: Your ROI/mask specification file (under ' \
-              '%s options) either needs to be a NIFTI file (.nii or ' \
-              '.nii.gz) of an ROI/mask or a text file (.txt) containing a ' \
-              'list of NIFTI files of ROI/mask files.\nPlease change this ' \
-              'in your pipeline configuration file and try again.\n\n' % tab
-        raise Exception
-
+    wf = pe.Workflow(name=wf_name)  
 
     mask_dict = {}
 
@@ -106,10 +176,10 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
 
         if not os.path.exists(mask_file):
             err = '\n\n[!] CPAC says: One of your ROI/mask specification ' \
-                  'files (under %s options) does not have a correct path ' \
-                  'or does not exist.\nTip: If all the paths are okay, ' \
+                  'files (under ROI TSE Options) does not have a correct ' \
+                  'path or does not exist.\nTip: If all the paths are okay, '\
                   'then ensure there are no whitespaces or blank lines in ' \
-                  'your ROI specification file.\n\n' % tab
+                  'your ROI specification file.\n\n'
             raise Exception(err)
 
         if mask_file.strip() == '' or mask_file.startswith('#'):
@@ -123,9 +193,9 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
             base_name = os.path.splitext(os.path.splitext(base_file)[0])[0]
         else:
             err = "\n\n[!] CPAC says: One of your ROI/mask specification " \
-                  "files (under %s options) does not have '.nii' or " \
+                  "files (under ROI TSE options) does not have '.nii' or " \
                   "'.nii.gz' as an extension.\n\nMask file: %s\n\n" \
-                  % (tab, mask_file)
+                  % mask_file
             raise Exception(err)
 
         if not (base_name in mask_dict):
@@ -133,9 +203,7 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
         else:
             err = "\n\n[!] CPAC says: You have two or more ROI/mask files " \
             "with the same name - please make sure these files are named " \
-            "differently.\n\nDuplicate name: %s\n\nNote: This can be " \
-            "changed in the ROI/mask file you specified under the %s " \
-            "options.\n\n" % (mask_file, tab)
+            "differently.\n\nDuplicate name: %s\n\n" % mask_file
             raise Exception(err)
 
 
@@ -160,20 +228,18 @@ def create_roi_mask_dataflow(dir_path, mask_type, wf_name='datasource_roi_mask')
 
     wf.connect(selectmask, 'out_file',
                outputnode, 'out_file')
+
     return wf
 
 
 
-
-def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
+def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
 
     import nipype.interfaces.io as nio
     import os
 
-
     wf = pe.Workflow(name=wf_name)
-    spatial_maps = open(dirPath, 'r').readlines()
-
+    
     spatial_map_dict = {}
     
     for spatial_map_file in spatial_maps:
@@ -220,6 +286,7 @@ def create_spatial_map_dataflow(dirPath, wf_name='datasource_maps'):
 
     wf.connect(inputnode, 'spatial_map',
                select_spatial_map, 'scan')
+
     return wf
 
 

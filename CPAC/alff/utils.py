@@ -6,37 +6,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def get_img_nvols(in_files):
-
-    """
-    Calculates the number of volumes in the given nifti image
-
-    Parameters
-    ----------
-
-    in_files : string (nifti file)
-
-    Returns
-    -------
-
-    out : int
-        number of volumes of input nifti file
-
-    """
-
-    from nibabel import load
-
-    nvols = None
-    img = load(in_files)
-    hdr = img.get_header()
-    if len(hdr.get_data_shape()) > 3:
-        nvols = int(hdr.get_data_shape()[3])
-    else:
-        nvols = 1
-    return nvols
-
-
-
 def get_img_tr(in_files, TRa):
 
 
@@ -152,40 +121,6 @@ def get_N2(nvols, TR, LP, HP):
     return n2
 
 
-
-def get_operand_string(mean, std_dev):
-
-    """
-    Generate the Operand String to be used in workflow nodes to supply 
-    mean and std deviation to alff workflow nodes
-
-    Parameters
-    ----------
-
-    mean: string
-        mean value in string format
-    
-    std_dev : string
-        std deviation value in string format
-
-
-    Returns
-    -------
-
-    op_string : string
-
-
-    """
-
-    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
-
-    op_string = str1 + " -mas %s"
-
-    return op_string
-
-
-
-
 def set_op_str(n2):
 
     """
@@ -274,4 +209,3 @@ def takemod(nvols):
         return 0
     else:
         return 1
-

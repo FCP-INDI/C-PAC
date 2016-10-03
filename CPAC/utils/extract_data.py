@@ -476,7 +476,7 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     writer = csv.writer(f)
 
-    writer.writerow(['subject_id', 'EV1', '..'])
+    writer.writerow(['participant', 'EV1', '..'])
     for sub in sorted(subID_set):
         writer.writerow([sub, ''])
 
@@ -503,12 +503,12 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'session', 'series', 'EV1', '..'])
 
         for session in sorted(session_set):
             for scan in sorted(scan_set):
                 for sub in sorted(subID_set):
-                    writer.writerow([sub + '_' + scan + '_' + session, ''])
+                    writer.writerow([sub, session, scan, ''])
 
         f.close()
 
@@ -530,11 +530,11 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'session', 'EV1', '..'])
 
         for session in sorted(session_set):
             for sub in sorted(subID_set):
-                writer.writerow([sub + '_' + session, ''])
+                writer.writerow([sub, session, ''])
 
         f.close()
 
@@ -556,11 +556,11 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         writer = csv.writer(f)
 
-        writer.writerow(['subject_id', 'EV1', '..'])
+        writer.writerow(['participant', 'series', 'EV1', '..'])
 
         for scan in sorted(scan_set):
             for sub in sorted(subID_set):
-                writer.writerow([sub + '_' + scan, ''])
+                writer.writerow([sub, scan, ''])
 
         f.close()
 
@@ -569,8 +569,8 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     # generate the group analysis subject lists
 
-    file_name = os.path.join(output_path, 'subject_list_group_analysis' \
-            '_%s.txt' % subject_list_name)
+    file_name = os.path.join(output_path, 'participant_list_group_analysis' \
+            '_%s.csv' % subject_list_name)
 
     try:
         f = open(file_name, 'w')
@@ -581,18 +581,20 @@ def generate_supplementary_files(output_path, subject_list_name):
                 'worry.. I\'ll wait.\n\n'
         raise IOError
 
+    print >>f, "participant"
+
     for sub in sorted(subID_set):
         print >> f, sub
 
 
-    print "Subject list required later for group analysis - %s" % file_name
+    print "Participant list required later for group analysis - %s" % file_name
     f.close()
 
 
     # generate the group analysis subject lists for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
 
-        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
                 'repeated_measures_mult_sessions_and_scans_%s.txt' \
                 % subject_list_name)
 
@@ -605,10 +607,12 @@ def generate_supplementary_files(output_path, subject_list_name):
                     'worry.. I\'ll wait.\n\n'
             raise IOError
 
+        print >> f, "participant,session,series"
+
         for session in sorted(session_set):
             for scan in sorted(scan_set):
                 for sub in sorted(subID_set):
-                    print >> f, sub + ',' + scan + ',' + session
+                    print >> f, sub + ',' + session + ',' + scan
 
         f.close()
 
@@ -616,7 +620,7 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     if (len(session_set) > 1):
 
-        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
                 'repeated_measures_multiple_sessions_%s.txt' \
                 % subject_list_name)
 
@@ -629,6 +633,8 @@ def generate_supplementary_files(output_path, subject_list_name):
                     'worry.. I\'ll wait.\n\n'
             raise IOError
 
+        print >> f, "participant,session"
+
         for session in sorted(session_set):
             for sub in sorted(subID_set):
                 print >> f, sub + ',' + session
@@ -639,7 +645,7 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     if (len(scan_set) > 1):
 
-        file_name = os.path.join(output_path, 'subject_list_group_analysis_' \
+        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
                 'repeated_measures_multiple_scans_%s.txt' \
                 % subject_list_name)
 
@@ -651,6 +657,8 @@ def generate_supplementary_files(output_path, subject_list_name):
             print 'Make sure you have write access? Then come back. Don\'t ' \
                     'worry.. I\'ll wait.\n\n'
             raise IOError
+
+        print >> f, "participant,series"
 
         for scan in sorted(scan_set):
             for sub in sorted(subID_set):

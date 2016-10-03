@@ -5,6 +5,7 @@ from ..utils.constants import control, dtype
 from ..utils.validator import CharValidator
 import pkg_resources as p
 
+
 class ALFF(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter  = 0):
@@ -14,21 +15,13 @@ class ALFF(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/alff.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/alff.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/alff.html')
-#            else:
-#                self.LoadFile('html/alff.html')
-#        except:
-#            self.LoadFile('html/alff.html')
-            
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/alff.html'))            
             
     def get_counter(self):
         return self.counter
             
+
+
 class ALFFSettings(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
