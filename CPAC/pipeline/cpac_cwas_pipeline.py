@@ -40,7 +40,7 @@ def prep_cwas_workflow(c, subject_infos):
                ds, 'p_map')
 
 
-    wf.run(plugin='ResourceMultiProc',
+    wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
 
