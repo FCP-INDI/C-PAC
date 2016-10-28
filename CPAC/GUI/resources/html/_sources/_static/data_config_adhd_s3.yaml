@@ -1,0 +1,15 @@
+anatomicalTemplate  :  s3://fcp-indi/data/Projects/ADHD200/RawData/{site}/{participant}/{session}/anat_*/mprage.nii.gz
+
+functionalTemplate  :   s3://fcp-indi/data/Projects/ADHD200/RawData/{site}/{participant}/{session}/rest_*/rest.nii.gz
+
+subjectList  :  None 
+
+exclusionSubjectList  :  None 
+
+siteList  :  Brown
+
+scanParametersCSV  :  /path/to/data/scan_parameters_adhd.csv
+
+outputSubjectListLocation  :   /path/to/data/subjectlistoutput/
+
+subjectListName : ['ADHD200']

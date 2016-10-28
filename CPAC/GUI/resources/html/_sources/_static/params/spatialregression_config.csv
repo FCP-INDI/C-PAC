@@ -1,0 +1,3 @@
+runSpatialRegression,Extract the time series from one or more existing spatial maps (such as an ICA map). Required if you wish to run Dual Regression.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+spatialPatternMaps,Full path to a text file containing a list spatial maps. Each line in this file should be the path to a 4D NIfTI file containing one spatial map per volume.,A path.
+spatialDemean,Demean spatial maps before running spatial regression.,A boolean (‘True’ or ‘False’).

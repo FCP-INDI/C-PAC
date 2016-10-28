@@ -1,0 +1,15 @@
+anatomicalTemplate  :  /path/to/data/{site}/{participant}/anat.nii.gz  
+
+functionalTemplate  :   /path/to/data/{site}/{participant}/func.nii.gz 
+
+subjectList  :  None 
+
+exclusionSubjectList  :  None 
+
+siteList  :  Caltech
+
+scanParametersCSV  :  /path/to/data/scan_parameters_abide.csv
+
+outputSubjectListLocation  :   /path/to/data/subjectlistoutput/
+
+subjectListName : ['ABIDE']

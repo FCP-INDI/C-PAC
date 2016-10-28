@@ -1,0 +1,15 @@
+anatomicalTemplate  :  s3://fcp-indi/data/Projects/ABIDE_Initiative/RawData/{site}/{participant}/session_1/anat_1/mprage.nii.gz
+
+functionalTemplate  :   s3://fcp-indi/data/Projects/ABIDE_Initiative/RawData/{site}/{participant}/session_1/rest_*/rest.nii.gz
+
+subjectList  :  None 
+
+exclusionSubjectList  :  None 
+
+siteList  :  Caltech
+
+scanParametersCSV  :  /path/to/data/scan_parameters_abide.csv
+
+outputSubjectListLocation  :   /path/to/data/subjectlistoutput/
+
+subjectListName : ['ABIDE']

@@ -1,0 +1,9 @@
+runOnGrid,Run using a Grid Resource Manager (such as Sun Grid Engine or HTCondor)?,"True,False"
+FSLDIR,The path to the FSL directory on your server/workstation.,"A string that is a path (e.g., /usr/share/fsl/5.0)"
+resourceManager,The Grid Resource Manager to use (if runOnGrid is set to True).,"SGE,PBS,SLURM"
+parallelEnvironment,SGE Parallel Environment to use when running CPAC (if using SGE).,A string that is the Parallel Environment name.
+queue,SGE Queue to use when running CPAC (if using SGE).,A string that is the Queue name.
+memoryAllocatedPerSubject,Memory to allocate per subject.,A numerical value.
+numCoresPerSubject,Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.,An integer.
+numSubjectsAtOnce,The number of subjects to run at once.,An integer.
+num_ants_threads,The number of threads to allocate to ANTs.,An integer.

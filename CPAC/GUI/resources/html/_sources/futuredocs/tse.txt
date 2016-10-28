@@ -1,0 +1,18 @@
+Define New Seeds
+================
+You can easily define new spherical seeds (for use in Time Series Extraction and/or Seed-based Correlation Analysis) by providing a text file containing seed definitions. Seeds are defined by providing a seed label number, x/y/z coordinates in MNI space, seed radius (in mm), and resolution. For example:
+::
+    1 -28 -40 -12 2 3mm
+    2 -4 48 24 3 2mm 
+
+If multiple seeds are specified with the same resolution, they will be grouped into a single file containing multiple seeds, with the values within each seed ROI set to the seed label number. Note that CPAC does not check for overlapping seeds. In the event that a voxel is present in multiple seeds defined here, the value of that voxel will be set to the sum of the two seed label numbers (effectively resulting in a new seed). **You will need to confirm that the seeds you define do not overlap before running CPAC.**
+
+.. figure:: /_images/tse_define_seeds.png
+
+#. **Seed Specification File - [path]:** A path to the text file defining seeds (see above).
+
+#. **Seed Output Directory - [path]:** The directory where CPAC should write NIfTI files containing new seeds.
+
+#. **Use New Seeds In - [checkboxes]:** Select the analyses that will use the seeds.  "ROI Average Time Series Extraction" must be selected for seed-based correlation analyses.  Select "None" if you just want to save the seeds.
+
+
