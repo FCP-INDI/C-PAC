@@ -13,12 +13,12 @@ class GroupAnalysis(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/fsl_ga.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/group_analysis.html'))
         
 #        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/fsl_ga.html").code
+#            code = urlopen("http://fcp-indi.github.io/docs/user/group_analysis.html").code
 #            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/fsl_ga.html')
+#                self.LoadPage('http://fcp-indi.github.io/docs/user/group_analysis.html')
 #            else:
 #                self.LoadFile('html/group_analysis.html')
 #        except:

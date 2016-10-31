@@ -1,0 +1,2 @@
+runFrequencyFiltering,Apply a temporal band-pass filter to functional data.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+nuisanceBandpassFreq,Define one or more band-pass filters.,"A list of two-element lists, where the first element in the list is the low frequency cutoff and the second element is the high frequency cutoff."

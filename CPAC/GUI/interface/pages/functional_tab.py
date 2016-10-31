@@ -17,9 +17,9 @@ class FunctionalPreProcessing(wx.html.HtmlWindow):
         self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/func.html'))
         
 #        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/motion.html").code
+#            code = urlopen("http://fcp-indi.github.io/docs/user/nuisance.html").code
 #            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/motion.html')
+#                self.LoadPage('http://fcp-indi.github.io/docs/user/nuisance.html')
 #            else:
 #                self.LoadFile('html/functional.html')
 #        except:

@@ -1,0 +1,2 @@
+runReHo,Calculate Regional Homogeneity (ReHo) for all voxels.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+clusterSize,"The number of neighboring voxels used when calculating ReHo. Can be 7 (Faces), 19 (Faces & Edges), or 27 (Faces, Edges, & corners).","An integer with either 7, 19 or 27 as its value."

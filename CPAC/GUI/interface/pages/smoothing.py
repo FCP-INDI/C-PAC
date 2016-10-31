@@ -14,7 +14,7 @@ class AfterWarping(wx.html.HtmlWindow):
         self.SetStandardFonts()
         
         self.counter = counter
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/smoothing.html'))          
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/after_warp.html'))          
             
     def get_counter(self):
         return self.counter

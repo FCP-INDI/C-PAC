@@ -11,7 +11,7 @@ class DualRegression(wx.html.HtmlWindow):
         self.SetStandardFonts()
         
         self.counter = counter
-        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/dual_reg.html'))
+        self.LoadPage(p.resource_filename('CPAC', 'GUI/resources/html/dual_sca.html'))
             
     def get_counter(self):
         return self.counter

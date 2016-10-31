@@ -26,4 +26,5 @@ do
         echo -e '\t\tf.write(line)' >> remove_links.py
     echo "" >> remove_links.py
 done
-#python remove_links.py
+python remove_links.py
+rm remove_links.py
