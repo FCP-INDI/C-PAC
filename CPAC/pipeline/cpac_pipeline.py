@@ -187,12 +187,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
-    if 'ANTS' in c.regOption:
-        max_core_usage = int(c.numCoresPerSubject) * \
-                             int(c.numSubjectsAtOnce) * int(numThreads) * \
-                             int(c.num_ants_threads)
-    else:
-        max_core_usage = int(c.numCoresPerSubject) * \
+    max_core_usage = int(c.numCoresPerSubject) * \
                              int(c.numSubjectsAtOnce) * int(numThreads)
 
     cores_msg = cores_msg + '\n\nSetting number of cores per subject to %s\n'\
@@ -213,11 +208,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     cores_msg = cores_msg + 'If that\'s more cores than you have, better ' \
                 'fix that quick! Hint: This can be changed via the settings '\
-                '\'Number of Cores Per Subject\', \'Number of Subjects ' \
-                'to Run Simultaneously\', and \'Number of Cores for ' \
-                'Anatomical Registration (ANTS only)\' in the pipeline ' \
-                'configuration editor under the tab \'Computer Settings' \
-                '\'.\n\n'
+                '\'Number of Cores Per Subject\', and \'Number of Subjects ' \
+                'to Run Simultaneously\' in the pipeline configuration ' \
+                'editor under the tab \'Computer Settings\'.\n\n'
 
     logger.info(cores_msg)
 

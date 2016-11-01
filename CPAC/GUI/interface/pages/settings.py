@@ -83,32 +83,70 @@ class ComputerSettings(wx.ScrolledWindow):
                       comment='SGE Queue to use when running CPAC.\n\nOnly applies when you are running on a grid or compute cluster using SGE.',
                       values='all.q')
 
-        self.page.add(label="Memory Per Subject (GB) ",
+        self.page.add(label="Maximum Memory Per Participant (GB) ",
                       control=control.INT_CTRL,
                       name='memoryAllocatedPerSubject',
                       type=dtype.NUM,
-                      comment="Memory to allocate per subject.\n\nIMPORTANT: \'Memory Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' must not be more than the total amount of RAM",
+                      comment="The maximum amount of memory each " \
+                              "participant's workflow can allocate. Use " \
+                              "this to place an upper bound of memory " \
+                              "usage. Warning: 'Memory Per Participant' " \
+                              "multiplied by 'Number of Participants to " \
+                              "Run Simultaneously' must not be more than " \
+                              "the total amount of RAM. Conversely, using " \
+                              "too little RAM can impede the speed of a " \
+                              "pipeline run. It is recommended that you set "\
+                              "this to a value that when multiplied by " \
+                              "'Number of Participants to Run " \
+                              "Simultaneously' is as much RAM you can " \
+                              "safely allocate.",
                       values=1)
 
-        self.page.add(label="Number of Cores Per Subject ",
+        self.page.add(label="Maximum Number of Cores Per Participant ",
                       control=control.INT_CTRL,
                       name='numCoresPerSubject',
                       type=dtype.NUM,
-                      comment="Number of cores (on a single machine) or slots on a node (cluster/grid) per subject. Slots are cores on a cluster/grid node.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      comment="The maximum amount of cores (on a single " \
+                              "machine) or slots on a node (on a " \
+                              "cluster/grid) to allocate per participant. " \
+                              "Setting this above 1 will parallelize each " \
+                              "participant's workflow where possible. If " \
+                              "you wish to dedicate multiple cores to " \
+                              "ANTS-based anatomical registration (below), " \
+                              "this value must be equal or higher than the " \
+                              "amount of cores provided to ANTS. The " \
+                              "maximum number of cores your run can " \
+                              "possibly employ will be this setting " \
+                              "multiplied by the number of participants " \
+                              "set to run in parallel (the 'Number of" \
+                              "Participants to Run Simultaneously' " \
+                              "setting).",
                       values=1)
 
-        self.page.add(label="Number of Subjects to Run Simultaneously ",
+        self.page.add(label="Number of Participants to Run Simultaneously ",
                       control=control.INT_CTRL,
                       name='numSubjectsAtOnce',
                       type=dtype.NUM,
-                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      comment="The number of participant workflows to run " \
+                              "at the same time. The maximum number of " \
+                              "cores your run can possibly employ will be " \
+                              "this setting multiplied by the number of " \
+                              "cores dedicated to each participant (the " \
+                              "'Maximum Number of Cores Per Participant' " \
+                              "setting).",
                       values=1)
 
-        self.page.add(label="Number of Cores for Anatomical Registration (ANTS only) ",
+        self.page.add(label="Number of Cores for Anatomical Registration " \
+                            "(ANTS only) ",
                       control=control.INT_CTRL,
                       name='num_ants_threads',
                       type=dtype.NUM,
-                      comment="This number depends on computing resources.\n\nIMPORTANT: \'Number of Cores Per Subject\' multiplied by \'Number of Subjects to Run Simultaneously\' multiplied by \'Number of Cores for Anatomical Registration (ANTS only)\' must not be greater than the total number of cores.",
+                      comment="The number of cores to allocate to " \
+                              "ANTS-based anatomical registration per " \
+                              "participant. Multiple cores can greatly " \
+                              "speed up this preprocessing step. This " \
+                              "number cannot be greater than the number of " \
+                              "cores per participant.",
                       values=1)
 
         self.page.set_sizer()
