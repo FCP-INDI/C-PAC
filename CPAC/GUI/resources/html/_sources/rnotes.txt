@@ -1,6 +1,33 @@
 Release Notes
 -------------
 
+Version 1.0.0 Beta - 2016.10.03
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Updates to Network Centrality- inclusion of support for the new AFNI 3dDegreeCentrality, 3dEigenvectorCentrality, 3dLFCD tools as well.
+
+#. AWS S3 download and upload support- can create subject lists with S3 links.
+
+#. SLURM compatibility added.
+
+#. Probability thresholds removed from segmentation- only relies on the priors now.
+
+#. Simplified the GUI menu, condensed options to make the preprocessing steps clearer.
+
+#. New TSE and SCA GUI menus, easier checkboxes/path addition.
+
+#. Memory limits/allocation for memory-intensive Network Centrality.
+
+#. You can now choose different resolutions to write the functional residuals and derivative outputs to, and 4mm is now an option as well.
+
+#. Better logging, new log directory option.
+
+#. Timeseries extraction now performed using 3dROIStats.
+
+#. Better error-checking in many places- including checking input raw data files to ensure data type (anatomical or functional) before the pipeline starts.
+
+#. Improved file naming for multiple-ROI SCA outputs.
+
 Version 0.3.9 Alpha - 2015.04.02
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -74,9 +101,9 @@ Version 0.3.8 Alpha - 2014.12.10
 
 Instructions for Updating to 0.3.8
 ``````````````````````````````````
-#. Download and install the Nipype version 0.10.0, tested to work with CPAC 0.3.8, from `Github <https://github.com/nipy/nipype/releases/tag/0.10.0>`_.
+#. Download and install the Nipype version 0.10.0, tested to work with CPAC 0.3.8, from Github .
 
-#. Download the new version from `Github <https://github.com/FCP-INDI/C-PAC>`_ or the `CPAC homepage <http://fcp-indi.github.io.>`_.
+#. Download the new version from Github .
 
 #. Replace the old CPAC directory with the new files and then run ``sudo python setup.py install``.
 
@@ -100,9 +127,9 @@ Version 0.3.7 Alpha - 2014.10.29
 
 Instructions for Updating to 0.3.7
 ``````````````````````````````````
-#. Download and install the Nipype version 0.10.0, tested to work with CPAC 0.3.7, from `Github <https://github.com/nipy/nipype/releases/tag/0.10.0>`_.
+#. Download and install the Nipype version 0.10.0, tested to work with CPAC 0.3.7, from Github .
 
-#. Download the new version from `Github <https://github.com/FCP-INDI/C-PAC>`_ or the `CPAC homepage <http://fcp-indi.github.io.>`_.
+#. Download the new version from Github .
 
 #. Replace the old CPAC directory with the new files and then run ``sudo python setup.py install``.
 
@@ -126,7 +153,7 @@ Version 0.3.6 Alpha - 2014.10.08
 
 Instructions for Updating to 0.3.6
 ``````````````````````````````````
-#. Download the new version from `Github <https://github.com/FCP-INDI/C-PAC>`_ or the `CPAC homepage <http://fcp-indi.github.io.>`_.
+#. Download the new version from Github .
 
 #. Replace the old CPAC directory with the new files and then run ``sudo python setup.py install``.
 
@@ -150,16 +177,16 @@ Version 0.3.5 Alpha - 2014.09.22
 
 #. Several GUI improvements to user-friendliness in the pipeline configuration editor.
 
-* View a complete guide to the new model builder at the `Group Analysis page of our User Guide<http://fcp-indi.github.io/docs/user/fsl_ga.html>`_.
+* View a complete guide to the new model builder at the Group Analysis page of our User Guide.
 
 
 Instructions for Updating to 0.3.5
 ``````````````````````````````````
-#. Download and install the new custom version of Nipype designed to work with CPAC 0.3.5 from `Github <https://github.com/FCP-INDI/nipype/releases/tag/v0.9.2_cpac_tested>`_.
+#. Download and install the new custom version of Nipype designed to work with CPAC 0.3.5 from Github .
 
-#. Upgrade your ANTS installation to the newest version - instructions available on the `installation page of the CPAC User Guide <http://fcp-indi.github.io/docs/user/install.html>`_.
+#. Upgrade your ANTS installation to the newest version - instructions available on the installation page of the CPAC User Guide .
 
-#. Re-download the CPAC Image Resources to ensure you have the new binarized lateral ventricle masks required for CSF nuisance regression, available `here <http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz>`_, and follow the instructions available in the `User Guide <http://fcp-indi.github.io/docs/user/install.html>`_ under the section called "Install CPAC Image Resources".
+#. Re-download the CPAC Image Resources to ensure you have the new binarized lateral ventricle masks required for CSF nuisance regression, available here  under the section called "Install CPAC Image Resources".
 
 
 Version 0.3.4 Alpha - 2014.04.08
@@ -197,9 +224,9 @@ Version 0.3.4 Alpha - 2014.04.08
 
 Instructions for Updating to 0.3.4
 ``````````````````````````````````
-#. Download the new version from `Github <https://github.com/FCP-INDI/C-PAC>`_ or the `CPAC homepage <http://fcp-indi.github.io.>`_.
+#. Download the new version from Github .
 
-#. If you do not have Cython installed already, follow the instructions `here <http://fcp-indi.github.io/docs/user/install.html#install-python-dependencies>`_.
+#. If you do not have Cython installed already, follow the instructions here .
 
 #. Replace the old CPAC directory with the new files and then run ``sudo python setup.py install``.
 
@@ -229,9 +256,9 @@ Version 0.3.3 Alpha - 2013.12.31
 
 Version 0.3.2 Alpha - 2013.11.04
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. The option to use the `ANTS registration <http://stnava.github.io/ANTs/>`_ tool for anatomical registration has been introduced.
+#. The option to use the ANTS registration  tool for anatomical registration has been introduced.
 
-#. The option to toggle `Boundary Based Registration <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT_BBR>`_ on and off for functional to anatomical registration has been introduced.
+#. The option to toggle Boundary Based Registration  on and off for functional to anatomical registration has been introduced.
 
 #. Automatic QC page creation enabled.
 

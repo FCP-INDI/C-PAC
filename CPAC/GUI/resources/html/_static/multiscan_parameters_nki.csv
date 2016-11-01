@@ -1,0 +1,8 @@
+Site,Scan,TR,Reference,Acquisition,FirstTR,LastTR
+Rockland,RfMRI_mx_645,0.645,20,/path/to/645.txt,None,None
+Rockland,RfMRI_mx_1400,1.4,32,/path/to/1400.txt,None,None
+Rockland,RfMRI_std_2500,2.5,19,/path/to/2500.txt,None,None
+Rockland,TfMRI_visualCheckerboard_645,0.645,20,/path/to/645.txt,None,None
+Rockland,TfMRI_visualCheckerboard_1400,1.4,32,/path/to/1400.txt,None,None
+Rockland,TfMRI_breathHold_1400,1.4,32,/path/to/1400.txt,None,None
+Rockland,DTI_mx_137,2.4,32,/path/to/dti.txt,None,None

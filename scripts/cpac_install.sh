@@ -3,7 +3,7 @@
 usage="
 cpac_install.sh\n
 =================================================================================================\n
-Version: 0.4.0\n
+Version: 1.0.0\n
 Author(s): John Pellman, Daniel Clark\n
 Based off of cpac_install.sh by Daniel Clark.\n
 Description: Will perform specific operations to install C-PAC dependencies and C-PAC.\n
@@ -128,14 +128,10 @@ function install_python_dependencies {
 	if [ ! -d ~/miniconda/envs/cpac ] || [ ! -d /usr/local/bin/miniconda/envs/cpac ]; then
 		conda create -y -n cpac python
 		source activate cpac
-		conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython
- 		pip install future prov simplejson lockfile pygraphviz nibabel nipype patsy memory_profiler psutil 
+		conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython pandas
+ 		pip install future prov simplejson lockfile pygraphviz nibabel nipype patsy memory_profiler psutil INDI-tools
 		echo 'source activate cpac' >> ~/cpac_env.sh
-        cd /tmp
-        git clone https://github.com/FCP-INDI/INDI-Tools.git
-        cd INDI-Tools/
-        python setup.py install
-		source deactivate
+	source deactivate
 	fi
 }
 
@@ -144,7 +140,7 @@ function python_dependencies_installed {
 		return 1
 	fi
 	source activate cpac &> /dev/null
-	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx, prov, future, simplejson, memory_profiler, psutil" 2> /dev/null && which ipython &> /dev/null
+	python -c "import cython, numpy, scipy, matplotlib, networkx, traits, yaml, jinja2, nose, pip, lockfile, pygraphviz, nibabel, nipype, wx, prov, future, simplejson, memory_profiler, psutil, pandas, indi_aws, indi_schedulers" 2> /dev/null && which ipython &> /dev/null
 	status=$?
 	source deactivate &> /dev/null
 	return $status
@@ -304,44 +300,48 @@ function install_ants {
 		install_cpac_env
 		exit 1
 	fi
-    	cd /tmp
-    	git clone https://github.com/stnava/ANTs.git
-	if [ $LOCAL -eq 0 ]; then
-		mkdir /opt/ants
-		cd /opt/ants
-		cmake -c -g /tmp/ANTs
-		make -j 4
-		ANTSPATH=/opt/ants/bin
-		cp /tmp/ANTs/Scripts/antsIntroduction.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsAtroposN4.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsBrainExtraction.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsCorticalThickness.sh ${ANTSPATH}
-		export ANTSPATH
-		export PATH=/opt/ants/bin:$PATH
-		echo '# Path to ANTS' >> ~/cpac_env.sh
-		echo 'export ANTSPATH=/opt/ants/bin/' >> ~/cpac_env.sh
-		echo 'export PATH=/opt/ants/bin:$PATH' >> ~/cpac_env.sh
-	elif [ $LOCAL -eq 1 ]; then
-		mkdir ~/ants
-		cd ~/ants
-		cmake -c -g /tmp/ANTs
-		make -j 4
-		ANTSPATH=~/ants/bin
-		cp /tmp/ANTs/Scripts/antsIntroduction.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsAtroposN4.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsBrainExtraction.sh ${ANTSPATH}
-		cp /tmp/ANTs/Scripts/antsCorticalThickness.sh ${ANTSPATH}
-		export ANTSPATH
-                export PATH=/opt/ants/bin:$PATH
-		echo '# Path to ANTS' >> ~/cpac_env.sh
-		echo 'export ANTSPATH=~/ants/bin/' >> ~/cpac_env.sh
-		echo 'export PATH=~/ants/bin:$PATH' >> ~/cpac_env.sh
-	else
-		echo Invalid value for variable 'LOCAL'.
-		echo This script is unable to determine whether or not you are running it as root.
-		echo '[ '$(date)' ] : ANTS could not be installed (unable to determine if root).' >> ~/cpac.log
-		cd $INIT_DIR
-		exit 1
+    if [ $DISTRO == 'CENTOS' ]; then
+        cd /tmp
+        git clone https://github.com/stnava/ANTs.git
+        if [ $LOCAL -eq 0 ]; then
+            mkdir /opt/ants
+            cd /opt/ants
+            cmake -c -g /tmp/ANTs
+            make -j 4
+            ANTSPATH=/opt/ants/bin
+            cp /tmp/ANTs/Scripts/antsIntroduction.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsAtroposN4.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsBrainExtraction.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsCorticalThickness.sh ${ANTSPATH}
+            export ANTSPATH
+            export PATH=/opt/ants/bin:$PATH
+            echo '# Path to ANTS' >> ~/cpac_env.sh
+            echo 'export ANTSPATH=/opt/ants/bin/' >> ~/cpac_env.sh
+            echo 'export PATH=/opt/ants/bin:$PATH' >> ~/cpac_env.sh
+        elif [ $LOCAL -eq 1 ]; then
+            mkdir ~/ants
+            cd ~/ants
+            cmake -c -g /tmp/ANTs
+            make -j 4
+            ANTSPATH=~/ants/bin
+            cp /tmp/ANTs/Scripts/antsIntroduction.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsAtroposN4.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsBrainExtraction.sh ${ANTSPATH}
+            cp /tmp/ANTs/Scripts/antsCorticalThickness.sh ${ANTSPATH}
+            export ANTSPATH
+                    export PATH=/opt/ants/bin:$PATH
+            echo '# Path to ANTS' >> ~/cpac_env.sh
+            echo 'export ANTSPATH=~/ants/bin/' >> ~/cpac_env.sh
+            echo 'export PATH=~/ants/bin:$PATH' >> ~/cpac_env.sh
+        else
+            echo Invalid value for variable 'LOCAL'.
+            echo This script is unable to determine whether or not you are running it as root.
+            echo '[ '$(date)' ] : ANTS could not be installed (unable to determine if root).' >> ~/cpac.log
+            cd $INIT_DIR
+            exit 1
+        fi
+	elif [ $DISTRO == 'UBUNTU' ]; then
+        apt-get install ants
 	fi
 }
 
@@ -391,7 +391,7 @@ function install_cpac_resources {
 	echo "Installing C-PAC Image Resources."
 	# Determines if C-PAC image resources are all already installed.
 	RES_PRES=1
-	for res in MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz MNI152_T1_2mm_brain_symmetric.nii.gz MNI152_T1_2mm_symmetric.nii.gz MNI152_T1_3mm_brain_mask_dil.nii.gz MNI152_T1_3mm_brain_mask.nii.gz MNI152_T1_3mm_brain_mask_symmetric_dil.nii.gz MNI152_T1_3mm_brain.nii.gz MNI152_T1_3mm_brain_symmetric.nii.gz MNI152_T1_3mm.nii.gz MNI152_T1_3mm_symmetric.nii.gz; do
+	for res in MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz MNI152_T1_2mm_brain_symmetric.nii.gz MNI152_T1_2mm_symmetric.nii.gz MNI152_T1_3mm_brain_mask_dil.nii.gz MNI152_T1_3mm_brain_mask.nii.gz MNI152_T1_3mm_brain_mask_symmetric_dil.nii.gz MNI152_T1_3mm_brain.nii.gz MNI152_T1_3mm_brain_symmetric.nii.gz MNI152_T1_3mm.nii.gz MNI152_T1_3mm_symmetric.nii.gz MNI152_T1_4mm_brain.nii.gz MNI152_T1_4mm.nii.gz; do
 		[ ! -f $FSLDIR/data/standard/$res ] && RES_PRES=0
 	done
 	[ ! -d $FSLDIR/data/standard/tissuepriors/2mm ] || [ ! -d $FSLDIR/data/standard/tissuepriors/3mm ] || [ ! -f $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz ] && RES_PRES=0 
@@ -411,10 +411,11 @@ function install_cpac_resources {
 		exit 1
 	fi
 	cd /tmp
-	wget http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz
-	tar xfz cpac_resources.tgz 2> /dev/null
+	wget http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz
+	tar xfz cpac_resources.tar.gz 2> /dev/null
 	cd cpac_image_resources
 	cp -n MNI_3mm/* $FSLDIR/data/standard
+	cp -n MNI_4mm/* $FSLDIR/data/standard
 	cp -n symmetric/* $FSLDIR/data/standard
 	cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors
 	cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
@@ -472,13 +473,10 @@ function install_cpac_env {
 			cat ~/cpac_env.sh >> ~/.bashrc
 			rm ~/cpac_env.sh
 		elif [ $LOCAL -eq 0 ]; then
-			if [ -f /etc/profile.d/cpac_env.sh ]; then
-				# Since functions will not re-install already installed software, this should only append
-				# packages that weren't already in cpac_env.sh.
-				cat ~/cpac_env.sh >> /etc/profile.d/cpac_env.sh
-				rm ~/cpac_env.sh
-			else
-				mv ~/cpac_env.sh /etc/profile.d/
+            # Since functions will not re-install already installed software, this should only append
+            # packages that weren't already in cpac_env.sh.
+            cat ~/cpac_env.sh >> /etc/bash.bashrc
+            rm ~/cpac_env.sh
 			fi
 		fi
 	fi

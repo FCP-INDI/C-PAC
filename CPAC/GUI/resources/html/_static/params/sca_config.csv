@@ -1,0 +1,3 @@
+runSCA,Run seed-based correlation analysis. Must have defined roiSpecificationFileForSCA and maskSpecificationFileForSCA.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+sca_roi_paths,A list of paths to ROI masks.,"Denote which analyses to run for each ROI path by listing 1s or 0s.  For example, if you wish to run Avg and MultReg, you would enter: '/path/to/ROI.nii.gz': 1,0,1"
+drNorm,Normalize time series before running dual regression.,A boolean (‘True’ or ‘False’).

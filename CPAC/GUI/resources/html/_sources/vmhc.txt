@@ -15,7 +15,7 @@ The schematic above (adapted from Gee et al., 2011) illustrates how VMHC compare
 
 Computation and Analysis Considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-VMHC assumes symmetric morphology between hemispheres. As this assumption does not hold for real brains, images must be transformed before VMHC can be calculated. In CPAC, anatomical images are transformed to fit a symmetric template. Functional data is then transformed to fit the new symmetrical anatomical image. VMHC is computed as the functional connectivity between any pair of symmetric interhemispheric voxels. For more details on how CPAC computes these steps, please see the `VMHC Page of the developer documentation <http://fcp-indi.github.com/docs/developer/workflows/vmhc.html>`_. 
+VMHC assumes symmetric morphology between hemispheres. As this assumption does not hold for real brains, images must be transformed before VMHC can be calculated. In CPAC, anatomical images are transformed to fit a symmetric template. Functional data is then transformed to fit the new symmetrical anatomical image. VMHC is computed as the functional connectivity between any pair of symmetric interhemispheric voxels. For more details on how CPAC computes these steps, please see the VMHC Page of the developer documentation . 
 
 It is worth noting that VMHC is somewhat affected by the level of spatial smoothing used. Specifically, smoothing improves the correspondence between homotopic regions and results in greater VMHC strength across subjects. Importantly however, smoothing does not affect the overall pattern of VMHC.
 
@@ -45,14 +45,24 @@ Configuring CPAC to run VMHC
 
 #. **FLIRT Configuration File - [path]:** Included as part of the 'Image Resource Files' package available on the Install page of the User Guide. It is not necessary to change this path unless you intend to use a non-standard symmetric template.
 
+Configuration Without the GUI
+""""""""""""""""""""""""""""""
+
+The following key/value pairs must be defined in your :doc:`pipeline configuration YAML </pipeline_config>` for C-PAC to run anatomical preprocessing:
+
+.. csv-table::
+    :header: "Key","Description","Potential Values"
+    :widths: 5,30,15
+    :file: _static/params/vmhc_config.csv
+
 References
 ^^^^^^^^^^
-Gee, D. G., Biswal, B. B., Kelly, C., Stark, D. E., Margulies, D. S., Shehzad, Z., Uddin, L. Q., et al. (2011). `Low frequency fluctuations reveal integrated and segregated processing among the cerebral hemispheres </http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3134281/>`_. Neuroimage, 54(1), 517–527.
+Gee, D. G., Biswal, B. B., Kelly, C., Stark, D. E., Margulies, D. S., Shehzad, Z., Uddin, L. Q., et al. (2011). Low frequency fluctuations reveal integrated and segregated processing among the cerebral hemispheres . Neuroimage, 54(1), 517–527.
 
-Kelly, C., Zuo, X.-N., Gotimer, K., Cox, C. L., Lynch, L., Brock, D., Imperati, D., et al. (2011). `Reduced interhemispheric resting state functional connectivity in cocaine addiction <http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3056937/>`_. Biological Psychiatry, 69(7), 684–692.
+Kelly, C., Zuo, X.-N., Gotimer, K., Cox, C. L., Lynch, L., Brock, D., Imperati, D., et al. (2011). Reduced interhemispheric resting state functional connectivity in cocaine addiction . Biological Psychiatry, 69(7), 684–692.
 
 Salvador R, Suckling J, Coleman MR, Pickard JD, Menon D, Bullmore E (2005) Neurophysiological architecture of functional magnetic resonance images of human brain. Cereb Cortex 15:1332–1342. 
 
-Stark, D. E., Margulies, D. S., Shehzad, Z. E., Reiss, P., Kelly, A. M. C., Uddin, L. Q., Gee, D. G., et al. (2008). `Regional variation in interhemispheric coordination of intrinsic hemodynamic fluctuations <http://www.jneurosci.org/content/28/51/13754.long>`_. The Journal of Neuroscience, 28(51), 13754–13764.
+Stark, D. E., Margulies, D. S., Shehzad, Z. E., Reiss, P., Kelly, A. M. C., Uddin, L. Q., Gee, D. G., et al. (2008). Regional variation in interhemispheric coordination of intrinsic hemodynamic fluctuations . The Journal of Neuroscience, 28(51), 13754–13764.
 
-Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., Grzadzinski, R., et al. (2010). `Growing together and growing apart: regional and sex differences in the lifespan developmental trajectories of functional homotopy <http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2997358/>`_. The Journal of Neuroscience, 30(45), 15034–15043. 
+Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., Grzadzinski, R., et al. (2010). Growing together and growing apart: regional and sex differences in the lifespan developmental trajectories of functional homotopy . The Journal of Neuroscience, 30(45), 15034–15043. 

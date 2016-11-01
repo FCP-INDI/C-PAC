@@ -1,0 +1,10 @@
+pipelineName,A name that you would like to give to this pipeline.,A string.
+workingDirectory,The working directory to be used by the pipeline during the run.,"A path (e.g.,’/data/my_analysis/working’)."
+crashLogDirectory,The directory where C-PAC will store crash logs.,"A path (e.g.,’/data/my_analysis/crash’)."
+logDirectory,Directory where CPAC should place run logs.,"A path (e.g.,’/data/my_analysis/logs’)."
+outputDirectory,The output directory for the pipeline.,"A path (e.g.,’/data/my_analysis/output’)."
+awsOutputBucketCredentials,Path to a set of AWS credentials if your output directory is set to an S3 bucket.,"A path (e.g.,’/data/my_analysis/credentials.csv’)."
+s3Encryption,Enable server-side 256-AES encryption on data to the S3 bucket.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+runSymbolicLinks,"Create a user-friendly, well-organized version of the output directory.","A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+removeWorkingDir,"Deletes the contents of the Working Directory after running. Saves disk space, but steps will need to be re-run.","True,False"
+reGenerateOutputs,Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.,"True,False"

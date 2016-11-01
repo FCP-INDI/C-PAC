@@ -1,22 +1,23 @@
-<!DOCTYPE html>
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Seed-based Correlation Analysis (SCA) &mdash; C-PAC 0.3.9 Alpha documentation</title>
+    <title>Seed-based Correlation Analysis (SCA) and Dual Regression &mdash; C-PAC 1.0.0 Beta documentation</title>
     
-    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/print.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.3.9 Alpha',
+        URL_ROOT:    '',
+        VERSION:     '1.0.0 Beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,29 +26,34 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
-    <link rel="up" title="Outputs and Measures" href="derivs.html" />
-    <link rel="next" title="Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)" href="alff.html" />
-    <link rel="prev" title="Outputs and Measures" href="derivs.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
-
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/theme_extras.js"></script>
+    <link rel="top" title="C-PAC 1.0.0 Beta documentation" href="index.html" />
+    <link rel="up" title="Computable Derivatives" href="derivatives.html" />
+    <link rel="next" title="Voxel-Mirrored Homotopic Connectivity (VMHC)" href="vmhc.html" />
+    <link rel="prev" title="Computable Derivatives" href="derivatives.html" /> 
   </head>
-  <body role="document">
-
-<div class="container">
-  <div class="row">
-    <div class="col-md-12">
+  <body>
+      <div class="header"><img class="rightlogo" src="_static/cpac_logo.jpg" alt="Logo"/><h1 class="heading"><a href="index.html">
+          <span>C-PAC 1.0.0 Beta documentation</span></a></h1>
+        <h2 class="heading"><span>Seed-based Correlation Analysis (SCA) and Dual Regression</span></h2>
+      </div>
+      <div class="topnav">
       
-  <div class="section" id="seed-based-correlation-analysis-sca">
-<h1>Seed-based Correlation Analysis (SCA)<a class="headerlink" href="#seed-based-correlation-analysis-sca" title="Permalink to this headline">¶</a></h1>
+        <p>
+        «&#160;&#160;<a href="derivatives.html">Computable Derivatives</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="vmhc.html">Voxel-Mirrored Homotopic Connectivity (VMHC)</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="seed-based-correlation-analysis-sca-and-dual-regression">
+<h1>Seed-based Correlation Analysis (SCA) and Dual Regression<a class="headerlink" href="#seed-based-correlation-analysis-sca-and-dual-regression" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="connectivity-in-the-brain">
 <h2>Connectivity in the Brain<a class="headerlink" href="#connectivity-in-the-brain" title="Permalink to this headline">¶</a></h2>
 <p>Brain connectivity can refer to multiple distinct concepts, and it is important to understand the differences between them. When referring to anatomy, connectivity may refer to physical connections between brain areas, such as the long-distance fiber tracts revealed through methods such as Diffusion Tensor Imaging. Another form of connectivity that is commonly discussed in the literature is &#8220;functional connectivity&#8221;, which is what we will be focusing on here.</p>
@@ -64,66 +70,106 @@
 </div>
 <p>Astute readers will note that the pattern of connectivity mapped above closely resembles the anatomy of the Default Network. Indeed, SCA may be used to explore functional networks that share similar patterns of activity.</p>
 </div>
+<div class="section" id="dual-regression">
+<h2>Dual Regression<a class="headerlink" href="#dual-regression" title="Permalink to this headline">¶</a></h2>
+<p>Many large-scale functional brain networks have been shown to be reproducible across subjects (Smith et al, 2009; Yeo et al, 2011). Dual Regression (Beckman et al, 2009; Filippini et al, 2009) allows researchers to investigate individual and group differences in the structure of these networks, as well as to identify subject-specific networks based on networks identified at the group level.</p>
+<p>The following steps are performed for each spatial map provided for Dual Regression:</p>
+<ol class="arabic simple">
+<li><strong>Spatial Regression:</strong> The spatial map is used as a spatial regressor in a GLM to find the time series associated with the voxels in that map.</li>
+<li><strong>Temporal Regression:</strong> The time series found by spatial regression is then used as a temporal regressor to find the full set of voxels associated with that time series.</li>
+</ol>
+<p>The result of these steps is a subject-specific spatial map based on the original spatial map.</p>
+<p>The spatial maps used during Dual Regression can be generated any number of ways, but a common practice is to use Independent Component Analysis (Smith et al, 2009) or clustering algorithms (Yeo et al, 2011) to generate group-specific maps of large-scale brain networks.</p>
+</div>
 <div class="section" id="configuring-c-pac">
 <h2>Configuring C-PAC<a class="headerlink" href="#configuring-c-pac" title="Permalink to this headline">¶</a></h2>
 <p>Before SCA can be calculated, you <strong>must</strong> first extract a seed time series from which to calculate correlations. This is done by configuring and running <a class="reference internal" href="tse.html"><em>Time Series Extraction</em></a>.  <strong>You will not be able to proceed in the GUI without first entering in an ROI Specification, and will receive an error if the specification is not defined.</strong></p>
 <div class="figure">
-<img alt="_images/sca_gui_1.png" src="_images/sca_gui_1.png" />
+<img alt="_images/sca_gui.png" src="_images/sca_gui.png" />
 </div>
-<ol class="arabic simple">
-<li><strong>Run Seed-based Correlation Analysis (SCA) - [Off, On]:</strong>  For each extracted ROI Average and/or ROI Voxelwise time series, CPAC will generate a whole-brain correlation map. It should be noted that for a given seed/ROI, SCA maps for ROI Average and ROI Voxelwise time series will be the same.</li>
+<ol class="arabic">
+<li><p class="first"><strong>Run Seed-based Correlation Analysis (SCA) - [Off, On]:</strong>  For each extracted ROI Average and/or ROI Voxelwise time series, CPAC will generate a whole-brain correlation map. It should be noted that for a given seed/ROI, SCA maps for ROI Average and ROI Voxelwise time series will be the same.</p>
+</li>
+<li><dl class="first docutils">
+<dt><strong>SCA ROI Paths - [path dialogue]:</strong> Clicking on the <em>+</em> icon to the right of the box here will bring up a dialog where you can define multiple paths to NifTIs containing ROI masks.  You may add multiple ROIs to the box.  Three columns within the box can be checked on and off to enable specific options for SCA/Dual Regression:</dt>
+<dd><ul class="first last simple">
+<li>Avg - Run seed-based correlation analysis using the average time series of each ROI.</li>
+<li>DualReg - Run dual regression for each ROI.</li>
+<li>MultiReg - Run a multiple regression SCA where C-PAC will enter all extracted time series from ROI Average TSE, ROI Voxelwise TSE, and Spatial Regression into a single multiple regression model and output a single correlation map.</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first"><strong>Normalize Time Series (Dual Regression) - [True, False]:</strong>  Normalize each time series before running Dual Regression.</p>
+</li>
 </ol>
-<div class="figure">
-<img alt="_images/sca_gui_2.png" src="_images/sca_gui_2.png" />
+<div class="section" id="configuration-without-the-gui">
+<h3>Configuration Without the GUI<a class="headerlink" href="#configuration-without-the-gui" title="Permalink to this headline">¶</a></h3>
+<p>The following key/value pairs must be defined in your <a class="reference internal" href="pipeline_config.html"><em>pipeline configuration YAML</em></a> for C-PAC to run SCA:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="10%" />
+<col width="60%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key</th>
+<th class="head">Description</th>
+<th class="head">Potential Values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>runSCA</td>
+<td>Run seed-based correlation analysis. Must have defined roiSpecificationFileForSCA and maskSpecificationFileForSCA.</td>
+<td>A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’).</td>
+</tr>
+<tr class="row-odd"><td>sca_roi_paths</td>
+<td>A list of paths to ROI masks.</td>
+<td>Denote which analyses to run for each ROI path by listing 1s or 0s.  For example, if you wish to run Avg and MultReg, you would enter: &#8216;/path/to/ROI.nii.gz&#8217;: 1,0,1</td>
+</tr>
+<tr class="row-even"><td>drNorm</td>
+<td>Normalize time series before running dual regression.</td>
+<td>A boolean (‘True’ or ‘False’).</td>
+</tr>
+</tbody>
+</table>
 </div>
-<ol class="arabic simple">
-<li><strong>Run Multiple Regression SCA - [Off, On]:</strong>  CPAC will enter all extracted time series from ROI Average TSE, ROI Voxelwise TSE, and Spatial Regression into a single multiple regression model and output a single correlation map.</li>
-<li><strong>Demean Time Series - [True, False]:</strong>  Demean each time series before running Multiple Regression SCA.</li>
-<li><strong>Normalize Time Series - [True, False]:</strong>  Normalize each time series before running Multiple Regression SCA.</li>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<p>C.F. Beckmann, C.E. Mackay, N. Filippini, and S.M. Smith. Group comparison of resting-state FMRI data using multi-subject ICA and dual regression . OHBM, 2009.</p>
+<ol class="upperalpha simple" start="14">
+<li>Filippini, B.J. MacIntosh, M.G. Hough, G.M. Goodwin, G.B. Frisoni, S.M. Smith, P.M. Matthews, C.F. Beckmann and C.E. Mackay. Distinct patterns of brain activity in young carriers of the APOE-ε4 allele . PNAS, 106(17):7209-14, 2009.</li>
 </ol>
-<p>You must also define at least one ROI mask containing the voxels you would like to correlate your seed with.  To do this perform the following steps after you have saved your YAML pipeline configuration file:</p>
-<ol class="arabic simple">
-<li>Create a text file named &#8216;mask_specs.txt&#8217; (or any other reasonable name of your choosing).</li>
-<li>For each line in &#8216;mask_specs.txt&#8217;, type in a full path to a binary-valued NifTI file that represents your ROI.</li>
-<li>Within your pipeline configuration .yml file, set maskSpecificationFileForSCA to the full path to &#8216;mask_specs.txt&#8217; (see &#8216;Configuration Using a YAML File&#8217; below).</li>
-</ol>
-<div class="section" id="configuration-using-a-yaml-file">
-<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
-<p>To configure seed-based correlation analysis options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
-<div class="highlight-python"><div class="highlight"><pre>maskSpecificationFileForSCA : /home/user/run/resources/mask_specs.txt
-runSCA = [0]
-runMultRegSCA : [1]
-mrsDemean : True
-mrsNorm : True
-</pre></div>
-</div>
-</div>
+<p>Smith, S. M., Fox, P. T., Miller, K. L., Glahn, D. C., Fox, P. M., Mackay, C. E., et al. (2009). Correspondence of the brain&#8217;s functional architecture during activation and rest. Proceedings of the National Academy of Sciences of the United States of America, 106(31), 13040–13045. doi:10.1073/pnas.0905267106</p>
+<p>Thomas Yeo, B. T., Krienen, F. M., Sepulcre, J., Sabuncu, M. R., Lashkari, D., Hollinshead, M., et al. (2011). The organization of the human cerebral cortex estimated by intrinsic functional connectivity. Journal of Neurophysiology, 106(3), 1125–1165. doi:10.1152/jn.00338.2011</p>
 </div>
 <div class="section" id="external-resources">
 <h2>External Resources<a class="headerlink" href="#external-resources" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference external" href="http://mindhive.mit.edu/node/58">mindhive - ConnectivityFAQ</a></li>
-<li><a class="reference external" href="http://www.scholarpedia.org/article/Brain_connectivity">Brain Connectivity - Scholarpedia</a></li>
+<li>mindhive - ConnectivityFAQ</li>
+<li>Brain Connectivity - Scholarpedia</li>
 </ul>
 </div>
 </div>
 
 
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="derivatives.html">Computable Derivatives</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="vmhc.html">Voxel-Mirrored Homotopic Connectivity (VMHC)</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2016, C-PAC Team.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
-      
-  </div>
-</div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2015, C-PAC Team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
-    </p>
-  </div>
-</footer>
   </body>
 </html>

@@ -1,0 +1,19 @@
+dataFormat : 'BIDS'
+
+bidsBaseDir : s3://fcp-indi/data/Projects/RocklandSample/RawDataBIDS
+
+anatomicalTemplate  :  None
+
+functionalTemplate  :   None
+
+subjectList  :  None 
+
+exclusionSubjectList  :  None 
+
+siteList  :  Rockland
+
+scanParametersCSV  :  /path/to/data/scan_parameters_nki.csv
+
+outputSubjectListLocation  :   /path/to/data/subjectlistoutput/
+
+subjectListName : ['NKI-RS']

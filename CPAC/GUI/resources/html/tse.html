@@ -1,22 +1,23 @@
-<!DOCTYPE html>
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Timeseries Extraction &mdash; C-PAC 0.3.9 Alpha documentation</title>
+    <title>Timeseries Extraction &mdash; C-PAC 1.0.0 Beta documentation</title>
     
-    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/print.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.3.9 Alpha',
+        URL_ROOT:    '',
+        VERSION:     '1.0.0 Beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,166 +26,176 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
-    <link rel="up" title="Outputs and Measures" href="derivs.html" />
-    <link rel="next" title="FSL Group Analysis" href="fsl_ga.html" />
-    <link rel="prev" title="Connectome-wide Association Studies (CWAS)" href="cwas.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
-
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/theme_extras.js"></script>
+    <link rel="top" title="C-PAC 1.0.0 Beta documentation" href="index.html" /> 
   </head>
-  <body role="document">
-
-<div class="container">
-  <div class="row">
-    <div class="col-md-12">
+  <body>
+      <div class="header"><img class="rightlogo" src="_static/cpac_logo.jpg" alt="Logo"/><h1 class="heading"><a href="index.html">
+          <span>C-PAC 1.0.0 Beta documentation</span></a></h1>
+        <h2 class="heading"><span>Timeseries Extraction</span></h2>
+      </div>
+      <div class="topnav">
       
+        <p>
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
   <div class="section" id="timeseries-extraction">
 <h1>Timeseries Extraction<a class="headerlink" href="#timeseries-extraction" title="Permalink to this headline">¶</a></h1>
-<p>C-PAC lets users easily export BOLD timeseries in a number of different ways. This can be useful for those wishing to undertake advanced analysis not included in C-PAC, but still take advantage of its robust pre-processing features. For instructions on how to use these seeds within C-PAC
-, please see the <a class="reference internal" href="sca.html"><em>Seed-based Correlation Analysis</em></a>.</p>
-<div class="section" id="define-new-seeds">
-<h2>Define New Seeds<a class="headerlink" href="#define-new-seeds" title="Permalink to this headline">¶</a></h2>
-<p>Users can easily define new spherical seeds (for use in Time Series Extraction and/or Seed-based Correlation Analysis)by providing a text file containing seed definitions. Seeds are defined by providing a seed label number, x/y/z coordinates in MNI space, seed radius (in mm), and resolution. For example:</p>
-<div class="highlight-python"><div class="highlight"><pre>1 -28 -40 -12 2 3mm
-2 -4 48 24 3 2mm
-</pre></div>
-</div>
-<p>If multiple seeds are specified with the same resolution, they will be grouped into a single file containing multiple seeds, with the values within each seed ROI set to the seed label number. Note that CPAC does not check for overlapping seeds. In the event that a voxel is present in multiple seeds defined here, the value of that voxel will be set to the sum of the two seed label numbers (effectively resulting in a new seed). <strong>You will need to confirm that the seeds you define define do not overlap before running CPAC.</strong></p>
-<div class="figure">
-<img alt="_images/tse_define_seeds.png" src="_images/tse_define_seeds.png" />
-</div>
-<ol class="arabic simple">
-<li><strong>Seed Specification File - [path]:</strong> A path to the text file defining seeds (see above).</li>
-<li><strong>Seed Output Directory - [path]:</strong> The directory where CPAC should write NIfTI files containing new seeds.</li>
-<li><strong>Use New Seeds In - [checkboxes]:</strong> Select the analyses that will use the seeds.  &#8220;ROI Average Time Series Extraction&#8221; must be selected for seed-based correlation analyses.  Select &#8220;None&#8221; if you just want to save the seeds.</li>
-</ol>
-</div>
-<div class="section" id="roi-timeseries-extraction">
-<h2>ROI Timeseries Extraction<a class="headerlink" href="#roi-timeseries-extraction" title="Permalink to this headline">¶</a></h2>
-<p>ROI Timeseries Extraction allows you to export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by the user.</p>
+<p>C-PAC lets you easily export BOLD timeseries in a number of different ways. This can be useful for those wishing to undertake advanced analysis not included in C-PAC, but still take advantage of its robust pre-processing features. For instructions on how to use these seeds within C-PAC
+, please see <a class="reference internal" href="sca.html"><em>Seed-based Correlation Analysis</em></a>.</p>
+<p>ROI Timeseries Extraction allows you to export the timeseries for one or more regions of interest (ROIs). This is done by calculating the average timeseries across all voxels within an ROI. As such, C-PAC will output one timeseries for each ROI specified by you.</p>
 <div class="figure">
 <img alt="_images/roi_timeseries.png" src="_images/roi_timeseries.png" />
 </div>
-<p>When an ROI is placed within a functionally homogeneous area, averaging signals in this way can produce a timeseries which may more accurately reflect the overall activity pattern in the region than does the timeseries of any individual voxel.</p>
-<div class="figure">
-<img alt="_images/tse_average.png" src="_images/tse_average.png" />
-</div>
-<ol class="arabic simple">
-<li><strong>Extract ROI Average Time Series - [Off, On]:</strong>  Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run seed-based correlation analysis.</li>
-<li><strong>ROI Specification File (TSE only) - [path]:</strong> A path to a text file containing the paths pointing to NifTIs withe ROIs.  This text file must have one NifTI per line.  If this is set to &#8220;None&#8221;, C-PAC will use the seeds created in &#8220;Define New Seeds&#8221;.</li>
-<li><strong>ROI Specification File (for use in SCA) - [path]</strong> The same as &#8220;ROI Specification File&#8221;, but for seed-based correlation analysis. Note: This must be defined or SCA will not be able to run.</li>
-<li><strong>Output Options - [CSV, NUMPY]:</strong> Choose to save outputs as a csv file or Numpy array.  Outputs are saved as a text file and 1D file by default.</li>
-</ol>
-</div>
-<div class="section" id="voxel-timeseries-extraction">
-<h2>Voxel Timeseries Extraction<a class="headerlink" href="#voxel-timeseries-extraction" title="Permalink to this headline">¶</a></h2>
-<p>Voxel Timeseries Extraction will export the individual timeseries of all voxels within one or more masks.</p>
+<p>When an ROI is placed within a functionally homogeneous area, averaging signals in this way can produce a timeseries which may more accurately reflect the overall activity pattern in the region than does the timeseries of any individual voxel. Voxel Timeseries Extraction will export the individual timeseries of all voxels within one or more masks.</p>
 <div class="figure">
 <img alt="_images/voxel_timeseries.png" src="_images/voxel_timeseries.png" />
 </div>
+</div>
+<div class="section" id="configuring-roi-time-series-extraction">
+<h1>Configuring ROI Time Series Extraction<a class="headerlink" href="#configuring-roi-time-series-extraction" title="Permalink to this headline">¶</a></h1>
 <div class="figure">
-<img alt="_images/tse_voxel.png" src="_images/tse_voxel.png" />
+<img alt="_images/tse_gui.png" src="_images/tse_gui.png" />
 </div>
-<ol class="arabic simple">
-<li><strong>Extract ROI Voxelwise Time Series - [Off, On]:</strong>  Extract the average time series of all voxels within one or more ROIs/seeds.</li>
-<li><strong>ROI Specification File (TSE only) - [path]:</strong> A path to a text file containing the paths pointing to NifTIs withe ROIs.  This text file must have one NifTI per line.  If this is set to &#8220;None&#8221;, C-PAC will use the seeds created in &#8220;Define New Seeds&#8221;.</li>
-<li><strong>ROI Specification File (for use in SCA) - [path]</strong> The same as &#8220;ROI Specification File&#8221;, but for seed-based correlation analysis. Note: This must be defined or SCA will not be able to run.</li>
-<li><strong>Output Options - [CSV, NUMPY]:</strong> Choose to save outputs as a csv file or Numpy array.  Outputs are saved as a text file and 1D file by default.</li>
+<ol class="arabic">
+<li><p class="first"><strong>Extract ROI Time Series - [Off, On]:</strong>  Extract the average time series of one or more ROIs/seeds. Must be enabled if you wish to run seed-based correlation analysis.</p>
+</li>
+<li><dl class="first docutils">
+<dt><strong>TSE ROI Paths - [path dialogue]:</strong> Clicking on the <em>+</em> icon to the right of the box here will bring up a dialog where you can define multiple paths to NifTIs containing ROI masks.  You may add multiple ROIs to the box.  Three columns within the box can be checked on and off to enable specific types of TSE:</dt>
+<dd><ul class="first last simple">
+<li>Avg - For each ROI, output the average of the all the voxel time series within that ROI.</li>
+<li>Voxel - For each ROI, output the individual voxel time series for all voxels within that ROI.</li>
+<li>SpatialReg - Use a spatial map as a spatial regressor in a GLM to find the time series associated with the voxels in that map (see <a class="reference internal" href="sca.html"><em>dual regression</em></a>).</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p class="first"><strong>Output Options - [CSV, NUMPY]:</strong> Choose to save outputs as a csv file or Numpy array.  Outputs are saved as a text file and 1D file by default.</p>
+</li>
 </ol>
+<div class="section" id="configuration-without-the-gui">
+<h2>Configuration Without the GUI<a class="headerlink" href="#configuration-without-the-gui" title="Permalink to this headline">¶</a></h2>
+<p>The following key/value pairs must be defined in your <a class="reference internal" href="pipeline_config.html"><em>pipeline configuration YAML</em></a> for C-PAC to run time series extraction:</p>
+<div class="section" id="roi-average-tse">
+<h3>ROI Average TSE<a class="headerlink" href="#roi-average-tse" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="10%" />
+<col width="60%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key</th>
+<th class="head">Description</th>
+<th class="head">Potential Values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>runROITimeseries</td>
+<td>Extract the average time series of one or more ROIs/seeds. Must be enabled for seed-based correlation analysis.</td>
+<td>A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’).</td>
+</tr>
+<tr class="row-odd"><td>roiSpecificationFile</td>
+<td>Full path to a text file containing a list of ROI NifTIs. Each line in this file should be the path to a NIfTI file containing one or more ROIs. All ROI mask values are converted to integers in C-PAC.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-even"><td>roiSpecificationFileForSCA</td>
+<td>Same as roiSpecificationFile, but used for seed-based correlation analysis.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-odd"><td>roiTSOutputs</td>
+<td>Extracted time series are written as both a text file and a 1D file by default. With this option, you may also save them out as CSV files or Numpy arrays.</td>
+<td>A two-element list, where the first element is a boolean (‘True’ or ‘False’) for whether or not to save out a CSV and the second element is a boolean for whether or not to save a Numpy array.</td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="section" id="vertex-timeseries-extraction">
-<h2>Vertex Timeseries Extraction<a class="headerlink" href="#vertex-timeseries-extraction" title="Permalink to this headline">¶</a></h2>
-<p>Voxel Timeseries Extraction uses FreeSurfer to generate a 2-dimensional model of the cortical surface. Activation data is transformed and registered to points (vertices) on the surface model, each with its own activation timeseries. These timeseries can then be extracted. <strong>Note: Vertex Timeseries Extraction is currently not fully implemented in C-PAC.  This section documents the current state of the graphical user interface for reference purposes only.</strong></p>
-<div class="figure">
-<img alt="_images/tse_vertex.png" src="_images/tse_vertex.png" />
-</div>
-<ol class="arabic simple">
-<li><strong>Run Surface Registration - [Off, On]:</strong> Register timeseries data to a surface model built by FreeSurfer. Required to run vertex timeseries extraction.  <strong>Note: CPAC currently doesn&#8217;t fully support surface extraction.</strong></li>
-<li><strong>Recon Subject Directory - [path]:</strong> The directory where FreeSurfer outputs surface data.</li>
-<li><strong>Run Vertices Timeseries - [Off, On]:</strong> Extract timeseries data for surface vertices. <strong>Note: CPAC currently doesn&#8217;t fully support surface extraction.</strong></li>
-<li><strong>Vertices Timeseries Output Formats - [CSV, NUMPY]:</strong> Choose to save outputs as a csv file or Numpy array.</li>
-</ol>
+<div class="section" id="roi-voxelwise-tse">
+<h3>ROI Voxelwise TSE<a class="headerlink" href="#roi-voxelwise-tse" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="10%" />
+<col width="60%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key</th>
+<th class="head">Description</th>
+<th class="head">Potential Values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>runVoxelTimeseries</td>
+<td>Extract the time series of all voxels within one or more ROIs/seeds.</td>
+<td>A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’).</td>
+</tr>
+<tr class="row-odd"><td>maskSpecificationFile</td>
+<td>Full path to a text file containing a list of mask NifTIs. Each line in this file should be the path to a NIfTI file containing a single mask. If you only wish to extract time series for newly defined spherical seed ROIs, set this field to None.</td>
+<td>A path or ‘None’.</td>
+</tr>
+<tr class="row-even"><td>maskSpecificationFileForSCA</td>
+<td>Same as maskSpecificationFile, but used for seed-based correlation analysis.</td>
+<td>A path or ‘None’.</td>
+</tr>
+<tr class="row-odd"><td>voxelTSOutputs</td>
+<td>Extracted time series are written as both a text file and a 1D file by default. With this option, you may also save them out as CSV files or Numpy arrays.</td>
+<td>A two-element list, where the first element is a boolean (‘True’ or ‘False’) for whether or not to save out a CSV and the second element is a boolean for whether or not to save a Numpy array.</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="spatial-regression">
-<h2>Spatial Regression<a class="headerlink" href="#spatial-regression" title="Permalink to this headline">¶</a></h2>
-<p>See: <a class="reference internal" href="dual_reg.html"><em>Dual Regression</em></a>.</p>
-<div class="section" id="configuration-using-a-yaml-file">
-<h3>Configuration Using a YAML File<a class="headerlink" href="#configuration-using-a-yaml-file" title="Permalink to this headline">¶</a></h3>
-<p>To configure time series extraction options within a YAML file, add the following lines to your file (with appropriate substitutions for paths):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Extract an average timeseries for each ROI</span>
-<span class="c"># Required if you wish to run ROI-based SCA</span>
-<span class="n">runROITimeseries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="c"># Export ROI timeseries data</span>
-<span class="c"># First value = Output .csv</span>
-<span class="c"># Second value = Output numPy array</span>
-<span class="c"># Options are True/False</span>
-<span class="n">roiTSOutputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">]</span>
-
-<span class="c"># Directory containing ROI definitions</span>
-<span class="c"># For best performance, all ROIs should be in a single file (see User Guide)</span>
-<span class="n">roiDirectoryPath</span> <span class="o">=</span> <span class="s">&#39;/path/to/roi_definitions_directory&#39;</span>
-
-<span class="c"># Extract timeseries data for all individual voxels within a mask</span>
-<span class="c"># Required if you wish to run voxel-based SCA</span>
-<span class="n">runVoxelTimeseries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="c"># Export voxel timeseries data</span>
-<span class="c"># First value = Output .csv</span>
-<span class="c"># Second value = Output numPy array</span>
-<span class="c"># Options are True/False</span>
-<span class="n">voxelTSOutputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
-
-<span class="c"># Directory contaning masks</span>
-<span class="c"># For best performance, all masks should be in a single file (see User Guide)</span>
-<span class="n">maskDirectoryPath</span> <span class="o">=</span> <span class="s">&#39;/path/to/mask_definitions_directory&#39;</span>
-
-<span class="c"># Register timeseries data to a surface model built by FreeSurfer</span>
-<span class="c"># Required to run vertex timeseries extraction</span>
-<span class="n">runSurfaceRegistraion</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="c"># Directory where FreeSurfer outputs surface data</span>
-<span class="c"># This should be the same as SUBJECTS_DIR in .bashrc</span>
-<span class="n">reconSubjectsDirectory</span> <span class="o">=</span> <span class="s">&#39;/path/to/fs_output_directory&#39;</span>
-
-<span class="c"># Extract timeseries data for surface vertices</span>
-<span class="n">runVerticesTimeSeries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="c"># Export vertex timeseries data</span>
-<span class="c"># First value = Output .csv</span>
-<span class="c"># Second value = Output numPy array</span>
-<span class="c"># Options are True/False</span>
-<span class="n">verticesTSOutputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
-</pre></div>
-</div>
+<h3>Spatial Regression<a class="headerlink" href="#spatial-regression" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="10%" />
+<col width="60%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key</th>
+<th class="head">Description</th>
+<th class="head">Potential Values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>runSpatialRegression</td>
+<td>Extract the time series from one or more existing spatial maps (such as an ICA map). Required if you wish to run Dual Regression.</td>
+<td>A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’).</td>
+</tr>
+<tr class="row-odd"><td>spatialPatternMaps</td>
+<td>Full path to a text file containing a list spatial maps. Each line in this file should be the path to a 4D NIfTI file containing one spatial map per volume.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-even"><td>spatialDemean</td>
+<td>Demean spatial maps before running spatial regression.</td>
+<td>A boolean (‘True’ or ‘False’).</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 </div>
 
 
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2016, C-PAC Team.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
-      
-  </div>
-</div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2015, C-PAC Team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
-    </p>
-  </div>
-</footer>
   </body>
 </html>

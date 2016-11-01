@@ -46,7 +46,7 @@ def prep_basc_workflow(c, subject_infos):
     wf.connect(b, 'outputspec.ismap_imgs',
                ds, 'ismap_imgs')
 
-    wf.run(plugin='ResourceMultiProc',
+    wf.run(plugin='MultiProc',
                          plugin_args={'n_procs': c.numCoresPerSubject})
 
 

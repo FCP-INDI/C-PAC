@@ -1,22 +1,23 @@
-<!DOCTYPE html>
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Voxel-Mirrored Homotopic Connectivity (VMHC) &mdash; C-PAC 0.3.9 Alpha documentation</title>
+    <title>Voxel-Mirrored Homotopic Connectivity (VMHC) &mdash; C-PAC 1.0.0 Beta documentation</title>
     
-    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.2.0/css/bootstrap-theme.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/print.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.3.9 Alpha',
+        URL_ROOT:    '',
+        VERSION:     '1.0.0 Beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -25,27 +26,32 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.2.0/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
-    <link rel="top" title="C-PAC 0.3.9 Alpha documentation" href="index.html" />
-    <link rel="up" title="Outputs and Measures" href="derivs.html" />
-    <link rel="next" title="Bootstrap Analysis of Stable Clusters (BASC)" href="basc.html" />
-    <link rel="prev" title="Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)" href="alff.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
-
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/theme_extras.js"></script>
+    <link rel="top" title="C-PAC 1.0.0 Beta documentation" href="index.html" />
+    <link rel="up" title="Computable Derivatives" href="derivatives.html" />
+    <link rel="next" title="Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)" href="alff.html" />
+    <link rel="prev" title="Seed-based Correlation Analysis (SCA) and Dual Regression" href="sca.html" /> 
   </head>
-  <body role="document">
-
-div class="container">
-  <div class="row">
-    <div class="col-md-12">
+  <body>
+      <div class="header"><img class="rightlogo" src="_static/cpac_logo.jpg" alt="Logo"/><h1 class="heading"><a href="index.html">
+          <span>C-PAC 1.0.0 Beta documentation</span></a></h1>
+        <h2 class="heading"><span>Voxel-Mirrored Homotopic Connectivity (VMHC)</span></h2>
+      </div>
+      <div class="topnav">
       
+        <p>
+        «&#160;&#160;<a href="sca.html">Seed-based Correlation Analysis (SCA) and Dual Regression</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="alff.html">Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
   <div class="section" id="voxel-mirrored-homotopic-connectivity-vmhc">
 <h1>Voxel-Mirrored Homotopic Connectivity (VMHC)<a class="headerlink" href="#voxel-mirrored-homotopic-connectivity-vmhc" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="introduction-background">
@@ -62,7 +68,7 @@ div class="container">
 </div>
 <div class="section" id="computation-and-analysis-considerations">
 <h2>Computation and Analysis Considerations<a class="headerlink" href="#computation-and-analysis-considerations" title="Permalink to this headline">¶</a></h2>
-<p>VMHC assumes symmetric morphology between hemispheres. As this assumption does not hold for real brains, images must be transformed before VMHC can be calculated. In CPAC, anatomical images are transformed to fit a symmetric template. Functional data is then transformed to fit the new symmetrical anatomical image. VMHC is computed as the functional connectivity between any pair of symmetric interhemispheric voxels. For more details on how CPAC computes these steps, please see the <a class="reference external" href="http://fcp-indi.github.com/docs/developer/workflows/vmhc.html">VMHC Page of the developer documentation</a>.</p>
+<p>VMHC assumes symmetric morphology between hemispheres. As this assumption does not hold for real brains, images must be transformed before VMHC can be calculated. In CPAC, anatomical images are transformed to fit a symmetric template. Functional data is then transformed to fit the new symmetrical anatomical image. VMHC is computed as the functional connectivity between any pair of symmetric interhemispheric voxels. For more details on how CPAC computes these steps, please see the VMHC Page of the developer documentation .</p>
 <p>It is worth noting that VMHC is somewhat affected by the level of spatial smoothing used. Specifically, smoothing improves the correspondence between homotopic regions and results in greater VMHC strength across subjects. Importantly however, smoothing does not affect the overall pattern of VMHC.</p>
 <div class="figure">
 <img alt="_images/vmhc_zuo_smoothing.png" src="_images/vmhc_zuo_smoothing.png" />
@@ -87,33 +93,73 @@ div class="container">
 <li><strong>FLIRT Configuration File - [path]:</strong> Included as part of the &#8216;Image Resource Files&#8217; package available on the Install page of the User Guide. It is not necessary to change this path unless you intend to use a non-standard symmetric template.</li>
 </ol>
 </div>
+<div class="section" id="configuration-without-the-gui">
+<h3>Configuration Without the GUI<a class="headerlink" href="#configuration-without-the-gui" title="Permalink to this headline">¶</a></h3>
+<p>The following key/value pairs must be defined in your <a class="reference internal" href="pipeline_config.html"><em>pipeline configuration YAML</em></a> for C-PAC to run anatomical preprocessing:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="10%" />
+<col width="60%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Key</th>
+<th class="head">Description</th>
+<th class="head">Potential Values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>runVMHC</td>
+<td>Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.</td>
+<td>A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’).</td>
+</tr>
+<tr class="row-odd"><td>template_symmetric_brain_only</td>
+<td>The path to the symmetric brain template from the C-PAC resources. You should be able to use the value from the example configuration. You would only use a different path if using a different symmetric template.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-even"><td>template_symmetric_skull</td>
+<td>The path to the symmetric brain template (with skull) from the C-PAC resources. You should be able to use the value from the example configuration. You would only use a different path if using a different symmetric template.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-odd"><td>dilated_symmetric_brain_mask</td>
+<td>The path to the symmetric brain template (dilated) from the C-PAC resources. You should be able to use the value from the example configuration. You would only use a different path if using a different symmetric template.</td>
+<td>A path.</td>
+</tr>
+<tr class="row-even"><td>configFileTwomm</td>
+<td>The path to the FLIRT configuration file for the symmetric template from the C-PAC resources. You should be able to use the value from the example configuration. You would only use a different path if using a different symmetric template.</td>
+<td>A path.</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div class="section" id="references">
 <h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
-<p>Gee, D. G., Biswal, B. B., Kelly, C., Stark, D. E., Margulies, D. S., Shehzad, Z., Uddin, L. Q., et al. (2011). <a class="reference external" href="/http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3134281/">Low frequency fluctuations reveal integrated and segregated processing among the cerebral hemispheres</a>. Neuroimage, 54(1), 517–527.</p>
-<p>Kelly, C., Zuo, X.-N., Gotimer, K., Cox, C. L., Lynch, L., Brock, D., Imperati, D., et al. (2011). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3056937/">Reduced interhemispheric resting state functional connectivity in cocaine addiction</a>. Biological Psychiatry, 69(7), 684–692.</p>
+<p>Gee, D. G., Biswal, B. B., Kelly, C., Stark, D. E., Margulies, D. S., Shehzad, Z., Uddin, L. Q., et al. (2011). Low frequency fluctuations reveal integrated and segregated processing among the cerebral hemispheres . Neuroimage, 54(1), 517–527.</p>
+<p>Kelly, C., Zuo, X.-N., Gotimer, K., Cox, C. L., Lynch, L., Brock, D., Imperati, D., et al. (2011). Reduced interhemispheric resting state functional connectivity in cocaine addiction . Biological Psychiatry, 69(7), 684–692.</p>
 <p>Salvador R, Suckling J, Coleman MR, Pickard JD, Menon D, Bullmore E (2005) Neurophysiological architecture of functional magnetic resonance images of human brain. Cereb Cortex 15:1332–1342.</p>
-<p>Stark, D. E., Margulies, D. S., Shehzad, Z. E., Reiss, P., Kelly, A. M. C., Uddin, L. Q., Gee, D. G., et al. (2008). <a class="reference external" href="http://www.jneurosci.org/content/28/51/13754.long">Regional variation in interhemispheric coordination of intrinsic hemodynamic fluctuations</a>. The Journal of Neuroscience, 28(51), 13754–13764.</p>
-<p>Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., Grzadzinski, R., et al. (2010). <a class="reference external" href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2997358/">Growing together and growing apart: regional and sex differences in the lifespan developmental trajectories of functional homotopy</a>. The Journal of Neuroscience, 30(45), 15034–15043.</p>
+<p>Stark, D. E., Margulies, D. S., Shehzad, Z. E., Reiss, P., Kelly, A. M. C., Uddin, L. Q., Gee, D. G., et al. (2008). Regional variation in interhemispheric coordination of intrinsic hemodynamic fluctuations . The Journal of Neuroscience, 28(51), 13754–13764.</p>
+<p>Zuo, X.-N., Kelly, C., Di Martino, A., Mennes, M., Margulies, D. S., Bangaru, S., Grzadzinski, R., et al. (2010). Growing together and growing apart: regional and sex differences in the lifespan developmental trajectories of functional homotopy . The Journal of Neuroscience, 30(45), 15034–15043.</p>
 </div>
 </div>
 
 
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="sca.html">Seed-based Correlation Analysis (SCA) and Dual Regression</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="alff.html">Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF)</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2016, C-PAC Team.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
-      
-  </div>
-</div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2015, C-PAC Team.<br/>
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.<br/>
-    </p>
-  </div>
-</footer>
   </body>
 </html>

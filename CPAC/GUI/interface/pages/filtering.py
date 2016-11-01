@@ -14,16 +14,16 @@ class Filtering(wx.html.HtmlWindow):
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/temporal.html'))
+        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/nuisance.html'))
         
 #        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/temporal.html").code
+#            code = urlopen("http://fcp-indi.github.io/docs/user/nuisance.html").code
 #            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/temporal.html')
+#                self.LoadPage('http://fcp-indi.github.io/docs/user/nuisance.html')
 #            else:
-#                self.LoadFile('html/temporal.html')
+#                self.LoadFile('html/nuisance.html')
 #        except:
-#            self.LoadFile('html/temporal.html')
+#            self.LoadFile('html/nuisance.html')
             
             
     def get_counter(self):

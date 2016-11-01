@@ -1,0 +1,4 @@
+runScrubbing,Remove volumes exhibiting excessive motion. You must specify a threshold with the ‘scrubbingThreshold’ key.,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+scrubbingThreshold,The maximum acceptable Framewise Displacement (FD) in millimeters.,A list containing decimal values.
+numRemovePrecedingFrames,Number of volumes to remove preceeding a volume with excessive FD.,An integer.
+numRemoveSubsequentFrames,Number of volumes to remove subsequent to a volume with excessive FD.,An integer.

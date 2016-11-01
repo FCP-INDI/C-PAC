@@ -1,0 +1,2 @@
+runMedianAngleCorrection,Run Median Angle Correction,"A list where ‘1’ represents ‘yes’ and ‘0’ represents ‘no’ (e.g., ‘[1]’)."
+targetAngleDeg,The target angle used during median angle correction.,"A list containing an integer representing the degrees (e.g., ‘[90]’)."
