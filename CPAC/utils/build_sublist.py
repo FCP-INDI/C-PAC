@@ -555,7 +555,7 @@ def return_s3_filepaths(path_template, creds_path=None, bids_flag=False):
     import os
     import re
 
-    from CPAC.AWS import fetch_creds
+    from indi_aws import fetch_creds
 
     # Check for errors
     if not bids_flag:
@@ -648,7 +648,7 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
 
     # Import packages
     import os
-    from CPAC.AWS import fetch_creds
+    from indi_aws import fetch_creds
 
     # Init variables
     s3_str = 's3://'
