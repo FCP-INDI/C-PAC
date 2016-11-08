@@ -129,7 +129,7 @@ function install_python_dependencies {
 		conda create -y -n cpac python
 		source activate cpac
 		conda install -y cython numpy scipy matplotlib networkx traits pyyaml jinja2 nose ipython pip wxpython pandas
- 		pip install future prov simplejson lockfile pygraphviz nibabel nipype patsy memory_profiler psutil INDI-tools
+ 		pip install future==0.15.2 prov simplejson lockfile pygraphviz nibabel nipype patsy memory_profiler psutil INDI-tools
 		echo 'source activate cpac' >> ~/cpac_env.sh
 	source deactivate
 	fi
@@ -473,11 +473,10 @@ function install_cpac_env {
 			cat ~/cpac_env.sh >> ~/.bashrc
 			rm ~/cpac_env.sh
 		elif [ $LOCAL -eq 0 ]; then
-            # Since functions will not re-install already installed software, this should only append
-            # packages that weren't already in cpac_env.sh.
-            cat ~/cpac_env.sh >> /etc/bash.bashrc
-            rm ~/cpac_env.sh
-			fi
+            		# Since functions will not re-install already installed software, this should only append
+            		# packages that weren't already in cpac_env.sh.
+            		cat ~/cpac_env.sh >> /etc/bash.bashrc
+            		rm ~/cpac_env.sh
 		fi
 	fi
 }
