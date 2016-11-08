@@ -85,7 +85,7 @@ class ComputerSettings(wx.ScrolledWindow):
 
         self.page.add(label="Maximum Memory Per Participant (GB) ",
                       control=control.INT_CTRL,
-                      name='memoryAllocatedPerSubject',
+                      name='maximumMemoryPerParticipant',
                       type=dtype.NUM,
                       comment="The maximum amount of memory each " \
                               "participant's workflow can allocate. Use " \
@@ -104,7 +104,7 @@ class ComputerSettings(wx.ScrolledWindow):
 
         self.page.add(label="Maximum Number of Cores Per Participant ",
                       control=control.INT_CTRL,
-                      name='numCoresPerSubject',
+                      name='maxCoresPerParticipant',
                       type=dtype.NUM,
                       comment="The maximum amount of cores (on a single " \
                               "machine) or slots on a node (on a " \
@@ -125,7 +125,7 @@ class ComputerSettings(wx.ScrolledWindow):
 
         self.page.add(label="Number of Participants to Run Simultaneously ",
                       control=control.INT_CTRL,
-                      name='numSubjectsAtOnce',
+                      name='numParticipantsAtOnce',
                       type=dtype.NUM,
                       comment="The number of participant workflows to run " \
                               "at the same time. The maximum number of " \

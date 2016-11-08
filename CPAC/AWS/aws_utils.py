@@ -405,7 +405,7 @@ def test_bucket_access(creds_path, output_directory, subject_id):
     # Import packages
     import os
     import botocore.exceptions as bexc
-    from CPAC.AWS import fetch_creds
+    from indi_aws import fetch_creds
 
     # Init variables
     s3_str = 's3://'

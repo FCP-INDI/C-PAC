@@ -29,7 +29,8 @@ except ImportError:
 from build_helpers import INFO_VARS
 
 def configuration(parent_package='', top_path=None):
-    from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
+    from numpy.distutils.misc_util import Configuration, \
+                                          get_numpy_include_dirs
 
     config = Configuration(None, parent_package, top_path)
     config.set_options(ignore_setup_xxx_py=True,
@@ -101,7 +102,7 @@ def main(**extra_args):
           author_email=INFO_VARS['AUTHOR_EMAIL'],
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
-          requires=INFO_VARS['REQUIRES'],
+          requires = INFO_VARS['REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
           scripts = glob('scripts/*'),

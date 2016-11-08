@@ -304,6 +304,7 @@ class DataConfig(wx.Frame):
     def save(self, event, flag):
         
         config_list =[]
+        config_dict = {}
         def display(win, msg):
             wx.MessageBox(msg, "Error")
             win.SetBackgroundColour("pink")
@@ -338,6 +339,67 @@ class DataConfig(wx.Frame):
                         display(win,"%s field contains incorrect path. Please update the path!"%ctrl.get_name())
          
                 config_list.append((name, value, dtype))
+                config_dict[name] = (value, dtype)
+
+            # some final checks
+            if "BIDS" in config_dict["dataFormat"][0]:
+                if len(config_dict["anatomicalTemplate"][0]) > 0 or \
+                    len(config_dict["functionalTemplate"][0]) > 0:
+                    err = wx.MessageDialog(self, "Custom filepath template " \
+                                                 "provided, but data format "\
+                                                 "is set to BIDS instead of "\
+                                                 "Custom.",
+                                                 'Error!',
+                                                 wx.OK | wx.ICON_ERROR)
+                    err.ShowModal()
+                    err.Destroy()
+                    return
+
+                elif not os.path.exists(config_dict["bidsBaseDir"][0]):
+                    err = wx.MessageDialog(self, "Data format is set to " \
+                                                 "BIDS, but no BIDS base " \
+                                                 "directory is set, or the " \
+                                                 "BIDS directory does not " \
+                                                 "exist.",
+                                                 'Error!',
+                                                 wx.OK | wx.ICON_ERROR)
+                    err.ShowModal()
+                    err.Destroy()
+                    return
+
+            elif "Custom" in config_dict["dataFormat"][0]:
+                if len(config_dict["bidsBaseDir"][0]) > 0:
+                    err = wx.MessageDialog(self, "BIDS base directory " \
+                                                 "provided, but data format "\
+                                                 "is set to Custom instead " \
+                                                 "of BIDS.",
+                                                 'Error!',
+                                                 wx.OK | wx.ICON_ERROR)
+                    err.ShowModal()
+                    err.Destroy()
+                    return
+
+                if len(config_dict["anatomicalTemplate"][0]) == 0:
+                    err = wx.MessageDialog(self, "Custom data format " \
+                                                 "selected, but no custom " \
+                                                 "anatomical filepath " \
+                                                 "template provided.",
+                                                 'Error!',
+                                                 wx.OK | wx.ICON_ERROR)
+                    err.ShowModal()
+                    err.Destroy()
+                    return
+
+                if len(config_dict["functionalTemplate"][0]) == 0:
+                    err = wx.MessageDialog(self, "Custom data format " \
+                                                 "selected, but no custom " \
+                                                 "functional filepath " \
+                                                 "template provided.",
+                                                 'Error!',
+                                                 wx.OK | wx.ICON_ERROR)
+                    err.ShowModal()
+                    err.Destroy()
+                    return
                 
         except Exception, e:
 
@@ -352,7 +414,7 @@ class DataConfig(wx.Frame):
             return
             
         else:
-        
+
             dlg = wx.FileDialog(
                 self, message="Save file as ...", 
                 defaultDir=os.getcwd(), 
@@ -364,15 +426,17 @@ class DataConfig(wx.Frame):
                 path = dlg.GetPath()
                 dlg.Destroy()
                 f = open(path, 'w')
-                for ctrl in config_list:
+                for ctrl_name in config_dict.keys():
         
-                    if "/" in ctrl[1] or "%s" in ctrl[1] \
-                       or 'None' in ctrl[1] or ctrl[0] =='subjectListName': 
-                        value = ctrl[1]
+                    val = config_dict[ctrl_name][0]
+
+                    if "/" in val or "%s" in val or 'None' in val or \
+                        ctrl_name =='subjectListName': 
+                        value = val
                     else:
-                        value =[val.strip() for val in ctrl[1].split(',')]
+                        value =[item.strip() for item in val.split(',')]
                     
-                    print >>f, ctrl[0], " : ", value, "\n"
+                    print >>f, ctrl_name, " : ", value, "\n"
                 
                 f.close()
                 print "saving %s"%path
