@@ -425,7 +425,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
 # Get site, ppant, session-level directory indicies
 def return_dir_indices(path_template):
     '''
-    Function to return the site, particpant, and session-level
+    Function to return the site, participant, and session-level
     directory indicies based on splitting the path template by
     directory seperation '/'
     Parameters
@@ -858,7 +858,10 @@ def build_sublist(data_config_yml):
     for anat in anat_paths:
         anat_sp = anat.split('/')
         subj = anat_sp[anat_ppant_idx]
-        sess = anat_sp[anat_sess_idx]
+        try:
+            sess = anat_sp[anat_sess_idx]
+        except TypeError:
+            sess = "ses-1"
         if bids_flag:
             site = ''
         else:
@@ -874,7 +877,10 @@ def build_sublist(data_config_yml):
         # Extract info from filepath
         func_sp = func.split('/')
         subj = func_sp[func_ppant_idx]
-        sess = func_sp[func_sess_idx]
+        try:
+          sess = func_sp[func_sess_idx]
+        except TypeError:
+          sess = "ses-1"
         if bids_flag:
             site = ''
             scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
