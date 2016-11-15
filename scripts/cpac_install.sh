@@ -346,9 +346,8 @@ function install_python_dependencies {
         echo 'export PATH=~/miniconda/bin:${PATH}' >> ~/cpac_env.sh
     fi
 
-    # for docker dont install virtualenv
-    #conda create -y -n cpac python
-    #source activate cpac
+    conda create -y -n cpac python
+    source activate cpac
     conda install -y ${missing_conda_dependencies[@]}
     if [ $? -ne 0 ]
     then
@@ -385,12 +384,12 @@ function install_python_dependencies {
         #fi
     #done
 
-    #echo 'source activate cpac' >> ~/cpac_env.sh
+    echo 'source activate cpac' >> ~/cpac_env.sh
     cd /tmp
     git clone https://github.com/FCP-INDI/INDI-Tools.git
     cd INDI-Tools/
     python setup.py install
-    #source deactivate
+    source deactivate
     cd $INIT_DIR
 }
 
@@ -415,7 +414,7 @@ function get_missing_python_dependencies {
         missing_pip_dependencies=${pip_packages[@]}
         missing_conda_dependencies=${conda_packages[@]}
     else
-        # if we find an enviroment, then enable it
+        # if we find an environment, then enable it
         if [ -d ~/miniconda/envs/cpac ] || [ -d /usr/local/bin/miniconda/envs/cpac ]
         then
             echo "[ $(date) ] : Found C-PAC virtual environment, activating" >> ~/cpac.log
@@ -509,7 +508,7 @@ function install_fsl {
     fi
     if [ $DISTRO == 'CENTOS' ]; then
             cd /tmp
-        wget fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
+            wget fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
     fi
     if [ $LOCAL -eq 0 ]; then
         if [ $DISTRO == 'CENTOS' ]; then
@@ -623,16 +622,6 @@ function install_afni {
 
     wget http://afni.nimh.nih.gov/pub/dist/tgz/${AFNI_DOWNLOAD}.tgz
     tar xfz ${AFNI_DOWNLOAD}.tgz
-
-    #wget http://fcp-indi.s3.amazonaws.com/resources/cc_afni_trusty_openmp_64.tar.gz
-    #tar xfz cc_afni_trusty_openmp_64.tar.gz
-    #rm cc_afni_trusty_openmp_64.tar.gz
-    #AFNI_DOWNLOAD=afni
-
-    #git clone https://github.com/ccraddock/afni.git
-    #cd /tmp/afni/src
-    #cp Makefile.linux_openmp_64_trusty Makefile
-    #make vastness
 
     if [ $? -ne 0 ]
     then
@@ -894,7 +883,7 @@ function install_cpac {
         install_cpac_env
         exit 1
     fi
-    #source activate cpac
+    source activate cpac
     cd /tmp
     #wget https://github.com/FCP-INDI/C-PAC/archive/v1.0.0.tar.gz
     #tar xzvf v1.0.0.tar.gz
@@ -902,7 +891,7 @@ function install_cpac {
     cd C-PAC-1.0.0
     python setup.py install
     rm -rf /tmp/C-PAC-1.0.0
-    #source deactivate
+    source deactivate
 }
 
 function install_cpac_env {
