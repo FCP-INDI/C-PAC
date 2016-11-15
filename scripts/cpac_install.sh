@@ -28,10 +28,15 @@ centos7_packages=("mesa-libGLU-9.0.0-4.el7.x86_64" "gsl-1.15-13.el7.x86_64"\
 # are all of the ubuntu packages the same regardless of the version?
 ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-gtk-module" \
     "libexpat1-dev" "libgiftiio-dev" "libglib2.0-dev" "libglu1-mesa" "libglu1-mesa-dev" \
-    "libgsl0-dev" "libjpeg-progs" "libmotif-dev" "libxml2" "libxml2-dev" "libxext-dev" \
+    "libgsl0-dev" "libjpeg-progs"  "libxml2" "libxml2-dev" "libxext-dev" \
     "libxft2" "libxft-dev" "libxi-dev" "libxmu-headers" "libxmu-dev" "libxpm-dev" "libxslt1-dev" \
     "libxp6" "libxp-dev" "make" "mesa-common-dev" "mesa-utils" "netpbm" "pkg-config" \
     "build-essential" "xvfb" "xauth" "libgl1-mesa-dri" "tcsh" "unzip" "zlib1g-dev" "m4")
+
+ubuntu1204_packages=("lesstif2-dev")
+ubuntu1404_packages=("libmotif-dev")
+ubuntu1604_packages=("libmotif-dev")
+ubuntu1610_packages=("libmotif-dev")
 
 conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2" "nose" "ipython" "pip" "wxpython")
 
@@ -72,10 +77,29 @@ function set_system_deps {
         esac
     elif [ $DISTRO == 'UBUNTU' ]
     then
-        # take care of initing apt-get and installing wget
-        echo "!!!!!! CC"
-        apt-get update && apt-get upgrade -y && apt-get install -y wget
+        # add in the packages that are common to all
         system_pkgs=${ubuntu_packages[@]}
+	# take care of initing apt-get and installing wget
+        apt-get update && apt-get upgrade -y && apt-get install -y wget
+
+        # add in the packages that are specific to the redhat-release
+	version=$(lsb_release -r | awk '{print $2}')
+        case ${version} in
+    	    12.04)
+                system_pkgs+=(${ubuntu1204_packages})
+                ;;
+            14.04)
+                system_pkgs+=(${ubuntu1404_packages})
+                ;;
+            16.04)
+                system_pkgs+=(${ubuntu1604_packages})
+                ;;
+            16.10)
+                system_pkgs+=(${ubuntu1610_packages})
+                ;;
+            *)
+                echo "Unknown version ${version}"
+	esac
     else
         echo "Unknown distribution ${DISTRO}"
         exit 1
@@ -973,9 +997,9 @@ fi
 # tell the user what we are doing
 if [ ${LOCAL} -eq 1 ]
 then
-    echo "Installing the C-CPAC ecosystem locally on ${DISTRO} with $@"
+    echo "Installing the C-PAC ecosystem locally on ${DISTRO} with $@"
 else
-    echo "Installing the C-CPAC ecosystem system-wide on ${DISTRO} with $@"
+    echo "Installing the C-PAC ecosystem system-wide on ${DISTRO} with $@"
 fi
 
 set_system_deps
