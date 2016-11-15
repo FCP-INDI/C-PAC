@@ -169,15 +169,10 @@ function install_system_dependencies {
             if [ $? -ne 0 ]
             then
                 system_dependencies_installed=0
-                echo "[ $(date) ] yum failed to install packages: ${missing_system_dependencies[@]}"
-                echo "[ $(date) ] yum failed to install packages: ${missing_system_dependencies[@]}" \
-                    >> ~/cpac.log
+                echo "[ $(date) ] yum failed to install packages: ${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             else	
                 echo "[ $(date) ] : yum Installed C-PAC system dependency"\
-                    "${missing_system_dependencies[@]}"
-                echo "[ $(date) ] : yum Installed C-PAC system dependency"
-                    "${missing_system_dependencies[@]}" \
-                    >> ~/cpac.log
+                    "${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             fi
             #for p in ${missing_system_dependencies[@]}
             #do
@@ -204,15 +199,10 @@ function install_system_dependencies {
             if [ $? -ne 0 ]
             then
                 system_dependencies_installed=0
-                echo "[ $(date) ] apt-get failed to install packages: ${missing_system_dependencies[@]}"
-                echo "[ $(date) ] apt-get failed to install packages: ${missing_system_dependencies[@]}" \
-                    >> ~/cpac.log
+                echo "[ $(date) ] apt-get failed to install packages: ${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             else	
                 echo "[ $(date) ] : apt-get Installed C-PAC system dependency"\
-                    "${missing_system_dependencies[@]}"
-                echo "[ $(date) ] : apt-get Installed C-PAC system dependency"
-                    "${missing_system_dependencies[@]}" \
-                    >> ~/cpac.log
+                    "${missing_system_dependencies[@]}" | tee -a ~/cpac.log
             fi
            # for p in ${missing_system_dependencies[@]}
            # do
@@ -233,10 +223,8 @@ function install_system_dependencies {
             # finish up
             apt-get autoremove -y
         else
-            echo "Linux distribution not recognized.  System-level dependencies cannot" \
-                 "be installed."
             echo "[ $(date) ] : C-PAC system dependencies could not be installed (Linux" \
-                "distribution not recognized)." >> ~/cpac.log
+                "distribution not recognized)." | tee -a ~/cpac.log
             cd $INIT_DIR
             exit 1
         fi
@@ -304,8 +292,7 @@ function install_python_dependencies {
 
     if [ ${python_dependencies_installed} -eq 1 ]
     then
-        echo "[ $(date) ] C-PAC Python dependencies installed!"
-        echo "[ $(date) ] C-PAC Python dependencies installed!" >> ~/cpac.log
+        echo "[ $(date) ] C-PAC Python dependencies installed!" | tee -a ~/cpac.log
         return
     fi
 
@@ -322,8 +309,7 @@ function install_python_dependencies {
 
     # for now always install miniconda, in the future should only install 
     # if not there
-    echo "[ $(date) ] Installing miniconda!"
-    echo "[ $(date) ] Installing miniconda!" >> ~/cpac.log
+    echo "[ $(date) ] Installing miniconda!" | tee -a ~/cpac.log
 
     cd /tmp
     if [ ! -f Miniconda-3.8.3-Linux-x86_64.sh ]
@@ -331,8 +317,7 @@ function install_python_dependencies {
         wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
         if [ $? -ne 0 ]
         then
-            echo "[ $(date) ] Could not download miniconda installation script!"
-            echo "[ $(date) ] Could not download miniconda installation script!" >> ~/cpac.log
+            echo "[ $(date) ] Could not download miniconda installation script!" | tee -a ~/cpac.log
             return 
         fi
     fi
@@ -342,8 +327,7 @@ function install_python_dependencies {
         ./Miniconda-3.8.3-Linux-x86_64.sh -b -p /usr/local/bin/miniconda
         if [ $? -ne 0 ]
         then
-            echo "[ $(date) ] Miniconda installation failed!"
-            echo "[ $(date) ] Miniconda installation failed!" >> ~/cpac.log
+            echo "[ $(date) ] Miniconda installation failed!" | tee -a ~/cpac.log
             #return 
         fi
         chmod -R 775 /usr/local/bin/miniconda
@@ -355,8 +339,7 @@ function install_python_dependencies {
         ./Miniconda-3.8.3-Linux-x86_64.sh -b
         if [ $? -ne 0 ]
         then
-            echo "[ $(date) ] Miniconda installation failed!"
-            echo "[ $(date) ] Miniconda installation failed!" >> ~/cpac.log
+            echo "[ $(date) ] Miniconda installation failed!" | tee -a ~/cpac.log
             return 
         fi
         export PATH=~/miniconda/bin:${PATH}
@@ -369,8 +352,7 @@ function install_python_dependencies {
     conda install -y ${missing_conda_dependencies[@]}
     if [ $? -ne 0 ]
     then
-        echo "[ $(date) ] Conda install ${p} failed!"
-        echo "[ $(date) ] Conda install ${p} failed!" >> ~/cpac.log
+        echo "[ $(date) ] Conda install ${p} failed!" | tee -a ~/cpac.log
         exit 1 
     fi
     #for p in ${missing_conda_dependencies[@]}
@@ -388,8 +370,7 @@ function install_python_dependencies {
     pip install ${missing_pip_dependencies[@]}
     if [ $? -ne 0 ]
     then
-        echo "[ $(date) ] Pip install ${missing_pip_dependencies[@]} failed!"
-        echo "[ $(date) ] Pip install ${p} failed!" >> ~/cpac.log
+        echo "[ $(date) ] Pip install ${missing_pip_dependencies[@]} failed!" | tee -a ~/cpac.log
         exit 1 
     fi
     #for p in ${missing_pip_dependencies[@]}
