@@ -445,15 +445,20 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     try:
         for sub in sublist:
             if sub['unique_id']:
-                s = sub['subject_id']+"_" + sub["unique_id"]
+                s = sub['subject_id'] + "_" + sub["unique_id"]
             else:
                 s = sub['subject_id']
             scan_ids = ['scan_anat']
-            for id in sub['rest']:
-                scan_ids.append('scan_'+ str(id))
+            try:
+                for id in sub['func']:
+                    scan_ids.append('scan_'+ str(id))
+            except KeyError:
+                for id in sub['rest']:
+                    scan_ids.append('scan_'+ str(id))
             sub_scan_map[s] = scan_ids
     except:
-        print "\n\n" + "ERROR: Subject list file not in proper format - check if you loaded the correct file?" + "\n" + \
+        print "\n\n" + "ERROR: Subject list file not in proper format - " \
+              "check if you loaded the correct file?" + "\n" + \
               "Error name: cpac_runner_0001" + "\n\n"
         raise Exception
 
@@ -506,7 +511,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
         jobQueue = []
 
         # If we're allocating more processes than are subjects, run them all
-        if len(sublist) <= c.numSubjectsAtOnce:
+        if len(sublist) <= c.numParticipantsAtOnce:
             for p in procss:
                 p.start()
                 print >>pid,p.pid
@@ -519,7 +524,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in procss[idc : idc+c.numSubjectsAtOnce]:
+                    for p in procss[idc : idc+c.numParticipantsAtOnce]:
                         p.start()
                         print >>pid, p.pid
                         jobQueue.append(p)

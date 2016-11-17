@@ -452,7 +452,7 @@ def return_dir_indices(path_template):
     try:
         sess_idx = fp_split.index('{session}')
     except ValueError as exc:
-        sess_idx = ppant_idx+1
+        sess_idx = None #ppant_idx+1
 
     # Return indices
     return site_idx, ppant_idx, sess_idx
@@ -866,7 +866,7 @@ def build_sublist(data_config_yml):
             site = ''
         else:
             site = anat_sp[anat_site_idx]
-        subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
+        subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
                   'subject_id' : subj, 'unique_id' : sess,
                   'scan_parameters': site_scan_params}
         tmp_key = '_'.join([subj, site, sess])
@@ -915,14 +915,14 @@ def build_sublist(data_config_yml):
             continue
 
         # Set the rest dictionary with the scan
-        subj_d['rest'][scan] = func
+        subj_d['func'][scan] = func
         # And replace it back in the dictionary
         tmp_dict[tmp_key] = subj_d
 
     # Build a subject list from dictionary values
     sublist = []
     for data_bundle in tmp_dict.values():
-        if data_bundle['anat'] != '' and data_bundle['rest'] != {}:
+        if data_bundle['anat'] != '' and data_bundle['func'] != {}:
             sublist.append(data_bundle)
     # Check to make sure subject list has at least one valid data bundle
     if len(sublist) == 0:

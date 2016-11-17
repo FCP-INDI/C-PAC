@@ -187,14 +187,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     # calculate maximum potential use of cores according to current pipeline
     # configuration
-    max_core_usage = int(c.numCoresPerSubject) * \
-                             int(c.numSubjectsAtOnce) * int(numThreads)
+    max_core_usage = int(c.maxCoresPerParticipant) * \
+                             int(c.numParticipantsAtOnce)
 
-    cores_msg = cores_msg + '\n\nSetting number of cores per subject to %s\n'\
-                            % c.numCoresPerSubject
+    cores_msg = cores_msg + "\n\nSetting maximum number of cores per " \
+                            "participant to %s\n" % c.maxCoresPerParticipant
 
-    cores_msg = cores_msg + 'Setting number of subjects at once to %s\n' \
-                            % c.numSubjectsAtOnce
+    cores_msg = cores_msg + 'Setting number of participants at once to %s\n' \
+                            % c.numParticipantsAtOnce
 
     cores_msg = cores_msg + 'Setting OMP_NUM_THREADS to %s\n' % numThreads
     cores_msg = cores_msg + 'Setting MKL_NUM_THREADS to %s\n' % numThreads
@@ -205,12 +205,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     cores_msg = cores_msg + 'Maximum potential number of cores that might ' \
                 'be used during this run: %d\n\n' % max_core_usage
-
-    cores_msg = cores_msg + 'If that\'s more cores than you have, better ' \
-                'fix that quick! Hint: This can be changed via the settings '\
-                '\'Number of Cores Per Subject\', and \'Number of Subjects ' \
-                'to Run Simultaneously\' in the pipeline configuration ' \
-                'editor under the tab \'Computer Settings\'.\n\n'
 
     logger.info(cores_msg)
 
@@ -975,8 +969,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # create a new node, Remember to change its name!
         # Flow = create_func_datasource(sub_dict['rest'])
         # Flow.inputs.inputnode.subject = subject_id
-        try: 
-            funcFlow = create_func_datasource(sub_dict['rest'], 'func_gather_%d' % num_strat)
+
+        # keep this in so that older participant lists that still have the 
+        # "rest" flag will still work
+        try:
+            func_path = sub_dict['func']
+        except KeyError:
+            func_path = sub_dict['rest']
+        try:
+            funcFlow = create_func_datasource(func_path, 'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
         except Exception as xxx:
@@ -5059,8 +5060,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         
         wf_names = []
         scan_ids = ['scan_anat']
-        for scanID in sub_dict['rest']:
-            scan_ids.append('scan_'+ str(scanID))
+
+        try:
+            for scanID in sub_dict['func']:
+                scan_ids.append('scan_'+ str(scanID))
+        except KeyError:
+            for scanID in sub_dict['rest']:
+                scan_ids.append('scan_'+ str(scanID))
         
         pipes = []
         origStrat = 0

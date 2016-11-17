@@ -3,10 +3,10 @@ FSLDIR,FSL Path,Computer Settings
 resourceManager,Job Scheduler / Resource Manager,Computer Settings
 parallelEnvironment,SGE Parallel Environment,Computer Settings
 queue,SGE Queue,Computer Settings
-numCoresPerSubject,Maximum Number of Cores Per Participant,Computer Settings
-numSubjectsAtOnce,Number of Participants to Run Simultaneously,Computer Settings
+maxCoresPerParticipant,Maximum Number of Cores Per Participant,Computer Settings
+numParticipantsAtOnce,Number of Participants to Run Simultaneously,Computer Settings
 num_ants_threads,Number of Cores for Anatomical Registration (ANTS only),Computer Settings
-memoryAllocatedPerSubject,Maximum Memory Per Participant (GB),Computer Settings
+maximumMemoryPerParticipant,Maximum Memory Per Participant (GB),Computer Settings
 pipelineName,Pipeline Name,Output Settings
 workingDirectory,Working Directory,Output Settings
 crashLogDirectory,Crash Log Directory,Output Settings

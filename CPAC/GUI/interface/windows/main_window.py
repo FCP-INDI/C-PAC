@@ -231,8 +231,8 @@ class ListBox(wx.Frame):
             from CPAC.utils import Configuration
             from nipype.pipeline.plugins.callback_log import log_nodes_cb
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
-            plugin_args = {'n_procs': c.numCoresPerSubject,
-                           'memory_gb': c.memoryAllocatedPerSubject,
+            plugin_args = {'n_procs': c.maxCoresPerParticipant,
+                           'memory_gb': c.maximumMemoryPerParticipant,
                            'callback_log' : log_nodes_cb}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
@@ -676,12 +676,22 @@ class ListBox(wx.Frame):
                     try:
                         c = Configuration(f_cfg)
                     except Exception as e:
-                        print '\n\nERROR: Configuration file could not be '\
-                              'loaded properly - the file might be '\
-                              'access-protected or you might have chosen the '\
-                              'wrong file.\n'
-                        print 'Error name: main_window_0001\n\n'
-                        print 'Exception: %s' % e
+                        if "object has no attribute" in e:
+                            err = "%s\n\nIs this attribute linked (using " \
+                                  "'${}') in any of your configuration " \
+                                  "parameters? (Standard template paths, " \
+                                  "for example). If this is a pipeline " \
+                                  "configuration file from an older version "\
+                                  "of CPAC, this parameter may be obsolete. "\
+                                  "Double-check your selections.\n\n" % e
+                            print err
+                        else:
+                            print '\n\nERROR: Configuration file could not ' \
+                                  'be loaded properly - the file might be '\
+                                  'access-protected or you might have ' \
+                                  'chosen the wrong file.\n'
+                            print 'Error name: main_window_0001\n\n'
+                            print 'Exception: %s' % e
                     # Valid pipeline name
                     if c.pipelineName != None:
                             if self.pipeline_map.get(c.pipelineName) == None:

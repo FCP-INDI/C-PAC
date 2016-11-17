@@ -2164,41 +2164,41 @@ def check_config_resources(c):
     num_cores = cpu_count()
 
     # Check for pipeline memory for subject
-    if c.memoryAllocatedPerSubject is None:
+    if c.maximumMemoryPerParticipant is None:
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total/(1024.0**3)
-        sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
+        sub_mem_gb = sys_mem_gb/c.numParticipantsAtOnce
     else:
-        sub_mem_gb = c.memoryAllocatedPerSubject
+        sub_mem_gb = c.maximumMemoryPerParticipant
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
     if c.runNetworkCentrality[0]:
         if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
             err_msg = 'Memory allocated for subject: %d needs to be greater '\
                       'than the memory allocated for centrality: %d. Fix and '\
-                      'try again.' % (c.memoryAllocatedPerSubject,
+                      'try again.' % (c.maximumMemoryPerParticipant,
                                       c.memoryAllocatedForDegreeCentrality)
             raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
-    if c.numCoresPerSubject:
-        total_user_cores = c.numSubjectsAtOnce*c.numCoresPerSubject
+    if c.maxCoresPerParticipant:
+        total_user_cores = c.numParticipantsAtOnce*c.maxCoresPerParticipant
         if total_user_cores > num_cores:
             err_msg = 'Config file specifies more subjects running in '\
                       'parallel than number of threads available. Change '\
                       'this and try again'
             raise Exception(err_msg)
         else:
-            num_cores_per_sub = c.numCoresPerSubject
+            num_cores_per_sub = c.maxCoresPerParticipant
     else:
-        num_cores_per_sub = num_cores/c.numCoresPerSubject
+        num_cores_per_sub = num_cores/c.maxCoresPerParticipant
 
     # Now check ANTS
     if 'ANTS' in c.regOption:
         if c.num_ants_threads is None:
             num_ants_cores = num_cores_per_sub
-        elif c.num_ants_threads > c.numCoresPerSubject:
+        elif c.num_ants_threads > c.maxCoresPerParticipant:
             err_msg = 'Number of threads for ANTS: %d is greater than the '\
                       'number of threads per subject: %d. Change this and '\
                       'try again.'
