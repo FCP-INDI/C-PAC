@@ -103,6 +103,7 @@ def main(**extra_args):
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
           requires = INFO_VARS['REQUIRES'],
+          install_requires = INFO_VARS['INSTALL_REQUIRES']
           configuration = configuration,
           cmdclass = cmdclass,
           scripts = glob('scripts/*'),
