@@ -3367,7 +3367,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # Init workflow name and resource limits
                 wf_name = 'afni_centrality_%d_%s' % (num_strat, method_option)
-                num_threads = c.numCoresPerSubject
+                num_threads = c.maxCoresPerParticipant
                 memory = c.memoryAllocatedForDegreeCentrality
 
                 # Format method and threshold options properly and check for errors

@@ -20,11 +20,11 @@ DOWNLOAD_URL = 'https://github.com/FCP-INDI/C-PAC/tarball/master'
 import os, sys
 
 # Import build helpers
-#try:
-#    from nisext.sexts import package_check, get_comrec_build
-#except ImportError:
-#    raise RuntimeError('Need nisext package from nibabel installation'
-#                       ' - please install nibabel first')
+try:
+    from nisext.sexts import package_check, get_comrec_build
+except ImportError:
+    raise RuntimeError('Need nisext package from nibabel installation'
+                       ' - please install nibabel first')
 
 from build_helpers import INFO_VARS
 
