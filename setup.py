@@ -20,11 +20,11 @@ DOWNLOAD_URL = 'https://github.com/FCP-INDI/C-PAC/tarball/master'
 import os, sys
 
 # Import build helpers
-try:
-    from nisext.sexts import package_check, get_comrec_build
-except ImportError:
-    raise RuntimeError('Need nisext package from nibabel installation'
-                       ' - please install nibabel first')
+#try:
+#    from nisext.sexts import package_check, get_comrec_build
+#except ImportError:
+#    raise RuntimeError('Need nisext package from nibabel installation'
+#                       ' - please install nibabel first')
 
 from build_helpers import INFO_VARS
 
@@ -67,10 +67,10 @@ if not 'extra_setuptools_args' in globals():
     extra_setuptools_args = dict()
 
 # Hard and soft dependency checking
-package_check('matplotlib', INFO_VARS['MATPLOTLIB_MIN_VERSION'])
-package_check('jinja2', INFO_VARS['JINJA_MIN_VERSION'])
+#package_check('matplotlib', INFO_VARS['MATPLOTLIB_MIN_VERSION'])
+#package_check('jinja2', INFO_VARS['JINJA_MIN_VERSION'])
 #package_check('lockfile', INFO_VARS['PYLOCKFILE_MIN_VERSION']) # checking doesn't really work
-package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
+#package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
 
 ################################################################################
 
