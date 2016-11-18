@@ -5436,8 +5436,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 pipelineTimeDict = {}
                 pipelineTimeDict['Pipeline'] = c.pipelineName
-                pipelineTimeDict['Cores_Per_Subject'] = c.numCoresPerSubject
-                pipelineTimeDict['Simultaneous_Subjects'] = c.numSubjectsAtOnce
+                pipelineTimeDict['Cores_Per_Subject'] = c.maxCoresPerParticipant
+                pipelineTimeDict['Simultaneous_Subjects'] = c.numParticipantsAtOnce
                 pipelineTimeDict['Number_of_Subjects'] = num_subjects
                 pipelineTimeDict['Start_Time'] = pipeline_start_stamp
                 pipelineTimeDict['End_Time'] = strftime("%Y-%m-%d_%H:%M:%S")
