@@ -264,6 +264,8 @@ function install_system_dependencies {
                 16.10)
                     compile_libxp
                     ;;
+                *)
+                    echo "libxp is installed via apt for Ubuntu ${VERSION}"
             esac
             if [ $aptgetfail -ne 0 ]
             then
