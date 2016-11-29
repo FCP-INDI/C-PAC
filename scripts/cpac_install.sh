@@ -888,6 +888,11 @@ cpac_resdirs=("$FSLDIR/data/standard/tissuepriors/2mm" \
 
 function install_cpac_resources {
     echo "Installing C-PAC Image Resources."
+     # Make sure FSLDIR is set.
+    if [ ! -z $FSLDIR ]
+    then
+        echo "[ $(date) ] : FSLDIR must be defined for C-PAC image resources to install." >> ~/cpac.log
+    fi
     # Determines if C-PAC image resources are all already installed.
     RES_PRES=1
     for res in ${cpac_resources[@]}
@@ -994,6 +999,7 @@ function install_cpac_env {
         then
             cat ~/cpac_env.sh >> ~/.bashrc
             rm ~/cpac_env.sh
+            source /etc/bash.bashrc
         elif [ $LOCAL -eq 0 ]
         then
             if [ -f /etc/profile.d/cpac_env.sh ]
@@ -1003,8 +1009,10 @@ function install_cpac_env {
                 # packages that weren't already in cpac_env.sh.
                 cat ~/cpac_env.sh >> /etc/profile.d/cpac_env.sh
                 rm ~/cpac_env.sh
+                source /etc/profile.d/cpac_env.sh
             else
                 mv ~/cpac_env.sh /etc/profile.d/
+                source /etc/profile.d/cpac_env.sh
             fi
         fi
     fi
