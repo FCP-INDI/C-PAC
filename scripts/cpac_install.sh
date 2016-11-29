@@ -30,17 +30,17 @@ ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-
     "libexpat1-dev" "libgiftiio-dev" "libglib2.0-dev" "libglu1-mesa" "libglu1-mesa-dev" \
     "libgsl0-dev" "libjpeg-progs"  "libxml2" "libxml2-dev" "libxext-dev" \
     "libxft2" "libxft-dev" "libxi-dev" "libxmu-headers" "libxmu-dev" "libxpm-dev" "libxslt1-dev" \
-    "libxp6" "libxp-dev" "make" "mesa-common-dev" "mesa-utils" "netpbm" "pkg-config" \
+    "make" "mesa-common-dev" "mesa-utils" "netpbm" "pkg-config" \
     "build-essential" "xvfb" "xauth" "libgl1-mesa-dri" "tcsh" "unzip" "zlib1g-dev" "m4")
 
 # configuration options that are specific to Ubuntu 12.04
-ubuntu1204_packages=("lesstif2-dev")
+ubuntu1204_packages=("lesstif2-dev" "libxp6" "libxp-dev" )
 # configuration options that are specific to Ubuntu 14.04
-ubuntu1404_packages=("libmotif-dev")
+ubuntu1404_packages=("libmotif-dev" "libxp6" "libxp-dev" )
 # configuration options that are specific to Ubuntu 16.04
-ubuntu1604_packages=("libmotif-dev")
+ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev")
 # configuration options that are specific to Ubuntu 16.10
-ubuntu1610_packages=("libmotif-dev")
+ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev")
 
 conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2" "nose" "ipython" "pip" "wxpython")
 
@@ -108,12 +108,28 @@ function set_system_deps {
     fi
 }
 
+compile_libxp {
+    git clone https://cgit.freedesktop.org/xorg/lib/libXp/
+    cd libXp
+    ./autogen.sh
+    ./configure
+    make
+    make install
+    if [ $? -ne 0 ]
+    then
+        system_dependencies_installed=0
+        echo "[ $(date) ] libxp failed to compile" | tee -a ~/cpac.log
+    else
+        echo "[ $(date) ] Compiled and innstalled libxp" | tee -a ~/cpac.log
+    fi
+}
+
 # CC - reformatted this to have better control of the output
 function print_usage {
     echo ""
     echo "Usage: cpac_install.sh -[spnalrh]"
     echo "========================================================================="
-    echo "Version: 0.4.0"
+    echo "Version: 1.0.1"
     echo "Author(s): John Pellman, Daniel Clark"
     echo "Based off of cpac_install.sh by Daniel Clark."
     echo "Description: Will perform specific operations to install C-PAC"
@@ -197,7 +213,16 @@ function install_system_dependencies {
             #apt-get upgrade -y
 
             apt-get install -y ${missing_system_dependencies[@]} 
-            if [ $? -ne 0 ]
+            aptgetfail=$?
+            # >= Ubuntu 16.04 no longer has libxp in the repos so it must be compiled
+            case ${VERSION} in
+                16.04)
+                    compile_libxp
+                    ;;
+                16.10)
+                    compile_libxp
+            esac
+            if [ $aptgetfail -ne 0 ]
             then
                 system_dependencies_installed=0
                 echo "[ $(date) ] apt-get failed to install packages: ${missing_system_dependencies[@]}" | tee -a ~/cpac.log
@@ -669,32 +694,7 @@ function install_afni {
     fi
 }
 
-function install_ants {
-    echo "Installing ANTS."
-    which ANTS &> /dev/null ; if [ $? -eq 0 ]; then
-        echo ANTS is already installed!
-        echo Moving on...
-        echo '[ '$(date)' ] : ANTS is already installed - does not need to be re-installed.' >> ~/cpac.log
-        return
-    fi
-    if [ ${system_dependencies_installed} -ne 1 ]
-    then
-        echo ANTS cannot be installed unless system-level dependencies are installed first.
-        echo Have your system administrator install system-level dependencies as root.
-        echo Exiting now...
-        echo '[ '$(date)' ] : ANTS installation failed - system-level dependencies are not installed.' >> ~/cpac.log
-        cd $INIT_DIR
-        exit 1
-    fi
-    which c3d &> /dev/null ; if [ $? -ne 0 ]; then
-        echo "ANTS cannot be installed unless c3d is installed first."
-        echo "Install c3d and then try again."
-        echo "Exiting now..."
-        echo '[ '$(date)' ] : ANTS installation failed - C3D is not installed.' >> ~/cpac.log
-        cd $INIT_DIR
-        install_cpac_env
-        exit 1
-    fi
+function compile_ants {
     cd /tmp
     git clone https://github.com/stnava/ANTs.git
     if [ $LOCAL -eq 0 ]; then
@@ -741,7 +741,7 @@ function install_ants {
         cp /tmp/ANTs/Scripts/antsBrainExtraction.sh ${ANTSPATH}
         cp /tmp/ANTs/Scripts/antsCorticalThickness.sh ${ANTSPATH}
         export ANTSPATH
-                export PATH=/opt/ants/bin:$PATH
+        export PATH=/opt/ants/bin:$PATH
         echo '# Path to ANTS' >> ~/cpac_env.sh
         echo 'export ANTSPATH=~/ants/bin/' >> ~/cpac_env.sh
         echo 'export PATH=~/ants/bin:$PATH' >> ~/cpac_env.sh
@@ -751,6 +751,59 @@ function install_ants {
         echo '[ '$(date)' ] : ANTS could not be installed (unable to determine if root).' >> ~/cpac.log
         cd $INIT_DIR
         exit 1
+    fi
+}
+
+function install_ants {
+    echo "Installing ANTS."
+    which ANTS &> /dev/null ; if [ $? -eq 0 ]; then
+        echo ANTS is already installed!
+        echo Moving on...
+        echo '[ '$(date)' ] : ANTS is already installed - does not need to be re-installed.' >> ~/cpac.log
+        return
+    fi
+    if [ ${system_dependencies_installed} -ne 1 ]
+    then
+        echo ANTS cannot be installed unless system-level dependencies are installed first.
+        echo Have your system administrator install system-level dependencies as root.
+        echo Exiting now...
+        echo '[ '$(date)' ] : ANTS installation failed - system-level dependencies are not installed.' >> ~/cpac.log
+        cd $INIT_DIR
+        exit 1
+    fi
+    which c3d &> /dev/null ; if [ $? -ne 0 ]; then
+        echo "ANTS cannot be installed unless c3d is installed first."
+        echo "Install c3d and then try again."
+        echo "Exiting now..."
+        echo '[ '$(date)' ] : ANTS installation failed - C3D is not installed.' >> ~/cpac.log
+        cd $INIT_DIR
+        install_cpac_env
+        exit 1
+    fi
+    if [ $DISTRO == 'CENTOS' ]; then
+        compile_ants
+    elif [ $DISTRO == 'UBUNTU' ]; then
+        if [ $LOCAL -eq 0 ]; then
+            # ANTS is supported in Neurodebian for every version of Ubuntu except 16.04
+            case ${VERSION} in
+                12.04)
+                    apt-get install ants
+                    ;;
+                14.04)
+                    apt-get install ants
+                    ;;
+                16.04)
+                    compile_ants
+                    ;;
+                16.10)
+                    apt-get install ants
+                    ;;
+                *)
+                    echo "Unknown version ${VERSION}"
+            esac
+        elif [ $LOCAL -eq 1 ]; then
+            compile_ants
+        fi
     fi
 }
 
