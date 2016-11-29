@@ -182,7 +182,7 @@ function get_missing_system_dependencies()
     echo "missing ${missing_system_dependencies[@]}"
 }
 
-compile_libxp {
+function compile_libxp {
     # Compiles libxp- this is necessary for some newer versions of Ubuntu
     # where the is no Debian package available.
     git clone https://cgit.freedesktop.org/xorg/lib/libXp/
@@ -1031,7 +1031,8 @@ if [ -f /etc/redhat-release ]
 then
     DISTRO=CENTOS
     VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release) 
-elif [ -f /etc/lsb-release ] then
+elif [ -f /etc/lsb-release ] 
+then
     source /etc/lsb-release
     DISTRO=${DISTRIB_ID^^}
     VERSION=${DISTRIB_RELEASE^^}
