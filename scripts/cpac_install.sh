@@ -1,5 +1,42 @@
 #! /bin/bash
 
+# CC - reformatted this to have better control of the output
+function print_usage {
+    echo ""
+    echo "Usage: cpac_install.sh -[spnalrh]"
+    echo "========================================================================="
+    echo "Version: 1.0.1"
+    echo "Author(s): John Pellman, Daniel Clark"
+    echo "Based off of cpac_install.sh by Daniel Clark."
+    echo "Description: Will perform specific operations to install C-PAC"
+    echo "  dependencies and C-PAC. Checks for user privileges and performs"
+    echo "  installation either locally or system-wide."
+    echo "========================================================================="
+    echo "One or more command line options are required:"
+    echo "  -s : System-level dependencies only."
+    echo "  -p : Python dependencies only"
+    echo "  -n : Install specific neuroimaging packages.  Accepts any number of the"
+    echo "       following as arguments: afni, fsl, c3d, ants, cpac_resources, cpac"
+    echo "       will issue warnings if dependencies for these neuroimaging packages"
+    echo "       are not fulfilled. If multiple packages are to be specified, they"
+    echo "       must be surrounded by quotation marks."
+    echo "  -a : Install all neuroimaging suites not already installed.  Will also"
+    echo "       tell you if all neuroimaging suites are already installed and on"
+    echo "       the path."
+    echo "  -l : Local install. Equivalent to -pa ; will not run FSL installer, but"
+    echo "       will issue a warning if running on Ubuntu."
+    echo "  -r : Root install.  Equivalent to -spa"
+    echo "  -h : Print this help message."
+    echo "========================================================================="
+    echo "Example usage: cpac_install.sh -n \"fsl afni\""
+    echo "  Will install FSL and AFNI. The list of neuroimaging suites to install"
+    echo "  is iterated through sequentially. In this case, FSL would first be"
+    echo "  installed before AFNI."
+    echo ""
+}
+
+##### Define system and Python packages.
+
 # these are packages that are common to centos 5, 6, and 7
 centos_packages=("git" "make" "unzip" "netpbm" "gcc" "python-devel"\
     "gcc-gfortran" "gcc-c++" "libgfortran" "lapack" "lapack-devel" "blas"\
@@ -45,6 +82,8 @@ ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2" "nose" "ipython" "pip" "wxpython")
 
 pip_packages=("future" "prov" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype" "patsy" "memory_profiler" "psutil" "configparser" "indi_tools")
+
+##### Helper functions for installing system dependencies.
 
 function set_system_deps {
     system_pkgs=''
@@ -108,7 +147,44 @@ function set_system_deps {
     fi
 }
 
+function get_missing_system_dependencies()
+{
+    missing_system_dependencies=()
+    system_dependencies_installed=1
+
+    if [ $DISTRO == 'CENTOS' ]
+    then
+        for package in ${system_pkgs[@]}
+        do
+            yum list installed ${package} > /dev/null 2>&1
+            if [ $? -ne 0 ]
+            then
+                system_dependencies_installed=0
+                ARRAY+=(${package})
+                echo "[ $(date) ] : Missing system dependency ${package}" >> ~/cpac.log
+            fi
+        done
+    elif [ $DISTRO == 'UBUNTU' ]
+    then
+        for package in ${system_pkgs[@]}
+        do
+            dpkg -s ${package} > /dev/null 2>&1
+            if [ $? -ne 0 ]
+            then
+                system_dependencies_installed=0
+                missing_system_dependencies+=(${package})
+                echo "[ $(date) ] : Missing system dependency ${package}" >> ~/cpac.log
+            fi
+        done
+    else
+        echo "[ $(date) ] : Do not know how to check for packages installed on ${DISTRO}" >> ~/cpac.log
+    fi
+    echo "missing ${missing_system_dependencies[@]}"
+}
+
 compile_libxp {
+    # Compiles libxp- this is necessary for some newer versions of Ubuntu
+    # where the is no Debian package available.
     git clone https://cgit.freedesktop.org/xorg/lib/libXp/
     cd libXp
     ./autogen.sh
@@ -120,47 +196,13 @@ compile_libxp {
         system_dependencies_installed=0
         echo "[ $(date) ] libxp failed to compile" | tee -a ~/cpac.log
     else
-        echo "[ $(date) ] Compiled and innstalled libxp" | tee -a ~/cpac.log
+        echo "[ $(date) ] Compiled and installed libxp" | tee -a ~/cpac.log
     fi
 }
 
-# CC - reformatted this to have better control of the output
-function print_usage {
-    echo ""
-    echo "Usage: cpac_install.sh -[spnalrh]"
-    echo "========================================================================="
-    echo "Version: 1.0.1"
-    echo "Author(s): John Pellman, Daniel Clark"
-    echo "Based off of cpac_install.sh by Daniel Clark."
-    echo "Description: Will perform specific operations to install C-PAC"
-    echo "  dependencies and C-PAC. Checks for user privileges and performs"
-    echo "  installation either locally or system-wide."
-    echo "========================================================================="
-    echo "One or more command line options are required:"
-    echo "  -s : System-level dependencies only."
-    echo "  -p : Python dependencies only"
-    echo "  -n : Install specific neuroimaging packages.  Accepts any number of the"
-    echo "       following as arguments: afni, fsl, c3d, ants, cpac_resources, cpac"
-    echo "       will issue warnings if dependencies for these neuroimaging packages"
-    echo "       are not fulfilled. If multiple packages are to be specified, they"
-    echo "       must be surrounded by quotation marks."
-    echo "  -a : Install all neuroimaging suites not already installed.  Will also"
-    echo "       tell you if all neuroimaging suites are already installed and on"
-    echo "       the path."
-    echo "  -l : Local install. Equivalent to -pa ; will not run FSL installer, but"
-    echo "       will issue a warning if running on Ubuntu."
-    echo "  -r : Root install.  Equivalent to -spa"
-    echo "  -h : Print this help message."
-    echo "========================================================================="
-    echo "Example usage: cpac_install.sh -n \"fsl afni\""
-    echo "  Will install FSL and AFNI. The list of neuroimaging suites to install"
-    echo "  is iterated through sequentially. In this case, FSL would first be"
-    echo "  installed before AFNI."
-    echo ""
-}
+##### Function for installing system dependencies.
 
 function install_system_dependencies {
-
     echo "Installing C-PAC system dependencies... [${missing_system_dependencies[@]}][${#missing_system_dependencies[@]}]"
 
     if [ ${#missing_system_dependencies[@]} -eq 0 ]
@@ -221,6 +263,7 @@ function install_system_dependencies {
                     ;;
                 16.10)
                     compile_libxp
+                    ;;
             esac
             if [ $aptgetfail -ne 0 ]
             then
@@ -279,40 +322,105 @@ function install_system_dependencies {
     fi
 }
 
-function get_missing_system_dependencies()
-{
-    missing_system_dependencies=()
-    system_dependencies_installed=1
+##### Helper functions for installing Python dependencies.
 
-    if [ $DISTRO == 'CENTOS' ]
+function get_missing_python_dependencies {
+
+    python_dependencies_installed=0
+    missing_pip_dependencies=()
+    missing_conda_dependencies=()
+
+    # first we check to make sure that we have python
+    if [ ! -f /usr/local/bin/miniconda/bin/python ]
     then
-        for package in ${system_pkgs[@]}
-        do
-            yum list installed ${package} > /dev/null 2>&1
-            if [ $? -ne 0 ]
-            then
-                system_dependencies_installed=0
-                ARRAY+=(${package})
-                echo "[ $(date) ] : Missing system dependency ${package}" >> ~/cpac.log
-            fi
-        done
-    elif [ $DISTRO == 'UBUNTU' ]
-    then
-        for package in ${system_pkgs[@]}
-        do
-            dpkg -s ${package} > /dev/null 2>&1
-            if [ $? -ne 0 ]
-            then
-                system_dependencies_installed=0
-                missing_system_dependencies+=(${package})
-                echo "[ $(date) ] : Missing system dependency ${package}" >> ~/cpac.log
-            fi
-        done
+        python_installed=0
     else
-        echo "[ $(date) ] : Do not know how to check for packages installed on ${DISTRO}" >> ~/cpac.log
+        python_installed=1
     fi
-    echo "missing ${missing_system_dependencies[@]}"
+
+    if [ ${python_installed} -eq 0 ]
+    then
+        echo "[ $(date) ] : Python is not installed, need to install all"\
+             "Python dependencies." >> ~/cpac.log
+        missing_pip_dependencies=${pip_packages[@]}
+        missing_conda_dependencies=${conda_packages[@]}
+    else
+        # if we find an environment, then enable it
+        if [ -d ~/miniconda/envs/cpac ] || [ -d /usr/local/bin/miniconda/envs/cpac ]
+        then
+            echo "[ $(date) ] : Found C-PAC virtual environment, activating" >> ~/cpac.log
+            source activate cpac &> /dev/null
+        fi
+
+        python_dependencies_installed=1
+        for p in ${pip_packages[@]}
+        do
+            if [ ${p} == "indi_tools" ]
+            then
+                /usr/local/bin/miniconda/bin/python -c "import indi_aws" 2> /dev/null
+                if [ $? -ne 0 ]
+                then
+                    echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
+                    missing_pip_dependencies+=($p)
+                    python_dependencies_installed=0
+                else
+                    echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
+                fi
+            else
+                /usr/local/bin/miniconda/bin/python -c "import ${p}" 2> /dev/null
+                if [ $? -ne 0 ]
+                then
+                    echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
+                    missing_pip_dependencies+=($p)
+                    python_dependencies_installed=0
+                else
+                    echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
+                fi
+            fi
+        done
+
+        for p in ${conda_packages[@]}
+        do
+            if [ ${p} == "wxpython" ]
+            then
+                /usr/local/bin/miniconda/bin/python -c "import wx" 2> /dev/null
+                retval=$?
+            elif [ ${p} == "pyyaml" ]
+            then
+                /usr/local/bin/miniconda/bin/python -c "import yaml" 2> /dev/null
+                retval=$?
+            elif [ ${p} == "ipython" ]
+            then
+                if [ -f /usr/local/bin/miniconda/bin/ipython ]
+                then
+                    retval=0
+                else
+                    retval=1
+                fi
+            else
+                /usr/local/bin/miniconda/bin/python -c "import ${p}" 2> /dev/null
+                retval=$?
+            fi
+            if [ $retval -ne 0 ]
+            then
+                echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
+                missing_conda_dependencies+=($p)
+                python_dependencies_installed=0
+            else
+                echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
+            fi
+        done
+
+        # if we find an enviroment, then disable it
+        if [ -d ~/miniconda/envs/cpac ] || [ -d /usr/local/bin/miniconda/envs/cpac ]
+        then
+            echo "[ $(date) ] : Found C-PAC virtual environment, de-activating" >> ~/cpac.log
+            source deactivate &> /dev/null
+        fi
+    fi
 }
+
+##### Function for installing Python dependencies.
 
 function install_python_dependencies {
 
@@ -419,101 +527,6 @@ function install_python_dependencies {
     cd $INIT_DIR
 }
 
-function get_missing_python_dependencies {
-
-    python_dependencies_installed=0
-    missing_pip_dependencies=()
-    missing_conda_dependencies=()
-
-    # first we check to make sure that we have python
-    if [ ! -f /usr/local/bin/miniconda/bin/python ]
-    then
-        python_installed=0
-    else
-        python_installed=1
-    fi
-
-    if [ ${python_installed} -eq 0 ]
-    then
-        echo "[ $(date) ] : Python is not installed, need to install all"\
-             "Python dependencies." >> ~/cpac.log
-        missing_pip_dependencies=${pip_packages[@]}
-        missing_conda_dependencies=${conda_packages[@]}
-    else
-        # if we find an environment, then enable it
-        if [ -d ~/miniconda/envs/cpac ] || [ -d /usr/local/bin/miniconda/envs/cpac ]
-        then
-            echo "[ $(date) ] : Found C-PAC virtual environment, activating" >> ~/cpac.log
-            source activate cpac &> /dev/null
-        fi
-
-        python_dependencies_installed=1
-        for p in ${pip_packages[@]}
-        do
-            if [ ${p} == "indi_tools" ]
-            then
-                /usr/local/bin/miniconda/bin/python -c "import indi_aws" 2> /dev/null
-                if [ $? -ne 0 ]
-                then
-                    echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
-                    missing_pip_dependencies+=($p)
-                    python_dependencies_installed=0
-                else
-                    echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
-                fi
-            else
-                /usr/local/bin/miniconda/bin/python -c "import ${p}" 2> /dev/null
-                if [ $? -ne 0 ]
-                then
-                    echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
-                    missing_pip_dependencies+=($p)
-                    python_dependencies_installed=0
-                else
-                    echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
-                fi
-            fi
-        done
-
-        for p in ${conda_packages[@]}
-        do
-            if [ ${p} == "wxpython" ]
-            then
-                /usr/local/bin/miniconda/bin/python -c "import wx" 2> /dev/null
-                retval=$?
-            elif [ ${p} == "pyyaml" ]
-            then
-                /usr/local/bin/miniconda/bin/python -c "import yaml" 2> /dev/null
-                retval=$?
-            elif [ ${p} == "ipython" ]
-            then
-                if [ -f /usr/local/bin/miniconda/bin/ipython ]
-                then
-                    retval=0
-                else
-                    retval=1
-                fi
-            else
-                /usr/local/bin/miniconda/bin/python -c "import ${p}" 2> /dev/null
-                retval=$?
-            fi
-            if [ $retval -ne 0 ]
-            then
-                echo "[ $(date) ] : Python package $p not installed" >> ~/cpac.log
-                missing_conda_dependencies+=($p)
-                python_dependencies_installed=0
-            else
-                echo "[ $(date) ] : Python package $p installed" >> ~/cpac.log
-            fi
-        done
-
-        # if we find an enviroment, then disable it
-        if [ -d ~/miniconda/envs/cpac ] || [ -d /usr/local/bin/miniconda/envs/cpac ]
-        then
-            echo "[ $(date) ] : Found C-PAC virtual environment, de-activating" >> ~/cpac.log
-            source deactivate &> /dev/null
-        fi
-    fi
-}
 
 function install_fsl {
     echo "Installing FSL."
@@ -694,6 +707,48 @@ function install_afni {
     fi
 }
 
+function install_c3d {
+    echo "Installing C3D."
+    which c3d &> /dev/null ; if [ $? -eq 0 ]; then
+        echo c3d is already installed!
+        echo Moving on...
+        echo '[ '$(date)' ] : C3D is already installed - does not need to be re-installed.' >> ~/cpac.log
+        return
+    fi
+    ARCHITECTURE=$(uname -p)
+    case $ARCHITECTURE in
+            x86_64 )
+                C3D_DOWNLOAD=c3d-0.8.2-Linux-x86_64
+                ;;
+            i386 )
+                C3D_DOWNLOAD=c3d-0.8.2-Linux-i386
+                ;;
+               i686 )
+                C3D_DOWNLOAD=c3d-0.8.2-Linux-i686
+                 ;;
+    esac
+    cd /tmp
+    wget http://sourceforge.net/projects/c3d/files/c3d/c3d-0.8.2/${C3D_DOWNLOAD}.tar.gz
+    tar xfz ${C3D_DOWNLOAD}.tar.gz
+    if [ $LOCAL -eq 0 ]; then
+        mv $C3D_DOWNLOAD /opt/c3d
+        export PATH=/opt/c3d/bin:$PATH
+        echo '# Path to C3D' >> ~/cpac_env.sh
+        echo 'export PATH=/opt/c3d/bin:$PATH' >> ~/cpac_env.sh
+    elif [ $LOCAL -eq 1 ]; then
+        mv $C3D_DOWNLOAD ~/c3d
+        export PATH=~/c3d/bin:$PATH
+        echo '# Path to C3D' >> ~/cpac_env.sh
+        echo 'export PATH=~/c3d/bin:$PATH' >> ~/cpac_env.sh
+    else
+        echo Invalid value for variable 'LOCAL'.
+        echo This script is unable to determine whether or not you are running it as root.
+        echo '[ '$(date)' ] : C3D could not be installed (unable to determine if root).' >> ~/cpac.log
+        cd $INIT_DIR
+        exit 1
+    fi
+}
+
 function compile_ants {
     cd /tmp
     git clone https://github.com/stnava/ANTs.git
@@ -807,48 +862,6 @@ function install_ants {
     fi
 }
 
-function install_c3d {
-    echo "Installing C3D."
-    which c3d &> /dev/null ; if [ $? -eq 0 ]; then
-        echo c3d is already installed!
-        echo Moving on...
-        echo '[ '$(date)' ] : C3D is already installed - does not need to be re-installed.' >> ~/cpac.log
-        return
-    fi
-    ARCHITECTURE=$(uname -p)
-    case $ARCHITECTURE in
-            x86_64 )
-                C3D_DOWNLOAD=c3d-0.8.2-Linux-x86_64
-                ;;
-            i386 )
-                C3D_DOWNLOAD=c3d-0.8.2-Linux-i386
-                ;;
-               i686 )
-                C3D_DOWNLOAD=c3d-0.8.2-Linux-i686
-                 ;;
-    esac
-    cd /tmp
-    wget http://sourceforge.net/projects/c3d/files/c3d/c3d-0.8.2/${C3D_DOWNLOAD}.tar.gz
-    tar xfz ${C3D_DOWNLOAD}.tar.gz
-    if [ $LOCAL -eq 0 ]; then
-        mv $C3D_DOWNLOAD /opt/c3d
-        export PATH=/opt/c3d/bin:$PATH
-        echo '# Path to C3D' >> ~/cpac_env.sh
-        echo 'export PATH=/opt/c3d/bin:$PATH' >> ~/cpac_env.sh
-    elif [ $LOCAL -eq 1 ]; then
-        mv $C3D_DOWNLOAD ~/c3d
-        export PATH=~/c3d/bin:$PATH
-        echo '# Path to C3D' >> ~/cpac_env.sh
-        echo 'export PATH=~/c3d/bin:$PATH' >> ~/cpac_env.sh
-    else
-        echo Invalid value for variable 'LOCAL'.
-        echo This script is unable to determine whether or not you are running it as root.
-        echo '[ '$(date)' ] : C3D could not be installed (unable to determine if root).' >> ~/cpac.log
-        cd $INIT_DIR
-        exit 1
-    fi
-}
-
 cpac_resources=("$FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.nii.gz" \
     "$FSLDIR/data/standard/MNI152_T1_2mm_brain_symmetric.nii.gz" \
     "$FSLDIR/data/standard/MNI152_T1_2mm_symmetric.nii.gz" \
@@ -859,6 +872,13 @@ cpac_resources=("$FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_symmetric_dil.ni
     "$FSLDIR/data/standard/MNI152_T1_3mm_brain_symmetric.nii.gz" \
     "$FSLDIR/data/standard/MNI152_T1_3mm.nii.gz" \
     "$FSLDIR/data/standard/MNI152_T1_3mm_symmetric.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_brain_mask_dil.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_brain_mask.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_brain_mask_symmetric_dil.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_brain.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_brain_symmetric.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm.nii.gz" \
+    "$FSLDIR/data/standard/MNI152_T1_4mm_symmetric.nii.gz" \
     "$FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz")
 
 cpac_resdirs=("$FSLDIR/data/standard/tissuepriors/2mm" \
@@ -903,10 +923,11 @@ function install_cpac_resources {
         exit 1
     fi
     cd /tmp
-    wget http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tgz
-    tar xfz cpac_resources.tgz 2> /dev/null
+    wget http://fcon_1000.projects.nitrc.org/indi/cpac_resources.tar.gz
+    tar xfz cpac_resources.tar.gz
     cd cpac_image_resources
     cp -n MNI_3mm/* $FSLDIR/data/standard
+    cp -n MNI_4mm/* $FSLDIR/data/standard
     cp -n symmetric/* $FSLDIR/data/standard
     cp -nr tissuepriors/2mm $FSLDIR/data/standard/tissuepriors
     cp -nr tissuepriors/3mm $FSLDIR/data/standard/tissuepriors
@@ -954,12 +975,10 @@ function install_cpac {
     fi
     source activate cpac
     cd /tmp
-    #wget https://github.com/FCP-INDI/C-PAC/archive/v1.0.0.tar.gz
-    #tar xzvf v1.0.0.tar.gz
-    git clone https://github.com/FCP-INDI/C-PAC.git C-PAC-1.0.0
-    cd C-PAC-1.0.0
+    git clone https://github.com/FCP-INDI/C-PAC.git
+    cd C-PAC
     python setup.py install
-    rm -rf /tmp/C-PAC-1.0.0
+    rm -rf /tmp/C-PAC
     source deactivate
 }
 
