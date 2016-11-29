@@ -408,9 +408,28 @@ class MainFrame(wx.Frame):
             anat_file = sub['anat']
             func_files = sub['rest']
             checked_anat_s3 = False
+
+            if not anat_file:
+                err = "\n\n[!] Could not read in at least one of your anatom"\
+                      "ical input files. Please double-check the formatting "\
+                      "of your participant list YAML file.\n\n"
+                raise Exception(err)
+
+            if not func_files:
+                err = "\n\n[!] Could not read in at least one of your functi"\
+                      "onal input files. Please double-check the formatting "\
+                      "of your participant list YAML file.\n\n"
+                raise Exception(err)
+
             if anat_file.lower().startswith(s3_str):
                 dl_dir = tempfile.mkdtemp()
-                creds_path = sub['creds_path']
+                try:
+                    creds_path = sub['creds_path']
+                except KeyError:
+                    # if no creds path is provided, it could be that the user
+                    # is downloading public data - leave it to downstream to
+                    # handle creds issues
+                    creds_path = None
                 anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
                 checked_anat_s3 = True
             # Check if anatomical file exists
@@ -429,7 +448,8 @@ class MainFrame(wx.Frame):
                 not_found_flg = True
                 err_str_suffix = 'File not found: %s\n' % anat_file
                 err_str = err_str + err_str_suffix
-            # If we're just checking s3 files, remove the temporarily downloaded
+            # If we're just checking s3 files, remove the temporarily 
+            # downloaded
             if checked_anat_s3:
                 try:
                     os.remove(anat_file)
@@ -441,7 +461,13 @@ class MainFrame(wx.Frame):
                 checked_s3 = False
                 if func_file.lower().startswith(s3_str):
                     dl_dir = tempfile.mkdtemp()
-                    creds_path = sub['creds_path']
+                    try:
+                        creds_path = sub['creds_path']
+                    except KeyError:
+                        # if no creds path is provided, it could be that the 
+                        # user is downloading public data - leave it to down-
+                        # stream to handle creds issues
+                        creds_path = None
                     func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
                     checked_s3 = True
                 # Check if functional file exists
@@ -460,7 +486,8 @@ class MainFrame(wx.Frame):
                     not_found_flg = True
                     err_str_suffix = 'File not found: %s\n' % func_file
                     err_str = err_str + err_str_suffix
-                # If we're just checking s3 files, remove the temporarily downloaded
+                # If we're just checking s3 files, remove the temporarily 
+                # downloaded
                 if checked_s3:
                     try:
                         os.remove(func_file)
