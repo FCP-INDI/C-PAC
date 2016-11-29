@@ -407,12 +407,12 @@ class MainFrame(wx.Frame):
         for sub in sublist:
             anat_file = sub['anat']
             func_files = sub['rest']
+            checked_anat_s3 = False
             if anat_file.lower().startswith(s3_str):
-                if checked_s3:
-                    break
                 dl_dir = tempfile.mkdtemp()
                 creds_path = sub['creds_path']
                 anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
+                checked_anat_s3 = True
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -429,8 +429,16 @@ class MainFrame(wx.Frame):
                 not_found_flg = True
                 err_str_suffix = 'File not found: %s\n' % anat_file
                 err_str = err_str + err_str_suffix
+            # If we're just checking s3 files, remove the temporarily downloaded
+            if checked_anat_s3:
+                try:
+                    os.remove(anat_file)
+                except:
+                    pass
+                break
             # For each functional file
             for func_file in func_files.values():
+                checked_s3 = False
                 if func_file.lower().startswith(s3_str):
                     dl_dir = tempfile.mkdtemp()
                     creds_path = sub['creds_path']
@@ -455,7 +463,6 @@ class MainFrame(wx.Frame):
                 # If we're just checking s3 files, remove the temporarily downloaded
                 if checked_s3:
                     try:
-                        os.remove(anat_file)
                         os.remove(func_file)
                     except:
                         pass
