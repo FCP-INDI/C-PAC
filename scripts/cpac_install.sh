@@ -83,7 +83,7 @@ function set_system_deps {
         apt-get update && apt-get upgrade -y && apt-get install -y wget
 
         # add in the packages that are specific to the redhat-release
-	version=$(lsb_release -r | awk '{print $2}')
+        version=$(lsb_release -r | awk '{print $2}')
         case ${version} in
     	    12.04)
                 system_pkgs+=(${ubuntu1204_packages})
@@ -99,7 +99,7 @@ function set_system_deps {
                 ;;
             *)
                 echo "Unknown version ${version}"
-	esac
+	    esac
     else
         echo "Unknown distribution ${DISTRO}"
         exit 1
@@ -528,10 +528,25 @@ function install_fsl {
             mv $FSLDIR/tcl $FSLDIR/5.0/tcl
         # Debian-based distros must use NeuroDebian instead of the installer.
         elif [ $DISTRO == 'UBUNTU' ]; then
-            wget -O- http://neuro.debian.net/lists/trusty.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+            case ${version} in
+                12.04)
+                    wget -O- http://neuro.debian.net/lists/precise.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    ;;
+                14.04)
+                    wget -O- http://neuro.debian.net/lists/trusty.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    ;;
+                16.04)
+                    wget -O- http://neuro.debian.net/lists/xenial.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    ;;
+                16.10)
+                    wget -O- http://neuro.debian.net/lists/yakkety.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    ;;
+                *)
+                    echo "Unknown version ${version}"
+            esac
             apt-key adv --recv-keys --keyserver hkp://pgp.mit.edu:80 0xA5D32F012649A5A9
             apt-get update
-            apt-get install -y fsl-5.0-complete
+            apt-get install -y fsl-5.0-core
             if [ $? -ne 0 ]
             then
                 echo "FSL Install failed!"
