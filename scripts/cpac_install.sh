@@ -25,7 +25,7 @@ centos7_epel_rpm="epel-release-7-5.noarch.rpm"
 centos7_packages=("mesa-libGLU-9.0.0-4.el7.x86_64" "gsl-1.15-13.el7.x86_64"\
     "libcanberra-gtk2" "libxml-devel" "libpng12.x86_64")
 
-# are all of the ubuntu packages the same regardless of the version?
+# are all of the ubuntu packages that are common across different versions of Ubuntu
 ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-gtk-module" \
     "libexpat1-dev" "libgiftiio-dev" "libglib2.0-dev" "libglu1-mesa" "libglu1-mesa-dev" \
     "libgsl0-dev" "libjpeg-progs"  "libxml2" "libxml2-dev" "libxext-dev" \
@@ -33,9 +33,13 @@ ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-
     "libxp6" "libxp-dev" "make" "mesa-common-dev" "mesa-utils" "netpbm" "pkg-config" \
     "build-essential" "xvfb" "xauth" "libgl1-mesa-dri" "tcsh" "unzip" "zlib1g-dev" "m4")
 
+# configuration options that are specific to Ubuntu 12.04
 ubuntu1204_packages=("lesstif2-dev")
+# configuration options that are specific to Ubuntu 14.04
 ubuntu1404_packages=("libmotif-dev")
+# configuration options that are specific to Ubuntu 16.04
 ubuntu1604_packages=("libmotif-dev")
+# configuration options that are specific to Ubuntu 16.10
 ubuntu1610_packages=("libmotif-dev")
 
 conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2" "nose" "ipython" "pip" "wxpython")
@@ -55,8 +59,7 @@ function set_system_deps {
         yum update -y && yum install -y wget
 
         # add in the packages that are specific to the redhat-release
-        version=$(rpm -q --queryformat '%{VERSION}' centos-release)
-        case ${version} in
+        case ${VERSION} in
             5)
                 epel_url=centos5_epel_url
                 epel_rpm=centos5_epel_rpm
@@ -73,7 +76,7 @@ function set_system_deps {
                 system_pkgs+=(${centos7_packages})
                 ;;
             *)
-                echo "Unknown version ${version}"
+                echo "Unknown version ${VERSION}"
         esac
     elif [ $DISTRO == 'UBUNTU' ]
     then
@@ -83,8 +86,7 @@ function set_system_deps {
         apt-get update && apt-get upgrade -y && apt-get install -y wget
 
         # add in the packages that are specific to the redhat-release
-        version=$(lsb_release -r | awk '{print $2}')
-        case ${version} in
+        case ${VERSION} in
     	    12.04)
                 system_pkgs+=(${ubuntu1204_packages})
                 ;;
@@ -98,7 +100,7 @@ function set_system_deps {
                 system_pkgs+=(${ubuntu1610_packages})
                 ;;
             *)
-                echo "Unknown version ${version}"
+                echo "Unknown version ${VERSION}"
 	    esac
     else
         echo "Unknown distribution ${DISTRO}"
@@ -122,7 +124,7 @@ function print_usage {
     echo "  -s : System-level dependencies only."
     echo "  -p : Python dependencies only"
     echo "  -n : Install specific neuroimaging packages.  Accepts any number of the"
-    echo "       following as arguments: afni, fsl, c3d, ants, cpac"
+    echo "       following as arguments: afni, fsl, c3d, ants, cpac_resources, cpac"
     echo "       will issue warnings if dependencies for these neuroimaging packages"
     echo "       are not fulfilled. If multiple packages are to be specified, they"
     echo "       must be surrounded by quotation marks."
@@ -159,7 +161,6 @@ function install_system_dependencies {
         system_dependencies_installed=1
         if [ $DISTRO == 'CENTOS' ]
         then
-            version=$(rpm -q --queryformat '%{VERSION}' centos-release)
 
             # update the repositories
             #yum update -y
@@ -528,7 +529,7 @@ function install_fsl {
             mv $FSLDIR/tcl $FSLDIR/5.0/tcl
         # Debian-based distros must use NeuroDebian instead of the installer.
         elif [ $DISTRO == 'UBUNTU' ]; then
-            case ${version} in
+            case ${VERSION} in
                 12.04)
                     wget -O- http://neuro.debian.net/lists/precise.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
@@ -542,7 +543,7 @@ function install_fsl {
                     wget -O- http://neuro.debian.net/lists/yakkety.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
                 *)
-                    echo "Unknown version ${version}"
+                    echo "Unknown version ${VERSION}"
             esac
             apt-key adv --recv-keys --keyserver hkp://pgp.mit.edu:80 0xA5D32F012649A5A9
             apt-get update
@@ -938,8 +939,6 @@ function install_cpac_env {
 
 ##### MAIN ENTRY POINT
 
-
-
 # Check to see if user has root privileges.  If not, perform local install.
 # CC undid the obfuscation
 if [ $EUID -eq 0 ]
@@ -957,10 +956,11 @@ fi
 if [ -f /etc/redhat-release ]
 then
     DISTRO=CENTOS
-elif [ -f /etc/lsb-release ]
-then
+    VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release) 
+elif [ -f /etc/lsb-release ] then
     source /etc/lsb-release
     DISTRO=${DISTRIB_ID^^}
+    VERSION=${DISTRIB_RELEASE^^}
 fi
 
 INIT_DIR=$(pwd)
@@ -975,6 +975,13 @@ fi
 if [ -z ${DISTRO} ]
 then
     echo "DISTRO needs to be set and non-empty. Check that /etc/redhat-release\n"
+    echo "or /etc/lsb-release exist."
+    exit 1
+fi
+
+if [ -z ${VERSION} ]
+then
+    echo "VERSION needs to be set and non-empty. Check that /etc/redhat-release\n"
     echo "or /etc/lsb-release exist."
     exit 1
 fi
@@ -1072,6 +1079,9 @@ do
                         install_cpac_resources
                         install_cpac
                         install_cpac_env
+                        ;;
+                    cpac_resources)
+                        install_cpac_resources
                         ;;
                     *)
                         echo "Invalid neuroimaging suite: $suite"
