@@ -556,16 +556,16 @@ function install_fsl {
         elif [ $DISTRO == 'UBUNTU' ]; then
             case ${VERSION} in
                 12.04)
-                    wget -O- http://neuro.debian.net/lists/precise.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    wget -O- http://neuro.debian.net/lists/precise.au.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
                 14.04)
-                    wget -O- http://neuro.debian.net/lists/trusty.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    wget -O- http://neuro.debian.net/lists/trusty.us-ca.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
                 16.04)
-                    wget -O- http://neuro.debian.net/lists/xenial.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    wget -O- http://neuro.debian.net/lists/xenial.au.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
                 16.10)
-                    wget -O- http://neuro.debian.net/lists/yakkety.au.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+                    wget -O- http://neuro.debian.net/lists/yakkety.au.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
                     ;;
                 *)
                     echo "Unknown version ${VERSION}"
