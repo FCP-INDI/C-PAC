@@ -385,7 +385,6 @@ class MainFrame(wx.Frame):
                                        wx.OK | wx.ICON_ERROR)
             errDlg4.ShowModal()
             errDlg4.Destroy()
-
             # Raise Exception
             raise Exception
 
@@ -399,7 +398,6 @@ class MainFrame(wx.Frame):
                                        wx.OK | wx.ICON_ERROR)
             errDlg3.ShowModal()
             errDlg3.Destroy()
-
             # Raise Exception
             raise Exception
 

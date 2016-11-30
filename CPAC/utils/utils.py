@@ -2158,9 +2158,9 @@ def check_config_resources(c):
     if c.runNetworkCentrality[0]:
         if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
             err_msg = 'Memory allocated for subject: %d needs to be greater '\
-                      'than the memory allocated for centrality: %d. Fix and '\
-                      'try again.' % (c.maximumMemoryPerParticipant,
-                                      c.memoryAllocatedForDegreeCentrality)
+                      'than the memory allocated for centrality: %d. Fix '\
+                      'and try again.' % (c.maximumMemoryPerParticipant,
+                                         c.memoryAllocatedForDegreeCentrality)
             raise Exception(err_msg)
 
     # Check for pipeline threads
@@ -2168,8 +2168,8 @@ def check_config_resources(c):
     if c.maxCoresPerParticipant:
         total_user_cores = c.numParticipantsAtOnce*c.maxCoresPerParticipant
         if total_user_cores > num_cores:
-            err_msg = 'Config file specifies more subjects running in '\
-                      'parallel than number of threads available. Change '\
+            err_msg = 'Config file specifies more subjects running in ' \
+                      'parallel than number of threads available. Change ' \
                       'this and try again'
             raise Exception(err_msg)
         else:
@@ -2182,9 +2182,10 @@ def check_config_resources(c):
         if c.num_ants_threads is None:
             num_ants_cores = num_cores_per_sub
         elif c.num_ants_threads > c.maxCoresPerParticipant:
-            err_msg = 'Number of threads for ANTS: %d is greater than the '\
-                      'number of threads per subject: %d. Change this and '\
-                      'try again.'
+            err_msg = 'Number of threads for ANTS: %d is greater than the ' \
+                      'number of threads per subject: %d. Change this and ' \
+                      'try again.' % (c.num_ants_threads, 
+                                      c.maxCoresPerParticipant)
             raise Exception(err_msg)
         else:
             num_ants_cores = c.num_ants_threads
