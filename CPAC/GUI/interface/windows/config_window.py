@@ -404,7 +404,10 @@ class MainFrame(wx.Frame):
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
-            func_files = sub['rest']
+            try:
+                func_files = sub['func']
+            except KeyError:
+                func_files = sub['rest']
             checked_anat_s3 = False
 
             if not anat_file:

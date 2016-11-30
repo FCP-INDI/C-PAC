@@ -359,6 +359,16 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                                                         site_kw,
                                                         path_template) in \
                               include_sites, sub_paths)
+        # note which site IDs in "subjects to include" are missing
+        missing = list(include_sites)
+        for site_id in site_matches:
+            for include in include_sites:
+                if include in site_id:
+                    if include in missing:
+                        missing.remove(include)
+        if len(missing) > 0:
+            logger.info("Site IDs marked in 'Sites to Include' not found:" \
+                        "\n%s" % str(missing))
         keep_site_paths.extend(site_matches)
     else:
         logger.info('Not filtering out any potential sites...')
@@ -389,6 +399,16 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                                                         ppant_kw,
                                                         path_template) in \
                               include_subs, sub_paths)
+        # note which participant IDs in "subjects to include" are missing
+        missing = list(include_subs)
+        for subj_path in subj_matches:
+            for include in include_subs:
+                if include in subj_path:
+                    if include in missing:
+                        missing.remove(include)
+        if len(missing) > 0:
+            logger.info("Participant IDs marked in 'Subjects to Include' "\
+                        "not found:\n%s" % str(missing))
         keep_subj_paths.extend(subj_matches)
     # Or exclude only
     elif exclude_subs is not None:
