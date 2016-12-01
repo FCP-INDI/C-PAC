@@ -65,19 +65,19 @@ centos7_packages=("mesa-libGLU-9.0.0-4.el7.x86_64" "gsl-1.15-13.el7.x86_64"\
 # are all of the ubuntu packages that are common across different versions of Ubuntu
 ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-gtk-module" \
     "libexpat1-dev" "libgiftiio-dev" "libglib2.0-dev" "libglu1-mesa" "libglu1-mesa-dev" \
-    "libgsl0-dev" "libjpeg-progs"  "libxml2" "libxml2-dev" "libxext-dev" \
+    "libjpeg-progs"  "libxml2" "libxml2-dev" "libxext-dev" \
     "libxft2" "libxft-dev" "libxi-dev" "libxmu-headers" "libxmu-dev" "libxpm-dev" "libxslt1-dev" \
     "make" "mesa-common-dev" "mesa-utils" "netpbm" "pkg-config" \
     "build-essential" "xvfb" "xauth" "libgl1-mesa-dri" "tcsh" "unzip" "zlib1g-dev" "m4")
 
 # configuration options that are specific to Ubuntu 12.04
-ubuntu1204_packages=("lesstif2-dev" "libxp6" "libxp-dev" )
+ubuntu1204_packages=("lesstif2-dev" "libxp6" "libxp-dev" "libgsl0-dev" )
 # configuration options that are specific to Ubuntu 14.04
-ubuntu1404_packages=("libmotif-dev" "libxp6" "libxp-dev" )
+ubuntu1404_packages=("libmotif-dev" "libxp6" "libxp-dev" "libgsl0-dev" )
 # configuration options that are specific to Ubuntu 16.04
-ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev")
+ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev" )
 # configuration options that are specific to Ubuntu 16.10
-ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev")
+ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev")
 
 conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2" "nose" "ipython" "pip" "wxpython")
 
