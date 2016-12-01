@@ -795,7 +795,8 @@ class MainFrame(wx.Frame):
                 self, 'There are issues with the current configuration ' \
                       'which need to be resolved - please check to make ' \
                       'sure the options you are running have the proper ' \
-                      'pre-requisites selected.\n\nIssue Info:\n%s' % xxx,
+                      'pre-requisites selected.\n\nIssue Info:\n%s' \
+                      % str(xxx),
                 'Pipeline Not Ready',
                 wx.OK | wx.ICON_ERROR)
             errDlg1.ShowModal()

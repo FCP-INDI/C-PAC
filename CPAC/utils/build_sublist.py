@@ -348,9 +348,9 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     logger = logging.getLogger('sublist_builder')
 
     # Check if {site} was specified
+    keep_site_paths = []
     if site_kw in path_template and include_sites is not None:
         # Filter out sites that are not included
-        keep_site_paths = []
         if type(include_sites) is not list:
             include_sites = [include_sites]
         logger.info('Only including sites: %s' % include_sites)
@@ -410,6 +410,10 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
             logger.info("Participant IDs marked in 'Subjects to Include' "\
                         "not found:\n%s" % str(missing))
         keep_subj_paths.extend(subj_matches)
+
+        if keep_site_paths:
+            keep_subj_paths = list(set(keep_subj_paths) & set(keep_site_paths))
+
     # Or exclude only
     elif exclude_subs is not None:
         keep_subj_paths = []
@@ -430,6 +434,9 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                                                         path_template) not in \
                               exclude_subs, sub_paths)
         keep_subj_paths.extend(subj_matches)
+
+        if keep_site_paths:
+            keep_subj_paths = list(set(keep_subj_paths) & set(keep_site_paths))
 
     else:
         keep_subj_paths = keep_site_paths
