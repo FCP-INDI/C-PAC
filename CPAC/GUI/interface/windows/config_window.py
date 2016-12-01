@@ -456,7 +456,6 @@ class MainFrame(wx.Frame):
                     os.remove(anat_file)
                 except:
                     pass
-                break
             # For each functional file
             for func_file in func_files.values():
                 checked_s3 = False
@@ -494,7 +493,6 @@ class MainFrame(wx.Frame):
                         os.remove(func_file)
                     except:
                         pass
-                    break
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
