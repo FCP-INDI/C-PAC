@@ -787,7 +787,7 @@ class MainFrame(wx.Frame):
         except Exception as xxx:
 
             print xxx
-            print "an exception occured"
+            print "an exception occurred"
             
             testDlg1.Destroy()
             

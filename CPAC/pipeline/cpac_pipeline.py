@@ -2155,7 +2155,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
                 def ants_apply_warps_func_mni(input_node, input_outfile, \
-                        ref_node, ref_outfile, func_name, interp, \
+                        ref_node, ref_outfile, standard, func_name, interp, \
                         input_image_type):
 
                     # converts FSL-format .mat affine xfm into ANTS-format
@@ -2177,14 +2177,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                        (func_name, num_strat),
                                                   ants_threads=int(num_ants_cores))
 
-                    workflow.connect(ref_node, ref_outfile,
-                        apply_ants_warp_func_mni, 'inputspec.reference_image')
-
+                    apply_ants_warp_func_mni.inputs.inputspec.reference_image = standard
                     apply_ants_warp_func_mni.inputs.inputspec.dimension = 3
-
                     apply_ants_warp_func_mni.inputs.inputspec. \
                             interpolation = interp
-
                     # input_image_type:
                     # (0 or 1 or 2 or 3)
                     # Option specifying the input image type of scalar
@@ -2271,6 +2267,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.get_node_from_resource_pool("mean_functional")
                 ants_apply_warps_func_mni(node, out_file,
                                           node2, out_file2,
+                                          c.template_brain_only_for_func,
                                           "functional_to_standard",
                                           "Linear", 3)
 
@@ -2281,6 +2278,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.get_node_from_resource_pool("mean_functional")
                 ants_apply_warps_func_mni(node, out_file,
                                           node2, out_file2,
+                                          c.template_brain_only_for_func,
                                           "motion_correct_to_standard",
                                           "Linear", 3)
 
@@ -2289,6 +2287,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.get_node_from_resource_pool("functional_brain_mask")
                 ants_apply_warps_func_mni(node, out_file,
                                           node, out_file,
+                                          c.template_brain_only_for_func,
                                           "functional_brain_mask_to_standard",
                                           "NearestNeighbor", 0)
 
@@ -2297,6 +2296,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat.get_node_from_resource_pool("mean_functional")
                 ants_apply_warps_func_mni(node, out_file,
                                           node, out_file,
+                                          c.template_brain_only_for_func,
                                           "mean_functional_to_standard",
                                           "Linear", 0)
 
