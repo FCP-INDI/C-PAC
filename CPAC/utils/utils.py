@@ -48,6 +48,7 @@ files_folders_wf = {
     'functional_csf_mask':'segmentation',
     'frame_wise_displacement':'parameters',
     'functional_nuisance_residuals':'func',
+    'functional_nuisance_regressors':'func',
     'functional_median_angle_corrected':'func',
     'power_spectrum_distribution':'alff',
     'functional_freq_filtered':'func',
