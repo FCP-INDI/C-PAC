@@ -261,9 +261,9 @@ class DataConfig(wx.Frame):
                 CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
 
             # Prompt user with naming subject list for main GUI
+            dlg2 = wx.TextEntryDialog(self, 'Please enter a name for the Subject List',
+                                             'Sublist Name', '%s' % sublist_name)
             while True:
-                dlg2 = wx.TextEntryDialog(self, 'Please enter a name for the Subject List',
-                                                 'Sublist Name', '%s' % sublist_name)
                 if dlg2.ShowModal() == wx.ID_OK:
                     if len(dlg2.GetValue()) >0:
                         parent = self.Parent
@@ -272,14 +272,19 @@ class DataConfig(wx.Frame):
                             map[dlg2.GetValue()]= out_location
                             parent.listbox2.Append(dlg2.GetValue())
                             dlg2.Destroy()
+                            ret = 1
                             break
                         else:
                             dlg3 = wx.MessageDialog(self, 'Subject List with this name already exist','Error!',
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
+                elif dlg2.ShowModal() == wx.ID_CANCEL:
+                    dlg2.Destroy()
+                    ret = -1
+                    break
             # Return value
-            return 1
+            return ret
 
         # Import error if CPAC not available
         except ImportError as exc:
