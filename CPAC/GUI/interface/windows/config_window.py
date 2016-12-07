@@ -1024,10 +1024,14 @@ class MainFrame(wx.Frame):
     def write(self, path, config_list):
 
         import ast
+        import CPAC
 
         try:
 
             f = open(path, 'w')
+
+            print >>f, "# CPAC Pipeline Configuration YAML file"
+            print >>f, "# version %s\n" % str(CPAC.__version__)
 
             for item in config_list:
 

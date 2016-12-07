@@ -3432,7 +3432,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         nodes = getNodeList(strat)
            
-        if 'apply_ants_warp_functional_mni' in nodes:
+        if 'apply_ants_warp_functional_to_standard' in nodes:
 
             # ANTS WARP APPLICATION
 
