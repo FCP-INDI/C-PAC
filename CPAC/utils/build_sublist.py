@@ -917,7 +917,6 @@ def build_sublist(data_config_yml):
             scan_params = None
             scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
                                                                func)
-            subj_d["scan_parameters"] = scan_params
 
             # If there is no scan sub-folder under session, make scan
             # the name of the image itself without extension
@@ -940,6 +939,7 @@ def build_sublist(data_config_yml):
 
             # Set the rest dictionary with the scan
             subj_d['func'][scan] = func
+            subj_d['func'][scan]["scan_parameters"] = scan_params
             # And replace it back in the dictionary
             tmp_dict[tmp_key] = subj_d
     else:
@@ -972,7 +972,6 @@ def build_sublist(data_config_yml):
                 except KeyError as exc:
                     print 'Site %s missing from scan parameters csv, skipping...'\
                           % site
-            subj_d["scan_parameters"] = scan_params
 
             # Build tmp key and get subject dictionary from tmp dictionary
             tmp_key = '_'.join([subj, site, sess])
@@ -993,6 +992,7 @@ def build_sublist(data_config_yml):
 
             # Set the rest dictionary with the scan
             subj_d['func'][scan] = func
+            subj_d['func'][scan]["scan_parameters"] = scan_params
             # And replace it back in the dictionary
             tmp_dict[tmp_key] = subj_d
 
