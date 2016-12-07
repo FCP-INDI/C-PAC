@@ -898,13 +898,9 @@ def build_sublist(data_config_yml):
                 sess = anat_sp[anat_sess_idx]
             except TypeError:
                 sess = "ses-1"
-            if bids_flag:
-                site = ''
-            else:
-                site = anat_sp[anat_site_idx]
+            site = ''
             subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
-                      'subject_id' : subj, 'unique_id' : sess,
-                      'scan_parameters': site_scan_params}
+                      'subject_id' : subj, 'unique_id' : sess}
             tmp_key = '_'.join([subj, site, sess])
             tmp_dict[tmp_key] = subj_d
 
@@ -917,19 +913,11 @@ def build_sublist(data_config_yml):
               sess = func_sp[func_sess_idx]
             except TypeError:
               sess = "ses-1"
-            if bids_flag:
-                site = ''
-                scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
-                                                                   func)
-            else:
-                site = func_sp[func_site_idx]
-                if scan_params_csv is not None:
-                    try:
-                        scan_params = site_scan_params[site]
-                    except KeyError as exc:
-                        print 'Site %s missing from scan parameters csv, skipping...'\
-                              % site
-                        scan_params = None
+            site = ''
+            scan_params = None
+            scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
+                                                               func)
+            subj_d["scan_parameters"] = scan_params
 
             # If there is no scan sub-folder under session, make scan
             # the name of the image itself without extension
@@ -961,13 +949,9 @@ def build_sublist(data_config_yml):
                 sess = extract_keyword_from_path(anat, "{session}", anat_template)
             except TypeError:
                 sess = "ses-1"
-            if bids_flag:
-                site = ""
-            else:
-                site = extract_keyword_from_path(anat, "{site}", anat_template)
+            site = extract_keyword_from_path(anat, "{site}", anat_template)
             subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
-                      'subject_id' : subj, 'unique_id' : sess,
-                      'scan_parameters': site_scan_params}
+                      'subject_id' : subj, 'unique_id' : sess}
             tmp_key = '_'.join([subj, site, sess])
             tmp_dict[tmp_key] = subj_d
 
@@ -980,19 +964,15 @@ def build_sublist(data_config_yml):
                 sess = extract_keyword_from_path(func, "{session}", func_template)
             except TypeError:
                 sess = "ses-1"
-            if bids_flag:
-                site = ""
-                scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
-                                                                   func)
-            else:
-                site = extract_keyword_from_path(func, "{site}", func_template)
-                if scan_params_csv is not None:
-                    try:
-                        scan_params = site_scan_params[site]
-                    except KeyError as exc:
-                        print 'Site %s missing from scan parameters csv, skipping...'\
-                              % site
-                        scan_params = None
+            site = extract_keyword_from_path(func, "{site}", func_template)
+            scan_params = None
+            if scan_params_csv is not None:
+                try:
+                    scan_params = site_scan_params[site]
+                except KeyError as exc:
+                    print 'Site %s missing from scan parameters csv, skipping...'\
+                          % site
+            subj_d["scan_parameters"] = scan_params
 
             # Build tmp key and get subject dictionary from tmp dictionary
             tmp_key = '_'.join([subj, site, sess])
