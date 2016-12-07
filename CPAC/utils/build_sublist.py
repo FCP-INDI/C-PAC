@@ -939,7 +939,7 @@ def build_sublist(data_config_yml):
 
             # Set the rest dictionary with the scan
             subj_d['func'][scan] = func
-            subj_d['func'][scan]["scan_parameters"] = scan_params
+            subj_d['func']["scan_parameters"] = scan_params
             # And replace it back in the dictionary
             tmp_dict[tmp_key] = subj_d
     else:
@@ -992,7 +992,7 @@ def build_sublist(data_config_yml):
 
             # Set the rest dictionary with the scan
             subj_d['func'][scan] = func
-            subj_d['func'][scan]["scan_parameters"] = scan_params
+            subj_d['func']["scan_parameters"] = scan_params
             # And replace it back in the dictionary
             tmp_dict[tmp_key] = subj_d
 
