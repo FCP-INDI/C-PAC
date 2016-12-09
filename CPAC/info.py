@@ -10,7 +10,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 0
-_version_micro = 0
+_version_micro = 1
 _version_extra = ''
 
 def get_cpac_gitversion():
@@ -19,7 +19,7 @@ def get_cpac_gitversion():
     Returns
     -------
     None or str
-      Version of NiPype according to git.
+      Version of Nipype according to git.
     """
     import os
     import subprocess
@@ -58,7 +58,7 @@ __version__ = "%s.%s.%s%s" % (_version_major,
                               _version_micro,
                               _version_extra)
 
-CLASSIFIERS = ["Development Status :: 3 - Alpha", # 3 - Alpha
+CLASSIFIERS = ["Development Status :: 4 - Beta",
                "Environment :: Console",
                "Intended Audience :: Science/Research",
                "License :: OSI Approved :: BSD License", # TODO: check if this is true
@@ -66,7 +66,7 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha", # 3 - Alpha
                "Programming Language :: Python",
                "Topic :: Scientific/Engineering"]
 
-description  = 'Configural Pipeline for the Analysis of Connectomes'
+description  = 'Configurable Pipeline for the Analysis of Connectomes'
 
 # Note: this long_description is actually a copy/paste from the top-level
 # README.md, so that it shows up nicely on PyPI.  So please remember to edit
@@ -92,28 +92,30 @@ Documentation
 
 User documentation can be found here: http://fcp-indi.github.com/docs/user/index.html
 
-Developer documention can ne found here: http://fcp-indi.github.com/docs/developer/index.html
+Developer documention can be found here: http://fcp-indi.github.com/docs/developer/index.html
+
+Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.0
 
 
 Dicussion Forum
 ---------------
 
-CPAC Discussion forum is located here: http://www.nitrc.org/forum/forum.php?forum_id=3567
+CPAC Discussion forum is located here: https://groups.google.com/forum/#!forum/cpax_forum
 
 Troubleshooting and Help
 ------------------------
 
-This is an alpha version of CPAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, 
+This is a beta version of CPAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, 
 there will likely still be a few bugs that we did not catch. If you find a bug, have a question that is not answered in the User Guide, or would like to suggest a new feature, 
 please create an issue on CPAC github issue page: https://github.com/FCP-INDI/C-PAC/issues?state=open
 """
 
 # versions
 CYTHON_MIN_VERSION      = '0.12.1'
-MATPLOTLIB_MIN_VERSION  = '1.1'
-JINJA_MIN_VERSION       = '2.6'
+MATPLOTLIB_MIN_VERSION  = '1.2'
+JINJA_MIN_VERSION = '2.6'
 PYLOCKFILE_MIN_VERSION  = '0.9'
-PYYAML_MIN_VERSION      = '2.0'
+PYYAML_MIN_VERSION      = '3.0'
 
 NAME                = 'CPAC'
 MAINTAINER          = "cpac developers"
@@ -124,7 +126,7 @@ URL                 = "http://fcp-indi.github.io"
 DOWNLOAD_URL        = "https://github.com/FCP-INDI/C-PAC"
 LICENSE             = "BSD license" # TODO: figure out if this is right
 CLASSIFIERS         = CLASSIFIERS
-AUTHOR              = "cpac developmers"
+AUTHOR              = "cpac developers"
 AUTHOR_EMAIL        = "XXX"
 PLATFORMS           = "OS Independent"
 MAJOR               = _version_major
@@ -132,6 +134,20 @@ MINOR               = _version_minor
 MICRO               = _version_micro
 ISRELEASE           = _version_extra == ''
 VERSION             = __version__
-REQUIRES            = ["matplotlib (>=1.2)", "Jinja2 (>=2.6)", "pylockfile (>=0.9)",
-                       "pyyaml (>=3.0)"]
+REQUIRES            = ["matplotlib (>=1.2)", "pylockfile (>=0.9)", 
+                       "pyyaml (>=3.0)", "pygraphviz (>=1.3)", 
+                       "nibabel (>=2.0.1)", "nipype (>=0.12.1)", 
+                       "patsy (>=0.3)", "psutil (>=2.1)", "boto3 (>=1.2)", 
+                       "future (==0.15.2)", "prov (>=1.4.0)", 
+                       "simplejson (>=3.8.0)", "cython (>=0.12.1)", 
+                       "Jinja2 (>=2.6)", "pandas (>=0.15)", 
+                       "INDI_Tools (>=0.0.6)", "memory_profiler (>=0.41)",
+                       "ipython (>=5.1)"]
+INSTALL_REQUIRES    = ["matplotlib >=1.2", "pylockfile >=0.9", "pyyaml >=3.0",
+                       "pygraphviz >=1.3", "nibabel >=2.0.1", 
+                       "nipype >=0.12.1", "patsy >=0.3", "psutil >=2.1", 
+                       "boto3 >=1.2", "future ==0.15.2", "prov >=1.4.0", 
+                       "simplejson >=3.8.0", "cython >=0.12.1", 
+                       "Jinja2 >=2.6", "padnas >=0.15", "INDI-Tools >=0.0.6", 
+                       "memory_profiler >=0.41", "ipython >=5.1"]
 STATUS              = 'stable'

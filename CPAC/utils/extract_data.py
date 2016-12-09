@@ -422,12 +422,21 @@ def generate_supplementary_files(output_path, subject_list_name):
             else:
                 subject_id = sub['subject_id']
                 
-            for scan in sub['rest'].keys():
-                subject_scan_set.add((subject_id, scan))
-                subID_set.add(sub['subject_id'])
-                session_set.add(sub['unique_id'])
-                subject_set.add(subject_id)
-                scan_set.add(scan)
+            try:
+                for scan in sub['func'].keys():
+                    subject_scan_set.add((subject_id, scan))
+                    subID_set.add(sub['subject_id'])
+                    session_set.add(sub['unique_id'])
+                    subject_set.add(subject_id)
+                    scan_set.add(scan)
+            except KeyError:
+                for scan in sub['rest'].keys():
+                    subject_scan_set.add((subject_id, scan))
+                    subID_set.add(sub['subject_id'])
+                    session_set.add(sub['unique_id'])
+                    subject_set.add(subject_id)
+                    scan_set.add(scan)
+
     except TypeError as e:
         print 'Subject list could not be populated!'
         print 'This is most likely due to a mis-formatting in your '\

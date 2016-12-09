@@ -29,7 +29,8 @@ except ImportError:
 from build_helpers import INFO_VARS
 
 def configuration(parent_package='', top_path=None):
-    from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
+    from numpy.distutils.misc_util import Configuration, \
+                                          get_numpy_include_dirs
 
     config = Configuration(None, parent_package, top_path)
     config.set_options(ignore_setup_xxx_py=True,
@@ -66,10 +67,10 @@ if not 'extra_setuptools_args' in globals():
     extra_setuptools_args = dict()
 
 # Hard and soft dependency checking
-package_check('matplotlib', INFO_VARS['MATPLOTLIB_MIN_VERSION'])
-package_check('jinja2', INFO_VARS['JINJA_MIN_VERSION'])
+#package_check('matplotlib', INFO_VARS['MATPLOTLIB_MIN_VERSION'])
+#package_check('jinja2', INFO_VARS['JINJA_MIN_VERSION'])
 #package_check('lockfile', INFO_VARS['PYLOCKFILE_MIN_VERSION']) # checking doesn't really work
-package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
+#package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
 
 ################################################################################
 
@@ -101,7 +102,8 @@ def main(**extra_args):
           author_email=INFO_VARS['AUTHOR_EMAIL'],
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
-          requires=INFO_VARS['REQUIRES'],
+          requires = INFO_VARS['REQUIRES'],
+          install_requires = INFO_VARS['INSTALL_REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
           scripts = glob('scripts/*'),

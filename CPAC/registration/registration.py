@@ -1058,35 +1058,6 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     """
     DOCSTRINGS
-
-    Parameters
-    ----------
-    name : string, optional
-        Name of the workflow.
-
-    Returns
-    -------
-    collect_transforms_wf : nipype.pipeline.engine.Workflow
-
-    Notes
-    -----
-    
-    Workflow Inputs::
-    
-        inputspec.transform_file : string (nifti file)
-            Output matrix of FSL-based functional to anatomical registration
-        inputspec.reference_file : string (nifti file)
-            File of skull-stripped anatomical brain to be used in affine
-            conversion
-        inputspec.source_file : string (nifti file)
-            Should match the input of the apply warp (in_file) unless you are
-            applying the warp to a 4-d file, in which case this file should
-            be a mean_functional file
-
-    Workflow Outputs::
-    
-        outputspec.itk_transform : string (nifti file)
-            Converted affine transform in ITK format usable with ANTS
     
     """
 

@@ -385,7 +385,6 @@ class MainFrame(wx.Frame):
                                        wx.OK | wx.ICON_ERROR)
             errDlg4.ShowModal()
             errDlg4.Destroy()
-
             # Raise Exception
             raise Exception
 
@@ -399,20 +398,41 @@ class MainFrame(wx.Frame):
                                        wx.OK | wx.ICON_ERROR)
             errDlg3.ShowModal()
             errDlg3.Destroy()
-
             # Raise Exception
             raise Exception
 
         # Iterate and test each subject's files
         for sub in sublist:
             anat_file = sub['anat']
-            func_files = sub['rest']
+            try:
+                func_files = sub['func']
+            except KeyError:
+                func_files = sub['rest']
+            checked_anat_s3 = False
+
+            if not anat_file:
+                err = "\n\n[!] Could not read in at least one of your anatom"\
+                      "ical input files. Please double-check the formatting "\
+                      "of your participant list YAML file.\n\n"
+                raise Exception(err)
+
+            if not func_files:
+                err = "\n\n[!] Could not read in at least one of your functi"\
+                      "onal input files. Please double-check the formatting "\
+                      "of your participant list YAML file.\n\n"
+                raise Exception(err)
+
             if anat_file.lower().startswith(s3_str):
-                if checked_s3:
-                    break
                 dl_dir = tempfile.mkdtemp()
-                creds_path = sub['creds_path']
+                try:
+                    creds_path = sub['creds_path']
+                except KeyError:
+                    # if no creds path is provided, it could be that the user
+                    # is downloading public data - leave it to downstream to
+                    # handle creds issues
+                    creds_path = None
                 anat_file = check_for_s3(anat_file, creds_path, dl_dir=dl_dir)
+                checked_anat_s3 = True
             # Check if anatomical file exists
             if os.path.exists(anat_file):
                 img = nb.load(anat_file)
@@ -429,11 +449,25 @@ class MainFrame(wx.Frame):
                 not_found_flg = True
                 err_str_suffix = 'File not found: %s\n' % anat_file
                 err_str = err_str + err_str_suffix
+            # If we're just checking s3 files, remove the temporarily 
+            # downloaded
+            if checked_anat_s3:
+                try:
+                    os.remove(anat_file)
+                except:
+                    pass
             # For each functional file
             for func_file in func_files.values():
+                checked_s3 = False
                 if func_file.lower().startswith(s3_str):
                     dl_dir = tempfile.mkdtemp()
-                    creds_path = sub['creds_path']
+                    try:
+                        creds_path = sub['creds_path']
+                    except KeyError:
+                        # if no creds path is provided, it could be that the 
+                        # user is downloading public data - leave it to down-
+                        # stream to handle creds issues
+                        creds_path = None
                     func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
                     checked_s3 = True
                 # Check if functional file exists
@@ -452,14 +486,13 @@ class MainFrame(wx.Frame):
                     not_found_flg = True
                     err_str_suffix = 'File not found: %s\n' % func_file
                     err_str = err_str + err_str_suffix
-                # If we're just checking s3 files, remove the temporarily downloaded
+                # If we're just checking s3 files, remove the temporarily 
+                # downloaded
                 if checked_s3:
                     try:
-                        os.remove(anat_file)
                         os.remove(func_file)
                     except:
                         pass
-                    break
             # Check flags for error message
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
@@ -754,7 +787,7 @@ class MainFrame(wx.Frame):
         except Exception as xxx:
 
             print xxx
-            print "an exception occured"
+            print "an exception occurred"
             
             testDlg1.Destroy()
             
@@ -762,7 +795,8 @@ class MainFrame(wx.Frame):
                 self, 'There are issues with the current configuration ' \
                       'which need to be resolved - please check to make ' \
                       'sure the options you are running have the proper ' \
-                      'pre-requisites selected.\n\nIssue Info:\n%s' % xxx,
+                      'pre-requisites selected.\n\nIssue Info:\n%s' \
+                      % str(xxx),
                 'Pipeline Not Ready',
                 wx.OK | wx.ICON_ERROR)
             errDlg1.ShowModal()
@@ -990,10 +1024,14 @@ class MainFrame(wx.Frame):
     def write(self, path, config_list):
 
         import ast
+        import CPAC
 
         try:
 
             f = open(path, 'w')
+
+            print >>f, "# CPAC Pipeline Configuration YAML file"
+            print >>f, "# version %s\n" % str(CPAC.__version__)
 
             for item in config_list:
 

@@ -1,7 +1,7 @@
 ============================================================
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
-[![DOI](https://zenodo.org/badge/9342/FCP-INDI/C-PAC.svg)](http://dx.doi.org/10.5281/zenodo.16557)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
 
 A configurable, open-source, Nipype-based, automated processing pipeline for resting state fMRI data. 
 Designed for use by both novice users and experts, C-PAC brings the power, flexibility and elegance 
@@ -24,6 +24,8 @@ User documentation can be found here: http://fcp-indi.github.com/docs/user/index
 
 Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
+Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.0
+
 
 Discussion Forum
 ---------------
@@ -33,9 +35,7 @@ If you are stuck and need help or have any other questions or comments about C-P
 Issue Tracker and Bugs
 ----------------------
 
-This is an alpha version of C-PAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, 
-there will likely still be a few bugs that we did not catch. If you find a bug or would like to suggest a new feature, 
-please open an issue on the the C-PAC Github issue tracker: https://github.com/FCP-INDI/C-PAC/issues?state=open
+This is a beta version of C-PAC, which means that it is still under active development. As such, although we have done our best to ensure a stable pipeline, there will likely still be a few bugs that we did not catch. If you find a bug or would like to suggest a new feature, please open an issue on the the C-PAC Github issue tracker: https://github.com/FCP-INDI/C-PAC/issues?state=open
 
 If you would like to suggest revisions to the user documentation, please open an issue on the C-PAC website's Github issue tracker: https://github.com/FCP-INDI/fcp-indi.github.com/issues
 

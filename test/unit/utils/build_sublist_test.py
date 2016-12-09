@@ -102,7 +102,10 @@ class BuildSublistTestCase(unittest.TestCase):
         # Iterate through the list and extract paths
         for sub_dict in sublist:
             anat = sub_dict['anat']
-            funcs = [rest for rest in sub_dict['rest'].values()]
+            try:
+                funcs = [rest for rest in sub_dict['func'].values()]
+            except KeyError:
+                funcs = [rest for rest in sub_dict['rest'].values()]
             file_paths.append(anat)
             file_paths.extend(funcs)
 

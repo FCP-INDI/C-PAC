@@ -165,21 +165,25 @@ def extract_keyword_from_path(filepath, keyword, template):
     import logging
 
     # Init variables
+    # creates a list of directory levels of the filepath, and of the template
     temp_split = template.split('/')
     fp_split = filepath.split('/')
 
     # Get logger
-    logger = logging.getLogger('sublist_builder')
+    #logger = logging.getLogger('sublist_builder')
 
-    # Extract directory  name of the 
+    # Extract directory name of the keyword, from the template
     kw_dirname = [dir for dir in temp_split if keyword in dir]
 
     # If the keyword is in the template, extract string from filepath
     if len(kw_dirname) > 0:
         # Get the directory fullname from template, as well as any surrounding
         kw_dirname = kw_dirname[0]
+        # kw_idx is the index of where in the template path the keyword is
         kw_idx = temp_split.index(kw_dirname)
-        # Extract directory with key string in it from filepath
+        # Extract directory with key string in it from filepath, i.e. if this
+        # is for {participant}, key_str will be the participant ID string from
+        # the filepath
         key_str = fp_split[kw_idx]
         # Get the prefix and suffix surrounding keyword
         kw_prefix = kw_dirname.split(keyword)[0]
@@ -199,6 +203,8 @@ def extract_keyword_from_path(filepath, keyword, template):
             kw_prefix = kw_prefix[:-1]
 
         # Make sure what is left is more than ''
+        # This will not run if the keyword was the only thing in the directory
+        # level
         if kw_prefix != '':
             # Find the previous '*' from the right
             prev_star_in_prefix = kw_prefix.rfind('*')
@@ -228,6 +234,8 @@ def extract_keyword_from_path(filepath, keyword, template):
             kw_suffix = kw_suffix[1:]
 
         # Make sure what is left is more than ''
+        # This will not run if the keyword was the only thing in the directory
+        # level
         if kw_suffix != '':
             # Find the next '*' from the left
             next_star_in_suffix = kw_suffix.find('*')
@@ -348,9 +356,9 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
     logger = logging.getLogger('sublist_builder')
 
     # Check if {site} was specified
+    keep_site_paths = []
     if site_kw in path_template and include_sites is not None:
         # Filter out sites that are not included
-        keep_site_paths = []
         if type(include_sites) is not list:
             include_sites = [include_sites]
         logger.info('Only including sites: %s' % include_sites)
@@ -359,6 +367,16 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                                                         site_kw,
                                                         path_template) in \
                               include_sites, sub_paths)
+        # note which site IDs in "subjects to include" are missing
+        missing = list(include_sites)
+        for site_id in site_matches:
+            for include in include_sites:
+                if include in site_id:
+                    if include in missing:
+                        missing.remove(include)
+        if len(missing) > 0:
+            logger.info("Site IDs marked in 'Sites to Include' not found:" \
+                        "\n%s" % str(missing))
         keep_site_paths.extend(site_matches)
     else:
         logger.info('Not filtering out any potential sites...')
@@ -389,7 +407,21 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                                                         ppant_kw,
                                                         path_template) in \
                               include_subs, sub_paths)
+        # note which participant IDs in "subjects to include" are missing
+        missing = list(include_subs)
+        for subj_path in subj_matches:
+            for include in include_subs:
+                if include in subj_path:
+                    if include in missing:
+                        missing.remove(include)
+        if len(missing) > 0:
+            logger.info("Participant IDs marked in 'Subjects to Include' "\
+                        "not found:\n%s" % str(missing))
         keep_subj_paths.extend(subj_matches)
+
+        if keep_site_paths:
+            keep_subj_paths = list(set(keep_subj_paths) & set(keep_site_paths))
+
     # Or exclude only
     elif exclude_subs is not None:
         keep_subj_paths = []
@@ -411,6 +443,9 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
                               exclude_subs, sub_paths)
         keep_subj_paths.extend(subj_matches)
 
+        if keep_site_paths:
+            keep_subj_paths = list(set(keep_subj_paths) & set(keep_site_paths))
+
     else:
         keep_subj_paths = keep_site_paths
 
@@ -425,7 +460,7 @@ def filter_sub_paths(sub_paths, include_sites, include_subs, exclude_subs,
 # Get site, ppant, session-level directory indicies
 def return_dir_indices(path_template):
     '''
-    Function to return the site, particpant, and session-level
+    Function to return the site, participant, and session-level
     directory indicies based on splitting the path template by
     directory seperation '/'
     Parameters
@@ -446,16 +481,22 @@ def return_dir_indices(path_template):
 
     # Get folder level indices of site and subject - anat
     fp_split = path_template.split('/')
-    site_idx = fp_split.index('{site}')
-    ppant_idx = fp_split.index('{participant}')
     # Session level isn't required, but recommended
-    try:
-        sess_idx = fp_split.index('{session}')
-    except ValueError as exc:
-        sess_idx = ppant_idx+1
+    sess_idx = None
+    sess_extra = None
+    for dir_level in fp_split:
+        if "{site}" in dir_level:
+            site_idx = fp_split.index(dir_level)
+            site_extra = filter(bool,dir_level.split("{site}"))
+        if "{participant}" in dir_level:
+            ppant_idx = fp_split.index(dir_level)
+            ppant_extra = filter(bool,dir_level.split("{participant}"))
+        if "{session}" in dir_level:
+            sess_idx = fp_split.index(dir_level)
+            sess_extra = filter(bool,dir_level.split("{session}"))
 
-    # Return indices
-    return site_idx, ppant_idx, sess_idx
+    # Return extra characters
+    return site_idx, ppant_idx, sess_idx, site_extra, ppant_extra, sess_extra
 
 
 # Return matching filepaths
@@ -822,12 +863,6 @@ def build_sublist(data_config_yml):
         # If session index is ppant index, then no session dir
         if anat_ppant_idx == anat_sess_idx:
             anat_sess_idx = func_sess_idx = None
-    # Get indices from {site} {ppant} {session} identifiers
-    else:
-        anat_site_idx, anat_ppant_idx, anat_sess_idx = \
-            return_dir_indices(anat_template)
-        func_site_idx, func_ppant_idx, func_sess_idx = \
-            return_dir_indices(func_template)
 
     # Filter out unwanted anat and func filepaths
     logger.info('Filtering anatomical files...')
@@ -855,68 +890,116 @@ def build_sublist(data_config_yml):
         site_scan_params = {}
 
     # Iterate through file paths and build subject list
-    for anat in anat_paths:
-        anat_sp = anat.split('/')
-        subj = anat_sp[anat_ppant_idx]
-        sess = anat_sp[anat_sess_idx]
-        if bids_flag:
+    if bids_flag:
+        for anat in anat_paths:
+            anat_sp = anat.split('/')
+            subj = anat_sp[anat_ppant_idx]
+            try:
+                sess = anat_sp[anat_sess_idx]
+            except TypeError:
+                sess = "ses-1"
             site = ''
-        else:
-            site = anat_sp[anat_site_idx]
-        subj_d = {'anat' : anat, 'creds_path' : creds_path, 'rest' : {},
-                  'subject_id' : subj, 'unique_id' : sess,
-                  'scan_parameters': site_scan_params}
-        tmp_key = '_'.join([subj, site, sess])
-        tmp_dict[tmp_key] = subj_d
+            subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
+                      'subject_id' : subj, 'unique_id' : sess}
+            tmp_key = '_'.join([subj, site, sess])
+            tmp_dict[tmp_key] = subj_d
 
-    # Now go through and populate functional scans dictionaries
-    for func in func_paths:
-        # Extract info from filepath
-        func_sp = func.split('/')
-        subj = func_sp[func_ppant_idx]
-        sess = func_sp[func_sess_idx]
-        if bids_flag:
+        # Now go through and populate functional scans dictionaries
+        for func in func_paths:
+            # Extract info from filepath
+            func_sp = func.split('/')
+            subj = func_sp[func_ppant_idx]
+            try:
+              sess = func_sp[func_sess_idx]
+            except TypeError:
+              sess = "ses-1"
             site = ''
+            scan_params = None
             scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
                                                                func)
-        else:
-            site = func_sp[func_site_idx]
+
+            # If there is no scan sub-folder under session, make scan
+            # the name of the image itself without extension
+            if func_sess_idx == len(func_sp)-2:
+                scan = func_sp[-1].split('.nii')[0]
+            # Othwerwise, there use scan sub folder
+            else:
+                scan = func_sp[-2]
+
+            # Build tmp key and get subject dictionary from tmp dictionary
+            tmp_key = '_'.join([subj, site, sess])
+
+            # Try and find the associated anat scan
+            try:
+                subj_d = tmp_dict[tmp_key]
+            except KeyError as exc:
+                logger.info('Unable to find anatomical image for %s. Skipping...'\
+                            % tmp_key)
+                continue
+
+            # Set the rest dictionary with the scan
+            subj_d['func'][scan] = func
+            subj_d['func']["scan_parameters"] = scan_params
+            # And replace it back in the dictionary
+            tmp_dict[tmp_key] = subj_d
+    else:
+        for anat in anat_paths:
+            subj = extract_keyword_from_path(anat, "{participant}", anat_template)
+            try:
+                sess = extract_keyword_from_path(anat, "{session}", anat_template)
+            except TypeError:
+                sess = "ses-1"
+            site = extract_keyword_from_path(anat, "{site}", anat_template)
+            subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
+                      'subject_id' : subj, 'unique_id' : sess}
+            tmp_key = '_'.join([subj, site, sess])
+            tmp_dict[tmp_key] = subj_d
+
+        # Now go through and populate functional scans dictionaries
+        for func in func_paths:
+            func_sp = func.split('/')
+
+            subj = extract_keyword_from_path(func, "{participant}", func_template)
+            try:
+                sess = extract_keyword_from_path(func, "{session}", func_template)
+            except TypeError:
+                sess = "ses-1"
+            site = extract_keyword_from_path(func, "{site}", func_template)
+            scan_params = None
             if scan_params_csv is not None:
                 try:
                     scan_params = site_scan_params[site]
                 except KeyError as exc:
                     print 'Site %s missing from scan parameters csv, skipping...'\
                           % site
-                    scan_params = None
 
-        # If there is no scan sub-folder under session, make scan
-        # the name of the image itself without extension
-        if func_sess_idx == len(func_sp)-2:
-            scan = func_sp[-1].split('.nii')[0]
-        # Othwerwise, there use scan sub folder
-        else:
-            scan = func_sp[-2]
+            # Build tmp key and get subject dictionary from tmp dictionary
+            tmp_key = '_'.join([subj, site, sess])
+            # Try and find the associated anat scan
+            try:
+                subj_d = tmp_dict[tmp_key]
+            except KeyError as exc:
+                logger.info('Unable to find anatomical image for %s. Skipping...'\
+                            % tmp_key)
+                continue
 
-        # Build tmp key and get subject dictionary from tmp dictionary
-        tmp_key = '_'.join([subj, site, sess])
+            # If there is no scan sub-folder, make scan
+            # the name of the image itself without extension
+            if "{series}" in func_template:
+                scan = extract_keyword_from_path(func, "{series}", func_template)
+            else:
+                scan = func_sp[-1].split('.nii')[0]
 
-        # Try and find the associated anat scan
-        try:
-            subj_d = tmp_dict[tmp_key]
-        except KeyError as exc:
-            logger.info('Unable to find anatomical image for %s. Skipping...'\
-                        % tmp_key)
-            continue
-
-        # Set the rest dictionary with the scan
-        subj_d['rest'][scan] = func
-        # And replace it back in the dictionary
-        tmp_dict[tmp_key] = subj_d
+            # Set the rest dictionary with the scan
+            subj_d['func'][scan] = func
+            subj_d['func']["scan_parameters"] = scan_params
+            # And replace it back in the dictionary
+            tmp_dict[tmp_key] = subj_d
 
     # Build a subject list from dictionary values
     sublist = []
     for data_bundle in tmp_dict.values():
-        if data_bundle['anat'] != '' and data_bundle['rest'] != {}:
+        if data_bundle['anat'] != '' and data_bundle['func'] != {}:
             sublist.append(data_bundle)
     # Check to make sure subject list has at least one valid data bundle
     if len(sublist) == 0:

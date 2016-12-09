@@ -32,10 +32,6 @@ files_folders_wf = {
     'functional_brain_mask':'func',
     'motion_correct':'func',
     'motion_correct_smooth':'func',
-    'itk_func_anat_affine_motion_correct_to_standard':'func',
-    'itk_func_anat_affine_functional_mni_other_resolutions':'func',
-    'itk_collected_warps_motion_correct_to_standard':'func',
-    'itk_collected_warps_motion_correct_to_standard_other_resolutions':'func',
     'motion_correct_to_standard':'func',
     'motion_correct_to_standard_other_resolutions':'func',
     'motion_correct_to_standard_other_resolutions_smooth':'func',
@@ -52,6 +48,7 @@ files_folders_wf = {
     'functional_csf_mask':'segmentation',
     'frame_wise_displacement':'parameters',
     'functional_nuisance_residuals':'func',
+    'functional_nuisance_regressors':'func',
     'functional_median_angle_corrected':'func',
     'power_spectrum_distribution':'alff',
     'functional_freq_filtered':'func',
@@ -61,22 +58,9 @@ files_folders_wf = {
     'motion_params':'parameters',
     'power_params':'parameters',
     'scrubbed_preprocessed':'func',
-    'itk_func_anat_affine_functional_mni':'func',
-    'itk_func_anat_affine_functional_brain_mask_to_standard':'func',
-    'itk_func_anat_affine_functional_brain_mask_to_standard_other_resolutions':'func',
-    'itk_func_anat_affine_motion_correct_to_standard_other_resolutions':'func',
-    'itk_func_anat_affine_mean_functional_in_mni' : 'func',
-    'itk_collected_warps_functional_mni':'func',
-    'itk_collected_warps_functional_mni_other_resolutions':'func',
-    'itk_collected_warps_functional_brain_mask_to_standard':'func',
-    'itk_collected_warps_functional_brain_mask_to_standard_other_resolutions':'func',
-    'itk_collected_warps_mean_functional_in_mni' : 'func',
-    'functional_mni':'func',
-    'functional_mni_other_resolutions':'func',
-    'functional_mni_other_resolutions_smooth':'func',
+    'functional_to_standard':'func',
     'functional_brain_mask_to_standard':'func',
-    'functional_brain_mask_to_standard_other_resolutions':'func',
-    'mean_functional_in_mni' : 'func',
+    'mean_functional_to_standard' : 'func',
     'functional_to_anat_linear_xfm':'registration',
     'functional_to_mni_linear_xfm':'registration',
     'mni_to_functional_linear_xfm':'registration',
@@ -2164,44 +2148,45 @@ def check_config_resources(c):
     num_cores = cpu_count()
 
     # Check for pipeline memory for subject
-    if c.memoryAllocatedPerSubject is None:
+    if c.maximumMemoryPerParticipant is None:
         # Get system memory and numSubsAtOnce
         sys_mem_gb = sys_virt_mem.total/(1024.0**3)
-        sub_mem_gb = sys_mem_gb/c.numSubjectsAtOnce
+        sub_mem_gb = sys_mem_gb/c.numParticipantsAtOnce
     else:
-        sub_mem_gb = c.memoryAllocatedPerSubject
+        sub_mem_gb = c.maximumMemoryPerParticipant
 
     # If centrality is enabled, check to mem_sub >= mem_centrality
     if c.runNetworkCentrality[0]:
         if sub_mem_gb < c.memoryAllocatedForDegreeCentrality:
             err_msg = 'Memory allocated for subject: %d needs to be greater '\
-                      'than the memory allocated for centrality: %d. Fix and '\
-                      'try again.' % (c.memoryAllocatedPerSubject,
-                                      c.memoryAllocatedForDegreeCentrality)
+                      'than the memory allocated for centrality: %d. Fix '\
+                      'and try again.' % (c.maximumMemoryPerParticipant,
+                                         c.memoryAllocatedForDegreeCentrality)
             raise Exception(err_msg)
 
     # Check for pipeline threads
     # Check if user specified cores
-    if c.numCoresPerSubject:
-        total_user_cores = c.numSubjectsAtOnce*c.numCoresPerSubject
+    if c.maxCoresPerParticipant:
+        total_user_cores = c.numParticipantsAtOnce*c.maxCoresPerParticipant
         if total_user_cores > num_cores:
-            err_msg = 'Config file specifies more subjects running in '\
-                      'parallel than number of threads available. Change '\
+            err_msg = 'Config file specifies more subjects running in ' \
+                      'parallel than number of threads available. Change ' \
                       'this and try again'
             raise Exception(err_msg)
         else:
-            num_cores_per_sub = c.numCoresPerSubject
+            num_cores_per_sub = c.maxCoresPerParticipant
     else:
-        num_cores_per_sub = num_cores/c.numCoresPerSubject
+        num_cores_per_sub = num_cores/c.maxCoresPerParticipant
 
     # Now check ANTS
     if 'ANTS' in c.regOption:
         if c.num_ants_threads is None:
             num_ants_cores = num_cores_per_sub
-        elif c.num_ants_threads > c.numCoresPerSubject:
-            err_msg = 'Number of threads for ANTS: %d is greater than the '\
-                      'number of threads per subject: %d. Change this and '\
-                      'try again.'
+        elif c.num_ants_threads > c.maxCoresPerParticipant:
+            err_msg = 'Number of threads for ANTS: %d is greater than the ' \
+                      'number of threads per subject: %d. Change this and ' \
+                      'try again.' % (c.num_ants_threads, 
+                                      c.maxCoresPerParticipant)
             raise Exception(err_msg)
         else:
             num_ants_cores = c.num_ants_threads

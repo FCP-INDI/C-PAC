@@ -260,11 +260,8 @@ def calc_residuals(subject,
         scipy.io.savemat(regressors_file, regressor_map)                        ### for scipy v0.7.0
     else:
         scipy.io.savemat(regressors_file, regressor_map, oned_as='column')   ### for scipy v0.12: OK
-
     
-    
-    return residual_file, csv_filename
-
+    return residual_file, regressors_file
 
 
 def extract_tissue_data(data_file,

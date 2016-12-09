@@ -1368,9 +1368,6 @@ def cal_snr_val(measure_file):
     return avg_snr_file
 
 
-
-
-
 def gen_std_dev(mask_, func_):
 
     """
