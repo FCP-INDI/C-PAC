@@ -95,8 +95,6 @@ function set_system_deps {
         # add in the packages that are common to all
         system_pkgs=${centos_packages[@]}
 
-        yum update -y && yum install -y wget
-
         # add in the packages that are specific to the redhat-release
         case ${VERSION} in
             5)
@@ -121,8 +119,6 @@ function set_system_deps {
     then
         # add in the packages that are common to all
         system_pkgs=${ubuntu_packages[@]}
-	# take care of initing apt-get and installing wget
-        apt-get update && apt-get upgrade -y && apt-get install -y wget
 
         # add in the packages that are specific to the redhat-release
         case ${VERSION} in
