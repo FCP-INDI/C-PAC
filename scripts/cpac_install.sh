@@ -218,6 +218,7 @@ function install_system_dependencies {
 
             # update the repositories
             #yum update -y
+	    yum install -y wget
             cd /tmp && wget ${epel_url} && rpm -Uvh ${epel_rpm}
 
             yum install -y ${missing_system_dependencies[@]} 
@@ -249,7 +250,7 @@ function install_system_dependencies {
         then
             #apt-get update
             #apt-get upgrade -y
-
+	    apt-get install -y wget	
             apt-get install -y ${missing_system_dependencies[@]} 
             aptgetfail=$?
             # >= Ubuntu 16.04 no longer has libxp in the repos so it must be compiled
