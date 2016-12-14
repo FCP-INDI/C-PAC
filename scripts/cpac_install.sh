@@ -6,7 +6,7 @@ function print_usage {
     echo "Usage: cpac_install.sh -[spnalrh]"
     echo "========================================================================="
     echo "Version: 1.0.1"
-    echo "Author(s): John Pellman, Daniel Clark"
+    echo "Author(s): John Pellman, Daniel Clark, Cameron Craddock"
     echo "Based off of cpac_install.sh by Daniel Clark."
     echo "Description: Will perform specific operations to install C-PAC"
     echo "  dependencies and C-PAC. Checks for user privileges and performs"
@@ -175,7 +175,7 @@ function get_missing_system_dependencies()
     else
         echo "[ $(date) ] : Do not know how to check for packages installed on ${DISTRO}" >> ~/cpac.log
     fi
-    echo "missing ${missing_system_dependencies[@]}"
+#    echo "missing ${missing_system_dependencies[@]}"
 }
 
 function compile_libxp {
@@ -218,7 +218,7 @@ function install_system_dependencies {
 
             # update the repositories
             #yum update -y
-	    yum install -y wget
+            yum install -y wget
             cd /tmp && wget ${epel_url} && rpm -Uvh ${epel_rpm}
 
             yum install -y ${missing_system_dependencies[@]} 
@@ -250,7 +250,7 @@ function install_system_dependencies {
         then
             #apt-get update
             #apt-get upgrade -y
-	    apt-get install -y wget	
+            apt-get install -y wget	
             apt-get install -y ${missing_system_dependencies[@]} 
             aptgetfail=$?
             # >= Ubuntu 16.04 no longer has libxp in the repos so it must be compiled
@@ -1066,42 +1066,42 @@ then
     exit 1
 fi
 
-# tell the user what we are doing
-if [ ${LOCAL} -eq 1 ]
-then
-    echo "Installing the C-PAC ecosystem locally on ${DISTRO} with $@"
-else
-    echo "Installing the C-PAC ecosystem system-wide on ${DISTRO} with $@"
-fi
-
 set_system_deps
 
-# get an accounting of the missing dependencies
-get_missing_system_dependencies
-get_missing_python_dependencies
-
-echo "missing python dependencies"
-echo ${missing_conda_dependencies[@]}
-echo ${missing_pip_dependencies[@]}
-
-
-if [ ${system_dependencies_installed} -eq 1 ]
+if [ $# -ge 1 ] && [ $1 != '-h' ]
 then
-    echo "All required system dependencies are installed."
-elif [ ${LOCAL} -eq 1 ]
-then
-    echo "The following system dependences need to be installed as super"\
-        "user before the C-PAC installation can continue:"
-    for p in ${missing_system_dependencies}
-    do
-        echo "  $p"
-    done
-    exit 1
+    if [ ${LOCAL} -eq 1 ]
+    then
+        echo "Installing the C-PAC ecosystem locally on ${DISTRO} with $@"
+    else
+        echo "Installing the C-PAC ecosystem system-wide on ${DISTRO} with $@"
+    fi
 fi
 
 # CC if user doesn't provide any command line arguments, install everything
 if [ $# -eq 0 ]
 then
+    # get an accounting of the missing dependencies
+    get_missing_system_dependencies
+    get_missing_python_dependencies
+    
+#    echo "missing python dependencies"
+#    echo ${missing_conda_dependencies[@]}
+#    echo ${missing_pip_dependencies[@]}
+
+    if [ ${system_dependencies_installed} -eq 1 ]
+    then
+        echo "All required system dependencies are installed."
+    elif [ ${LOCAL} -eq 1 ]
+    then
+        echo "The following system dependences need to be installed as super"\
+            "user before the C-PAC installation can continue:"
+        for p in ${missing_system_dependencies}
+        do
+            echo "  $p"
+        done
+        exit 1
+    fi
     if [ ${LOCAL} -eq 0 ]
     then
         install_system_dependencies
@@ -1127,10 +1127,12 @@ while getopts ":spn:alrh" opt
 do
     case $opt in
         s)
+            get_missing_system_dependencies
             install_system_dependencies
             install_cpac_env
             ;;
         p)
+            get_missing_python_dependencies
             install_python_dependencies
             install_cpac_env
             ;;
@@ -1190,6 +1192,7 @@ do
             install_cpac_env
             ;;
         l)
+            get_missing_python_dependencies
             install_python_dependencies
             install_afni
             if [ $LOCAL -eq 1 ] && [ $DISTRO == 'UBUNTU' ]
@@ -1209,6 +1212,8 @@ do
             install_cpac_env
             ;;
         r)
+            get_missing_system_dependencies
+            get_missing_python_dependencies
             install_system_dependencies
             install_python_dependencies
             install_afni
