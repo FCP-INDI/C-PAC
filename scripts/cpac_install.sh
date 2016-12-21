@@ -42,7 +42,7 @@ centos_packages=("git" "make" "unzip" "netpbm" "gcc" "python-devel"\
     "gcc-gfortran" "gcc-c++" "libgfortran" "lapack" "lapack-devel" "blas"\
     "libcanberra-gtk2" "libXp.x86_64" "mesa-libGLU-9.0.0-4.el7.x86_64"\
     "gsl-1.15-13.el7.x86_64" "wxBase" "wxGTK" "wxGTK-gl" "wxPython" "graphviz"\
-    "graphviz-devel.x86_64")
+    "graphviz-devel.x86_64" "libxslt-devel")
 
 # configuration options that are specific to centos 5
 centos5_epel_url="http://dl.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm"
@@ -60,7 +60,7 @@ centos6_packages=("mesa-libGLU-11.0.7-4.el6.x86_64" "gsl-1.13-1.el6.x86_64"\
 centos7_epel_url="http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm"
 centos7_epel_rpm="epel-release-7-5.noarch.rpm"
 centos7_packages=("mesa-libGLU-9.0.0-4.el7.x86_64" "gsl-1.15-13.el7.x86_64"\
-    "libcanberra-gtk2" "libxml-devel" "libpng12.x86_64")
+    "libcanberra-gtk2" "libxml2-devel" "libpng12.x86_64")
 
 # are all of the ubuntu packages that are common across different versions of Ubuntu
 ubuntu_packages=("cmake" "git" "graphviz" "graphviz-dev" "gsl-bin" "libcanberra-gtk-module" \
@@ -100,17 +100,17 @@ function set_system_deps {
             5)
                 epel_url=centos5_epel_url
                 epel_rpm=centos5_epel_rpm
-                system_pkgs+=(${centos5_packages})
+                system_pkgs+=(${centos5_packages[@]})
                 ;;
             6)
                 epel_url=centos6_epel_url
                 epel_rpm=centos6_epel_rpm
-                system_pkgs+=(${centos6_packages})
+                system_pkgs+=(${centos6_packages[@]})
                 ;;
             7)
                 epel_url=centos7_epel_url
                 epel_rpm=centos7_epel_rpm
-                system_pkgs+=(${centos7_packages})
+                system_pkgs+=(${centos7_packages[@]})
                 ;;
             *)
                 echo "Unknown version ${VERSION}"
@@ -123,16 +123,16 @@ function set_system_deps {
         # add in the packages that are specific to the redhat-release
         case ${VERSION} in
     	    12.04)
-                system_pkgs+=(${ubuntu1204_packages})
+                system_pkgs+=(${ubuntu1204_packages[@]})
                 ;;
             14.04)
-                system_pkgs+=(${ubuntu1404_packages})
+                system_pkgs+=(${ubuntu1404_packages[@]})
                 ;;
             16.04)
-                system_pkgs+=(${ubuntu1604_packages})
+                system_pkgs+=(${ubuntu1604_packages[@]})
                 ;;
             16.10)
-                system_pkgs+=(${ubuntu1610_packages})
+                system_pkgs+=(${ubuntu1610_packages[@]})
                 ;;
             *)
                 echo "Unknown version ${VERSION}"
@@ -156,7 +156,7 @@ function get_missing_system_dependencies()
             if [ $? -ne 0 ]
             then
                 system_dependencies_installed=0
-                ARRAY+=(${package})
+                missing_system_dependencies+=(${package})
                 echo "[ $(date) ] : Missing system dependency ${package}" >> ~/cpac.log
             fi
         done
