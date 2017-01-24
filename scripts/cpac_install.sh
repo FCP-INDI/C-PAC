@@ -923,6 +923,7 @@ function install_cpac {
     git clone https://github.com/FCP-INDI/C-PAC.git
     cd C-PAC
     python setup.py install
+    cd /tmp
     rm -rf /tmp/C-PAC
     source deactivate
 }
