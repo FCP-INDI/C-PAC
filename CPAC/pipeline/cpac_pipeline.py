@@ -293,7 +293,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
     workflow.config['execution'] = {'hash_method': 'timestamp', 'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
-    config.update_config({'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
+    if c.log_to_file and c.log_to_file == True:
+        config.update_config({'logging': {'log_directory': log_dir, 'log_to_file': True}})
+    else:
+        config.update_config({'logging': {'log_to_file': False}})
+
     logging.update_logging(config)
 
 
