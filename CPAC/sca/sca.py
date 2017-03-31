@@ -38,19 +38,13 @@ def create_sca(name_sca='sca'):
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_ 
 
     Workflow Inputs::
- 
-
         inputspec.rest_res_filt : string (existing nifti file)
             Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
 
         inputspec.timeseries_one_d : string (existing nifti file)
             1D 3dTcorr1D compatible timeseries file. 1D file can be timeseries from a mask or from a parcellation containing ROIs
 
-
-
-        
     Workflow Outputs::
-
         outputspec.correlation_file : string (nifti file)
             Correlations of the functional file and the input time series 
 
@@ -67,9 +61,7 @@ def create_sca(name_sca='sca'):
     2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a 
        a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of 
        nifti files 
-    
-    
-    
+
     Workflow:
     
     .. image:: ../images/sca_graph.dot.png
@@ -80,10 +72,8 @@ def create_sca(name_sca='sca'):
     .. image:: ../images/sca_detailed_graph.dot.png
         :width: 500 
 
-
     Examples
     --------
-    
     >>> sca_w = create_sca("sca_wf")
     >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'
     >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D' 
@@ -99,15 +89,12 @@ def create_sca(name_sca='sca'):
                                                 ]),
                         name='inputspec')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=[
                                                     'correlation_stack',
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
-
-
 
     # # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
@@ -119,7 +106,6 @@ def create_sca(name_sca='sca'):
                 corr, 'y_1d')
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
-
 
     if "roi" in name_sca:
 
@@ -141,9 +127,7 @@ def create_sca(name_sca='sca'):
 
         rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
                           iterfield=['in_file','format_string'])
-
         rename_rois.inputs.keep_ext = True
-
 
         sca.connect(corr, 'out_file', concat, 'in_files')
 
@@ -163,10 +147,7 @@ def create_sca(name_sca='sca'):
                     'correlation_files')
 
     else:
-
         sca.connect(corr, 'out_file', outputNode, 'correlation_files')
-
-
 
     return sca
 
@@ -201,8 +182,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow : workflow
 
         temporal multiple regression Workflow
-
-
 
     Notes
     -----
@@ -315,24 +294,19 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_mask',
                   temporalReg, 'mask')
 
-
     wflow.connect(temporalReg, 'out_file',
                   outputNode, 'temp_reg_map')
     wflow.connect(temporalReg, 'out_z',
                   outputNode, 'temp_reg_map_z')
 
-
-    split = pe.Node(interface=fsl.Split(),
-                    name='split_raw_volumes')
+    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes')
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
 
     wflow.connect(temporalReg, 'out_file',
                   split, 'in_file')
 
-
-    split_zstat = pe.Node(interface=fsl.Split(),
-                    name='split_zstat_volumes')
+    split_zstat = pe.Node(interface=fsl.Split(), name='split_zstat_volumes')
     split_zstat.inputs.dimension = 't'
     split_zstat.inputs.out_base_name = 'temp_reg_map_z_'
 
@@ -346,7 +320,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       outputNode, 'temp_reg_map_z_files')
 
     elif which == 'RT':
-
         # get roi order and send to output node for raw outputs
         get_roi_order = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
@@ -364,7 +337,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
         rename_maps = pe.MapNode(interface=util.Rename(),
                                  name='rename_maps',
                                  iterfield=['in_file',
-                                              'format_string'])
+                                            'format_string'])
         rename_maps.inputs.keep_ext = True
 
         wflow.connect(get_roi_order, 'labels',
@@ -375,14 +348,13 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
         wflow.connect(rename_maps, 'out_file',
                       outputNode, 'temp_reg_map_files')
 
-
         # get roi order and send to output node for z-stat outputs
         get_roi_order_zstat = pe.Node(util.Function(input_names=['maps',
-                                                           'timeseries'],
-                                              output_names=['labels',
-                                                            'maps'],
-                                              function=map_to_roi),
-                                name='get_roi_order_zstat')
+                                                                'timeseries'],
+                                                    output_names=['labels',
+                                                                 'maps'],
+                                                    function=map_to_roi),
+                                      name='get_roi_order_zstat')
 
         wflow.connect(split_zstat, 'out_files',
                       get_roi_order_zstat, 'maps')
@@ -391,9 +363,9 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       get_roi_order_zstat, 'timeseries')
 
         rename_maps_zstat = pe.MapNode(interface=util.Rename(),
-                                 name='rename_maps_zstat',
-                                 iterfield=['in_file',
-                                            'format_string'])
+                                       name='rename_maps_zstat',
+                                       iterfield=['in_file',
+                                                  'format_string'])
         rename_maps_zstat.inputs.keep_ext = True
 
         wflow.connect(get_roi_order_zstat, 'labels',

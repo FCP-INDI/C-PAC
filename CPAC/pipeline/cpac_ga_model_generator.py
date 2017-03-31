@@ -236,7 +236,6 @@ def trim_mask(input_mask, ref_mask, output_mask_path):
     return output_mask_path
 
 
-
 def calculate_custom_roi_mean_in_df(model_df, roi_mask):   
 
     import os
@@ -310,7 +309,6 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
     return model_df
 
 
-
 def parse_out_covariates(design_formula):
 
     patsy_ops = ["~","+","-","*","/",":","**",")","("]
@@ -324,7 +322,6 @@ def parse_out_covariates(design_formula):
     covariates = [x for x in words if x != ""]
 
     return covariates
-
 
 
 def split_groups(pheno_df, group_ev, ev_list, cat_list):   
@@ -399,7 +396,6 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     pheno_df = pheno_df.drop(join_column,1)
 
     return pheno_df, grp_vector, new_ev_list, new_cat_list
-
 
 
 def patsify_design_formula(formula, categorical_list, encoding="Treatment"):

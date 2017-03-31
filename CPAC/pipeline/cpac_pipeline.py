@@ -3593,15 +3593,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             output_smooth = pe.Node(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat))
 
-
         elif map_node == 1:
             output_smooth = pe.MapNode(interface=fsl.MultiImageMaths(),
                     name='%s_smooth_%d' % (output_name, num_strat), \
                     iterfield=['in_file'])
 
-
         try:
-
             node, out_file = strat. \
                     get_node_from_resource_pool(output_resource)
 
@@ -3613,7 +3610,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             node, out_file = strat. \
                     get_node_from_resource_pool('functional_brain_mask')
             workflow.connect(node, out_file, output_smooth, 'operand_files')
-
 
         except:
             logConnectionError('%s smooth' % output_name, num_strat, \
@@ -4262,7 +4258,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
             
     strat_list += new_strat_list
-    
 
     '''
     fisher-z-standardize SCA ROI MNI-standardized outputs
@@ -4289,8 +4284,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-
-
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
      QUALITY CONTROL - to be re-implemented later
@@ -4831,8 +4824,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
-
-
     ###################### end of workflow ###########
 
     # Run the pipeline only if the user signifies.
@@ -4882,7 +4873,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     renamedNode = renamedNode[:-1]
                     lastNodeChar = renamedNode[len(renamedNode)-1]
 
-                   
                 renamedNodesList.append(renamedNode)
                
             renamedStrats.append(renamedNodesList)
@@ -4905,9 +4895,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                         tmpForkPoint.append(nodeName)
 
-
             forkPoints.append(tmpForkPoint)
-
 
         # forkPoints is a list of lists, each list containing node names of
         # nodes run in that strat/fork that are unique to that strat/fork
@@ -4951,15 +4939,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forkName = forkName + '__' + forklabel
              
             forkNames.append(forkName)
-   
-       
-           
+
         # match each strat_list with fork point list
         # this is for the datasink
         for x in range(len(strat_list)):
             forkPointsDict[strat_list[x]] = forkNames[x]
-        
-    
+
         '''
         Datasink
         '''
@@ -4984,7 +4969,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for strat in strat_list:
             rp = strat.get_resource_pool()
     
-            # build helper dictionary to assist with a clean strategy label for symlinks
+            # build helper dictionary to assist with a clean strategy label
+            # for symlinks
     
             strategy_tag_helper_symlinks = {}
      
@@ -5001,14 +4987,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strategy_tag_helper_symlinks['_csf_threshold'] = 0
                 strategy_tag_helper_symlinks['_wm_threshold'] = 0
                 strategy_tag_helper_symlinks['_gm_threshold'] = 0
-    
-    
+
             if any('median_angle_corr'in name for name in strat.get_name()):
                 strategy_tag_helper_symlinks['_target_angle_deg'] = 1
             else:
                 strategy_tag_helper_symlinks['_target_angle_deg'] = 0
-    
-    
+
             if any('nuisance'in name for name in strat.get_name()):
                 strategy_tag_helper_symlinks['nuisance'] = 1
             else:
@@ -5031,26 +5015,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         print name, ' --- ', 2 ** workflow_bit_id[name]
                         hash_val += 2 ** workflow_bit_id[name]
 
-    
             if p_name == None or p_name == 'None':
-                
                 if forkPointsDict[strat]:
                     pipeline_id = c.pipelineName + forkPointsDict[strat]
                 else:
                     pipeline_id = c.pipelineName
-                    #if running multiple pipelines with gui, need to change this in future
+                    # if running multiple pipelines with gui, need to change
+                    # this in future
                     p_name = None
 
             else:
-
                 if forkPointsDict[strat]:
                     pipeline_id = c.pipelineName + forkPointsDict[strat]
                 else:
                     pipeline_id = p_name
-                    #if running multiple pipelines with gui, need to change this in future
+                    # if running multiple pipelines with gui, need to change
+                    # this in future
                     p_name = None
 
-            logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: %s, ---- %s, ---- %s' % (strat_tag, hash_val, pipeline_id))
+            logger.info('strat_tag,  ---- , hash_val,  ---- , pipeline_id: '
+                        '%s, ---- %s, ---- %s' % (strat_tag, hash_val,
+                                                  pipeline_id))
             pip_ids.append(pipeline_id)
             wf_names.append(strat.get_name())
 
@@ -5091,13 +5076,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
                                                   (r"/_z_score(\d)+[/]", "/"),
-                                                  (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
-                                                  (r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
+                                                  (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"), #(r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
                                                   (r"/qc___", '/qc/')]
                 node, out_file = rp[key]
-                workflow.connect(node, out_file,
-                                 ds, key)
-                logger.info('node, out_file, key: %s, %s, %s' % (node, out_file, key))
+                workflow.connect(node, out_file, ds, key)
+                logger.info('node, out_file, key: %s, %s, %s'
+                            % (node, out_file, key))
 
                 link_node = pe.Node(interface=util.Function(input_names=['in_file', 'strategies',
                                         'subject_id', 'pipeline_id', 'helper', 'create_sym_links'],
@@ -5110,24 +5094,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 link_node.inputs.pipeline_id = 'pipeline_%s' % (pipeline_id)
                 link_node.inputs.helper = dict(strategy_tag_helper_symlinks)
 
-
                 if 1 in c.runSymbolicLinks:
                     link_node.inputs.create_sym_links = True
                 else:
                     link_node.inputs.create_sym_links = False
-
     
                 workflow.connect(ds, 'out_file', link_node, 'in_file')
 
                 sink_idx += 1
                 logger.info('sink index: %s' % sink_idx)
 
-
             d_name = os.path.join(c.logDirectory, ds.inputs.container)
             if not os.path.exists(d_name):
                 os.makedirs(d_name)
-            
-    
+
             try:
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
@@ -5138,20 +5118,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except:
                 logStandardWarning('Datasink', 'Cannot Create the strategy and pipeline graph, dot or/and pygraphviz is not installed')
                 pass
-    
-    
+
             logger.info('%s*' % d_name)
             num_strat += 1
             
             pipes.append(pipeline_id)
     
-    
         # creates the HTML files used to represent the logging-based status
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
-    
 
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
-
 
         pipeline_start_date = strftime("%Y-%m-%d")
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
