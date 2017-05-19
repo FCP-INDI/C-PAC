@@ -44,9 +44,9 @@ def timeseries_bootstrap(tseries, block_size):
     import numpy as np
     
     k = np.ceil(float(tseries.shape[0])/block_size)
-    r_ind = np.floor(np.random.rand(1,k)*tseries.shape[0])
+    r_ind = np.floor(np.random.rand(1, int(k))*tseries.shape[0])
     
-    blocks = np.dot(np.arange(0,block_size)[:,np.newaxis], np.ones([1,k]))
+    blocks = np.dot(np.arange(0, block_size)[:, np.newaxis], np.ones([1, int(k)]))
     block_offsets = np.dot(np.ones([block_size,1]), r_ind)
     
     block_mask = (blocks + block_offsets).flatten('F')[:tseries.shape[0]]
@@ -134,7 +134,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
 #    algorithm.fit(C_X)
 #    y_pred = algorithm.labels_.astype(np.int)
 
-    from python_ncut_lib import ncut, discretisation
+    #from python_ncut_lib import ncut, discretisation
     eigen_val, eigen_vec = ncut(C_X, n_clusters)
     eigen_discrete = discretisation(eigen_vec)
 

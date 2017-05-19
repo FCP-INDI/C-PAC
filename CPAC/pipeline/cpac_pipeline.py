@@ -5073,12 +5073,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join('pipeline_%s' % pipeline_id, subject_id)
+
+                node, out_file = rp[key]
+
+                # to move ROI labels/info from the filename up to the
+                # subfolder
+                filepath = node.outputs.out_file
+                filename = filepath.split("/")[-1]
+                '''   NEED TO PARSE THE FILENAMES FOR THE ROI NUMS SOMEHOW '''
+                '''   AND ALSO ENSURE THE OUTPUTS.X INTERFACES ETC.  '''
+
                 ds.inputs.regexp_substitutions = [(r"/_sca_roi(.)*[/]", '/'),
                                                   (r"/_smooth_centrality_(\d)+[/]", '/'),
                                                   (r"/_z_score(\d)+[/]", "/"),
                                                   (r"/_dr_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"), #(r"/_sca_tempreg_maps_zstat_files_smooth_(\d)+[/]", "/"),
                                                   (r"/qc___", '/qc/')]
-                node, out_file = rp[key]
+
                 workflow.connect(node, out_file, ds, key)
                 logger.info('node, out_file, key: %s, %s, %s'
                             % (node, out_file, key))

@@ -580,7 +580,7 @@ def calculate_FD_P(in_file):
 
     FD_power = np.sum(translations, axis = 1) + (50*3.141/180)*np.sum(rotations, axis =1)
     
-    #FD is zero for the first time point
+    # FD is zero for the first time point
     FD_power = np.insert(FD_power, 0, 0)
     
     np.savetxt(out_file, FD_power)
@@ -589,19 +589,16 @@ def calculate_FD_P(in_file):
     
 
 def calculate_FD_J(in_file):
-    
-    '''
+    """
     @ Krsna
     May 2013
     compute 
     1) Jenkinson FD from 3dvolreg's *.affmat12.1D file from -1Dmatrix_save option
-	
     input: subject ID, rest_number, name of 6 parameter motion correction file (an output of 3dvolreg)
     output: FD_J.1D file
     Assumptions:    1) subject is available in BASE_DIR
     2) 3dvolreg is already performed and the 1D motion parameter and 1D_matrix file file is present in sub?/rest_? called as --->'lfo_mc_affmat.1D'
-
-    '''
+    """
 
     import numpy as np
     import os
@@ -614,42 +611,46 @@ def calculate_FD_J(in_file):
     
     Parameters; in_file : string
     Returns; out_file : string
-    NOTE: infile should have one 3dvolreg affine matrix in one row - NOT the motion parameters
+    NOTE: infile should have one 3dvolreg affine matrix in one row - NOT the
+    motion parameters
  
     """
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
         
     f = open(out_file, 'w')
-    #print in_file
+    # print in_file
     pm_ = np.genfromtxt(in_file)
         
-    pm = np.zeros((pm_.shape[0],pm_.shape[1]+4))
-    pm[:,:12]=pm_
-    pm[:,12:]=[0.0, 0.0, 0.0, 1.0]
-       
+    pm = np.zeros((pm_.shape[0], pm_.shape[1]+4))
+    pm[:, :12] = pm_
+    pm[:, 12:] = [0.0, 0.0, 0.0, 1.0]
+
     flag = 0
 
-    #The default radius (as in FSL) of a sphere represents the brain
+    # The default radius (as in FSL) of a sphere represents the brain
     rmax = 80.0
 
-    #rigid body transformation matrix 
+    # rigid body transformation matrix
     T_rb_prev = np.matrix(np.eye(4))
     
     for i in range(0, pm.shape[0]):
-	T_rb = np.matrix(pm[i].reshape(4,4)) # making use of the fact that the order of aff12 matrix is "row-by-row"
-        
-	if flag == 0:
+        # making use of the fact that the order of aff12 matrix is
+        # "row-by-row"
+        T_rb = np.matrix(pm[i].reshape(4, 4))
+
+        if flag == 0:
             flag = 1
             # first timepoint
-            print >> f, 0 
+            print >> f, 0
         else:
             M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
             A = M[0:3, 0:3]
             b = M[0:3, 3]
 
-            FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
-            print >> f, '%.8f'%FD_J
+            FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) +
+                             np.dot(b.T, b))
+            print >> f, '%.8f' % FD_J
                 
         T_rb_prev = T_rb
     
@@ -658,8 +659,7 @@ def calculate_FD_J(in_file):
     return out_file
 
 
-
-
+def old_meanfdj():
     """
     Method to calculate Framewise Displacement (FD) calculations
     (Jenkinson et al., 2002)
