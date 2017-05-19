@@ -1,8 +1,7 @@
 
-
 def load_config_yml(config_file):
 
-	# loads a configuration YAML file
+    # loads a configuration YAML file
     #
     # input
     #   config_file: full filepath to YAML (.yml) file
@@ -25,11 +24,10 @@ def load_config_yml(config_file):
 
     except Exception as e:
         err = "\n\n[!] CPAC says: Could not load or read the configuration " \
-        	  "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
+              "YAML file:\n%s\nDetails: %s\n\n" % (config_file, e)
         raise Exception(err)
 
     return config
-
 
 
 def load_text_file(filepath, label="file"):
@@ -51,15 +49,14 @@ def load_text_file(filepath, label="file"):
         with open(filepath,"r") as f:
             lines_list = f.readlines()
     except Exception as e:
-    	err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
+        err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
               "Details: %s\n\n" % (label, filepath, e)
-    	raise Exception(err)
+        raise Exception(err)
 
     # get rid of those \n's that love to show up everywhere
     lines_list = [i.rstrip("\n") for i in lines_list]
 
     return lines_list
-
 
 
 def load_pheno_csv_into_df(pheno_file):
@@ -79,12 +76,10 @@ def load_pheno_csv_into_df(pheno_file):
               % pheno_file
         raise Exception(err)
 
-    with open(os.path.abspath(pheno_file),"r") as f:
+    with open(os.path.abspath(pheno_file), "r") as f:
         pheno_dataframe = pd.read_csv(f)
 
-
     return pheno_dataframe
-
 
 
 def gather_nifti_globs(pipeline_output_folder, resource_list):
@@ -132,18 +127,17 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
                 nifti_globs.append(glob_string)
         
             glob_string = os.path.join(glob_string, "*")
-            prog_string = prog_string + "."
+            prog_string = "{0}.".format(prog_string)
             print prog_string
 
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
               "directory provided for the derivatives selected!\n\nPipeline "\
-              "output directory provided: %s\nDerivatives selected:\s\n\n" \
+              "output directory provided: %s\nDerivatives selected: %s\n\n" \
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 
     return nifti_globs
-
 
 
 def grab_raw_score_filepath(filepath, resource_id):
@@ -158,31 +152,31 @@ def grab_raw_score_filepath(filepath, resource_id):
         raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
         raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
     else:                   
-        raw_score_path = filepath.replace("_zstd","")
-        raw_score_path = raw_score_path.replace("_fisher","")
-        raw_score_path = raw_score_path.replace("_zstat","")
+        raw_score_path = filepath.replace("_zstd", "")
+        raw_score_path = raw_score_path.replace("_fisher", "")
+        raw_score_path = raw_score_path.replace("_zstat", "")
                     
         if "sca_roi_files_to_standard" in resource_id:
             sub_folder = raw_score_path.split("/")[-2] + "/"
             if "z_score" in sub_folder:
-                raw_score_path = raw_score_path.replace(sub_folder,"")
+                raw_score_path = raw_score_path.replace(sub_folder, "")
         elif "sca_tempreg_maps_zstat" in resource_id:
             sca_filename = raw_score_path.split("/")[-1]
             globpath = raw_score_path.replace(sca_filename, "*")
             globpath = os.path.join(globpath, sca_filename)
             raw_score_path = glob.glob(globpath)[0]     
         elif "dr_tempreg_maps" in resource_id:
-            raw_score_path = raw_score_path.replace("map_z_","map_")
+            raw_score_path = raw_score_path.replace("map_z_", "map_")
             raw_filename = raw_score_path.split("/")[-1]
-            raw_score_path = raw_score_path.replace(raw_filename,"")
+            raw_score_path = raw_score_path.replace(raw_filename, "")
             raw_score_path = glob.glob(os.path.join(raw_score_path,"*",raw_filename))[0]       
         else:
             # in case filenames are different between z-standardized and raw
-            raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1],"")
+            raw_score_path = raw_score_path.replace(raw_score_path.split("/")[-1], "")
             try:
-                raw_score_path = glob.glob(os.path.join(raw_score_path,"*"))[0]
+                raw_score_path = glob.glob(os.path.join(raw_score_path, "*"))[0]
             except:
-                raw_score_path = os.path.join(raw_score_path,"*")
+                raw_score_path = os.path.join(raw_score_path, "*")
                 
     if (raw_score_path is None) or (not os.path.exists(raw_score_path)):
         err = "\n\n[!] The filepath for the raw score of " \
@@ -192,7 +186,6 @@ def grab_raw_score_filepath(filepath, resource_id):
         raise Exception(err)
 
     return raw_score_path
-
 
 
 def find_power_params_file(filepath, resource_id, series_id):
@@ -228,7 +221,6 @@ def find_power_params_file(filepath, resource_id, series_id):
     return power_params_file
 
 
-
 def extract_power_params(power_params_lines, power_params_filepath):
 
     # check formatting
@@ -262,20 +254,17 @@ def extract_power_params(power_params_lines, power_params_filepath):
     meandvars = values_list[-1]
 
     return meanfd_power, meanfd_jenk, meandvars
- 
 
 
-def create_output_dict_list(nifti_globs, pipeline_output_folder, \
-                                get_motion=False, get_raw_score=False):
+def create_output_dict_list(nifti_globs, pipeline_output_folder,
+                            get_motion=False, get_raw_score=False):
 
-    import os
     import glob
 
     ext = ".nii"
 
     # parse each result of each "valid" glob string
     output_dict_list = {}
-    output_df_dict = {}
 
     for nifti_glob_string in nifti_globs:
 
@@ -289,6 +278,9 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
             resource_id = second_half_filepath.split("/")[2]
             series_id_string = second_half_filepath.split("/")[3]
             strat_info = second_half_filepath.split(series_id_string)[1]
+            # if we leave filenames in the strat info, if the data is in BIDS
+            # format it will mark each filepath as a different strat
+            strat_info = strat_info.replace(filename, "")
             
             unique_resource_id = (resource_id,strat_info)
                         
@@ -297,8 +289,8 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
             
             unique_id = second_half_filepath.split("/")[1]
 
-            series_id = series_id_string.replace("_scan_","")
-            series_id = series_id.replace("_rest","")
+            series_id = series_id_string.replace("_scan_", "")
+            series_id = series_id.replace("_rest", "")
             
             new_row_dict = {}
             
@@ -309,12 +301,13 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
                         
             if get_motion:
                 # if we're including motion measures
-                power_params_file = find_power_params_file(filepath, \
-                    resource_id, series_id)
-                power_params_lines = load_text_file(power_params_file, \
-                    "power parameters file")
+                power_params_file = find_power_params_file(filepath,
+                                                           resource_id,
+                                                           series_id)
+                power_params_lines = load_text_file(power_params_file,
+                                                    "power parameters file")
                 meanfd_p, meanfd_j, meandvars = \
-                    extract_power_params(power_params_lines, \
+                    extract_power_params(power_params_lines,
                                          power_params_file)
                 new_row_dict["MeanFD_Power"] = meanfd_p
                 new_row_dict["MeanFD_Jenkinson"] = meanfd_j
@@ -322,15 +315,14 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
 
             if get_raw_score:
                 # grab raw score for measure mean just in case
-                raw_score_path = grab_raw_score_filepath(filepath, \
+                raw_score_path = grab_raw_score_filepath(filepath,
                                                          resource_id)                    
                 new_row_dict["Raw_Filepath"] = raw_score_path
                        
-            # unique_resource_id is tuple (resource_id,strat_info)
+            # unique_resource_id is tuple (resource_id, strat_info)
             output_dict_list[unique_resource_id].append(new_row_dict)
 
     return output_dict_list
-
 
 
 def create_output_df_dict(output_dict_list, inclusion_list=None):
@@ -355,7 +347,6 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     return output_df_dict
 
 
-
 def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
                        get_motion, get_raw_score):
 
@@ -367,7 +358,6 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
     return output_df_dict
-
 
 
 def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
@@ -414,9 +404,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     return pheno_df
 
 
-
-def pheno_series_to_repeated_measures(pheno_df, series_list, \
-    repeated_sessions=False):
+def pheno_series_to_repeated_measures(pheno_df, series_list,
+                                      repeated_sessions=False):
 
     # take in the selected series/scans, and create all of the permutations
     # of unique participant IDs (participant_site_session) and series/scans
@@ -459,7 +448,6 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
     return pheno_df
 
 
-
 def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     # this is for repeated measures only.
@@ -492,7 +480,6 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
     return pheno_df, dropped_parts
 
 
-
 def prep_analysis_df_dict(config_file, pipeline_output_folder):
     
     # Preps group analysis run
@@ -504,7 +491,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     #                   example:
     #                     /home/cpac_run_1/output/pipeline_040_ANTS
 
-    import os
     import pandas as pd
 
     # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
@@ -523,7 +509,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
         group_models.append((group_config_file, \
                              load_config_yml(group_config_file)))
 
-
     # get the lowest common denominator of group model config choices
     #   - create full participant list
     #   - create full output measure list
@@ -537,9 +522,9 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
         group_model = group_model_tuple[1]
 
-        inclusion = load_text_file(group_model.participant_list, \
-            "group-level analysis participant list")
-        full_inclusion_list = full_inclusion_list + inclusion
+        inclusion = load_text_file(group_model.participant_list,
+                                   "group-level analysis participant list")
+        full_inclusion_list += inclusion
 
         full_output_measure_list = full_output_measure_list + \
                                        group_model.derivative_list
@@ -736,7 +721,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                                                       None)
 
                         # unique_resource =
-                        #              (output_measure_type, preprocessing strategy)
+                        #        (output_measure_type, preprocessing strategy)
                         analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df
 
             else:
@@ -760,7 +745,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
 
     return analysis_dict
-
 
 
 def run(config_file, pipeline_output_folder):
