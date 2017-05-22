@@ -108,7 +108,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     .. [1] http://scikit-learn.org/dev/modules/generated/sklearn.neighbors.kneighbors_graph.html
     
     """
-
+"""
     if similarity_metric == 'correlation':
         # Calculate empirical correlation matrix between samples
         Xn = X - X.mean(1)[:,np.newaxis]
@@ -141,6 +141,26 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     #np.arange(n_clusters)+1 isn't really necessary since the first cluster can be determined
     #by the fact that the each cluster is a disjoint set
     y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters))).sum(1)
+    """
+    sampledata=generate_blobs()
+    X= bg_func
+
+    # normalize dataset for easier parameter selection
+    X = StandardScaler().fit_transform(X)
+
+    
+    
+    spectral = cluster.SpectralClustering(n_clusters=n_clusters,eigen_solver='arpack', affinity="nearest_neighbors")
+
+
+    
+    t0 = time.time()
+    spectral.fit(X)
+    t1 = time.time()
+    if hasattr(spectral, 'labels_'):
+        y_pred = spectral.labels_.astype(np.int)
+    else:
+        y_pred = spectral.predict(X)
     
     return y_pred
     
