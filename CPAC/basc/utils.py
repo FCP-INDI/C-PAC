@@ -44,9 +44,9 @@ def timeseries_bootstrap(tseries, block_size):
     import numpy as np
     
     k = np.ceil(float(tseries.shape[0])/block_size)
-    r_ind = np.floor(np.random.rand(1, int(k))*tseries.shape[0])
+    r_ind = np.floor(np.random.rand(1,k)*tseries.shape[0])
     
-    blocks = np.dot(np.arange(0, block_size)[:, np.newaxis], np.ones([1, int(k)]))
+    blocks = np.dot(np.arange(0,block_size)[:,np.newaxis], np.ones([1,k]))
     block_offsets = np.dot(np.ones([block_size,1]), r_ind)
     
     block_mask = (blocks + block_offsets).flatten('F')[:tseries.shape[0]]
@@ -107,8 +107,7 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     ----------
     .. [1] http://scikit-learn.org/dev/modules/generated/sklearn.neighbors.kneighbors_graph.html
     
-    """
-
+    
     if similarity_metric == 'correlation':
         # Calculate empirical correlation matrix between samples
         Xn = X - X.mean(1)[:,np.newaxis]
@@ -129,20 +128,103 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     #sklearn code is not stable for bad clusters which using correlation as a stability metric
     #tends to give for more info see:
     #http://scikit-learn.org/dev/modules/clustering.html#spectral-clustering warning
-#    from sklearn import cluster
-#    algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
-#    algorithm.fit(C_X)
-#    y_pred = algorithm.labels_.astype(np.int)
+	#from sklearn import cluster
+	#algorithm = cluster.SpectralClustering(k=n_clusters, mode='arpack')
+	#algorithm.fit(C_X)
+	#y_pred = algorithm.labels_.astype(np.int)
 
-    #from python_ncut_lib import ncut, discretisation
+    from python_ncut_lib import ncut, discretisation
     eigen_val, eigen_vec = ncut(C_X, n_clusters)
     eigen_discrete = discretisation(eigen_vec)
 
     #np.arange(n_clusters)+1 isn't really necessary since the first cluster can be determined
     #by the fact that the each cluster is a disjoint set
     y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters))).sum(1)
+				
+    """
+	# sampledata=generate_blobs()
+    #X= bg_func
+
+    # normalize dataset for easier parameter selection
+    X = pd.DataFrame(X)
+    X = StandardScaler().fit_transform(X)
+    spectral = cluster.SpectralClustering(n_clusters=n_clusters, eigen_solver='arpack', random_state = 5, affinity="nearest_neighbors", n_neighbors = 10, assign_labels='discretize')
+
+
+    
+    #t0 = time.time()
+    spectral.fit(X)
+    #t1 = time.time()
+    if hasattr(spectral, 'labels_'):
+        y_pred = spectral.labels_.astype(np.int)
+    else:
+        y_pred = spectral.predict(X)
     
     return y_pred
+				
+def cross_cluster(data1, data2, n_clusters, similarity_metric):
+	"""
+    Cluster a timeseries dataset based on its relationship to a second timeseries dataset
+        
+    Parameters
+    ----------
+    data1 : array_like
+        A matrix of shape (`N`, `M`) with `N1` samples and `M1` dimensions. 
+		This is the matrix to receive cluster assignment
+	data2 : array_like
+        A matrix of shape (`N`, `M`) with `N2` samples and `M2` dimensions. 
+		This is the matrix with which distances will be calculated to assign clusters to data1
+    n_clusters : integer
+        Number of clusters
+    similarity_metric : {'euclidean', 'correlation', 'minkowski', 'cityblock', 'seuclidean'}
+        Type of similarity measure for distance matrix.  The pairwise similarity measure
+        specifies the edges of the similarity graph. 'data' option assumes X as the similarity
+        matrix and hence must be symmetric.  Default is kneighbors_graph [1]_ (forced to be 
+        symmetric)
+    affinity_threshold : float
+        Threshold of similarity metric when 'correlation' similarity metric is used.
+        
+    Returns
+    -------
+    y_pred : array_like
+        Predicted cluster labels
+
+
+    Examples
+    --------
+	np.random.seed(30)
+	offset = np.random.randn(30)
+	x1 = np.random.randn(200,30) + 2*offset
+	x2 = np.random.randn(100,30) + 44*np.random.randn(30)
+	x3 = np.random.randn(400,30)
+	sampledata1 = np.vstack((x1,x2,x3))
+	
+	np.random.seed(99)
+	offset = np.random.randn(30)
+	x1 = np.random.randn(200,30) + 2*offset
+	x2 = np.random.randn(100,30) + 44*np.random.randn(30)
+	x3 = np.random.randn(400,30)
+	sampledata2 = np.vstack((x1,x2,x3))
+
+	cross_cluster(sampledata1, sampledata2, 3, 'euclidean')
+	
+	
+	References
+    ----------
+	https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
+	http://scikit-learn.org/stable/modules/clustering.html#spectral-clustering
+	"""
+	data1_df = pd.DataFrame(data1)
+	data2_df = pd.DataFrame(data2)
+
+	
+	dist=sp.spatial.distance.cdist(data1_df, data2_df, similarity_metric)
+	
+	
+	y_pred = cluster_timeseries(dist, n_clusters)
+	
+	return y_pred
+
     
 def adjacency_matrix(cluster_pred):
     """
