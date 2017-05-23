@@ -129,7 +129,7 @@ def test_cross_cluster_individual_stability_matrix():
 
     blobs1 = generate_simple_blobs()
     blobs2 = generate_simple_blobs()
-    ism = individual_stability_matrix(Y1=blobs1, Y2=blobs2, cross_cluster = True, 10, 2)
+    ism = individual_stability_matrix(blobs1, 10, 2, Y2 = blobs2, cross_cluster = True)
 
     assert False
 

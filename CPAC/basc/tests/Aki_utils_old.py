@@ -134,6 +134,24 @@ plt.show()
 #blobs = generate_blobs_3d()
 
 
+
+#%% TESTING BASC.PY FUNCTIONS
+
+subject_file= home + '/Desktop/residual_antswarp.nii.gz'
+roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
+n_bootstraps=10
+k_clusters=2
+cross_cluster=True
+roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
+cbb_block_size=None
+affinity_threshold=0.5
+
+nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=True, roi2_mask_file=roi2_mask_file, cbb_block_size=None, affinity_threshold=0.5)
+
+plt.imshow(ism, cmap='hot', interpolation='nearest')
+
+
+
 #%%
 X= bg_func
 
@@ -142,7 +160,7 @@ X = StandardScaler().fit_transform(X)
 
     # estimate bandwidth for mean shift
 bandwidth = cluster.estimate_bandwidth(X, quantile=0.3)
-    
+
     # connectivity matrix for structured Ward
 connectivity = kneighbors_graph(X, n_neighbors=10, include_self=False)
     # make connectivity symmetric

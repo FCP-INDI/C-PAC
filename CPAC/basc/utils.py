@@ -335,16 +335,16 @@ def cluster_matrix_average(M, cluster_assignments):
 
     return s
 
-def individual_stability_matrix(Y1, Y2=None, cross_cluster = False, n_bootstraps, k_clusters, cbb_block_size = None, affinity_threshold = 0.5):
+def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
     """
     Calculate the individual stability matrix of a single subject by bootstrapping their time-series
 
     Parameters
     ----------
     Y1 : array_like
-        A matrix of shape (`N`, `V`) with `N` timepoints and `V` voxels
+        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
     Y2 : array_like
-        A matrix of shape (`N`, `V`) with `N` timepoints and `V` voxels
+        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
         For Cross-cluster solutions- this will be the matrix by which Y1 is clustered
     n_bootstraps : integer
         Number of bootstrap samples
@@ -358,7 +358,7 @@ def individual_stability_matrix(Y1, Y2=None, cross_cluster = False, n_bootstraps
     Returns
     -------
     S : array_like
-        A matrix of shape (`V`, `V`), each element v_{ij} representing the stability of the adjacency of voxel i with voxel j
+        A matrix of shape (`V1`, `V1`), each element v1_{ij} representing the stability of the adjacency of voxel i with voxel j
     """
     if affinity_threshold < 0.0:
         raise ValueError('affinity_threshold %d must be non-negative value' % affinity_threshold)
@@ -370,9 +370,9 @@ def individual_stability_matrix(Y1, Y2=None, cross_cluster = False, n_bootstraps
     if(cbb_block_size is None):
         cbb_block_size = int(np.sqrt(N1))
 
-    S = np.zeros((V,V))
+    S = np.zeros((V1, V1))
 
-    if cross_cluster == True:
+    if (cross_cluster is True):
         for bootstrap_i in range(n_bootstraps):
             N2 = Y2.shape[1]
             cbb_block_size2 = int(np.sqrt(N2))
