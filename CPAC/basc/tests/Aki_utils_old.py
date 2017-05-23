@@ -146,7 +146,9 @@ roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_
 cbb_block_size=None
 affinity_threshold=0.5
 
-nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=True, roi2_mask_file=roi2_mask_file, cbb_block_size=None, affinity_threshold=0.5)
+nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
+
+def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
 
 plt.imshow(ism, cmap='hot', interpolation='nearest')
 
