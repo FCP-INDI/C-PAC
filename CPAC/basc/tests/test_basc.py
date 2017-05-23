@@ -25,7 +25,7 @@ def test_timeseries_bootstrap():
                        [ 9, 19, 29, 39, 49],
                        [ 8, 18, 28, 38, 48]])
     np.testing.assert_equal(actual, desired)
-    
+
 
 def test_sample_bootstrap():
     """
@@ -58,16 +58,28 @@ def test_adjacency_matrix():
                        [0, 0, 0, 1, 0],
                        [1, 0, 0, 0, 1]])
     np.testing.assert_equal(actual, desired)
-    
+
 def generate_blobs():
     np.random.seed(27)
     offset = np.random.randn(30)
-    
+
     x1 = np.random.randn(200,30) + 2*offset
     x2 = np.random.randn(100,30) + 44*np.random.randn(30)
     x3 = np.random.randn(400,30)
     blobs = np.vstack((x1,x2,x3))
     return blobs
+
+
+def generate_simple_blobs():
+    np.random.seed(27)
+    offset = np.random.randn(30)
+
+    x1 = np.random.randn(200,30) + 2*offset
+    x2 = np.random.randn(100,30) + 44*np.random.randn(30)
+
+    blobs = np.vstack((x1,x2))
+    return blobs
+
 
 def generate_blobs_3d():
     np.random.seed(27)
@@ -76,7 +88,7 @@ def generate_blobs_3d():
     x3 = np.random.randn(400,3) + np.array([100.7, 100.0, 100.8])
     blobs = np.vstack((x1,x2,x3))
     return blobs
-    
+
 def test_cluster_timeseries():
     """
     Tests the cluster_timeseries method on three blobs in three dimensions (to make correlation possible)
@@ -85,46 +97,49 @@ def test_cluster_timeseries():
     y_predict = cluster_timeseries(blobs, 3, similarity_metric = 'correlation')
 
 
-def test_cross_cluster():
-	np.random.seed(30)
-	offset = np.random.randn(30)
-	x1 = np.random.randn(20,30) + 2*offset
-	x2 = np.random.randn(10,30) + 44*np.random.randn(30)
-	x3 = np.random.randn(40,30)
-	sampledata1 = np.vstack((x1,x2,x3))
-	
-	offset = np.random.randn(30)
-	x1 = np.random.randn(10,30) + 44*np.random.randn(30)*np.random.randn(30)
-	x2 = np.random.randn(20,30) + 6*offset + offset
-	x3 = np.random.randn(40,30)
-	sampledata2 = np.vstack((x1,x2,x3))
+def test_cross_cluster_timeseries():
+    np.random.seed(30)
+    offset = np.random.randn(30)
+    x1 = np.random.randn(20,30) + 10*offset
+    x2 = np.random.randn(10,30) + 44*np.random.randn(30)
+    sampledata1 = np.vstack((x1,x2))
+    sampledata2 = sampledata1
 
-	actual = cross_cluster(sampledata1, sampledata2, 3, 'euclidean')
-	desired = np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0,
-       0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-       1])
-	# Still not passing
-	np.testing.assert_equal(actual,desired)
+    actual = cross_cluster_timeseries(sampledata1, sampledata2, 2, 'euclidean')
+    desired = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1])
+    # Still not passing
+    np.testing.assert_equal(actual,desired)
 
 
 def test_individual_stability_matrix():
     """
     Tests individual_stability_matrix method on three gaussian blobs.
     """
-    
+
     blobs = generate_blobs()
     ism = individual_stability_matrix(blobs.T, 10, 3)
-    
+
     assert False
-    
+
+def test_cross_cluster_individual_stability_matrix():
+    """
+    Tests individual_stability_matrix method on three gaussian blobs.
+    """
+
+    blobs1 = generate_simple_blobs()
+    blobs2 = generate_simple_blobs()
+    ism = individual_stability_matrix(Y1=blobs1, Y2=blobs2, cross_cluster = True, 10, 2)
+
+    assert False
+
 def test_group_stability_matrix():
     """
     Tests group_stability_matrix method.  This creates a dataset of blobs varying only by additive zero-mean gaussian
     noise and calculates the group stability matrix.
     """
     blobs = generate_blobs()
-    
+
     ism_dataset = np.zeros((5, blobs.shape[0], blobs.shape[0]))
     ism_list = []
     for i in range(ism_dataset.shape[0]):
@@ -132,16 +147,16 @@ def test_group_stability_matrix():
         f = 'ism_dataset_%i.npy' % i
         ism_list.append(f)
         np.save(f, ism_dataset[i])
-    
+
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3, [0,1,1,1,0])
 
     assert False
-    
+
 def test_basc():
     import glob, os
     g_string = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/func_in_mnioutputs/fmri_mnioutputs/_session_id_NYU_TRT_session1_subject_id_sub*/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/apply_warp/mapflow/_apply_warp0/residual_warp.nii.gz'
     roi_file = '/home/data/Projects/nuisance_reliability_paper/seed_files/basil_ganglia/LEFT_BG_3_numbered+tlrc..nii.gz'
-    
+
     subjects_list = glob.glob(g_string)
     b = basc.create_basc()
     b.base_dir = os.getcwd()
@@ -150,4 +165,3 @@ def test_basc():
     b.inputs.inputspec.k_clusters = 6
     b.inputs.inputspec.dataset_bootstraps = 10
     b.inputs.inputspec.timeseries_bootstraps = 1000
-    
