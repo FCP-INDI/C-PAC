@@ -160,15 +160,15 @@ def test_cross_cluster_individual_stability_matrix():
 
 def test_nifti_individual_stability():
 
-    subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
-    #subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Quarter_Res.nii.gz'
-    #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/LC_Quarter_Res.nii.gz'
-    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz '
-    n_bootstraps=10
+    #subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+    subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Quarter_Res.nii.gz'
+    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/LC_Quarter_Res.nii.gz'
+    #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
+    n_bootstraps=100
     k_clusters=2
     cross_cluster=True
-    #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/RC_Quarter_Res.nii.gz'
-    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz '
+    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/RC_Quarter_Res.nii.gz'
+    #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
     cbb_block_size=None
     affinity_threshold=0.5
     nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
