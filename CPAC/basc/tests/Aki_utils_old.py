@@ -13,6 +13,7 @@ import matplotlib
 import numpy as np
 import nibabel as nb
 import pandas as pd
+import nilearn
 import nilearn.image as image
 import scipy as sp
 
@@ -36,11 +37,15 @@ home = expanduser("~")
 #%%
 #Data Preparation
 
+
+
+
+
+
 #load in dataset/func file- these are exchangable. (make sure it's in MNI152 space)
 #dataset = datasets.fetch_adhd(n_subjects=2)
-func_file = home + '/Desktop/residual_antswarp.nii.gz'
+func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
 func = nb.load(func_file)
-
 
 #load masks
 bg_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/BG.nii.gz'
@@ -106,6 +111,79 @@ x3 = np.random.randn(400,30)
 sampledata2 = np.vstack((x1,x2,x3))
 sampledata3 = sampledata2[0:400,:]
 
+#%%
+#Resample data to lower resolution- BREAK FROM CODE SEQUENCE ABOVE
+
+#Do thhis to bg_mask and
+#data = nb.load('/Users/aki.nikolaidis/Downloads/sub-A00028185_ses-NFB3_task-DMNTRACKINGTEST_bold.nii.gz')
+#data2 = data.get_data()
+
+
+func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+func = nb.load(func_file)
+
+
+#put masks into func space
+#bg = resample_img(bg_file, target_affine=func.affine,target_shape=func.shape[:3], interpolation='nearest')
+bg_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/BG.nii.gz'
+bg = nb.load(bg_file)
+bg = bg.get_data()
+
+
+yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
+yeo_7_lib=nb.load(yeo_7_lib_file)
+yeo_7_lib= yeo_7_lib.get_data()
+
+
+yeo_1 = yeo_7_lib.copy()
+yeo_1[yeo_1 > 1] =0
+
+yeo_2 = yeo_7_lib.copy()
+yeo_2[yeo_2 > 2] =0
+yeo_2[yeo_2 < 2] =0
+
+yeo_3 = yeo_7_lib.copy()
+yeo_3[yeo_3 > 3] =0
+yeo_3[yeo_3 < 3] =0
+
+yeo_4 = yeo_7_lib.copy()
+yeo_4[yeo_4 > 4] =0
+yeo_4[yeo_4 < 4] =0
+
+yeo_5 = yeo_7_lib.copy()
+yeo_5[yeo_5 > 5] =0
+yeo_5[yeo_5 < 5] =0
+
+yeo_6 = yeo_7_lib.copy()
+yeo_6[yeo_6 > 6] =0
+yeo_6[yeo_6 < 6] =0
+
+yeo_7 = yeo_7_lib.copy()
+yeo_7[yeo_7 < 7] =0
+
+func= func.get_data()
+
+
+temp = func[:, :, :, :]
+img = nb.Nifti1Image(temp, np.eye(4))
+
+
+temp_half = nilearn.image.resample_img(img, target_affine=np.diag((2, 2, 2, 45)))
+temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4, 45)))
+nb.save(temp_half, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Half_Res.nii.gz')
+nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Quarter_Res.nii.gz')
+
+
+
+tempbg = bg[:, :, :]
+img = nb.Nifti1Image(tempbg, np.eye(4))
+
+
+temp_half = nilearn.image.resample_img(img, target_affine=np.diag((2, 2, 2)))
+temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4)))
+nb.save(temp_half, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/BG_Mask_Half_Res.nii.gz')
+nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/BG_Mask_Quarter_Res.nii.gz')
+
 
 #%%
 bg_func_mini1 = bg_func[0:1000,:]
@@ -148,7 +226,7 @@ affinity_threshold=0.5
 
 nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
 
-def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
+#def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
 
 plt.imshow(ism, cmap='hot', interpolation='nearest')
 

@@ -1,4 +1,29 @@
+import os
+import time
+from os.path import expanduser
+import matplotlib
 import numpy as np
+import nibabel as nb
+import pandas as pd
+import nilearn.image as image
+import scipy as sp
+
+
+from nilearn import datasets
+from nilearn.input_data import NiftiMasker
+from nilearn.plotting import plot_roi, show
+from nilearn.image.image import mean_img
+from nilearn.image import resample_img
+from matplotlib import pyplot as plt
+
+
+from sklearn import cluster, datasets
+from sklearn.neighbors import kneighbors_graph
+from sklearn.preprocessing import StandardScaler
+
+
+matplotlib.style.use('ggplot')
+home = expanduser("~")
 
 #from ..utils import timeseries_bootstrap, \
 #                    standard_bootstrap, \
@@ -132,6 +157,19 @@ def test_cross_cluster_individual_stability_matrix():
     ism = individual_stability_matrix(blobs1, 10, 2, Y2 = blobs2, cross_cluster = True)
 
     assert False
+
+def test_nifti_individual_stability():
+
+    subject_file= home + '/Desktop/residual_antswarp.nii.gz'
+    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
+    n_bootstraps=10
+    k_clusters=2
+    cross_cluster=True
+    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
+    cbb_block_size=None
+    affinity_threshold=0.5
+    nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
+
 
 def test_group_stability_matrix():
     """
