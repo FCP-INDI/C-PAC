@@ -23,6 +23,8 @@ from nilearn.input_data import NiftiMasker
 from nilearn.plotting import plot_roi, show
 from nilearn.image.image import mean_img
 from nilearn.image import resample_img
+from nilearn.image import resample_to_img
+from nilearn.datasets import load_mni152_template
 from matplotlib import pyplot as plt
 
 
@@ -33,7 +35,7 @@ from sklearn.preprocessing import StandardScaler
 
 matplotlib.style.use('ggplot')
 home = expanduser("~")
-
+template = load_mni152_template()
 #%%
 #Data Preparation
 
@@ -119,8 +121,7 @@ sampledata3 = sampledata2[0:400,:]
 #data2 = data.get_data()
 
 
-func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
-func = nb.load(func_file)
+
 
 
 #put masks into func space
@@ -129,6 +130,13 @@ bg_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm
 bg = nb.load(bg_file)
 bg = bg.get_data()
 
+LC_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
+LC = nb.load(LC_file)
+LC = LC.get_data()
+
+RC_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
+RC = nb.load(RC_file)
+RC = RC.get_data()
 
 yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
 yeo_7_lib=nb.load(yeo_7_lib_file)
@@ -161,9 +169,31 @@ yeo_6[yeo_6 < 6] =0
 yeo_7 = yeo_7_lib.copy()
 yeo_7[yeo_7 < 7] =0
 
+
+
+#%%
+func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+func = nb.load(func_file)
+
+temp = LC[:, :, :]
+img = nb.Nifti1Image(temp, np.eye(4))
+
+#resampe_img is broken- totally fucking up wthe Yeo networks- and breaks bg- func.affine is the problem!!
+img = resample_to_img(img1, template)
+img = nilearn.image.resample_img(img1, target_affine=func.affine,target_shape=func.shape[:3], interpolation='nearest')
+img = nilearn.image.resample_img(img1, target_shape=func.shape[:3], target_affine=np.diag((-2, 2, 2, 1)), interpolation='nearest')
+img = nilearn.image.resample_img(img1, target_shape=func.shape[:3], target_affine=None, interpolation='nearest')
+
+
+temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4)))
+nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/LC_Quarter_Res.nii.gz')
+
+
+nb.save(img, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/yeo1_Quarter_Res.nii.gz')
+
+
+
 func= func.get_data()
-
-
 temp = func[:, :, :, :]
 img = nb.Nifti1Image(temp, np.eye(4))
 
@@ -172,17 +202,6 @@ temp_half = nilearn.image.resample_img(img, target_affine=np.diag((2, 2, 2, 45))
 temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4, 45)))
 nb.save(temp_half, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Half_Res.nii.gz')
 nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Quarter_Res.nii.gz')
-
-
-
-tempbg = bg[:, :, :]
-img = nb.Nifti1Image(tempbg, np.eye(4))
-
-
-temp_half = nilearn.image.resample_img(img, target_affine=np.diag((2, 2, 2)))
-temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4)))
-nb.save(temp_half, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/BG_Mask_Half_Res.nii.gz')
-nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/BG_Mask_Quarter_Res.nii.gz')
 
 
 #%%
