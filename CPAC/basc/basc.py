@@ -132,8 +132,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     """
     print 'Calculating individual stability matrix of:', subject_file
 
-    #from CPAC.basc import individual_stability_matrix
-    #from CPAC.utils import safe_shape
+    from CPAC.basc import individual_stability_matrix
+    from CPAC.utils import safe_shape
     import nibabel as nb
     import numpy as np
     import os
@@ -144,17 +144,17 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     if not (roi2_mask_file==None):
         roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
         roi2_mask_file = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
-#
-#        #safe shape may be broken?
-#        if not safe_shape(roi_mask_file, data):
-#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-#                                                                                               str(data.shape[:3]),
-#                                                                                               str(roi_mask_file.shape)) )
-#        if not safe_shape(roi2_mask_file, data):
-#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-#                                                                                           str(data.shape[:3]),
-#                                                                                           str(roi2_mask_file.shape)) )
-#
+
+        #safe shape may be broken?
+        if not safe_shape(roi_mask_file, data):
+            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+                                                                                               str(data.shape[:3]),
+                                                                                               str(roi_mask_file.shape)) )
+        if not safe_shape(roi2_mask_file, data):
+            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+                                                                                           str(data.shape[:3]),
+                                                                                           str(roi2_mask_file.shape)) )
+
 
         Y1 = data[roi_mask_file]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
@@ -314,13 +314,20 @@ def create_basc(name='basc'):
     >>> from CPAC import basc
 
     """
-    inputspec = pe.Node(util.IdentityInterface(fields=['subjects',
-                                                       'roi',
+
+    inputspec = pe.Node(util.IdentityInterface(fields=['subject_file_list',
+                                                       'roi_mask_file',
                                                        'dataset_bootstraps',
                                                        'timeseries_bootstraps',
                                                        'k_clusters',
+                                                       'cross_cluster',
+                                                       'roi2_mask_file',
                                                        'affinity_threshold']),
                         name='inputspec')
+
+
+
+
     outputspec = pe.Node(util.IdentityInterface(fields=['gsm',
                                                         'gsclusters',
                                                         'gsmap',
@@ -337,7 +344,7 @@ def create_basc(name='basc'):
                                                 'k_clusters',
                                                 'cbb_block_size',
                                                 'affinity_threshold'],
-                                   output_names=['individual_stability_matrices'],
+                                   output_names=['ism_file'],
                                    function=nifti_individual_stability),
                      name='individual_stability_matrices',
                      iterfield=['subject_file',
@@ -376,45 +383,55 @@ def create_basc(name='basc'):
                                          function=ndarray_to_vol),
                            name='group_stability_score_vol')
 
+
+
+    #run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+
+
     # Gather outside workflow inputs
-    basc.connect(inputspec, 'subjects',
+    basc.connect(inputspec, 'subject_file_list',
                  nis, 'subject_file')
-    basc.connect(inputspec, 'roi',
+    basc.connect(inputspec, 'roi_mask_file',
                  nis, 'roi_mask_file')
     basc.connect(inputspec, 'timeseries_bootstraps',
                  nis, 'n_bootstraps')
+    basc.connect(inputspec, 'roi2_mask_file',
+                 nis, 'roi2_mask_file')
     basc.connect(inputspec, 'k_clusters',
                  nis, 'k_clusters')
     basc.connect(inputspec, 'affinity_threshold',
                  nis, 'affinity_threshold')
+    basc.connect(inputspec, 'cross_cluster',
+                 nis, 'cross_cluster')
+
 
     basc.connect(inputspec, 'dataset_bootstraps',
                  gsm, 'n_bootstraps')
     basc.connect(inputspec, 'k_clusters',
                  gsm, 'k_clusters')
 
-    basc.connect(nis, 'individual_stability_matrices',
+    basc.connect(nis, 'ism_file',
                  gsm, 'indiv_stability_list')
 
-    basc.connect(inputspec, 'subjects',
+    basc.connect(inputspec, 'subject_file_list',
                  gs_cluster_vol, 'sample_file')
-    basc.connect(inputspec, 'roi',
+    basc.connect(inputspec, 'roi_mask_file',
                  gs_cluster_vol, 'roi_mask_file')
     gs_cluster_vol.inputs.filename = 'group_stability_clusters.nii.gz'
 
-    basc.connect(nis, 'individual_stability_matrices',
+    basc.connect(nis, 'ism_file',
                  igcm, 'indiv_stability_list')
     basc.connect(gsm, 'group_stability_clusters',
                  igcm, 'clusters_G')
-    basc.connect(inputspec, 'roi',
+    basc.connect(inputspec, 'roi_mask_file',
                  igcm, 'roi_mask_file')
 
     basc.connect(gsm, 'group_stability_clusters',
                  gs_cluster_vol, 'data_array')
 
-    basc.connect(inputspec, 'subjects',
+    basc.connect(inputspec, 'subject_file_list',
                  gs_score_vol, 'sample_file')
-    basc.connect(inputspec, 'roi',
+    basc.connect(inputspec, 'roi_mask_file',
                  gs_score_vol, 'roi_mask_file')
     gs_score_vol.inputs.filename = 'group_stability_scores.nii.gz'
 
