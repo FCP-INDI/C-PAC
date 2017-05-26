@@ -1,5 +1,10 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+import sys
+import CPAC
+sys.path.insert(0, '~/C-PAC')
+
+#you just do "import sys" (if not already imported), then "sys.path.insert(0, /path/to/install/dir)", then import CPAC
 
 def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, stratification=None):
     """
@@ -30,6 +35,8 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
 
     if stratification is not None:
         print 'Applying stratification to group dataset'
+
+
 
     from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average
     import numpy as np
