@@ -185,6 +185,8 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     return y_pred
 
 def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
+
+
     """
     Cluster a timeseries dataset based on its relationship to a second timeseries dataset
 
@@ -240,12 +242,28 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
     data2_df = pd.DataFrame(data2)
 
 
-    dist=sp.spatial.distance.cdist(data1_df, data2_df, similarity_metric)
+    dist_btwn_df_1_2 =sp.spatial.distance.cdist(data1_df, data2_df, similarity_metric)
+    #corr = np.corrcoef(dist)
+    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2)
+    dist_matrix = sp.spatial.distance.squareform(dist_of_1)
+    delta = sqrt()
+    #y_pred = cluster_timeseries(dist, n_clusters, affinity = 'precomputed')
+    sq_sim_of1 = np.exp(-beta * sq_dist_of1 / sq_dist_of1.std())
+    np.exp(- dist_matrix ** 2 / (2. * delta ** 2))
+    spectral = cluster.SpectralClustering(n_clusters, eigen_solver='arpack', random_state = 5, affinity="precomputed", assign_labels='discretize')
 
 
-    y_pred = cluster_timeseries(dist, n_clusters)
+
+    #t0 = time.time()
+    spectral.fit(sq_dist_of1)
+    #t1 = time.time()
+    if hasattr(spectral, 'labels_'):
+        y_pred = spectral.labels_.astype(np.int)
+    else:
+        y_pred = spectral.predict(dist_of_1)
 
     return y_pred
+
 
 
 def adjacency_matrix(cluster_pred):

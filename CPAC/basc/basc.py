@@ -357,6 +357,8 @@ def create_basc(name='basc'):
                      iterfield=['subject_file',
                                 'affinity_threshold'])
 
+    nis.inputs.cbb_block_size=None
+
     gsm = pe.Node(util.Function(input_names=['indiv_stability_list',
                                              'n_bootstraps',
                                              'k_clusters',

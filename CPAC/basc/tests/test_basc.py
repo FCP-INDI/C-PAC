@@ -129,10 +129,9 @@ def test_cross_cluster_timeseries():
     x2 = np.random.randn(10,30) + 44*np.random.randn(30)
     sampledata1 = np.vstack((x1,x2))
     sampledata2 = sampledata1
-
-    actual = cross_cluster_timeseries(sampledata1, sampledata2, 2, 'euclidean')
-    desired = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-       1, 1, 1, 1, 1, 1, 1])
+    actual = cross_cluster_timeseries(sampledata1, sampledata2, 2, 'correlation')
+    desired = np.array([1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+       1, 0, 1, 0, 1, 0, 0])
     # Still not passing
     np.testing.assert_equal(actual,desired)
 
@@ -154,6 +153,7 @@ def test_cross_cluster_individual_stability_matrix():
 
     blobs1 = generate_simple_blobs()
     blobs2 = generate_simple_blobs()
+    blobs2 = blobs2[0:150,:]
     ism = individual_stability_matrix(blobs1, 10, 2, Y2 = blobs2, cross_cluster = True)
 
     assert False
@@ -197,20 +197,22 @@ def test_group_stability_matrix():
 def test_basc_workflow_runner():
 
     subject_file_list= [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
-                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
+                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz']
+                        #home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
 
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
-    dataset_bootstraps=10
-    timeseries_bootstraps=100
+    dataset_bootstraps=2
+    timeseries_bootstraps=2
     k_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
-    affinity_threshold= [0.5, 0.5, 0.5]
+    affinity_threshold= [0.5, 0.5]#, 0.5]
     out_dir= home + '/BASC_outputs'
     run=True
 
-    run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+
+
 
 def test_basc():
     import glob, os
