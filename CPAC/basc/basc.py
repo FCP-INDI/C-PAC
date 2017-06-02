@@ -1,8 +1,20 @@
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
+
+
+
+
+import os
+import numpy as np
+import nibabel as nb
 import sys
 import CPAC
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
 sys.path.insert(0, '~/C-PAC')
+#from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+#from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+#from CPAC.utils import safe_shape
+
+
 
 #you just do "import sys" (if not already imported), then "sys.path.insert(0, /path/to/install/dir)", then import CPAC
 
@@ -31,6 +43,20 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
     cluster_voxel_scores : array_like
         `K` by `V` matrix of within-cluster average values for each cluster of each voxel
     """
+
+    import os
+    import numpy as np
+    import nibabel as nb
+    import sys
+    #import CPAC
+    import nipype.pipeline.engine as pe
+    import nipype.interfaces.utility as util
+
+    from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+    from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+    from CPAC.utils import safe_shape
+
+
     print 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.'
 
     if stratification is not None:
@@ -38,8 +64,6 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
 
 
 
-    from CPAC.basc import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average
-    import numpy as np
 
     indiv_stability_set = np.asarray([np.load(ism_file) for ism_file in indiv_stability_list])
 #    indiv_stability_set = indiv_stability_list
@@ -57,11 +81,11 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
             J /= indiv_stability_set.shape[0]
         else:
             J = standard_bootstrap(indiv_stability_set).mean(0)
-        G += adjacency_matrix(cluster_timeseries(J, k_clusters, similarity_metric = 'data')[:,np.newaxis])
+        G += adjacency_matrix(cluster_timeseries(J, k_clusters, similarity_metric = 'correlation')[:,np.newaxis])
     G /= n_bootstraps
 
 
-    clusters_G = cluster_timeseries(G, k_clusters, similarity_metric = 'data')
+    clusters_G = cluster_timeseries(G, k_clusters, similarity_metric = 'correlation')
 
     cluster_voxel_scores = cluster_matrix_average(G, clusters_G)
 
@@ -88,9 +112,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
         dimension of each file corresponds to each subject.
 
     """
-    import os
-    import numpy as np
-    from CPAC.basc import cluster_matrix_average, ndarray_to_vol
+
 
     indiv_stability_set = np.asarray([np.load(ism_file) for ism_file in indiv_stability_list])
 
@@ -111,6 +133,62 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
         icvs_idx += 1
 
     return icvs
+
+#def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
+#    """
+#    Calculate the individual stability matrix of a single subject by bootstrapping their time-series
+#
+#    Parameters
+#    ----------
+#    Y1 : array_like
+#        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
+#    Y2 : array_like
+#        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
+#        For Cross-cluster solutions- this will be the matrix by which Y1 is clustered
+#    n_bootstraps : integer
+#        Number of bootstrap samples
+#    k_clusters : integer
+#        Number of clusters
+#    cbb_block_size : integer, optional
+#        Block size to use for the Circular Block Bootstrap algorithm
+#    affinity_threshold : float, optional
+#        Minimum threshold for similarity matrix based on correlation to create an edge
+#
+#    Returns
+#    -------
+#    S : array_like
+#        A matrix of shape (`V1`, `V1`), each element v1_{ij} representing the stability of the adjacency of voxel i with voxel j
+#    """
+#    if affinity_threshold < 0.0:
+#        raise ValueError('affinity_threshold %d must be non-negative value' % affinity_threshold)
+#
+#    #flipped the N and V values bc originally data was being put in transposed
+#    N1 = Y1.shape[1]
+#    V1 = Y1.shape[0]
+#
+#    if(cbb_block_size is None):
+#        cbb_block_size = int(np.sqrt(N1))
+#
+#    S = np.zeros((V1, V1))
+#
+#    if (cross_cluster is True):
+#        for bootstrap_i in range(n_bootstraps):
+#            N2 = Y2.shape[1]
+#            cbb_block_size2 = int(np.sqrt(N2))
+#            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
+#            Y_b2 = timeseries_bootstrap(Y2, cbb_block_size2)
+#            S += adjacency_matrix(cross_cluster_timeseries(Y_b1, Y_b2, k_clusters, similarity_metric = 'correlation'))
+#        S /= n_bootstraps
+#    else:
+#        for bootstrap_i in range(n_bootstraps):
+#            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
+#            S += adjacency_matrix(cluster_timeseries(Y_b1.T, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
+#        S /= n_bootstraps
+#
+#    return S
+
+
+
 
 def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
     """
@@ -137,30 +215,33 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     ism : array_like
         Individual stability matrix of shape (`V`, `V`), `V` voxels
     """
+
+
+    import os
+    import numpy as np
+    import nibabel as nb
+    from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+
+
     print 'Calculating individual stability matrix of:', subject_file
 
-    from CPAC.basc import individual_stability_matrix
-    from CPAC.utils import safe_shape
-    import nibabel as nb
-    import numpy as np
-    import os
 
     data = nb.load(subject_file).get_data().astype('float64')
 
 
-    if not (roi2_mask_file==None):
+    if (roi2_mask_file != None):
         roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
         roi2_mask_file = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
 
         #safe shape may be broken?
-        if not safe_shape(roi_mask_file, data):
-            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-                                                                                               str(data.shape[:3]),
-                                                                                               str(roi_mask_file.shape)) )
-        if not safe_shape(roi2_mask_file, data):
-            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-                                                                                           str(data.shape[:3]),
-                                                                                           str(roi2_mask_file.shape)) )
+#        if not safe_shape(roi_mask_file, data):
+#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+#                                                                                               str(data.shape[:3]),
+#                                                                                               str(roi_mask_file.shape)) )
+#        if not safe_shape(roi2_mask_file, data):
+#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+#                                                                                           str(data.shape[:3]),
+#                                                                                           str(roi2_mask_file.shape)) )
 
 
         Y1 = data[roi_mask_file]
@@ -169,6 +250,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
 
         ism = individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
+
+
         #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
 
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
@@ -180,13 +263,13 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
 
         roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
 
-        if not safe_shape(roi_mask_file, data):
-            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-                                                                                               str(data.shape[:3]),
-                                                                                               str(roi_mask_file.shape)) )
+#        if not safe_shape(roi_mask_file, data):
+#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
+#                                                                                               str(data.shape[:3]),
+#                                                                                               str(roi_mask_file.shape)) )
 
         Y = data[roi_mask_file]
-        print '(%i timepoints, %i voxels) and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
+        print '(%i voxels, %i timepoints and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
 
         ism = individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size=cbb_block_size, affinity_threshold=affinity_threshold)
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
@@ -345,10 +428,14 @@ def create_basc(name='basc'):
 
     basc = pe.Workflow(name=name)
 
+
+
     nis = pe.MapNode(util.Function(input_names=['subject_file',
                                                 'roi_mask_file',
                                                 'n_bootstraps',
                                                 'k_clusters',
+                                                'cross_cluster',
+                                                'roi2_mask_file',
                                                 'cbb_block_size',
                                                 'affinity_threshold'],
                                    output_names=['ism_file'],

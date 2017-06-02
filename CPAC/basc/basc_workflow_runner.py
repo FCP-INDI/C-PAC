@@ -8,6 +8,9 @@ Created on Thu May 25 16:05:19 2017
 
 
 def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, affinity_threshold=0.5, out_dir=None, run=True):
+    #run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+
+
     #subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5
     """Run the 'template_workflow' function to execute the modular workflow
     with the provided inputs.

@@ -19,7 +19,7 @@ from matplotlib import pyplot as plt
 
 from sklearn import cluster, datasets
 from sklearn.neighbors import kneighbors_graph
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, normalize
 
 
 def timeseries_bootstrap(tseries, block_size):
@@ -164,23 +164,47 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters))).sum(1)
 
     """
-    # sampledata=generate_blobs()
-    #X= bg_func
+#    # sampledata=generate_blobs()
+#    #X= bg_func
+#
+#    # normalize dataset for easier parameter selection
+#    X = pd.DataFrame(X)
+#    X = StandardScaler().fit_transform(X)
+#    spectral = cluster.SpectralClustering(n_clusters=n_clusters, eigen_solver='arpack', random_state = 5, affinity="nearest_neighbors", n_neighbors = 10, assign_labels='discretize')
+#
+#
+#
+#    #t0 = time.time()
+#    spectral.fit(X)
+#    #t1 = time.time()
+#    if hasattr(spectral, 'labels_'):
+#        y_pred = spectral.labels_.astype(np.int)
+#    else:
+#        y_pred = spectral.predict(X)
 
-    # normalize dataset for easier parameter selection
+
+
+##########################
+    #Set affinity type, and affinity threshold
     X = pd.DataFrame(X)
-    X = StandardScaler().fit_transform(X)
-    spectral = cluster.SpectralClustering(n_clusters=n_clusters, eigen_solver='arpack', random_state = 5, affinity="nearest_neighbors", n_neighbors = 10, assign_labels='discretize')
+    X_dist = sp.spatial.distance.pdist(X, metric = similarity_metric)
+    X_dist = sp.spatial.distance.squareform(X_dist)
+    sim_matrix=1-X_dist
+    sim_matrix[sim_matrix<affinity_threshold]=0
 
+    spectral = cluster.SpectralClustering(n_clusters, eigen_solver='arpack', random_state = 5, affinity="precomputed", assign_labels='discretize')
+
+    #change distribution to be normalized between 0 and 1 before passing into the spectral clustering algorithm
 
 
     #t0 = time.time()
-    spectral.fit(X)
+    spectral.fit(sim_matrix)
     #t1 = time.time()
-    if hasattr(spectral, 'labels_'):
-        y_pred = spectral.labels_.astype(np.int)
-    else:
-        y_pred = spectral.predict(X)
+
+    y_pred = spectral.labels_.astype(np.int)
+
+
+
 
     return y_pred
 
@@ -238,29 +262,75 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
     http://scikit-learn.org/stable/modules/clustering.html#spectral-clustering
     """
+
+
+#    #Simulating data
+#    blobs1 = generate_simple_blobs(27)
+#    blobs2 = generate_simple_blobs(30)
+#
+#    blobs2 = blobs2[0:120,:]
+#    blobs2[0:50,:] = blobs1[0:50,]
+#
+#    blobs1=blobs1[0:50,:]
+#    blobs2=blobs2[0:40,:]
+#
+#    data1=blobs1
+#    data2=blobs2
+
     data1_df = pd.DataFrame(data1)
     data2_df = pd.DataFrame(data2)
 
+#    plt.imshow(sim_matrix)
+#
+#    a=np.hstack(y_pred)
+#    plt.hist(a,bins='auto')
 
-    dist_btwn_df_1_2 =sp.spatial.distance.cdist(data1_df, data2_df, similarity_metric)
-    #corr = np.corrcoef(dist)
-    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2)
+    #FIGURE OUT HOW TO CREATE SYMMETRIC AND 0-1 NORMED SIMILARITY MATRIX
+    #CUTOFF AFFINITY AT SPECIFIC LEVEL??
+    #CUTOFF THE AFFINITY MATRIX RIGHT AFTER THE FIRST CLUSTERING
+
+    dist_btwn_df_1_2 = sp.spatial.distance.cdist(data1_df, data2_df, metric = similarity_metric)
+    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2, metric = similarity_metric)
     dist_matrix = sp.spatial.distance.squareform(dist_of_1)
-    delta = sqrt()
-    #y_pred = cluster_timeseries(dist, n_clusters, affinity = 'precomputed')
-    sq_sim_of1 = np.exp(-beta * sq_dist_of1 / sq_dist_of1.std())
-    np.exp(- dist_matrix ** 2 / (2. * delta ** 2))
+    sim_matrix=1-dist_matrix
+    sim_matrix[sim_matrix<0.3]=0
+
+#    sim_of_1 = 1 - dist_of_1
+#
+#
+#
+#    sim_btwn_df_1_2 = 1 - dist_btwn_df_1_2
+#    #set similarities below 0.3 to 0
+#    sim_btwn_df_1_2[sim_btwn_df_1_2<0.3] = 0
+#
+#    #corr = np.corrcoef(dist)
+#    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2, metric = similarity_metric)
+#    sim_of_1 = 1 - dist_of_1
+#    dist_matrix = sp.spatial.distance.squareform(dist_of_1)
+#    sim_matrix=1-dist_matrix
+#    dist_matrix_scaler= StandardScaler().fit_transform(dist_matrix)
+#    dist_matrix_norm = normalize(dist_matrix)
+#    delta = sqrt(data1_df.shape[0])
+#    #y_pred = cluster_timeseries(dist, n_clusters, affinity = 'precomputed')
+#    sq_sim_of1 = 1-dist_matrix_scaler
+#
+#
+#    sq_sim_of1 = np.exp(-beta * sq_dist_of1 / sq_dist_of1.std())
+#    sq_sim_of1= np.exp(- dist_matrix ** 2 / (2. * delta ** 2))
+#
+#
+#    X = StandardScaler().fit_transform(X)
+
     spectral = cluster.SpectralClustering(n_clusters, eigen_solver='arpack', random_state = 5, affinity="precomputed", assign_labels='discretize')
 
+    #change distribution to be normalized between 0 and 1 before passing into the spectral clustering algorithm
 
 
     #t0 = time.time()
-    spectral.fit(sq_dist_of1)
+    spectral.fit(sim_matrix)
     #t1 = time.time()
-    if hasattr(spectral, 'labels_'):
-        y_pred = spectral.labels_.astype(np.int)
-    else:
-        y_pred = spectral.predict(dist_of_1)
+
+    y_pred = spectral.labels_.astype(np.int)
 
     return y_pred
 
@@ -336,7 +406,7 @@ def cluster_matrix_average(M, cluster_assignments):
         raise ValueError('M matrix has a nan value')
 
     cluster_ids = np.unique(cluster_assignments)
-    s = np.zeros( (cluster_ids.shape[0], cluster_assignments.shape[0]), dtype='float64')
+    s = np.zeros((cluster_ids.shape[0], cluster_assignments.shape[0]), dtype='float64')
     s_idx = 0
     for cluster_id in cluster_ids:
         s[s_idx, :] = M[:,cluster_assignments == cluster_id].mean(1)
@@ -401,7 +471,7 @@ def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_clu
     else:
         for bootstrap_i in range(n_bootstraps):
             Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
-            S += adjacency_matrix(cluster_timeseries(Y_b1.T, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
+            S += adjacency_matrix(cluster_timeseries(Y_b1, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
         S /= n_bootstraps
 
     return S

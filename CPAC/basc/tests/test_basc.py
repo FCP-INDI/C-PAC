@@ -95,15 +95,16 @@ def generate_blobs():
     return blobs
 
 
-def generate_simple_blobs():
-    np.random.seed(27)
+def generate_simple_blobs(x):
+    np.random.seed(x)
     offset = np.random.randn(30)
 
     x1 = np.random.randn(200,30) + 2*offset
-    x2 = np.random.randn(100,30) + 44*np.random.randn(30)
+    x2 = np.random.randn(100,30) + 44*np.random.randn(30)+ 2*offset
 
     blobs = np.vstack((x1,x2))
     return blobs
+
 
 
 def generate_blobs_3d():
@@ -130,9 +131,8 @@ def test_cross_cluster_timeseries():
     sampledata1 = np.vstack((x1,x2))
     sampledata2 = sampledata1
     actual = cross_cluster_timeseries(sampledata1, sampledata2, 2, 'correlation')
-    desired = np.array([1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,
-       1, 0, 1, 0, 1, 0, 0])
-    # Still not passing
+    desired = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1])
     np.testing.assert_equal(actual,desired)
 
 
@@ -142,7 +142,7 @@ def test_individual_stability_matrix():
     """
 
     blobs = generate_blobs()
-    ism = individual_stability_matrix(blobs.T, 10, 3)
+    ism = individual_stability_matrix(blobs, 10, 3)
 
     assert False
 
@@ -151,8 +151,8 @@ def test_cross_cluster_individual_stability_matrix():
     Tests individual_stability_matrix method on three gaussian blobs.
     """
 
-    blobs1 = generate_simple_blobs()
-    blobs2 = generate_simple_blobs()
+    blobs1 = generate_simple_blobs(27)
+    blobs2 = generate_simple_blobs(27)
     blobs2 = blobs2[0:150,:]
     ism = individual_stability_matrix(blobs1, 10, 2, Y2 = blobs2, cross_cluster = True)
 
@@ -161,18 +161,42 @@ def test_cross_cluster_individual_stability_matrix():
 def test_nifti_individual_stability():
 
     #subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
-    subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/Func_Quarter_Res.nii.gz'
-    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/LC_Quarter_Res.nii.gz'
+    subject_file= home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz'
+    roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
     n_bootstraps=100
     k_clusters=2
     cross_cluster=True
-    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/RC_Quarter_Res.nii.gz'
+    roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
     #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
     cbb_block_size=None
     affinity_threshold=0.5
     nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
 
+
+def new_test_group_stability_matrix():
+    """
+    Tests group_stability_matrix method.  This creates a dataset of blobs varying only by additive zero-mean gaussian
+    noise and calculates the group stability matrix.
+    """
+    blobs = generate_blobs()
+
+    ism_dataset = np.zeros((5, blobs.shape[0], blobs.shape[0]))
+    ism_list = []
+    for i in range(ism_dataset.shape[0]):
+        ism_dataset[i] = individual_stability_matrix(blobs + 0.2*np.random.randn(blobs.shape[0], blobs.shape[1]), 10, 3, affinity_threshold = 0.0)
+        f = 'ism_dataset_%i.npy' % i
+        ism_list.append(f)
+        np.save(f, ism_dataset[i])
+
+    indiv_stability_list=ism_list
+    n_bootstraps=10
+    k_clusters=3
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3, [0,1,1,1,0])
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3)
+
+#def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, stratification=None):
+    assert False
 
 def test_group_stability_matrix():
     """
@@ -201,8 +225,8 @@ def test_basc_workflow_runner():
                         #home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
 
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
-    dataset_bootstraps=2
-    timeseries_bootstraps=2
+    dataset_bootstraps=5
+    timeseries_bootstraps=5
     k_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
@@ -213,6 +237,18 @@ def test_basc_workflow_runner():
     basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
 
 
+def new_test_basc():
+    import glob, os
+    g_string = home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz'
+    roi_file = home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
+    subjects_list = glob.glob(g_string)
+    b = basc.create_basc()
+    b.base_dir = os.getcwd()
+    b.inputs.inputspec.roi = roi_file
+    b.inputs.inputspec.subjects = subjects_list
+    b.inputs.inputspec.k_clusters = 6
+    b.inputs.inputspec.dataset_bootstraps = 10
+    b.inputs.inputspec.timeseries_bootstraps = 1000
 
 def test_basc():
     import glob, os
