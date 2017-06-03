@@ -36,6 +36,7 @@ from sklearn.preprocessing import StandardScaler
 matplotlib.style.use('ggplot')
 home = expanduser("~")
 template = load_mni152_template()
+template_file
 #%%
 #Data Preparation
 
@@ -46,12 +47,15 @@ template = load_mni152_template()
 
 #load in dataset/func file- these are exchangable. (make sure it's in MNI152 space)
 #dataset = datasets.fetch_adhd(n_subjects=2)
-func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+func_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+
+
 func = nb.load(func_file)
 
 #load masks
-bg_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/BG.nii.gz'
-yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
+bg_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/BasalGanglia_MNI2mm/BG.nii.gz'
+yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
+yeo_data = nb.load(yeo_7_lib_file)
 
 #put masks into func space
 bg = resample_img(bg_file, target_affine=func.affine,target_shape=func.shape[:3], interpolation='nearest')
@@ -138,37 +142,63 @@ RC_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm
 RC = nb.load(RC_file)
 RC = RC.get_data()
 
-yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
-yeo_7_lib=nb.load(yeo_7_lib_file)
-yeo_7_lib= yeo_7_lib.get_data()
+#yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
+#yeo_7_lib=nb.load(yeo_7_lib_file)
+#yeo_7_lib= yeo_7_lib.get_data()
+
+yeo_7_lib = nb.load(yeo_7_lib_file)
+new_yeo2 = resample_img(yeo_7_lib, target_affine=template.affine, target_shape=template.shape[:3])
+yeo_7_MNI = new_yeo2.get_data()
+nb.save(new_yeo2, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/new_yeo2.nii.gz')
 
 
-yeo_1 = yeo_7_lib.copy()
+
+yeo_1 = yeo_7_MNI.copy()
 yeo_1[yeo_1 > 1] =0
 
-yeo_2 = yeo_7_lib.copy()
+yeo_2 = yeo_7_MNI.copy()
 yeo_2[yeo_2 > 2] =0
 yeo_2[yeo_2 < 2] =0
 
-yeo_3 = yeo_7_lib.copy()
+yeo_3 = yeo_7_MNI.copy()
 yeo_3[yeo_3 > 3] =0
 yeo_3[yeo_3 < 3] =0
 
-yeo_4 = yeo_7_lib.copy()
+yeo_4 = yeo_7_MNI.copy()
 yeo_4[yeo_4 > 4] =0
 yeo_4[yeo_4 < 4] =0
 
-yeo_5 = yeo_7_lib.copy()
+yeo_5 = yeo_7_MNI.copy()
 yeo_5[yeo_5 > 5] =0
 yeo_5[yeo_5 < 5] =0
 
-yeo_6 = yeo_7_lib.copy()
+yeo_6 = yeo_7_MNI.copy()
 yeo_6[yeo_6 > 6] =0
 yeo_6[yeo_6 < 6] =0
 
-yeo_7 = yeo_7_lib.copy()
+yeo_7 = yeo_7_MNI.copy()
 yeo_7[yeo_7 < 7] =0
 
+yeo_1_img= nibabel.Nifti1Image(yeo_1, affine=new_yeo2.affine)
+nb.save(yeo_1_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_1.nii.gz')
+
+yeo_2_img= nibabel.Nifti1Image(yeo_2, affine=new_yeo2.affine)
+nb.save(yeo_2_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_2.nii.gz')
+
+yeo_3_img= nibabel.Nifti1Image(yeo_3, affine=new_yeo2.affine)
+nb.save(yeo_3_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_3.nii.gz')
+
+yeo_4_img= nibabel.Nifti1Image(yeo_4, affine=new_yeo2.affine)
+nb.save(yeo_4_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_4.nii.gz')
+
+yeo_5_img= nibabel.Nifti1Image(yeo_5, affine=new_yeo2.affine)
+nb.save(yeo_5_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_5.nii.gz')
+
+yeo_6_img= nibabel.Nifti1Image(yeo_6, affine=new_yeo2.affine)
+nb.save(yeo_6_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_6.nii.gz')
+
+yeo_7_img= nibabel.Nifti1Image(yeo_7, affine=new_yeo2.affine)
+nb.save(yeo_7_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_7.nii.gz')
 
 
 #%%
