@@ -215,14 +215,14 @@ def test_group_stability_matrix():
 
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3, [0,1,1,1,0])
 
-    assert False
+    return G, cluster_g, cluster_voxel_scores
 
 
 def test_basc_workflow_runner():
 
     subject_file_list= [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
-                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz']
-                        #home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
+                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                        home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
 
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     dataset_bootstraps=5
@@ -230,25 +230,67 @@ def test_basc_workflow_runner():
     k_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
-    affinity_threshold= [0.5, 0.5]#, 0.5]
+    affinity_threshold= [0.5, 0.5, 0.5]
     out_dir= home + '/BASC_outputs'
     run=True
 
     basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
 
 
-def new_test_basc():
-    import glob, os
-    g_string = home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz'
-    roi_file = home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
-    subjects_list = glob.glob(g_string)
-    b = basc.create_basc()
-    b.base_dir = os.getcwd()
-    b.inputs.inputspec.roi = roi_file
-    b.inputs.inputspec.subjects = subjects_list
-    b.inputs.inputspec.k_clusters = 6
-    b.inputs.inputspec.dataset_bootstraps = 10
-    b.inputs.inputspec.timeseries_bootstraps = 1000
+def bruteforce_workflow_test():
+
+	#Updates to bruteforce test
+	#Change  functional data to higher resolution
+	#Change ROIs to larger ones.
+	#work out the transformation of the Yeo to the correct size
+
+	subject_file_list=  [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
+
+    ism_list = []
+    ism_dataset = np.zeros((10, 29, 29))
+
+    roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
+    dataset_bootstraps=50
+    timeseries_bootstraps=50
+    k_clusters=2
+    cross_cluster=True
+    roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
+
+    cbb_block_size=None
+    affinity_threshold=0.5
+    n_bootstraps=timeseries_bootstraps
+
+    roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+    roi2_mask_file = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+
+
+
+    for i in range(len(subject_file_list)):
+        data = nb.load(subject_file_list[i]).get_data().astype('float64')
+        Y1 = data[roi_mask_file]
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
+        Y2 = data[roi2_mask_file]
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
+
+        ism_dataset[i] = individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
+
+
+        #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
+        f = 'ism_dataset_%i.npy' % i
+        ism_list.append(f)
+        np.save(f, ism_dataset[i])
+
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, 2)
+
 
 def test_basc():
     import glob, os

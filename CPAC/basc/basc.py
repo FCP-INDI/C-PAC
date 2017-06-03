@@ -1,12 +1,8 @@
-
-
-
-
 import os
 import numpy as np
 import nibabel as nb
 import sys
-import CPAC
+#import CPAC
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 sys.path.insert(0, '~/C-PAC')
@@ -52,9 +48,9 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, k_clusters, strat
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
-    from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
-    from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
-    from CPAC.utils import safe_shape
+#    from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+#    from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+#    from CPAC.utils.utils import safe_shape
 
 
     print 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.'
@@ -220,7 +216,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clus
     import os
     import numpy as np
     import nibabel as nb
-    from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+    #from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
 
 
     print 'Calculating individual stability matrix of:', subject_file
