@@ -159,7 +159,7 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
 
         if len(voxel_indices) == 0:
             raise ValueError("Time series extraction failed, no voxels in mask {0} match label(s) {1}".format(
-                mask_file_path, mask_label_this_mask_vol))
+                mask_file_path, mask_label))
 
         time_courses = functional_image_data[voxel_indices, :]
 
