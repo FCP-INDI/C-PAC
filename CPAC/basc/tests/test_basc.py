@@ -239,58 +239,66 @@ def test_basc_workflow_runner():
 
 def bruteforce_workflow_test():
 
-	#Updates to bruteforce test
-	#Change  functional data to higher resolution
-	#Change ROIs to larger ones.
-	#work out the transformation of the Yeo to the correct size
+    #Updates to bruteforce test
+    #Change  functional data to higher resolution
+    #Change ROIs to larger ones.
+    #work out the transformation of the Yeo to the correct size
 
-	subject_file_list=  [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
-                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
-
+#    subject_file_list=  [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
+#                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
+#    
+#    /Users/aki.nikolaidis/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz
+    
+    subject_file_list = [home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz']
+    
+    sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
+    filename = home + '/C-PAC/CPAC/basc/sampledata/Striatum_GroupLevel_MotorCluster.nii.gz'
+    
     ism_list = []
-    ism_dataset = np.zeros((10, 29, 29))
+    ism_dataset = np.zeros((2, 177770, 177770))
 
-    roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
-    dataset_bootstraps=50
-    timeseries_bootstraps=50
+    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
+    dataset_bootstraps=3
+    timeseries_bootstraps=10
     k_clusters=2
     cross_cluster=True
-    roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
+    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
 
     cbb_block_size=None
     affinity_threshold=0.5
     n_bootstraps=timeseries_bootstraps
 
-    roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
-    roi2_mask_file = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+    roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+    roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
 
 
 
     for i in range(len(subject_file_list)):
-        data = nb.load(subject_file_list[i]).get_data().astype('float64')
-        Y1 = data[roi_mask_file]
+        data = nb.load(subject_file_list[int(i)]).get_data().astype('float64')
+        Y1 = data[roi_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
-        Y2 = data[roi2_mask_file]
+        Y2 = data[roi2_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
 
-        ism_dataset[i] = individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
-
+        ism_dataset[int(i)] = individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
 
         #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
-        f = 'ism_dataset_%i.npy' % i
+        f = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i
         ism_list.append(f)
         np.save(f, ism_dataset[i])
 
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, 2)
-
+    ndarray_to_vol(cluster_G, roi_mask_file, sample_file, filename)
+    #loop over cluster_voxel_scores[i] and save each cluster map to nifti file.
 
 def test_basc():
     import glob, os

@@ -36,7 +36,6 @@ from sklearn.preprocessing import StandardScaler
 matplotlib.style.use('ggplot')
 home = expanduser("~")
 template = load_mni152_template()
-template_file
 #%%
 #Data Preparation
 
@@ -142,9 +141,20 @@ RC_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm
 RC = nb.load(RC_file)
 RC = RC.get_data()
 
+
+Striatum_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/BasalGanglia_MNI2mm/Bilateral_Striatum.nii.gz'
+Striatum = nb.load(Striatum_file)
+
+
+Striatum2 =nilearn.image.resample_img(Striatum, target_affine=yeo_target_affine)
+nb.save(Striatum2, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz')
+
+
+
 #yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
 #yeo_7_lib=nb.load(yeo_7_lib_file)
 #yeo_7_lib= yeo_7_lib.get_data()
+yeo_7_lib_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_JNeurophysiol11_MNI152/FSL_Reorient2Std_Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz'
 
 yeo_7_lib = nb.load(yeo_7_lib_file)
 new_yeo2 = resample_img(yeo_7_lib, target_affine=template.affine, target_shape=template.shape[:3])
@@ -179,30 +189,35 @@ yeo_6[yeo_6 < 6] =0
 yeo_7 = yeo_7_MNI.copy()
 yeo_7[yeo_7 < 7] =0
 
-yeo_1_img= nibabel.Nifti1Image(yeo_1, affine=new_yeo2.affine)
+yeo_1_img= nb.Nifti1Image(yeo_1, affine=new_yeo2.affine)
 nb.save(yeo_1_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_1.nii.gz')
 
-yeo_2_img= nibabel.Nifti1Image(yeo_2, affine=new_yeo2.affine)
+yeo_2_img= nb.Nifti1Image(yeo_2, affine=new_yeo2.affine)
 nb.save(yeo_2_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_2.nii.gz')
 
-yeo_3_img= nibabel.Nifti1Image(yeo_3, affine=new_yeo2.affine)
+yeo_3_img= nb.Nifti1Image(yeo_3, affine=new_yeo2.affine)
 nb.save(yeo_3_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_3.nii.gz')
 
-yeo_4_img= nibabel.Nifti1Image(yeo_4, affine=new_yeo2.affine)
+yeo_4_img= nb.Nifti1Image(yeo_4, affine=new_yeo2.affine)
 nb.save(yeo_4_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_4.nii.gz')
 
-yeo_5_img= nibabel.Nifti1Image(yeo_5, affine=new_yeo2.affine)
+yeo_5_img= nb.Nifti1Image(yeo_5, affine=new_yeo2.affine)
 nb.save(yeo_5_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_5.nii.gz')
 
-yeo_6_img= nibabel.Nifti1Image(yeo_6, affine=new_yeo2.affine)
+yeo_6_img= nb.Nifti1Image(yeo_6, affine=new_yeo2.affine)
 nb.save(yeo_6_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_6.nii.gz')
 
-yeo_7_img= nibabel.Nifti1Image(yeo_7, affine=new_yeo2.affine)
+yeo_7_img= nb.Nifti1Image(yeo_7, affine=new_yeo2.affine)
 nb.save(yeo_7_img, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_7.nii.gz')
 
 
+
+yeo_7_img2 =nilearn.image.resample_img(yeo_7_img, target_affine=yeo_target_affine)
+nb.save(yeo_7_img2, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/yeo_7_2thirdsRes.nii.gz')
+
+
 #%%
-func_file = home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
+func_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Test_Data/residual_antswarp.nii.gz'
 func = nb.load(func_file)
 
 temp = LC[:, :, :]
@@ -214,10 +229,16 @@ img = nilearn.image.resample_img(img1, target_affine=func.affine,target_shape=fu
 img = nilearn.image.resample_img(img1, target_shape=func.shape[:3], target_affine=np.diag((-2, 2, 2, 1)), interpolation='nearest')
 img = nilearn.image.resample_img(img1, target_shape=func.shape[:3], target_affine=None, interpolation='nearest')
 
+a=4/3
 
-temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((4, 4, 4)))
-nb.save(temp_quarter, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/LC_Quarter_Res.nii.gz')
+yeo_2_img2=nilearn.image.resample_img(yeo_2_img, target_affine=yeo_target_affine)
 
+
+
+func_resampled=nilearn.image.resample_img(func, target_affine=func_target_affine)
+
+temp_quarter = nilearn.image.resample_img(img, target_affine=np.diag((3, 3, 3, 1)), target_shape=yeo_1_img2.shape[:3])
+nb.save(func_resampled, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz')
 
 nb.save(img, home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/LowResMasks/yeo1_Quarter_Res.nii.gz')
 
