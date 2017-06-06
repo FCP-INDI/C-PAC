@@ -44,7 +44,7 @@ from CPAC.registration import create_nonlinear_register, \
                               create_wf_apply_ants_warp, \
                               create_wf_c3d_fsl_to_itk, \
                               create_wf_collect_transforms
-from CPAC.nuisance import create_nuisance, bandpass_voxels
+from CPAC.nuisance import create_nuisance_workflow
 
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
