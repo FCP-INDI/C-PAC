@@ -5,9 +5,21 @@ Created on Thu May 25 16:05:19 2017
 
 @author: aki.nikolaidis
 """
+import os
+import numpy as np
+import nibabel as nb
+import sys
+
+#import CPAC
+#from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+#from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+#from CPAC.utils import safe_shape
+
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
 
 
-def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=False, roi2_mask_file=None, affinity_threshold=0.5, out_dir=None, run=True):
+def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, cross_cluster=False, roi2_mask_file=None, affinity_threshold=0.5, out_dir=None, run=True):
     #run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
 
 
@@ -54,12 +66,12 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
     config = {}
     num_cores_per_subject = 1
 
-    basc=create_basc()
+    basc=create_basc(name='basc')
     basc.inputs.inputspec.subject_file_list=subject_file_list
     basc.inputs.inputspec.roi_mask_file=roi_mask_file
     basc.inputs.inputspec.dataset_bootstraps=dataset_bootstraps
     basc.inputs.inputspec.timeseries_bootstraps=timeseries_bootstraps
-    basc.inputs.inputspec.k_clusters=k_clusters
+    basc.inputs.inputspec.n_clusters=n_clusters
     basc.inputs.inputspec.cross_cluster=cross_cluster
     basc.inputs.inputspec.roi2_mask_file=roi2_mask_file
     basc.inputs.inputspec.affinity_threshold=affinity_threshold

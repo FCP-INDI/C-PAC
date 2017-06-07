@@ -146,7 +146,7 @@ Striatum_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/
 Striatum = nb.load(Striatum_file)
 
 
-Striatum2 =nilearn.image.resample_img(Striatum, target_affine=yeo_target_affine)
+Striatum2 =nilearn.image.resample_img(Striatum, target_affine=yeo_target_affine, interpolation='nearest')
 nb.save(Striatum2, home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz')
 
 
@@ -222,6 +222,13 @@ func = nb.load(func_file)
 
 temp = LC[:, :, :]
 img = nb.Nifti1Image(temp, np.eye(4))
+
+
+yeo_target_affine= np.array([[  -3.,    0.,    0.,   90.],
+       [   0.,    3.,    0., -126.],
+       [   0.,    0.,    3.,  -72.],
+       [   0.,    0.,    0.,    1.]])
+
 
 #resampe_img is broken- totally fucking up wthe Yeo networks- and breaks bg- func.affine is the problem!!
 img = resample_to_img(img1, template)

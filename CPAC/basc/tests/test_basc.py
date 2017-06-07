@@ -20,6 +20,14 @@ from matplotlib import pyplot as plt
 from sklearn import cluster, datasets
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
+#
+#import CPAC
+#from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+#from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+#from CPAC.utils import safe_shape
+
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
 
 
 matplotlib.style.use('ggplot')
@@ -165,13 +173,13 @@ def test_nifti_individual_stability():
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
     n_bootstraps=100
-    k_clusters=2
+    n_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
     #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
     cbb_block_size=None
     affinity_threshold=0.5
-    nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, k_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
+    nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
 
 
 def new_test_group_stability_matrix():
@@ -191,7 +199,7 @@ def new_test_group_stability_matrix():
 
     indiv_stability_list=ism_list
     n_bootstraps=10
-    k_clusters=3
+    n_clusters=3
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3, [0,1,1,1,0])
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, 10, 3)
 
@@ -208,7 +216,7 @@ def test_group_stability_matrix():
     ism_dataset = np.zeros((5, blobs.shape[0], blobs.shape[0]))
     ism_list = []
     for i in range(ism_dataset.shape[0]):
-        ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
+        ism_dataset[i] = individual_stability_matrix(blobs + 0.2*np.random.randn(blobs.shape[0], blobs.shape[1]), 10, 3, affinity_threshold = 0.0)
         f = 'ism_dataset_%i.npy' % i
         ism_list.append(f)
         np.save(f, ism_dataset[i])
@@ -227,14 +235,14 @@ def test_basc_workflow_runner():
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     dataset_bootstraps=5
     timeseries_bootstraps=5
-    k_clusters=2
+    n_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
     affinity_threshold= [0.5, 0.5, 0.5]
     out_dir= home + '/BASC_outputs'
     run=True
 
-    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
 
 
 def bruteforce_workflow_test():
@@ -257,46 +265,58 @@ def bruteforce_workflow_test():
 #    
 #    /Users/aki.nikolaidis/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz
     
+    import time
+
     subject_file_list = [home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz']
     
     sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
     filename = home + '/C-PAC/CPAC/basc/sampledata/Striatum_GroupLevel_MotorCluster.nii.gz'
     
-    ism_list = []
-    ism_dataset = np.zeros((2, 177770, 177770))
+    
 
     roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
-    dataset_bootstraps=3
-    timeseries_bootstraps=10
-    k_clusters=2
+    dataset_bootstraps=2
+    timeseries_bootstraps=2
+    n_clusters=10
     cross_cluster=True
     roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
+    output_size = 2000
+
+    ism_list = []
+    ism_dataset = np.zeros((len(subject_file_list), output_size, output_size))
 
     cbb_block_size=None
     affinity_threshold=0.5
     n_bootstraps=timeseries_bootstraps
 
-    roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
-    roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+    roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
+    roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float32').astype('bool')
 
 
-
+    start = time.time()
     for i in range(len(subject_file_list)):
-        data = nb.load(subject_file_list[int(i)]).get_data().astype('float64')
+        data = nb.load(subject_file_list[int(i)]).get_data().astype('float32')
         Y1 = data[roi_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
         Y2 = data[roi2_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
 
-        ism_dataset[int(i)] = individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
+
+        Y1_compressed = data_compression(Y1, roi_mask_file_nb, 2000).T
+        Y2_compressed = data_compression(Y2, roi2_mask_file_nb, 2000).T
+        
+        ism_dataset[int(i)] = individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
 
         #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
         f = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i
         ism_list.append(f)
         np.save(f, ism_dataset[i])
 
-    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, 2)
+    (time.time() - start)
+    
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
+    #Need to figure out how to get low res cluster version outputted in normal space- or how to output 
     ndarray_to_vol(cluster_G, roi_mask_file, sample_file, filename)
     #loop over cluster_voxel_scores[i] and save each cluster map to nifti file.
 
@@ -310,6 +330,6 @@ def test_basc():
     b.base_dir = os.getcwd()
     b.inputs.inputspec.roi = roi_file
     b.inputs.inputspec.subjects = subjects_list
-    b.inputs.inputspec.k_clusters = 6
+    b.inputs.inputspec.n_clusters = 6
     b.inputs.inputspec.dataset_bootstraps = 10
     b.inputs.inputspec.timeseries_bootstraps = 1000

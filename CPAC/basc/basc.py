@@ -2,15 +2,33 @@ import os
 import numpy as np
 import nibabel as nb
 import sys
-#import CPAC
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
-sys.path.insert(0, '~/C-PAC')
-#from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
-#from CPAC.basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
-#from CPAC.utils import safe_shape
+import imp
+from os.path import expanduser
+#
+#home2 = expanduser("~")
+#
+#
+#CPAC = imp.load_source('CPAC', home2 + '/C-PAC')
+#
+#bascutils = imp.load_source('bascutils', home2 + '/C-PAC/CPAC/basc/utils.py')
+#
+##basc = imp.load_source('basc', home2 + '/C-PAC/CPAC/basc/basc.py')
+#
+#utilsutils = imp.load_source('utilsutils', home2 + '/C-PAC/CPAC/utils/utils.py')
+#
+#import CPAC
+#from bascutils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
+##from basc import group_stability_matrix, individual_group_clustered_maps, individual_stability_matrix, nifti_individual_stability, ndarray_to_vol, create_basc
+#from utilsutils import safe_shape
+
+#sys.path.insert(0, '~/C-PAC/CPAC')
 
 
+
+
+#import CPAC
 
 #you just do "import sys" (if not already imported), then "sys.path.insert(0, /path/to/install/dir)", then import CPAC
 
@@ -39,11 +57,11 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
     cluster_voxel_scores : array_like
         `K` by `V` matrix of within-cluster average values for each cluster of each voxel
     """
-
-    import os
-    import numpy as np
-    import nibabel as nb
-    import sys
+#
+#    import os
+#    import numpy as np
+#    import nibabel as nb
+#    import sys
     #import CPAC
     #import nipype.pipeline.engine as pe
     #import nipype.interfaces.utility as util
