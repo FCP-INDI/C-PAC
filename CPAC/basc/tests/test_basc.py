@@ -268,6 +268,14 @@ def bruteforce_workflow_test():
     import time
 
     subject_file_list = [home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
+                         home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz']
     
     sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
@@ -276,12 +284,12 @@ def bruteforce_workflow_test():
     
 
     roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
-    dataset_bootstraps=2
-    timeseries_bootstraps=2
-    n_clusters=10
+    dataset_bootstraps=50
+    timeseries_bootstraps=50
+    n_clusters=4
     cross_cluster=True
     roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
-    output_size = 2000
+    output_size = 500
 
     ism_list = []
     ism_dataset = np.zeros((len(subject_file_list), output_size, output_size))
@@ -297,14 +305,16 @@ def bruteforce_workflow_test():
     start = time.time()
     for i in range(len(subject_file_list)):
         data = nb.load(subject_file_list[int(i)]).get_data().astype('float32')
-        Y1 = data[roi_mask_file_nb]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
-        Y2 = data[roi2_mask_file_nb]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
+        roi1data = data[roi_mask_file_nb]
+        roi2data = data[roi2_mask_file_nb]
 
 
-        Y1_compressed = data_compression(Y1, roi_mask_file_nb, 2000).T
-        Y2_compressed = data_compression(Y2, roi2_mask_file_nb, 2000).T
+        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
+        Y2_compressed = data_compression(roi2data, roi2_mask_file_nb, output_size).T
+        
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1_compressed.shape[0], Y1_compressed.shape[1], n_bootstraps)
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2_compressed.shape[0], Y2_compressed.shape[1], n_bootstraps)
+
         
         ism_dataset[int(i)] = individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
 
@@ -313,11 +323,10 @@ def bruteforce_workflow_test():
         ism_list.append(f)
         np.save(f, ism_dataset[i])
 
-    (time.time() - start)
-    
+    print((time.time() - start))
     G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
     #Need to figure out how to get low res cluster version outputted in normal space- or how to output 
-    ndarray_to_vol(cluster_G, roi_mask_file, sample_file, filename)
+   # ndarray_to_vol(cluster_G, roi_mask_file, sample_file, filename)
     #loop over cluster_voxel_scores[i] and save each cluster map to nifti file.
 
 def test_basc():
