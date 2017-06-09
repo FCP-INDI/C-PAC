@@ -495,11 +495,20 @@ def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_clu
 
     return S
 
-def data_compression(Y1, mask, output_size):
+def return_to_voxelspace(ism, voxelmask):
+    """
+    ism : symmetric stability matrix
+    
+    voxelmask: 
+    """
+
+
+def data_compression(func_filename, mask, output_size):
     """
     data : array_like
          A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
          The functional dataset that needs to be reduced
+    mask : a numpy array of the mask
     output_size : integer
         The number of elements that the data should be reduced to
         
@@ -514,7 +523,7 @@ def data_compression(Y1, mask, output_size):
 
 ###################################################################
 ## Transform nifti files to a data matrix with the NiftiMasker
-#from nilearn import input_data
+    from nilearn import input_data
 #
 ## The NiftiMasker will extract the data on a mask. We do not have a
 ## mask, hence we need to compute one.
@@ -522,17 +531,18 @@ def data_compression(Y1, mask, output_size):
 ## This is resting-state data: the background has not been removed yet,
 ## thus we need to use mask_strategy='epi' to compute the mask from the
 ## EPI images
-#nifti_masker = input_data.NiftiMasker(memory='nilearn_cache',
-#                                      mask_strategy='epi', memory_level=1,
-#                                      standardize=False)
+
+    nifti_masker = input_data.NiftiMasker(mask_img= roi_mask_file, memory='nilearn_cache',
+                                          mask_strategy='background', memory_level=1,
+                                          standardize=False)
 #
-#func_filename = dataset.func[0]
+#func_filename = data.func[0]
 ## The fit_transform call computes the mask and extracts the time-series
 ## from the files:
-#fmri_masked = nifti_masker.fit_transform(func_filename)
+    fmri_masked = nifti_masker.fit_transform(func_filename)
 #
 ## We can retrieve the numpy array of the mask
-#mask = nifti_masker.mask_img_.get_data().astype(bool)
+#mask = nifti_masker.mask_img_.get_data().astype(bool) 
 
 
 ##################################################################
@@ -546,7 +556,7 @@ def data_compression(Y1, mask, output_size):
     from sklearn.feature_extraction import image
     shape = mask.shape
     connectivity = image.grid_to_graph(n_x=shape[0], n_y=shape[1],
-                                   n_z=shape[2], mask=mask)
+                                       n_z=shape[2], mask=mask)
 
 
 ##################################################################
@@ -564,7 +574,7 @@ def data_compression(Y1, mask, output_size):
     start = time.time()
     ward = FeatureAgglomeration(n_clusters=output_size, connectivity=connectivity,
                             linkage='ward')
-    ward.fit(Y1.T)
+    ward.fit(fmri_masked)
     print("Ward agglomeration compressing voxels into clusters: %.2fs" % (time.time() - start))
 
 ## Compute the ward with more clusters, should be faster as we are using
@@ -589,11 +599,12 @@ def data_compression(Y1, mask, output_size):
 ## Unmask the labels
 #
 ## Avoid 0 label
-#labels = ward.labels_ + 1
-#labels_img = nifti_masker.inverse_transform(labels)
+    labels = ward.labels_ + 1
+    labels_img = nifti_masker.inverse_transform(labels)
+    nb.save(labels_img, 'labels.nii.gz')
 #
-##from nilearn.image import mean_img
-##mean_func_img = mean_img(func_filename)
+    from nilearn.image import mean_img
+    mean_func_img = mean_img(func_filename)
 ##
 ##
 ##first_plot = plot_roi(labels_img, mean_func_img, title="Ward parcellation",
@@ -605,7 +616,7 @@ def data_compression(Y1, mask, output_size):
 ###################################################################
 ## labels_img is a Nifti1Image object, it can be saved to file with the
 ## following code:
-#labels_img.to_filename('parcellation.nii')
+    labels_img.to_filename('parcellation.nii')
 
 
 ##################################################################
@@ -627,7 +638,7 @@ def data_compression(Y1, mask, output_size):
 # Note that, as many objects in the scikit-learn, the ward object exposes
 # a transform method that modifies input features. Here it reduces their
 # dimension
-    data_reduced = ward.transform(Y1.T)
+    data_reduced = ward.transform(fmri_masked)
     return data_reduced
 #
 ## Display the corresponding data compressed using the parcellation
