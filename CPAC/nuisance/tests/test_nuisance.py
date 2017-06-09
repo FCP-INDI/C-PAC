@@ -13,8 +13,8 @@ def test_hello_world():
 
 def test_find_offending_time_points_fd_dvars_extend():
 
-    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path', 'dvars_file_path',
-                                                      'fd_threshold', 'dvars_threshold',
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
                                                       'number_of_previous_trs_to_remove',
                                                       'number_of_subsequent_trs_to_remove'],
                                          output_names=['out_file'],
@@ -31,15 +31,17 @@ def test_find_offending_time_points_fd_dvars_extend():
     find_censors.inputs.number_of_subsequent_trs_to_remove = 2
     find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = find_censors.run()
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
 
 def test_find_offending_time_points_fd():
 
-    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path', 'dvars_file_path',
-                                                      'fd_threshold', 'dvars_threshold',
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
                                                       'number_of_previous_trs_to_remove',
                                                       'number_of_subsequent_trs_to_remove'],
                                          output_names=['out_file'],
@@ -56,14 +58,16 @@ def test_find_offending_time_points_fd():
     find_censors.inputs.number_of_subsequent_trs_to_remove = 0
     find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = find_censors.run()
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
 
 def test_find_offending_time_points_dvars():
-    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path', 'dvars_file_path',
-                                                      'fd_threshold', 'dvars_threshold',
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
                                                       'number_of_previous_trs_to_remove',
                                                       'number_of_subsequent_trs_to_remove'],
                                          output_names=['out_file'],
@@ -80,15 +84,17 @@ def test_find_offending_time_points_dvars():
     find_censors.inputs.number_of_subsequent_trs_to_remove = 0
     find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = find_censors.run()
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
 
 def test_find_offending_time_points_fd_dvars():
 
-    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path', 'dvars_file_path',
-                                                      'fd_threshold', 'dvars_threshold',
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
                                                       'number_of_previous_trs_to_remove',
                                                       'number_of_subsequent_trs_to_remove'],
                                          output_names=['out_file'],
@@ -105,7 +111,9 @@ def test_find_offending_time_points_fd_dvars():
     find_censors.inputs.number_of_subsequent_trs_to_remove = 0
     find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = find_censors.run()
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
@@ -129,7 +137,9 @@ def test_localstat():
     create_anaticor_regressor.interface.num_threads = 8
     create_anaticor_regressor.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = create_anaticor_regressor.run()
+    result_value = create_anaticor_regressor.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
@@ -148,6 +158,7 @@ def test_erode():
     assert "a+i" in erode.cmdline
 
 
+@pytest.mark.skip(reason="too slow")
 def test_tproject():
 
     nuisance_regression = pe.Node(interface=nuisance.Tproject(), name='nuisance_regression')
@@ -173,30 +184,82 @@ def test_tproject():
 
     nuisance_regression.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    res = nuisance_regression.run()
+    result_value = nuisance_regression.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 
 
-def test_mask_summarize_time_course():
+def test_create_variance_mask_pct():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_pct.nii.gz", threshold="2PCT", by_slice=True)
+
+    assert os.path.isfile(outfile)
+
+
+def test_create_variance_mask_sd():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_sd.nii.gz", threshold="1.5SD", by_slice=True)
+
+    assert os.path.isfile(outfile)
+
+
+def test_create_variance_mask_thresh():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_thresh.nii.gz", threshold=10.2, by_slice=False)
+
+    assert os.path.isfile(outfile)
+
+
+def test_mask_summarize_time_course_detrend_norm_mean():
+
+    import os
 
     outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
                                                   "/home/ccraddock/nuisance_test/func_mask.nii.gz",
-                                                  "/home/ccraddock/nuisance_test/extracted_mean.nii.gz",
+                                                  "extracted_mean.tsv",
                                                   method="DetrendNormMean")
 
+    assert os.path.isfile(outfile)
+
+
+def test_mask_summarize_time_course_pca5():
+
+    import os
+
     outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
                                                   "/home/ccraddock/nuisance_test/func_mask.nii.gz",
-                                                  "/home/ccraddock/nuisance_test/extracted_mean.nii.gz",
+                                                  "extracted_pca5.tsv",
                                                   method="PCA", num_pcs=5)
 
-    outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
-                                         "/home/ccraddock/nuisance_test/func_mask.nii.gz",
-                                         "/home/ccraddock/nuisance_test/extracted_pca_multilabels.tsv",
-                                         method="PCA", num_pcs=5, mask_label=[[1, 2, 3]])
-    assert 0 == 0
+    assert os.path.isfile(outfile)
 
-#@pytest.mark.skip(reason="too slow")
+
+def test_mask_summarize_time_course_multi_label():
+
+    import os
+
+    outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                  "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                  "extracted_pca_multi_label.tsv",
+                                                  method="PCA", num_pcs=5, mask_label=[[1, 2, 3]])
+    assert os.path.isfile(outfile)
+
+
+# @pytest.mark.skip(reason="too slow")
 def test_nuisance_workflow_type1():
 
     """
@@ -247,6 +310,13 @@ def test_nuisance_workflow_type1():
     """
 
     selector_test1 = {'Anaticor': None,
+                      'tCompCor': {'num_pcs': 3,
+                                   'threshold': '2 PCT',
+                                   'by_slice': True,
+                                   'tissues': 'WM',
+                                   'include_delayed': False,
+                                   'include_squared': False,
+                                   'include_delayed_squared': False},
                       'aCompCor': {'num_pcs': 5,
                                    'tissues': 'WM',
                                    'include_delayed': False,
@@ -279,11 +349,13 @@ def test_nuisance_workflow_type1():
 
     nuisance_regression_workflow.inputs.inputspec.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
     nuisance_regression_workflow.inputs.inputspec.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1d'
-    nuisance_regression_workflow.inputs.inputspec.functional_file_path = '/home/ccraddock/nuisance_test/functional.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.functional_file_path = '/home/ccraddock/nuisance_test/' \
+                                                                         'functional.nii.gz'
     nuisance_regression_workflow.inputs.inputspec.wm_mask_file_path = '/home/ccraddock/nuisance_test/wm_mask.nii.gz'
     nuisance_regression_workflow.inputs.inputspec.csf_mask_file_path = '/home/ccraddock/nuisance_test/csf_mask.nii.gz'
     nuisance_regression_workflow.inputs.inputspec.gm_mask_file_path = '/home/ccraddock/nuisance_test/gm_mask.nii.gz'
-    nuisance_regression_workflow.inputs.inputspec.brain_mask_file_path = '/home/ccraddock/nuisance_test/func_mask.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.functional_brain_mask_file_path = '/home/ccraddock/nuisance_test/' \
+                                                                                    'func_mask.nii.gz'
     nuisance_regression_workflow.inputs.inputspec.anat_to_mni_initial_xfm_file_path = \
         '/home/ccraddock/nuisance_test/anat_to_mni_initial_xfm.mat'
     nuisance_regression_workflow.inputs.inputspec.anat_to_mni_rigid_xfm_file_path = \
@@ -303,7 +375,9 @@ def test_nuisance_workflow_type1():
 
     nuisance_regression_workflow.base_dir = '/home/ccraddock/nuisance_test/working_dir'
 
-    retval = nuisance_regression_workflow.run()
+    result_value = nuisance_regression_workflow.run()
+
+    print("result {0}".format(result_value))
 
     assert 0 == 0
 

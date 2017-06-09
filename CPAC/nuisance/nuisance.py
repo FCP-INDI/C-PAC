@@ -4,10 +4,10 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.ants as ants
 from nipype.interfaces import afni
 import nuisance_afni_interfaces
-from CPAC.nuisance import find_offending_time_points
+from CPAC.nuisance import find_offending_time_points, create_temporal_variance_mask
 
 
-def mask_summarize_time_course(functional_file_path, mask_file_path, output_file_path, method="detrend_norm_mean",
+def mask_summarize_time_course(functional_file_path, mask_file_path, output_file_path, method="DetrendNormMean",
                                mask_vol_index=None, mask_label=None, num_pcs=1):
     """
     Calculates summary time course for voxels specified by a mask. Methods for summarizing the the time courses include
@@ -144,8 +144,6 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
             if isinstance(mask_label_this_mask_vol, int):
                 mask_label_this_mask_vol = [mask_label_this_mask_vol]
 
-            print("This is the mask label {0}".format(mask_label_this_mask_vol))
-            print("This are the available labels {0}".format(np.unique(mask_image_data.flatten())))
             # calculate the union between the different masks
             voxel_indices = []
             for mask_label_val in mask_label_this_mask_vol:
@@ -276,9 +274,9 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
 
 
 def gather_nuisance(functional_file_path, selector, output_file_path, grey_matter_summary_file_path=None,
-                    white_matter_summary_file_path=None, csf_summary_file_path=None, compcorr_file_path=None,
-                    global_summary_file_path=None, motion_parameters_file_path=None, dvars_file_path=None,
-                    framewise_displacement_file_path=None, censor_file_path=None):
+                    white_matter_summary_file_path=None, csf_summary_file_path=None, acompcorr_file_path=None,
+                    tcompcorr_file_path=None, global_summary_file_path=None, motion_parameters_file_path=None,
+                    dvars_file_path=None, framewise_displacement_file_path=None, censor_file_path=None):
     """
     Gathers the various nuisance regressors together into a single tab separated values file that is an appropriate for
     input into 3dTproject
@@ -332,7 +330,9 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
         of mask_summarize_time_course
     :param csf_summary_file_path: path to TSV that includes summary of csf time courses, e.g. output 
         of mask_summarize_time_course
-    :param compcorr_file_path: path to TSV that includes compcorr time courses, e.g. output 
+    :param acompcorr_file_path: path to TSV that includes acompcorr time courses, e.g. output
+        of mask_summarize_time_course
+    :param tcompcorr_file_path: path to TSV that includes tcompcorr time courses, e.g. output
         of mask_summarize_time_course
     :param global_summary_file_path: path to TSV that includes summary of global time courses, e.g. output 
         of mask_summarize_time_course 
@@ -349,7 +349,8 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
     import nibabel as nb
 
     # make a mapping for the input files to make things easier loop over
-    input_files_dict = {'aCompCorr': compcorr_file_path,
+    input_files_dict = {'aCompCorr': acompcorr_file_path,
+                        'tCompCorr': tcompcorr_file_path,
                         'Ventricles': csf_summary_file_path,
                         'GlobalSignal': global_summary_file_path,
                         'GreyMatter': grey_matter_summary_file_path,
@@ -380,8 +381,8 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
 
     regressor_length = functional_image.shape[3]
 
-    for regressor_type in ['aCompCorr', 'Ventricles', 'GlobalSignal', 'GreyMatter', 'WhiteMatter', 'Motion',
-                           'DVARS', 'FD']:
+    for regressor_type in ['aCompCorr', 'tCompCorr', 'Ventricles', 'GlobalSignal', 'GreyMatter', 'WhiteMatter',
+                           'Motion', 'DVARS', 'FD']:
         if regressor_type in selector and selector[regressor_type]:
             if not input_files_dict[regressor_type]:
                 raise ValueError('Regressor type {0} specified in selector but the corresponding '
@@ -417,15 +418,15 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
                                                     input_files_dict[regressor_type]))
 
             summary_method = ''
-            if regressor_type in ['aCompCorr', 'Ventricles', 'GlobalSignal', 'GreyMatter', 'WhiteMatter']:
+            if regressor_type in ['aCompCorr', 'tCompCorr', 'Ventricles', 'GlobalSignal', 'GreyMatter', 'WhiteMatter']:
                 # sanity check on method
                 if 'summary_method' not in selector[regressor_type] or \
                         not selector[regressor_type]['summary_method']:
-                    raise ValueError('Summarization method for {0} not specified. Should be one of: "PC", "Mean", '
+                    raise ValueError('Summarization method for {0} not specified. Should be one of: "PCA", "Mean", '
                                      '"NormMean" or "DetrendNormMean".'.format(regressor_type))
 
-                if selector[regressor_type]['summary_method'] not in ["PC", "Mean", "NormMean", "DetrendNormMean"]:
-                    raise ValueError('Invalid summarization method for {0}. {1} should be one of: "PC", "Mean", '
+                if selector[regressor_type]['summary_method'] not in ["PCA", "Mean", "NormMean", "DetrendNormMean"]:
+                    raise ValueError('Invalid summarization method for {0}. {1} should be one of: "PCA", "Mean", '
                                      '"NormMean" or "DetrendNormMean".'.format(regressor_type,
                                                                                selector[regressor_type][
                                                                                    'summary_method']))
@@ -468,7 +469,7 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
     regressor_type = 'Censor'
 
     if regressor_type in selector and 'censor_method' in selector[regressor_type] and \
-                    selector[regressor_type]['censor_method'] is 'SpikeRegression':
+            selector[regressor_type]['censor_method'] is 'SpikeRegression':
 
         if not input_files_dict[regressor_type]:
             raise ValueError('Regressor type {0} specified in selector but the corresponding '
@@ -498,7 +499,7 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
                 selector[regressor_type]['number_of_previous_trs_to_remove'] = 0
 
             if not ('number_of_subsequent_trs_to_remove' in selector[regressor_type] and
-                        selector[regressor_type]['number_of_subsequent_trs_to_remove']):
+                    selector[regressor_type]['number_of_subsequent_trs_to_remove']):
                 selector[regressor_type]['number_of_subsequent_trs_to_remove'] = 0
 
             for censor_list_index, censor_index in enumerate(censor_indices):
@@ -560,9 +561,22 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
     :param use_ants: flag indicating whether FNIRT or ANTS is used
     :param selector: Dictionary containing configuration parameters for nuisance regression
             selector = {'Anaticor' : None | {radius = <radius in mm>},
-                        'aCompCor' : None | {num_pcs = <number of components to retain>, 
+                        'aCompCor' : None | {num_pcs = <number of components to retain>,
                                             tissues = 'WM' | 'CSF' | 'WM+CSF',
-                                            include_delayed = True | False, 
+                                            include_delayed = True | False,
+                                            include_squared = True | False,
+                                            include_delayed_squared = True | False},
+                        'tCompCor' : None | {num_pcs = <number of components to retain>,
+                                            threshold = <floating point number = cutoff as raw variance value,
+                                                         floating point number followed by SD (ex. 1.5SD) = mean + a
+                                                             multiple of the SD,
+                                                         floating point number followed by PCT (ex. 2PCT) = percentile
+                                                             from the top (ex is top 2%),
+                                            by_slice = boolean, whether or not the threshold criterion should be applied
+                                                       by slice or across the entire volume, makes most sense for SD or
+                                                       PCT
+                                            tissues = 'WM' | 'CSF' | 'WM+CSF',
+                                            include_delayed = True | False,
                                             include_squared = True | False,
                                             include_delayed_squared = True | False},
                         'WhiteMatter' : None | {summary_method = 'PCA', 'Mean', 'NormMean' or 'DetrendNormMean',
@@ -619,8 +633,8 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
             Corresponding cerebral spinal fluid mask.
         inputspec.gm_mask_file_path : string (nifti file)
             Corresponding grey matter mask.
-        inputspec.brain_mask_file_path : string (nifti file)
-            Corresponding whole brain mask.
+        inputspec.functional_brain_mask_file_path : string (nifti file)
+            Whole brain mask corresponding to the functional data.
         inputspec.mni_to_anat_linear_xfm_file_path: string (nifti file)
             FLIRT Linear MNI to Anat transform
         inputspec.anat_to_mni_initial_xfm_file_path: string (nifti file)
@@ -680,7 +694,7 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
                                                        'wm_mask_file_path',
                                                        'csf_mask_file_path',
                                                        'gm_mask_file_path',
-                                                       'brain_mask_file_path',
+                                                       'functional_brain_mask_file_path',
                                                        'mni_to_anat_linear_xfm_file_path',
                                                        'anat_to_mni_initial_xfm_file_path',
                                                        'anat_to_mni_rigid_xfm_file_path',
@@ -811,8 +825,40 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
     nuisance.connect(combine_masks, 'out_file', func_to_2mm, 'reference')
     nuisance.connect(inputspec, 'func_to_anat_linear_xfm_file_path', func_to_2mm, 'in_matrix_file')
 
+    if 'tCompCor' in selector and selector['tCompCor']:
+
+        # for tCompCor calculate a temporal variance mask using the input parameters
+        create_tcompcor_mask = pe.Node(util.Function(input_names=['functional_data_file_path',
+                                                                  'mask_file_path',
+                                                                  'threshold',
+                                                                  'output_file_name',
+                                                                  'by_slice'],
+                                                     output_names=['tCompCor_mask_file_path'],
+                                                     function=create_temporal_variance_mask),
+                                       name='create_tCompCor_mask')
+
+        if not ('threshold' in selector['tCompCor'] and selector['tCompCor']['threshold']):
+            raise ValueError("tCompCor requires a threshold value, but none received.")
+
+        create_tcompcor_mask.inputs.threshold = selector['tCompCor']['threshold']
+
+        if not ('by_slice' in selector['tCompCor'] and selector['tCompCor']['by_slice'] is not None):
+            raise ValueError("tCompCor requires a value for by_slice, but none received.")
+
+        create_tcompcor_mask.inputs.by_slice = selector['tCompCor']['by_slice']
+
+        nuisance.connect(inputspec, 'functional_file_path', create_tcompcor_mask, 'functional_data_file_path')
+        nuisance.connect(inputspec, 'functional_brain_mask_file_path', create_tcompcor_mask, 'mask_file_path')
+
+        create_tcompcor_mask.inputs.output_file_name = 'variance_mask.nii.gz'
+
     # lets build up a resource pool to make it easier to find what we need when we are putting everything together
     tissue_mask_resource_pool = {
+        'tCompCor': {
+            'functional_file_path': (inputspec, 'functional_file_path'),
+            'mask_file_path': (create_temporal_variance_mask, 'out_file'),
+            'mask_label': 1
+        },
         'aCompCor_WM': {
             'functional_file_path': (func_to_2mm, 'out_file'),
             'mask_file_path': (combine_masks, 'out_file'),
@@ -830,7 +876,7 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
         },
         'GlobalSignal': {
             'functional_file_path': (inputspec, 'functional_file_path'),
-            'mask_file_path': (inputspec, 'brain_mask_file_path'),
+            'mask_file_path': (inputspec, 'functional_brain_mask_file_path'),
             'mask_label': 1
         },
         'GreyMatter': {
@@ -877,9 +923,9 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
 
             tissue_regressor_nodes[tissue_regressor].interface.estimated_memory_gb = 1.0
 
-            # probably seems redundant to the user to specify aCompCor and PC summarization, since it is redundant
+            # probably seems redundant to the user to specify CompCor and PCA summarization, since it is redundant
             # lets just set here to keep the logic the same as for other tissue without a bunch of branching
-            if tissue_regressor is 'aCompCor':
+            if tissue_regressor in ['aCompCor', 'tCompCor']:
                 selector[tissue_regressor]['summary_method'] = "PCA"
 
             if 'summary_method' not in selector[tissue_regressor]:
@@ -984,7 +1030,7 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
 
         if 'number_of_previous_trs_to_remove' in selector['Censor'] and \
                 selector['Censor']['number_of_previous_trs_to_remove'] and \
-                        selector['Censor']['censor_method'] is not 'SpikeRegression':
+                selector['Censor']['censor_method'] is not 'SpikeRegression':
             find_censors.inputs.number_of_previous_trs_to_remove = \
                 selector['Censor']['number_of_previous_trs_to_remove']
         else:
@@ -992,7 +1038,7 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
 
         if 'number_of_subsequent_trs_to_remove' in selector['Censor'] and \
                 selector['Censor']['number_of_subsequent_trs_to_remove'] and \
-                        selector['Censor']['censor_method'] is not 'SpikeRegression':
+                selector['Censor']['censor_method'] is not 'SpikeRegression':
             find_censors.inputs.number_of_subsequent_trs_to_remove = \
                 selector['Censor']['number_of_subsequent_trs_to_remove']
         else:
@@ -1007,8 +1053,11 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
                                  'Motion': ('motion_parameters_file_path', inputspec, 'motion_parameters_file_path'),
                                  }
 
-    for tissue_regressor in [('aCompCor', 'compcorr_file_path'), ('GlobalSignal', 'global_summary_file_path'),
-                             ('GreyMatter', 'grey_matter_summary_file_path'), ('Ventricles', 'csf_summary_file_path'),
+    for tissue_regressor in [('aCompCor', 'acompcorr_file_path'),
+                             ('tCompCor', 'tcompcorr_file_path'),
+                             ('GlobalSignal', 'global_summary_file_path'),
+                             ('GreyMatter', 'grey_matter_summary_file_path'),
+                             ('Ventricles', 'csf_summary_file_path'),
                              ('WhiteMatter', 'white_matter_summary_file_path')]:
         if tissue_regressor[0] in tissue_regressor_nodes:
             gather_nuisance_input_map[tissue_regressor[0]] = (tissue_regressor[1],
@@ -1036,7 +1085,8 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
                                                                        'grey_matter_summary_file_path',
                                                                        'white_matter_summary_file_path',
                                                                        'csf_summary_file_path',
-                                                                       'compcorr_file_path',
+                                                                       'acompcorr_file_path',
+                                                                       'tcompcorr_file_path',
                                                                        'global_summary_file_path',
                                                                        'motion_parameters_file_path',
                                                                        'framewise_displacement_file_path',
@@ -1075,7 +1125,7 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
     nuisance.connect(inputspec, 'functional_file_path', nuisance_regression,
                      'in_file')
 
-    nuisance.connect(inputspec, 'brain_mask_file_path', nuisance_regression,
+    nuisance.connect(inputspec, 'functional_brain_mask_file_path', nuisance_regression,
                      'mask')
 
     if build_nuisance_regressors_flag is True:

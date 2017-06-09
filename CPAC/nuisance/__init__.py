@@ -1,4 +1,4 @@
-from utils import calc_compcor_components, erode_mask, find_offending_time_points
+from utils import calc_compcor_components, erode_mask, find_offending_time_points, create_temporal_variance_mask
 
 from nuisance import create_nuisance_workflow, mask_summarize_time_course
 

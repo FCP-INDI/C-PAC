@@ -55,6 +55,162 @@ def erode_mask(data):
     return eroded_data
 
 
+def create_temporal_variance_mask(functional_data_file_path, mask_file_path, output_file_name,
+                                  threshold, by_slice=False):
+    """
+    Create a mask by applying threshold to the temporal variance of 4D nifti file in functional_data_file_path. Only
+    non-zero voxels in mask will be considered for inclusion.
+
+    :param functional_data_file_path: 4D nifti file containing functional data
+    :param output_file_name: name of 3D nifti file containing created mask, the current directory will be prepended
+        to this value, and the mask will be written to the resulting location.
+    :param mask_file_path: name of 3D nifti file containing mask to use to restrict the voxels considered by the masking
+        operation
+    :param threshold: only voxels whose temporal variance meet the threshold criterion will be included in the created
+        mask. Appropriate values are:
+         - a floating point value, values whose temporal variance is greater than this value will be included in mask
+         - a floating point value followed by SD, (1.5SD), values whose temporal variance is greater that 1.5 standard
+              deviations of voxels will be included in the mask
+         - a floating point value followed by PCT, (2PCT), values whose temporal variance is in the specified percentile
+              _from the top_ will be included in the mask. For example 2pct results in the top 2% voxels being included
+    :param by_slice: indicates whether threshold criterion should be applied by slice, or to all data, only changes
+        result for thresholds expressed in terms of SD or pct
+    :return: the full path of the 3D nifti file containing the mask created by this operation.
+    """
+
+    import os
+    import re
+    import nibabel as nb
+    import numpy as np
+
+    # begin by verifying the input parameters
+    if not (functional_data_file_path and (functional_data_file_path.endswith(".nii") or
+                                           functional_data_file_path.endswith(".nii.gz"))):
+        raise ValueError("Improper functional file specified ({0}), should be a 4D nifti file.")
+
+    if mask_file_path:
+        if not (mask_file_path.endswith(".nii") or mask_file_path.endswith(".nii.gz")):
+            raise ValueError("Improper mask file specified ({0}), should be a 3D nifti file.")
+
+    if not output_file_name:
+        raise ValueError("Output file name must be specified. Received None")
+
+    if not threshold:
+        raise ValueError("Threshold must be specified. Received None")
+
+    # first just assume that we are using a variance cutoff, and then change it if we learn differently, this avoids
+    # the else clauses for some of the ifs below
+    threshold_method = "VAR"
+    threshold_value = threshold
+
+    if isinstance(threshold, str):
+        regex_match = re.match("([0-9]*\.*[0-9]*)\s*SD", threshold)
+
+        if regex_match:
+            threshold_method = "SD"
+            threshold_value = regex_match.groups()[0]
+        else:
+            regex_match = re.match("([0-9]*\.*[0-9]*)\s*PCT", threshold)
+
+            if regex_match:
+                threshold_method = "PCT"
+                threshold_value = regex_match.groups()[0]
+
+    try:
+        threshold_value = float(threshold_value)
+    except:
+        print("Error converting threshold value {0} from {1} to a floating point number. The threshold value can "
+              "contain SD or PCT for selecting a threshold based on the variance distribution, otherwise it should "
+              "be a floating point number.".format(threshold_value, threshold))
+        raise
+
+    if threshold_value < 0:
+        raise ValueError("Threshold value should be positive, instead of {0}.".format(threshold_value))
+
+    if threshold_method is "PCT" and threshold_value >= 100.0:
+        raise ValueError("Percentile should be less than 100, received {0}.".format(threshold_value))
+
+    if not isinstance(by_slice, bool):
+        raise ValueError("Parameter by_slice should be a boolean.")
+
+    print("Calculating variance mask from {0}, using {1}, {2} threshold method, and a cutoff of {3}".format(
+        functional_data_file_path, mask_file_path, threshold_method, threshold_value))
+
+    # load in functional data and create the variance map
+    functional_data_img = nb.load(functional_data_file_path)
+
+    if len(functional_data_img.shape) == 4 and functional_data_img.shape[3] < 3:
+        raise ValueError("Functional data used to create mask ({0}) should be 4D and should contain 3 or more "
+                         "time points.".format(functional_data_file_path))
+
+    functional_data_variance = functional_data_img.get_data().var(3)
+
+    # if a mask was provided read it in and make sure it is appropriate
+    mask_image = []
+    mask_data = []
+
+    if mask_file_path:
+        mask_image = nb.load(mask_file_path)
+
+        if not(np.all(mask_image.shape == functional_data_img.shape[0:3]) and
+               np.all(mask_image.affine == functional_data_img.affine)):
+            raise ValueError("Shape and affine of mask image {0} ({1} {2}) should match those of the functional data"
+                             " {3} ({4} {5})".format(mask_file_path, mask_image.shape, mask_image.affine,
+                                                     functional_data_file_path, functional_data_img.shape,
+                                                     functional_data_img.affine))
+
+        # get the data and make sure that it is binary
+        mask_data = mask_image.get_data()
+        mask_data[mask_data > 0] = 1
+        mask_data[mask_data != 1] = 0
+    else:
+        mask_data = np.uint8(functional_data_variance > 0)
+
+    print("data variance shape {0}".format(functional_data_variance.shape))
+
+    if by_slice is True:
+        functional_data_variance = functional_data_variance.reshape((np.prod(functional_data_variance.shape[0:2]),
+                                                                     functional_data_variance.shape[2]))
+    else:
+        functional_data_variance = functional_data_variance.reshape((np.prod(functional_data_variance.shape[0:3]), 1))
+
+    # conform output file and mask to functional data shape
+    output_variance_mask = np.zeros(functional_data_variance.shape, dtype=np.uint8)
+    mask_data = mask_data.reshape(functional_data_variance.shape)
+
+    for slice_number in range(0, functional_data_variance.shape[1]):
+
+        # make sure that there are some voxels at this slice, if not, move on
+        if np.sum(mask_data[:, slice_number]) == 0:
+            continue
+
+        if threshold_method is "PCT":
+            slice_threshold_value = np.percentile(functional_data_variance[mask_data[:, slice_number] == 1,
+                                                                           slice_number], 100.0 - threshold_value)
+
+        elif threshold_method is "SD":
+            slice_threshold_value = functional_data_variance[mask_data[:, slice_number] == 1, slice_number].mean() + \
+                                    threshold_value * functional_data_variance[mask_data[:, slice_number] == 1,
+                                                                               slice_number].std()
+
+        else:
+            slice_threshold_value = threshold_value
+
+        output_variance_mask[:, slice_number] = mask_data[:, slice_number] & \
+                                                (functional_data_variance[:, slice_number] > slice_threshold_value)
+
+    # make sure that the output mask is the correct shape and format
+    output_variance_mask = np.uint8(output_variance_mask)
+    output_variance_mask = output_variance_mask.reshape(mask_image.shape)
+
+    # now write it out!
+    output_file_path = os.path.join(os.getcwd(), output_file_name)
+    output_img = nb.Nifti1Image(output_variance_mask, mask_image.affine)
+    output_img.to_filename(output_file_path)
+
+    return output_file_path
+
+
 def find_offending_time_points(thresh_metric, out_file_path="censors.tsv", fd_file_path=None, dvars_file_path=None,
                                fd_threshold=None, dvars_threshold=None, number_of_previous_trs_to_remove=0,
                                number_of_subsequent_trs_to_remove=0):
