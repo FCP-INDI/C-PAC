@@ -605,6 +605,8 @@ def data_compression(func_filename, mask, output_size):
 #
     from nilearn.image import mean_img
     mean_func_img = mean_img(func_filename)
+    
+    
 ##
 ##
 ##first_plot = plot_roi(labels_img, mean_func_img, title="Ward parcellation",
@@ -639,7 +641,9 @@ def data_compression(func_filename, mask, output_size):
 # a transform method that modifies input features. Here it reduces their
 # dimension
     data_reduced = ward.transform(fmri_masked)
-    return data_reduced
+    compressed_origsize_data = ward.inverse_transform(fmri_masked)
+
+    return compressed_origsize_data
 #
 ## Display the corresponding data compressed using the parcellation
 #fmri_compressed = ward.inverse_transform(data_reduced)
