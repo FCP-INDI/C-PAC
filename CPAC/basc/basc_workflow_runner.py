@@ -51,6 +51,8 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
 
     import nipype.interfaces.io as nio
     import nipype.pipeline.engine as pe
+    
+    from basc import create_basc
 
     #output = "{ output resource name }"
 

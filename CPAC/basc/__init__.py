@@ -1,3 +1,5 @@
+import utils
+
 from utils import timeseries_bootstrap, \
                   standard_bootstrap, \
                   cluster_timeseries, \
@@ -6,6 +8,8 @@ from utils import timeseries_bootstrap, \
                   cluster_matrix_average, \
                   individual_stability_matrix, \
                   data_compression
+
+import basc
 
 from basc import create_basc, \
                  nifti_individual_stability, \
