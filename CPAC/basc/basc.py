@@ -276,9 +276,9 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
         
         
-        roi1data = data[roi_mask_file]
+        roi1data = data[roi_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
-        roi2data = data[roi2_mask_file]
+        roi2data = data[roi2_mask_file_nb]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (roi2data.shape[0], roi2data.shape[1], n_bootstraps)
 
         Y1_compressed = utils.data_compression(roi1data, roi_mask_file_nb, output_size).T
