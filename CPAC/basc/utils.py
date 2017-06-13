@@ -113,7 +113,7 @@ def standard_bootstrap(dataset):
     --------
     """
     n = dataset.shape[0]
-    b = np.random.random_integers(0, high=n-1, size=n)
+    b = np.random.randint(0, high=n-1, size=n)
     return dataset[b]
 
 def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinity_threshold = 0.0, neighbors = 10):
@@ -488,12 +488,12 @@ def individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2=None, cross_clu
             cbb_block_size2 = int(np.sqrt(N2))
             Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
             Y_b2 = utils.timeseries_bootstrap(Y2, cbb_block_size2)
-            S += utils.adjacency_matrix(utils.cross_cluster_timeseries(Y_b1, Y_b2, k_clusters, similarity_metric = 'correlation'))
+            S += utils.adjacency_matrix(utils.cross_cluster_timeseries(Y_b1, Y_b2, n_clusters, similarity_metric = 'correlation'))
         S /= n_bootstraps
     else:
         for bootstrap_i in range(n_bootstraps):
             Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
-            S += utils.adjacency_matrix(utils.cluster_timeseries(Y_b1, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
+            S += utils.adjacency_matrix(utils.cluster_timeseries(Y_b1, n_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
         S /= n_bootstraps
 
     return S

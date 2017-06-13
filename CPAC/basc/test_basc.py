@@ -44,6 +44,8 @@ def test_timeseries_bootstrap():
     Tests the timeseries_bootstrap method of BASC workflow
     """
     np.random.seed(27)
+    #np.set_printoptions(threshold=np.nan)
+    
     # Create a 10x5 matrix which counts up by column-wise
     x = np.arange(50).reshape((5,10)).T
     actual = timeseries_bootstrap(x,3)
@@ -60,23 +62,23 @@ def test_timeseries_bootstrap():
     np.testing.assert_equal(actual, desired)
 
 
-def test_sample_bootstrap():
+def test_standard_bootstrap():
     """
-    Tests the sample_bootstrap method of BASC workflow
+    Tests the standard_bootstrap method of BASC workflow
     """
     np.random.seed(27)
     x = np.arange(50).reshape((5,10)).T
-    actual = sample_bootstrap(x,3)
-    desired = np.array([[ 4, 14, 24, 34, 44],
-                       [ 5, 15, 25, 35, 45],
-                       [ 6, 16, 26, 36, 46],
-                       [ 8, 18, 28, 38, 48],
-                       [ 9, 19, 29, 39, 49],
-                       [ 0, 10, 20, 30, 40],
-                       [ 7, 17, 27, 37, 47],
-                       [ 8, 18, 28, 38, 48],
-                       [ 9, 19, 29, 39, 49],
-                       [ 8, 18, 28, 38, 48]])
+    actual = standard_bootstrap(x)
+    desired = np.array([[ 3, 13, 23, 33, 43],
+                        [ 8, 18, 28, 38, 48],
+                        [ 8, 18, 28, 38, 48],
+                        [ 8, 18, 28, 38, 48],
+                        [ 0, 10, 20, 30, 40],
+                        [ 5, 15, 25, 35, 45],
+                        [ 8, 18, 28, 38, 48],
+                        [ 1, 11, 21, 31, 41],
+                        [ 2, 12, 22, 32, 42],
+                        [ 1, 11, 21, 31, 41]])
     np.testing.assert_equal(actual, desired)
 
 def test_adjacency_matrix():
