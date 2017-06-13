@@ -236,7 +236,7 @@ def test_basc_workflow_runner():
 
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     dataset_bootstraps=50
-    timeseries_bootstraps=20
+    timeseries_bootstraps=10
     n_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
@@ -246,7 +246,38 @@ def test_basc_workflow_runner():
     
     
 
-s
+    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+
+
+def NKI_Ned_test():
+    
+    from basc_workflow_runner import run_basc_workflow
+    import utils
+    subject_file_list= ['/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060429/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060384/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060280/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059935/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059875/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059734/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059733/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz']
+
+    roi_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
+    roi2_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
+    output_size = 1000
+
+
+    dataset_bootstraps=5
+    timeseries_bootstraps=10
+    n_clusters=2
+    cross_cluster=True
+    affinity_threshold= [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    out_dir= home + '/BASC_outputs'
+    run=True
+    
+    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, output_size, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
+
 
 def bruteforce_workflow_test():
 

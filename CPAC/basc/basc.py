@@ -219,7 +219,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
 
 
 
-def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clusters, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
+def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clusters, output_size, cross_cluster=False, roi2_mask_file=None, cbb_block_size=None, affinity_threshold=0.5):
     """
     Calculate the individual stability matrix for a single subject by using Circular Block Bootstrapping method
     for time-series data.
@@ -274,13 +274,17 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 #                                                                                           str(data.shape[:3]),
 #                                                                                           str(roi2_mask_file.shape)) )
 
-
-        Y1 = data[roi_mask_file]
+        
+        
+        roi1data = data[roi_mask_file]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
-        Y2 = data[roi2_mask_file]
+        roi2data = data[roi2_mask_file]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
 
-        ism = utils.individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
+        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
+        Y2_compressed = data_compression(roi2data, roi2_mask_file_nb, output_size).T
+
+        ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
 
 
         #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):

@@ -77,6 +77,7 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
     basc.inputs.inputspec.cross_cluster=cross_cluster
     basc.inputs.inputspec.roi2_mask_file=roi2_mask_file
     basc.inputs.inputspec.affinity_threshold=affinity_threshold
+    basc.inputs.inputspec.output_size=output_size
 
     resource_pool['gsm'] = (basc, 'outputspec.gsm')
     resource_pool['gsclusters'] = (basc, 'outputspec.gsclusters')
