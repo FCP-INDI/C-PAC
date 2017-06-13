@@ -277,9 +277,9 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         
         
         roi1data = data[roi_mask_file]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1.shape[0], Y1.shape[1], n_bootstraps)
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
         roi2data = data[roi2_mask_file]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (roi2data.shape[0], roi2data.shape[1], n_bootstraps)
 
         Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
         Y2_compressed = data_compression(roi2data, roi2_mask_file_nb, output_size).T
@@ -303,10 +303,13 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 #                                                                                               str(data.shape[:3]),
 #                                                                                               str(roi_mask_file.shape)) )
 
-        Y = data[roi_mask_file]
-        print '(%i voxels, %i timepoints and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
+        roi1data = data[roi_mask_file]
+        print '(%i voxels, %i timepoints and %i bootstraps' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
 
-        ism = utils.individual_stability_matrix(Y, n_bootstraps, n_clusters, cbb_block_size=cbb_block_size, affinity_threshold=affinity_threshold)
+        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
+
+
+        ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, cbb_block_size, affinity_threshold)
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
         np.save(ism_file, ism)
         print 'Saving individual stability matrix %s for %s' % (ism_file, subject_file)

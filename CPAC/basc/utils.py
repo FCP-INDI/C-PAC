@@ -442,7 +442,7 @@ def cluster_matrix_average(M, cluster_assignments):
 
     return s
 
-def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
+def individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
     """
     Calculate the individual stability matrix of a single subject by bootstrapping their time-series
 
