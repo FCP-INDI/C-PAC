@@ -261,14 +261,14 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
 
     if (roi2_mask_file != None):
-        roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
-        roi2_mask_file = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+        roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+        roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
 
         #safe shape may be broken?
 #        if not safe_shape(roi_mask_file, data):
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                               str(data.shape[:3]),
-#                                                                                               str(roi_mask_file.shape)) )
+#                                     s                                                          str(roi_mask_file.shape)) )
 #        if not safe_shape(roi2_mask_file, data):
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                           str(data.shape[:3]),
