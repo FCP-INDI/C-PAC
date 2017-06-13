@@ -229,14 +229,14 @@ def test_group_stability_matrix():
 def test_basc_workflow_runner():
 
     from basc_workflow_runner import run_basc_workflow
-    
+    import utils
     subject_file_list= [home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz',
                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub2/Func_Quarter_Res.nii.gz',
                         home + '/C-PAC/CPAC/basc/sampledata/subjects/sub3/Func_Quarter_Res.nii.gz']
 
     roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     dataset_bootstraps=50
-    timeseries_bootstraps=5
+    timeseries_bootstraps=20
     n_clusters=2
     cross_cluster=True
     roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
@@ -246,8 +246,7 @@ def test_basc_workflow_runner():
     
     
 
-    basc_test= run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
-
+s
 
 def bruteforce_workflow_test():
 

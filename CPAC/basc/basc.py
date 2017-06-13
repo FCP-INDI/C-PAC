@@ -249,7 +249,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
     import os
     import numpy as np
     import nibabel as nb
-    from utils import individual_stability_matrix
+    import utils
+    #from utils import individual_stability_matrix
     #from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
 
 
@@ -279,7 +280,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         Y2 = data[roi2_mask_file]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2.shape[0], Y2.shape[1], n_bootstraps)
 
-        ism = individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
+        ism = utils.individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2, cross_cluster, cbb_block_size, affinity_threshold)
 
 
         #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
@@ -301,7 +302,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         Y = data[roi_mask_file]
         print '(%i voxels, %i timepoints and %i bootstraps' % (Y.shape[0], Y.shape[1], n_bootstraps)
 
-        ism = individual_stability_matrix(Y, n_bootstraps, n_clusters, cbb_block_size=cbb_block_size, affinity_threshold=affinity_threshold)
+        ism = utils.individual_stability_matrix(Y, n_bootstraps, n_clusters, cbb_block_size=cbb_block_size, affinity_threshold=affinity_threshold)
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
         np.save(ism_file, ism)
         print 'Saving individual stability matrix %s for %s' % (ism_file, subject_file)
