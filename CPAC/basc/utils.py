@@ -467,6 +467,9 @@ def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_clu
     S : array_like
         A matrix of shape (`V1`, `V1`), each element v1_{ij} representing the stability of the adjacency of voxel i with voxel j
     """
+    
+    import utils 
+    
     if affinity_threshold < 0.0:
         raise ValueError('affinity_threshold %d must be non-negative value' % affinity_threshold)
 
@@ -483,14 +486,14 @@ def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_clu
         for bootstrap_i in range(n_bootstraps):
             N2 = Y2.shape[1]
             cbb_block_size2 = int(np.sqrt(N2))
-            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
-            Y_b2 = timeseries_bootstrap(Y2, cbb_block_size2)
-            S += adjacency_matrix(cross_cluster_timeseries(Y_b1, Y_b2, k_clusters, similarity_metric = 'correlation'))
+            Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
+            Y_b2 = utils.timeseries_bootstrap(Y2, cbb_block_size2)
+            S += utils.adjacency_matrix(utils.cross_cluster_timeseries(Y_b1, Y_b2, k_clusters, similarity_metric = 'correlation'))
         S /= n_bootstraps
     else:
         for bootstrap_i in range(n_bootstraps):
-            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
-            S += adjacency_matrix(cluster_timeseries(Y_b1, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
+            Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
+            S += utils.adjacency_matrix(utils.cluster_timeseries(Y_b1, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
         S /= n_bootstraps
 
     return S

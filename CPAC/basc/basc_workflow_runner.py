@@ -19,7 +19,7 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, cross_cluster=False, roi2_mask_file=None, affinity_threshold=0.5, out_dir=None, run=True):
+def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, n_clusters, output_size, cross_cluster=False, roi2_mask_file=None, affinity_threshold=0.5, out_dir=None, run=True):
     #run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, timeseries_bootstraps, k_clusters, cross_cluster=cross_cluster, roi2_mask_file=roi2_mask_file, affinity_threshold=affinity_threshold, out_dir=out_dir, run=run)
 
 
@@ -74,10 +74,11 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
     basc.inputs.inputspec.dataset_bootstraps=dataset_bootstraps
     basc.inputs.inputspec.timeseries_bootstraps=timeseries_bootstraps
     basc.inputs.inputspec.n_clusters=n_clusters
+    basc.inputs.inputspec.output_size=output_size
     basc.inputs.inputspec.cross_cluster=cross_cluster
     basc.inputs.inputspec.roi2_mask_file=roi2_mask_file
     basc.inputs.inputspec.affinity_threshold=affinity_threshold
-    basc.inputs.inputspec.output_size=output_size
+    
 
     resource_pool['gsm'] = (basc, 'outputspec.gsm')
     resource_pool['gsclusters'] = (basc, 'outputspec.gsclusters')

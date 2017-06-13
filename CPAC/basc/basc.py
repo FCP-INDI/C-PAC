@@ -447,6 +447,7 @@ def create_basc(name='basc'):
                                                        'dataset_bootstraps',
                                                        'timeseries_bootstraps',
                                                        'n_clusters',
+                                                       'output_size',
                                                        'cross_cluster',
                                                        'roi2_mask_file',
                                                        'affinity_threshold']),
@@ -471,6 +472,7 @@ def create_basc(name='basc'):
                                                 'roi_mask_file',
                                                 'n_bootstraps',
                                                 'n_clusters',
+                                                'output_size',
                                                 'cross_cluster',
                                                 'roi2_mask_file',
                                                 'cbb_block_size',
@@ -533,6 +535,8 @@ def create_basc(name='basc'):
                  nis, 'roi_mask_file')
     basc.connect(inputspec, 'timeseries_bootstraps',
                  nis, 'n_bootstraps')
+    basc.connect(inputspec, 'output_size',
+                 nis, 'output_size')
     basc.connect(inputspec, 'roi2_mask_file',
                  nis, 'roi2_mask_file')
     basc.connect(inputspec, 'n_clusters',
@@ -541,7 +545,8 @@ def create_basc(name='basc'):
                  nis, 'affinity_threshold')
     basc.connect(inputspec, 'cross_cluster',
                  nis, 'cross_cluster')
-
+   
+    
 
     basc.connect(inputspec, 'dataset_bootstraps',
                  gsm, 'n_bootstraps')
