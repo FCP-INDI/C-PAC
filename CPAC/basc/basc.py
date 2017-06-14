@@ -261,8 +261,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
 
     if (roi2_mask_file != None):
-        roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
-        roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+        roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+        roi2_mask_nparray = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
 
         #safe shape may be broken?
 #        if not safe_shape(roi_mask_file, data):
@@ -273,12 +273,13 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                           str(data.shape[:3]),
 #                                                                                           str(roi2_mask_file.shape)) )
-
+        roi_mask_file_nb=nb.load(roi_mask_file)
+        roi2_mask_file_nb=nb.load(roi2_mask_file)
         
         
-        roi1data = data[roi_mask_file_nb]
+        roi1data = data[roi_mask_nparray]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
-        roi2data = data[roi2_mask_file_nb]
+        roi2data = data[roi2_mask_nparray]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (roi2data.shape[0], roi2data.shape[1], n_bootstraps)
 
         Y1_compressed = utils.data_compression(roi1data, roi_mask_file_nb, output_size).T
@@ -296,16 +297,17 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
     else:
 
-        roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
+        roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
 
 #        if not safe_shape(roi_mask_file, data):
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                               str(data.shape[:3]),
 #                                                                                               str(roi_mask_file.shape)) )
 
-        roi1data = data[roi_mask_file]
+        roi1data = data[roi_mask_nparray]
         print '(%i voxels, %i timepoints and %i bootstraps' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
-
+        
+        roi_mask_file_nb=nb.load(roi_mask_file)
         Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
 
 

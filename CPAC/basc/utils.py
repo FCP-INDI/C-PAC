@@ -534,18 +534,21 @@ def data_compression(func_filename, mask, output_size):
 ## This is resting-state data: the background has not been removed yet,
 ## thus we need to use mask_strategy='epi' to compute the mask from the
 ## EPI images
-
-    nifti_masker = input_data.NiftiMasker(mask_img= roi_mask_file, memory='nilearn_cache',
+    
+    nifti_masker = input_data.NiftiMasker(mask_img= mask, memory='nilearn_cache',
                                           mask_strategy='background', memory_level=1,
                                           standardize=False)
+
+
 #
 #func_filename = data.func[0]
 ## The fit_transform call computes the mask and extracts the time-series
 ## from the files:
-    fmri_masked = nifti_masker.fit_transform(func_filename)
+    #fmri_masked = nifti_masker.fit_transform(func_filename)
+    fmri_masked = func_filename
 #
 ## We can retrieve the numpy array of the mask
-#mask = nifti_masker.mask_img_.get_data().astype(bool) 
+mask = nifti_masker.mask_img_.get_data().astype(bool) 
 
 
 ##################################################################
