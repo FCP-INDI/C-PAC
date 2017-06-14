@@ -250,7 +250,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
     import numpy as np
     import nibabel as nb
     import utils
-    #from utils import individual_stability_matrix
+    #from utils import individual_stability_matrix, data_compression
     #from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
 
 
@@ -268,7 +268,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 #        if not safe_shape(roi_mask_file, data):
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                               str(data.shape[:3]),
-#                                     s                                                          str(roi_mask_file.shape)) )
+#                                                                                               str(roi_mask_file.shape)) )
 #        if not safe_shape(roi2_mask_file, data):
 #            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
 #                                                                                           str(data.shape[:3]),
@@ -282,8 +282,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         roi2data = data[roi2_mask_nparray]
         print '(%i voxels, %i timepoints and %i bootstraps)' % (roi2data.shape[0], roi2data.shape[1], n_bootstraps)
 
-        Y1_compressed = utils.data_compression(roi1data, roi_mask_file_nb, output_size).T
-        Y2_compressed = utils.data_compression(roi2data, roi2_mask_file_nb, output_size).T
+        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
+        Y2_compressed = utils.data_compression(roi2data.T, roi2_mask_file_nb, roi2_mask_nparray, output_size).T
 
         ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
 
@@ -308,7 +308,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         print '(%i voxels, %i timepoints and %i bootstraps' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
         
         roi_mask_file_nb=nb.load(roi_mask_file)
-        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
+        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
 
 
         ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, cbb_block_size, affinity_threshold)
@@ -540,16 +540,17 @@ def create_basc(name='basc'):
                  nis, 'roi_mask_file')
     basc.connect(inputspec, 'timeseries_bootstraps',
                  nis, 'n_bootstraps')
-    basc.connect(inputspec, 'output_size',
-                 nis, 'output_size')
-    basc.connect(inputspec, 'roi2_mask_file',
-                 nis, 'roi2_mask_file')
     basc.connect(inputspec, 'n_clusters',
                  nis, 'n_clusters')
-    basc.connect(inputspec, 'affinity_threshold',
-                 nis, 'affinity_threshold')
+    basc.connect(inputspec, 'output_size',
+                 nis, 'output_size')
+    
     basc.connect(inputspec, 'cross_cluster',
                  nis, 'cross_cluster')
+    basc.connect(inputspec, 'roi2_mask_file',
+                 nis, 'roi2_mask_file')
+    basc.connect(inputspec, 'affinity_threshold',
+                 nis, 'affinity_threshold')
    
     
 
@@ -565,6 +566,7 @@ def create_basc(name='basc'):
                  gs_cluster_vol, 'sample_file')
     basc.connect(inputspec, 'roi_mask_file',
                  gs_cluster_vol, 'roi_mask_file')
+    
     gs_cluster_vol.inputs.filename = 'group_stability_clusters.nii.gz'
 
     basc.connect(nis, 'ism_file',
