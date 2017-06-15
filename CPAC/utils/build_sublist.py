@@ -915,8 +915,9 @@ def build_sublist(data_config_yml):
               sess = "ses-1"
             site = ''
             scan_params = None
-            scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
-                                                               func)
+            # TODO: FIX BIDS_METADATA FS.OPENER/ ETC.
+            #scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
+            #                                                   func)
 
             # If there is no scan sub-folder under session, make scan
             # the name of the image itself without extension
