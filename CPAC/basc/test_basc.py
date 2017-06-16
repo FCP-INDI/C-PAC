@@ -256,6 +256,15 @@ def NKI_Ned_test():
     
     from basc_workflow_runner import run_basc_workflow
     import utils
+    
+    imports = ['import os',
+           'import nibabel as nb',
+           'import numpy as np',
+           'import scipy as sp',
+           'from nipype.utils.filemanip import filename_to_list, list_to_filename, split_filename',
+           'from scipy.special import legendre'
+           ]
+    
     subject_file_list= ['/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/data/rockland_sample/A00060429/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -265,6 +274,17 @@ def NKI_Ned_test():
                          '/data/rockland_sample/A00059875/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/data/rockland_sample/A00059734/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/data/rockland_sample/A00059733/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz']
+    
+    subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060429/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060503/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060603/reduced50.nii.gz',
+                         ]
+    
+    subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
+                        ]
     
     subject_file_list=['/Users/aki.nikolaidis/BGDev_SampleData/A00060846/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/Users/aki.nikolaidis/BGDev_SampleData/A00060603/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -282,7 +302,7 @@ def NKI_Ned_test():
     timeseries_bootstraps=10
     n_clusters=2
     cross_cluster=True
-    affinity_threshold= [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    affinity_threshold= [0.5, 0.5]# , 0.5, 0.5, 0.5]
     out_dir= home + '/BASC_outputs'
     run=True
     
