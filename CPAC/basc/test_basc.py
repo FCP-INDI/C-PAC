@@ -347,12 +347,17 @@ def bruteforce_workflow_test():
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz']
-    
-    import time
-    import utils 
     subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
                          '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
                         ]
+    
+    import time
+    import utils 
+    
+    subject_file_list = ['/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060280/reduced50.nii.gz',
+                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060384/reduced50.nii.gz',
+                        ]
+    
     roi_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
     roi2_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
     output_size = 2000
@@ -404,14 +409,42 @@ def bruteforce_workflow_test():
         roi1data = data[roi_mask_nparray]
         roi2data = data[roi2_mask_nparray]
 
-        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
-        Y2_compressed = utils.data_compression(roi2data.T, roi2_mask_file_nb,roi2_mask_nparray, output_size).T
+        data_dict1 = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size)
+        Y1_compressed = data_dict1['data'].T
+        Y1_labels = pd.DataFrame(data_dict1['labels'])
+        
+        index=pd.DataFrame(np.arange(1,Y1_labels.shape[0]+1))
+        
+        
+        data_dict2 = utils.data_compression(roi2data.T, roi2_mask_file_nb, roi2_mask_nparray, output_size)
+        Y2_compressed = data_dict2['data'].T
+        Y2_labels = pd.DataFrame(data_dict2['labels'])
+        #ward  = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size)
+        #def data_compression(fmri_masked, mask_img, mask_np, output_size):
+
         
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1_compressed.shape[0], Y1_compressed.shape[1], n_bootstraps)
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2_compressed.shape[0], Y2_compressed.shape[1], n_bootstraps)
 
         
         ism_dataset[int(i)] = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
+
+#        #algorithm to transform data matrices
+#        A=Y1_labels
+#        B=ism
+#        C=target original resolution matrix
+#        
+
+        a=Y1_labels.shape[0]
+        b=(a,a)
+        C = np.zeros(b)
+        C=pd.DataFrame(C)
+#       
+        for row in range(1, C.shape[0]):
+            for column in C:
+                C[row,column] = ism.item(int(Y1_labels.iloc[row]),int(Y1_labels.iloc[column])) 
+#                
+
 
         #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
         f = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i

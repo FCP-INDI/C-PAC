@@ -629,12 +629,12 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 ## Unmask the labels
 #
 ## Avoid 0 label
-    #labels = ward.labels_ + 1
+    labels = ward.labels_ + 1
     #labels_img = nifti_masker.inverse_transform(labels)
     #nb.save(labels_img, 'labels.nii.gz')
 #
     #from nilearn.image import mean_img
-   # mean_func_img = mean_img(func_filename)
+    #mean_func_img = mean_img(func_filename)
     
     
 ##
@@ -673,7 +673,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
     data_reduced = ward.transform(fmri_masked)
     compressed_origsize_data = ward.inverse_transform(fmri_masked)
 
-    return compressed_origsize_data
+    return {'data':data_reduced, 'labels':labels}
 #
 ## Display the corresponding data compressed using the parcellation
 #fmri_compressed = ward.inverse_transform(data_reduced)

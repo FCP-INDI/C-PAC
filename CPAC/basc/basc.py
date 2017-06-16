@@ -74,8 +74,8 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
 
     print 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.'
 
-    if stratification is not None:
-        print 'Applying stratification to group dataset'
+#    if stratification is not None:
+#        print 'Applying stratification to group dataset'
 
 
 
@@ -88,14 +88,14 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
 
     G = np.zeros((V,V))
     for bootstrap_i in range(n_bootstraps):
-        if stratification is not None:
-            strata = np.unique(stratification)
-            J = np.zeros((V,V))
-            for stratum in strata:
-                J += utils.standard_bootstrap(indiv_stability_set[np.where(stratification == stratum)]).sum(0)
-            J /= indiv_stability_set.shape[0]
-        else:
-            J = utils.standard_bootstrap(indiv_stability_set).mean(0)
+#        if stratification is not None:
+#            strata = np.unique(stratification)
+#            J = np.zeros((V,V))
+#            for stratum in strata:
+#                J += utils.standard_bootstrap(indiv_stability_set[np.where(stratification == stratum)]).sum(0)
+#            J /= indiv_stability_set.shape[0]
+#        else:
+        J = utils.standard_bootstrap(indiv_stability_set).mean(0)
         G += utils.adjacency_matrix(utils.cluster_timeseries(J, n_clusters, similarity_metric = 'correlation')[:,np.newaxis])
     G /= n_bootstraps
 
