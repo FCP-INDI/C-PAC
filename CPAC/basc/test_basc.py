@@ -254,8 +254,6 @@ def test_basc_workflow_runner():
 
 def NKI_Ned_test():
     
-    from basc_workflow_runner import run_basc_workflow
-    import utils
     
     imports = ['import os',
            'import nibabel as nb',
@@ -282,9 +280,6 @@ def NKI_Ned_test():
                          '/home/anikolai/NKI_SampleData/A00060603/reduced50.nii.gz',
                          ]
     
-    subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
-                         '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
-                        ]
     
     subject_file_list=['/Users/aki.nikolaidis/BGDev_SampleData/A00060846/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/Users/aki.nikolaidis/BGDev_SampleData/A00060603/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -292,6 +287,14 @@ def NKI_Ned_test():
                          '/Users/aki.nikolaidis/BGDev_SampleData/A00060429/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/Users/aki.nikolaidis/BGDev_SampleData/A00060384/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/Users/aki.nikolaidis/BGDev_SampleData/A00060280/bandpassed_demeaned_filtered_antswarp.nii.gz']
+
+    from basc_workflow_runner import run_basc_workflow
+    import utils
+    
+
+    subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
+                        ]
 
     roi_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
     roi2_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
@@ -329,8 +332,7 @@ def bruteforce_workflow_test():
 #    
 #    /Users/aki.nikolaidis/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz
     
-    import time
-
+   
     subject_file_list = [home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
@@ -342,45 +344,70 @@ def bruteforce_workflow_test():
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz',
                          home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz']
     
-    sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
-    filename = home + '/C-PAC/CPAC/basc/sampledata/Striatum_GroupLevel_MotorCluster.nii.gz'
-    
-    
+    import time
+    import utils 
+    subject_file_list = ['/home/anikolai/NKI_SampleData/A00060280/reduced50.nii.gz',
+                         '/home/anikolai/NKI_SampleData/A00060384/reduced50.nii.gz',
+                        ]
+    roi_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
+    roi2_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
+    output_size = 2000
 
-    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
-    dataset_bootstraps=50
-    timeseries_bootstraps=50
-    n_clusters=4
+
+    dataset_bootstraps=10
+    timeseries_bootstraps=10
+    n_clusters=2
     cross_cluster=True
-    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
-    output_size = 500
+    affinity_threshold= [0.5, 0.5]# , 0.5, 0.5, 0.5]
+    out_dir= home + '/BASC_outputs'
+    run=True
+    
+#    sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
+#    filename = home + '/C-PAC/CPAC/basc/sampledata/Striatum_GroupLevel_MotorCluster.nii.gz'
+#    
+#    
+#
+#    roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
+#    dataset_bootstraps=50
+#    timeseries_bootstraps=50
+#    n_clusters=4
+#    cross_cluster=True
+#    roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
+#    output_size = 500
 
     ism_list = []
     ism_dataset = np.zeros((len(subject_file_list), output_size, output_size))
 
     cbb_block_size=None
-    affinity_threshold=0.5
+    #affinity_threshold=0.5
     n_bootstraps=timeseries_bootstraps
 
-    roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
-    roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float32').astype('bool')
+    
 
 
     start = time.time()
     for i in range(len(subject_file_list)):
         data = nb.load(subject_file_list[int(i)]).get_data().astype('float32')
-        roi1data = data[roi_mask_file_nb]
-        roi2data = data[roi2_mask_file_nb]
+        
+        
+        roi_mask_file_nb = nb.load(roi_mask_file)
+        roi2_mask_file_nb= nb.load(roi2_mask_file)
+
+        roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
+        roi2_mask_nparray = nb.load(roi2_mask_file).get_data().astype('float32').astype('bool')
 
 
-        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
-        Y2_compressed = data_compression(roi2data, roi2_mask_file_nb, output_size).T
+        roi1data = data[roi_mask_nparray]
+        roi2data = data[roi2_mask_nparray]
+
+        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
+        Y2_compressed = utils.data_compression(roi2data.T, roi2_mask_file_nb,roi2_mask_nparray, output_size).T
         
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1_compressed.shape[0], Y1_compressed.shape[1], n_bootstraps)
         print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2_compressed.shape[0], Y2_compressed.shape[1], n_bootstraps)
 
         
-        ism_dataset[int(i)] = individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
+        ism_dataset[int(i)] = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
 
         #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
         f = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i
