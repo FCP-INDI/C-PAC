@@ -7,6 +7,7 @@ from utils import timeseries_bootstrap, \
                   adjacency_matrix, \
                   cluster_matrix_average, \
                   individual_stability_matrix, \
+                  expand_ism, \
                   data_compression
 
 import basc
@@ -35,3 +36,4 @@ __all__ = ['create_basc', \
            'data_compression', \
            'run_basc_workflow']
 
+#adding in a test file

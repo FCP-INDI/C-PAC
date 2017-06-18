@@ -525,6 +525,33 @@ def return_to_voxelspace(ism, voxelmask):
     voxelmask: 
     """
 
+def expand_ism(ism, Y1_labels):
+    
+    import time
+    import random
+    import pandas as pd
+    import numpy as np
+    voxel_num=len(Y1_labels)
+    voxel_ism = np.zeros((voxel_num,voxel_num))
+    voxel_ism=pd.DataFrame(voxel_ism)
+    matrixtime = time.time()
+    for row in range(0,ism.shape[0]):
+         print 'row is ', row
+         for column in range(0, ism.shape[1]):
+            
+            rowmatch = np.array(Y1_labels==row)
+            rowmatch = rowmatch*1
+            
+            colmatch = np.array(Y1_labels==column)
+            colmatch = colmatch*1
+            
+            match_matrix=rowmatch*colmatch.T
+            voxel_ism=voxel_ism+(match_matrix*ism[row,column])
+            
+    print((time.time() - matrixtime))
+    return voxel_ism
+
+
 
 def data_compression(fmri_masked, mask_img, mask_np, output_size):
     """
@@ -629,7 +656,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 ## Unmask the labels
 #
 ## Avoid 0 label
-    labels = ward.labels_ + 1
+    labels = ward.labels_
     #labels_img = nifti_masker.inverse_transform(labels)
     #nb.save(labels_img, 'labels.nii.gz')
 #

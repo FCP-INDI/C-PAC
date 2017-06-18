@@ -250,6 +250,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
     import numpy as np
     import nibabel as nb
     import utils
+    import pandas as pd
     #from utils import individual_stability_matrix, data_compression
     #from CPAC.basc.utils import standard_bootstrap, adjacency_matrix, cluster_timeseries, cluster_matrix_average, individual_stability_matrix
 
@@ -261,37 +262,42 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
 
     if (roi2_mask_file != None):
-        roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
-        roi2_mask_nparray = nb.load(roi2_mask_file).get_data().astype('float64').astype('bool')
+        roi_mask_file_nb = nb.load(roi_mask_file)
+        roi2_mask_file_nb= nb.load(roi2_mask_file)
 
-        #safe shape may be broken?
-#        if not safe_shape(roi_mask_file, data):
-#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-#                                                                                               str(data.shape[:3]),
-#                                                                                               str(roi_mask_file.shape)) )
-#        if not safe_shape(roi2_mask_file, data):
-#            raise ValueError('Subject %s with volume shape %s conflicts with mask shape %s' % (subject_file,
-#                                                                                           str(data.shape[:3]),
-#                                                                                           str(roi2_mask_file.shape)) )
-        roi_mask_file_nb=nb.load(roi_mask_file)
-        roi2_mask_file_nb=nb.load(roi2_mask_file)
-        
-        
+        roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
+        roi2_mask_nparray = nb.load(roi2_mask_file).get_data().astype('float32').astype('bool')
+
+
         roi1data = data[roi_mask_nparray]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
         roi2data = data[roi2_mask_nparray]
-        print '(%i voxels, %i timepoints and %i bootstraps)' % (roi2data.shape[0], roi2data.shape[1], n_bootstraps)
-
-        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
-        Y2_compressed = utils.data_compression(roi2data.T, roi2_mask_file_nb, roi2_mask_nparray, output_size).T
-
+        
+        data_dict1 = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size)
+        Y1_compressed = data_dict1['data']
+        Y1_compressed = Y1_compressed.T
+        Y1_labels = pd.DataFrame(data_dict1['labels'])
+        
+        index=pd.DataFrame(np.arange(1,Y1_labels.shape[0]+1))
+        
+        
+        data_dict2 = utils.data_compression(roi2data.T, roi2_mask_file_nb, roi2_mask_nparray, output_size)
+        Y2_compressed = data_dict2['data']
+        Y2_compressed=Y2_compressed.T
+        Y2_labels = pd.DataFrame(data_dict2['labels'])
+        
+        
+        print('going into ism')
         ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
-
+        
+        print('expanding ism')
+        voxel_num=roi1data.shape[0]
+        voxel_ism = utils.expand_ism(ism, Y1_labels)
+        
 
         #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
 
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
-        np.save(ism_file, ism)
+        np.save(ism_file, voxel_ism)
         print 'Saving individual stability matrix %s for %s' % (ism_file, subject_file)
         return ism_file
 
@@ -308,10 +314,19 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
         print '(%i voxels, %i timepoints and %i bootstraps' % (roi1data.shape[0], roi1data.shape[1], n_bootstraps)
         
         roi_mask_file_nb=nb.load(roi_mask_file)
-        Y1_compressed = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size).T
-
+        
+        data_dict1 = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size)
+        Y1_compressed = data_dict1['data']
+        Y1_compressed = Y1_compressed.T
+        Y1_labels = pd.DataFrame(data_dict1['labels'])
 
         ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, cbb_block_size, affinity_threshold)
+        
+        print('expanding ism')
+        voxel_num=roi1data.shape[0]
+        voxel_ism = utils.expand_ism(ism, Y1_labels)
+        
+        
         ism_file = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
         np.save(ism_file, ism)
         print 'Saving individual stability matrix %s for %s' % (ism_file, subject_file)
