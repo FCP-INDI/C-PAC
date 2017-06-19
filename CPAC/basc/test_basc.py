@@ -170,19 +170,26 @@ def test_cross_cluster_individual_stability_matrix():
 
 def test_nifti_individual_stability():
 
+    #NormalRes
+    subject_file = '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060280/reduced50.nii.gz'
+
+    roi_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
+    roi2_mask_file=home + '/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
+    
+    
     #subject_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/Test_Data/residual_antswarp.nii.gz'
-    subject_file= home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz'
-    roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
+    #subject_file= home + '/C-PAC/CPAC/basc/sampledata/subjects/sub1/Func_Quarter_Res.nii.gz'
+    #roi_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/LC_Quarter_Res.nii.gz'
     #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Left_Caudate.nii.gz'
     n_bootstraps=100
     n_clusters=2
     output_size=20
     cross_cluster=True
-    roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
+    #roi2_mask_file= home + '/C-PAC/CPAC/basc/sampledata/masks/RC_Quarter_Res.nii.gz'
     #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_BASC/Data/BasalGanglia_MNI2mm/Right_Caudate.nii.gz'
     cbb_block_size=None
     affinity_threshold=0.5
-    nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clusters, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
+    nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clusters, output_size, cross_cluster, roi2_mask_file, cbb_block_size, affinity_threshold)
 
 
 def new_test_group_stability_matrix():
@@ -548,19 +555,19 @@ def bruteforce_workflow_test():
         ### NEW FAST METHOD ###
         
         
-        TargetCell(i,j)=ClusterCell(labels(i),labels(j))
-        TargetCell(labels(2,i),labels(2,j)) = Cluster(labels(1,i),labels(1,j))
+#        TargetCell(i,j)=ClusterCell(labels(i),labels(j))
+#        TargetCell(labels(2,i),labels(2,j)) = Cluster(labels(1,i),labels(1,j))
+#        
+#        #basic equation i want.
+#        target_mat[vec2.iloc[vec,0],vec2.iloc[vec,0]]=source_mat[vec2.iloc[range(1,300),1],vec2.iloc[range(1,300),1]]
+#        target_mat[vec2.iloc[vec,0],vec2.iloc[vec,0]]=source_mat[vec2.iloc[vec,1],vec2.iloc[vec,1]]
+#
+#
+#        #Test Equivalence
+#        target_mat_slow==target_mat_fast
         
-        #basic equation i want.
-        target_mat[vec2.iloc[vec,0],vec2.iloc[vec,0]]=source_mat[vec2.iloc[range(1,300),1],vec2.iloc[range(1,300),1]]
-        target_mat[vec2.iloc[vec,0],vec2.iloc[vec,0]]=source_mat[vec2.iloc[vec,1],vec2.iloc[vec,1]]
-
-
-        #Test Equivalence
-        target_mat_slow==target_mat_fast
         
-        
-        #%%#XU_MACKENZIE SOLUTION
+        #%%#ALL SOLUTIONS
         import time
         import random
         import pandas as pd
@@ -591,15 +598,17 @@ def bruteforce_workflow_test():
         #%%Slow Solution
         matrixtime = time.time()
         for row in range(0,target_mat.shape[0]):
+            #print 'row is ', row
             for column in range(0,target_mat.shape[1]):
-                #print 'row is ', row
+                
                 #print 'column is', column
                 target_mat[row,column] = source_mat.item(int(vec1[row]), int(vec1[column]))
-        #print((time.time() - matrixtime))
+        print((time.time() - matrixtime))
         target_mat_slow=target_mat
         target_mat=np.zeros(matshape)
-        #%% XM SOLUTION
-        
+        #%% XU MACKENZIE SOLUTION
+        matrixtime = time.time()
+
         for i in range(0,len(target_mat)):
           transform_mat[vec1[i],i]=1
           
@@ -607,22 +616,66 @@ def bruteforce_workflow_test():
         target_mat=np.dot(temp.T,transform_mat)
         target_mat_XM=target_mat
         target_mat=np.zeros(matshape)
+        XM_time= time.time() - matrixtime
+        print((time.time() - matrixtime))
+
         #%%Previous 'fast' solution 
+        matrixtime = time.time()
         for row in range(0,source_mat.shape[0]):
-            #print 'row is ', row
-            for column in range(0, source_mat.shape[1]):
-                
-                rowmatch = np.array(vec1==row)
+            print 'row is ', row
+            #for column in range(0, source_mat.shape[1]):
+            for column in range(0, row):   
+                rowmatch = np.array([vec1==row])
                 rowmatch = rowmatch*1
                 
-                colmatch = np.array(vec1==column)
+                colmatch = np.array([vec1==column])
                 colmatch = colmatch*1
                 
                 match_matrix=rowmatch*colmatch.T
                 target_mat=target_mat+(match_matrix*source_mat[row,column])
                 
-        #print((time.time() - matrixtime))
+        print((time.time() - matrixtime))
         target_mat_fast=target_mat
+        target_mat=np.zeros(matshape)
+        #%% TEST FOR EQUIVALENCE
+        
+        target_mat_slow==target_mat_fast
+        target_mat_fast==target_mat_XM
+        
+        
+        #%%
+#        ###  MATT SOLUTION FROM STACK OVERFLOW
+#        cimport numpy
+#        from numpy import array, multiply, asarray, ndarray, zeros, dtype, int
+#        cimport cython
+#        from cython cimport view
+#        from cython.parallel cimport prange #this is your OpenMP portion
+#        from openmp cimport omp_get_max_threads #only used for getting the max # of threads on the machine
+#        
+#        @cython.boundscheck(False)
+#        @cython.wraparound(False)
+#        @cython.cdivision(True)
+#        cpdef matrixops(int[::1] vec1, double[:,::1] source_mat, double[:,::1] target_mat):
+#            cdef int[::1] match_matrix =zeros(vec1.shape[0], dtype=int)
+#            cdef int[::1] rowmatch =zeros(vec1.shape[0], dtype=int)
+#            cdef int[::1] colmatch =zeros(vec1.shape[0], dtype=int)
+#            cdef int maxthreads = omp_get_max_threads()
+#            cdef int row, column, i
+#            # here's where you'd substitute 
+#            # for row in prange(source_mat.shape[0], nogil=True, num_threads=maxthreads, schedule='static'): # to use all cores
+#            for row in range(0,source_mat.shape[0]):
+#                for column in range(0, source_mat.shape[1]):
+#                #this is how to avoid the GIL
+#                for i in range(vec1.shape[0]):
+#                    rowmatch[i]=(row==vec1[i])
+#        
+#                for i in range(vec1.shape[0]):
+#                    colmatch[i]=(column==vec1[i])
+#                    # this part has to be modified to not call Python GIL functions like was done above
+#                    match_matrix=multiply(rowmatch,colmatch.T)
+#                    target_mat=target_mat+(multiply(match_matrix,source_mat[row,column]))
+#        
+
         #%%
         
         

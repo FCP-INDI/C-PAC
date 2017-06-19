@@ -526,29 +526,43 @@ def return_to_voxelspace(ism, voxelmask):
     """
 
 def expand_ism(ism, Y1_labels):
-    
+    #%% XU MACKENZIE ALGORITHM
     import time
     import random
     import pandas as pd
     import numpy as np
     voxel_num=len(Y1_labels)
     voxel_ism = np.zeros((voxel_num,voxel_num))
-    voxel_ism=pd.DataFrame(voxel_ism)
+    transform_mat=np.zeros((len(ism),voxel_num))
+
+    #voxel_ism=pd.DataFrame(voxel_ism)    
+     
     matrixtime = time.time()
-    for row in range(0,ism.shape[0]):
-         print 'row is ', row
-         for column in range(0, ism.shape[1]):
-            
-            rowmatch = np.array(Y1_labels==row)
-            rowmatch = rowmatch*1
-            
-            colmatch = np.array(Y1_labels==column)
-            colmatch = colmatch*1
-            
-            match_matrix=rowmatch*colmatch.T
-            voxel_ism=voxel_ism+(match_matrix*ism[row,column])
-            
+
+    for i in range(0,voxel_num):
+      transform_mat[Y1_labels[i],i]=1
+      
+    temp=np.dot(ism,transform_mat)
+    target_mat=np.dot(temp.T,transform_mat)
+    
+    
+    XM_time= time.time() - matrixtime
     print((time.time() - matrixtime))
+    voxel_ism=target_mat
+    
+#    for row in range(0,ism.shape[0]):
+#         print 'row is ', row
+#         for column in range(0, ism.shape[1]):
+#            
+#            rowmatch = np.array(Y1_labels==row)
+#            rowmatch = rowmatch*1
+#            
+#            colmatch = np.array(Y1_labels==column)
+#            colmatch = colmatch*1
+#            
+#            match_matrix=rowmatch*colmatch.T
+#            voxel_ism=voxel_ism+(match_matrix*ism[row,column])
+            
     return voxel_ism
 
 
@@ -581,12 +595,13 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 ## This is resting-state data: the background has not been removed yet,
 ## thus we need to use mask_strategy='epi' to compute the mask from the
 ## EPI images
-    
+    i=1   
+    print '1', i
     nifti_masker = input_data.NiftiMasker(mask_img= mask_img, memory='nilearn_cache',
                                           mask_strategy='background', memory_level=1,
                                           standardize=False)
 
-
+    ward=[]
 #MASK = A BOOLEAN NUMPY ARRAY THE SIZE OF THE FUNCTIONAL DATA
 #FUNCTIONAL DATA = MASKED FUNCTIONAL DATA (TIME BY VOXELS)
 #OUTPUT SIZE = NUMBER OF CLUSTERS
@@ -608,14 +623,14 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 #
 # We use spatially-constrained Ward clustering. For this, we need to
 # compute from the mask a matrix giving the voxel-to-voxel connectivity
-
+    print '2'
 # Compute connectivity matrix: which voxel is connected to which
     from sklearn.feature_extraction import image
     shape = mask_np.shape
     connectivity = image.grid_to_graph(n_x=shape[0], n_y=shape[1],
                                        n_z=shape[2], mask=mask_np)
 
-
+    print '3'
 ##################################################################
 # Then we use FeatureAgglomeration from scikit-learn. Indeed, the voxels
 # are the features of the data matrix.
@@ -627,10 +642,10 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
     from sklearn.cluster import FeatureAgglomeration
 # If you have scikit-learn older than 0.14, you need to import
 # WardAgglomeration instead of FeatureAgglomeration
-    import time
     start = time.time()
     ward = FeatureAgglomeration(n_clusters=output_size, connectivity=connectivity,
                             linkage='ward')
+    print '4', i
     ward.fit(fmri_masked)
     print("Ward agglomeration compressing voxels into clusters: %.2fs" % (time.time() - start))
 
@@ -657,6 +672,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 #
 ## Avoid 0 label
     labels = ward.labels_
+    print '5', i
     #labels_img = nifti_masker.inverse_transform(labels)
     #nb.save(labels_img, 'labels.nii.gz')
 #
@@ -697,8 +713,12 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 # Note that, as many objects in the scikit-learn, the ward object exposes
 # a transform method that modifies input features. Here it reduces their
 # dimension
+    print 'Extracting reduced Dimension Data'
     data_reduced = ward.transform(fmri_masked)
-    compressed_origsize_data = ward.inverse_transform(fmri_masked)
+    fmri_masked=[]
+    print '6', i
+    i=i+1
+   # compressed_origsize_data = ward.inverse_transform(fmri_masked)
 
     return {'data':data_reduced, 'labels':labels}
 #

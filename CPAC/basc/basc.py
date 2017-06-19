@@ -95,24 +95,30 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
 #                J += utils.standard_bootstrap(indiv_stability_set[np.where(stratification == stratum)]).sum(0)
 #            J /= indiv_stability_set.shape[0]
 #        else:
+        print 'bootstrap number', bootstrap_i
         J = utils.standard_bootstrap(indiv_stability_set).mean(0)
+        print 'calculating adjacency matrix'
+        #THIS COULD BE AN ISSUE- MATRIX IS VERY LARGE AND WE ARE CLUSTERING ON IT- COULD APPLY SAME TRANSFORMATION TO LOWER DIM SPACE?
         G += utils.adjacency_matrix(utils.cluster_timeseries(J, n_clusters, similarity_metric = 'correlation')[:,np.newaxis])
     G /= n_bootstraps
 
-
+    print 'calculating clusters_G'
     clusters_G = utils.cluster_timeseries(G, n_clusters, similarity_metric = 'correlation')
 
+    print 'calculating cluster_voxel scores'
     cluster_voxel_scores = utils.cluster_matrix_average(G, clusters_G)
 
     # Cluster labels normally start from 0, start from 1 to provide contrast when viewing between 0 voxels
     clusters_G += 1
 
+    print 'saving files: G'
     gsm_file = os.path.join(os.getcwd(), 'group_stability_matrix.npy')
     np.save(gsm_file, G)
-    
+    print 'saving files: clusters_G'
     clusters_G_file = os.path.join(os.getcwd(), 'clusters_G.npy')
     np.save(clusters_G_file, clusters_G)
     
+    print 'saving files: cluster_voxel_scores'
     cluster_voxel_scores_file = os.path.join(os.getcwd(), 'cluster_voxel_scores.npy')
     np.save(cluster_voxel_scores_file, cluster_voxel_scores)
     #return G, clusters_G, cluster_voxel_scores
@@ -259,9 +265,10 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
 
     data = nb.load(subject_file).get_data().astype('float64')
-
+    print 'Data Loaded'
 
     if (roi2_mask_file != None):
+        print 'Setting up NIS'
         roi_mask_file_nb = nb.load(roi_mask_file)
         roi2_mask_file_nb= nb.load(roi2_mask_file)
 
@@ -271,20 +278,22 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
         roi1data = data[roi_mask_nparray]
         roi2data = data[roi2_mask_nparray]
-        
+        print 'compressing data'
         data_dict1 = utils.data_compression(roi1data.T, roi_mask_file_nb, roi_mask_nparray, output_size)
         Y1_compressed = data_dict1['data']
         Y1_compressed = Y1_compressed.T
         Y1_labels = pd.DataFrame(data_dict1['labels'])
+        Y1_labels=np.array(Y1_labels)
+        print 'Y1 compressed'
+        #index=pd.DataFrame(np.arange(1,Y1_labels.shape[0]+1))
         
-        index=pd.DataFrame(np.arange(1,Y1_labels.shape[0]+1))
-        
-        
+        print 'compressing y2'
+
         data_dict2 = utils.data_compression(roi2data.T, roi2_mask_file_nb, roi2_mask_nparray, output_size)
         Y2_compressed = data_dict2['data']
         Y2_compressed=Y2_compressed.T
         Y2_labels = pd.DataFrame(data_dict2['labels'])
-        
+        print 'y2 compressed'
         
         print('going into ism')
         ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)

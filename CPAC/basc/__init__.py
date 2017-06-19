@@ -20,6 +20,8 @@ from basc import create_basc, \
             
 from basc_workflow_runner import run_basc_workflow
 
+from NKI_Test2 import NKI_Test2
+
 #from
             
             
