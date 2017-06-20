@@ -5,6 +5,19 @@ Created on Mon Jun 19 14:35:02 2017
 
 @author: aki.nikolaidis
 """
+
+NKI_subject_file_list=[ '/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060429/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060384/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00060280/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059935/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059875/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059734/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/data/rockland_sample/A00059733/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz']
+
+subject_file_list=NKI_subject_file_list
+
 def NKI_Test2():
     #NKI TEST 2
     import os
@@ -44,8 +57,8 @@ def NKI_Test2():
     
     
     
-    roi_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
-    roi2_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
+    roi_mask_file='/home/anikolai/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
+    roi2_mask_file='/home/anikolai/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
     
     #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
     
@@ -72,7 +85,7 @@ def NKI_Test2():
         data = nb.load(subject_file_list[int(i)]).get_data().astype('float32')
         print 'Data Loaded'
     
-    
+       
         print 'Setting up NIS'
         roi_mask_file_nb = nb.load(roi_mask_file)
         roi2_mask_file_nb= nb.load(roi2_mask_file)
@@ -111,7 +124,7 @@ def NKI_Test2():
         
     
         #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
-        f = '/Users/aki.nikolaidis/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i
+        f = '/home/anikolai/C-PAC/CPAC/basc/tests/output/ism_dataset_%i.npy' % i
         ism_list.append(f)
         #np.save(f, ism_dataset[i])
         #ism_file[int(i)] = os.path.join(os.getcwd(), 'individual_stability_matrix.npy')
