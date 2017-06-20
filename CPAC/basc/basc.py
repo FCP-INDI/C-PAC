@@ -62,6 +62,7 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
     import numpy as np
     import nibabel as nb
     import utils
+    import time
 #    import sys
     #import CPAC
     #import nipype.pipeline.engine as pe
@@ -96,10 +97,14 @@ def group_stability_matrix(indiv_stability_list, n_bootstraps, n_clusters, strat
 #            J /= indiv_stability_set.shape[0]
 #        else:
         print 'bootstrap number', bootstrap_i
+        Jtime = time.time()
         J = utils.standard_bootstrap(indiv_stability_set).mean(0)
+        print((time.time() - Jtime))
         print 'calculating adjacency matrix'
         #THIS COULD BE AN ISSUE- MATRIX IS VERY LARGE AND WE ARE CLUSTERING ON IT- COULD APPLY SAME TRANSFORMATION TO LOWER DIM SPACE?
+        Gtime = time.time()
         G += utils.adjacency_matrix(utils.cluster_timeseries(J, n_clusters, similarity_metric = 'correlation')[:,np.newaxis])
+        print((time.time() - Gtime))
     G /= n_bootstraps
 
     print 'calculating clusters_G'

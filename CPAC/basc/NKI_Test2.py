@@ -5,6 +5,10 @@ Created on Mon Jun 19 14:35:02 2017
 
 @author: aki.nikolaidis
 """
+#adding test change
+#import __init__
+
+#__init__.import_all()
 
 NKI_subject_file_list=[ '/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
                          '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -18,6 +22,9 @@ NKI_subject_file_list=[ '/data/rockland_sample/A00060603/functional_mni/_scan_cl
 
 subject_file_list=NKI_subject_file_list
 
+def main():
+    print 'hey stranger'
+
 def NKI_Test2():
     #NKI TEST 2
     import os
@@ -28,13 +35,13 @@ def NKI_Test2():
     import pandas as pd
     import time
     
-    subject_file_list = ['/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060280/reduced50.nii.gz',
-                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060384/reduced50.nii.gz',
-                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060429/reduced50.nii.gz',
-                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060503/reduced50.nii.gz',
-                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060603/reduced50.nii.gz',
-                            ]
-    
+#    subject_file_list = ['/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060280/reduced50.nii.gz',
+#                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060384/reduced50.nii.gz',
+#                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060429/reduced50.nii.gz',
+#                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060503/reduced50.nii.gz',
+#                         '/Users/aki.nikolaidis/Desktop/NKI_SampleData/A00060603/reduced50.nii.gz',
+#                            ]
+#    
     
     #
     #                    ['/Users/aki.nikolaidis/BGDev_SampleData/A00060846/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -136,3 +143,8 @@ def NKI_Test2():
     G, clusters_G, cluster_voxel_scores, gsm_file, clusters_G_file, cluster_voxel_scores_file = basc.group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
     print((time.time() - GroupAnalysisStart))
     return {'G':G, 'clusters_G':clusters_G, 'cluster_voxel_scores':cluster_voxel_scores, 'gsm_file':gsm_file, 'clusters_G_file':clusters_G_file, 'cluster_voxel_scores_file':cluster_voxel_scores_file}
+
+
+
+if __name__ == '__main__':
+    main()
