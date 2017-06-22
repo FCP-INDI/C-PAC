@@ -22,6 +22,9 @@ NKI_subject_file_list=[ '/data/rockland_sample/A00060603/functional_mni/_scan_cl
 
 subject_file_list=NKI_subject_file_list
 
+def main():
+    print 'hey stranger'
+
 def NKI_Test2():
     #NKI TEST 2
     import os
@@ -143,6 +146,7 @@ def NKI_Test2():
 
 
 
+<<<<<<< HEAD
 subject_file_list = ['/data/rockland_sample/A00018030/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
 '/data/rockland_sample/A00027159/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
 '/data/rockland_sample/A00027167/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
@@ -250,3 +254,7 @@ subject_file_list = ['/data/rockland_sample/A00018030/functional_mni/_scan_dsc_2
 '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
 '/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
 '/data/rockland_sample/A00060846/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz']
+=======
+if __name__ == '__main__':
+    main()
+>>>>>>> a04f6f4b32b2362157f960a0f53e81a924740ad5
