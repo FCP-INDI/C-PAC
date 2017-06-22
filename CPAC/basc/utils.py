@@ -296,10 +296,10 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
 #
 #    data1=blobs1
 #    data2=blobs2
-    print("clusterT1")
+    #print("clusterT1")
     data1_df = pd.DataFrame(data1)
     data2_df = pd.DataFrame(data2)
-    print("clusterT2")
+    #print("clusterT2")
 #    plt.imshow(sim_matrix)
 #
 #    a=np.hstack(y_pred)
@@ -308,20 +308,20 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
     #FIGURE OUT HOW TO CREATE SYMMETRIC AND 0-1 NORMED SIMILARITY MATRIX
     #CUTOFF AFFINITY AT SPECIFIC LEVEL??
     #CUTOFF THE AFFINITY MATRIX RIGHT AFTER THE FIRST CLUSTERING
-    print("clusterT2")
+    #print("clusterT2")
     dist_btwn_df_1_2 = sp.spatial.distance.cdist(data1_df, data2_df, metric = similarity_metric)
     dist_btwn_df_1_2 = pd.DataFrame(dist_btwn_df_1_2)
-    print(dist_btwn_df_1_2)
-    print(type(dist_btwn_df_1_2))
-    print("clusterT3")
+    #print(dist_btwn_df_1_2)
+    #print(type(dist_btwn_df_1_2))
+    #print("clusterT3")
     dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2, metric = similarity_metric)
-    print("clusterT4")
+    #print("clusterT4")
     dist_matrix = sp.spatial.distance.squareform(dist_of_1)
-    print("clusterT5")
+    #print("clusterT5")
     sim_matrix=1-dist_matrix
-    print("clusterT6")
+    #print("clusterT6")
     sim_matrix[sim_matrix<0.3]=0
-    print("clusterT7")
+    #print("clusterT7")
 #    sim_of_1 = 1 - dist_of_1
 #
 #
@@ -349,17 +349,17 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
 #    X = StandardScaler().fit_transform(X)
 
     spectral = cluster.SpectralClustering(n_clusters, eigen_solver='arpack', random_state = 5, affinity="precomputed", assign_labels='discretize')
-    print("clusterT8")
+    #print("clusterT8")
     #change distribution to be normalized between 0 and 1 before passing into the spectral clustering algorithm
 
 
     #t0 = time.time()
     spectral.fit(sim_matrix)
-    print("clusterT9")
+    #print("clusterT9")
     #t1 = time.time()
 
     y_pred = spectral.labels_.astype(np.int)
-    print("clusterT10")
+    #print("clusterT10")
     return y_pred
 
 
@@ -478,7 +478,7 @@ def individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2=None, cross_clu
     """
     
     import utils 
-    print("111")
+    #print("111")
    
     
     if affinity_threshold < 0.0:
@@ -487,7 +487,7 @@ def individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2=None, cross_clu
     #flipped the N and V values bc originally data was being put in transposed
     N1 = Y1.shape[1]
     V1 = Y1.shape[0]
-    print("222")
+    #print("222")
    
     if(cbb_block_size is None):
         cbb_block_size = int(np.sqrt(N1))
@@ -496,26 +496,26 @@ def individual_stability_matrix(Y1, n_bootstraps, n_clusters, Y2=None, cross_clu
 
     if (cross_cluster is True):
         for bootstrap_i in range(n_bootstraps):
-            print("333")
-            print(Y2)
+            #print("333")
+            #print(Y2)
             N2 = Y2.shape[1]
-            print("4441")
+            #print("4441")
             cbb_block_size2 = int(np.sqrt(N2))
-            print("4442")
+            #print("4442")
             Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
-            print("4443")
+            #print("4443")
             Y_b2 = utils.timeseries_bootstrap(Y2, cbb_block_size2)
-            print("4444")
+            #print("4444")
             S += utils.adjacency_matrix(utils.cross_cluster_timeseries(Y_b1, Y_b2, n_clusters, similarity_metric = 'correlation'))
-            print("4445")
+            #print("4445")
         S /= n_bootstraps
     else:
         for bootstrap_i in range(n_bootstraps):
-            print("444")
+            #print("444")
             Y_b1 = utils.timeseries_bootstrap(Y1, cbb_block_size)
             S += utils.adjacency_matrix(utils.cluster_timeseries(Y_b1, n_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
         S /= n_bootstraps
-    print("555")    
+    #print("555")    
     return S
 
 def return_to_voxelspace(ism, voxelmask):
@@ -596,7 +596,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 ## thus we need to use mask_strategy='epi' to compute the mask from the
 ## EPI images
     i=1   
-    print '1', i
+    #print '1', i
     nifti_masker = input_data.NiftiMasker(mask_img= mask_img, memory='nilearn_cache',
                                           mask_strategy='background', memory_level=1,
                                           standardize=False)
@@ -623,14 +623,14 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 #
 # We use spatially-constrained Ward clustering. For this, we need to
 # compute from the mask a matrix giving the voxel-to-voxel connectivity
-    print '2'
+    #print '2'
 # Compute connectivity matrix: which voxel is connected to which
     from sklearn.feature_extraction import image
     shape = mask_np.shape
     connectivity = image.grid_to_graph(n_x=shape[0], n_y=shape[1],
                                        n_z=shape[2], mask=mask_np)
 
-    print '3'
+    #print '3'
 ##################################################################
 # Then we use FeatureAgglomeration from scikit-learn. Indeed, the voxels
 # are the features of the data matrix.
@@ -645,7 +645,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
     start = time.time()
     ward = FeatureAgglomeration(n_clusters=output_size, connectivity=connectivity,
                             linkage='ward')
-    print '4', i
+    #print '4', i
     ward.fit(fmri_masked)
     print("Ward agglomeration compressing voxels into clusters: %.2fs" % (time.time() - start))
 
@@ -672,7 +672,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
 #
 ## Avoid 0 label
     labels = ward.labels_
-    print '5', i
+    #print '5', i
     #labels_img = nifti_masker.inverse_transform(labels)
     #nb.save(labels_img, 'labels.nii.gz')
 #
@@ -716,7 +716,7 @@ def data_compression(fmri_masked, mask_img, mask_np, output_size):
     print 'Extracting reduced Dimension Data'
     data_reduced = ward.transform(fmri_masked)
     fmri_masked=[]
-    print '6', i
+    #print '6', i
     i=i+1
    # compressed_origsize_data = ward.inverse_transform(fmri_masked)
 

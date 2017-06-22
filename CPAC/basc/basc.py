@@ -169,59 +169,6 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
 
     return icvs
 
-#def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
-#    """
-#    Calculate the individual stability matrix of a single subject by bootstrapping their time-series
-#
-#    Parameters
-#    ----------
-#    Y1 : array_like
-#        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
-#    Y2 : array_like
-#        A matrix of shape (`V`, `N`) with `V` voxels `N` timepoints
-#        For Cross-cluster solutions- this will be the matrix by which Y1 is clustered
-#    n_bootstraps : integer
-#        Number of bootstrap samples
-#    k_clusters : integer
-#        Number of clusters
-#    cbb_block_size : integer, optional
-#        Block size to use for the Circular Block Bootstrap algorithm
-#    affinity_threshold : float, optional
-#        Minimum threshold for similarity matrix based on correlation to create an edge
-#
-#    Returns
-#    -------
-#    S : array_like
-#        A matrix of shape (`V1`, `V1`), each element v1_{ij} representing the stability of the adjacency of voxel i with voxel j
-#    """
-#    if affinity_threshold < 0.0:
-#        raise ValueError('affinity_threshold %d must be non-negative value' % affinity_threshold)
-#
-#    #flipped the N and V values bc originally data was being put in transposed
-#    N1 = Y1.shape[1]
-#    V1 = Y1.shape[0]
-#
-#    if(cbb_block_size is None):
-#        cbb_block_size = int(np.sqrt(N1))
-#
-#    S = np.zeros((V1, V1))
-#
-#    if (cross_cluster is True):
-#        for bootstrap_i in range(n_bootstraps):
-#            N2 = Y2.shape[1]
-#            cbb_block_size2 = int(np.sqrt(N2))
-#            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
-#            Y_b2 = timeseries_bootstrap(Y2, cbb_block_size2)
-#            S += adjacency_matrix(cross_cluster_timeseries(Y_b1, Y_b2, k_clusters, similarity_metric = 'correlation'))
-#        S /= n_bootstraps
-#    else:
-#        for bootstrap_i in range(n_bootstraps):
-#            Y_b1 = timeseries_bootstrap(Y1, cbb_block_size)
-#            S += adjacency_matrix(cluster_timeseries(Y_b1.T, k_clusters, similarity_metric = 'correlation', affinity_threshold = affinity_threshold)[:,np.newaxis])
-#        S /= n_bootstraps
-#
-#    return S
-
 
 
 
