@@ -283,6 +283,8 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
     """
 
     import scipy as sp
+    from sklearn import cluster, datasets
+
     
 #    #Simulating data
 #    blobs1 = generate_simple_blobs(27)
@@ -314,15 +316,17 @@ def cross_cluster_timeseries(data1, data2, n_clusters, similarity_metric):
 #    dist_btwn_df_1_2 = pd.DataFrame(sp.spatial.distance.cdist(data1, data2b, metric = similarity_metric))
 
 
-#    dist_btwn_df_1_2 = sp.spatial.distance.cdist(data2b, data1, metric = similarity_metric)
-    dist_btwn_df_1_2 = np.array(sp.spatial.distance.cdist(data1, data2, metric = similarity_metric))
+    #dist_btwn_df_1_2 = sp.spatial.distance.cdist(data2b, data1, metric = similarity_metric)
+    #dist_btwn_df_1_2 = np.array(sp.spatial.distance.cdist(data1, data2, metric = similarity_metric))
+    dist_btwn_df_1_2 = np.array(sp.spatial.distance.cdist(data1, data2, metric = 'euclidean'))
 
 
     #dist_btwn_df_1_2 = pd.DataFrame(dist_btwn_df_1_2)
     print(dist_btwn_df_1_2)
     print(type(dist_btwn_df_1_2))
     print("clusterT3")
-    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2, metric = similarity_metric)
+    dist_of_1 = sp.spatial.distance.pdist(dist_btwn_df_1_2, metric = 'correlation')
+    dist_of_1[np.isnan((dist_of_1))]=1
     print("clusterT4")
     dist_matrix = sp.spatial.distance.squareform(dist_of_1)
     print("clusterT5")

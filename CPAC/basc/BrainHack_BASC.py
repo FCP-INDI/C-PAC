@@ -29,25 +29,34 @@ import basc
 import pandas as pd
 import time
 
-basc_dir= '/Users/aki.nikolaidis/C-PAC/CPAC/basc'
+#basc_dir= '/home/anikolai/C-PAC/CPAC/basc'
+basc_dir = '/Users/aki.nikolaidis/C-PAC/CPAC/basc'
+#nki_dir = '/home/anikolai/CobreTest/cobre_lightweight20'
+
+#subject_file_list = ['/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard1.nii.gz',
+#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard2.nii.gz',
+#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard3.nii.gz',
+#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard4.nii.gz',]
+
+subject_file_list = ['/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard1.nii.gz',
+                     '/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard2.nii.gz']
 
 roi_mask_file= basc_dir + '/sampledata/masks/BG.nii.gz'
 roi2_mask_file= basc_dir + '/sampledata/masks/yeo_2.nii.gz'
 
 output_dir = basc_dir + '/tests/output'
 
-subject_file_list=[basc_dir + '/sampledata/NKI_50/A00060280/reduced15.nii.gz',
-                   basc_dir + '/sampledata/NKI_50/A00060384/reduced15.nii.gz']
                    
-subject_file_list=['/Users/aki.nikolaidis/BGDev_SampleData/A00060280/reduced100.nii.gz',
-                   '/Users/aki.nikolaidis/BGDev_SampleData/A00060384/reduced100.nii.gz']
-                    
-                  
+#subject_file_list=['/Users/aki.nikolaidis/BGDev_SampleData/A00060280/reduced100.nii.gz',
+#                   '/Users/aki.nikolaidis/BGDev_SampleData/A00060384/reduced100.nii.gz']
 
 
 
 
-#roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
+
+
+
+
 
 dataset_bootstraps=2
 timeseries_bootstraps=10
@@ -130,11 +139,11 @@ for i in range(len(subject_file_list)):
     
     print 'Saving individual stability matrix %s for %s' % (voxel_ism, subject_file_list[int(i)])
 
-print((time.time() - start))
+#print((time.time() - start))
 
-GroupAnalysisStart = time.time()
-G, clusters_G, cluster_voxel_scores, gsm_file, clusters_G_file, cluster_voxel_scores_file = basc.group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
+#GroupAnalysisStart = time.time()
+#G, clusters_G, cluster_voxel_scores, gsm_file, clusters_G_file, cluster_voxel_scores_file = basc.group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
 
-print((time.time() - GroupAnalysisStart))
+#print((time.time() - GroupAnalysisStart))
 
 
