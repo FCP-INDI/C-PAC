@@ -314,7 +314,7 @@ def ndarray_to_vol(data_array, roi_mask_file, sample_file, filename):
     import nibabel as nb
     import numpy as np
     import os
-
+    print '1'
     roi_mask_file = nb.load(roi_mask_file).get_data().astype('float64').astype('bool')
     if(len(data_array.shape) == 1):
         out_vol = np.zeros_like(roi_mask_file, dtype=data_array.dtype)
@@ -324,17 +324,17 @@ def ndarray_to_vol(data_array, roi_mask_file, sample_file, filename):
         out_vol[roi_mask_file] = data_array.T
     else:
         raise ValueError('data_array is %i dimensional, must be either 1 or 2 dimensional' % len(data_array.shape) )
-
+    print '2'
     nii = None
     if type(sample_file) is list:
         nii = nb.load(sample_file[0])
     else:
         nii = nb.load(sample_file)
-
+    print '3'
     img = nb.Nifti1Image(out_vol, header=nii.get_header(), affine=nii.get_affine())
     img_file = os.path.join(os.getcwd(), filename)
     img.to_filename(img_file)
-
+    print '4'
     return img_file
 
 def create_basc(name='basc'):

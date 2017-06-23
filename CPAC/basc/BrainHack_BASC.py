@@ -36,10 +36,12 @@ roi2_mask_file= basc_dir + '/sampledata/masks/yeo_2.nii.gz'
 
 output_dir = basc_dir + '/tests/output'
 
-subject_file_list=[basc_dir + '/sampledata/NKI_50/A00060280/reduced25.nii.gz',
-                   basc_dir + '/sampledata/NKI_50/A00060384/reduced25.nii.gz']
+subject_file_list=[basc_dir + '/sampledata/NKI_50/A00060280/reduced15.nii.gz',
+                   basc_dir + '/sampledata/NKI_50/A00060384/reduced15.nii.gz']
                    
-                   
+subject_file_list=['/Users/aki.nikolaidis/BGDev_SampleData/A00060280/reduced100.nii.gz',
+                   '/Users/aki.nikolaidis/BGDev_SampleData/A00060384/reduced100.nii.gz']
+                    
                   
 
 
@@ -48,8 +50,8 @@ subject_file_list=[basc_dir + '/sampledata/NKI_50/A00060280/reduced25.nii.gz',
 #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
 
 dataset_bootstraps=2
-timeseries_bootstraps=2
-n_clusters=4
+timeseries_bootstraps=10
+n_clusters=10
 cross_cluster=True
 #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
 output_size = 1000
@@ -102,21 +104,30 @@ for i in range(len(subject_file_list)):
     
     print('going into ism')
     print 'Calculating individual stability matrix of:', subject_file_list[int(i)]
-    ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
-    
+    ism = utils.individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)        
+        
     print('expanding ism')
    # voxel_num=roi1data.shape[0]
     voxel_ism = utils.expand_ism(ism, Y1_labels)
     
     print 'calculating clusters_G'
     clusters_ism = utils.cluster_timeseries(voxel_ism, n_clusters, similarity_metric = 'correlation')
+    
 
 
     #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
-    f = output_dir + '/ism_dataset_%i.npy' % i
-    ism_list.append(f)
+    f = output_dir + '/voxel_ism_dataset_%i.nii.gz' % i
+    sample_file=roi_mask_file
+    basc.ndarray_to_vol(clusters_ism, roi_mask_file, sample_file, f)
+    
+    #ism_cluster_labels.append(f)
     #np.save(ism_list[i], voxel_ism)
-    np.save(ism_cluster_labels[i], clusters_ism)
+    #TODO-
+    #reform clusters_ism into a nibabel 3D file
+    
+    #np.save(ism_cluster_labels[i], clusters_ism)
+    
+    
     print 'Saving individual stability matrix %s for %s' % (voxel_ism, subject_file_list[int(i)])
 
 print((time.time() - start))
