@@ -29,20 +29,20 @@ import basc
 import pandas as pd
 import time
 
-#basc_dir= '/home/anikolai/C-PAC/CPAC/basc'
-basc_dir = '/Users/aki.nikolaidis/C-PAC/CPAC/basc'
+basc_dir= '/home/anikolai/C-PAC/CPAC/basc'
+#basc_dir = '/Users/aki.nikolaidis/C-PAC/CPAC/basc'
 #nki_dir = '/home/anikolai/CobreTest/cobre_lightweight20'
 
-#subject_file_list = ['/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard1.nii.gz',
-#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard2.nii.gz',
-#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard3.nii.gz',
-#                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard4.nii.gz',]
+subject_file_list = ['/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard1.nii.gz',
+                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard2.nii.gz',
+                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard3.nii.gz',
+                     '/home/anikolai/C-PAC/CPAC/basc/sampledata/dereksubs/filtered_func_data_clean_standard4.nii.gz',]
 
-subject_file_list = ['/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard1.nii.gz',
-                     '/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard2.nii.gz']
+#subject_file_list = ['/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard1.nii.gz',
+#                     '/Users/aki.nikolaidis/Downloads/filtered_func_data_clean_standard2.nii.gz']
 
-roi_mask_file= basc_dir + '/sampledata/masks/BG.nii.gz'
-roi2_mask_file= basc_dir + '/sampledata/masks/yeo_2.nii.gz'
+roi2_mask_file= basc_dir + '/sampledata/masks/BG.nii.gz'
+roi_mask_file= basc_dir + '/sampledata/masks/yeo_2.nii.gz'
 
 output_dir = basc_dir + '/tests/output'
 
@@ -59,7 +59,7 @@ output_dir = basc_dir + '/tests/output'
 
 
 dataset_bootstraps=2
-timeseries_bootstraps=10
+timeseries_bootstraps=1000
 n_clusters=10
 cross_cluster=True
 #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
@@ -125,7 +125,7 @@ for i in range(len(subject_file_list)):
 
 
     #def individual_stability_matrix(Y1, n_bootstraps, k_clusters, Y2=None, cross_cluster=False, cbb_block_size = None, affinity_threshold = 0.5):
-    f = output_dir + '/voxel_ism_dataset_%i.nii.gz' % i
+    f = output_dir + '/Motor_voxel_ism_dataset_%i.nii.gz' % i
     sample_file=roi_mask_file
     basc.ndarray_to_vol(clusters_ism, roi_mask_file, sample_file, f)
     

@@ -204,8 +204,8 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
 
 ##########################
     #Set affinity type, and affinity threshold
-    X = pd.DataFrame(X)
-    X_dist = sp.spatial.distance.pdist(X, metric = similarity_metric)
+    X = np.array(X)
+    X_dist = sp.spatial.distance.pdist(X, metric = 'euclidean')
     X_dist = sp.spatial.distance.squareform(X_dist)
     sim_matrix=1-X_dist
     sim_matrix[sim_matrix<affinity_threshold]=0
