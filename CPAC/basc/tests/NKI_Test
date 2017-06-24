@@ -1,0 +1,191 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun  8 12:18:31 2017
+
+@author: aki.nikolaidis
+"""
+
+    import time
+
+    subject_file_list = ['/Users/aki.nikolaidis/BGDev_SampleData/A00060846/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/Users/aki.nikolaidis/BGDev_SampleData/A00060603/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/Users/aki.nikolaidis/BGDev_SampleData/A00060503/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/Users/aki.nikolaidis/BGDev_SampleData/A00060429/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/Users/aki.nikolaidis/BGDev_SampleData/A00060384/bandpassed_demeaned_filtered_antswarp.nii.gz',
+                         '/Users/aki.nikolaidis/BGDev_SampleData/A00060280/bandpassed_demeaned_filtered_antswarp.nii.gz']
+#                         '/data/rockland_sample/A00060603/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00060503/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00060429/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00060384/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00060280/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00059935/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00059875/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00059734/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz',
+#                         '/data/rockland_sample/A00059733/functional_mni/_scan_clg_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz']
+
+
+    
+    #sample_file = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/fixedfunc_2thirds_res.nii.gz'
+    #filename = home + '/C-PAC/CPAC/basc/sampledata/Striatum_GroupLevel_MotorCluster.nii.gz'
+    roi_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/BG.nii.gz'
+    roi2_mask_file='/Users/aki.nikolaidis/C-PAC/CPAC/basc/sampledata/masks/yeo_2.nii.gz'
+
+    #roi_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Striatum_2thirdsRes.nii.gz'
+    
+    dataset_bootstraps=20
+    timeseries_bootstraps=50
+    n_clusters=4
+    cross_cluster=True
+    #roi2_mask_file= home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Data/Yeo_LowRes/yeo_2_2thirdsRes_bin.nii.gz'
+    output_size = 1000
+
+    ism_list = []
+    ism_dataset = np.zeros((len(subject_file_list), output_size, output_size))
+
+    cbb_block_size=None
+    affinity_threshold=0.5
+    n_bootstraps=timeseries_bootstraps
+
+    roi_mask_file_nb = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
+    roi2_mask_file_nb = nb.load(roi2_mask_file).get_data().astype('float32').astype('bool')
+
+
+    start = time.time()
+    for i in range(len(subject_file_list)):
+        data = nb.load(subject_file_list[int(i)]).get_data().astype('float32')
+        roi1data = data[roi_mask_file_nb]
+        roi2data = data[roi2_mask_file_nb]
+
+
+        Y1_compressed = data_compression(roi1data, roi_mask_file_nb, output_size).T
+        Y2_compressed = data_compression(roi2data, roi2_mask_file_nb, output_size).T
+        
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y1_compressed.shape[0], Y1_compressed.shape[1], n_bootstraps)
+        print '(%i voxels, %i timepoints and %i bootstraps)' % (Y2_compressed.shape[0], Y2_compressed.shape[1], n_bootstraps)
+
+        
+        ism_dataset[int(i)] = individual_stability_matrix(Y1_compressed, n_bootstraps, n_clusters, Y2_compressed, cross_cluster, cbb_block_size, affinity_threshold)
+
+        #ism_dataset[i] = individual_stability_matrix(blobs.T + 0.2*np.random.randn(blobs.shape[1], blobs.shape[0]), 10, 3, affinity_threshold = 0.0)
+        f = home + '/Dropbox/1_Projects/1_Research/2_CMI_BG_DEV/1_BASC/Results/Testing/ism_dataset_%i.npy' % i
+        ism_list.append(f)
+        np.save(f, ism_dataset[i])
+
+    print((time.time() - start))
+    G, cluster_G, cluster_voxel_scores = group_stability_matrix(ism_list, dataset_bootstraps, n_clusters=n_clusters)
+    
+    
+
+/data/rockland_sample/A00060846/functional_mni/_scan_dsc_2_rest_645/bandpassed_demeaned_filtered_antswarp.nii.gz
+
+    
+
+
+subnames= ['A00018030',
+'A00027159',
+'A00027167',
+'A00027439',
+'A00027443',
+'A00030980',
+'A00030981',
+'A00031216',
+'A00031219',
+'A00031410',
+'A00031411',
+'A00031578',
+'A00031881',
+'A00032008',
+'A00032817',
+'A00033231',
+'A00033714',
+'A00034073',
+'A00034074',
+'A00034350',
+'A00035291',
+'A00035292',
+'A00035364',
+'A00035377',
+'A00035869',
+'A00035940',
+'A00035941',
+'A00035945',
+'A00037125',
+'A00037368',
+'A00037458',
+'A00037459',
+'A00037483',
+'A00038603',
+'A00038706',
+'A00039075',
+'A00039159',
+'A00039866',
+'A00040342',
+'A00040440',
+'A00040556',
+'A00040798',
+'A00040800',
+'A00040815',
+'A00041503',
+'A00043240',
+'A00043282',
+'A00043494',
+'A00043740',
+'A00043758',
+'A00043788',
+'A00044084',
+'A00044171',
+'A00050743',
+'A00050847',
+'A00051063',
+'A00051603',
+'A00051690',
+'A00051691',
+'A00051758',
+'A00052069',
+'A00052165',
+'A00052183',
+'A00052237',
+'A00052461',
+'A00052613',
+'A00052614',
+'A00053203',
+'A00053320',
+'A00053390',
+'A00053490',
+'A00053744',
+'A00053873',
+'A00054206',
+'A00055693',
+'A00056703',
+'A00057405',
+'A00057480',
+'A00057725',
+'A00057862',
+'A00057863',
+'A00057967',
+'A00058004',
+'A00058053',
+'A00058060',
+'A00058061',
+'A00058215',
+'A00058229',
+'A00058516',
+'A00058537',
+'A00058570',
+'A00058685',
+'A00058951',
+'A00059109',
+'A00059325',
+'A00059427',
+'A00059733',
+'A00059734',
+'A00059865',
+'A00059875',
+'A00059935',
+'A00060280',
+'A00060384',
+'A00060429',
+'A00060503',
+'A00060603',
+'A00060846']
