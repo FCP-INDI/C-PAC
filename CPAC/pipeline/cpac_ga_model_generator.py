@@ -647,7 +647,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     design_formula = group_config_obj.design_formula
 
     # demean EVs set for demeaning
-    for demean_EV in group_config_obj.ev_selections["demean"]:
+    for demean_EV in group_config_obj.ev_selections.get("demean",[]):
         model_df[demean_EV] = model_df[demean_EV].astype(float)
         model_df[demean_EV] = model_df[demean_EV].sub(model_df[demean_EV].mean())
 
