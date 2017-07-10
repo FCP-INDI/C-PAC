@@ -94,9 +94,10 @@ def check_merged_file(list_of_output_files, merged_outfile):
     #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
-        test_string = ["3ddot", "-demean", output_file, \
-            merged_outfile + "[" + str(i) + "]"]
-
+        #test_string = ["3ddot", "-demean", output_file, merged_outfile + "[" + str(i) + "]"]
+        test_string = ["3ddot", "-demean", merged_outfile + "[" + str(i) + "]", output_file]
+        # The above line was changed in response to nimzodisaster's comment on https://github.com/FCP-INDI/C-PAC/issues/649
+        
         try:
             retcode = subprocess.check_output(test_string)
         except Exception as e:
