@@ -275,7 +275,9 @@ class DataConfig(wx.Frame):
                             ret = 1
                             break
                         else:
-                            dlg3 = wx.MessageDialog(self, 'Subject List with this name already exist','Error!',
+                            dlg3 = wx.MessageDialog(self, 'Subject List with '
+                                                          'this name already '
+                                                          'exist','Error!',
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
@@ -288,7 +290,8 @@ class DataConfig(wx.Frame):
 
         # Import error if CPAC not available
         except ImportError as exc:
-            wx.MessageBox("Error importing CPAC. Unable to run extract data tool.", "Error") 
+            wx.MessageBox("Error importing CPAC. Unable to run extract data "
+                          "tool.", "Error")
             print "Error importing CPAC"
             print exc
             return -1

@@ -99,15 +99,12 @@ def create_sca(name_sca='sca'):
                                                 ]),
                         name='inputspec')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=[
                                                     'correlation_stack',
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
-
-
 
     # # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
@@ -120,56 +117,46 @@ def create_sca(name_sca='sca'):
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
 
+    # Transform the sub-bricks into volumes
+    concat = pe.Node(interface=preprocess.TCat(),
+                      name='3dTCat')
+    concat.inputs.outputtype = 'NIFTI_GZ'
 
-    if "roi" in name_sca:
+    # also write out volumes as individual files
+    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+    split.inputs.dimension = 't'
+    split.inputs.out_base_name = 'sca_'
 
-        # Transform the sub-bricks into volumes
-        concat = pe.Node(interface=preprocess.TCat(),
-                          name='3dTCat')
-        concat.inputs.outputtype = 'NIFTI_GZ'
+    get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
+                                                          'prefix'],
+                                             output_names=['roi_list'],
+                                             function=get_roi_num_list),
+                               name='get_roi_num_list')
+    get_roi_num_list.inputs.prefix = "sca"
 
-        # also write out volumes as individual files
-        split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-        split.inputs.dimension = 't'
-        split.inputs.out_base_name = 'sca_'
+    rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
+                      iterfield=['in_file','format_string'])
 
-        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'],
-                                                 output_names=['roi_list'],
-                                                 function=get_roi_num_list), 
-                                   name='get_roi_num_list')
-        get_roi_num_list.inputs.prefix = "sca"
+    rename_rois.inputs.keep_ext = True
 
-        rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                          iterfield=['in_file','format_string'])
+    sca.connect(corr, 'out_file', concat, 'in_files')
 
-        rename_rois.inputs.keep_ext = True
+    sca.connect(concat, 'out_file', split, 'in_file')
 
+    sca.connect(concat, 'out_file',
+                outputNode, 'correlation_stack')
 
-        sca.connect(corr, 'out_file', concat, 'in_files')
+    sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
+                'timeseries_file')
 
-        sca.connect(concat, 'out_file', split, 'in_file')
+    sca.connect(split, 'out_files', rename_rois, 'in_file')
 
-        sca.connect(concat, 'out_file',
-                    outputNode, 'correlation_stack')
+    sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
 
-        sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-                    'timeseries_file')
-
-        sca.connect(split, 'out_files', rename_rois, 'in_file')
-
-        sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
-        sca.connect(rename_rois, 'out_file', outputNode,
-                    'correlation_files')
-
-    else:
-
-        sca.connect(corr, 'out_file', outputNode, 'correlation_files')
-
-
+    sca.connect(rename_rois, 'out_file', outputNode,
+                'correlation_files')
 
     return sca
-
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):

@@ -21,7 +21,7 @@ if len(sys.argv) != 2:
 
 data_config_file = sys.argv[1]
 
-check_inputs(data_config_file)
+#check_inputs(data_config_file)
 
 import CPAC
 CPAC.utils.extract_data.run(data_config_file)

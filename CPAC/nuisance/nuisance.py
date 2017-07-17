@@ -463,7 +463,6 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'reference')
 
-
     func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'
     func_to_2mm.interface.estimated_memory_gb = 2.0

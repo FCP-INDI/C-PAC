@@ -425,8 +425,8 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     #               how many ROIs you have
 
     # I think the point of this check is to see if there are multiple volumes
-    # in the correlation file (i.e. is a stack), or is a file with ROIs, and if
-    # so, to deal with it appropriately
+    # in the correlation file (i.e. is a stack), or is a file with ROIs, and
+    # if so, to deal with it appropriately
     if len(dims) == 5 or len(roi_numbers) > 0:
 
         if len(dims) == 5:
@@ -1409,6 +1409,27 @@ def select_model_files(model, ftest, model_name):
     return fts_file, con_file, grp_file, mat_file
 
 
+def check(subject_map, subject, scan, val, throw_exception):
+
+    if isinstance(subject_map['scan_parameters'][val], dict):
+        ret_val = subject_map['scan_parameters'][val][scan]
+    else:
+        ret_val = subject_map['scan_parameters'][val]
+
+    if ret_val == 'None':
+        if throw_exception:
+            raise Exception("None Parameter Value for {0} for subject "
+                            "{1}".format(val, subject))
+        else:
+            ret_val = None
+
+    if ret_val == '' and throw_exception:
+        raise Exception("Missing Value for {0} for subject "
+                        "{1}".format(val, subject))
+
+    return ret_val
+
+
 def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
                     tpattern):
     """
@@ -1442,30 +1463,6 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
         ending TR or ending volume index
     """
 
-    import os
-    import warnings
-
-    def check(val, throw_exception):
-
-        if isinstance(subject_map['scan_parameters'][val], dict):
-            ret_val = subject_map['scan_parameters'][val][scan]
-        else:
-            ret_val = subject_map['scan_parameters'][val]
-
-        if ret_val == 'None':
-            if throw_exception:
-                raise Exception(
-                    "None Parameter Value for %s for subject %s" % (
-                    val, subject))
-            else:
-                ret_val = None
-
-        if ret_val == '' and throw_exception:
-            raise Exception(
-                "Missing Value for %s for subject %s" % (val, subject))
-
-        return ret_val
-
     check2 = lambda val: val if val == None or val == '' else int(val)
 
     # initialize vars to empty
@@ -1474,15 +1471,20 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
     ref_slice = ''
     first_tr = ''
     last_tr = ''
+    unit = 's'
 
     if 'scan_parameters' in subject_map.keys():
         if len(subject_map['scan_parameters']) > 0:
             # get details from the configuration
-            TR = float(check('tr', False))
-            pattern = str(check('acquisition', False))
-            ref_slice = int(check('reference', False))
-            first_tr = check2(check('first_tr', False))
-            last_tr = check2(check('last_tr', False))
+            TR = float(check(subject_map, subject, scan, 'tr', False))
+            pattern = str(check(subject_map, subject, scan, 'acquisition',
+                                False))
+            ref_slice = int(check(subject_map, subject, scan, 'reference',
+                                  False))
+            first_tr = check2(check(subject_map, subject, scan, 'first_tr',
+                                    False))
+            last_tr = check2(check(subject_map, subject, scan, 'last_tr',
+                                   False))
 
     # if values are still empty, override with GUI config
     if TR == '':
@@ -1504,39 +1506,43 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
     if "Use NIFTI Header" in tpattern:
         pattern = ''
     else:
-        # otherwise he slice acquisition pattern in the subject file takes precedence, but if it
-        # isn't set we use the value in the configuration file
+        # otherwise he slice acquisition pattern in the subject file takes
+        # precedence, but if it isn't set we use the value in the
+        # configuration file
         if pattern == '':
             pattern = tpattern
 
-    # pattern can be one of a few keywords, a filename, or blank which indicates that the
-    # images header information should be used
+    # pattern can be one of a few keywords, a filename, or blank which
+    # indicates that the images header information should be used
     if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z',
                                    'altminus',
                                    'alt-z2', 'seq+z', 'seqplus', 'seq-z',
                                    'seqminus']:
         if not os.path.exists(pattern):
-            raise Exception(
-                "Invalid Pattern file path %s , Please provide the correct path" % pattern)
+            raise Exception("Invalid Pattern file path {0}, Please provide "
+                            "the correct path".format(pattern))
         else:
-            lines = open(pattern, 'r').readlines()
+            with open(pattern, "r") as f:
+                lines = f.readlines()
             if len(lines) < 2:
-                raise Exception(
-                    'Invalid slice timing file format. The file should contain ' \
-                    'only one value per row. Use new line char as delimiter')
-            pattern = '@' + pattern
+                raise Exception('Invalid slice timing file format. The file '
+                                'should contain only one value per row. Use '
+                                'new line char as delimiter')
+
+            pattern = '@{0}'.format(pattern)
 
             slice_timings = [float(l.rstrip('\r\n')) for l in lines]
+
             slice_timings.sort()
             max_slice_offset = slice_timings[-1]
+
             # checking if the unit of TR and slice timing match or not
             # if slice timing in ms convert TR to ms as well
             if TR and max_slice_offset > TR:
-                warnings.warn(
-                    "TR is in seconds and slice timings are in milliseconds." \
-                    "Converting TR into milliseconds")
+                warnings.warn("TR is in seconds and slice timings are in "
+                              "milliseconds. Converting TR into milliseconds")
                 TR = TR * 1000
-                print "New TR value %.2f ms" % TR
+                print("New TR value {0} ms".format(TR))
                 unit = 'ms'
 
     else:
@@ -1544,13 +1550,19 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
         if TR and TR > 10:
             warnings.warn('TR is in milliseconds, Converting it into seconds')
             TR = TR / 1000.0
-            print "New TR value %.2f s" % TR
+            print("New TR value {0} s".format(TR))
             unit = 's'
 
-    print "scan_parameters -> ", subject, scan, str(
-        TR) + unit, pattern, ref_slice, first_tr, last_tr
+    print("scan_parameters -> {0} {1} {2} {3} {4} "
+          "{5} {6}".format(subject, scan, str(TR) + unit, pattern, ref_slice,
+                           first_tr, last_tr))
 
-    return str(TR) + unit, pattern, ref_slice, first_tr, last_tr
+    tr = "{0}{1}".format(str(TR), unit)
+    tpattern = pattern
+    start_indx = first_tr
+    stop_indx = last_tr
+
+    return tr, tpattern, ref_slice, start_indx, stop_indx
 
 
 def get_tr(tr):
@@ -1602,25 +1614,23 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     Method to write into log file the status of the workflow run.
     """
 
-    import os
-    import CPAC
-    from nipype import logging
-    iflogger = logging.getLogger('interface')
+    try:
+        logging = nipype.utils.logger.Logging()
+        iflogger = logging.getLogger('interface')
+    except AttributeError:
+        # if running Nipype 0.12 or earlier
+        iflogger = nipype.utils.logger.getLogger('interface')
 
     version = CPAC.__version__
-
     subject_id = os.path.basename(log_dir)
 
     if scan_id is None:
         scan_id = "scan_anat"
 
     strategy = ""
-
-    import time
-    import datetime
     ts = time.time()
-
     stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
     try:
         if workflow != 'DONE':
             wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip(
@@ -1640,33 +1650,23 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
                 os.makedirs(file_path)
             except Exception:
                 iflogger.info(
-                    "filepath already exist, filepath- %s, curr_dir - %s" % (
-                    file_path, os.getcwd()))
+                    "filepath already exist, filepath- {0}, "
+                    "curr_dir - {1}".format(file_path, os.getcwd()))
 
         else:
             file_path = os.path.join(log_dir, scan_id)
     except Exception:
-        print "ERROR in write log"
+        print("ERROR in write log")
         raise
 
     try:
         os.makedirs(file_path)
     except Exception:
         iflogger.info(
-            "filepath already exist, filepath- %s, curr_dir - %s" % (
-            file_path, os.getcwd()))
+            "filepath already exist, filepath- {0}, "
+            "curr_dir - {1}".format(file_path, os.getcwd()))
 
-    out_file = os.path.join(file_path, 'log_%s.yaml' % strategy)
-
-    f = open(out_file, 'w')
-
-    print >> f, "version : %s" % (str(version))
-    print >> f, "timestamp: %s" % (str(stamp))
-    print >> f, "pipeline_index: %d" % (index)
-    print >> f, "subject_id: %s" % (subject_id)
-    print >> f, "scan_id: %s" % (scan_id)
-    print >> f, "strategy: %s" % (strategy)
-    print >> f, "workflow_name: %s" % (workflow)
+    out_file = os.path.join(file_path, 'log_{0}.yaml'.format(strategy))
 
     iflogger.info("CPAC custom log :")
 
@@ -1674,28 +1674,29 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
         inputs = inputs[0]
 
     if os.path.exists(inputs):
-
-        print >> f, "wf_status: DONE"
-
+        status_msg = "wf_status: DONE"
         iflogger.info(
-            " version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s" \
-            % (
-            str(version), str(stamp), subject_id, scan_id, strategy, workflow,
-            'COMPLETED'))
-
+            " version - {0}, timestamp - {1}, subject_id - {2}, scan_id - "
+            "{3}, strategy - {4}, workflow - {5}, "
+            "status - COMPLETED".format(str(version), str(stamp), subject_id,
+                                  scan_id, strategy, workflow))
     else:
-
+        status_msg = "wf_status: ERROR"
         iflogger.info(
-            " version - %s, timestamp -%s, subject_id -%s, scan_id - %s, strategy -%s, workflow - %s, status -%s" \
-            % (
-            str(version), str(stamp), subject_id, scan_id, strategy, workflow,
-            'ERROR'))
+            " version - {0}, timestamp - {1}, subject_id - {2}, scan_id - "
+            "{3}, strategy - {4}, workflow - {5}, "
+            "status - ERROR".format(str(version), str(stamp), subject_id,
+                                  scan_id, strategy, workflow))
 
-        print>> f, "wf_status: ERROR"
-
-    f.close()
-
-    # os.system("/home2/haipan/tmp/C-PAC/scripts/log_py2js.py %s %s"%(out_file, log_dir))   ###
+    with open(out_file, 'w') as f:
+        f.write("version : {0}".format(str(version)))
+        f.write("timestamp: {0}".format(str(stamp)))
+        f.write("pipeline_index: {0}".format(index))
+        f.write("subject_id: {0}".format(subject_id))
+        f.write("scan_id: {0}".format(scan_id))
+        f.write("strategy: {0}".format(strategy))
+        f.write("workflow_name: {0}".format(workflow))
+        f.write(status_msg)
 
     return out_file
 
@@ -1719,13 +1720,17 @@ def create_log(wf_name="log", scan_id=None):
     outputNode = pe.Node(util.IdentityInterface(fields=['out_file']),
                          name='outputspec')
 
+    write_imports = ['import os', 'import CPAC', 'import time',
+                     'import datetime', 'import nipype']
+
     write_log = pe.Node(util.Function(input_names=['workflow',
                                                    'log_dir',
                                                    'index',
                                                    'inputs',
                                                    'scan_id'],
                                       output_names=['out_file'],
-                                      function=write_to_log),
+                                      function=write_to_log,
+                                      imports=write_imports),
                         name='write_log')
 
     wf.connect(inputNode, 'workflow',
@@ -1857,13 +1862,10 @@ def extract_output_mean(in_file, output_name):
     output_means.csv located in the subject's output directory
     '''
 
-    import os
-
     if os.path.exists(in_file):
 
-        mean_oned_file = open(in_file, 'rU')
-        line = mean_oned_file.readline()
-        mean_oned_file.close()
+        with open(in_file, 'r') as f:
+            line = f.readline()
 
         line = line.split('[')[0].strip(' ')
 
@@ -1873,8 +1875,8 @@ def extract_output_mean(in_file, output_name):
 
         split_fullpath = in_file.split("/")
 
-        if ("_mask_" in in_file) and (("sca_roi" in in_file) or \
-                                              ("sca_tempreg" in in_file)):
+        if ("_mask_" in in_file) and (("sca_roi" in in_file) or
+                                          ("sca_tempreg" in in_file)):
 
             for dirname in split_fullpath:
                 if "_mask_" in dirname:
@@ -1885,11 +1887,10 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = output_name + "_%s_%s" % (maskname, filename)
+            resource_name = "{0}_{1}_{2}".format(output_name, maskname,
+                                                 filename)
 
-
-        elif ("_spatial_map_" in in_file) and \
-                ("dr_tempreg" in in_file):
+        elif ("_spatial_map_" in in_file) and ("dr_tempreg" in in_file):
 
             for dirname in split_fullpath:
                 if "_spatial_map_" in dirname:
@@ -1900,8 +1901,8 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = output_name + "_%s_%s" % (mapname, filename)
-
+            resource_name = "{0}_{1}_{2}".format(output_name, mapname,
+                                                 filename)
 
         elif ("_mask_" in in_file) and ("centrality" in in_file):
 
@@ -1914,20 +1915,17 @@ def extract_output_mean(in_file, output_name):
             if ".1D" in filename:
                 filename = filename.replace(".1D", "")
 
-            resource_name = output_name + "_%s_%s" % (maskname, filename)
-
+            resource_name = "{0}_{1}_{2}".format(output_name, maskname,
+                                                 filename)
 
         else:
-
             resource_name = output_name
 
         output_means_file = os.path.join(os.getcwd(),
-                                         'mean_%s.txt' % resource_name)
-        output_means = open(output_means_file, 'wb')
+                                         'mean_{0}.txt'.format(resource_name))
 
-        print >> output_means, line
-
-        output_means.close()
+        with open(output_means_file, 'w') as f:
+            f.write(line)
 
     return output_means_file
 

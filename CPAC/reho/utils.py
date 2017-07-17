@@ -66,11 +66,13 @@ def f_kendall(timeseries_matrix):
 
     return kcc
 
+
 def compute_reho(in_file, mask_file, cluster_size):
 
     """
     Computes the ReHo Map, by computing tied ranks of the timepoints,
-    followed by computing Kendall's coefficient concordance(KCC) of a timeseries with its neighbours
+    followed by computing Kendall's coefficient concordance(KCC) of a
+    timeseries with its neighbours
 
     Parameters
     ----------
@@ -82,7 +84,8 @@ def compute_reho(in_file, mask_file, cluster_size):
         Mask of the EPI File(Only Compute ReHo of voxels in the mask)
 
     cluster_size : integer
-        for a brain voxel the number of neighbouring brain voxels to use for KCC.
+        for a brain voxel the number of neighbouring brain voxels to use for
+        KCC.
 
 
     Returns
@@ -93,19 +96,11 @@ def compute_reho(in_file, mask_file, cluster_size):
 
     """
 
-    import nibabel as nb
-    import numpy as np
-    import os
-    import sys
-    from CPAC.reho.utils import f_kendall
-
     out_file = None
 
     res_fname = (in_file)
     res_mask_fname = (mask_file)
     CUTNUMBER = 10
-
-#    nvoxel = 27
 
     if not (cluster_size == 27 or cluster_size == 19 or cluster_size == 7):
         cluster_size = 27
@@ -115,44 +110,58 @@ def compute_reho(in_file, mask_file, cluster_size):
     res_img = nb.load(res_fname)
     res_mask_img = nb.load(res_mask_fname)
 
-
     res_data = res_img.get_data()
     res_mask_data = res_mask_img.get_data()
 
-    print res_data.shape
+    print(res_data.shape)
     (n_x, n_y, n_z, n_t) = res_data.shape
 
+    # "flatten" each volume of the timeseries into one big array instead of
+    # x,y,z - produces (timepoints, N voxels) shaped data array
     res_data = np.reshape(res_data, (n_x*n_y*n_z, n_t), order='F').T
 
-    Ranks_res_data = np.tile((np.zeros((1, (res_data.shape)[1]))), [(res_data.shape)[0], 1])
-    #Ranks_res_data = np.tile(np.uint16(np.zeros((1, (res_data.shape)[1]))), [(res_data.shape)[0], 1])
+    # create a blank array of zeroes of size n_voxels, one for each time point
+    Ranks_res_data = np.tile((np.zeros((1, (res_data.shape)[1]))),
+                             [(res_data.shape)[0], 1])
 
+    # divide the number of total voxels by the cutnumber (set to 10)
+    # ex. end up with a number in the thousands if there are tens of thousands
+    # of voxels
     segment_length = np.ceil(float((res_data.shape)[1])/float(CUTNUMBER))
 
     for icut in range(0, CUTNUMBER):
 
         segment = None
 
+        # create a Numpy array of evenly spaced values from the segment
+        # starting point up until the segment_length integer
         if not (icut == (CUTNUMBER - 1)):
-
-            segment = np.array(np.arange(icut * segment_length, (icut+1) * segment_length))
-
+            segment = np.array(np.arange(icut * segment_length,
+                                         (icut+1) * segment_length))
         else:
-
-            segment = np.array(np.arange(icut * segment_length, ((res_data.shape)[1])))
+            segment = np.array(np.arange(icut * segment_length,
+                                         (res_data.shape[1])))
 
         segment = np.int64(segment[np.newaxis])
 
+        # res_data_piece is a chunk of the original timeseries in_file, but
+        # aligned with the current segment index spacing
         res_data_piece = res_data[:, segment[0]]
-        nvoxels_piece = (res_data_piece.shape)[1]
+        nvoxels_piece = res_data_piece.shape[1]
 
+        # run a merge sort across the time axis, re-ordering the flattened
+        # volume voxel arrays
         res_data_sorted = np.sort(res_data_piece, 0, kind='mergesort')
         sort_index = np.argsort(res_data_piece, axis=0, kind='mergesort')
 
+        # subtract each volume from each other
         db = np.diff(res_data_sorted, 1, 0)
 
+        # convert any zero voxels into "True" flag
         db = db == 0
 
+        # return an n_voxel (n voxels within the current segment) sized array
+        # of values, each value being the sum total of TRUE values in "db"
         sumdb = np.sum(db, 0)
 
         temp_array = np.array(np.arange(0, n_t))
@@ -181,7 +190,7 @@ def compute_reho(in_file, mask_file, cluster_size):
                         tiecount += 1
                         ntied += 1
 
-                    ranks[tiestart:tiestart + ntied ] = np.ceil(np.float32(np.sum(ranks[tiestart:tiestart + ntied ]))/np.float32(ntied))
+                    ranks[tiestart:tiestart + ntied] = np.ceil(np.float32(np.sum(ranks[tiestart:tiestart + ntied ]))/np.float32(ntied))
                     tiecount += 1
 
                 sorted_ranks[:, tie_adjust_index[i]] = ranks
@@ -201,17 +210,13 @@ def compute_reho(in_file, mask_file, cluster_size):
 
         ranks_piece = np.reshape(ranks_piece, (n_t, nvoxels_piece), order='F')
 
-#        ranks_piece = np.uint16(ranks_piece)
-
         del sort_index, sorted_ranks
 
         Ranks_res_data[:, segment[0]] = ranks_piece
 
         sys.stdout.write('.')
 
-
     Ranks_res_data = np.reshape(Ranks_res_data, (n_t, n_x, n_y, n_z), order='F')
-
 
     K = np.zeros((n_x, n_y, n_z))
 
@@ -250,40 +255,29 @@ def compute_reho(in_file, mask_file, cluster_size):
         mask_cluster[2, 1, 2] = 0
         mask_cluster[2, 2, 2] = 0
 
-
     for i in range(1, n_x - 1):
-
         for j in range(1, n_y -1):
-
             for k in range(1, n_z -1):
-
-
 
                 block = Ranks_res_data[:, i-1:i+2, j-1:j+2, k-1:k+2]
                 mask_block = res_mask_data[i-1:i+2, j-1:j+2, k-1:k+2]
 
-
                 if not(int(mask_block[1, 1, 1]) == 0):
 
-
                     if nvoxel == 19 or nvoxel == 7:
-
                         mask_block = np.multiply(mask_block, mask_cluster)
 
-                    R_block = np.reshape(block, (block.shape[0], 27), order='F')
+                    R_block = np.reshape(block, (block.shape[0], 27),
+                                         order='F')
                     mask_R_block = R_block[:, np.argwhere(np.reshape(mask_block, (1, 27), order='F') > 0)[:, 1]]
 
                     K[i, j, k] = f_kendall(mask_R_block)
 
-
-    img = nb.Nifti1Image(K, header=res_img.get_header(), affine=res_img.get_affine())
-
+    img = nb.Nifti1Image(K, header=res_img.get_header(),
+                         affine=res_img.get_affine())
     reho_file = os.path.join(os.getcwd(), 'ReHo.nii.gz')
-
     img.to_filename(reho_file)
-
     out_file = reho_file
 
     return out_file
-
 

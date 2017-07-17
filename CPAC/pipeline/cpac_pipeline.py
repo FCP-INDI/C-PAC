@@ -1079,6 +1079,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         """
         Add in nodes to get parameters from configuration file
         """
+
+        scan_imports = ['import os', 'import warnings',
+                        'from CPAC.utils import check']
+
         try:
             # a node which checks if scan_parameters are present for each scan
             scan_params = pe.Node(util.Function(input_names=['subject',
@@ -1093,11 +1097,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                               'ref_slice',
                                                               'start_indx',
                                                               'stop_indx'],
-                                                function=get_scan_params),
+                                                function=get_scan_params,
+                                                imports=scan_imports),
                                   name='scan_params_%d' % num_strat)
         except Exception as xxx:
-            logger.info("Error creating scan_params node." + \
-                        " (%s:%d)" % dbg_file_lineno())
+            logger.info("Error creating scan_params node. (%s:%d)"
+                        % dbg_file_lineno())
             raise
 
         if "Selected Functional Volume" in c.func_reg_input:
@@ -4061,6 +4066,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         calculate output averages via individual-level mask
         '''
 
+        extract_imports = ['import os']
         if map_node == 0:
             calc_average = pe.Node(interface=preprocess.Maskave(),
                                    name='%s_mean_%d' % (
@@ -4070,7 +4076,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                     ['in_file',
                                                      'output_name'],
                                                 output_names=['output_mean'],
-                                                function=extract_output_mean),
+                                                function=extract_output_mean,
+                                                imports=extract_imports),
                                   name='%s_mean_to_txt_%d' % (output_resource, \
                                                               num_strat))
 
@@ -4085,10 +4092,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                         'output_name'],
                                                    output_names=[
                                                        'output_mean'],
-                                                   function=extract_output_mean),
+                                                   function=extract_output_mean,
+                                                   imports=extract_imports),
                                      name='%s_mean_to_txt_%d' % (
-                                     output_resource, \
-                                     num_strat), iterfield=['in_file'])
+                                     output_resource, num_strat),
+                                     iterfield=['in_file'])
 
         mean_to_csv.inputs.output_name = output_resource
 
@@ -4096,8 +4104,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             node, out_file = strat. \
                 get_node_from_resource_pool(output_resource)
             workflow.connect(node, out_file, calc_average, 'in_file')
-            workflow.connect(calc_average, 'out_file', \
-                             mean_to_csv, 'in_file')
+            workflow.connect(calc_average, 'out_file', mean_to_csv, 'in_file')
 
         except:
             logConnectionError('%s calc average' % \
@@ -5504,7 +5511,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             pipes.append(pipeline_id)
 
         # creates the HTML files used to represent the logging-based status
-        create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
+        #create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
 
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 

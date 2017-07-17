@@ -29,7 +29,6 @@ def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
     return new_sub_file
 
 
-
 def create_dir(dir_path, description):
 
     if not os.path.isdir(dir_path):
@@ -40,7 +39,6 @@ def create_dir(dir_path, description):
                   "Attempted directory creation: %s\n\n" \
                   "Error details: %s\n\n" % (description, dir_path, e)
             raise Exception(err)
-
 
 
 def create_merged_copefile(list_of_output_files, merged_outfile):
@@ -64,7 +62,6 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
     return merged_outfile
 
 
-
 def create_merge_mask(merged_file, mask_outfile):
 
     import subprocess
@@ -82,7 +79,6 @@ def create_merge_mask(merged_file, mask_outfile):
         raise Exception(err)
 
     return mask_outfile
-
 
 
 def check_merged_file(list_of_output_files, merged_outfile):
@@ -120,7 +116,6 @@ def check_merged_file(list_of_output_files, merged_outfile):
             raise Exception(err)
 
         i += 1
-
 
 
 def calculate_measure_mean_in_df(model_df, merge_mask):
@@ -169,7 +164,6 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
     return model_df
 
 
-
 def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
     output_id=None):
 
@@ -214,7 +208,6 @@ def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
     return roi_mask
 
 
-
 def trim_mask(input_mask, ref_mask, output_mask_path):
 
     import os
@@ -234,7 +227,6 @@ def trim_mask(input_mask, ref_mask, output_mask_path):
         raise Exception(err)
 
     return output_mask_path
-
 
 
 def calculate_custom_roi_mean_in_df(model_df, roi_mask):   
@@ -310,7 +302,6 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
     return model_df
 
 
-
 def parse_out_covariates(design_formula):
 
     patsy_ops = ["~","+","-","*","/",":","**",")","("]
@@ -324,7 +315,6 @@ def parse_out_covariates(design_formula):
     covariates = [x for x in words if x != ""]
 
     return covariates
-
 
 
 def split_groups(pheno_df, group_ev, ev_list, cat_list):   
@@ -401,7 +391,6 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     return pheno_df, grp_vector, new_ev_list, new_cat_list
 
 
-
 def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 
     closer = ")"
@@ -429,7 +418,6 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
         formula = formula.replace("+intercept", "")
 
     return formula
-
 
 
 def check_multicollinearity(matrix):
@@ -464,7 +452,6 @@ def check_multicollinearity(matrix):
                       'check your model design.\n\n'
 
 
-
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
     contrasts_dict = {}
@@ -488,7 +475,6 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
         contrasts_dict[con_equation] = con_vec
 
     return contrasts_dict
-
 
 
 def prep_group_analysis_workflow(model_df, pipeline_config_path, \

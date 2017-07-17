@@ -81,41 +81,29 @@ def create_reho():
     >>> wf.run()
     """
 
-
-
-
     reHo = pe.Workflow(name='reHo')
-    inputNode = pe.Node(util.IdentityInterface(fields=[
-                                                'cluster_size',
-                                                'rest_res_filt',
-                                                'rest_mask'
-                                                ]),
+    inputNode = pe.Node(util.IdentityInterface(fields=['cluster_size',
+                                                       'rest_res_filt',
+                                                       'rest_mask']),
                         name='inputspec')
 
+    outputNode = pe.Node(util.IdentityInterface(fields=['raw_reho_map']),
+                         name='outputspec')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'raw_reho_map']),
-                                                    #'z_score']),
-                        name='outputspec')
+    reho_imports = ['import os', 'import sys', 'import nibabel as nb',
+                    'import numpy as np',
+                    'from CPAC.reho.utils import f_kendall']
+    raw_reho_map = pe.Node(util.Function(input_names=['in_file', 'mask_file',
+                                                      'cluster_size'],
+                                         output_names=['out_file'],
+                                         function=compute_reho,
+                                         imports=reho_imports),
+                           name='reho_map')
 
-
-    raw_reho_map = pe.Node(util.Function(input_names=['in_file', 'mask_file', 'cluster_size'],
-                                   output_names=['out_file'],
-                     function=compute_reho),
-                     name='reho_map')
-
-
-    reHo.connect(inputNode, 'rest_res_filt',
-                    raw_reho_map, 'in_file')
-    reHo.connect(inputNode, 'rest_mask',
-                    raw_reho_map, 'mask_file')
-    reHo.connect(inputNode, 'cluster_size',
-                    raw_reho_map, 'cluster_size')
-
-    reHo.connect(raw_reho_map, 'out_file',
-                 outputNode, 'raw_reho_map')
-
-
+    reHo.connect(inputNode, 'rest_res_filt', raw_reho_map, 'in_file')
+    reHo.connect(inputNode, 'rest_mask', raw_reho_map, 'mask_file')
+    reHo.connect(inputNode, 'cluster_size', raw_reho_map, 'cluster_size')
+    reHo.connect(raw_reho_map, 'out_file', outputNode, 'raw_reho_map')
 
     return reHo
 

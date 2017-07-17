@@ -18,23 +18,15 @@ def calc_friston_twenty_four(in_file):
         
     """
 
-    import numpy as np
-    import os
-
-    new_data = None
-
     data = np.genfromtxt(in_file)
 
     data_squared = data ** 2
-
     new_data = np.concatenate((data, data_squared), axis=1)
 
     data_roll = np.roll(data, 1, axis=0)
-
     data_roll[0] = 0
 
     new_data = np.concatenate((new_data, data_roll), axis=1)
-
     data_roll_squared = data_roll ** 2
 
     new_data = np.concatenate((new_data, data_roll_squared), axis=1)
@@ -43,7 +35,6 @@ def calc_friston_twenty_four(in_file):
     np.savetxt(new_file, new_data, fmt='%0.8f', delimiter=' ')
 
     return new_file
-
 
 
 def fristons_twenty_four(wf_name='fristons_twenty_four'):
@@ -107,32 +98,24 @@ def fristons_twenty_four(wf_name='fristons_twenty_four'):
     """
 
     wf = pe.Workflow(name=wf_name)
-    inputNode = pe.Node(util.IdentityInterface(fields=[
-                                                       'movement_file'
-                                                    ]),
+    inputNode = pe.Node(util.IdentityInterface(fields=['movement_file']),
                         name='inputspec')
 
+    friston_imports = ['import os', 'import numpy as np']
 
-    calc_friston = pe.Node(util.Function(input_names=['in_file'
-                                                     ],
-                                           output_names=['out_file'],
-                                           function=calc_friston_twenty_four),
-                             name='calc_friston')
+    calc_friston = pe.Node(util.Function(input_names=['in_file'],
+                                         output_names=['out_file'],
+                                         function=calc_friston_twenty_four,
+                                         imports=friston_imports),
+                           name='calc_friston')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                        'movement_file']),
-                        name='outputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['movement_file']),
+                         name='outputspec')
 
-
-
-    wf.connect(inputNode, 'movement_file',
-               calc_friston, 'in_file')
-
-    wf.connect(calc_friston, 'out_file',
-                outputNode, 'movement_file')
+    wf.connect(inputNode, 'movement_file', calc_friston, 'in_file')
+    wf.connect(calc_friston, 'out_file', outputNode, 'movement_file')
 
     return wf
-
 
 
 def motion_power_statistics(wf_name = 'gen_motion_stats'):
@@ -358,11 +341,11 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            function=calculate_DVARS),
                              name='cal_DVARS')
 
-    ##calculate mean DVARS
+    # calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
     pm.connect(inputNode, 'mask', cal_DVARS, 'mask')
     
-    ###Calculating mean Framewise Displacement as per power et al., 2012
+    # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_P),
@@ -374,11 +357,13 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(calculate_FDP, 'out_file', 
                outputNode, 'FD_1D')
     
-    ###Calculating mean Framewise Displacement as per jenkinson et al., 2002   
+    # Calculating mean Framewise Displacement as per jenkinson et al., 2002
+    fdj_imports = ['import os', 'import math', 'import numpy as np']
     calculate_FDJ = pe.Node(util.Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                           function=calculate_FD_J),
-                             name='calculate_FDJ')
+                                          output_names=['out_file'],
+                                          function=calculate_FD_J,
+                                          imports=fdj_imports),
+                            name='calculate_FDJ')
     
     pm.connect(inputNode, 'oned_matrix_save', 
                calculate_FDJ, 'in_file' )
@@ -386,7 +371,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 
-    ##calculating frames to exclude and include after scrubbing
+    # calculating frames to exclude and include after scrubbing
     exclude_frames = pe.Node(util.Function(input_names=['in_file', 
                                                         'threshold',
                                                         'frames_before',
@@ -406,7 +391,6 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     pm.connect(exclude_frames, 'out_file', 
                outputNode, 'frames_ex_1D')
-    
 
     include_frames = pe.Node(util.Function(input_names=['in_file', 
                                                         'threshold', 
@@ -424,7 +408,6 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(include_frames, 'out_file', 
                outputNode, 'frames_in_1D')
 
-    
     calc_motion_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
                                                                 "movement_parameters",
@@ -443,7 +426,6 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     pm.connect(calc_motion_parameters, 'out_file', 
                outputNode, 'motion_params')
-
 
     calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
@@ -466,7 +448,6 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                calc_power_parameters, 'FDJ_1D')
     pm.connect(scrubbing_input, 'threshold',
                calc_power_parameters, 'threshold')
-
 
     pm.connect(calc_power_parameters, 'out_file', 
                outputNode, 'power_params')
@@ -590,138 +571,55 @@ def calculate_FD_P(in_file):
 
 def calculate_FD_J(in_file):
     
-    '''
+    """
     @ Krsna
     May 2013
     compute 
     1) Jenkinson FD from 3dvolreg's *.affmat12.1D file from -1Dmatrix_save option
-	
     input: subject ID, rest_number, name of 6 parameter motion correction file (an output of 3dvolreg)
     output: FD_J.1D file
     Assumptions:    1) subject is available in BASE_DIR
     2) 3dvolreg is already performed and the 1D motion parameter and 1D_matrix file file is present in sub?/rest_? called as --->'lfo_mc_affmat.1D'
 
-    '''
-
-    import numpy as np
-    import os
-    import sys
-    import math
-   
-    """
-    Method to calculate Framewise Displacement (FD) calculations
-    (Jenkinson et al., 2002)
-    
-    Parameters; in_file : string
-    Returns; out_file : string
-    NOTE: infile should have one 3dvolreg affine matrix in one row - NOT the motion parameters
- 
     """
 
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
-        
-    f = open(out_file, 'w')
-    #print in_file
     pm_ = np.genfromtxt(in_file)
         
     pm = np.zeros((pm_.shape[0],pm_.shape[1]+4))
-    pm[:,:12]=pm_
-    pm[:,12:]=[0.0, 0.0, 0.0, 1.0]
-       
-    flag = 0
+    pm[:, :12] = pm_
+    pm[:, 12:] = [0.0, 0.0, 0.0, 1.0]
 
-    #The default radius (as in FSL) of a sphere represents the brain
+    # The default radius (as in FSL) of a sphere represents the brain
     rmax = 80.0
 
-    #rigid body transformation matrix 
+    # rigid body transformation matrix
     T_rb_prev = np.matrix(np.eye(4))
-    
+
+    out_lines = []
+
     for i in range(0, pm.shape[0]):
-	T_rb = np.matrix(pm[i].reshape(4,4)) # making use of the fact that the order of aff12 matrix is "row-by-row"
-        
-	if flag == 0:
-            flag = 1
-            # first timepoint
-            print >> f, 0 
+        # making use of the fact that the order of aff12 matrix is
+        # "row-by-row"
+        T_rb = np.matrix(pm[i].reshape(4,4))
+
+        if not out_lines:
+            out_lines.append(0)
         else:
             M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
             A = M[0:3, 0:3]
             b = M[0:3, 3]
 
             FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
-            print >> f, '%.8f'%FD_J
-                
+            out_lines.append('{0}.8f'.format(FD_J))
+
         T_rb_prev = T_rb
-    
-    f.close()
+
+    with open(out_file, "w") as f:
+        for line in out_lines:
+            f.write(line)
     
     return out_file
-
-
-
-
-    """
-    Method to calculate Framewise Displacement (FD) calculations
-    (Jenkinson et al., 2002)
-    
-    Parameters
-    ----------
-    in_file : string
-        movement parameters vector file path
-    
-    Returns
-    -------
-    out_file : string
-        Frame -wise displalcement mat 
-        file path
-    
-    """
-    
-    '''
-    import os
-    import numpy as np
-    import math
-
-    out_file = os.path.join(os.getcwd(), 'FD_jenkinson.1D')
-    
-    f = open(out_file, 'w')
-    
-    pm = np.loadtxt(in_file)
-    
-    flag = 0
-
-    #The default radius (as in FSL) of a sphere represents the brain
-    rmax = 80.0
-
-    #rigid body transformation matrix 
-    T_rb_prev = np.matrix(np.eye(4))
-    
-    for i in range(0, pm.shape[0]):
-
-        t1 = np.matrix([[1,0,0,pm[i][0]], [0,1,0, pm[i][1]], [0,0,1,pm[i][2]], [0,0,0,1]] )
-        t2 = np.matrix([[1,0,0,0], [0, math.cos(pm[i][3]), math.sin(pm[i][3]),0], [0, - math.sin(pm[i][3]), math.cos(pm[i][3]), 0], [0,0,0,1]])
-        t3 = np.matrix([[math.cos(pm[i][4]), 0, math.sin(pm[i][4]),0], [0,1,0,0], [-math.sin(pm[i][4]), 0, math.cos(pm[i][4]), 0], [0,0,0,1]])
-        t4 = np.matrix([[math.cos(pm[i][5]), math.sin(pm[i][5]), 0, 0], [-math.sin(pm[i][5]), math.cos(pm[i][5]), 0, 0], [0,0,1,0], [0,0,0,1]])
-        T_rb  = np.dot(np.dot(t1,t2), np.dot(t3,t4))
-        
-        if flag == 0:
-            flag = 1
-            # first timepoint
-            print >> f, 0 
-        else:
-            M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
-            A = M[0:3, 0:3]
-            b = M[0:3, 3]
-
-            FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
-            print >> f, '%.4f'%FD_J
-                
-        T_rb_prev = T_rb
-    
-    f.close()
-    
-    return out_file
-    '''
 
 
 def set_frames_in(in_file, threshold, exclude_list):
