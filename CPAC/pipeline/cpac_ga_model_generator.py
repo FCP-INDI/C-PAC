@@ -94,8 +94,8 @@ def check_merged_file(list_of_output_files, merged_outfile):
     #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
-        test_string = ["3ddot", "-demean", output_file, \
-            merged_outfile + "[" + str(i) + "]"]
+        test_string = ["3ddot", "-demean",  merged_outfile + "[" + str(i) + "]", \
+           output_file]
 
         try:
             retcode = subprocess.check_output(test_string)
