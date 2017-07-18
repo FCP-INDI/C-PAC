@@ -152,7 +152,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
             Path to motion corrected functional data
             
         inputspec.mask : string (nifti file)
-            Path to field contianing brain-only mask for the functional data
+            Path to field containing brain-only mask for the functional data
                 
         inputspec.max_displacement : string (Mat file)
             maximum displacement (in mm) vector for brain voxels in each volume.
@@ -188,20 +188,20 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
             Number of frames left after removing for scrubbing
         
         outputspec.power_params : txt file
-            Text file various power parameters for scrubbing.
+            Text file containing various power parameters for scrubbing
         
         outputspec.motion_params : txt file
-           Text file containing various movement parameters
+            Text file containing various movement parameters
         
     
     Order of commands:
     
-    - Calculate Frame Wise Displacement FD as per power et al., 2012
+    - Calculate Framewise Displacement FD as per power et al., 2012
     
       Differentiating head realignment parameters across frames yields a six dimensional timeseries that represents instantaneous head motion.   
       Rotational displacements are converted from degrees to millimeters by calculating displacement on the surface of a sphere of radius 50 mm.[R5]
       
-    - Calculate Frame wise Displacement FD as per jenkinson et al., 2002
+    - Calculate Framewise Displacement FD as per jenkinson et al., 2002
     
         
       
@@ -779,9 +779,9 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS, \
         subject name or id
     scan_id : string
         scan name or id
-    FD_ID: string 
+    FDP_1D: string 
         framewise displacement(FD as per power et al., 2012) file path
-    FDJ_ID: string 
+    FDJ_1D: string 
         framewise displacement(FD as per jenkinson et al., 2002) file path
     threshold : float
         scrubbing threshold set in the configuration
