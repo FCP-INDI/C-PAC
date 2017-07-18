@@ -32,7 +32,7 @@ def calc_friston_twenty_four(in_file):
     new_data = np.concatenate((new_data, data_roll_squared), axis=1)
 
     new_file = os.path.join(os.getcwd(), 'fristons_twenty_four.1D')
-    np.savetxt(new_file, new_data, fmt='%0.8f', delimiter=' ')
+    np.savetxt(new_file, new_data, fmt=str('%0.8f'), delimiter=' ')
 
     return new_file
 
@@ -324,7 +324,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     scrubbing_input = pe.Node(util.IdentityInterface(fields=['threshold',
                                                               'remove_frames_before',
                                                               'remove_frames_after']),
-                             name='scrubbing_input')
+                              name='scrubbing_input')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
                                                         'FDJ_1D',
@@ -332,14 +332,13 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                                         'frames_in_1D',
                                                         'power_params',
                                                         'motion_params']),
-                        name='outputspec')
-
+                         name='outputspec')
 
     cal_DVARS = pe.Node(util.Function(input_names=['rest', 
                                                    'mask'],
-                                           output_names=['out_file'],
-                                           function=calculate_DVARS),
-                             name='cal_DVARS')
+                                      output_names=['out_file'],
+                                      function=calculate_DVARS),
+                        name='cal_DVARS')
 
     # calculate mean DVARS
     pm.connect(inputNode, 'motion_correct', cal_DVARS, 'rest')
@@ -349,11 +348,10 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_P),
-                             name='calculate_FD')
+                            name='calculate_FD')
     
     pm.connect(inputNode, 'movement_parameters', 
                calculate_FDP, 'in_file' )
-    
     pm.connect(calculate_FDP, 'out_file', 
                outputNode, 'FD_1D')
     
@@ -367,17 +365,19 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     pm.connect(inputNode, 'oned_matrix_save', 
                calculate_FDJ, 'in_file' )
-    
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 
     # calculating frames to exclude and include after scrubbing
+    exc_frames_imports = ['import os', 'import numpy as np',
+                          'from numpy import loadtxt']
     exclude_frames = pe.Node(util.Function(input_names=['in_file', 
                                                         'threshold',
                                                         'frames_before',
                                                         'frames_after'],
                                            output_names=['out_file'],
-                                           function=set_frames_ex),
+                                           function=set_frames_ex,
+                                           imports=exc_frames_imports),
                              name='exclude_frames')
 
     pm.connect(calculate_FDP, 'out_file', 
@@ -388,15 +388,17 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                exclude_frames, 'frames_before')
     pm.connect(scrubbing_input, 'remove_frames_after',
                exclude_frames, 'frames_after')
-    
     pm.connect(exclude_frames, 'out_file', 
                outputNode, 'frames_ex_1D')
 
+    inc_frames_imports = ['import os', 'import numpy as np',
+                          'from numpy import loadtxt']
     include_frames = pe.Node(util.Function(input_names=['in_file', 
                                                         'threshold', 
                                                         'exclude_list'],
                                            output_names=['out_file'],
-                                           function=set_frames_in),
+                                           function=set_frames_in,
+                                           imports=inc_frames_imports),
                              name='include_frames')
     pm.connect(calculate_FDP, 'out_file', 
                include_frames, 'in_file')
@@ -404,16 +406,17 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                include_frames, 'threshold')
     pm.connect(exclude_frames, 'out_file', 
                include_frames, 'exclude_list')
-
     pm.connect(include_frames, 'out_file', 
                outputNode, 'frames_in_1D')
 
+    motion_imports = ['import os', 'import numpy as np', 'import re']
     calc_motion_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
                                                                 "movement_parameters",
                                                                 "max_displacement"],
                                                    output_names=['out_file'],
-                                                   function=gen_motion_parameters),
+                                                   function=gen_motion_parameters,
+                                                   imports=motion_imports),
                                      name='calc_motion_parameters')
     pm.connect(inputNode, 'subject_id',
                calc_motion_parameters, 'subject_id')
@@ -433,8 +436,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                                                 "FDJ_1D", 
                                                                 "threshold",
                                                                 "DVARS"],
-                                                   output_names=['out_file'],
-                                                   function=gen_power_parameters),
+                                                  output_names=['out_file'],
+                                                  function=gen_power_parameters),
                                      name='calc_power_parameters')
     pm.connect(inputNode, 'subject_id',
                calc_power_parameters, 'subject_id')
@@ -452,81 +455,7 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(calc_power_parameters, 'out_file', 
                outputNode, 'power_params')
 
-
     return pm
-
-
-def set_frames_ex(in_file, threshold, 
-                  frames_before=1, frames_after=2):
-    """
-    Method to calculate Number of frames that would be censored 
-    ("scrubbed") by removing the offending time frames 
-    (i.e., those exceeding FD threshold), the preceding frame, 
-    and the two subsequent frames
-    
-    Parameters
-    ----------
-    in_file : a string 
-        framewise displacement(FD) file path
-    threshold : a float
-         scrubbing threshold value set in configuration file
-    frames_before : an integer
-        number of frames preceding the offending time frame
-        by default value is 1
-    frames_after : an integer
-        number of frames following the offending time frame
-        by default value is 2
-         
-    Returns
-    -------
-    out_file : string
-        path to file containing offending time frames
-    """
-
-    import os
-    import numpy as np
-    from numpy import loadtxt
-
-    out_file = os.path.join(os.getcwd(), 'frames_ex.1D')
-    data = loadtxt(in_file)
-    #masking zeroth timepoint value as 0, since the mean displacment value for
-    #zeroth timepoint cannot be calculated, as there is no timepoint before it
-    data[0] = 0
-
-    extra_indices = []
-
-    indices = [i[0] for i in (np.argwhere(data >= threshold)).tolist()]
-    #print "initial indices-->", indices
-    
-    for i in indices:
-        
-        #remove preceding frames
-        if i > 0 :
-            count = 1
-            while count <= frames_before:
-                extra_indices.append(i-count)
-                count+=1
-                
-        #remove following frames
-        count = 1
-        while count <= frames_after:
-            extra_indices.append(i+count)
-            count+=1
-                    
-    indices = list(set(indices) | set(extra_indices))
-    indices.sort()
-
-    f = open(out_file, 'a')
-
-    #print "indices preceding and following -->", \
-    #      set(extra_indices)
-    #print "final indices -->", indices
-    for idx in indices:
-        f.write('%s,' % int(idx))
-
-    f.close()
-
-    return out_file
 
 
 def calculate_FD_P(in_file):
@@ -611,7 +540,7 @@ def calculate_FD_J(in_file):
             b = M[0:3, 3]
 
             FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
-            out_lines.append('{0}.8f'.format(FD_J))
+            out_lines.append('{0}.8f'.format(str(FD_J)))
 
         T_rb_prev = T_rb
 
@@ -643,42 +572,95 @@ def set_frames_in(in_file, threshold, exclude_list):
         path of file containing remaining uncensored timepoints 
     """
 
-    import os
-    import numpy as np
-    from numpy import loadtxt
-
     out_file = os.path.join(os.getcwd(), 'frames_in.1D')
 
     data = loadtxt(in_file)
-    #masking zeroth timepoint value as 0, since the mean displacment value for
-    #zeroth timepoint cannot be calculated, as there is no timepoint before it
+    # masking zeroth timepoint value as 0, since the mean displacment value
+    # for zeroth timepoint cannot be calculated, as there is no timepoint
+    # before it
     data[0] = 0
 
     indices = [i[0] for i in (np.argwhere(data < threshold)).tolist()]
 
     indx = []
-    f = open(exclude_list, 'r')
-    line = f.readline()
+    with open(exclude_list, 'r') as f:
+        line = f.readline()
+
     if line:
         line = line.strip(',')
         indx = map(int, line.split(","))
-    f.close()
-    print indx
 
     if indx:
         indices = list(set(indices) - set(indx))
 
-    f = open(out_file, 'a')
-
-    for idx in indices:
-        f.write('%s,' % int(idx))
-
-    f.close()
+    with open(out_file, 'a') as f:
+        for idx in indices:
+            f.write('{0},'.format(idx))
 
     return out_file
 
 
-def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displacement):
+def set_frames_ex(in_file, threshold, frames_before=1, frames_after=2):
+    """
+    Method to calculate Number of frames that would be censored
+    ("scrubbed") by removing the offending time frames
+    (i.e., those exceeding FD threshold), the preceding frame,
+    and the two subsequent frames
+
+    Parameters
+    ----------
+    in_file : a string
+        framewise displacement(FD) file path
+    threshold : a float
+         scrubbing threshold value set in configuration file
+    frames_before : an integer
+        number of frames preceding the offending time frame
+        by default value is 1
+    frames_after : an integer
+        number of frames following the offending time frame
+        by default value is 2
+
+    Returns
+    -------
+    out_file : string
+        path to file containing offending time frames
+    """
+
+    out_file = os.path.join(os.getcwd(), 'frames_ex.1D')
+    data = loadtxt(in_file)
+    # masking zeroth timepoint value as 0, since the mean displacment value
+    # for zeroth timepoint cannot be calculated, as there is no timepoint
+    # before it
+    data[0] = 0
+
+    extra_indices = []
+    indices = [i[0] for i in (np.argwhere(data >= threshold)).tolist()]
+
+    for i in indices:
+        # remove preceding frames
+        if i > 0:
+            count = 1
+            while count <= frames_before:
+                extra_indices.append(i - count)
+                count += 1
+        # remove following frames
+        count = 1
+        while count <= frames_after:
+            extra_indices.append(i + count)
+            count += 1
+
+    indices = list(set(indices) | set(extra_indices))
+    indices.sort()
+
+    with open(out_file, 'a') as f:
+        for idx in indices:
+            f.write('{0},'.format(idx))
+
+    return out_file
+
+
+def gen_motion_parameters(subject_id, scan_id, movement_parameters, 
+                          max_displacement):
     """
     Method to calculate all the movement parameters
     
@@ -701,97 +683,87 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
 
     """
 
-    import os
-    import numpy as np
-    import re
-
     out_file = os.path.join(os.getcwd(), 'motion_parameters.txt')
-
-    f = open(out_file, 'w')
-    #f.write(str(os.getcwd()))   ### work
-    print >>f, "Subject,Scan,Mean_Relative_RMS_Displacement," \
-        "Max_Relative_RMS_Displacement,Movements_gt_threshold,"\
-        "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp," \
-        "Max_Abs_Maxdisp,Max Relative_Roll,Max_Relative_Pitch," \
-        "Max_Relative_Yaw,Max_Relative_dS-I,Max_Relative_dL-R," \
-        "Max_Relative_dP-A,Mean_Relative_Roll,Mean_Relative_Pitch,Mean_Relative_Yaw," \
-        "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll," \
-        "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A," \
-        "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A"
-
-
-    f.write("%s," % (subject_id))
-    f.write("%s," % (scan_id))
 
     arr = np.genfromtxt(movement_parameters)
     arr = arr.T
 
-    ##Relative RMS of translation
+    # Relative RMS of translation
     rms = np.sqrt(arr[3]*arr[3] + arr[4]*arr[4] + arr[5]*arr[5])
     diff = np.diff(rms)
     MEANrms = np.mean(abs(diff))
-    f.write("%.3f," % (MEANrms))
 
-    #Max Relative RMS Displacement
+    # Max Relative RMS Displacement
     MAXrms = np.max(abs(diff))
-    f.write("%.3f," % (MAXrms))
 
-    ##NUMBER OF relative RMS movements >0.1mm
+    # NUMBER OF relative RMS movements >0.1mm
     NUMmove = np.sum(abs(diff) > 0.1)
-    f.write("%.3f," % (NUMmove))
 
-    ##Mean of mean relative rotation (params 1-3)
-    MEANrot = np.mean(np.abs(np.diff((abs(arr[0])+ abs(arr[1])+ abs(arr[2]))/3 ) ) )
-    f.write("%.3f," % (MEANrot))
+    # Mean of mean relative rotation (params 1-3)
+    MEANrot = np.mean(np.abs(np.diff((abs(arr[0])+ abs(arr[1])+ abs(arr[2]))/3)))
 
-    file = open(max_displacement, 'r')
-    lines = file.readlines()
-    file.close()
+    with open(max_displacement, 'r') as f:
+        lines = f.readlines()
     list1 = []
 
-    #remove any other information aother than matrix from
-    #max displacement file. afni adds infomration to the file
+    # remove any other information aother than matrix from
+    # max displacement file. afni adds infomration to the file
     for l in lines:
         if re.match("^\d+?\.\d+?$", l.strip()):
             list1.append(float(l.strip()))
 
     arr2 = np.array(list1, dtype='float')
 
-    #Mean Relative Maxdisp
+    # Mean Relative Maxdisp
     mean = np.mean(np.diff(arr2))
-    f.write("%.3f," % (mean))
 
-    #Max Relative Maxdisp
+    # Max Relative Maxdisp
     relMAX = np.max(abs(np.diff(arr2)))
-    f.write("%.3f," % (relMAX))
 
-    #Max Abs Maxdisp
+    # Max Abs Maxdisp
     MAX= np.max(arr2)
-    f.write("%.3f," %(MAX))
 
-    #Max Relative Roll,Max Relative Pitch,
-    #Max Relative Yaw,Max Relative dS-I,
-    #Max Relative dL-R,Max Relative dP-A
-    for i in range(6):
-        f.write("%.6f," %(np.max(abs(np.diff(arr[i])))))
+    with open(out_file, 'w') as f:
+        f.write("Subject,Scan,Mean_Relative_RMS_Displacement,"
+                "Max_Relative_RMS_Displacement,Movements_gt_threshold,"
+                "Mean_Relative_Mean_Rotation,Mean_Relative_Maxdisp,Max_Relative_Maxdisp,"
+                "Max_Abs_Maxdisp,Max Relative_Roll,Max_Relative_Pitch,"
+                "Max_Relative_Yaw,Max_Relative_dS-I,Max_Relative_dL-R,"
+                "Max_Relative_dP-A,Mean_Relative_Roll,Mean_Relative_Pitch,Mean_Relative_Yaw,"
+                "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll,"
+                "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A,"
+                "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A\n")
+        f.write("{0},{1}".format(subject_id, scan_id))
+        f.write("%.3f," % (MEANrms))
+        f.write("%.3f," % (MAXrms))
+        f.write("%.3f," % (NUMmove))
+        f.write("%.3f," % (MEANrot))
+        f.write("%.3f," % (mean))
+        f.write("%.3f," % (relMAX))
+        f.write("%.3f," %(MAX))
 
-    #Mean Relative Roll,Mean Relative Pitch,
-    #Mean Relative Yaw,Mean Relative dS-I,
-    #Mean Relative dL-R,Mean Relative dP-A
-    for i in range(6):
-        f.write("%.6f," %(np.mean(np.diff(arr[i]))))
-        
-    #Max Abs Roll,Max Abs Pitch,Max Abs Yaw,
-    #Max Abs dS-I,Max Abs dL-R,Max Abs dP-A
-    for i in range(6):
-        f.write("%.6f," %(np.max(abs(arr[i]))))
-    
-    #Mean Abs Roll,Mean Abs Pitch,Mean Abs Yaw,
-    #Mean Abs dS-I,Mean Abs dL-R,Mean Abs dP-A 
-    for i in range(6):
-        f.write("%.6f," %(np.mean(abs(arr[i]))))
+        # Max Relative Roll,Max Relative Pitch,
+        # Max Relative Yaw,Max Relative dS-I,
+        # Max Relative dL-R,Max Relative dP-A
+        for i in range(6):
+            f.write("%.6f," %(np.max(abs(np.diff(arr[i])))))
 
-    f.close()
+        # Mean Relative Roll,Mean Relative Pitch,
+        # Mean Relative Yaw,Mean Relative dS-I,
+        # Mean Relative dL-R,Mean Relative dP-A
+        for i in range(6):
+            f.write("%.6f," %(np.mean(np.diff(arr[i]))))
+
+        # Max Abs Roll,Max Abs Pitch,Max Abs Yaw,
+        # Max Abs dS-I,Max Abs dL-R,Max Abs dP-A
+        for i in range(6):
+            f.write("%.6f," %(np.max(abs(arr[i]))))
+
+        # Mean Abs Roll,Mean Abs Pitch,Mean Abs Yaw,
+        # Mean Abs dS-I,Mean Abs dL-R,Mean Abs dP-A
+        for i in range(6):
+            f.write("%.6f," %(np.mean(abs(arr[i]))))
+
     return out_file
 
 

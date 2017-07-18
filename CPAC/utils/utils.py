@@ -1614,12 +1614,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
     Method to write into log file the status of the workflow run.
     """
 
-    try:
-        logging = nipype.utils.logger.Logging()
-        iflogger = logging.getLogger('interface')
-    except AttributeError:
-        # if running Nipype 0.12 or earlier
-        iflogger = nipype.utils.logger.getLogger('interface')
+    iflogger = logging.getLogger('interface')
 
     version = CPAC.__version__
     subject_id = os.path.basename(log_dir)
@@ -1633,8 +1628,8 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
 
     try:
         if workflow != 'DONE':
-            wf_path = os.path.dirname((os.getcwd()).split(workflow)[1]).strip(
-                "/")
+            wf_path = \
+                os.path.dirname((os.getcwd()).split(workflow)[1]).strip("/")
 
             if wf_path and wf_path != "":
                 if '/' in wf_path:
@@ -1668,7 +1663,7 @@ def write_to_log(workflow, log_dir, index, inputs, scan_id):
 
     out_file = os.path.join(file_path, 'log_{0}.yaml'.format(strategy))
 
-    iflogger.info("CPAC custom log :")
+    iflogger.info("CPAC custom log:")
 
     if isinstance(inputs, list):
         inputs = inputs[0]
@@ -1721,7 +1716,7 @@ def create_log(wf_name="log", scan_id=None):
                          name='outputspec')
 
     write_imports = ['import os', 'import CPAC', 'import time',
-                     'import datetime', 'import nipype']
+                     'import datetime', 'from nipype import logging']
 
     write_log = pe.Node(util.Function(input_names=['workflow',
                                                    'log_dir',

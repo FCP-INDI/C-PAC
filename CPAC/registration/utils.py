@@ -65,6 +65,6 @@ def change_itk_transform_type(input_affine_file):
 
     with open(updated_affine_file, 'wt') as f:
         for line in new_file_lines:
-            f.write(line.strip('\n'))
+            f.write(line)
 
     return updated_affine_file
