@@ -138,7 +138,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
               "directory provided for the derivatives selected!\n\nPipeline "\
-              "output directory provided: %s\nDerivatives selected:\s\n\n" \
+              "output directory provided: %s\nDerivatives selected:%s\n\n" \
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 

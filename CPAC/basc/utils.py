@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def timeseries_bootstrap(tseries, block_size):
     """
     Generates a bootstrap sample derived from the input time-series.  Utilizes Circular-block-bootstrap method described in [1]_.
@@ -55,6 +56,7 @@ def timeseries_bootstrap(tseries, block_size):
     
     return tseries[block_mask.astype('int'), :]
 
+
 def standard_bootstrap(dataset):
     """
     Generates a bootstrap sample from the input dataset
@@ -75,6 +77,7 @@ def standard_bootstrap(dataset):
     n = dataset.shape[0]
     b = np.random.random_integers(0, high=n-1, size=n)
     return dataset[b]
+
 
 def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinity_threshold = 0.0, neighbors = 10):
     """
@@ -143,7 +146,8 @@ def cluster_timeseries(X, n_clusters, similarity_metric = 'k_neighbors', affinit
     y_pred = np.dot(eigen_discrete.toarray(), np.diag(np.arange(n_clusters))).sum(1)
     
     return y_pred
-    
+
+
 def adjacency_matrix(cluster_pred):
     """
     Calculate adjacency matrix for given cluster predictions
@@ -183,6 +187,7 @@ def adjacency_matrix(cluster_pred):
     A = np.dot(x**-1., x.T) == 1
     
     return A
+
 
 def cluster_matrix_average(M, cluster_assignments):
     """
@@ -230,6 +235,7 @@ def cluster_matrix_average(M, cluster_assignments):
 
 
     return s
+
 
 def individual_stability_matrix(Y, n_bootstraps, k_clusters, cbb_block_size = None, affinity_threshold = 0.5):
     """

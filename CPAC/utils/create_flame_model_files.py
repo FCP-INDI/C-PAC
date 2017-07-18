@@ -207,67 +207,71 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     import os
     import numpy as np
 
+    # Read the header of the contrasts file, which should contain the columns of the design matrix and f-tests (if any)
     with open(con_file,"r") as f:
         evs = f.readline()
 
     evs = evs.rstrip('\r\n').split(',')
-    count_ftests = 0
 
+
+    if evs[0].strip().lower()!="contrasts":
+        print "Error: first cell in contrasts file should contain 'Contrasts' "
+        raise Exception
     # remove "Contrasts" label and replace it with "Intercept"
     evs[0] = "Intercept"
 
-    fTest = False
+    # Count the number of f tests defined
+    count_ftests = len([ ev for ev in evs if "f_test" in ev ])
 
-    for ev in evs:
-        if "f_test" in ev:
-            count_ftests += 1
+    # Whether any f tests are defined
+    fTest = count_ftests >0
 
-    if count_ftests > 0:
-        fTest = True
-
-
+    # Now read the actual contrasts
     try:
-
-        data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
-
+        contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
     except:
-
         print "Error: Could not successfully read in contrast file: ",con_file
         raise Exception
 
 
-    lst = data.tolist()
+    lst = contrasts_data.tolist()
+    # lst = list of rows of the contrast matrix (each row represents a contrast,
+    # i.e. a name of the contrast, and then coefficients for each of the design matrix columns, and finally
+    # coefficients for each of the f tests specifying whether this contrast is part of that particular f test).
 
     ftst = []
     fts_columns = []
     contrasts = []
     contrast_names = []
 
-    length = None
     length = len(list(lst[0]))
+    
+    for contr in lst:
+        # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
+        #      with the zeroes being the vector of contrasts for that contrast
 
-
-    # lst = list of tuples, "tp"
-    # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
-    #      with the zeroes being the vector of contrasts for that contrast
-
-    for tp in lst:
-
-        contrast_names.append(tp[0])
+        # extract the name of the contrast
+        contrast_names.append(contr[0])
 
         # create a list of integers that is the vector for the contrast
         # ex. [0, 1, 1, 0, ..]
-        con_vector = list(tp)[1:(length-count_ftests)]
+        con_vector = list(contr)[1:(length-count_ftests)]
 
-        fts_vector = list(tp)[(length-count_ftests):length]
+        # fts_vector tells us which f-tests this contrast is a part of.
+        fts_vector = list(contr)[(length-count_ftests):length]
         fts_columns.append(fts_vector)
 
         # add Intercept column
         if group_sep == False:
-            if coding_scheme == "Treatment":
-                con_vector.insert(0, 0)
-            elif coding_scheme == "Sum":
-                con_vector.insert(0, 1)
+
+            if False:
+                # The following insertion gives an error further down the line, because this
+                # suggests that there will be an intercept column in the design matrix
+                # but such an intercept is never actually added.
+                if coding_scheme == "Treatment":
+                    con_vector.insert(0, 0)
+                elif coding_scheme == "Sum":
+                    con_vector.insert(0, 1)
 
         contrasts.append(con_vector)
 
@@ -279,11 +283,14 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     contrasts = np.array(contrasts, dtype=np.float16)
 
     fts_columns = np.array(fts_columns)
-       
+    
 
     # if there are f-tests, create the array for them
     if fTest:
 
+        ## TODO: Probably it would be more accurate to check that each
+        ## f test itself contains enough contrasts, rather than whether
+        ## there are in principle enough contrasts to form f tests.
         if len(contrast_names) < 2:
             errmsg = "\n\n[!] CPAC says: Not enough contrasts for running " \
                   "f-tests.\nTip: Do you have only one contrast in your " \
@@ -315,6 +322,10 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
 
+        ## TODO: Possible source for errors: the script seems to suggest it checks
+        ## whether the order of the EVs is the same in the contrasts table as in the
+        ## design matrix, but it doesn't actually check this, it only checks whether
+        ## they are the same set, possibly in a different order.
         if con_csv_col not in design_mat_col:
 
             errmsg = "\n\n[!] CPAC says: The names of the EVs in your " \

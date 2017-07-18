@@ -42,7 +42,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         
         def nextpow2(n):
             x = np.log2(n)
-            return 2**np.ceil(x)
+            return int(2**np.ceil(x))
         
         sample_freq = 1./sample_period
         sample_length = data.shape[0]
@@ -118,11 +118,11 @@ def calc_residuals(subject,
     selector : dictionary
         Dictionary of selected regressors.  Keys are  represented as a string of the regressor name and keys 
         are True/False.  See notes for an example.
-    wm_mask_file : string, optional
+    wm_sig_file : string, optional
         Path to subject's white matter mask (in the same space as the subject's functional file)
-    csf_mask_file : string, optional
+    csf_sig_file : string, optional
         Path to subject's cerebral spinal fluid mask (in the same space as the subject's functional file)
-    gm_mask_file : string, optional
+    gm_sig_file : string, optional
         Path to subject's grey matter mask (in the same space as the subject's functional file)
     compcor_ncomponents : integer, optional
         The first `n` principal of CompCor components to use as regressors.  Default is 0.
@@ -462,7 +462,6 @@ def create_nuisance(use_ants, name='nuisance'):
 
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'reference')
-
 
     func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'

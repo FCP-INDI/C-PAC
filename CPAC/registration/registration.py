@@ -997,24 +997,26 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
     fsl_reg_2_itk.inputs.itk_transform = True
     fsl_reg_2_itk.inputs.fsl2ras = True
 
+    itk_imports = ['import os']
+
     if map_node == 0:
         change_transform = pe.Node(util.Function(\
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
-                function=change_itk_transform_type),
+                function=change_itk_transform_type,
+                imports=itk_imports),
                 name='change_transform_type')
 
     elif map_node == 1:
         change_transform = pe.MapNode(util.Function(\
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
-                function=change_itk_transform_type),
+                function=change_itk_transform_type,
+                imports=itk_imports),
                 name='change_transform_type', iterfield=['input_affine_file'])
-
 
     outputspec = pe.Node(util.IdentityInterface(fields=['itk_transform']),
             name='outputspec')
-
 
     fsl_to_itk_conversion.connect(inputspec, 'affine_file', fsl_reg_2_itk,
             'transform_file')
@@ -1042,16 +1044,13 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
         fsl_to_itk_conversion.connect(tstat_source, 'out_file', fsl_reg_2_itk,
                 'source_file')
 
-
     fsl_to_itk_conversion.connect(fsl_reg_2_itk, 'itk_transform',
             change_transform, 'input_affine_file')
 
     fsl_to_itk_conversion.connect(change_transform, 'updated_affine_file', 
             outputspec, 'itk_transform')
 
-
     return fsl_to_itk_conversion
-
 
 
 def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
@@ -1063,11 +1062,9 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     collect_transforms_wf = pe.Workflow(name=name)
 
-
     inputspec = pe.Node(util.IdentityInterface(fields=['warp_file',
             'linear_initial', 'linear_affine', 'linear_rigid', \
             'fsl_to_itk_affine']), name='inputspec')
-
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
@@ -1081,7 +1078,6 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')
-
 
     # Field file from anatomical nonlinear registration
     collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
@@ -1105,7 +1101,6 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
             'transformation_series')
-
 
     return collect_transforms_wf
 
