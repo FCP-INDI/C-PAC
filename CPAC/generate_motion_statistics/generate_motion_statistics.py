@@ -645,7 +645,7 @@ def set_frames_ex(in_file, threshold, frames_before=1, frames_after=2):
                 count += 1
         # remove following frames
         count = 1
-        while count <= frames_after:
+        while count <= frames_after and (i+count) < len(data)
             extra_indices.append(i + count)
             count += 1
 
@@ -657,7 +657,7 @@ def set_frames_ex(in_file, threshold, frames_before=1, frames_after=2):
             f.write('{0},'.format(idx))
 
     return out_file
-
+  
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters, 
                           max_displacement):
