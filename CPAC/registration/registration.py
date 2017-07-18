@@ -931,11 +931,11 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_t
     apply_ants_warp_wf.connect(apply_ants_warp, 'output_image',
             outputspec, 'output_image')
 
-
     return apply_ants_warp_wf
 
 
-def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_fsl_to_itk'):
+def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0,
+                             name='create_wf_c3d_fsl_to_itk'):
 
     """
     Converts an FSL-format output matrix to an ITK-format (ANTS) matrix
@@ -979,10 +979,8 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
 
     fsl_to_itk_conversion = pe.Workflow(name=name)
 
-
     inputspec = pe.Node(util.IdentityInterface(fields=['affine_file',
             'reference_file', 'source_file']), name='inputspec')
-
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
@@ -1000,7 +998,7 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
     itk_imports = ['import os']
 
     if map_node == 0:
-        change_transform = pe.Node(util.Function(\
+        change_transform = pe.Node(util.Function(
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
                 function=change_itk_transform_type,
@@ -1008,7 +1006,7 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
                 name='change_transform_type')
 
     elif map_node == 1:
-        change_transform = pe.MapNode(util.Function(\
+        change_transform = pe.MapNode(util.Function(
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
                 function=change_itk_transform_type,
@@ -1033,8 +1031,14 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
 
     elif input_image_type == 3:
 
-        tstat_source = pe.Node(interface=preprocess.TStat(),
-                name='fsl_to_itk_tcat_source')
+        try:
+            tstat_source = pe.Node(interface=preprocess.TStat(),
+                                   name='fsl_to_itk_tcat_source')
+        except AttributeError:
+            from nipype.interfaces.afni import utils as afni_utils
+            tstat_source = pe.Node(interface=afni_utils.TStat(),
+                                   name='fsl_to_itk_tcat_source')
+
         tstat_source.inputs.outputtype = 'NIFTI_GZ'
         tstat_source.inputs.options = '-mean'
 

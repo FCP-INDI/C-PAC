@@ -231,6 +231,7 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
     """
 
     vmhc = pe.Workflow(name=name)
+
     inputNode = pe.Node(util.IdentityInterface(fields=['rest_res',
                                                 'example_func2highres_mat',
                                                 'rest_mask',
@@ -244,27 +245,21 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                                                 'ants_symm_warp_field']),
                         name='inputspec')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=['rest_res_2symmstandard',
                                                 'VMHC_FWHM_img',
                                                 'VMHC_Z_FWHM_img',
-                                                'VMHC_Z_stat_FWHM_img'
-                                                ]),
-                        name='outputspec')
-
+                                                'VMHC_Z_stat_FWHM_img']),
+                         name='outputspec')
 
     inputnode_fwhm = pe.Node(util.IdentityInterface(fields=['fwhm']),
                              name='fwhm_input')
 
-
     if use_ants == False:
-
-        ## Apply nonlinear registration (func to standard)
+        # Apply nonlinear registration (func to standard)
         nonlinear_func_to_standard = pe.Node(interface=fsl.ApplyWarp(),
                           name='nonlinear_func_to_standard')
 
     elif use_ants == True:
-
         # ANTS warp image etc.
         fsl_to_itk_vmhc = create_wf_c3d_fsl_to_itk(0, name='fsl_to_itk_vmhc')
 
@@ -276,27 +271,28 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
         # this has to be 3 instead of default 0 because it is a 4D file
         apply_ants_xfm_vmhc.inputs.inputspec.input_image_type = 3
 
-
-
-    ## copy and L/R swap file
+    # copy and L/R swap file
     copy_and_L_R_swap = pe.Node(interface=fsl.SwapDimensions(),
                       name='copy_and_L_R_swap')
     copy_and_L_R_swap.inputs.new_dims = ('-x', 'y', 'z')
 
-    ## caculate vmhc
+    # calculate vmhc
     pearson_correlation = pe.Node(interface=preprocess.TCorrelate(),
                       name='pearson_correlation')
     pearson_correlation.inputs.pearson = True
     pearson_correlation.inputs.polort = -1
     pearson_correlation.inputs.outputtype = 'NIFTI_GZ'
 
-    z_trans = pe.Node(interface=preprocess.Calc(),
-                         name='z_trans')
+    try:
+        z_trans = pe.Node(interface=preprocess.Calc(), name='z_trans')
+        z_stat = pe.Node(interface=preprocess.Calc(), name='z_stat')
+    except AttributeError:
+        from nipype.interfaces.afni import utils as afni_utils
+        z_trans = pe.Node(interface=afni_utils.Calc(), name='z_trans')
+        z_stat = pe.Node(interface=afni_utils.Calc(), name='z_stat')
+
     z_trans.inputs.expr = 'log((1+a)/(1-a))/2'
     z_trans.inputs.outputtype = 'NIFTI_GZ'
-
-    z_stat = pe.Node(interface=preprocess.Calc(),
-                        name='z_stat')
     z_stat.inputs.outputtype = 'NIFTI_GZ'
 
     NVOLS = pe.Node(util.Function(input_names=['in_files'],
@@ -309,13 +305,10 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                           function=get_operand_expression),
                           name='generateEXP')
 
-
     smooth = pe.Node(interface=fsl.MultiImageMaths(),
                         name='smooth')
 
-
     if use_ants == False:
-
         vmhc.connect(inputNode, 'rest_res',
                      smooth, 'in_file')
         vmhc.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -337,11 +330,9 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                      pearson_correlation, 'xset')
 
     elif use_ants == True:
-
         # connections for ANTS stuff
 
         # functional apply warp stuff
-
         vmhc.connect(inputNode, 'rest_res',
                      smooth, 'in_file')
         vmhc.connect(inputnode_fwhm, ('fwhm', set_gauss),
@@ -364,7 +355,7 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
         vmhc.connect(inputNode, 'ants_symm_warp_field',
                      collect_transforms_vmhc, 'inputspec.warp_file')
 
-        ## func->anat matrix (bbreg)
+        # func->anat matrix (bbreg)
         vmhc.connect(inputNode, 'example_func2highres_mat',
                      fsl_to_itk_vmhc, 'inputspec.affine_file')
 
@@ -390,7 +381,6 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
         vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
                      pearson_correlation, 'xset')
 
-
     vmhc.connect(copy_and_L_R_swap, 'out_file',
                  pearson_correlation, 'yset')
     vmhc.connect(pearson_correlation, 'out_file',
@@ -405,17 +395,13 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                  z_stat, 'expr')
 
     if use_ants == False:
-
         vmhc.connect(nonlinear_func_to_standard, 'out_file',
                      outputNode, 'rest_res_2symmstandard')
 
     elif use_ants == True:
-
         # ANTS warp outputs to outputnode
-
         vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',
                      outputNode, 'rest_res_2symmstandard')
-
 
     vmhc.connect(pearson_correlation, 'out_file',
                  outputNode, 'VMHC_FWHM_img')
@@ -423,6 +409,5 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
                  outputNode, 'VMHC_Z_FWHM_img')
     vmhc.connect(z_stat, 'out_file',
                  outputNode, 'VMHC_Z_stat_FWHM_img')
-
 
     return vmhc

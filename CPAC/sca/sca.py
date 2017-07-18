@@ -118,8 +118,12 @@ def create_sca(name_sca='sca'):
                 corr, 'xset')
 
     # Transform the sub-bricks into volumes
-    concat = pe.Node(interface=preprocess.TCat(),
-                      name='3dTCat')
+    try:
+        concat = pe.Node(interface=preprocess.TCat(), name='3dTCat')
+    except AttributeError:
+        from nipype.interfaces.afni import utils as afni_utils
+        concat = pe.Node(interface=afni_utils.TCat(), name='3dTCat')
+
     concat.inputs.outputtype = 'NIFTI_GZ'
 
     # also write out volumes as individual files
