@@ -512,6 +512,9 @@ def calculate_FD_J(in_file):
 
     """
 
+    # TODO: update docstrings
+    # in_file = CPAC's "coordinate transformation" resource
+
     out_file = os.path.join(os.getcwd(), 'FD_J.1D')
     pm_ = np.genfromtxt(in_file)
         
@@ -533,14 +536,14 @@ def calculate_FD_J(in_file):
         T_rb = np.matrix(pm[i].reshape(4,4))
 
         if not out_lines:
-            out_lines.append(0)
+            out_lines.append('0')
         else:
             M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
             A = M[0:3, 0:3]
             b = M[0:3, 3]
 
             FD_J = math.sqrt((rmax*rmax/5)*np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
-            out_lines.append('{0}.8f'.format(str(FD_J)))
+            out_lines.append('\n{0:.8f}'.format(FD_J))
 
         T_rb_prev = T_rb
 
