@@ -42,7 +42,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         
         def nextpow2(n):
             x = np.log2(n)
-            return 2**np.ceil(x)
+            return int(2**np.ceil(x))
         
         sample_freq = 1./sample_period
         sample_length = data.shape[0]

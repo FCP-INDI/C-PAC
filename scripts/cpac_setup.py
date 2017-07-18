@@ -9,13 +9,13 @@ def check_inputs(*pathstrs):
             print "ERROR: input '%s' doesn't exist" % pathstr
             raise SystemExit(2)
         _,ext = path.splitext(pathstr)
-        if ext != ".py":
-            print "ERROR: input '%s' is not a python file (*.py)" % pathstr
+        if ext not in [".yml",".yaml"]:
+            print "ERROR: input '%s' is not a yaml file (*.yml or *.yaml)" % pathstr
             raise SystemExit(2)
     return
 
 if len(sys.argv) != 2:
-    print "Usage: %s /path/to/data_config.py" % path.basename(sys.argv[0])
+    print "Usage: %s /path/to/data_config.yml" % path.basename(sys.argv[0])
     print "Will output three files needed by C-PAC into the current directory"
     raise SystemExit(1)
 

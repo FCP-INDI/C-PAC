@@ -1,4 +1,4 @@
-============================================================
+
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)

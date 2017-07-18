@@ -207,7 +207,7 @@ def extract_data(c, param_map):
     anat_session_present, anat_session_path, anat_relative = \
         check_for_sessions(anat_relative, anat_relative_len)
 
-    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName[0]), 'wb')
+    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName), 'wb')
 
 
 
@@ -744,9 +744,9 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        logging.debug("no scan parameters csv included"\
-              "make sure you turn off slice timing correction option"\
-              "in CPAC configuration")
+        logging.debug("no scan parameters csv included\n"\
+              "make sure you turn off slice timing correction option\n"\
+              "in CPAC configuration\n")
         s_param_map = None
 
     extract_data(c, s_param_map)

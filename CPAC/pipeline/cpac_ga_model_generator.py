@@ -90,9 +90,10 @@ def check_merged_file(list_of_output_files, merged_outfile):
     #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
-        test_string = ["3ddot", "-demean", output_file, \
-            merged_outfile + "[" + str(i) + "]"]
-
+        #test_string = ["3ddot", "-demean", output_file, merged_outfile + "[" + str(i) + "]"]
+        test_string = ["3ddot", "-demean", merged_outfile + "[" + str(i) + "]", output_file]
+        # The above line was changed in response to nimzodisaster's comment on https://github.com/FCP-INDI/C-PAC/issues/649
+        
         try:
             retcode = subprocess.check_output(test_string)
         except Exception as e:
@@ -566,7 +567,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir, \
-            re.search('sca_roi_(\d)+',os.path.splitext(\
+            re.search('sca_ROI_(\d)+',os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
             
@@ -633,7 +634,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     design_formula = group_config_obj.design_formula
 
     # demean EVs set for demeaning
-    for demean_EV in group_config_obj.ev_selections["demean"]:
+    for demean_EV in group_config_obj.ev_selections.get("demean",[]):
         model_df[demean_EV] = model_df[demean_EV].astype(float)
         model_df[demean_EV] = model_df[demean_EV].sub(model_df[demean_EV].mean())
 
