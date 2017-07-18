@@ -528,7 +528,7 @@ def set_frames_ex(in_file, threshold,
                 
         #remove following frames
         count = 1
-        while count <= frames_after:
+        while count <= frames_after and (i+count) < len(data):
             extra_indices.append(i+count)
             count+=1
                     
