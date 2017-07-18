@@ -645,7 +645,7 @@ def set_frames_ex(in_file, threshold, frames_before=1, frames_after=2):
                 count += 1
         # remove following frames
         count = 1
-        while count <= frames_after and (i+count) < len(data)
+        while count <= frames_after and (i+count) < len(data):
             extra_indices.append(i + count)
             count += 1
 
