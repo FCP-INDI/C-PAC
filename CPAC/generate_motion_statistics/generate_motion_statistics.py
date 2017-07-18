@@ -430,6 +430,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     pm.connect(calc_motion_parameters, 'out_file', 
                outputNode, 'motion_params')
 
+    power_imports = ['import os', 'import numpy as np',
+                     'from numpy import loadtxt']
     calc_power_parameters = pe.Node(util.Function(input_names=["subject_id", 
                                                                 "scan_id", 
                                                                 "FDP_1D",
@@ -437,7 +439,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                                                 "threshold",
                                                                 "DVARS"],
                                                   output_names=['out_file'],
-                                                  function=gen_power_parameters),
+                                                  function=gen_power_parameters,
+                                                  imports=power_imports),
                                      name='calc_power_parameters')
     pm.connect(inputNode, 'subject_id',
                calc_power_parameters, 'subject_id')
@@ -770,8 +773,8 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     return out_file
 
 
-def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS, \
-                             threshold = 1.0):
+def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
+                         threshold=1.0):
     
     """
     Method to generate Power parameters for scrubbing
@@ -798,65 +801,48 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS, \
         path to csv file containing all the pow parameters 
     """
 
-    import os
-    import numpy as np
-    from numpy import loadtxt
-
     powersFD_data = loadtxt(FDP_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
-    #Mean (across time/frames) of the absolute values 
-    #for Framewise Displacement (FD)
+    # Mean (across time/frames) of the absolute values
+    # for Framewise Displacement (FD)
     meanFD_Power  = np.mean(powersFD_data)
     
-    #Mean FD Jenkinson
+    # Mean FD Jenkinson
     meanFD_Jenkinson = np.mean(jenkFD_data)
     
-    #Number of frames (time points) where movement 
-    #(FD) exceeded threshold
+    # Number of frames (time points) where movement
+    # (FD) exceeded threshold
     numFD = float(jenkFD_data[jenkFD_data > threshold].size)
     
-    #Root mean square (RMS; across time/frames) 
-    #of the absolute values for FD
+    # Root mean square (RMS; across time/frames)
+    # of the absolute values for FD
     rmsFD = np.sqrt(np.mean(jenkFD_data))
 
-    #Mean of the top quartile of FD is $FDquartile
+    # Mean of the top quartile of FD is $FDquartile
     quat=int(len(jenkFD_data)/4)
     FDquartile=np.mean(np.sort(jenkFD_data)[::-1][:quat])
 
-    ##NUMBER OF FRAMES >threshold FD as percentage of total num frames
+    # NUMBER OF FRAMES >threshold FD as percentage of total num frames
     count = np.float(jenkFD_data[jenkFD_data>threshold].size)
     percentFD = (count*100/(len(jenkFD_data)+1))
 
-    #Mean DVARS 
+    # Mean DVARS
     meanDVARS = np.mean(np.load(DVARS))
-
 
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
-    with open(out_file,'w') as f:
-      
-        print >>f, "Subject,Scan,MeanFD_Power,MeanFD_Jenkinson," \
-        "NumFD_greater_than_%.2f,rootMeanSquareFD,FDquartile(top1/4thFD)," \
-        "PercentFD_greater_than_%.2f,MeanDVARS" % (threshold,threshold)
+    with open(out_file, 'w') as f:
+        f.write("Subject, Scan, MeanFD_Power, MeanFD_Jenkinson, "
+                "NumFD_greater_than_{0:.2f}, rootMeanSquareFD, "
+                "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f},"
+                "MeanDVARS".format(threshold, threshold))
 
-        f.write("%s," % subject_id)
-        f.write("%s," % scan_id)
-
-        f.write('%.4f,' % meanFD_Power)
-
-        f.write('%.4f,' % meanFD_Jenkinson)
-
-        f.write('%.4f,' % numFD)
-
-        f.write('%.4f,' % rmsFD)
-
-        f.write('%.4f,' % FDquartile)
-
-        f.write('%.4f,' % percentFD)
-
-        f.write('%.4f' % meanDVARS)
-
+        f.write("{0}, {1}".format(subject_id, scan_id)
+        f.write('{0:.4f}, {1:.4f}'.format(meanFD_Power, meanFD_Jenkinson))
+        f.write('{0:.4f}, {1:.4f}'.format(numFD, rmsFD))
+        f.write('{0:.4f}, {1:.4f}'.format(FDquartile, percentFD)))
+        f.write('{0:.4f}'.format(meanDVARS))
     
     return out_file
 
@@ -889,15 +875,15 @@ def calculate_DVARS(rest, mask):
     rest_data = nib.load(rest).get_data().astype(np.float32)
     mask_data = nib.load(mask).get_data().astype('bool')
     
-    #square of relative intensity value for each voxel across
-    #every timepoint 
-    data = np.square(np.diff(rest_data, axis = 3))
-    #applying mask, getting the data in the brain only
+    # square of relative intensity value for each voxel across every timepoint
+    data = np.square(np.diff(rest_data, axis=3))
+
+    # applying mask, getting the data in the brain only
     data = data[mask_data]
-    #square root and mean across all timepoints inside mask
+
+    # square root and mean across all timepoints inside mask
     DVARS = np.sqrt(np.mean(data, axis=0))
-    
-    
+
     np.save(out_file, DVARS)
     
     return out_file
