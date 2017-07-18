@@ -56,7 +56,7 @@ def change_itk_transform_type(input_affine_file):
         for line in f:
             if 'Transform:' in line:
                 if 'MatrixOffsetTransformBase_double_3_3' in line:
-                    transform_line = 'Transform: AffineTransform_double_3_3'
+                    transform_line = 'Transform: AffineTransform_double_3_3\n'
                     new_file_lines.append(transform_line)
             else:
                 new_file_lines.append(line)
