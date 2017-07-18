@@ -838,10 +838,10 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
                 "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f},"
                 "MeanDVARS".format(threshold, threshold))
 
-        f.write("{0}, {1}".format(subject_id, scan_id)
+        f.write("{0}, {1}".format(subject_id, scan_id))
         f.write('{0:.4f}, {1:.4f}'.format(meanFD_Power, meanFD_Jenkinson))
         f.write('{0:.4f}, {1:.4f}'.format(numFD, rmsFD))
-        f.write('{0:.4f}, {1:.4f}'.format(FDquartile, percentFD)))
+        f.write('{0:.4f}, {1:.4f}'.format(FDquartile, percentFD))
         f.write('{0:.4f}'.format(meanDVARS))
     
     return out_file
