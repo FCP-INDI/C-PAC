@@ -118,11 +118,11 @@ def calc_residuals(subject,
     selector : dictionary
         Dictionary of selected regressors.  Keys are  represented as a string of the regressor name and keys 
         are True/False.  See notes for an example.
-    wm_mask_file : string, optional
+    wm_sig_file : string, optional
         Path to subject's white matter mask (in the same space as the subject's functional file)
-    csf_mask_file : string, optional
+    csf_sig_file : string, optional
         Path to subject's cerebral spinal fluid mask (in the same space as the subject's functional file)
-    gm_mask_file : string, optional
+    gm_sig_file : string, optional
         Path to subject's grey matter mask (in the same space as the subject's functional file)
     compcor_ncomponents : integer, optional
         The first `n` principal of CompCor components to use as regressors.  Default is 0.
