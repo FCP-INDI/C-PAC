@@ -1687,10 +1687,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     tmp.leaf_node = (strat.leaf_node)
                     tmp.out_file = str(strat.leaf_out_file)
 
-                    # This line is needed here for some reason, otherwise the connection
-                    # between func_preproc and nuisance will break - even though this
-                    # workflow has nothing to do with it - but excluding this line
-                    # below removes the leaf node from the new forked strat
+                    # This line is needed here for some reason, otherwise the
+                    # connection between func_preproc and nuisance will
+                    # break - even though this workflow has nothing to do with
+                    # it - but excluding this line below removes the leaf node
+                    # from the new forked strat
                     tmp.leaf_out_file = str(strat.leaf_out_file)
 
                     tmp.name = list(strat.name)
@@ -1698,7 +1699,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     new_strat_list.append(strat)
 
                 strat.append_name(func_to_anat_bbreg.name)
-                # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
                 strat.update_resource_pool({'mean_functional_in_anat': (
                 func_to_anat_bbreg, 'outputspec.anat_func'),
@@ -2024,13 +2024,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter += 1
     if 1 in c.runFrequencyFiltering:
         workflow_bit_id['frequency_filter'] = workflow_counter
+        filter_imports = ['import os', 'import nibabel as nb',
+                          'import numpy as np',
+                          'from scipy.fftpack import fft, ifft']
         for strat in strat_list:
             frequency_filter = pe.Node(
                 util.Function(input_names=['realigned_file',
                                            'bandpass_freqs',
                                            'sample_period'],
                               output_names=['bandpassed_file'],
-                              function=bandpass_voxels),
+                              function=bandpass_voxels,
+                              imports=filter_imports),
                 name='frequency_filter_%d' % num_strat)
 
             frequency_filter.iterables = (
@@ -2944,8 +2948,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'roi_timeseries_%d' % num_strat)
 
             if "Avg" in sca_analysis_dict.keys():
-                # same workflow, except to run TSE and send it to the resource pool
-                # so that it will not get sent to SCA
+                # same workflow, except to run TSE and send it to the resource
+                # pool so that it will not get sent to SCA
                 resample_functional_to_roi_for_sca = pe.Node(
                     interface=fsl.FLIRT(),
                     name='resample_functional_to_roi_for_sca_%d' % num_strat)
@@ -2961,8 +2965,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'roi_timeseries_for_sca_%d' % num_strat)
 
             if "MultReg" in sca_analysis_dict.keys():
-                # same workflow, except to run TSE and send it to the resource pool
-                # so that it will not get sent to SCA
+                # same workflow, except to run TSE and send it to the resource
+                # pool so that it will not get sent to SCA
                 resample_functional_to_roi_for_multreg = pe.Node(
                     interface=fsl.FLIRT(),
                     name='resample_functional_to_roi_for_mult_reg_%d' % num_strat)
