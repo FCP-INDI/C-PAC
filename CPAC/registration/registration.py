@@ -604,6 +604,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calculate_ants_warp.inputs.output_warped_image = True
     calculate_ants_warp.inputs.initial_moving_transform_com = 0
     '''
+    reg_imports = ['import os', 'import subprocess']
     calculate_ants_warp = \
         pe.Node(interface=util.Function(input_names=['anatomical_brain',
                                                      'reference_brain',
@@ -611,7 +612,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
                                                      'reference_skull'],
                                         output_names=['warp_list',
                                                       'warped_image'],
-                                        function=hardcoded_reg),
+                                        function=hardcoded_reg,
+                                        imports=reg_imports),
                 name='calc_ants_warp')
     calculate_ants_warp.interface.num_threads = num_threads
 
