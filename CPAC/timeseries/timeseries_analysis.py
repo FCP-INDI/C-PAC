@@ -492,9 +492,7 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
     wflow.connect(timeseries_surface, 'out_file',
                   outputNode, 'surface_outputs')
 
-
     return wflow
-    
     
     
 def get_normalized_moments(wf_name='normalized_moments'):
@@ -553,7 +551,6 @@ def get_normalized_moments(wf_name='normalized_moments'):
     return wflow
 
 
-
 def gen_roi_timeseries(data_file,
                        template,
                        output_type):
@@ -606,7 +603,6 @@ def gen_roi_timeseries(data_file,
     sorted_list = []
     node_dict = {}
     out_list = []
-
 
     # extracting filename from input template
     tmp_file = os.path.splitext(
@@ -786,6 +782,7 @@ def gen_voxel_timeseries(data_file,
         out_list.append(numpy_file)
 
     return out_list
+
 
 def gen_vertices_timeseries(rh_surface_file,
                         lh_surface_file):

@@ -194,7 +194,6 @@ def grab_raw_score_filepath(filepath, resource_id):
     return raw_score_path
 
 
-
 def find_power_params_file(filepath, resource_id, series_id):
 
     import os
@@ -226,7 +225,6 @@ def find_power_params_file(filepath, resource_id, series_id):
         raise Exception(err)
 
     return power_params_file
-
 
 
 def extract_power_params(power_params_lines, power_params_filepath):
@@ -263,7 +261,6 @@ def extract_power_params(power_params_lines, power_params_filepath):
 
     return meanfd_power, meanfd_jenk, meandvars
  
-
 
 def create_output_dict_list(nifti_globs, pipeline_output_folder, \
                                 get_motion=False, get_raw_score=False):
@@ -332,7 +329,6 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
     return output_dict_list
 
 
-
 def create_output_df_dict(output_dict_list, inclusion_list=None):
 
     import pandas as pd
@@ -355,7 +351,6 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     return output_df_dict
 
 
-
 def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
                        get_motion, get_raw_score):
 
@@ -367,7 +362,6 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
     return output_df_dict
-
 
 
 def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
@@ -414,7 +408,6 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     return pheno_df
 
 
-
 def pheno_series_to_repeated_measures(pheno_df, series_list, \
     repeated_sessions=False):
 
@@ -459,7 +452,6 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
     return pheno_df
 
 
-
 def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     # this is for repeated measures only.
@@ -490,7 +482,6 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
             dropped_parts.append(part_ID)
 
     return pheno_df, dropped_parts
-
 
 
 def prep_analysis_df_dict(config_file, pipeline_output_folder):
@@ -578,7 +569,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                                         full_inclusion_list, \
                                         get_motion, \
                                         get_raw_score)
-
 
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
@@ -760,7 +750,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
 
     return analysis_dict
-
 
 
 def run(config_file, pipeline_output_folder):
