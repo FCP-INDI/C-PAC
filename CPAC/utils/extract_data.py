@@ -380,10 +380,7 @@ def extract_data(c, param_map):
         raise
 
     finally:
-
         f.close()
-
-
 
 
 def generate_supplementary_files(output_path, subject_list_name):
@@ -399,8 +396,11 @@ def generate_supplementary_files(output_path, subject_list_name):
     subject_list_name = subject_list_name
 
     try:
-        subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_' \
-                'subject_list_%s.yml' % subject_list_name), 'r'))
+        sublist_file = os.path.join(output_path,
+                                    'CPAC_subject_list_%s.yml'
+                                    % subject_list_name)
+        with open(sublist_file, 'r') as f:
+            subjects_list = yaml.load(f)
     except:
         print 'Subject list couldn\'t be read!'
         print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' \
@@ -416,7 +416,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     try:
         for sub in subjects_list:
-            
             if sub['unique_id']:
                 subject_id = sub['subject_id'] + "_" + sub['unique_id']
             else:
@@ -464,12 +463,10 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         data_list.append(list1)
 
-
-
     # generate the phenotypic file templates for group analysis
 
-    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' \
-            % subject_list_name)
+    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv'
+                             % subject_list_name)
 
     try:
         f = open(file_name, 'wb')
@@ -489,7 +486,6 @@ def generate_supplementary_files(output_path, subject_list_name):
     f.close()
 
     print "Template Phenotypic file for group analysis - %s" % file_name
-
 
     # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
@@ -518,8 +514,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
-
     if (len(session_set) > 1):
 
         file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
@@ -543,8 +537,6 @@ def generate_supplementary_files(output_path, subject_list_name):
                 writer.writerow([sub, session, ''])
 
         f.close()
-
-
 
     if (len(scan_set) > 1):
 
@@ -570,13 +562,11 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
-
-
     # generate the group analysis subject lists
 
-    file_name = os.path.join(output_path, 'participant_list_group_analysis' \
-            '_%s.csv' % subject_list_name)
+    file_name = os.path.join(output_path,
+                             'participant_list_group_analysis_%s.csv'
+                             % subject_list_name)
 
     try:
         f = open(file_name, 'w')
@@ -592,10 +582,8 @@ def generate_supplementary_files(output_path, subject_list_name):
     for sub in sorted(subID_set):
         print >> f, sub
 
-
     print "Participant list required later for group analysis - %s" % file_name
     f.close()
-
 
     # generate the group analysis subject lists for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
@@ -622,8 +610,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
-
     if (len(session_set) > 1):
 
         file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
@@ -647,8 +633,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
-
     if (len(scan_set) > 1):
 
         file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
@@ -671,8 +655,6 @@ def generate_supplementary_files(output_path, subject_list_name):
                 print >> f, sub + ',' + scan
 
         f.close()
-
-
 
 
 def read_csv(csv_input):

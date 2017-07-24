@@ -262,8 +262,8 @@ def extract_power_params(power_params_lines, power_params_filepath):
     return meanfd_power, meanfd_jenk, meandvars
  
 
-def create_output_dict_list(nifti_globs, pipeline_output_folder, \
-                                get_motion=False, get_raw_score=False):
+def create_output_dict_list(nifti_globs, pipeline_output_folder,
+                            get_motion=False, get_raw_score=False):
 
     import os
     import glob

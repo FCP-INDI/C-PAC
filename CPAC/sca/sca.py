@@ -324,12 +324,15 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       outputNode, 'temp_reg_map_z_files')
 
     elif which == 'RT':
+        map_roi_imports = ['import os', 'import numpy as np']
+
         # get roi order and send to output node for raw outputs
         get_roi_order = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
                                               output_names=['labels',
                                                             'maps'],
-                                              function=map_to_roi),
+                                              function=map_to_roi,
+                                              imports=map_roi_imports),
                                 name='get_roi_order')
 
         wflow.connect(split, 'out_files', get_roi_order, 'maps')
@@ -349,7 +352,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       outputNode, 'temp_reg_map_files')
 
         # get roi order and send to output node for z-stat outputs
-        map_roi_imports = ['import os', 'import numpy as np']
         get_roi_order_zstat = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
                                                     output_names=['labels',

@@ -13,6 +13,7 @@ sess_kw = '{session}'
 ser_kw = '{series}'
 kw_strs = [site_kw, ppant_kw, sess_kw, ser_kw]
 
+
 def read_subj_txtfile(filepath):
     with open(filepath,"r") as f:
         sub_ids = f.read().splitlines()
@@ -170,7 +171,7 @@ def extract_keyword_from_path(filepath, keyword, template):
     fp_split = filepath.split('/')
 
     # Get logger
-    #logger = logging.getLogger('sublist_builder')
+    # logger = logging.getLogger('sublist_builder')
 
     # Extract directory name of the keyword, from the template
     kw_dirname = [dir for dir in temp_split if keyword in dir]
@@ -191,7 +192,8 @@ def extract_keyword_from_path(filepath, keyword, template):
 
         # Replace other keywords in prefix/suffix with wildcards '*'
         for kw in kw_strs:
-            # If keyword was found, grab any text in that position to split out
+            # If keyword was found, grab any text in that position to split
+            # out
             if kw in kw_prefix:
                 kw_prefix = kw_prefix.replace(kw, '*')
             if kw in kw_suffix:
@@ -239,7 +241,8 @@ def extract_keyword_from_path(filepath, keyword, template):
         if kw_suffix != '':
             # Find the next '*' from the left
             next_star_in_suffix = kw_suffix.find('*')
-            # If there is another '*', grab non-wildcards up until '*' as delim
+            # If there is another '*', grab non-wildcards up until '*' as
+            # delim
             if next_star_in_suffix >= 0:
                 suffix_delim = kw_suffix[:next_star_in_suffix]
             # Otherwise, just use the whole prefix as delim
@@ -263,14 +266,16 @@ def extract_keyword_from_path(filepath, keyword, template):
         # Check to see if we split out everything, if so, just grab
         # whole directory
         if key_str == '':
-            msg = 'Could not distinguish %s from filepath %s using the file ' \
-                  'pattern template %s.\nInstead, using entire directory: %s ' \
-                  'for %s.\nCheck data organization and file pattern template' \
+            msg = 'Could not distinguish %s from filepath %s using the ' \
+                  'file pattern template %s.\nInstead, using entire ' \
+                  'directory: %s for %s.\nCheck data organization and ' \
+                  'file pattern template' \
                   % (keyword, filepath, template, key_str, keyword)
             logger.info(msg)
             key_str = fp_split[kw_idx]
     else:
-        #logger.info('Keyword %s not found in template %s' % (keyword, template))
+        # logger.info('Keyword %s not found in template %s'
+        #             % (keyword, template))
         key_str = ''
 
     # Remove any nifti extensions
@@ -311,7 +316,7 @@ def extract_scan_params(scan_params_csv):
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
         site = dict_row['Site']
-        site_dict[site] = {key.lower() : val for key, val in dict_row.items()\
+        site_dict[site] = {key.lower(): val for key, val in dict_row.items()\
                            if key != 'Site'}
         # Assumes all other fields are formatted properly, but TR might not
         site_dict[site]['tr'] = site_dict[site].pop('tr (seconds)')
@@ -529,13 +534,13 @@ def return_local_filepaths(path_template, bids_flag=False):
     logger = logging.getLogger('sublist_builder')
 
     # Gather local files
-    if bids_flag:
-        file_pattern = path_template
-    else:
-        file_pattern = path_template.replace('{site}', '*').\
-                       replace('{participant}', '*').\
-                       replace('{session}', '*').\
-                       replace('{series}', '*')
+    # if bids_flag:
+    #     file_pattern = path_template
+    # else:
+    file_pattern = path_template.replace('{site}', '*').\
+                   replace('{participant}', '*').\
+                   replace('{session}', '*').\
+                   replace('{series}', '*')
 
     local_filepaths = glob.glob(file_pattern)
 
@@ -623,8 +628,8 @@ def return_s3_filepaths(path_template, creds_path=None, bids_flag=False):
     try:
         bucket = fetch_creds.return_bucket(creds_path, bucket_name)
     except Exception as exc:
-        err_msg = 'There was an error in retrieving S3 bucket: %s.\nError: %s'\
-                  %(bucket_name, exc)
+        err_msg = 'There was an error in retrieving S3 bucket: %s.\n' \
+                  'Error: %s' % (bucket_name, exc)
         logger.error(err_msg)
         raise Exception(err_msg)
 
@@ -707,8 +712,8 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
         try:
             bucket = fetch_creds.return_bucket(creds_path, bucket_name)
         except Exception as exc:
-            err_msg = 'There was an error in retrieving S3 bucket: %s.\nError: %s'\
-                      %(bucket_name, exc)
+            err_msg = 'There was an error in retrieving S3 bucket: %s.\n' \
+                      'Error: %s' % (bucket_name, exc)
             raise Exception(err_msg)
 
         # Get filepaths from S3 with prefix
@@ -733,10 +738,27 @@ def return_bids_template(base_dir, scan_type, creds_path=None):
 
     # Now replace file_path intermediate dirs with *
     if file_path:
+        orig_path = file_path
         rel_path = file_path.replace(base_dir, '').lstrip('/')
         interm_dirs = rel_path.split('/')[:-2]
         for imd in interm_dirs:
-            file_path = file_path.replace(imd, '*')
+            if 'site-' in imd:
+                file_path = file_path.replace(imd, '{site}')
+            if 'sub-' in imd:
+                file_path = file_path.replace(imd, '{participant}')
+            if 'ses-' in imd:
+                file_path = file_path.replace(imd, '{session}')
+            else:
+                file_path = file_path.replace(imd, '*')
+
+        if '{participant}' not in file_path:
+            raise Exception('[!] No participant ID (sub-<etc.>) tag found '
+                            'in BIDS filepath:\n{0}\n'.format(orig_path))
+        if '{site}' not in file_path:
+            site_idx = file_path.split('/').index('{participant}') - 1
+            new_split = file_path.split('/')
+            new_split[site_idx] = '{site}'
+            file_path = '/'.join(new_split)
     else:
         err_msg = 'Could not find any files in directory, check files!'
         raise Exception(err_msg)
@@ -853,15 +875,23 @@ def build_sublist(data_config_yml):
         print 'Gathering functional files...'
         func_paths = return_local_filepaths(func_template, bids_flag)
 
-    # Get directory indicies
+    # Get directory indices
     # If data is BIDS
     if bids_flag:
         anat_site_idx = func_site_idx = None
         anat_path_dirs = anat_template.split('/')
-        anat_ppant_idx = func_ppant_idx = anat_path_dirs.index('*')
-        anat_sess_idx = func_sess_idx = len(anat_path_dirs)-3
-        # If session index is ppant index, then no session dir
-        if anat_ppant_idx == anat_sess_idx:
+
+        anat_ppant_idx = func_ppant_idx = \
+            anat_path_dirs.index('{participant}')
+
+        if '{site}' in anat_path_dirs:
+            anat_site_idx = func_site_idx = anat_path_dirs.index('{site}')
+        else:
+            anat_site_idx = func_site_idx = None
+
+        if '{session}' in anat_path_dirs:
+            anat_sess_idx = func_sess_idx = anat_path_dirs.index('{session}')
+        else:
             anat_sess_idx = func_sess_idx = None
 
     # Filter out unwanted anat and func filepaths
@@ -878,8 +908,8 @@ def build_sublist(data_config_yml):
     # If all data is filtered out, raise exception
     if len(anat_paths) == 0 or len(func_paths) == 0:
         err_msg = 'Unable to find any files after filtering sites and '\
-                  'subjects! Check site and subject inclusion fields as well '\
-                  'as filepaths and template pattern!'
+                  'subjects! Check site and subject inclusion fields as ' \
+                  'well as filepaths and template pattern!'
         logger.error(err_msg)
         raise Exception(err_msg)
 
@@ -895,12 +925,16 @@ def build_sublist(data_config_yml):
             anat_sp = anat.split('/')
             subj = anat_sp[anat_ppant_idx]
             try:
+                site = anat_sp[anat_site_idx]
+                print "site: ", site
+            except TypeError:
+                site = None
+            try:
                 sess = anat_sp[anat_sess_idx]
             except TypeError:
                 sess = "ses-1"
-            site = ''
-            subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
-                      'subject_id' : subj, 'unique_id' : sess}
+            subj_d = {'anat': anat, 'creds_path': creds_path, 'func': {},
+                      'subject_id': subj, 'unique_id': sess, 'site_id': site}
             tmp_key = '_'.join([subj, site, sess])
             tmp_dict[tmp_key] = subj_d
 
@@ -910,20 +944,25 @@ def build_sublist(data_config_yml):
             func_sp = func.split('/')
             subj = func_sp[func_ppant_idx]
             try:
-              sess = func_sp[func_sess_idx]
+                site = func_sp[func_site_idx]
+                print "site: ", site
             except TypeError:
-              sess = "ses-1"
-            site = ''
+                site = ''
+            try:
+                sess = func_sp[func_sess_idx]
+            except TypeError:
+                sess = "ses-1"
+
             scan_params = None
             # TODO: FIX BIDS_METADATA FS.OPENER/ ETC.
-            #scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
-            #                                                   func)
+            scan_params = bids_metadata.get_metadata_for_nifti(bids_base_dir,
+                                                               func)
 
             # If there is no scan sub-folder under session, make scan
             # the name of the image itself without extension
             if func_sess_idx == len(func_sp)-2:
                 scan = func_sp[-1].split('.nii')[0]
-            # Othwerwise, there use scan sub folder
+            # Otherwise, there use scan sub folder
             else:
                 scan = func_sp[-2]
 
@@ -934,8 +973,8 @@ def build_sublist(data_config_yml):
             try:
                 subj_d = tmp_dict[tmp_key]
             except KeyError as exc:
-                logger.info('Unable to find anatomical image for %s. Skipping...'\
-                            % tmp_key)
+                logger.info('Unable to find anatomical image for %s. '
+                            'Skipping...' % tmp_key)
                 continue
 
             # Set the rest dictionary with the scan
@@ -943,16 +982,19 @@ def build_sublist(data_config_yml):
             subj_d['func']["scan_parameters"] = scan_params
             # And replace it back in the dictionary
             tmp_dict[tmp_key] = subj_d
+
     else:
         for anat in anat_paths:
-            subj = extract_keyword_from_path(anat, "{participant}", anat_template)
+            subj = extract_keyword_from_path(anat, "{participant}",
+                                             anat_template)
             try:
-                sess = extract_keyword_from_path(anat, "{session}", anat_template)
+                sess = extract_keyword_from_path(anat, "{session}",
+                                                 anat_template)
             except TypeError:
                 sess = "ses-1"
             site = extract_keyword_from_path(anat, "{site}", anat_template)
-            subj_d = {'anat' : anat, 'creds_path' : creds_path, 'func' : {},
-                      'subject_id' : subj, 'unique_id' : sess}
+            subj_d = {'anat': anat, 'creds_path': creds_path, 'func': {},
+                      'subject_id': subj, 'unique_id': sess}
             tmp_key = '_'.join([subj, site, sess])
             tmp_dict[tmp_key] = subj_d
 
@@ -960,9 +1002,11 @@ def build_sublist(data_config_yml):
         for func in func_paths:
             func_sp = func.split('/')
 
-            subj = extract_keyword_from_path(func, "{participant}", func_template)
+            subj = extract_keyword_from_path(func, "{participant}",
+                                             func_template)
             try:
-                sess = extract_keyword_from_path(func, "{session}", func_template)
+                sess = extract_keyword_from_path(func, "{session}",
+                                                 func_template)
             except TypeError:
                 sess = "ses-1"
             site = extract_keyword_from_path(func, "{site}", func_template)
@@ -971,8 +1015,8 @@ def build_sublist(data_config_yml):
                 try:
                     scan_params = site_scan_params[site]
                 except KeyError as exc:
-                    print 'Site %s missing from scan parameters csv, skipping...'\
-                          % site
+                    print 'Site %s missing from scan parameters csv, ' \
+                          'skipping...' % site
 
             # Build tmp key and get subject dictionary from tmp dictionary
             tmp_key = '_'.join([subj, site, sess])
@@ -980,14 +1024,15 @@ def build_sublist(data_config_yml):
             try:
                 subj_d = tmp_dict[tmp_key]
             except KeyError as exc:
-                logger.info('Unable to find anatomical image for %s. Skipping...'\
-                            % tmp_key)
+                logger.info('Unable to find anatomical image for %s. '
+                            'Skipping...' % tmp_key)
                 continue
 
             # If there is no scan sub-folder, make scan
             # the name of the image itself without extension
             if "{series}" in func_template:
-                scan = extract_keyword_from_path(func, "{series}", func_template)
+                scan = extract_keyword_from_path(func, "{series}",
+                                                 func_template)
             else:
                 scan = func_sp[-1].split('.nii')[0]
 
@@ -1004,8 +1049,8 @@ def build_sublist(data_config_yml):
             sublist.append(data_bundle)
     # Check to make sure subject list has at least one valid data bundle
     if len(sublist) == 0:
-        err_msg = 'Unable to find both anatomical and functional data for any '\
-                  'subjects. Check data organization and file patterns!'
+        err_msg = 'Unable to find both anatomical and functional data for ' \
+                  'any subjects. Check data organization and file patterns!'
         logger.error(err_msg)
         raise Exception(err_msg)
 
