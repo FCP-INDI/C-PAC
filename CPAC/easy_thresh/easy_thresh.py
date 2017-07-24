@@ -177,7 +177,7 @@ def easy_thresh(wf_name):
                                                         'rendered_image']),
                          name='outputspec')
 
-    ### fsl easythresh 
+    # fsl easythresh
     # estimate image smoothness
     smooth_estimate = pe.MapNode(interface=fsl.SmoothEstimate(),
                                     name='smooth_estimate',
@@ -187,11 +187,11 @@ def easy_thresh(wf_name):
     zstat_mask = pe.MapNode(interface=fsl.MultiImageMaths(),
                                   name='zstat_mask',
                                   iterfield=['in_file'])
-    #operations to perform
+    # operations to perform
     #-mas use (following image>0) to mask current image
     zstat_mask.inputs.op_string = '-mas %s'
 
-    #fslcpgeom
+    # fslcpgeom
     #copy certain parts of the header information (image dimensions, 
     #voxel dimensions, voxel dimensions units string, image orientation/origin 
     #or qform/sform info) from one image to another
@@ -222,78 +222,83 @@ def easy_thresh(wf_name):
 #    #defines the cluster cordinates
 #    cluster.inputs.out_localmax_txt_file = True
 
-    cluster = pe.MapNode(util.Function(input_names =  ['in_file',
-                                                       'volume', 
-                                                       'dlh',
-                                                       'threshold', 
-                                                       'pthreshold', 
-                                                       'parameters'],
-                                       output_names = ['index_file', 
-                                                       'threshold_file', 
-                                                       'localmax_txt_file'],
+    cluster = pe.MapNode(util.Function(input_names=['in_file',
+                                                    'volume',
+                                                    'dlh',
+                                                    'threshold',
+                                                    'pthreshold',
+                                                    'parameters'],
+                                       output_names=['index_file',
+                                                     'threshold_file',
+                                                     'localmax_txt_file'],
                                        function = call_cluster),
-                                       name = 'cluster',
-                                       iterfield = ['in_file', 'volume', 'dlh'])
+                         name='cluster',
+                         iterfield=['in_file', 'volume', 'dlh'])
 
-    #max and minimum intensity values
+    # max and minimum intensity values
     image_stats = pe.MapNode(interface=fsl.ImageStats(),
                              name='image_stats',
                              iterfield=['in_file'])
     image_stats.inputs.op_string = '-R'
 
-
-    #create tuple of z_threshold and max intensity value of threshold file
-    create_tuple = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'],
+    # create tuple of z_threshold and max intensity value of threshold file
+    create_tuple = pe.MapNode(util.Function(input_names=['infile_a',
+                                                         'infile_b'],
                                             output_names=['out_file'],
                                             function=get_tuple),
-                                            name='create_tuple',
-                                            iterfield=['infile_b'])
+                              name='create_tuple',
+                              iterfield=['infile_b'])
 
-
-    #colour activation overlaying
+    # colour activation overlaying
     overlay = pe.MapNode(interface=fsl.Overlay(),
-                            name='overlay',
-                            iterfield=['stat_image', 'stat_thresh'])
+                         name='overlay',
+                         iterfield=['stat_image', 'stat_thresh'])
     overlay.inputs.transparency = True
     overlay.inputs.auto_thresh_bg = True
     overlay.inputs.out_type = 'float'
 
-
-    #colour rendering
+    # colour rendering
     slicer = pe.MapNode(interface=fsl.Slicer(), name='slicer',
-                           iterfield=['in_file'])
-    #set max picture width
+                        iterfield=['in_file'])
+    # set max picture width
     slicer.inputs.image_width = 750
     # set output all axial slices into one picture
     slicer.inputs.all_axial = True
 
-    #function mapnode to get the standard fsl brain image 
-    #based on parameters as FSLDIR,MNI and voxel size
+    # function mapnode to get the standard fsl brain image based on parameters
+    # as FSLDIR,MNI and voxel size
+    get_bg_imports = ['import os', 'from nibabel import load']
     get_backgroundimage = pe.MapNode(util.Function(input_names=['in_file',
-                                                                  'file_parameters'],
-                                                     output_names=['out_file'],
-                            function=get_standard_background_img),
-                            name='get_bckgrndimg1', iterfield=['in_file'])
+                                                                'file_parameters'],
+                                                   output_names=['out_file'],
+                                                   function=get_standard_background_img,
+                                                   imports=get_bg_imports),
+                                     name='get_bckgrndimg1',
+                                     iterfield=['in_file'])
 
-    #function node to get the standard fsl brain image
-    #outputs single file
+    # function node to get the standard fsl brain image
+    # outputs single file
     get_backgroundimage2 = pe.Node(util.Function(input_names=['in_file',
                                                               'file_parameters'],
-                                                     output_names=['out_file'],
-                            function=get_standard_background_img),
-                            name='get_backgrndimg2')
+                                                 output_names=['out_file'],
+                                                 function=get_standard_background_img,
+                                                 imports=get_bg_imports),
+                                   name='get_backgrndimg2')
 
-    #connections
-    easy_thresh.connect(inputnode, 'z_stats', smooth_estimate, 'zstat_file' )
-    easy_thresh.connect(inputnode, 'merge_mask', smooth_estimate, 'mask_file' )
+    # connections
+    easy_thresh.connect(inputnode, 'z_stats', smooth_estimate, 'zstat_file')
+    easy_thresh.connect(inputnode, 'merge_mask', smooth_estimate, 'mask_file')
 
     easy_thresh.connect(inputnode, 'z_stats', zstat_mask, 'in_file')
     easy_thresh.connect(inputnode, 'merge_mask', zstat_mask, 'operand_files')
 
-    easy_thresh.connect(zstat_mask, 'out_file', get_backgroundimage, 'in_file' )
-    easy_thresh.connect(inputnode, 'parameters', get_backgroundimage, 'file_parameters')
+    easy_thresh.connect(zstat_mask, 'out_file', get_backgroundimage,
+                        'in_file')
+    easy_thresh.connect(inputnode, 'parameters', get_backgroundimage,
+                        'file_parameters')
 
-    easy_thresh.connect(get_backgroundimage, 'out_file', copy_geometry, 'infile_a' )
+    easy_thresh.connect(get_backgroundimage, 'out_file', copy_geometry,
+                        'infile_a' )
     easy_thresh.connect(zstat_mask, 'out_file', copy_geometry, 'infile_b')
 
     easy_thresh.connect(copy_geometry, 'out_file', cluster, 'in_file')
@@ -311,16 +316,21 @@ def easy_thresh(wf_name):
     easy_thresh.connect(cluster, 'threshold_file', overlay, 'stat_image')
     easy_thresh.connect(create_tuple, 'out_file', overlay, 'stat_thresh')
 
-    easy_thresh.connect(inputnode, 'merge_mask', get_backgroundimage2, 'in_file' )
-    easy_thresh.connect(inputnode, 'parameters', get_backgroundimage2, 'file_parameters')
+    easy_thresh.connect(inputnode, 'merge_mask', get_backgroundimage2,
+                        'in_file' )
+    easy_thresh.connect(inputnode, 'parameters', get_backgroundimage2,
+                        'file_parameters')
 
-    easy_thresh.connect(get_backgroundimage2, 'out_file', overlay, 'background_image')
+    easy_thresh.connect(get_backgroundimage2, 'out_file', overlay,
+                        'background_image')
 
     easy_thresh.connect(overlay, 'out_file', slicer, 'in_file')
 
-    easy_thresh.connect(cluster, 'threshold_file', outputnode, 'cluster_threshold')
+    easy_thresh.connect(cluster, 'threshold_file', outputnode,
+                        'cluster_threshold')
     easy_thresh.connect(cluster, 'index_file', outputnode, 'cluster_index')
-    easy_thresh.connect(cluster, 'localmax_txt_file', outputnode, 'cluster_localmax_txt')
+    easy_thresh.connect(cluster, 'localmax_txt_file', outputnode,
+                        'cluster_localmax_txt')
     easy_thresh.connect(overlay, 'out_file', outputnode, 'overlay_threshold')
     easy_thresh.connect(slicer, 'out_file', outputnode, 'rendered_image')
 
@@ -350,7 +360,7 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
     
     index_file = os.path.join(os.getcwd(), 'cluster_mask_' + out_name + ext)
     threshold_file = os.path.join(os.getcwd(), 'thresh_' + out_name + ext)
-    localmax_txt_file = os.path.join(os.getcwd(), 'cluster_'+ out_name +'.txt')
+    localmax_txt_file = os.path.join(os.getcwd(), 'cluster_' + out_name + '.txt')
 
     cmd_path = os.path.join(FSLDIR, 'bin/cluster')    
         
@@ -437,22 +447,20 @@ def get_standard_background_img(in_file, file_parameters):
         If nibabel cannot load the input nifti volume
     
     """
-    import os
-    from nibabel import load
+
     try:
 
         img = load(in_file)
         hdr = img.get_header()
         group_mm = int(hdr.get_zooms()[2])
         FSLDIR, MNI = file_parameters
-        print "group_mm -> ", group_mm
-        standard_path = os.path.join(FSLDIR, 'data/standard/', '%s_T1_%smm_brain.nii.gz'% (MNI, group_mm))
-        print "path -> ", standard_path
+        standard_path = \
+            os.path.join(FSLDIR, 'data/standard/',
+                         '{0}_T1_{1}mm_brain.nii.gz'.format(MNI, group_mm))
         return os.path.abspath(standard_path)
 
     except Exception:
-        print "Error while loading background image"
-        raise
+        raise Exception("Error while loading background image")
 
 
 def get_tuple(infile_a, infile_b):
