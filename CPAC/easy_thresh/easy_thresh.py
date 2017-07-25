@@ -195,9 +195,11 @@ def easy_thresh(wf_name):
     #copy certain parts of the header information (image dimensions, 
     #voxel dimensions, voxel dimensions units string, image orientation/origin 
     #or qform/sform info) from one image to another
+    geo_imports = ['import subprocess']
     copy_geometry = pe.MapNode(util.Function(input_names=['infile_a', 'infile_b'],
                                              output_names=['out_file'],
-                                             function=copy_geom),
+                                             function=copy_geom,
+                                             imports=geo_imports),
                                              name='copy_geometry',
                                              iterfield=['infile_a', 'infile_b'])
 
@@ -222,6 +224,7 @@ def easy_thresh(wf_name):
 #    #defines the cluster cordinates
 #    cluster.inputs.out_localmax_txt_file = True
 
+    cluster_imports = ['import os', 'import re', 'import subprocess as sb']
     cluster = pe.MapNode(util.Function(input_names=['in_file',
                                                     'volume',
                                                     'dlh',
@@ -231,7 +234,8 @@ def easy_thresh(wf_name):
                                        output_names=['index_file',
                                                      'threshold_file',
                                                      'localmax_txt_file'],
-                                       function = call_cluster),
+                                       function=call_cluster,
+                                       imports=cluster_imports),
                          name='cluster',
                          iterfield=['in_file', 'volume', 'dlh'])
 
@@ -298,7 +302,7 @@ def easy_thresh(wf_name):
                         'file_parameters')
 
     easy_thresh.connect(get_backgroundimage, 'out_file', copy_geometry,
-                        'infile_a' )
+                        'infile_a')
     easy_thresh.connect(zstat_mask, 'out_file', copy_geometry, 'infile_b')
 
     easy_thresh.connect(copy_geometry, 'out_file', cluster, 'in_file')
@@ -338,10 +342,6 @@ def easy_thresh(wf_name):
 
 
 def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
-    
-    import os
-    import re
-    import subprocess as sb
   
     out_name = re.match('z(\w)*stat(\d)+', os.path.basename(in_file))
     
@@ -353,9 +353,7 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
         out_name= out_name.group(0)
     else:
         out_name = filename
-            
-    print "out_name --> ", out_name
-    
+
     FSLDIR = parameters[0]
     
     index_file = os.path.join(os.getcwd(), 'cluster_mask_' + out_name + ext)
@@ -378,9 +376,6 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
         
     stdout_value, stderr_value = cmd.communicate()
     f.close()
-    
-    print "stdout_value ", stdout_value
-    print "stderr_value ", stderr_value
     
     return index_file, threshold_file, localmax_txt_file
     
@@ -412,16 +407,14 @@ def copy_geom(infile_a, infile_b):
         If fslcpgeom fails
     
     """
-    import subprocess as sb
+
     try:
         out_file = infile_b
-        cmd = sb.Popen(['fslcpgeom',
-                        infile_a, out_file], stdin=sb.PIPE, stdout=sb.PIPE,)
-        stdout_value, stderr_value = cmd.communicate()
+        cmd = ['fslcpgeom', infile_a, out_file]
+        retcode = subprocess.check_output(cmd)
         return out_file
     except Exception:
-        print "Error while using fslcpgeom to copy geometry"
-        raise 
+        raise Exception("Error while using fslcpgeom to copy geometry")
     
 
 def get_standard_background_img(in_file, file_parameters):
