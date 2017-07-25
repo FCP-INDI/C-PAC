@@ -9,7 +9,6 @@ import nipype.interfaces.utility as util
 from CPAC.alff.alff import *
 from CPAC.alff.utils import *
 from nipype.interfaces.afni import preprocess
-from nipype.interfaces.afni import utils as afni_utils
 
 
 def create_alff(wf_name='alff_workflow'):
@@ -183,9 +182,10 @@ def create_alff(wf_name='alff_workflow'):
 
     # standard deviation over frequency
     try:
+        from nipype.interfaces.afni import utils as afni_utils
         stddev_fltrd = pe.Node(interface=afni_utils.TStat(),
                                name='stddev_fltrd')
-    except AttributeError:
+    except ImportError:
         stddev_fltrd = pe.Node(interface=preprocess.TStat(),
                                name='stddev_fltrd')
 
@@ -201,7 +201,7 @@ def create_alff(wf_name='alff_workflow'):
     try:
         stddev_unfltrd = pe.Node(interface=afni_utils.TStat(),
                                  name='stddev_unfltrd')
-    except AttributeError:
+    except UnboundLocalError:
         stddev_unfltrd = pe.Node(interface=preprocess.TStat(),
                                  name='stddev_unfltrd')
 
@@ -215,7 +215,7 @@ def create_alff(wf_name='alff_workflow'):
     # falff calculations
     try:
         falff = pe.Node(interface=afni_utils.Calc(), name='falff')
-    except AttributeError:
+    except UnboundLocalError:
         falff = pe.Node(interface=preprocess.Calc(), name='falff')
 
     falff.inputs.args = '-float'

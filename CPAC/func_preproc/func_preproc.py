@@ -6,7 +6,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
 from nipype.interfaces.afni import preprocess
-from nipype.interfaces.afni import utils as afni_utils
 from CPAC.utils import dbg_file_lineno
 
 
@@ -49,7 +48,7 @@ def create_wf_edit_func(wf_name="edit_func"):
         preproc = pe.Workflow(name=wf_name)
     except:
         logger.info("Error allocating workflow %s." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     # configure the workflow's input spec
@@ -60,7 +59,7 @@ def create_wf_edit_func(wf_name="edit_func"):
                             name='inputspec')
     except:
         logger.info("Error allocating inputspec (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     # configure the workflow's output spec
@@ -69,7 +68,7 @@ def create_wf_edit_func(wf_name="edit_func"):
                              name='outputspec')
     except:
         logger.info("Error allocating output spec (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     # allocate a node to check that the requested edits are
@@ -84,7 +83,7 @@ def create_wf_edit_func(wf_name="edit_func"):
                                name='func_get_idx')
     except:
         logger.info("Error allocating get_idx function node (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     # wire in the func_get_idx node
@@ -94,7 +93,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'in_files' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     try:
@@ -103,7 +102,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'start_idx' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     try:
@@ -112,19 +111,20 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'stop_idx' input to get_idx function node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     # allocate a node to edit the functional file
     try:
+        from nipype.interfaces.afni import utils as afni_utils
         func_drop_trs = pe.Node(interface=afni_utils.Calc(),
                                 name='func_drop_trs')
-    except AttributeError:
+    except ImportError:
         func_drop_trs = pe.Node(interface=preprocess.Calc(),
                                 name='func_drop_trs')
     except:
         logger.info("Error allocating afni Calc node (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     func_drop_trs.inputs.expr = 'a'
@@ -137,7 +137,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'in_file_a' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     try:
@@ -146,7 +146,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'start_idx' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     try:
@@ -155,7 +155,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     except:
         logger.info(
             "Error connecting 'stop_idx' input to afni Calc node (wflow %s)." + \
-            " (%s:%d)" % (wf_name, dbg_file_lineno()))
+            " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     try:
@@ -164,7 +164,7 @@ def create_wf_edit_func(wf_name="edit_func"):
                         outputNode, 'edited_func')
     except:
         logger.info("Error connecting output (wflow %s)." + \
-                    " (%s:%d)" % (wf_name, dbg_file_lineno()))
+                    " (%s:%d)" % (wf_name, dbg_file_lineno()[1]))
         raise
 
     return preproc
@@ -384,9 +384,10 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
                          name='outputspec')
 
     try:
+        from nipype.interfaces.afni import utils as afni_utils
         func_deoblique = pe.Node(interface=afni_utils.Refit(),
                                  name='func_deoblique')
-    except AttributeError:
+    except ImportError:
         func_deoblique = pe.Node(interface=preprocess.Refit(),
                                  name='func_deoblique')
     func_deoblique.inputs.deoblique = True
@@ -397,7 +398,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     try:
         func_reorient = pe.Node(interface=afni_utils.Resample(),
                                 name='func_reorient')
-    except AttributeError:
+    except UnboundLocalError:
         func_reorient = pe.Node(interface=preprocess.Resample(),
                                 name='func_reorient')
 
@@ -413,7 +414,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     try:
         func_get_mean_RPI = pe.Node(interface=afni_utils.TStat(),
                                     name='func_get_mean_RPI')
-    except AttributeError:
+    except UnboundLocalError:
         func_get_mean_RPI = pe.Node(interface=preprocess.TStat(),
                                     name='func_get_mean_RPI')
 
@@ -459,7 +460,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'oned_matrix_save',
                     outputNode, 'oned_matrix_save')
 
-    if use_bet == False:
+    if not use_bet:
 
         func_get_brain_mask = pe.Node(interface=preprocess.Automask(),
                                       name='func_get_brain_mask')
@@ -498,7 +499,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     try:
         func_edge_detect = pe.Node(interface=afni_utils.Calc(),
                                    name='func_edge_detect')
-    except AttributeError:
+    except UnboundLocalError:
         func_edge_detect = pe.Node(interface=preprocess.Calc(),
                                    name='func_edge_detect')
 
@@ -508,7 +509,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     preproc.connect(func_motion_correct_A, 'out_file',
                     func_edge_detect, 'in_file_a')
 
-    if use_bet == False:
+    if not use_bet:
         preproc.connect(func_get_brain_mask, 'out_file',
                         func_edge_detect, 'in_file_b')
     else:
@@ -521,7 +522,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
     try:
         func_mean_skullstrip = pe.Node(interface=afni_utils.TStat(),
                                        name='func_mean_skullstrip')
-    except AttributeError:
+    except UnboundLocalError:
         func_mean_skullstrip = pe.Node(interface=preprocess.TStat(),
                                        name='func_mean_skullstrip')
 

@@ -1291,8 +1291,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     raise
                 logger.info("connected TR")
 
-            # we might prefer to use the slice timing information stored in the NIFTI header
-            # if not, use the value in the scan_params node
+            # we might prefer to use the slice timing information stored in
+            # the NIFTI header if not, use the value in the scan_params node
             logger.info("slice timing pattern %s" % c.slice_timing_pattern[0])
             try:
                 if not "Use NIFTI Header" in c.slice_timing_pattern[0]:
@@ -5210,10 +5210,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Run the pipeline only if the user signifies.
     # otherwise, only construct the pipeline (above)
     if run == 1:
-        try:
-            workflow.write_graph(graph2use='orig')
-        except:
-            pass
+        # try:
+        #     workflow.write_graph(graph2use='orig')
+        # except:
+        #     pass
 
         ## this section creates names for the different branched strategies.
         ## it identifies where the pipeline has forked and then appends the

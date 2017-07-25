@@ -266,7 +266,6 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     return register_func_to_mni
 
 
-
 def create_register_func_to_anat(name='register_func_to_anat'):
     
     """
@@ -323,8 +322,6 @@ def create_register_func_to_anat(name='register_func_to_anat'):
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
 
-  
-
     register_func_to_anat.connect(inputspec, 'func',
                                  linear_reg, 'in_file')
     
@@ -340,9 +337,7 @@ def create_register_func_to_anat(name='register_func_to_anat'):
     register_func_to_anat.connect(linear_reg, 'out_file',
                                  outputspec, 'anat_func_nobbreg')
 
-    
     return register_func_to_anat
-
 
 
 def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):

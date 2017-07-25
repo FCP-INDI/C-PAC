@@ -1,5 +1,4 @@
 from nipype.interfaces.afni import preprocess
-from nipype.interfaces.afni import utils as afni_utils
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -86,9 +85,10 @@ def create_anat_preproc(already_skullstripped=False):
                          name='outputspec')
 
     try:
+        from nipype.interfaces.afni import utils as afni_utils
         anat_deoblique = pe.Node(interface=afni_utils.Refit(),
                                  name='anat_deoblique')
-    except AttributeError:
+    except ImportError:
         anat_deoblique = pe.Node(interface=preprocess.Refit(),
                                  name='anat_deoblique')
 
@@ -97,7 +97,7 @@ def create_anat_preproc(already_skullstripped=False):
     try:
         anat_reorient = pe.Node(interface=afni_utils.Resample(),
                                 name='anat_reorient')
-    except AttributeError:
+    except UnboundLocalError:
         anat_reorient = pe.Node(interface=preprocess.Resample(),
                                 name='anat_reorient')
 
@@ -107,13 +107,12 @@ def create_anat_preproc(already_skullstripped=False):
     if not already_skullstripped:
         anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
                                   name='anat_skullstrip')
-        # anat_skullstrip.inputs.options = '-o_ply'
         anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
 
     try:
         anat_skullstrip_orig_vol = pe.Node(interface=afni_utils.Calc(),
                                            name='anat_skullstrip_orig_vol')
-    except AttributeError:
+    except UnboundLocalError:
         anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
                                            name='anat_skullstrip_orig_vol')
 
