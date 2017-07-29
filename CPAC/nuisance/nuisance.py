@@ -47,7 +47,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         sample_freq = 1./sample_period
         sample_length = data.shape[0]
         
-        data_p = np.zeros(nextpow2(sample_length))
+        data_p = np.zeros(int(nextpow2(sample_length)))
         data_p[:sample_length] = data
         
         LowCutoff, HighCutoff = bandpass_freqs
