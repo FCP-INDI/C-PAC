@@ -56,7 +56,7 @@ class ModelConfig(wx.Frame):
                       comment="Full path to a list of participants to be "
                               "included in the model.\n\nThis should be a "
                               "text file with each participant ID on its "
-                              "own line.\n\n",
+                              "own line.",
                       values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Phenotype/EV File ",
@@ -68,8 +68,8 @@ class ModelConfig(wx.Frame):
                               "file in this format (containing a single "
                               "column listing all subjects run through "
                               "CPAC) was generated along with the main "
-                              "CPAC subject list (see template_"
-                              "phenotypic.csv).",
+                              "CPAC subject list (see phenotypic_template_"
+                              "X.csv).",
                       values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Participant Column Name ",
@@ -81,7 +81,6 @@ class ModelConfig(wx.Frame):
                       values=self.gpa_settings['participant_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
-
         
         load_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
         load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File', (220,10), wx.DefaultSize, 0)
@@ -206,7 +205,7 @@ class ModelConfig(wx.Frame):
                                 'that you wish to include within the same ' \
                                 'model (this is for repeated measures/' \
                                 'within-subject designs).\n\nTip: These ' \
-                                'will be the labels listed under "rest:"" '\
+                                'will be the labels listed under "func:"" '\
                                 'in the original individual-level ' \
                                 'participant list, or the labels in the ' \
                                 'original data directories you marked as ' \

@@ -5205,19 +5205,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
-    ###################### end of workflow ###########
+    # end of workflow
 
     # Run the pipeline only if the user signifies.
     # otherwise, only construct the pipeline (above)
     if run == 1:
-        # try:
-        #     workflow.write_graph(graph2use='orig')
-        # except:
-        #     pass
+        try:
+            workflow.write_graph(graph2use='orig')
+        except:
+            pass
 
-        ## this section creates names for the different branched strategies.
-        ## it identifies where the pipeline has forked and then appends the
-        ## name of the forked nodes to the branch name in the output directory
+        # this section creates names for the different branched strategies.
+        # it identifies where the pipeline has forked and then appends the
+        # name of the forked nodes to the branch name in the output directory
         renamedStrats = []
         forkPoints = []
         forkPointsDict = {}
@@ -5515,7 +5515,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             pipes.append(pipeline_id)
 
         # creates the HTML files used to represent the logging-based status
-        #create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
+        create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
 
         logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
 

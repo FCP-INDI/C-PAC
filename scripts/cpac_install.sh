@@ -78,7 +78,7 @@ ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 # configuration options that are specific to Ubuntu 16.10
 ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev")
 
-conda_packages=("pandas" "cython" "numpy" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2==2.8" "nose" "ipython" "pip" "wxpython")
+conda_packages=("pandas" "cython" "numpy==1.11" "scipy" "matplotlib" "networkx" "traits" "pyyaml" "jinja2==2.7.2" "nose" "ipython" "pip" "wxpython")
 
 pip_packages=("future==0.15.2" "prov" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype" "patsy" "memory_profiler" "psutil" "configparser" "INDI-tools" "fs==0.5.4" "boto3")
 
