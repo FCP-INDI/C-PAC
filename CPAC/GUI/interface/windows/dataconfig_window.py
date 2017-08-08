@@ -319,8 +319,8 @@ class DataConfig(wx.Frame):
             win.Refresh()
             raise ValueError
 
-        path_fields =  ['scanParametersCSV', 'awsCredentialsFile',
-                        'outputSubjectListLocation']
+        path_fields = ['scanParametersCSV', 'awsCredentialsFile',
+                       'outputSubjectListLocation']
 
         try:
             for ctrl in self.page.get_ctrl_list():
@@ -336,8 +336,9 @@ class DataConfig(wx.Frame):
                     subject_list_name = value
 
                 if len(value) == 0:
-                    if name != "bidsBaseDir" and name != "anatomicalTemplate" and \
-                        name != "functionalTemplate":
+                    if name != "bidsBaseDir" and \
+                                    name != "anatomicalTemplate" and \
+                                    name != "functionalTemplate":
                         display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
@@ -462,7 +463,6 @@ class DataConfig(wx.Frame):
                     if self.run(path) >0:
                         self.Close()
 
-
     # Load in data configuration file
     def load(self, event):
 
@@ -532,4 +532,3 @@ class DataConfig(wx.Frame):
 
             # Close dialog
             dlg.Destroy()
-            

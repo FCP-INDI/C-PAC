@@ -695,21 +695,18 @@ def process_s3_paths(s3_filepaths, path_template):
 
 def parse_BIDS_filepaths(bids_filepaths, bids_base_dir, creds_path=None):
 
-    #TODO: SCAN PARAMS FILES!!!
-
     sub_dict = {}
+    json_dict = {}
 
     for path in bids_filepaths:
         # get the stuff after the base dir by itself
+        dirs_path = path.split(bids_base_dir)[1].lstrip('/')
+        dirs = dirs_path.split('/')
+        filename = dirs[-1]
+
         if '.nii' in path:
-            dirs_path = path.split(bids_base_dir)[1]
-            dirs = dirs_path.split('/')
-
-            filename = dirs[-1]
-
             if '.nii' not in filename or '_' not in filename:
                 continue
-
             # 'anat' or 'func'
             type = dirs[-2]
 
@@ -779,6 +776,78 @@ def parse_BIDS_filepaths(bids_filepaths, bids_base_dir, creds_path=None):
                             tmp_dict['func'].update({scan_id: path})
 
                 sub_dict[key] = tmp_dict
+
+        elif '.json' in path:
+            site_id = None
+            sub_id = None
+            ses_id = None
+            scan_id = None
+
+            if len(dirs) > 2:
+                # more specific json
+                for dir in dirs:
+                    if 'sub-' in dir and '.json' not in dir:
+                        sub_id = dir
+                        sub_idx = dirs.index(dir)
+                    if 'ses-' in dir and '.json' not in dir:
+                        ses_id = dir
+                    if '.json' in dir:
+                        scan_id = dir.replace('.json', '')
+            else:
+                # site-level json
+                if len(dirs) > 1:
+                    if '.json' in dirs[1]:
+                        site_id = dirs[0]
+                        if 'task-' in dirs[1]:
+                            scan_id = dirs[1].replace('.json', '')
+                else:
+                    site_id = 'site-1'
+                    if '.json' in dirs[0]:
+                        scan_id = dirs[0].replace('.json', '')
+
+            json_dict[(site_id, sub_id, ses_id, scan_id)] = path
+
+    # grab the scan parameter JSONs, if they are there
+    for id_tuple in json_dict.keys():
+        json_path = json_dict[id_tuple]
+        site_id = id_tuple[0]
+        sub_id = id_tuple[1]
+        ses_id = id_tuple[2]
+        scan_id = id_tuple[3]
+
+        if scan_id:
+            if 'task-' not in scan_id:
+                continue
+        else:
+            continue
+
+        if site_id and not sub_id and not ses_id:
+            # site-level json
+            for id_string in sub_dict.keys():
+                if site_id in id_string:
+                    tmp_dict = sub_dict[id_string]
+                    if 'func' not in tmp_dict.keys():
+                        tmp_dict['func'] = {'scan_parameters': json_path}
+                    else:
+                        if scan_id not in tmp_dict['func']:
+                            tmp_dict['func'].update({'scan_parameters': json_path})
+                    sub_dict[id_string] = tmp_dict
+
+        if sub_id:
+            # more specific
+            for id_string in sub_dict.keys():
+                if sub_id in id_string:
+                    if ses_id:
+                        if ses_id in id_string:
+                            tmp_dict = sub_dict[id_string]
+                    else:
+                        tmp_dict = sub_dict[id_string]
+                    if 'func' not in tmp_dict.keys():
+                        tmp_dict['func'] = {'scan_parameters': json_path}
+                    else:
+                        if scan_id not in tmp_dict['func']:
+                            tmp_dict['func'].update({'scan_parameters': json_path})
+                    sub_dict[id_string] = tmp_dict
 
     return sub_dict
 
