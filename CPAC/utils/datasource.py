@@ -118,15 +118,25 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
         local_path = file_path
 
     # Check image dimensionality
-    img_nii = nib.load(local_path)
-    if img_type == 'anat':
-        if len(img_nii.shape) != 3:
-            raise IOError('File: %s must be an anatomical image with 3 '\
-                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
-    elif img_type == 'func':
-        if len(img_nii.shape) != 4:
-            raise IOError('File: %s must be a functional image with 4 '\
-                          'dimensions but %d dimensions found!' % (local_path,len(img_nii.shape)))
+    if '.nii' in local_path:
+        try:
+            img_nii = nib.load(local_path)
+        except Exception as e:
+            # TODO: come up with a better option for handling rogue S3 files
+            # TODO: that Nibabel chokes on
+            print(str(e))
+            return local_path
+
+        if img_type == 'anat':
+            if len(img_nii.shape) != 3:
+                raise IOError('File: %s must be an anatomical image with 3 '\
+                              'dimensions but %d dimensions found!'
+                              % (local_path, len(img_nii.shape)))
+        elif img_type == 'func':
+            if len(img_nii.shape) != 4:
+                raise IOError('File: %s must be a functional image with 4 '\
+                              'dimensions but %d dimensions found!'
+                              % (local_path, len(img_nii.shape)))
 
     # Return the local path
     return local_path

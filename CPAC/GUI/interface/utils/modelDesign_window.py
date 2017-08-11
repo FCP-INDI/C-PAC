@@ -104,14 +104,22 @@ class ModelDesign(wx.Frame):
         varlist_sizer.Add(var_list_text)
 
         self.page.add_pheno_load_panel(varlist_sizer)
-    
 
         self.page.add(label = 'Contrasts ',
                       control = control.LISTBOX_COMBO,
                       name = 'contrasts',
                       type = dtype.LSTR,
                       values = self.gpa_settings['contrasts'],
-                      comment = 'Specify your contrasts in this window. For example, if two of your available contrasts are EV1 and EV0, you can enter contrast descriptions such as EV1 > EV0 or EV1+ . Consult the User Guide for more information about describing contrasts. Alternatively, you can provide your own custom-written contrasts matrix in a CSV file in the \'Custom Contrasts Matrix\' field below.',
+                      comment = 'Specify your contrasts in this window. '
+                                'For example, if two of your available '
+                                'contrasts are EV1 and EV0, you can enter '
+                                'contrast descriptions such as \'EV1 - EV0 '
+                                '= 0\' or \'EV1 = 0\' . Consult the User '
+                                'Guide for more information about describing '
+                                'contrasts. Alternatively, you can provide '
+                                'your own custom-written contrasts matrix in '
+                                'a CSV file in the \'Custom Contrasts '
+                                'Matrix\' field below.',
                       size = (300,200),
                       combo_type = 4)
 
@@ -123,7 +131,6 @@ class ModelDesign(wx.Frame):
             if name == 'contrasts':
                 ctrl.set_available_contrasts(varlist)
                 ctrl.set_design_matrix(self.dmatrix_obj)
-
 
         self.page.add(label = 'f-Tests ',
                       control = control.LISTBOX_COMBO,
@@ -155,8 +162,6 @@ class ModelDesign(wx.Frame):
                       type=dtype.STR,
                       comment="Full path to the directory where CPAC should place the model files (.mat, .con, .grp) and the outputs of group analysis.",
                       values=self.gpa_settings['output_dir'])
-
-           
 
         self.page.set_sizer()
 

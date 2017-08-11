@@ -2,7 +2,7 @@
 
 def load_config_yml(config_file):
 
-	# loads a configuration YAML file
+    # loads a configuration YAML file
     #
     # input
     #   config_file: full filepath to YAML (.yml) file
@@ -31,7 +31,6 @@ def load_config_yml(config_file):
     return config
 
 
-
 def load_text_file(filepath, label="file"):
 
     # loads a text file and returns the lines in a list
@@ -51,15 +50,14 @@ def load_text_file(filepath, label="file"):
         with open(filepath,"r") as f:
             lines_list = f.readlines()
     except Exception as e:
-    	err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
+        err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
               "Details: %s\n\n" % (label, filepath, e)
-    	raise Exception(err)
+        raise Exception(err)
 
     # get rid of those \n's that love to show up everywhere
     lines_list = [i.rstrip("\n") for i in lines_list]
 
     return lines_list
-
 
 
 def load_pheno_csv_into_df(pheno_file):
@@ -82,9 +80,7 @@ def load_pheno_csv_into_df(pheno_file):
     with open(os.path.abspath(pheno_file),"r") as f:
         pheno_dataframe = pd.read_csv(f)
 
-
     return pheno_dataframe
-
 
 
 def gather_nifti_globs(pipeline_output_folder, resource_list):
@@ -143,7 +139,6 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
         raise Exception(err)
 
     return nifti_globs
-
 
 
 def grab_raw_score_filepath(filepath, resource_id):

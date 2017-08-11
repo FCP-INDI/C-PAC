@@ -1107,5 +1107,7 @@ def build_sublist(data_config_yml):
         out_sublist.write(yaml.dump(sublist, default_flow_style=False,
                                     Dumper=noalias_dumper))
 
+    print('Participant list created - {0}'.format(sublist_out_yml))
+
     # Return the subject list
     return sublist

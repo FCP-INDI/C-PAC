@@ -19,7 +19,6 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
 ID_SUBMIT = 6
 
 
-
 def gen_checkboxgrid_config_string(label, value):
 
     # example inputs
@@ -61,9 +60,7 @@ def gen_checkboxgrid_config_string(label, value):
 
         string = string + "\n"
 
-
     return string
-
 
 
 class Mybook(wx.Treebook):
@@ -246,7 +243,6 @@ class MainFrame(wx.Frame):
         if option == 'edit' or option == 'load':
             self.load()
 
-
     def load(self):
 
         import yaml
@@ -337,7 +333,6 @@ class MainFrame(wx.Frame):
 
                 ctrl.set_value(value)
 
-
     # Test the subject list
     def test_sublist(self, sublist):
         '''
@@ -360,7 +355,6 @@ class MainFrame(wx.Frame):
         import os
         import tempfile
         import nibabel as nb
-
 
         from CPAC.utils.datasource import check_for_s3
 
@@ -435,7 +429,11 @@ class MainFrame(wx.Frame):
                 checked_anat_s3 = True
             # Check if anatomical file exists
             if os.path.exists(anat_file):
-                img = nb.load(anat_file)
+                try:
+                    img = nb.load(anat_file)
+                except Exception as e:
+                    print(e)
+                    continue
                 hdr = img.get_header()
                 dims = hdr.get_data_shape()
                 # Check to make sure it has the proper dimensions
@@ -459,6 +457,9 @@ class MainFrame(wx.Frame):
             # For each functional file
             for func_file in func_files.values():
                 checked_s3 = False
+                if '.nii' not in func_file:
+                    # probably a JSON file
+                    continue
                 if func_file.lower().startswith(s3_str):
                     dl_dir = tempfile.mkdtemp()
                     try:
@@ -472,7 +473,11 @@ class MainFrame(wx.Frame):
                     checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):
-                    img = nb.load(func_file)
+                    try:
+                        img = nb.load(func_file)
+                    except Exception as e:
+                        print(e)
+                        continue
                     hdr = img.get_header()
                     dims = hdr.get_data_shape()
                     # Check to make sure it has the proper dimensions
@@ -497,8 +502,9 @@ class MainFrame(wx.Frame):
             if not_found_flg:
                 err_msg = 'One or more of your input files are missing.\n'
             if bad_dim_flg:
-                err_msg = err_msg + 'One or more of your input images have '\
-                          'improper dimensionality\n'
+                err_msg = ''.join([err_msg, 'One or more of your input '
+                                            'images have improper '
+                                            'dimensionality\n'])
             # If err_msg was populated, display in window
             if err_msg:
                 err_msg = 'ERROR: ' + err_msg + \
@@ -546,8 +552,8 @@ class MainFrame(wx.Frame):
 
         # Collect a sample subject list and parse it in
         testDlg0 = wx.MessageDialog(
-            self, 'This tool will run a quick check on the current pipeline '\
-                  'configuration. Click OK to provide a subject list you ' \
+            self, 'This tool will run a quick check on the current pipeline '
+                  'configuration. Click OK to provide a subject list you '
                   'will be using with this setup.',
             'Subject List',
             wx.OK | wx.ICON_INFORMATION)
@@ -635,8 +641,7 @@ class MainFrame(wx.Frame):
                         isinstance(value, list):
 
                         if not os.path.exists(ctrl.get_selection()) and \
-                            value != 'On/Off':
-
+                                        value != 'On/Off':
                             display(
                                 win, "%s field contains incorrect path. " \
                                 "Please update the path!" % ctrl.get_name())
@@ -691,7 +696,6 @@ class MainFrame(wx.Frame):
 
             if param != '':
                 paramList.append(param.split(','))
-        
 
         # function for file path checking
         def testFile(filepath, paramName, switch):
@@ -814,8 +818,6 @@ class MainFrame(wx.Frame):
             okDlg1.ShowModal()
             okDlg1.Destroy()
 
-
-
     def submit_item(self, event):
 
         import os
@@ -832,7 +834,6 @@ class MainFrame(wx.Frame):
         hash_val = 0
         wf_counter = []
 
-
         for page in self.nb.get_page_list():
 
             switch = page.page.get_switch()
@@ -841,7 +842,6 @@ class MainFrame(wx.Frame):
             validate = False
 
             if switch:
-
                 switch_val = str(switch.get_selection()).lower()
 
                 if switch_val == 'on' or switch_val == 'true' or \
@@ -890,11 +890,10 @@ class MainFrame(wx.Frame):
 
                         # let's make sure this is a NIFTI file
                         if not ctrl.get_selection().endswith(".nii") and \
-                            not ctrl.get_selection().endswith(".nii.gz"):
-
+                                not ctrl.get_selection().endswith(".nii.gz"):
                             display(
-                                win, "The Mask Specification File field " \
-                                    "must contain a NIFTI file (ending in " \
+                                win, "The Mask Specification File field "
+                                    "must contain a NIFTI file (ending in "
                                     ".nii or .nii.gz).", False)
                             return
 
@@ -910,16 +909,14 @@ class MainFrame(wx.Frame):
                         not isinstance(value, list):
 
                         if not os.path.exists(ctrl.get_selection()) and \
-                            value != 'On/Off':
-
+                                        value != 'On/Off':
                             display(
-                                win, "%s field contains incorrect path. " \
-                                     "Please update the path!" \
+                                win, "%s field contains incorrect path. "
+                                     "Please update the path!"
                                      % ctrl.get_name())
                             return
 
                 config_list.append(ctrl)
-
 
         # Get the user's CPAC pipeline name for use in this script
         for config in config_list:
@@ -937,7 +934,6 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self, message="Save CPAC configuration file as ...", defaultDir=os.getcwd(),
             defaultFile=("pipeline_config_%s" % pipeline_name), wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", style=wx.SAVE)
-
 
         if dlg.ShowModal() == wx.ID_OK:
             self.path = dlg.GetPath()
@@ -997,10 +993,8 @@ class MainFrame(wx.Frame):
             self.SetFocus()
             self.Close()
 
-
     def cancel(self, event):
         self.Close()
-
 
     def update_listbox(self, value):
 
@@ -1018,8 +1012,6 @@ class MainFrame(wx.Frame):
                     wx.OK | wx.ICON_ERROR)
                 dlg2.ShowModal()
                 dlg2.Destroy()
-
-
 
     def write(self, path, config_list):
 
@@ -1039,7 +1031,6 @@ class MainFrame(wx.Frame):
                 value = item.get_selection()
                 dtype = item.get_datatype()
                 item_type = item.get_type()
-                
 
                 sample_list = item.get_values()
 
@@ -1049,17 +1040,14 @@ class MainFrame(wx.Frame):
                     if line:
                         print>>f, "#", line
 
-
                 # prints setting names and values (ex. " runAnatomicalProcessing: [1] ") into the
                 # pipeline_config file, using a different set of code depending on the data type
-
 
                 # parameters that are strings (ex. " False " or a path)
                 if dtype == 0 or dtype == 1:
 
                     print >>f, label, ": ", str(value)
                     print >>f,"\n"
-
 
                 # parameters that are integers
                 elif dtype == 2:
@@ -1078,7 +1066,6 @@ class MainFrame(wx.Frame):
                     
                     print >>f, label, ": ", value
                     print >>f,"\n"
-                
 
                 # parameters that are lists (ex. " [False, False] ")
                 elif dtype == 3:
@@ -1093,7 +1080,6 @@ class MainFrame(wx.Frame):
 
                     print>>f, label, ": ", values
                     print>>f,"\n"
-                
 
                 # parameters that are switches (ex. [0] or [1] )
                 elif dtype == 4:
@@ -1122,7 +1108,6 @@ class MainFrame(wx.Frame):
 
                     print>>f, label, ": ", values
                     print>>f,"\n"
-                
 
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
@@ -1149,8 +1134,6 @@ class MainFrame(wx.Frame):
                     print>>f, label, ":", lvalue   ###
                     print>>f, "\n"
 
-
-
                 # parameters that are ? (bandpass filter specs)
                 elif dtype == 6:
 
@@ -1166,7 +1149,6 @@ class MainFrame(wx.Frame):
 
                     print>>f, label, ":", values
                     print>>f, "\n"
-
 
                 # parameters that are whole words
                 #     ALSO: the Nuisance Corrections lists                
@@ -1193,7 +1175,6 @@ class MainFrame(wx.Frame):
 
                     print >>f, "\n"
 
-
                 elif dtype == 9:
 
                     # checkbox grid (ROI extraction etc.)
@@ -1202,14 +1183,12 @@ class MainFrame(wx.Frame):
                     print >>f, string
                     print >>f, "\n"
 
-
                 else:
 
                     value = ast.literal_eval(str(value))
 
                     print>>f, label, ":", value
                     print>>f, "\n"
-
 
             f.close()
 

@@ -209,8 +209,6 @@ def extract_data(c, param_map):
 
     f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName), 'wb')
 
-
-
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
         Method to extract anatomical and functional
@@ -297,8 +295,6 @@ def extract_data(c, param_map):
 
             logging.exception(err_msg)
             raise Exception(err_msg)
-
-
 
     def walk(index, sub):
         """
@@ -643,6 +639,7 @@ def run(data_config):
     Run method takes data_config
     file as the input argument
     """
+    import CPAC
     root = logging.getLogger()
     if root.handlers:
         for handler in root.handlers:
@@ -663,7 +660,7 @@ def run(data_config):
               "in CPAC configuration\n")
         s_param_map = None
 
-    extract_data(c, s_param_map)
+    CPAC.utils.build_sublist.build_sublist(data_config)
     generate_supplementary_files(c.outputSubjectListLocation, c.subjectListName)
 
 
