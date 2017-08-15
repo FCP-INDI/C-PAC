@@ -14,6 +14,11 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     if "scan_parameters" in scan_names:
         scan_names.remove("scan_parameters")
 
+    for scan in scan_names:
+        if '.' in scan or '+' in scan or '*' in scan:
+            raise Exception('\n[!] Scan names cannot contain any special '
+                            'characters. Please update this and try again.')
+
     inputnode = pe.Node(util.IdentityInterface(
                                 fields=['subject', 'scan', 'creds_path'],
                                 mandatory_inputs=True),

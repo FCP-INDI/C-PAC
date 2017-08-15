@@ -251,12 +251,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if isinstance(val, str) and '/' in val:
             if ('.txt' in val) or ('.nii' in val) or ('.nii.gz' in val) \
                     or ('.mat' in val) or ('.cnf' in val) or ('.sch' in val):
-
                 if not os.path.isfile(val):
                     wrong_filepath_list.append((label, val))
 
     if len(wrong_filepath_list) > 0:
-
         print '\n\n'
         print 'Whoops! - Filepaths provided do not exist:\n'
 
