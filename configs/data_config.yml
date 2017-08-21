@@ -1,51 +1,71 @@
 
-#list of subjects that are to be excluded, can be a text file or a list
+# Select if data is organized using BIDS standard or custom format
+# dataFormat: ['Custom']
+dataFormat: ['BIDS']
 
-#exclusionSubjectList: /home/data/settings/ex_subjects.txt
-#exclusionSubjectList: [sub001, sub003]
+# If using BIDS, base directory of BIDS-organized data
+# (can use an S3 bucket path as well
+# bidsBaseDir:  s3://bucket_name/directory_to_data
+bidsBaseDir: None
+
+# File Path Template for Anatomical Files. Place tags for the appropriate data
+# directory levels with tags such as {site}, {participant}, {session}, and
+# {series}. These are not all required. See User Guide for more detailed
+# instructions. Use this if data is not in BIDS format.
+anatomicalTemplate: ['']
+
+# File Path Template for Functional Files. Place tags for the appropriate data
+# directory levels with tags such as {site}, {participant}, {session}, and
+# {series}. These are not all required. See User Guide for more detailed
+# instructions. Use this if data is not in BIDS format.
+functionalTemplate: ['']
+
+# Include only a sub-set of the subjects present in the folders defined above.
+# List subjects in this list (e.g., sub101, sub102) or provide the path to a
+# text file with one subject on each line. If 'None' is specified, CPAC will
+# include all subjects.
+# subjectList: ['sub01', 'sub02']
+# subjectList: /path/to/text_file.txt
+subjectList: None
+
+# Exclude a sub-set of the subjects present in the folders defined above.
+# List subjects in this box (e.g., sub101, sub102) or provide the path to a
+# text file with one subject on each line. If 'None' is specified, CPAC will
+# not exclude any subjects.
+# exclusionSubjectList: ['sub01', 'sub02']
+# exclusionSubjectList: /path/to/text_file.txt
 exclusionSubjectList: None
 
-
-
-#list of subjects that are included, can be a text file or a list
-#if None, extract data runs on all the subjects
-
-#subjectList: /home/data/settings/include_subjects.txt
-subjectList: [sub002, sub003]
-#subjectList: None
-
-
-
-#Put %s where site and subjects are in the path
-
-#anatomicalTemplate: /home/data/Incoming/cambridge_fcon/%s/%s/*/mprage_anonymized.nii.gz
-anatomicalTemplate: /home/data/sites/%s/%s/session_1/*/mprage.nii.gz
-
-
-
-#Functional Path
-#Put %s where site and subjects are in the path
-
-#functionalTemplate: /home/data/Incoming/cambridge_fcon/%s/%s/*/rest.nii.gz
-functionalTemplate: /home/data/sites/%s/%s/session_1/*/rest.nii.gz
-
-
-
-#list of sites, can be a text file or a list
-#if None, extract data runs on all sites
-
-#siteList: [ABIDE, ADHD-200]
+# Include only a sub-set of the sites present in the folders defined above.
+# List sites in this box (e.g., NYU, UCLA) or provide the path to a text file
+# with one site on each line. If 'None' is specified, CPAC will include all
+# sites.
+# siteList: ['site01', 'site02']
 siteList: None
 
-
-
-#Scan Parameters csv file path. This file is mandatory for 
-#slice timing correction. please use the right format for the csv, 
-#refer to user guide. If None, CPAC does not slice timing correction
-
-#scanParametersCSV: /home/data/settings/scan_parameters.csv
+# Required for Slice Timing Correction. Path to a .csv file containing
+# information about scan acquisition parameters. For instructions on how to
+# create this file, see the User Guide. If 'None' is specified, CPAC will skip
+# Slice Timing Correction.
 scanParametersCSV: None
 
+# Required if downloading data from a non-public S3 bucket on Amazon Web
+# Services instead of using local files. Enter a filepath to a creds CSV file.
+awsCredentialsFile: None
 
-#output files location
-outputSubjectListLocation: .
+# Directory where CPAC should place subject list files.
+outputSubjectListLocation: /path/to/directory
+
+# A label to be appended to the generated subject list files.
+subjectListName: sublist_name
+
+
+
+
+
+
+
+
+
+
+
