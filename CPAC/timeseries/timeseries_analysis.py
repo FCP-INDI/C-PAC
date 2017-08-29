@@ -543,16 +543,14 @@ def get_normalized_moments(wf_name='normalized_moments'):
     return wflow
 
 
-def gen_roi_timeseries(data_file,
-                       template,
-                       output_type):
+def gen_roi_timeseries(data_file, template, output_type):
     """
     Method to extract mean of voxel across
     all timepoints for each node in roi mask
 
     Parameters
     ----------
-    datafile : string
+    data_file : string
         path to input functional data
     template : string
         path to input roi mask in functional native space
@@ -667,9 +665,7 @@ def gen_roi_timeseries(data_file,
     return out_list
 
 
-def gen_voxel_timeseries(data_file,
-                         template,
-                         output_type):
+def gen_voxel_timeseries(data_file, template, output_type):
     """
     Method to extract timeseries for each voxel
     in the data that is present in the input mask
@@ -740,7 +736,7 @@ def gen_voxel_timeseries(data_file,
     if output_type[0]:
         csv_file = os.path.abspath('mask_' + tmp_file + '.csv')
         f = open(csv_file, 'wt')
-        writer = csv.writer(f, delimiter=',',
+        writer = csv.writer(f, delimiter=str(','),
                             quoting=csv.QUOTE_MINIMAL)
         one = np.array([1])
         headers = ['volume/xyz']
