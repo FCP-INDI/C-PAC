@@ -2,6 +2,8 @@
 This tests the functions in network_centrality/thresh_and_sum.pyx
 """
 
+import pytest
+
 import os, sys
 import numpy as np
 from numpy.testing import *

@@ -38,13 +38,14 @@ from CPAC.func_preproc.func_preproc import create_func_preproc, \
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
 
 from CPAC.registration import create_nonlinear_register, \
-    create_register_func_to_anat, \
-    create_bbregister_func_to_anat, \
-    create_wf_calculate_ants_warp, \
-    create_wf_apply_ants_warp, \
-    create_wf_c3d_fsl_to_itk, \
-    create_wf_collect_transforms
-from CPAC.nuisance import create_nuisance, bandpass_voxels
+                              create_register_func_to_anat, \
+                              create_bbregister_func_to_anat, \
+                              create_wf_calculate_ants_warp, \
+                              create_wf_apply_ants_warp, \
+                              create_wf_c3d_fsl_to_itk, \
+                              create_wf_collect_transforms
+
+from CPAC.nuisance import create_nuisance_workflow
 
 from CPAC.median_angle import create_median_angle_correction
 from CPAC.generate_motion_statistics import motion_power_statistics
@@ -284,11 +285,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     wfname = 'resting_preproc_' + str(subject_id)
     workflow = pe.Workflow(name=wfname)
     workflow.base_dir = c.workingDirectory
+
     workflow.config['execution'] = {'hash_method': 'timestamp',
-                                    'crashdump_dir': os.path.abspath(
-                                        c.crashLogDirectory)}
-    config.update_config(
-        {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+                                    'crashdump_dir': os.path.abspath(c.crashLogDirectory)}
+
+    if c.log_to_file and c.log_to_file == True:
+        config.update_config({'logging': {'log_directory': log_dir, 'log_to_file': True}})
+    else:
+        config.update_config({'logging': {'log_to_file': False}})
+
     logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
@@ -1818,55 +1823,69 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if 'seg_preproc' in nodes:
 
                 if 'anat_mni_fnirt_register' in nodes:
-                    nuisance = create_nuisance(False,
-                                               'nuisance_%d' % num_strat)
+                    nuisance = create_nuisance_workflow(False,
+                                                        'nuisance_%d'
+                                                        % num_strat)
                 else:
-                    nuisance = create_nuisance(True,
-                                               'nuisance_%d' % num_strat)
+                    nuisance = create_nuisance_workflow(True,
+                                                        'nuisance_%d'
+                                                        % num_strat)
 
-                nuisance.get_node('residuals').iterables = (
-                [('selector', c.Regressors),
-                 ('compcor_ncomponents', c.nComponents)])
-
-                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+                nuisance.inputs.inputspec.lat_ventricles_mask_file_path = \
+                    c.lateral_ventricles_mask
+                nuisance.inputs.inputspec.brain_template_file_path = \
+                    c.template_brain_only_for_func
+                nuisance.get_node('residuals').iterables = \
+                    ('selector', c.Regressors)
 
                 try:
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file,
-                                     nuisance, 'inputspec.subject')
-
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'anatomical_gm_mask')
-                    workflow.connect(node, out_file,
-                                     nuisance, 'inputspec.gm_mask')
+                                     nuisance, 'inputspec.functional_file_path')
 
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_wm_mask')
                     workflow.connect(node, out_file,
-                                     nuisance, 'inputspec.wm_mask')
+                                     nuisance, 'inputspec.wm_mask_file_path')
 
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_csf_mask')
                     workflow.connect(node, out_file,
-                                     nuisance, 'inputspec.csf_mask')
+                                     nuisance, 'inputspec.csf_mask_file_path')
 
                     node, out_file = strat.get_node_from_resource_pool(
-                        'movement_parameters')
+                        'anatomical_gm_mask')
                     workflow.connect(node, out_file,
-                                     nuisance, 'inputspec.motion_components')
+                                     nuisance, 'inputspec.gm_mask_file_path')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'functional_brain_mask')
+                    workflow.connect(node, out_file, nuisance,
+                                     'inputspec.functional_brain_mask_file_path')
 
                     node, out_file = strat.get_node_from_resource_pool(
                         'functional_to_anat_linear_xfm')
-                    workflow.connect(node, out_file,
-                                     nuisance,
-                                     'inputspec.func_to_anat_linear_xfm')
+                    workflow.connect(node, out_file, nuisance,
+                                     'inputspec.func_to_anat_linear_xfm_file_path')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'movement_parameters')
+                    workflow.connect(node, out_file, nuisance,
+                                     'inputspec.motion_parameters_file_path')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'frame_wise_displacement')
+                    workflow.connect(node, out_file, nuisance,
+                                     'inputspec.fd_file_path')
+
+                    # DVARS goes here
+                    # dvars_file_path
 
                     if 'anat_mni_fnirt_register' in nodes:
                         node, out_file = strat.get_node_from_resource_pool(
                             'mni_to_anatomical_linear_xfm')
-                        workflow.connect(node, out_file,
-                                         nuisance,
-                                         'inputspec.mni_to_anat_linear_xfm')
+                        workflow.connect(node, out_file, nuisance,
+                                         'inputspec.mni_to_anat_linear_xfm_file_path')
                     else:
                         # pass the ants_affine_xfm to the input for the
                         # INVERSE transform, but ants_affine_xfm gets inverted
@@ -1874,22 +1893,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                         node, out_file = strat.get_node_from_resource_pool(
                             'ants_initial_xfm')
-                        workflow.connect(node, out_file,
-                                         nuisance,
-                                         'inputspec.anat_to_mni_initial_xfm')
+                        workflow.connect(node, out_file, nuisance,
+                                         'inputspec.anat_to_mni_initial_xfm_file_path')
 
                         node, out_file = strat.get_node_from_resource_pool(
                             'ants_rigid_xfm')
-                        workflow.connect(node, out_file,
-                                         nuisance,
-                                         'inputspec.anat_to_mni_rigid_xfm')
+                        workflow.connect(node, out_file, nuisance,
+                                         'inputspec.anat_to_mni_rigid_xfm_file_path')
 
                         node, out_file = strat.get_node_from_resource_pool(
                             'ants_affine_xfm')
-                        workflow.connect(node, out_file,
-                                         nuisance,
-                                         'inputspec.anat_to_mni_affine_xfm')
-
+                        workflow.connect(node, out_file, nuisance,
+                                         'inputspec.anat_to_mni_affine_xfm_file_path')
 
                 except:
                     logConnectionError('Nuisance', num_strat,
@@ -1910,13 +1925,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat.set_leaf_properties(nuisance, 'outputspec.subject')
 
                 strat.update_resource_pool({'functional_nuisance_residuals': (
-                nuisance, 'outputspec.subject')})
-                strat.update_resource_pool({
-                                               'functional_nuisance_regressors': (
-                                               nuisance,
-                                               'outputspec.regressors')})
+                                             nuisance, 'outputspec.residual_file_path')})
+                strat.update_resource_pool({'functional_nuisance_regressors': (nuisance,
+                                            'outputspec.regressors_file_path')})
 
-                create_log_node(nuisance, 'outputspec.subject', num_strat)
+                create_log_node(nuisance, 'outputspec.residual_file_path',
+                                num_strat)
 
                 num_strat += 1
 
@@ -2014,7 +2028,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     '''
     Inserting Frequency Filtering Node
-    '''
 
     new_strat_list = []
     num_strat = 0
@@ -2068,6 +2081,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
+    '''
 
     '''
     Inserting Scrubbing Workflow

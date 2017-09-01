@@ -1,106 +1,385 @@
-def test_calc_residuals():
-    import numpy as np
-    from CPAC.nuisance import calc_residuals
-    from scipy.io import loadmat
-    from scipy.stats import pearsonr
-    import nibabel as nb
-    
-    def normalize(X):
-        Xc = X - X.mean(0)
-        return Xc/np.sqrt( (Xc**2).sum(0) )
-    
-    subject = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_scale/mapflow/_func_scale0/lfo_3dc_RPI_3dv_3dc_maths.nii.gz'
-    csf_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/seg_mask/mapflow/_seg_mask0/segment_prob_0_flirt_maths_maths_maths.nii.gz'
-    wm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_wm_threshold_0.66/seg_mask1/mapflow/_seg_mask10/segment_prob_2_flirt_maths_maths_maths.nii.gz'
-    gm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_gm_threshold_0.2/seg_mask2/mapflow/_seg_mask20/segment_prob_1_flirt_maths_maths_maths.nii.gz'
-    motion_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_volreg_1/mapflow/_func_volreg_10/lfo_3dc_RPI_3dv1D.1D'
-    
-    stor = {'compcor' : True,
-            'wm' : True,
-            'csf' : True,
-            'gm' : True,
-            'global' : True,
-            'pc1' : True,
-            'motion' : True,
-            'linear' : True,
-            'quadratic' : True}    
+from CPAC import nuisance
+import nipype.pipeline.engine as pe
+import nipype.interfaces.utility as util
+import nipype.interfaces.afni as afni
+import pytest
 
-    calc_residuals(subject, stor, wm_file, csf_file, gm_file, motion_file, compcor_ncomponents=3)
-    X = loadmat('nuisance_regressors.mat')
-    
-    nii = nb.load('residual.nii.gz')
-    data = nii.get_data().astype(np.float64)
-    global_mask = (data != 0).sum(-1) != 0
-    Y = data[global_mask].T
 
-    r_glb = normalize(Y).T.dot(X['global'])
-    r_csf = normalize(Y).T.dot(X['csf'])
-    r_wm = normalize(Y).T.dot(X['wm'])
-    
+def test_hello_world():
 
-def test_nuisance():
-#    from CPAC.nuisance import create_nuisance
-#    cn = create_nuisance()
-#    subjects_list = open('/home/data/Projects/ADHD200/adhd200_sublist_for_basc_withGSR').readlines()
-#    subjects_list = [ subject.strip() for subject in subjects_list ]
-#    
-#    subject = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_scale/mapflow/_func_scale0/lfo_3dc_RPI_3dv_3dc_maths.nii.gz'
-#    csf_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/seg_mask/mapflow/_seg_mask0/segment_prob_0_flirt_maths_maths_maths.nii.gz'
-#    wm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_wm_threshold_0.66/seg_mask1/mapflow/_seg_mask10/segment_prob_2_flirt_maths_maths_maths.nii.gz'
-#    gm_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/segpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_gm_threshold_0.2/seg_mask2/mapflow/_seg_mask20/segment_prob_1_flirt_maths_maths_maths.nii.gz'
-#    motion_file = '/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/funcpreproc/_session_id_NYU_TRT_session1_subject_id_sub05676/func_volreg_1/mapflow/_func_volreg_10/lfo_3dc_RPI_3dv1D.1D'
-#    
-#    stor = {'compcor' : True,
-#            'wm' : True,
-#            'csf' : True,
-#            'gm' : True,
-#            'global' : True,
-#            'pc1' : True,
-#            'motion' : True,
-#            'linear' : True,
-#            'quadratic' : True}
-#    
-#    stor2 = {'compcor' : True,
-#            'wm' : True,
-#            'csf' : True,
-#            'gm' : True,
-#            'global' : False,
-#            'pc1' : True,
-#            'motion' : False,
-#            'linear' : True,
-#            'quadratic' : False}
-#      
-#    cn.inputs.inputspec.subject = subject
-#    cn.inputs.inputspec.gm_mask = gm_file
-#    cn.inputs.inputspec.wm_mask = wm_file
-#    cn.inputs.inputspec.csf_mask = csf_file
-#    cn.inputs.inputspec.motion_components = motion_file
-#    cn.get_node('residuals').iterables = ('selector',[stor, stor2])
-#    cn.inputs.inputspec.compcor_ncomponents = 5
-#    
-#    cn.run(plugin='MultiProc', plugin_args={'n_procs' : 2})
-    
-    from nipype import config
-    config.update_config({'execution': {'remove_unnecessary_outputs':False}})
-    from CPAC.nuisance import create_nuisance
-    cn = create_nuisance()
-    stor = {'compcor' : True,
-            'wm' : True,
-            'csf' : True,
-            'gm' : True,
-            'global' : True,
-            'pc1' : True,
-            'motion' : True,
-            'linear' : True,
-            'quadratic' : True}
-    cn.inputs.inputspec.selector = stor
-    cn.inputs.inputspec.compcor_ncomponents = 5
-    cn.inputs.inputspec.motion_components = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/movement_parameters/_scan_rest_1_rest/rest_3dc_RPI_3dv1D.1D'
-    cn.inputs.inputspec.func_to_anat_linear_xfm = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/functional_to_anat_linear_xfm/_scan_rest_1_rest/rest_3dc_RPI_3dv_3dc_3dT_flirt.mat'
-    cn.inputs.inputspec.mni_to_anat_linear_xfm = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/mni_to_anatomical_linear_xfm/mprage_RPI_3dc_flirt_inv.mat'
-    cn.inputs.inputspec.gm_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_gm_mask/_gm_threshold_0.2/segment_prob_1_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.csf_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_csf_mask/_csf_threshold_0.4/segment_prob_0_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.wm_mask = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/anatomical_wm_mask/_wm_threshold_0.66/segment_prob_2_maths_maths_maths.nii.gz'
-    cn.inputs.inputspec.harvard_oxford_mask = '/usr/share/fsl/4.1/data/atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-2mm.nii.gz'
-    cn.inputs.inputspec.subject = '/home/data/PreProc/ABIDE_CPAC_test_1/pipeline_0/0050102_session_1/preprocessed/_scan_rest_1_rest/rest_3dc_RPI_3dv_3dc_maths.nii.gz'
-    cn.base_dir = '/home/bcheung/cn_run'
+    print("hello world!")
+    assert 0 == 0
+
+
+def test_find_offending_time_points_fd_dvars_extend():
+
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
+                                                      'number_of_previous_trs_to_remove',
+                                                      'number_of_subsequent_trs_to_remove'],
+                                         output_names=['out_file'],
+                                         function=nuisance.find_offending_time_points),
+                           name="find_censors_fd_dvars_extend")
+
+    find_censors.inputs.thresh_metric = "FD+DVARS"
+    find_censors.inputs.out_file_path = "censors_extend.1D"
+    find_censors.inputs.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
+    find_censors.inputs.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1D'
+    find_censors.inputs.fd_threshold = "1SD"
+    find_censors.inputs.dvars_threshold = "1SD"
+    find_censors.inputs.number_of_previous_trs_to_remove = 1
+    find_censors.inputs.number_of_subsequent_trs_to_remove = 2
+    find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+def test_find_offending_time_points_fd():
+
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
+                                                      'number_of_previous_trs_to_remove',
+                                                      'number_of_subsequent_trs_to_remove'],
+                                         output_names=['out_file'],
+                                         function=nuisance.find_offending_time_points),
+                           name="find_censors_fd")
+
+    find_censors.inputs.thresh_metric = "FD"
+    find_censors.inputs.out_file_path = "censors.1D"
+    find_censors.inputs.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
+    find_censors.inputs.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1D'
+    find_censors.inputs.fd_threshold = "1SD"
+    find_censors.inputs.dvars_threshold = "1SD"
+    find_censors.inputs.number_of_previous_trs_to_remove = 0
+    find_censors.inputs.number_of_subsequent_trs_to_remove = 0
+    find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+def test_find_offending_time_points_dvars():
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
+                                                      'number_of_previous_trs_to_remove',
+                                                      'number_of_subsequent_trs_to_remove'],
+                                         output_names=['out_file'],
+                                         function=nuisance.find_offending_time_points),
+                           name="find_censors_dvars")
+
+    find_censors.inputs.thresh_metric = "DVARS"
+    find_censors.inputs.out_file_path = "censors.1D"
+    find_censors.inputs.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
+    find_censors.inputs.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1D'
+    find_censors.inputs.fd_threshold = "1SD"
+    find_censors.inputs.dvars_threshold = "1SD"
+    find_censors.inputs.number_of_previous_trs_to_remove = 0
+    find_censors.inputs.number_of_subsequent_trs_to_remove = 0
+    find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+def test_find_offending_time_points_fd_dvars():
+
+    find_censors = pe.Node(util.Function(input_names=['thresh_metric', 'out_file_path', 'fd_file_path',
+                                                      'dvars_file_path', 'fd_threshold', 'dvars_threshold',
+                                                      'number_of_previous_trs_to_remove',
+                                                      'number_of_subsequent_trs_to_remove'],
+                                         output_names=['out_file'],
+                                         function=nuisance.find_offending_time_points),
+                           name="find_censors_fd_dvars")
+
+    find_censors.inputs.thresh_metric = "FD+DVARS"
+    find_censors.inputs.out_file_path = "censors.1D"
+    find_censors.inputs.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
+    find_censors.inputs.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1D'
+    find_censors.inputs.fd_threshold = "1SD"
+    find_censors.inputs.dvars_threshold = "1SD"
+    find_censors.inputs.number_of_previous_trs_to_remove = 0
+    find_censors.inputs.number_of_subsequent_trs_to_remove = 0
+    find_censors.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = find_censors.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+@pytest.mark.skip(reason="too slow")
+def test_localstat():
+    """
+        3dLocalstat -prefix __WMeLOCAL_r${r} -nbhd 'SPHERE('${r}')' \
+                -stat mean -mask  __mask_WMe${view} \
+                -use_nonmask ${fn_epi}
+    """
+    radius = 2
+
+    create_anaticor_regressor = pe.Node(interface=nuisance.Localstat(), name='create_anaticor_regressor')
+    create_anaticor_regressor.inputs.in_file = '/home/ccraddock/nuisance_test/data_2mm.nii.gz'
+    create_anaticor_regressor.inputs.out_file = 'local_WMe.nii.gz'
+    create_anaticor_regressor.inputs.mask = '/home/ccraddock/nuisance_test/wm_mask_2mm.nii.gz'
+    create_anaticor_regressor.inputs.neighborhood = "'SPHERE({0})'".format(radius)
+    create_anaticor_regressor.inputs.statistic = "mean"
+    create_anaticor_regressor.inputs.use_nonmask = True
+    create_anaticor_regressor.interface.num_threads = 8
+    create_anaticor_regressor.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = create_anaticor_regressor.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+def test_erode():
+
+    erode = afni.Calc()
+    erode.inputs.args = '-b a+i -c a-i -d a+j -e a-j -f a+k -g a-k'
+    erode.inputs.in_file_a = '/home/ccraddock/nuisance_test/working_dir/nuisance/' \
+                             'gm_anat_to_2mm_flirt_applyxfm/gm_mask_flirt.nii.gz'
+    erode.inputs.expr = 'a*(1-amongst(0,b,c,d,e,f,g))'
+    erode.inputs.outputtype = 'NIFTI_GZ'
+    erode.inputs.out_file = 'gm_mask_2mm_eroded.nii.gz'
+    print("Erosion command line: {0}".format(erode.cmdline))
+
+    assert "a+i" in erode.cmdline
+
+
+@pytest.mark.skip(reason="too slow")
+def test_tproject():
+
+    nuisance_regression = pe.Node(interface=nuisance.Tproject(), name='nuisance_regression')
+    nuisance_regression.inputs.in_file = '/home/ccraddock/nuisance_test/functional.nii.gz'
+    nuisance_regression.inputs.out_file = 'residuals.nii.gz'
+    nuisance_regression.inputs.censor_file = '/home/ccraddock/nuisance_test/censors.1D'
+    nuisance_regression.inputs.censor_idx = [51, 52, 53]
+    nuisance_regression.inputs.censor_mode = 'NTRP'
+    # nuisance_regression.inputs.catenation_file = '/home/ccraddock/nuisance_test/catenation.1D'
+    nuisance_regression.inputs.noblock = True
+    nuisance_regression.inputs.orthogonalize_file = '/home/ccraddock/nuisance_test/nuisance.1D'
+    nuisance_regression.inputs.orthogonalize_polynomial = 1
+    nuisance_regression.inputs.orthogonalize_dataset = '/home/ccraddock/nuisance_test/regressors.nii.gz'
+    # nuisance_regression.inputs.stopband = [0.01, 0.05]
+    nuisance_regression.inputs.bandpass = [0.005, 0.1]
+    nuisance_regression.inputs.tr = 3.0
+    nuisance_regression.inputs.mask = '/home/ccraddock/nuisance_test/func_mask.nii.gz'
+    nuisance_regression.inputs.automask = True
+    nuisance_regression.inputs.blur = 6
+    nuisance_regression.inputs.normalize = True
+    nuisance_regression.inputs.verb = True
+    nuisance_regression.interface.num_threads = 8
+
+    nuisance_regression.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = nuisance_regression.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+
+def test_create_variance_mask_pct():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_pct.nii.gz", threshold="2PCT", by_slice=True)
+
+    assert os.path.isfile(outfile)
+
+
+def test_create_variance_mask_sd():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_sd.nii.gz", threshold="1.5SD", by_slice=True)
+
+    assert os.path.isfile(outfile)
+
+
+def test_create_variance_mask_thresh():
+
+    import os
+
+    outfile = nuisance.create_temporal_variance_mask("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                     "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                     "variance_mask_thresh.nii.gz", threshold=10.2, by_slice=False)
+
+    assert os.path.isfile(outfile)
+
+
+def test_mask_summarize_time_course_detrend_norm_mean():
+
+    import os
+
+    outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                  "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                  "extracted_mean.tsv",
+                                                  method="DetrendNormMean")
+
+    assert os.path.isfile(outfile)
+
+
+def test_mask_summarize_time_course_pca5():
+
+    import os
+
+    outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                  "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                  "extracted_pca5.tsv",
+                                                  method="PCA", num_pcs=5)
+
+    assert os.path.isfile(outfile)
+
+
+def test_mask_summarize_time_course_multi_label():
+
+    import os
+
+    outfile = nuisance.mask_summarize_time_course("/home/ccraddock/nuisance_test/functional.nii.gz",
+                                                  "/home/ccraddock/nuisance_test/func_mask.nii.gz",
+                                                  "extracted_pca_multi_label.tsv",
+                                                  method="PCA", num_pcs=5, mask_label=[[1, 2, 3]])
+    assert os.path.isfile(outfile)
+
+
+# @pytest.mark.skip(reason="too slow")
+def test_nuisance_workflow_type1():
+
+    """
+    test_selector = {'Anaticor' : None | {radius = <radius in mm>},
+        'aCompCor' : None | {num_pcs = <number of components to retain>,
+                            tissues = 'WM' | 'CSF' | 'WM+CSF',
+                            include_delayed = True | False,
+                            include_squared = True | False,
+                            include_delayed_squared = True | False},
+        'WhiteMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'Ventricles' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'GreyMatter' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                       num_pcs = <number of components to retain>,
+                       include_delayed = True | False,
+                       include_squared = True | False,
+                       include_delayed_squared = True | False},
+        'GlobalSignal' : None | {summary_method = 'PC', 'Mean', 'NormMean' or 'DetrendNormMean',
+                           num_pcs = <number of components to retain>,
+                           include_delayed = True | False,
+                           include_squared = True | False,
+                           include_delayed_squared = True | False},
+        'Motion' : None | {include_delayed = True | False,
+                           include_squared = True | False,
+                           include_delayed_squared = True | False},
+        'Censor' : None | { thresh_metric = 'RMSD','DVARS', or 'RMSD+DVARS',
+                            threshold = <threshold to be applied to metric, if using
+                              RMSD+DVARS, this should be a tuple (RMSD thresh, DVARS thresh)>,
+                            number_of_previous_trs_to_remove = True | False,
+                            number_of_subsequent_trs_to_remove = True | False,
+                            method = 'Kill', 'Zero', 'Interpolate', 'SpikeRegression'},
+        'PolyOrt' : None | { degree = <polynomial degree up to which will be removed, e.g. 2 means
+                                       constant + linear + quadratic, practically that is probably,
+                                       the most that will be need esp. if band pass filtering>},
+        'Bandpass' : None | { bottom_frequency = <frequency in hertz of the highpass part of the pass
+                                                  band, frequencies below this will be removed>,
+                              top_frequency = <frequency in hertz of the lowpass part of the pass
+                                               band, frequencies above this will be removed>},
+        }
+
+    """
+
+    selector_test1 = {'Anaticor': None,
+                      'tCompCor': {'num_pcs': 3,
+                                   'threshold': '2 PCT',
+                                   'by_slice': True,
+                                   'tissues': 'WM',
+                                   'include_delayed': False,
+                                   'include_squared': False,
+                                   'include_delayed_squared': False},
+                      'aCompCor': {'num_pcs': 5,
+                                   'tissues': 'WM',
+                                   'include_delayed': False,
+                                   'include_squared': False,
+                                   'include_delayed_squared': False},
+                      'WhiteMatter': None,
+                      'Ventricles': {'summary_method': 'DetrendNormMean',
+                                     'num_pcs': None,
+                                     'include_delayed': False,
+                                     'include_squared': False,
+                                     'include_delayed_squared': False},
+                      'GreyMatter': None,
+                      'GlobalSignal': None,
+                      'Motion': {'include_delayed': True,
+                                 'include_squared': True,
+                                 'include_delayed_squared': True},
+                      'Censor': {'thresh_metric': 'FD',
+                                 'fd_threshold': '1.5 SD',
+                                 'number_of_previous_trs_to_remove': 0,
+                                 'number_of_subsequent_trs_to_remove': 0,
+                                 'censor_method': 'SpikeRegression'},
+                      'PolyOrt': {'degree': 2},
+                      'Bandpass': None
+                      }
+
+    nuisance_regression_workflow = nuisance.create_nuisance_workflow(use_ants=True, selector=selector_test1)
+
+    nuisance_regression_workflow.inputs.inputspec.lat_ventricles_mask_file_path = \
+        '/home/ccraddock/nuisance_test/MNI152_T1_2mm_VentricleMask.nii.gz'
+
+    nuisance_regression_workflow.inputs.inputspec.fd_file_path = '/home/ccraddock/nuisance_test/fd.1D'
+    nuisance_regression_workflow.inputs.inputspec.dvars_file_path = '/home/ccraddock/nuisance_test/dvars.1d'
+    nuisance_regression_workflow.inputs.inputspec.functional_file_path = '/home/ccraddock/nuisance_test/' \
+                                                                         'functional.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.wm_mask_file_path = '/home/ccraddock/nuisance_test/wm_mask.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.csf_mask_file_path = '/home/ccraddock/nuisance_test/csf_mask.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.gm_mask_file_path = '/home/ccraddock/nuisance_test/gm_mask.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.functional_brain_mask_file_path = '/home/ccraddock/nuisance_test/' \
+                                                                                    'func_mask.nii.gz'
+    nuisance_regression_workflow.inputs.inputspec.anat_to_mni_initial_xfm_file_path = \
+        '/home/ccraddock/nuisance_test/anat_to_mni_initial_xfm.mat'
+    nuisance_regression_workflow.inputs.inputspec.anat_to_mni_rigid_xfm_file_path = \
+        '/home/ccraddock/nuisance_test/anat_to_mni_rigid_xfm.mat'
+    nuisance_regression_workflow.inputs.inputspec.anat_to_mni_affine_xfm_file_path = \
+        '/home/ccraddock/nuisance_test/anat_to_mni_affine_xfm.mat'
+    nuisance_regression_workflow.inputs.inputspec.func_to_anat_linear_xfm_file_path =\
+        '/home/ccraddock/nuisance_test/func_to_anat_linear_xfm.mat'
+
+    nuisance_regression_workflow.inputs.inputspec.motion_parameters_file_path = \
+        '/home/ccraddock/nuisance_test/motion_parameters.1D'
+
+    nuisance_regression_workflow.inputs.inputspec.selector = selector_test1
+
+    nuisance_regression_workflow.inputs.inputspec.brain_template_file_path = \
+        '/home/ccraddock/nuisance_test/MNI152_T1_2mm_brain.nii.gz'
+
+    nuisance_regression_workflow.base_dir = '/home/ccraddock/nuisance_test/working_dir'
+
+    result_value = nuisance_regression_workflow.run()
+
+    print("result {0}".format(result_value))
+
+    assert 0 == 0
+
+if __name__ == "__main__":
+    test_nuisance_workflow_type1()

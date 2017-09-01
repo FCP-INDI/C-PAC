@@ -84,8 +84,8 @@ def create_montage(wf_name, cbar_name, png_name):
     wf.connect(montage_s, 'png_name',
                 outputNode, 'sagittal_png')
 
-
     return wf
+
 
 def create_montage_gm_wm_csf(wf_name, png_name):
 
@@ -105,7 +105,6 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                                         'resampled_overlay_gm']),
                           name='outputspec')
 
-
     resample_u = pe.Node(util.Function(input_names=['file_'],
                                        output_names=['new_fname'],
                                        function=resample_1mm),
@@ -114,8 +113,6 @@ def create_montage_gm_wm_csf(wf_name, png_name):
     resample_o_csf = resample_u.clone('resample_o_csf')
     resample_o_wm = resample_u.clone('resample_o_wm')
     resample_o_gm = resample_u.clone('resample_o_gm')
-
-
 
     montage_a = pe.Node(util.Function(input_names=['overlay_csf',
                                                    'overlay_wm',
@@ -126,7 +123,6 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                       function=montage_gm_wm_csf_axial),
                          name='montage_a')
     montage_a.inputs.png_name = png_name + '_a.png'
-
 
     montage_s = pe.Node(util.Function(input_names=['overlay_csf',
                                                    'overlay_wm',
@@ -191,6 +187,5 @@ def create_montage_gm_wm_csf(wf_name, png_name):
 
     wf.connect(montage_s, 'png_name',
                 outputNode, 'sagittal_png')
-
 
     return wf
