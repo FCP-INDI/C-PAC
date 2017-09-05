@@ -51,39 +51,416 @@ class NuisanceRegression(wx.ScrolledWindow):
                      values = os.path.join(fsl, "data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz"),
                      comment="Standard Lateral Ventricles Binary Mask")
 
-        self.page.add(label = "Select Regressors:",
-                      control = control.LISTBOX_COMBO,
-                      name = "Regressors",
-                      type = dtype.LDICT,
-                      values = ['compcor', 'wm','csf','global','pc1','motion','linear','quadratic', 'gm'],
-                      comment = "Select which nuisance signal corrections to apply:\n"\
-                                "compcor = CompCor\n"\
-                                 "wm = White Matter\n"\
-                                 "csf = CSF\n"\
-                                 "gm = Gray Matter\n"\
-                                 "global = Global Mean Signal\n"\
-                                 "pc1 = First Principle Component\n"\
-                                 "motion = Motion\n"\
-                                 "linear = Linear Trend\n"\
-                                 "quadratic = Quadratic Trend",
-                     size = (300,120),
-                     combo_type =1)
-                    
-        self.page.add(label= "CompCor Components ",
-                      control = control.TEXT_BOX,
-                      name = "nComponents",
-                      type = dtype.LNUM,
-                      values = "5",
-                      validator = CharValidator("no-alpha"),
-                      comment = "Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.")
-
-        self.page.add(label="Use Friston's 24 (Motion Regression) ",
+        self.page.add(label="Anaticor ",
                       control=control.CHOICE_BOX,
-                      name='runFristonModel',
+                      name='include_anaticor',
                       type=dtype.LSTR,
-                      comment="Use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
-                      values=["On", "Off", "On/Off"])
+                      comment="Include Anaticor as a nuisance regressor.",
+                      values=["Off", "On"])
 
+        self.page.add(label= "      Anaticor Radius (in mm) ",
+                      control = control.TEXT_BOX,
+                      name = "anaticor_radius",
+                      type = dtype.LNUM,
+                      values = "0",
+                      validator = CharValidator("no-alpha"),
+                      comment = "Radius (in mm) for Anaticor.")
+
+        self.page.add(label="aCompCor ",
+                      control=control.CHOICE_BOX,
+                      name='include_aCompCor',
+                      type=dtype.LSTR,
+                      comment="Include aCompCor as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Components ",
+                      control=control.TEXT_BOX,
+                      name="aCompCor_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in aCompCor.")
+
+        self.page.add(label="      Tissues ",
+                      control=control.CHOICE_BOX,
+                      name = "aCompCor_tissues",
+                      type=dtype.LSTR,
+                      values = ['White Matter', 'CSF', 'White Matter + CSF'],
+                      comment="")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='aCompCor_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+        
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='aCompCor_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+        
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='aCompCor_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="tCompCor ",
+                      control=control.CHOICE_BOX,
+                      name='include_tCompCor',
+                      type=dtype.LSTR,
+                      comment="Include tCompCor as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Number of Components ",
+                      control=control.TEXT_BOX,
+                      name="tCompCor_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in tCompCor.")
+
+        self.page.add(label="      Threshold ",
+                      control=control.TEXT_BOX,
+                      name="tCompCor_threshold",
+                      type=dtype.LNUM,
+                      values="0.00",
+                      validator=CharValidator("no-alpha"),
+                      comment="Cutoff as raw variance value.\n\nA floating "
+                              "point number followed by SD (ex. 1.5SD) = "
+                              "mean + a multiple of the SD.\n\nA floating "
+                              "point number followed by PCT (ex. 2PCT) = "
+                              "percentile from the top (ex is top 2%).")
+
+        self.page.add(label="      By Slice ",
+                      control=control.CHOICE_BOX,
+                      name='tCompCor_byslice',
+                      type=dtype.LSTR,
+                      comment="Whether or not the threshold criterion should "
+                              "be applied by slice or across the entire "
+                              "volume, makes most sense for SD or PCT.",
+                      values=["False", "True"])
+
+        self.page.add(label="      Tissues ",
+                      control=control.CHOICE_BOX,
+                      name="tCompCor_tissues",
+                      type=dtype.LSTR,
+                      values=['White Matter', 'CSF', 'White Matter + CSF'],
+                      comment="")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='tCompCor_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='tCompCor_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='tCompCor_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="White Matter ",
+                      control=control.CHOICE_BOX,
+                      name='include_white_matter',
+                      type=dtype.LSTR,
+                      comment="Include White Matter as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Summary Method ",
+                      control=control.CHOICE_BOX,
+                      name="white_matter_summary",
+                      type=dtype.LSTR,
+                      values=['PCA', 'Mean', 'NormMean', 'DetrendNormMean'],
+                      comment="")
+        
+        self.page.add(label="      Number of Components ",
+                      control=control.TEXT_BOX,
+                      name="white_matter_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in White Matter.")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='white_matter_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='white_matter_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='white_matter_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="Ventricles ",
+                      control=control.CHOICE_BOX,
+                      name='include_ventricles',
+                      type=dtype.LSTR,
+                      comment="Include White Matter as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Summary Method ",
+                      control=control.CHOICE_BOX,
+                      name="ventricles_summary",
+                      type=dtype.LSTR,
+                      values=['PCA', 'Mean', 'NormMean', 'DetrendNormMean'],
+                      comment="")
+
+        self.page.add(label="      Number of Components ",
+                      control=control.TEXT_BOX,
+                      name="ventricles_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in White Matter.")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='ventricles_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='ventricles_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='ventricles_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="Grey Matter ",
+                      control=control.CHOICE_BOX,
+                      name='include_grey_matter',
+                      type=dtype.LSTR,
+                      comment="Include White Matter as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Summary Method ",
+                      control=control.CHOICE_BOX,
+                      name="grey_matter_summary",
+                      type=dtype.LSTR,
+                      values=['PCA', 'Mean', 'NormMean', 'DetrendNormMean'],
+                      comment="")
+
+        self.page.add(label="      Number of Components ",
+                      control=control.TEXT_BOX,
+                      name="grey_matter_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in White Matter.")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='grey_matter_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='grey_matter_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='grey_matter_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="Global Signal ",
+                      control=control.CHOICE_BOX,
+                      name='include_global_signal',
+                      type=dtype.LSTR,
+                      comment="Include White Matter as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Summary Method ",
+                      control=control.CHOICE_BOX,
+                      name="global_signal_summary",
+                      type=dtype.LSTR,
+                      values=['PCA', 'Mean', 'NormMean', 'DetrendNormMean'],
+                      comment="")
+
+        self.page.add(label="      Number of Components ",
+                      control=control.TEXT_BOX,
+                      name="global_signal_num_pcs",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Number of components to retain in White Matter.")
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='global_signal_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='global_signal_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='global_signal_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="Motion ",
+                      control=control.CHOICE_BOX,
+                      name='include_motion',
+                      type=dtype.LSTR,
+                      comment="Include Motion as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Include Delayed ",
+                      control=control.CHOICE_BOX,
+                      name='motion_delayed',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Squared ",
+                      control=control.CHOICE_BOX,
+                      name='motion_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Include Delayed Squared ",
+                      control=control.CHOICE_BOX,
+                      name='motion_delayed_squared',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="Censor ",
+                      control=control.CHOICE_BOX,
+                      name='include_censor',
+                      type=dtype.LSTR,
+                      comment="Include Censoring as a nuisance regressor.",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Threshold Metric ",
+                      control=control.CHOICE_BOX,
+                      name="censor_thresh_metric",
+                      type=dtype.LSTR,
+                      values=['RMSD', 'DVARS', 'RMSD+DVARS'],
+                      comment="")
+
+        self.page.add(label="      Threshold ",
+                      control=control.TEXT_BOX,
+                      name="censor_threshold",
+                      type=dtype.LNUM,
+                      values="0.00",
+                      validator=CharValidator("no-alpha"),
+                      comment="Threshold to be applied to the metric.")
+
+        self.page.add(label="      Number of Previous TRs to Remove ",
+                      control=control.CHOICE_BOX,
+                      name='censor_num_prev_trs',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Number of Subsequent TRs to Remove ",
+                      control=control.CHOICE_BOX,
+                      name='censor_num_subseq_trs',
+                      type=dtype.LSTR,
+                      comment="???????????",
+                      values=["False", "True"])
+
+        self.page.add(label="      Method ",
+                      control=control.CHOICE_BOX,
+                      name="censor_method",
+                      type=dtype.LSTR,
+                      values=['Kill', 'Zero', 'Interpolate',
+                              'Spike Regression'],
+                      comment="")
+
+        self.page.add(label="PolyOrt ",
+                      control=control.CHOICE_BOX,
+                      name='include_PolyOrt',
+                      type=dtype.LSTR,
+                      comment="",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Polynomial Degree ",
+                      control=control.TEXT_BOX,
+                      name="PolyOrtDegree",
+                      type=dtype.LNUM,
+                      values="0",
+                      validator=CharValidator("no-alpha"),
+                      comment="Polynomial degree up to which will be removed."
+                              "\n\nex. 2 means constant + linear + quadratic,"
+                              " probably the most that will be needed, "
+                              "especially if band pass filtering is used.")
+
+        self.page.add(label="Bandpass Filtering ",
+                      control=control.CHOICE_BOX,
+                      name='includeBandPass',
+                      type=dtype.LSTR,
+                      comment="",
+                      values=["Off", "On"])
+
+        self.page.add(label="      Bottom Frequency ",
+                      control=control.TEXT_BOX,
+                      name="bandPassBottomFrequency",
+                      type=dtype.LNUM,
+                      values="0.00",
+                      validator=CharValidator("no-alpha"),
+                      comment="Frequency in Hertz of the highpass part of "
+                              "the passband, frequencies below this will be "
+                              "removed.")
+
+        self.page.add(label="      Top Frequency ",
+                      control=control.TEXT_BOX,
+                      name="bandPassTopFrequency",
+                      type=dtype.LNUM,
+                      values="0.00",
+                      validator=CharValidator("no-alpha"),
+                      comment="Frequency in Hertz of the lowpass part of "
+                              "the passband, frequencies above this will be "
+                              "removed.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

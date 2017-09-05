@@ -1572,8 +1572,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
-
-
             except:
                 logConnectionError(
                     'Register Functional to Anatomical (pre BBReg)',

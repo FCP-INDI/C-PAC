@@ -10,8 +10,9 @@ from CPAC.nuisance import find_offending_time_points, create_temporal_variance_m
 def mask_summarize_time_course(functional_file_path, mask_file_path, output_file_path, method="DetrendNormMean",
                                mask_vol_index=None, mask_label=None, num_pcs=1):
     """
-    Calculates summary time course for voxels specified by a mask. Methods for summarizing the the time courses include
-    mean and principle component analysis. 
+    Calculates summary time course for voxels specified by a mask. Methods for
+    summarizing the the time courses include mean and principle component
+    analysis.
                                
     :param functional_file_path: path to nifti file corresponding to the functional data that will be used in the mean 
             calculation.
@@ -132,8 +133,9 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
             print("{0} nonzero positive voxels in mask {1}".format(len(voxel_indices), mask_file_path))
 
         else:
-            # if we only have one set of mask labels, but many mask volumes, we apply the same labels to each volume,
-            # otherwise we use a different set of mask labels for each volume
+            # if we only have one set of mask labels, but many mask volumes,
+            # we apply the same labels to each volume, otherwise we use a
+            # different set of mask labels for each volume
             mask_label_this_mask_vol = []
             if len(mask_label) == 1:
                 mask_label_this_mask_vol = mask_label[0]
@@ -160,8 +162,8 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
 
         time_courses = functional_image_data[voxel_indices, :]
 
-        # exclude time courses with zero variance to avoid wasting our time on meaningless data, and to avoid
-        # NaNs
+        # exclude time courses with zero variance to avoid wasting our time on
+        # meaningless data, and to avoid NaNs
         time_courses = time_courses[np.isclose(time_courses.var(1), 0.0) == False, :]
 
         if time_courses.shape[0] == 0:
@@ -170,13 +172,15 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
 
         print("{0} voxels survived variance filter".format(time_courses.shape[0]))
 
-        # Make sure we have a 2D array, even if it only contains a single time course
+        # Make sure we have a 2D array, even if it only contains a single time
+        # course
         if len(time_courses.shape) == 1:
             time_courses = time_courses.reshape((time_courses.shape[0], 1))
 
         if method in ["PCA"]:
 
-            # compcor begins with linearly detrending the columns of the matrix
+            # compcor begins with linearly detrending the columns of the
+            # matrix
             def linear_detrend_columns(image_array_2d):
                 """
                 perform quadratic detrending on each row of a 2D numpy array representing a functional image
@@ -213,7 +217,6 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
             time_courses = quadratic_detrend_rows(time_courses)
 
         if method in ["PCA", "DetrendNormMean", "NormMean"]:
-
             time_courses = time_courses - np.tile(time_courses.mean(1).reshape(time_courses.shape[0], 1),
                                                   (1, time_courses.shape[1]))
             time_courses = time_courses / np.tile(time_courses.std(1).reshape(time_courses.shape[0], 1),
@@ -221,17 +224,16 @@ def mask_summarize_time_course(functional_file_path, mask_file_path, output_file
 
         # now summarise
         if method in ["DetrendNormMean", "NormMean", "Mean"]:
-
             time_course_summaries.append(time_courses.mean(0))
 
         elif method in ["PCA"]:
-
             [u, s, v] = np.linalg.svd(time_courses, full_matrices=False)
             time_course_summaries.append(v[0:num_pcs, :])
 
     if len(time_course_summaries) != number_of_mask_volumes:
         raise ValueError("Expected {0} summaries, one for mask volume, "
-                         "but received {1}".format(number_of_mask_volumes, len(time_course_summaries)))
+                         "but received {1}".format(number_of_mask_volumes,
+                                                   len(time_course_summaries)))
 
     output_file_path = os.path.join(os.getcwd(), output_file_path)
     with open(output_file_path, "w") as ofd:
@@ -431,7 +433,8 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
                                                                                    'summary_method']))
                 summary_method = selector[regressor_type]['summary_method']
 
-            # if other parameters are missing, assume they are False by default
+            # if other parameters are missing, assume they are False by
+            # default
             for regressor_derivative in ['include_delayed', 'include_squared', 'include_delayed_squared']:
                 if regressor_derivative not in selector[regressor_type] or \
                         not selector[regressor_type][regressor_derivative]:
@@ -440,7 +443,8 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
 
             motion_labels = ["RotY", "RotX", "RotZ", "Y", "X", "Z"]
 
-            # add in the regressors, making sure to also add in the column name
+            # add in the regressors, making sure to also add in the column
+            # name
             for regressor_index in range(0, regressors.shape[1]):
                 if regressor_type is "Motion":
                     regressor_name = motion_labels[regressor_index]
@@ -552,7 +556,7 @@ def gather_nuisance(functional_file_path, selector, output_file_path, grey_matte
 def create_nuisance_workflow(use_ants, selector, name='nuisance'):
     """
     Workflow for the removal of various signals considered to be noise from
-    resting state fMRI data.  The residual signals for linear regression
+    resting state fMRI data. The residual signals for linear regression
     denoising is performed in a single model.  Therefore the residual
     time-series will be orthogonal to all signals.
 
@@ -931,8 +935,10 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
 
             tissue_regressor_nodes[tissue_regressor].interface.estimated_memory_gb = 1.0
 
-            # probably seems redundant to the user to specify CompCor and PCA summarization, since it is redundant
-            # lets just set here to keep the logic the same as for other tissue without a bunch of branching
+            # probably seems redundant to the user to specify CompCor and PCA
+            # summarization, since it is redundant
+            # lets just set here to keep the logic the same as for other
+            # tissue without a bunch of branching
             if tissue_regressor in ['aCompCor', 'tCompCor']:
                 selector[tissue_regressor]['summary_method'] = "PCA"
 
@@ -1077,7 +1083,8 @@ def create_nuisance_workflow(use_ants, selector, name='nuisance'):
 
     build_nuisance_regressors = None
 
-    # first check to see if we have any regressors, if so we need to combine them into a single file
+    # first check to see if we have any regressors, if so we need to combine
+    # them into a single file
     build_nuisance_regressors_flag = False
     for regressor_key in gather_nuisance_input_map:
         if regressor_key in selector and selector[regressor_key]:
