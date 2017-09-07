@@ -99,15 +99,12 @@ def create_sca(name_sca='sca'):
                                                 ]),
                         name='inputspec')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=[
                                                     'correlation_stack',
                                                     'correlation_files',
                                                     'Z_score',
                                                     ]),
                         name='outputspec')
-
-
 
     # # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
@@ -120,56 +117,50 @@ def create_sca(name_sca='sca'):
     sca.connect(inputNode, 'functional_file',
                 corr, 'xset')
 
+    # Transform the sub-bricks into volumes
+    try:
+        concat = pe.Node(interface=preprocess.TCat(), name='3dTCat')
+    except AttributeError:
+        from nipype.interfaces.afni import utils as afni_utils
+        concat = pe.Node(interface=afni_utils.TCat(), name='3dTCat')
 
-    if "roi" in name_sca:
+    concat.inputs.outputtype = 'NIFTI_GZ'
 
-        # Transform the sub-bricks into volumes
-        concat = pe.Node(interface=preprocess.TCat(),
-                          name='3dTCat')
-        concat.inputs.outputtype = 'NIFTI_GZ'
+    # also write out volumes as individual files
+    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
+    split.inputs.dimension = 't'
+    split.inputs.out_base_name = 'sca_'
 
-        # also write out volumes as individual files
-        split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-        split.inputs.dimension = 't'
-        split.inputs.out_base_name = 'sca_'
+    get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
+                                                          'prefix'],
+                                             output_names=['roi_list'],
+                                             function=get_roi_num_list),
+                               name='get_roi_num_list')
+    get_roi_num_list.inputs.prefix = "sca"
 
-        get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file', 'prefix'],
-                                                 output_names=['roi_list'],
-                                                 function=get_roi_num_list), 
-                                   name='get_roi_num_list')
-        get_roi_num_list.inputs.prefix = "sca"
+    rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
+                      iterfield=['in_file','format_string'])
 
-        rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                          iterfield=['in_file','format_string'])
+    rename_rois.inputs.keep_ext = True
 
-        rename_rois.inputs.keep_ext = True
+    sca.connect(corr, 'out_file', concat, 'in_files')
 
+    sca.connect(concat, 'out_file', split, 'in_file')
 
-        sca.connect(corr, 'out_file', concat, 'in_files')
+    sca.connect(concat, 'out_file',
+                outputNode, 'correlation_stack')
 
-        sca.connect(concat, 'out_file', split, 'in_file')
+    sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
+                'timeseries_file')
 
-        sca.connect(concat, 'out_file',
-                    outputNode, 'correlation_stack')
+    sca.connect(split, 'out_files', rename_rois, 'in_file')
 
-        sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-                    'timeseries_file')
+    sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
 
-        sca.connect(split, 'out_files', rename_rois, 'in_file')
-
-        sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
-        sca.connect(rename_rois, 'out_file', outputNode,
-                    'correlation_files')
-
-    else:
-
-        sca.connect(corr, 'out_file', outputNode, 'correlation_files')
-
-
+    sca.connect(rename_rois, 'out_file', outputNode,
+                'correlation_files')
 
     return sca
-
 
 
 def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
@@ -288,7 +279,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                                   'temp_reg_map_files',
                                   'temp_reg_map_z',
                                   'temp_reg_map_z_files']),
-                          name='outputspec')
+                         name='outputspec')
 
     check_timeseries = pe.Node(util.Function(input_names=['in_file'],
                                              output_names=['out_file'],
@@ -298,41 +289,28 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     wflow.connect(inputNode, 'subject_timeseries',
                   check_timeseries, 'in_file')
 
-    temporalReg = pe.Node(interface=fsl.GLM(),
-                          name='temporal_regression')
+    temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
 
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
-    wflow.connect(inputNode, 'subject_rest',
-                  temporalReg, 'in_file')
-    wflow.connect(check_timeseries, 'out_file',
-                  temporalReg, 'design')
-    wflow.connect(inputNode, 'demean',
-                  temporalReg, 'demean')
-    wflow.connect(inputNode, 'normalize',
-                  temporalReg, 'des_norm')
-    wflow.connect(inputNode, 'subject_mask',
-                  temporalReg, 'mask')
+    wflow.connect(inputNode, 'subject_rest', temporalReg, 'in_file')
+    wflow.connect(check_timeseries, 'out_file', temporalReg, 'design')
+    wflow.connect(inputNode, 'demean', temporalReg, 'demean')
+    wflow.connect(inputNode, 'normalize', temporalReg, 'des_norm')
+    wflow.connect(inputNode, 'subject_mask', temporalReg, 'mask')
 
+    wflow.connect(temporalReg, 'out_file', outputNode, 'temp_reg_map')
+    wflow.connect(temporalReg, 'out_z', outputNode, 'temp_reg_map_z')
 
-    wflow.connect(temporalReg, 'out_file',
-                  outputNode, 'temp_reg_map')
-    wflow.connect(temporalReg, 'out_z',
-                  outputNode, 'temp_reg_map_z')
-
-
-    split = pe.Node(interface=fsl.Split(),
-                    name='split_raw_volumes')
+    split = pe.Node(interface=fsl.Split(), name='split_raw_volumes')
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
 
     wflow.connect(temporalReg, 'out_file',
                   split, 'in_file')
 
-
-    split_zstat = pe.Node(interface=fsl.Split(),
-                    name='split_zstat_volumes')
+    split_zstat = pe.Node(interface=fsl.Split(), name='split_zstat_volumes')
     split_zstat.inputs.dimension = 't'
     split_zstat.inputs.out_base_name = 'temp_reg_map_z_'
 
@@ -346,17 +324,18 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                       outputNode, 'temp_reg_map_z_files')
 
     elif which == 'RT':
+        map_roi_imports = ['import os', 'import numpy as np']
 
         # get roi order and send to output node for raw outputs
         get_roi_order = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
                                               output_names=['labels',
                                                             'maps'],
-                                              function=map_to_roi),
+                                              function=map_to_roi,
+                                              imports=map_roi_imports),
                                 name='get_roi_order')
 
-        wflow.connect(split, 'out_files',
-                      get_roi_order, 'maps')
+        wflow.connect(split, 'out_files', get_roi_order, 'maps')
 
         wflow.connect(inputNode, 'subject_timeseries',
                       get_roi_order, 'timeseries')
@@ -364,36 +343,31 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
         rename_maps = pe.MapNode(interface=util.Rename(),
                                  name='rename_maps',
                                  iterfield=['in_file',
-                                              'format_string'])
+                                            'format_string'])
         rename_maps.inputs.keep_ext = True
 
-        wflow.connect(get_roi_order, 'labels',
-                      rename_maps, 'format_string')
-        wflow.connect(get_roi_order, 'maps',
-                      rename_maps, 'in_file')
-
+        wflow.connect(get_roi_order, 'labels', rename_maps, 'format_string')
+        wflow.connect(get_roi_order, 'maps', rename_maps, 'in_file')
         wflow.connect(rename_maps, 'out_file',
                       outputNode, 'temp_reg_map_files')
-
 
         # get roi order and send to output node for z-stat outputs
         get_roi_order_zstat = pe.Node(util.Function(input_names=['maps',
                                                            'timeseries'],
-                                              output_names=['labels',
-                                                            'maps'],
-                                              function=map_to_roi),
-                                name='get_roi_order_zstat')
+                                                    output_names=['labels',
+                                                                  'maps'],
+                                                    function=map_to_roi,
+                                                    imports=map_roi_imports),
+                                      name='get_roi_order_zstat')
 
-        wflow.connect(split_zstat, 'out_files',
-                      get_roi_order_zstat, 'maps')
-
+        wflow.connect(split_zstat, 'out_files', get_roi_order_zstat, 'maps')
         wflow.connect(inputNode, 'subject_timeseries',
                       get_roi_order_zstat, 'timeseries')
 
         rename_maps_zstat = pe.MapNode(interface=util.Rename(),
-                                 name='rename_maps_zstat',
-                                 iterfield=['in_file',
-                                            'format_string'])
+                                       name='rename_maps_zstat',
+                                       iterfield=['in_file',
+                                                  'format_string'])
         rename_maps_zstat.inputs.keep_ext = True
 
         wflow.connect(get_roi_order_zstat, 'labels',
@@ -403,6 +377,5 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
         wflow.connect(rename_maps_zstat, 'out_file',
                       outputNode, 'temp_reg_map_z_files')
-
 
     return wflow

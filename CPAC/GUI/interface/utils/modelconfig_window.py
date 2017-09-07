@@ -17,7 +17,6 @@ class ModelConfig(wx.Frame):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 650))
 
-
         if gpa_settings == None:
             self.gpa_settings = {}
             self.gpa_settings['participant_list'] = ''
@@ -36,7 +35,6 @@ class ModelConfig(wx.Frame):
             self.gpa_settings['p_threshold'] = ''
         else:
             self.gpa_settings = gpa_settings
-        
 
         self.parent = parent
 
@@ -47,38 +45,42 @@ class ModelConfig(wx.Frame):
         self.panel = wx.Panel(self)
 
         self.window = wx.ScrolledWindow(self.panel, size=(-1,300))
-        
 
-        self.page = generic_class.GenericClass(self.window, " FSL Model Setup")
+        self.page = generic_class.GenericClass(self.window,
+                                               " FSL Model Setup")
 
         self.page.add(label="Participant List ",
                       control=control.COMBO_BOX,
                       name="participant_list",
                       type=dtype.STR,
-                      comment="Full path to a list of participants to be " \
-                              "included in the model.\n\nThis should be a " \
-                              "CSV file with at least one column marked " \
-                              "'Participant', and columns marked 'Session' " \
-                              "and/or 'Series' if repeated measures " \
-                              "analysis is to be run.\n\n",
+                      comment="Full path to a list of participants to be "
+                              "included in the model.\n\nThis should be a "
+                              "text file with each participant ID on its "
+                              "own line.",
                       values=self.gpa_settings['participant_list'])
 
         self.page.add(label="Phenotype/EV File ",
                       control=control.COMBO_BOX,
                       name="pheno_file",
                       type=dtype.STR,
-                      comment="Full path to a .csv file containing EV information for each subject.\n\nTip: A file in this format (containing a single column listing all subjects run through CPAC) was generated along with the main CPAC subject list (see template_phenotypic.csv).",
+                      comment="Full path to a .csv file containing EV "
+                              "information for each subject.\n\nTip: A "
+                              "file in this format (containing a single "
+                              "column listing all subjects run through "
+                              "CPAC) was generated along with the main "
+                              "CPAC subject list (see phenotypic_template_"
+                              "X.csv).",
                       values=self.gpa_settings['pheno_file'])
 
         self.page.add(label="Participant Column Name ",
                       control=control.TEXT_BOX,
                       name="participant_id_label",
                       type=dtype.STR,
-                      comment="Name of the participants column in your EV file.",
+                      comment="Name of the participants column in your EV "
+                              "file.",
                       values=self.gpa_settings['participant_id_label'],
                       style=wx.EXPAND | wx.ALL,
                       size=(160, -1))
-
         
         load_panel_sizer = wx.BoxSizer(wx.HORIZONTAL)
         load_pheno_btn = wx.Button(self.window, 2, 'Load Phenotype File', (220,10), wx.DefaultSize, 0)
@@ -203,7 +205,7 @@ class ModelConfig(wx.Frame):
                                 'that you wish to include within the same ' \
                                 'model (this is for repeated measures/' \
                                 'within-subject designs).\n\nTip: These ' \
-                                'will be the labels listed under "rest:"" '\
+                                'will be the labels listed under "func:"" '\
                                 'in the original individual-level ' \
                                 'participant list, or the labels in the ' \
                                 'original data directories you marked as ' \

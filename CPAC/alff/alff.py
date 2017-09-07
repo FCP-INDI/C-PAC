@@ -10,8 +10,8 @@ from CPAC.alff.alff import *
 from CPAC.alff.utils import *
 from nipype.interfaces.afni import preprocess
 
-def create_alff(wf_name = 'alff_workflow'):
 
+def create_alff(wf_name='alff_workflow'):
     """
     Calculate Amplitude of low frequency oscillations(ALFF) and fractional ALFF maps
 
@@ -31,10 +31,10 @@ def create_alff(wf_name = 'alff_workflow'):
 
     Workflow Inputs::
 
-        hp_input.hp : list (float) 
+        hp_input.hp : list (float)
             high pass frequencies
 
-        lp_input.lp : list (float) 
+        lp_input.lp : list (float)
             low pass frequencies
 
         inputspec.rest_res : string (existing nifti file)
@@ -62,25 +62,25 @@ def create_alff(wf_name = 'alff_workflow'):
     Order of Commands:
 
     - Filter the input file rest file( slice-time, motion corrected and nuisance regressed) ::
-        3dBandpass -prefix residual_filtered.nii.gz 
+        3dBandpass -prefix residual_filtered.nii.gz
                     0.009 0.08 residual.nii.gz
-                    
+
     - Calculate ALFF by taking the standard deviation of the filtered file ::
-        3dTstat -stdev 
-                -mask rest_mask.nii.gz 
+        3dTstat -stdev
+                -mask rest_mask.nii.gz
                 -prefix residual_filtered_3dT.nii.gz
                 residual_filtered.nii.gz
-                  
+
     - Calculate the standard deviation of the unfiltered file ::
-        3dTstat -stdev 
-                -mask rest_mask.nii.gz 
+        3dTstat -stdev
+                -mask rest_mask.nii.gz
                 -prefix residual_3dT.nii.gz
                 residual.nii.gz
-  
+
     - Calculate fALFF ::
-        3dcalc -a rest_mask.nii.gz 
+        3dcalc -a rest_mask.nii.gz
                -b residual_filtered_3dT.nii.gz
-               -c residual_3dT.nii.gz  
+               -c residual_3dT.nii.gz
                -expr '(1.0*bool(a))*((1.0*b)/(1.0*c))' -float
 
     - Normalize ALFF/fALFF to Z-score across full brain ::
@@ -108,7 +108,7 @@ def create_alff(wf_name = 'alff_workflow'):
 
         fslstats
         fALFF.nii.gz
-        -k rest_mask.nii.gz 
+        -k rest_mask.nii.gz
         -s > std_fALFF.txt
         std=$( cat std_fALFF.txt )
 
@@ -120,7 +120,7 @@ def create_alff(wf_name = 'alff_workflow'):
         fALFF_Z.nii.gz
 
     High Level Workflow Graph:
-    
+
     .. image:: ../images/alff.dot.png
         :width: 500
 
@@ -129,7 +129,7 @@ def create_alff(wf_name = 'alff_workflow'):
     .. image:: ../images/alff_detailed.dot.png
         :width: 500
 
-    
+
     References
     ----------
 
@@ -144,84 +144,88 @@ def create_alff(wf_name = 'alff_workflow'):
     >>> alff_w.get_node('hp_input').iterables = ('hp',[0.01])
     >>> alff_w.get_node('lp_input').iterables = ('lp',[0.1])
     >>> alff_w.inputs.inputspec.rest_res = '/home/data/subject/func/rest_bandpassed.nii.gz'
-    >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz' 
+    >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz'
     >>> alff_w.run() # doctest: +SKIP
-
-
     """
 
-    wf = pe.Workflow(name= wf_name)
+    wf = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['rest_res',
                                                        'rest_mask']),
                         name='inputspec')
-    
+
     inputnode_hp = pe.Node(util.IdentityInterface(fields=['hp']),
-                             name='hp_input')
+                           name='hp_input')
 
     inputnode_lp = pe.Node(util.IdentityInterface(fields=['lp']),
-                             name='lp_input')
-    
-    outputNode = pe.Node(util.IdentityInterface(fields=[ 'alff_img',
-                                                         'falff_img']),
-                          name='outputspec')
-    
-    #filtering
-    bandpass = pe.Node(interface= preprocess.Bandpass(),
-                       name = 'bandpass_filtering')
+                           name='lp_input')
+
+    outputNode = pe.Node(util.IdentityInterface(fields=['alff_img',
+                                                        'falff_img']),
+                         name='outputspec')
+
+    # filtering
+    bandpass = pe.Node(interface=preprocess.Bandpass(),
+                       name='bandpass_filtering')
     bandpass.inputs.outputtype = 'NIFTI_GZ'
-    bandpass.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered.nii.gz')
-    wf.connect(inputnode_hp, 'hp',
-                 bandpass, 'highpass')
-    wf.connect(inputnode_lp, 'lp',
-                 bandpass, 'lowpass')
-    wf.connect(inputNode, 'rest_res',
-                 bandpass, 'in_file') 
-    
-    get_option_string = pe.Node(util.Function(input_names = ['mask'],
-                                              output_names = ['option_string'],
-                                              function = get_opt_string), 
-                                name = 'get_option_string')
-    wf.connect(inputNode, 'rest_mask',
-                 get_option_string, 'mask')
-    
-    #standard deviation over frequency
-    stddev_fltrd = pe.Node(interface = preprocess.TStat(),
-                            name = 'stddev_fltrd')
+    bandpass.inputs.out_file = os.path.join(os.path.curdir,
+                                            'residual_filtered.nii.gz')
+
+    wf.connect(inputnode_hp, 'hp', bandpass, 'highpass')
+    wf.connect(inputnode_lp, 'lp', bandpass, 'lowpass')
+    wf.connect(inputNode, 'rest_res', bandpass, 'in_file')
+
+    get_option_string = pe.Node(util.Function(input_names=['mask'],
+                                              output_names=['option_string'],
+                                              function=get_opt_string),
+                                name='get_option_string')
+    wf.connect(inputNode, 'rest_mask', get_option_string, 'mask')
+
+    # standard deviation over frequency
+    try:
+        from nipype.interfaces.afni import utils as afni_utils
+        stddev_fltrd = pe.Node(interface=afni_utils.TStat(),
+                               name='stddev_fltrd')
+    except ImportError:
+        stddev_fltrd = pe.Node(interface=preprocess.TStat(),
+                               name='stddev_fltrd')
+
     stddev_fltrd.inputs.outputtype = 'NIFTI_GZ'
-    stddev_fltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_filtered_3dT.nii.gz')
-    wf.connect(bandpass, 'out_file',
-               stddev_fltrd, 'in_file')
-    wf.connect(get_option_string, 'option_string',
-               stddev_fltrd, 'options') 
-    
-    wf.connect(stddev_fltrd, 'out_file',
-                 outputNode, 'alff_img')
-    
-    #standard deviation of the unfiltered nuisance corrected image
-    stddev_unfltrd = pe.Node(interface = preprocess.TStat(),
-                            name = 'stddev_unfltrd')
+    stddev_fltrd.inputs.out_file = os.path.join(os.path.curdir,
+                                                'residual_filtered_3dT.nii.gz')
+    wf.connect(bandpass, 'out_file', stddev_fltrd, 'in_file')
+    wf.connect(get_option_string, 'option_string', stddev_fltrd, 'options')
+
+    wf.connect(stddev_fltrd, 'out_file', outputNode, 'alff_img')
+
+    # standard deviation of the unfiltered nuisance corrected image
+    try:
+        stddev_unfltrd = pe.Node(interface=afni_utils.TStat(),
+                                 name='stddev_unfltrd')
+    except UnboundLocalError:
+        stddev_unfltrd = pe.Node(interface=preprocess.TStat(),
+                                 name='stddev_unfltrd')
+
     stddev_unfltrd.inputs.outputtype = 'NIFTI_GZ'
-    stddev_unfltrd.inputs.out_file = os.path.join(os.path.curdir, 'residual_3dT.nii.gz')
-    wf.connect(inputNode, 'rest_res',
-                 stddev_unfltrd, 'in_file')
-    wf.connect(get_option_string, 'option_string',
-                 stddev_unfltrd, 'options') 
-    
-    #falff calculations
-    falff = pe.Node(interface = preprocess.Calc(),
-                    name = 'falff')
+    stddev_unfltrd.inputs.out_file = os.path.join(os.path.curdir,
+                                                  'residual_3dT.nii.gz')
+
+    wf.connect(inputNode, 'rest_res', stddev_unfltrd, 'in_file')
+    wf.connect(get_option_string, 'option_string', stddev_unfltrd, 'options')
+
+    # falff calculations
+    try:
+        falff = pe.Node(interface=afni_utils.Calc(), name='falff')
+    except UnboundLocalError:
+        falff = pe.Node(interface=preprocess.Calc(), name='falff')
+
     falff.inputs.args = '-float'
     falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
     falff.inputs.outputtype = 'NIFTI_GZ'
-    wf.connect(inputNode, 'rest_mask',
-               falff, 'in_file_a')
-    wf.connect(stddev_fltrd, 'out_file',
-               falff, 'in_file_b')
-    wf.connect(stddev_unfltrd, 'out_file',
-               falff, 'in_file_c')
-    
-    wf.connect(falff, 'out_file',
-               outputNode, 'falff_img') 
-    
-    
+
+    wf.connect(inputNode, 'rest_mask', falff, 'in_file_a')
+    wf.connect(stddev_fltrd, 'out_file', falff, 'in_file_b')
+    wf.connect(stddev_unfltrd, 'out_file', falff, 'in_file_c')
+
+    wf.connect(falff, 'out_file', outputNode, 'falff_img')
+
     return wf

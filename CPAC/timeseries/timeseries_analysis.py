@@ -109,7 +109,6 @@ def create_surface_registration(wf_name='surface_registration'):
                                                          'rh_surface_file']),
                          name='outputspec')
 
-
     reconall = pe.Node(interface=fs.ReconAll(),
                        name="reconall")
     reconall.inputs.directive = 'all'
@@ -127,7 +126,6 @@ def create_surface_registration(wf_name='surface_registration'):
     wflow.connect(reconall, 'subject_id',
                   outputNode, 'reconall_subjects_id')
 
-
     bbregister = pe.Node(interface=fs.BBRegister(init='fsl',
                                                  contrast_type='t2',
                                                  registered_file=True,
@@ -144,7 +142,6 @@ def create_surface_registration(wf_name='surface_registration'):
     wflow.connect(bbregister, 'out_reg_file',
                   outputNode, 'out_reg_file')
 
-
     sample_to_surface_lh = pe.Node(interface=fs.SampleToSurface(hemi="lh"),
                                     name='sample_to_surface_lh')
     sample_to_surface_lh.inputs.no_reshape = True
@@ -160,7 +157,6 @@ def create_surface_registration(wf_name='surface_registration'):
 
     wflow.connect(sample_to_surface_lh, 'out_file',
                outputNode, 'lh_surface_file')
-
 
     sample_to_surface_rh = pe.Node(interface=fs.SampleToSurface(hemi="rh"),
                                     name='sample_to_surface_rh')
@@ -329,14 +325,12 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
 
     wflow.connect(inputNode, 'rest',
                   timeseries_roi, 'in_file')
-    #wflow.connect(inputNode, 'output_type',
-    #              timeseries_roi, 'output_type')
+
     wflow.connect(inputnode_roi, 'roi',
                   timeseries_roi, 'mask')
 
     wflow.connect(timeseries_roi, 'stats',
                   outputNode, 'roi_outputs')
-
 
     return wflow
 
@@ -480,7 +474,6 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
                                                 function=gen_vertices_timeseries),
                                 name='timeseries_surface')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=['surface_outputs']),
                         name='outputspec')
 
@@ -492,9 +485,7 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
     wflow.connect(timeseries_surface, 'out_file',
                   outputNode, 'surface_outputs')
 
-
     return wflow
-    
     
     
 def get_normalized_moments(wf_name='normalized_moments'):
@@ -549,21 +540,17 @@ def get_normalized_moments(wf_name='normalized_moments'):
 
     wflow.connect(norm_moments, 'moments', outputNode, 'moments_outputs')
 
-
     return wflow
 
 
-
-def gen_roi_timeseries(data_file,
-                       template,
-                       output_type):
+def gen_roi_timeseries(data_file, template, output_type):
     """
     Method to extract mean of voxel across
     all timepoints for each node in roi mask
 
     Parameters
     ----------
-    datafile : string
+    data_file : string
         path to input functional data
     template : string
         path to input roi mask in functional native space
@@ -598,15 +585,14 @@ def gen_roi_timeseries(data_file,
     vol = img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception('\n\n[!] CPAC says: Invalid Shape Error.'\
-                        'Please check the voxel dimensions. '\
+        raise Exception('\n\n[!] CPAC says: Invalid Shape Error.'
+                        'Please check the voxel dimensions. '
                         'Data and roi should have the same shape.\n\n')
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
     node_dict = {}
     out_list = []
-
 
     # extracting filename from input template
     tmp_file = os.path.splitext(
@@ -621,16 +607,15 @@ def gen_roi_timeseries(data_file,
     for n in nodes:
         if n > 0:
             node_array = img_data[unit_data == n]
-            node_str = 'node_%s' % (n)
+            node_str = 'node_{0}'.format(n)
             avg = np.mean(node_array, axis=0)
             avg = np.round(avg, 6)
             list1 = [n] + avg.tolist()
             sorted_list.append(list1)
             node_dict[node_str] = avg.tolist()
 
-
     # writing to 1Dfile
-    print "writing 1D file.."
+    print("writing 1D file..")
     f = open(oneD_file, 'w')
     writer = csv.writer(f, delimiter='\t')
 
@@ -642,17 +627,12 @@ def gen_roi_timeseries(data_file,
 
     roi_number_str = []
     for number in roi_number_list:
-
         roi_number_str.append("#" + number)
 
-
-    print "new keys: ", new_keys
-    print "roi number str: ", roi_number_str
     for key in new_keys:
-        value_list.append(node_dict['node_%s' % key])
+        value_list.append(node_dict['node_{0}'.format(key)])
 
     column_list = zip(*value_list)
-
 
     writer.writerow(roi_number_str)
 
@@ -669,8 +649,7 @@ def gen_roi_timeseries(data_file,
     if output_type[0]:
         print "writing csv file.."
         f = open(csv_file, 'wt')
-        writer = csv.writer(f, delimiter=',',
-                                quoting=csv.QUOTE_MINIMAL)
+        writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
         headers = ['node/volume'] + np.arange(vol).tolist()
         writer.writerow(headers)
         writer.writerows(sorted_list)
@@ -686,9 +665,7 @@ def gen_roi_timeseries(data_file,
     return out_list
 
 
-def gen_voxel_timeseries(data_file,
-                         template,
-                         output_type):
+def gen_voxel_timeseries(data_file, template, output_type):
     """
     Method to extract timeseries for each voxel
     in the data that is present in the input mask
@@ -734,11 +711,6 @@ def gen_voxel_timeseries(data_file,
     vol_dict = {}
     out_list = []
 
-    #if unit_data.shape != img_data.shape[:3]:
-    #    raise Exception('Invalid Shape Error.'\
-    #                    'Please check the voxel dimensions.'\
-    #                    'Data and mask should have same shape')
-
     tmp_file = os.path.splitext(
                   os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
@@ -751,9 +723,9 @@ def gen_voxel_timeseries(data_file,
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        str = 'vol %s' % (t)
-        vol_dict[str] = node_array[t]
-        print >> f, np.round(np.mean(node_array[t]), 6)
+        string = 'vol {0}'.format(t)
+        vol_dict[string] = node_array[t]
+        f.write(str(np.round(np.mean(node_array[t]), 6)))
         val = node_array[t].tolist()
         val.insert(0, t)
         sorted_list.append(val)
@@ -764,7 +736,7 @@ def gen_voxel_timeseries(data_file,
     if output_type[0]:
         csv_file = os.path.abspath('mask_' + tmp_file + '.csv')
         f = open(csv_file, 'wt')
-        writer = csv.writer(f, delimiter=',',
+        writer = csv.writer(f, delimiter=str(','),
                             quoting=csv.QUOTE_MINIMAL)
         one = np.array([1])
         headers = ['volume/xyz']
@@ -786,6 +758,7 @@ def gen_voxel_timeseries(data_file,
         out_list.append(numpy_file)
 
     return out_list
+
 
 def gen_vertices_timeseries(rh_surface_file,
                         lh_surface_file):

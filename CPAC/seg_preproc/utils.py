@@ -7,7 +7,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-
 def check_if_file_is_empty(in_file):
     """
     Raise exception if regressor fie is empty.
@@ -53,18 +52,12 @@ def pick_wm_0(probability_maps):
 
     """
 
-    import sys
-    import os
-
-    if(isinstance(probability_maps, list)):
-
-        if(len(probability_maps) == 1):
+    if isinstance(probability_maps, list):
+        if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
-        for file in probability_maps:
-            print file
-            if file.endswith("seg_0.nii.gz"):
-
-                return file
+        for filename in probability_maps:
+            if filename.endswith("seg_0.nii.gz"):
+                return filename
     return None
 
 
@@ -86,18 +79,13 @@ def pick_wm_1(probability_maps):
         Path to segment_prob_1.nii.gz is returned
 
     """
-    import sys
-    import os
 
-    if(isinstance(probability_maps, list)):
-
-        if(len(probability_maps) == 1):
+    if isinstance(probability_maps, list):
+        if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
-        for file in probability_maps:
-            print file
-            if file.endswith("seg_1.nii.gz"):
-
-                return file
+        for filename in probability_maps:
+            if filename.endswith("seg_1.nii.gz"):
+                return filename
     return None
 
 
@@ -119,17 +107,13 @@ def pick_wm_2(probability_maps):
         Path to segment_prob_2.nii.gz is returned
 
     """
-    import sys
-    import os
-    if(isinstance(probability_maps, list)):
 
-        if(len(probability_maps) == 1):
+    if isinstance(probability_maps, list):
+        if len(probability_maps) == 1:
             probability_maps = probability_maps[0]
-        for file in probability_maps:
-            print file
-            if file.endswith("seg_2.nii.gz"):
-
-                return file
+        for filename in probability_maps:
+            if filename.endswith("seg_2.nii.gz"):
+                return filename
     return None
 
 

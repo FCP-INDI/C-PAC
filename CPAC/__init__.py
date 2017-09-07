@@ -49,7 +49,7 @@ import re
 #__version__ = '0.1-git'
 
 try:
-    version = '1.0.1'
+    version = '1.0.1b'
 
 
 #    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)

@@ -157,8 +157,7 @@ class DataConfig(wx.Frame):
         
         btnPanel = wx.Panel(self.panel, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        
-        
+
         self.multiscan = wx.CheckBox(btnPanel, -1, label = "Multiscan Data")
         
         if 'linux' in sys.platform:
@@ -275,7 +274,9 @@ class DataConfig(wx.Frame):
                             ret = 1
                             break
                         else:
-                            dlg3 = wx.MessageDialog(self, 'Subject List with this name already exist','Error!',
+                            dlg3 = wx.MessageDialog(self, 'Subject List with '
+                                                          'this name already '
+                                                          'exist','Error!',
                                                     wx.OK | wx.ICON_ERROR)
                             dlg3.ShowModal()
                             dlg3.Destroy()
@@ -288,7 +289,8 @@ class DataConfig(wx.Frame):
 
         # Import error if CPAC not available
         except ImportError as exc:
-            wx.MessageBox("Error importing CPAC. Unable to run extract data tool.", "Error") 
+            wx.MessageBox("Error importing CPAC. Unable to run extract data "
+                          "tool.", "Error")
             print "Error importing CPAC"
             print exc
             return -1
@@ -316,7 +318,10 @@ class DataConfig(wx.Frame):
             win.SetFocus()
             win.Refresh()
             raise ValueError
-        
+
+        path_fields = ['scanParametersCSV', 'awsCredentialsFile',
+                       'outputSubjectListLocation']
+
         try:
             for ctrl in self.page.get_ctrl_list():
 
@@ -331,17 +336,24 @@ class DataConfig(wx.Frame):
                     subject_list_name = value
 
                 if len(value) == 0:
-                    if name != "bidsBaseDir" and name != "anatomicalTemplate" and \
-                        name != "functionalTemplate":
+                    if name != "bidsBaseDir" and \
+                                    name != "anatomicalTemplate" and \
+                                    name != "functionalTemplate":
                         display(win,"%s field must contain some text!"%ctrl.get_name())
                             
                 if 'Template' in name:
                     if value.startswith('%s'):
                         display(win, "Template cannot start with %s")
-                        
-                if '/' in value and 'Template' not in name:
-                    if not os.path.exists(value):
-                        display(win,"%s field contains incorrect path. Please update the path!"%ctrl.get_name())
+
+                if name in path_fields:
+                    if "s3://" not in value and len(value) > 0 and \
+                                    value is not None and \
+                                    "None" not in value and \
+                                    "none" not in value:
+                        if not os.path.exists(value):
+                            display(win, "%s field contains incorrect path. "
+                                         "Please update the path!"
+                                    % ctrl.get_name())
          
                 config_list.append((name, value, dtype))
                 config_dict[name] = (value, dtype)
@@ -349,7 +361,7 @@ class DataConfig(wx.Frame):
             # some final checks
             if "BIDS" in config_dict["dataFormat"][0]:
                 if len(config_dict["anatomicalTemplate"][0]) > 0 or \
-                    len(config_dict["functionalTemplate"][0]) > 0:
+                                len(config_dict["functionalTemplate"][0]) > 0:
                     err = wx.MessageDialog(self, "Custom filepath template " \
                                                  "provided, but data format "\
                                                  "is set to BIDS instead of "\
@@ -360,7 +372,8 @@ class DataConfig(wx.Frame):
                     err.Destroy()
                     return
 
-                elif not os.path.exists(config_dict["bidsBaseDir"][0]):
+                elif "s3://" not in config_dict["bidsBaseDir"][0] and \
+                        not os.path.exists(config_dict["bidsBaseDir"][0]):
                     err = wx.MessageDialog(self, "Data format is set to " \
                                                  "BIDS, but no BIDS base " \
                                                  "directory is set, or the " \
@@ -450,7 +463,6 @@ class DataConfig(wx.Frame):
                     if self.run(path) >0:
                         self.Close()
 
-
     # Load in data configuration file
     def load(self, event):
 
@@ -520,4 +532,3 @@ class DataConfig(wx.Frame):
 
             # Close dialog
             dlg.Destroy()
-            

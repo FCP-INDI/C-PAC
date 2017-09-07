@@ -6,14 +6,17 @@
 '''
 '''
 
-# Get metadata based on bids nifti path
+
 def get_metadata_for_nifti(bids_root, rel_path):
     '''
     '''
 
+    # Get metadata based on bids nifti path
+
     # Import packages
-    from fs.opener import fsopendir
     import json
+    # TODO: port this to versions of fs after 0.5.4
+    from fs.opener import fsopendir
 
     # Init variables
     fs = fsopendir(bids_root)

@@ -273,8 +273,8 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
                       'plugin_args=%(plugin_args)s)"'
 
     # Init plugin arguments
-    plugin_args = {'n_procs': pipeline_config.numCoresPerSubject,
-                   'memory_gb': pipeline_config.memoryAllocatedPerSubject}
+    plugin_args = {'n_procs': pipeline_config.maxCoresPerParticipant,
+                   'memory_gb': pipeline_config.maximumMemoryPerParticipant}
 
     # Set up run command dictionary
     run_cmd_dict = {'config_file' : config_file,
@@ -290,7 +290,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
                    'num_tasks' : num_subs,
                    'queue' : pipeline_config.queue,
                    'par_env' : pipeline_config.parallelEnvironment,
-                   'cores_per_task' : pipeline_config.numCoresPerSubject,
+                   'cores_per_task' : pipeline_config.maxCoresPerParticipant,
                    'user' : user_account,
                    'work_dir' : cluster_files_dir,
                    'time_limit' : time_limit}
