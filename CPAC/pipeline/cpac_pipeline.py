@@ -338,7 +338,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             % (workflow_name, numStrat,
                resourcePool) + "\n\n" + "Error name: cpac_pipeline_%s" % (
             errNum) + \
-            "\n\n" + "This is a pipeline creation error - the workflows have not started yet." + "\n\n")
+            "\n\n" + "This is a pipeline creation error - the workflows "
+                     "have not started yet." + "\n\n")
 
     def logStandardWarning(sectionName, warnLine):
 
