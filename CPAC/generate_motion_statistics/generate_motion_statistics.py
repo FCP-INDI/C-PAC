@@ -118,7 +118,8 @@ def fristons_twenty_four(wf_name='fristons_twenty_four'):
     return wf
 
 
-def motion_power_statistics(wf_name = 'gen_motion_stats'):
+def motion_power_statistics(calculation='Jenkinson',
+                            wf_name='gen_motion_stats'):
 
     """
     The main purpose of this workflow is to get various statistical measures from the 
@@ -380,8 +381,11 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            imports=exc_frames_imports),
                              name='exclude_frames')
 
-    pm.connect(calculate_FDP, 'out_file', 
-               exclude_frames, 'in_file')
+    if calculation == 'Jenkinson':
+        pm.connect(calculate_FDJ, 'out_file', exclude_frames, 'in_file')
+    elif calculation == 'Power':
+        pm.connect(calculate_FDP, 'out_file', exclude_frames, 'in_file')
+
     pm.connect(scrubbing_input, 'threshold', 
                exclude_frames, 'threshold')
     pm.connect(scrubbing_input, 'remove_frames_before',
@@ -400,8 +404,12 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                                            function=set_frames_in,
                                            imports=inc_frames_imports),
                              name='include_frames')
-    pm.connect(calculate_FDP, 'out_file', 
-               include_frames, 'in_file')
+
+    if calculation == 'Jenkinson':
+        pm.connect(calculate_FDJ, 'out_file', include_frames, 'in_file')
+    elif calculation == 'Power':
+        pm.connect(calculate_FDP, 'out_file', include_frames, 'in_file')
+
     pm.connect(scrubbing_input, 'threshold', 
                include_frames, 'threshold')
     pm.connect(exclude_frames, 'out_file', 

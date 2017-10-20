@@ -1726,8 +1726,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_bit_id['gen_motion_stats'] = workflow_counter
     for strat in strat_list:
 
-        gen_motion_stats = motion_power_statistics(
-            'gen_motion_stats_%d' % num_strat)
+        gen_motion_stats = motion_power_statistics(c.fdCalc[0],
+                                                   'gen_motion_stats_%d'
+                                                   % num_strat)
         gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
         gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
         gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames

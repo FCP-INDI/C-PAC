@@ -358,6 +358,12 @@ runGenerateMotionStatistics :  [1]
 runScrubbing :  [0]
 
 
+# Choose which Framewise Displacement (FD) calculation to apply the threshold
+# to during scrubbing.
+# Options: ['Jenkinson'] or ['Power']
+fdCalc: ['Jenkinson']
+
+
 # Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
 # Any volume exhibiting FD greater than this value will be removed.
 scrubbingThreshold : [0.2]

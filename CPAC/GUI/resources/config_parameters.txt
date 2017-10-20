@@ -57,6 +57,7 @@ targetAngleDeg,Target Angle (degrees),Median Angle Correction
 runFrequencyFiltering,Run Temporal Filtering,Temporal Filtering Options
 nuisanceBandpassFreq,Band-Pass Filters,Temporal Filtering Options
 runScrubbing,Run Scrubbing,Scrubbing Options
+fdCalc,Framewise Displacement (FD) Calculation,Scrubbing Options
 scrubbingThreshold,Framewise Displacement (FD) Threshold (mm),Scrubbing Options
 numRemovePrecedingFrames,Number of Preceeding Volumes to Remove,Scrubbing Options
 numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Scrubbing Options

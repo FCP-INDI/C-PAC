@@ -20,7 +20,6 @@ class Nuisance(wx.html.HtmlWindow):
         return self.counter
             
 
-
 class NuisanceRegression(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
@@ -92,7 +91,6 @@ class NuisanceRegression(wx.ScrolledWindow):
             return self.counter
         
 
-
 class MedianAngleCorrection(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
@@ -125,7 +123,6 @@ class MedianAngleCorrection(wx.ScrolledWindow):
             return self.counter
 
 
-
 class FilteringSettings(wx.ScrolledWindow):
     
     def __init__(self, parent, counter = 0):
@@ -136,12 +133,12 @@ class FilteringSettings(wx.ScrolledWindow):
         self.page = GenericClass(self, "Temporal Filtering Options")
         
         self.page.add(label="Run Temporal Filtering ", 
-                 control=control.CHOICE_BOX, 
-                 name='runFrequencyFiltering', 
-                 type=dtype.LSTR, 
-                 comment="Apply a temporal band-pass filter to functional data.", 
-                 values=["Off","On","On/Off"],
-                 wkf_switch = True)
+                      control=control.CHOICE_BOX,
+                      name='runFrequencyFiltering',
+                      type=dtype.LSTR,
+                      comment="Apply a temporal band-pass filter to functional data.",
+                      values=["Off","On","On/Off"],
+                      wkf_switch = True)
         
         self.page.add(label = "Band-Pass Filters ",
                       control = control.LISTBOX_COMBO,
@@ -149,16 +146,14 @@ class FilteringSettings(wx.ScrolledWindow):
                       type = dtype.LOFL,
                       values = [0.01, 0.1],
                       comment = "Define one or more band-pass filters by clicking the + button.",
-                     size = (200,100),
-                     combo_type = 2)
+                      size = (200,100),
+                      combo_type = 2)
 
-        
         self.page.set_sizer()
         parent.get_page_list().append(self)
         
     def get_counter(self):
             return self.counter
-
 
 
 class Scrubbing(wx.ScrolledWindow):
@@ -178,27 +173,41 @@ class Scrubbing(wx.ScrolledWindow):
                       values=["Off", "On", "On/Off"],
                       wkf_switch=True)
 
+        self.page.add(label="Framewise Displacement (FD) Calculation ",
+                      control=control.CHOICE_BOX,
+                      name='fdCalc',
+                      type=dtype.LSTR,
+                      comment="Choose which Framewise Displacement (FD) "
+                              "calculation to apply the threshold to during "
+                              "scrubbing.",
+                      values=["Jenkinson", "Power"])
+
         self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",
                       control=control.TEXT_BOX,
                       name='scrubbingThreshold',
                       type=dtype.LNUM,
                       values="0.2",
                       validator=CharValidator("no-alpha"),
-                      comment="Specify the maximum acceptable Framewise Displacement (FD) in millimeters.\n\nAny volume exhibiting FD greater than this value will be removed.",
+                      comment="Specify the maximum acceptable Framewise "
+                              "Displacement (FD) in millimeters.\n\nAny "
+                              "volume exhibiting FD greater than this value "
+                              "will be removed.",
                       size=(100, -1))
 
         self.page.add(label="Number of Preceeding Volumes to Remove ",
                       control=control.INT_CTRL,
                       name='numRemovePrecedingFrames',
                       type=dtype.NUM,
-                      comment="Number of volumes to remove preceeding a volume with excessive FD.",
+                      comment="Number of volumes to remove preceeding a "
+                              "volume with excessive FD.",
                       values=1)
 
         self.page.add(label="Number of Subsequent Volumes to Remove ",
                       control=control.INT_CTRL,
                       name='numRemoveSubsequentFrames',
                       type=dtype.NUM,
-                      comment="Number of volumes to remove subsequent to a volume with excessive FD.",
+                      comment="Number of volumes to remove subsequent to "
+                              "a volume with excessive FD.",
                       values=2)
 
         self.page.set_sizer()

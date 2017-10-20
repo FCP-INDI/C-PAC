@@ -223,9 +223,6 @@ def calc_residuals(subject,
     if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
 
-    if despiking:
-
-
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
     for rname, rval in regressor_map.items():
