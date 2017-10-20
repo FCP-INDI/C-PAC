@@ -1,3 +1,30 @@
+
+
+def test_calc_residuals_compcor():
+
+    from CPAC.nuisance import calc_residuals
+
+    func_preproc = '/Users/steven.giavasis/run/cpac/nipype13_test/output' \
+                   '/pipeline_nipype13_test/sub-0050304_ses-1/preprocessed' \
+                   '/_scan_rest_run-1/sub-0050304_task-rest_run-1_bold_' \
+                   'calc_tshift_resample_volreg_calc_maths.nii.gz'
+
+    selector = {'compcor': True,
+                'wm': False,
+                'csf': False,
+                'gm': False,
+                'global': True,
+                'pc1': True,
+                'motion': False,
+                'linear': True,
+                'quadratic': True}
+
+    calc_residuals(func_preproc, selector, compcor_ncomponents=5)
+
+
+
+
+
 def test_calc_residuals():
     import numpy as np
     from CPAC.nuisance import calc_residuals

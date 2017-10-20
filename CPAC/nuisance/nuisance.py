@@ -95,6 +95,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
 
 def calc_residuals(subject,
                    selector,
+                   despiking=False,
                    wm_sig_file = None,
                    csf_sig_file = None,
                    gm_sig_file = None,
@@ -190,7 +191,7 @@ def calc_residuals(subject,
 
     # Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor']:
+    if selector['compcor'] and selector['wm']:
         regressor_map['compcor'] = \
             calc_compcor_components(data, compcor_ncomponents, wm_sigs,
                                     csf_sigs)
@@ -221,7 +222,10 @@ def calc_residuals(subject,
     
     if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
-    
+
+    if despiking:
+
+
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
     for rname, rval in regressor_map.items():
@@ -281,7 +285,6 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % lat_ventricles_mask)
 
-
     if not safe_shape(data, lat_ventricles_mask):
         raise ValueError('Spatial dimensions for data and the lateral ventricles mask do not match')
 
@@ -289,7 +292,6 @@ def extract_tissue_data(data_file,
         wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % wm_seg)
-
 
     if not safe_shape(data, wm_seg):
         raise ValueError('Spatial dimensions for data, white matter segment do not match')
@@ -305,7 +307,6 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % csf_seg)
 
-
     if not safe_shape(data, csf_seg):
         raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
 
@@ -317,24 +318,19 @@ def extract_tissue_data(data_file,
     np.save(file_csf, csf_sigs)
     del csf_sigs
 
-
     try:
         gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % gm_seg)
 
-
     if not safe_shape(data, gm_seg):
         raise ValueError('Spatial dimensions for data, gray matter segment do not match')
-
 
     gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
     np.save(file_gm, gm_sigs)
     del gm_sigs
-
-
 
     nii = nb.load(wm_seg_file)
     wm_mask_file = os.path.join(os.getcwd(), 'wm_mask.nii.gz')

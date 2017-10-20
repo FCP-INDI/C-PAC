@@ -322,8 +322,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
                         name='inputspec')
 
     scrubbing_input = pe.Node(util.IdentityInterface(fields=['threshold',
-                                                              'remove_frames_before',
-                                                              'remove_frames_after']),
+                                                             'remove_frames_before',
+                                                             'remove_frames_after']),
                               name='scrubbing_input')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
@@ -346,8 +346,8 @@ def motion_power_statistics(wf_name = 'gen_motion_stats'):
     
     # Calculating mean Framewise Displacement as per power et al., 2012
     calculate_FDP = pe.Node(util.Function(input_names=['in_file'],
-                                         output_names=['out_file'],
-                                           function=calculate_FD_P),
+                                          output_names=['out_file'],
+                                          function=calculate_FD_P),
                             name='calculate_FD')
     
     pm.connect(inputNode, 'movement_parameters', 
