@@ -18,7 +18,7 @@ from time import strftime
 # Validate length of directory
 def validate(config_obj):
     
-    #check for path lengths
+    # check for path lengths
     working_dir = config_obj.workingDirectory
     
     try:
@@ -49,8 +49,9 @@ def get_vectors(strat):
                 # make this an if statement because it trips up when it gets a
                 # 'None' entry for one of the iterables
                 if val != None:
-                                    ### check if val is float, correct it on some version of python or ipython
-                    ### avoid auto change to double quote of the path
+                    ### check if val is float, correct it on some version of
+                    # python or ipython avoid auto change to double quote of
+                    # the path
                     if isinstance(val[0], float):
                         #val = '%.2f' % val[0]
                         val = [str(val[0])]
@@ -62,18 +63,14 @@ def get_vectors(strat):
                 else:
                     dfs(list(val_list), str(val) + '#' + path)
 
-
     val_list = []
 
     for key in sorted(strat.keys()):
         val_list.append(strat[key])
 
-
     dfs(val_list, '')
-    
 
     return paths
-
 
 
 def make_entries(paths, path_iterables):
@@ -110,8 +107,6 @@ def make_entries(paths, path_iterables):
     return entries
 
 
-
-
 def build_strategies(configuration):
 
     import collections
@@ -124,22 +119,14 @@ def build_strategies(configuration):
                     'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = '}
 
+    config_iterables = {'_threshold': eval('configuration.spikeThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
-    config_iterables = {'_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
-
-
-    ### This is really dirty code and ordering of corrections in 
-    ### in output directory is dependant on the nuisance workflow
-    ### when the workflow is changed , change this section as well
+    # This is really dirty code and ordering of corrections in
+    # in output directory is dependant on the nuisance workflow
+    # when the workflow is changed , change this section as well
     corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
 
-
     corrections_dict_list = config_iterables['_compcor']
-
-
-    print "corrections dictionary list: "
-    print corrections_dict_list
-
     main_all_options = []
 
     if corrections_dict_list != None:
@@ -162,11 +149,7 @@ def build_strategies(configuration):
 
             main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
 
-
         config_iterables['_compcor'] = main_all_options
-
-
-    ############
 
     try:
         paths = get_vectors(config_iterables)

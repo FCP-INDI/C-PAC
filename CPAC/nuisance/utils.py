@@ -71,7 +71,6 @@ def create_despike_regressor_matrix(frames_excluded, total_vols):
 
     reg_matrix = np.zeros((total_vols, len(excl_vols)), dtype=int)
 
-    #TODO: check if frames_included starts with 0 or 1
     i = 0
     for vol in excl_vols:
         reg_matrix[vol][i] = 1

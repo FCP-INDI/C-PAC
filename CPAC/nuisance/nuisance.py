@@ -100,7 +100,8 @@ def calc_residuals(subject,
                    csf_sig_file = None,
                    gm_sig_file = None,
                    motion_file = None,
-                   compcor_ncomponents = 0):
+                   compcor_ncomponents = 0,
+                   frames_ex=None):
     """
     Calculates residuals of nuisance regressors for every voxel for a subject.
     
@@ -119,6 +120,9 @@ def calc_residuals(subject,
         Path to subject's grey matter mask (in the same space as the subject's functional file)
     compcor_ncomponents : integer, optional
         The first `n` principal of CompCor components to use as regressors.  Default is 0.
+    frames_ex : string, optional
+        Filepath to the 1D file describing the volumes to be excluded (for
+        de-spiking), selected via the threshold set for excessive motion.
         
     Returns
     -------
@@ -222,6 +226,10 @@ def calc_residuals(subject,
     
     if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
+
+    if frames_ex:
+        regressor_map['despike'] = \
+            create_despike_regressor_matrix(frames_ex, nii.shape[3])
 
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
@@ -421,7 +429,8 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'motion_components',
                                                        'selector',
                                                        'compcor_ncomponents',
-                                                       'template_brain']),
+                                                       'template_brain',
+                                                       'frames_ex']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'regressors']),
@@ -477,7 +486,7 @@ def create_nuisance(use_ants, name='nuisance'):
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 
-        #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
+        # resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
         
     else:
         ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm_flirt_applyxfm')
@@ -508,14 +517,16 @@ def create_nuisance(use_ants, name='nuisance'):
 
     calc_imports = ['import os', 'import scipy', 'import numpy as np',
                     'import nibabel as nb', 
-                    'from CPAC.nuisance import calc_compcor_components']
+                    'from CPAC.nuisance import calc_compcor_components',
+                    'from CPAC.nuisance.utils import create_despike_regressor_matrix']
     calc_r = pe.Node(util.Function(input_names=['subject',
                                                 'selector',
                                                 'wm_sig_file',
                                                 'csf_sig_file',
                                                 'gm_sig_file',
                                                 'motion_file',
-                                                'compcor_ncomponents'],
+                                                'compcor_ncomponents',
+                                                'frames_ex'],
                                    output_names=['residual_file',
                                                 'regressors_file'],
                                    function=calc_residuals,
@@ -530,6 +541,8 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'selector', calc_r, 'selector')
     nuisance.connect(inputspec, 'compcor_ncomponents', 
                      calc_r, 'compcor_ncomponents')
+    nuisance.connect(inputspec, 'frames_ex', calc_r, 'frames_ex')
+
     nuisance.connect(calc_r, 'residual_file', outputspec, 'subject')
     nuisance.connect(calc_r, 'regressors_file', outputspec, 'regressors')
     

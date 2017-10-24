@@ -326,6 +326,40 @@ Corrections :
 nComponents : [5]
 
 
+# Use the Friston 24-Parameter Model during volume realignment.
+# If this option is turned off, only 6 parameters will be used.
+# These parameters will also be output as a spreadsheet.
+runFristonModel :  [1]
+
+
+# Motion Spike De-Noising. Remove or regress out volumes exhibiting 
+# excessive motion.
+# Options: ['Off'], ['De-Spiking'], or ['Scrubbing']
+runMotionSpike :  ['Off']
+
+
+# (Motion Spike De-Noising only) Choose which Framewise Displacement (FD) 
+# calculation to apply the threshold to during de-spiking or scrubbing.
+# Options: ['Jenkinson'] or ['Power']
+fdCalc: ['Jenkinson']
+
+
+# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise 
+# Displacement (FD) in millimeters. Any volume exhibiting FD greater than
+# this value will be regressed out or scrubbed.
+spikeThreshold : [0.2]
+
+
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub
+# preceding a volume with excessive FD.
+numRemovePrecedingFrames :  1
+
+
+# (Motion Spike De-Noising only) Number of volumes to de-spike or scrub
+# subsequent to a volume with excessive FD.
+numRemoveSubsequentFrames :  2
+
+
 # Correct for the global signal using Median Angle Correction.
 runMedianAngleCorrection :  [0]
 
@@ -342,39 +376,10 @@ runFrequencyFiltering :  [1]
 nuisanceBandpassFreq : [[0.009, 0.1]]
 
 
-# Use the Friston 24-Parameter Model during volume realignment.
-# If this option is turned off, only 6 parameters will be used.
-# These parameters will also be output as a spreadsheet.
-runFristonModel :  [1]
-
-
 # Calculate motion statistics including Framewise Displacement (FD) and DVARS.
 # Required to run Scrubbing.
 # These parameters will also be output as a spreadsheet.
 runGenerateMotionStatistics :  [1]
-
-
-# Remove volumes exhibiting excessive motion.
-runScrubbing :  [0]
-
-
-# Choose which Framewise Displacement (FD) calculation to apply the threshold
-# to during scrubbing.
-# Options: ['Jenkinson'] or ['Power']
-fdCalc: ['Jenkinson']
-
-
-# Specify the maximum acceptable Framewise Displacement (FD) in millimeters.
-# Any volume exhibiting FD greater than this value will be removed.
-scrubbingThreshold : [0.2]
-
-
-# Number of volumes to remove preceeding a volume with excessive FD.
-numRemovePrecedingFrames :  1
-
-
-# Number of volumes to remove subsequent to a volume with excessive FD.
-numRemoveSubsequentFrames :  2
 
 
 # If you wish to specify new seeds (for use in Time Series Extraction and/or

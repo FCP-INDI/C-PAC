@@ -74,15 +74,69 @@ class NuisanceRegression(wx.ScrolledWindow):
                       type = dtype.LNUM,
                       values = "5",
                       validator = CharValidator("no-alpha"),
-                      comment = "Number of Principle Components to calculate when running CompCor. We recommend 5 or 6.")
+                      comment = "Number of Principle Components to calculate "
+                                "when running CompCor. We recommend 5 or 6.")
 
         self.page.add(label="Use Friston's 24 (Motion Regression) ",
                       control=control.CHOICE_BOX,
                       name='runFristonModel',
                       type=dtype.LSTR,
-                      comment="Use the Friston 24-Parameter Model during volume realignment.\n\nIf this option is turned off, only 6 parameters will be used.\n\nThese parameters will also be output as a spreadsheet.",
+                      comment="Use the Friston 24-Parameter Model during "
+                              "volume realignment.\n\nIf this option is "
+                              "turned off, only 6 parameters will be used."
+                              "\n\nThese parameters will also be output as "
+                              "a spreadsheet.",
                       values=["On", "Off", "On/Off"])
 
+        self.page.add(label="Motion Spike De-Noising ",
+                      control=control.CHOICE_BOX,
+                      name='runMotionSpike',
+                      type=dtype.LSTR,
+                      comment="Remove or regress out volumes exhibiting "
+                              "excessive motion.",
+                      values=["Off", "De-Spiking", "Scrubbing"],
+                      wkf_switch=True)
+
+        self.page.add(label="Framewise Displacement (FD) Calculation ",
+                      control=control.CHOICE_BOX,
+                      name='fdCalc',
+                      type=dtype.LSTR,
+                      comment="(Motion Spike De-Noising only) Choose which "
+                              "Framewise Displacement (FD) calculation to "
+                              "apply the threshold to during de-spiking or "
+                              "scrubbing.",
+                      values=["Jenkinson", "Power"])
+
+        self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",
+                      control=control.TEXT_BOX,
+                      name='spikeThreshold',
+                      type=dtype.LNUM,
+                      values="0.2",
+                      validator=CharValidator("no-alpha"),
+                      comment="(Motion Spike De-Noising only) Specify the "
+                              "maximum acceptable Framewise Displacement "
+                              "(FD) in millimeters.\n\nAny volume exhibiting "
+                              "FD greater than this value will be regressed "
+                              "out or scrubbed.",
+                      size=(100, -1))
+
+        self.page.add(label="Number of Preceding Volumes to De-Noise ",
+                      control=control.INT_CTRL,
+                      name='numRemovePrecedingFrames',
+                      type=dtype.NUM,
+                      comment="(Motion Spike De-Noising only) Number of "
+                              "volumes to de-spike or scrub preceding a "
+                              "volume with excessive FD.",
+                      values=1)
+
+        self.page.add(label="Number of Subsequent Volumes to De-Noise ",
+                      control=control.INT_CTRL,
+                      name='numRemoveSubsequentFrames',
+                      type=dtype.NUM,
+                      comment="(Motion Spike De-Noising only) Number of "
+                              "volumes to de-spike or scrub subsequent to a "
+                              "volume with excessive FD.",
+                      values=2)
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -163,14 +217,14 @@ class Scrubbing(wx.ScrolledWindow):
 
         self.counter = counter
 
-        self.page = GenericClass(self, "Scrubbing Options")
+        self.page = GenericClass(self, "Motion De-noising Options")
 
         self.page.add(label="Run Scrubbing ",
                       control=control.CHOICE_BOX,
                       name='runScrubbing',
                       type=dtype.LSTR,
                       comment="Remove volumes exhibiting excessive motion.",
-                      values=["Off", "On", "On/Off"],
+                      values=["Off", "On"],
                       wkf_switch=True)
 
         self.page.add(label="Framewise Displacement (FD) Calculation ",
@@ -198,7 +252,7 @@ class Scrubbing(wx.ScrolledWindow):
                       control=control.INT_CTRL,
                       name='numRemovePrecedingFrames',
                       type=dtype.NUM,
-                      comment="Number of volumes to remove preceeding a "
+                      comment="Number of volumes to remove preceding a "
                               "volume with excessive FD.",
                       values=1)
 

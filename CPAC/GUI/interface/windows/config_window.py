@@ -90,8 +90,6 @@ class Mybook(wx.Treebook):
 
         page16 = FilteringSettings(self, 9)
 
-        page19 = Scrubbing(self, 4)
-
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
 
@@ -135,8 +133,6 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
 
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
-
-        self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
