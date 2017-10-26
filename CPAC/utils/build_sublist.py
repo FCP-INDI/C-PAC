@@ -542,6 +542,10 @@ def return_local_matched_paths(path_template, bids_flag=False):
                    replace('{session}', '*').\
                    replace('{series}', '*')
 
+    # in case the user doesn't end their glob path with ".nii" or ".nii.gz"
+    if ".nii" not in file_pattern:
+        "".join([file_pattern, ".nii*"])
+
     local_filepaths = glob.glob(file_pattern)
 
     if len(local_filepaths) == 0:

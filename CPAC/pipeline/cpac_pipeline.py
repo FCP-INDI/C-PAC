@@ -1568,8 +1568,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
-
-
             except:
                 logConnectionError(
                     'Register Functional to Anatomical (pre BBReg)',
@@ -1672,7 +1670,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg,
                                      'inputspec.linear_reg_matrix')
-
 
                 except:
                     logConnectionError(
@@ -2144,10 +2141,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                           'outputspec.preprocessed')
 
                 strat.update_resource_pool({'scrubbing_movement_parameters': (
-                scrubbing, 'outputspec.scrubbed_movement_parameters'),
+                                                scrubbing, 'outputspec.scrubbed_movement_parameters'),
                                             'scrubbed_preprocessed': (
-                                            scrubbing,
-                                            'outputspec.preprocessed')})
+                                                scrubbing, 'outputspec.preprocessed')})
 
                 create_log_node(scrubbing, 'outputspec.preprocessed',
                                 num_strat)
