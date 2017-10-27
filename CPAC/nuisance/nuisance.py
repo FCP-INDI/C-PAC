@@ -247,7 +247,22 @@ def calc_residuals(subject,
         raise ValueError('Regressor file contains NaN')
 
     Y = data[global_mask].T
-    B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+
+    try:
+        B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+    except np.linalg.LinAlgError as e:
+        if "Singular matrix" in e:
+            raise Exception("Error details: {0}\n\nSingular matrix error: "
+                            "The nuisance regression configuration you "
+                            "selected may have been too stringent, and the "
+                            "regression could not be completed. Ensure your "
+                            "parameters (such as the motion threshold for "
+                            "de-spiking or scrubbing) are not too "
+                            "extreme.\n\n".format(e))
+        else:
+            raise Exception("Error details: {0}\n\nSomething went wrong with "
+                            "nuisance regression.\n\n".format(e))
+
     Y_res = Y - X.dot(B)
     
     data[global_mask] = Y_res.T
@@ -291,7 +306,8 @@ def extract_tissue_data(data_file,
         raise MemoryError('Unable to load %s' % lat_ventricles_mask)
 
     if not safe_shape(data, lat_ventricles_mask):
-        raise ValueError('Spatial dimensions for data and the lateral ventricles mask do not match')
+        raise ValueError('Spatial dimensions for data and the lateral '
+                         'ventricles mask do not match')
 
     try:
         wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
@@ -299,7 +315,8 @@ def extract_tissue_data(data_file,
         raise MemoryError('Unable to load %s' % wm_seg)
 
     if not safe_shape(data, wm_seg):
-        raise ValueError('Spatial dimensions for data, white matter segment do not match')
+        raise ValueError('Spatial dimensions for data, white matter segment '
+                         'do not match')
 
     wm_mask = erode_mask(wm_seg > 0)
     wm_sigs = data[wm_mask]
@@ -313,7 +330,8 @@ def extract_tissue_data(data_file,
         raise MemoryError('Unable to load %s' % csf_seg)
 
     if not safe_shape(data, csf_seg):
-        raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
+        raise ValueError('Spatial dimensions for data, cerebral spinal '
+                         'fluid segment do not match')
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
@@ -329,7 +347,8 @@ def extract_tissue_data(data_file,
         raise MemoryError('Unable to load %s' % gm_seg)
 
     if not safe_shape(data, gm_seg):
-        raise ValueError('Spatial dimensions for data, gray matter segment do not match')
+        raise ValueError('Spatial dimensions for data, gray matter '
+                         'segment do not match')
 
     gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]

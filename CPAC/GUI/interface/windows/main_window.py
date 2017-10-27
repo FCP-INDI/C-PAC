@@ -38,6 +38,8 @@ class ListBox(wx.Frame):
     
         self.pipeline_map = {}
         self.sublist_map= {}
+
+        self.pids = []
         
         mainPanel = wx.Panel(self)
         mainPanel.SetBackgroundColour('#E9E3DB')
@@ -48,6 +50,9 @@ class ListBox(wx.Frame):
         
         outerPanel2 = wx.Panel(mainPanel)
         outerSizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        outerPanel3 = wx.Panel(mainPanel)
+        outerSizer3 = wx.BoxSizer(wx.HORIZONTAL)
               
         innerPanel1 = wx.Panel(outerPanel1)
         innerSizer1 = wx.BoxSizer(wx.HORIZONTAL)
@@ -88,8 +93,9 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=ID_DELETE)
         self.Bind(wx.EVT_BUTTON, self.AddConfig, id=ID_LOAD)
         self.Bind(wx.EVT_BUTTON, self.OnEdit, id=ID_EDIT)
-        self.Bind(wx.EVT_BUTTON, self.OnDisplay, id= ID_DISPLAY)
-        self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 1), id=ID_CLEAR)
+        self.Bind(wx.EVT_BUTTON, self.OnDisplay, id=ID_DISPLAY)
+        self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 1),
+                  id=ID_CLEAR)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnDisplay)        
 
         if 'linux' in sys.platform:
@@ -145,7 +151,8 @@ class ListBox(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.CreateItem, id=ID_CREATE)
         self.Bind(wx.EVT_BUTTON, self.AddItem, id=ID_ADD)
         self.Bind(wx.EVT_BUTTON, self.OnShow, id= ID_SHOW)
-        self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2), id=ID_CLEARALL)
+        self.Bind(wx.EVT_BUTTON, lambda event: self.OnClear(event, 2),
+                  id=ID_CLEARALL)
         
         if 'linux' in sys.platform:
             btnSizer2.Add((-1,30))
@@ -175,20 +182,30 @@ class ListBox(wx.Frame):
         
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
-        
 
         self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
-        
+
+        self.stopCPAC1 = wx.Button(outerPanel3, -1, 'Stop Individual Level Analysis')
+        self.stopCPAC1.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
 
         self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
+        self.stopCPAC2 = wx.Button(outerPanel3, -1, 'Stop Group Level Analysis')
+        self.stopCPAC2.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
+
         outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 20)
         outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 20)
 
+        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
+        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
+
         outerPanel2.SetSizer(outerSizer2)
         outerPanel2.SetBackgroundColour('#E9E3DB')
+
+        outerPanel3.SetSizer(outerSizer3)
+        outerPanel3.SetBackgroundColour('#E9E3DB')
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         text1 = wx.StaticText(mainPanel, -1, "Configure CPAC")
@@ -210,18 +227,17 @@ class ListBox(wx.Frame):
         else:
             text2.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
         
-        mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL,10)
+        mainSizer.Add(hbox, 0, wx.EXPAND | wx.ALL, 10)
         mainSizer.Add(outerPanel1, 1, wx.EXPAND | wx.ALL, 20)
-        mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 10)
+        mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
         mainSizer.Add(text2, 0, wx.EXPAND| wx.ALL, 5)
-        mainSizer.Add(outerPanel2, 0 ,wx.EXPAND | wx.ALL, 20)
+        mainSizer.Add(outerPanel2, 0, wx.EXPAND | wx.ALL, 20)
+        mainSizer.Add(outerPanel3, 0, wx.EXPAND | wx.ALL, 20)
         
         mainPanel.SetSizer(mainSizer)
 
         self.Centre()
         self.Show(True)
-        
-
 
     def runAnalysis1(self,pipeline, sublist, p):
         
@@ -233,7 +249,7 @@ class ListBox(wx.Frame):
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
             plugin_args = {'n_procs': c.maxCoresPerParticipant,
                            'memory_gb': c.maximumMemoryPerParticipant,
-                           'callback_log' : log_nodes_cb}
+                           'callback_log': log_nodes_cb}
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='MultiProc',
@@ -244,35 +260,29 @@ class ListBox(wx.Frame):
             print "Error importing CPAC"
             print e
 
-
-
     def runIndividualAnalysis(self, event):
 
         try:
-
-            if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1) and \
-                (self.listbox2.GetChecked() or self.listbox2.GetSelection()!= -1):
+            if (self.listbox.GetChecked() or self.listbox.GetSelection() != -1) \
+                    and (self.listbox2.GetChecked() or self.listbox2.GetSelection() != -1):
                 
                 import thread
                 import CPAC
                     
                 pipelines = self.listbox.GetCheckedStrings()
                 sublists = self.listbox2.GetCheckedStrings()
-                    
+
                 for s in sublists:
                     sublist = self.sublist_map.get(s)
                     for p in pipelines:
                         pipeline = self.pipeline_map.get(p)
-                        print "running for configuration, subject list, pipeline_id -->", \
-                              pipeline, sublist, p
-                            
-                        thread.start_new_thread(self.runAnalysis1, (pipeline, sublist, p))
+                        pid = thread.start_new_thread(self.runAnalysis1,
+                                                      (pipeline, sublist, p))
+                        self.pids.append(pid)
                     
             else:
-
                 errmsg = 'CPAC says: No pipeline or subject list ' \
                       'selected.'
-
                 errSubID = wx.MessageDialog(self, errmsg, 'Error',
                     wx.OK | wx.ICON_ERROR)
                 errSubID.ShowModal()
@@ -281,7 +291,6 @@ class ListBox(wx.Frame):
                 print '\n\n[!] ' + errmsg + '\n\n'
 
         except Exception, e:
-
             errSubID = wx.MessageDialog(self, str(e), 'Error',
                  wx.OK | wx.ICON_ERROR)
             errSubID.ShowModal()
@@ -289,11 +298,21 @@ class ListBox(wx.Frame):
 
             print e
 
+    def stopIndividualAnalysis(self, event):
+        import os
+        # not the best way to implement this...
+        for pid in self.pids:
+            try:
+                os.kill(pid, 9)
+            except OverflowError:
+                pass
+        print "\n\nCPAC run terminating...\n\n"
+        self.pids = []
 
     def runGroupLevelAnalysis(self, event):
 
-        # Runs group analysis when user clicks "Run Group Level Analysis" in GUI
-       
+        # Runs group analysis when user clicks "Run Group Level Analysis" in
+        # GUI
         if (self.listbox.GetChecked() or self.listbox.GetSelection()!= -1):
             
             pipelines = self.listbox.GetCheckedStrings()
@@ -325,8 +344,6 @@ class ListBox(wx.Frame):
         else:
             print "No pipeline selected"
 
-
-
     def get_pipeline_map(self):
         return self.pipeline_map
     
@@ -340,7 +357,6 @@ class ListBox(wx.Frame):
     def NewItem(self, event):
         MainFrame(self, "save")
 
-        
     def OnRename(self, event):
         sel = self.listbox.GetSelection()
         if sel!= -1:
@@ -351,8 +367,7 @@ class ListBox(wx.Frame):
                 self.listbox.Insert(renamed, sel)
                 self.pipeline_map[renamed]= self.pipeline_map[text]
                 del self.pipeline_map[text]
-              
-                
+
     def OnDelete(self, event):
 
         def removekey(d, key):
@@ -379,8 +394,6 @@ class ListBox(wx.Frame):
                 self.pipeline_map = removekey(self.pipeline_map, text)    
                 
                 dlg.Destroy()
-
-        
         
     def OnEdit(self, event):
         
@@ -401,12 +414,10 @@ class ListBox(wx.Frame):
             else:
                 print "Couldn't find the config file %s "%path
      
-     
-     
     def OnLoad(self, event):
 
-        # Does this code do anything?? If you are looking for the code that gets called
-        # when you click Load, go to 'AddConfig'
+        # Does this code do anything?? If you are looking for the code that
+        # gets called when you click Load, go to 'AddConfig'
 
         dlg = wx.FileDialog(
             self, message="Choose the config yaml file",
@@ -429,8 +440,7 @@ class ListBox(wx.Frame):
                 dlg.Destroy()
             
             dlg.Destroy()
-                
-                
+
     def OnClear(self, event, flag):
         if flag ==1:
             self.listbox.Clear()
@@ -441,7 +451,6 @@ class ListBox(wx.Frame):
 
     def CreateItem(self, event):
         DataConfig(self)
-
 
     def OnShow(self, event):
         import wx.lib.dialogs
@@ -458,8 +467,7 @@ class ListBox(wx.Frame):
                     dlg.ShowModal()
                 except:
                     print "Cannot open file %s"%(name)
-                    
-                    
+
     def OnDisplay(self, event):
         import wx.lib.dialogs
         sel = self.listbox.GetSelection()
@@ -475,8 +483,7 @@ class ListBox(wx.Frame):
                     dlg.ShowModal()
                 except:
                     print "Cannot open file %s"%(name)
-    
-    
+
     def AddItem(self, event):
         
         dlg = wx.FileDialog(
@@ -530,8 +537,6 @@ class ListBox(wx.Frame):
                     dlg.Destroy
                     break
                             
-                            
-                            
     def check_config(self, config):
 
         ret_val = 1
@@ -552,7 +557,6 @@ class ListBox(wx.Frame):
             dlg.ShowModal()
             dlg.Destroy()
 
-
         # the following code checks the loaded pipeline config file for missing parameters (ex. if an old config file is used and new parameters
         # or features have been added) - if missing parameters are detected, it warns the user and informs them of the new defaults
         missingParams = []
@@ -570,7 +574,6 @@ class ListBox(wx.Frame):
 
             if param != '':
                 paramList.append(param.split(','))
-
 
         notify_centrality_misconfig = True
         for param in paramList:
@@ -766,7 +769,6 @@ class runCPAC(wx.Frame):
         log.AppendText("pipeline config --> %s \n"%pipeline)
         log.AppendText("participant list --> %s \n"%sublist)
         log.AppendText("process ids ---> %s \n"%pid)
-
        
     def onButton(self, event, pid):        
         if pid:
@@ -777,12 +779,14 @@ class runCPAC(wx.Frame):
         
             self.Close()
         else:
-            dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. Please kill the process from command prompt',
+            dlg = wx.MessageDialog(self, 'Unable to retrieve the process id. '
+                                         'Please kill the process from '
+                                         'command prompt',
                                    'Alert!',
                                    wx.OK | wx.ICON_INFORMATION)
             dlg.Destroy()
        
-            
+
 class runGLA(wx.Frame):
     
     # Opens sub window prompting user to input the derivative file path(s).
@@ -841,8 +845,6 @@ class runGLA(wx.Frame):
         import CPAC
         CPAC.pipeline.cpac_group_runner.run(pipeline, path)
 
-            
-        
     def onOK(self, event, pipeline):
 
         # Once the user clicks "Run" in the derivative path file window

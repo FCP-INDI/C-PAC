@@ -349,7 +349,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
             raise
 
     except:
-        #make tempfile and add seeds to it
+        # make tempfile and add seeds to it
         import tempfile
 
         try:
@@ -373,7 +373,8 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 # Run C-PAC subjects via job queue
-def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=None):
+def run(config_file, subject_list_file, p_name=None, plugin=None,
+        plugin_args=None):
     '''
     '''
 
@@ -416,7 +417,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     try:
         sublist = yaml.load(open(subject_list_file, 'r'))
     except:
-        print "Subject list is not in proper YAML format. Please check your file"
+        print "Subject list is not in proper YAML format. Please check " \
+              "your file"
         raise Exception
 
     # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
@@ -466,18 +468,19 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
 
         # Check if its a condor job, and run that
         if 'condor' in c.resourceManager.lower():
-            run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+            run_condor_jobs(c, config_file, strategies_file,
+                            subject_list_file, p_name)
         # All other schedulers are supported
         else:
-            run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
-                                cluster_files_dir)
+            run_cpac_on_cluster(config_file, subject_list_file,
+                                strategies_file, cluster_files_dir)
 
     # Run on one computer
     else:
         # Init variables
         procss = [Process(target=prep_workflow,
-                          args=(sub, c, strategies, 1,
-                                pipeline_timing_info, p_name, plugin, plugin_args)) \
+                          args=(sub, c, strategies, 1, pipeline_timing_info,
+                                p_name, plugin, plugin_args))
                   for sub in sublist]
 
         if not os.path.exists(c.workingDirectory):
@@ -497,17 +500,17 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
         if len(sublist) <= c.numParticipantsAtOnce:
             for p in procss:
                 p.start()
-                print >>pid,p.pid
+                print >>pid, p.pid
         # Otherwise manage resources to run processes incrementally
         else:
             idx = 0
-            while(idx < len(sublist)):
+            while idx < len(sublist):
                 # If the job queue is empty and we haven't started indexing
                 if len(jobQueue) == 0 and idx == 0:
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in procss[idc : idc+c.numParticipantsAtOnce]:
+                    for p in procss[idc: idc+c.numParticipantsAtOnce]:
                         p.start()
                         print >>pid, p.pid
                         jobQueue.append(p)
@@ -522,7 +525,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
                             print 'found dead job ', job
                             loc = jobQueue.index(job)
                             del jobQueue[loc]
-                            # ...and start the next available process (subject)
+                            # ...and start the next available process
+                            # (subject)
                             procss[idx].start()
                             # Append this to job queue and increment index
                             jobQueue.append(procss[idx])
