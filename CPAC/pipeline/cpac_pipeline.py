@@ -1424,10 +1424,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         nodes = getNodeList(strat)
 
-        if ('BET' in c.functionalMasking) and (
-            'func_preproc_automask' not in nodes):
+        if ('BET' in c.functionalMasking) and ('func_preproc_automask' not in nodes):
 
-            func_preproc = create_func_preproc(use_bet=True, \
+            func_preproc = create_func_preproc(use_bet=True,
                                                wf_name='func_preproc_bet_%d' % num_strat)
             node = None
             out_file = None
@@ -1484,6 +1483,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter += 1
     if 1 in c.runFristonModel:
         workflow_bit_id['fristons_parameter_model'] = workflow_counter
+
         for strat in strat_list:
 
             fristons_model = fristons_twenty_four(
@@ -1729,8 +1729,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         gen_motion_stats.inputs.scrubbing_input.threshold = c.spikeThreshold
         gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
         gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
-        gen_motion_stats.get_node('scrubbing_input').iterables = (
-        'threshold', c.spikeThreshold)
+        gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold',
+                                                                  c.spikeThreshold)
 
         try:
             # #**special case where the workflow is not getting outputs from resource pool

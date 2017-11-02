@@ -216,7 +216,7 @@ def calc_residuals(subject,
         bdata = data[global_mask].T
         bdatac = bdata - np.tile(bdata.mean(0), (bdata.shape[0], 1))
         U, S, Vh = np.linalg.svd(bdatac, full_matrices=False)
-        regressor_map['pc1'] = U[:,0]
+        regressor_map['pc1'] = U[:, 0]
         
     if selector['motion']:
         regressor_map['motion'] = motion
@@ -227,6 +227,7 @@ def calc_residuals(subject,
     if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
 
+    # insert the de-spiking regressor matrix here, if running de-spiking
     if frames_ex:
         regressor_map['despike'] = \
             create_despike_regressor_matrix(frames_ex, nii.shape[3])

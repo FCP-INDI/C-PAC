@@ -28,7 +28,8 @@ ID_CLEARALL = 11
 # ListBox class definition
 class ListBox(wx.Frame):
     def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title, size=(700, 650),  style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+        wx.Frame.__init__(self, parent, id, title, size=(700, 650),
+                          style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
 
         # Import packages
         import CPAC
@@ -183,23 +184,28 @@ class ListBox(wx.Frame):
         outerPanel1.SetSizer(outerSizer1)
         outerPanel1.SetBackgroundColour('#E9E3DB')
 
-        self.runCPAC1 = wx.Button(outerPanel2, -1, 'Run Individual Level Analysis')
+        self.runCPAC1 = wx.Button(outerPanel2, -1,
+                                  'Run Individual Level Analysis')
         self.runCPAC1.Bind(wx.EVT_BUTTON, self.runIndividualAnalysis)
 
-        self.stopCPAC1 = wx.Button(outerPanel3, -1, 'Stop Individual Level Analysis')
+        self.stopCPAC1 = wx.Button(outerPanel3, -1,
+                                   'Stop Individual Level Analysis')
         self.stopCPAC1.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
 
-        self.runCPAC2 =  wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
+        self.runCPAC2 = wx.Button(outerPanel2, -1, 'Run Group Level Analysis')
         self.runCPAC2.Bind(wx.EVT_BUTTON, self.runGroupLevelAnalysis)
 
-        self.stopCPAC2 = wx.Button(outerPanel3, -1, 'Stop Group Level Analysis')
+        self.stopCPAC2 = wx.Button(outerPanel3, -1,
+                                   'Stop Group Level Analysis')
         self.stopCPAC2.Bind(wx.EVT_BUTTON, self.stopIndividualAnalysis)
 
-        outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 20)
-        outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 20)
+        outerSizer2.Add(self.runCPAC1, 1, wx.RIGHT, 12)
+        outerSizer2.Add(self.runCPAC2, 1, wx.LEFT, 12)
+        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 12)
+        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 12)
 
-        outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
-        outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
+        #outerSizer3.Add(self.stopCPAC1, 1, wx.RIGHT, 20)
+        #outerSizer3.Add(self.stopCPAC2, 1, wx.LEFT, 20)
 
         outerPanel2.SetSizer(outerSizer2)
         outerPanel2.SetBackgroundColour('#E9E3DB')
@@ -231,18 +237,17 @@ class ListBox(wx.Frame):
         mainSizer.Add(outerPanel1, 1, wx.EXPAND | wx.ALL, 20)
         mainSizer.Add(wx.StaticLine(mainPanel), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
         mainSizer.Add(text2, 0, wx.EXPAND| wx.ALL, 5)
-        mainSizer.Add(outerPanel2, 0, wx.EXPAND | wx.ALL, 20)
-        mainSizer.Add(outerPanel3, 0, wx.EXPAND | wx.ALL, 20)
+        mainSizer.Add(outerPanel2, 0, wx.EXPAND | wx.ALL, 5)
+        mainSizer.Add(outerPanel3, 0, wx.EXPAND | wx.ALL, 5)
         
         mainPanel.SetSizer(mainSizer)
 
         self.Centre()
         self.Show(True)
 
-    def runAnalysis1(self,pipeline, sublist, p):
+    def runAnalysis1(self, pipeline, sublist, p):
         
         try:
-            
             import CPAC
             from CPAC.utils import Configuration
             from nipype.pipeline.plugins.callback_log import log_nodes_cb
@@ -250,6 +255,10 @@ class ListBox(wx.Frame):
             plugin_args = {'n_procs': c.maxCoresPerParticipant,
                            'memory_gb': c.maximumMemoryPerParticipant,
                            'callback_log': log_nodes_cb}
+
+            # TODO: make this work
+            if self.pids:
+                print "THERE'S SOMETHING RUNNING!"
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='MultiProc',
@@ -326,21 +335,21 @@ class ListBox(wx.Frame):
                         import yaml
                         config = yaml.load(open(pipeline, 'r'))
                     except:
-                            raise Exception("Error reading config file- %s", config)
+                        raise Exception("Error reading config file- %s", config)
                     
                     if config.get('outputDirectory'):
-                        derv_path = os.path.join(config.get('outputDirectory'), 'pipeline_%s' % config.get('pipelineName'))
+                        derv_path = os.path.join(config.get('outputDirectory'),
+                                                 'pipeline_%s' % config.get('pipelineName'))
                     else:
                         derv_path = ''
                     
                     # Opens the sub-window which prompts the user
                     # for the derivative file paths
-                    runGLA(pipeline, derv_path, p)
+                    runGLA(self, pipeline, derv_path, p)
 
                 else:
                     print "pipeline doesn't exist"
-                    
-                
+
         else:
             print "No pipeline selected"
 
@@ -795,9 +804,13 @@ class runGLA(wx.Frame):
 
     # Once the user clicks "Run", group level analysis begins
 
-    def __init__(self, pipeline, path, name):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis for Pipeline - %s"%name, size = (730,120))
-        
+    def __init__(self, parent, pipeline, path, name):
+        wx.Frame.__init__(self, None, wx.ID_ANY, "Run Group Level Analysis "
+                                                 "for Pipeline - %s" % name,
+                          size=(730, 120))
+
+        self.parent = parent
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel = wx.Panel(self)
         
@@ -805,32 +818,31 @@ class runGLA(wx.Frame):
 
         img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/help.png'), wx.BITMAP_TYPE_ANY).ConvertToBitmap()
        
-        label1 = wx.StaticText(panel, -1, label = 'Pipeline Output Directory ')
-        self.box1 = FileSelectorCombo(panel, id = wx.ID_ANY,  size = (500, -1))
+        label1 = wx.StaticText(panel, -1, label='Pipeline Output Directory ')
+        self.box1 = FileSelectorCombo(panel, id=wx.ID_ANY, size=(500, -1))
         self.box1.GetTextCtrl().SetValue(str(path))
         
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
         help1 = wx.BitmapButton(panel, id=-1, bitmap=img,
-                                 pos=(10, 20), size = (img.GetWidth()+5, img.GetHeight()+5))
+                                pos=(10, 20), size=(img.GetWidth()+5, img.GetHeight()+5))
         help1.Bind(wx.EVT_BUTTON, self.OnShowDoc)
         
         hbox1.Add(label1)
         hbox1.Add(help1)
         
         flexsizer.Add(hbox1)
-        flexsizer.Add(self.box1, flag = wx.EXPAND | wx.ALL)
+        flexsizer.Add(self.box1, flag=wx.EXPAND | wx.ALL)
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size =(120,30))
+        button3 = wx.Button(panel, wx.ID_CANCEL, 'Cancel', size=(120, 30))
         button3.Bind(wx.EVT_BUTTON, self.onCancel)
         
-        button2 = wx.Button(panel, wx.ID_OK, 'Run', size= (120,30))
-        button2.Bind(wx.EVT_BUTTON, lambda event: \
-                         self.onOK(event, pipeline) )
+        button2 = wx.Button(panel, wx.ID_OK, 'Run', size=(120, 30))
+        button2.Bind(wx.EVT_BUTTON, lambda event: self.onOK(event, pipeline))
         
-        hbox.Add(button3, 1, wx.EXPAND, border =5)
-        hbox.Add(button2, 1, wx.EXPAND, border =5)
+        hbox.Add(button3, 1, wx.EXPAND, border=5)
+        hbox.Add(button2, 1, wx.EXPAND, border=5)
         
         sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
         sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
@@ -854,11 +866,16 @@ class runGLA(wx.Frame):
         import thread
 
         if self.box1.GetValue():
-            thread.start_new(self.runAnalysis, (pipeline, self.box1.GetValue()))
+            pid = thread.start_new(self.runAnalysis,
+                                   (pipeline, self.box1.GetValue()))
+            self.parent.pids.append(pid)
             self.Close()
         else:
-            wx.MessageBox("Please provide the path to the output directory for the pipeline you want to run group-level analysis for.")
+            wx.MessageBox("Please provide the path to the output directory "
+                          "for the pipeline you want to run group-level "
+                          "analysis for.")
             
     def OnShowDoc(self, event):
-        wx.TipWindow(self, "Path to output directory of the pipeline you wish to run group-level analysis for.", 500)
+        wx.TipWindow(self, "Path to output directory of the pipeline you "
+                           "wish to run group-level analysis for.", 500)
 

@@ -2,6 +2,38 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
+def calc_percent(threshold, fd_file):
+    """Calculate the de-spiking/scrubbing threshold based on the highest Mean
+    FD values by some percentage.
+
+    :param threshold: user's threshold input, either a float or string
+    :param fd_file: text file containing the mean framewise displacement
+    :return: a float value for the calculated threshold
+    """
+
+    if isinstance(threshold, str):
+        if '%' in threshold:
+            percent = int(threshold.replace('%', ''))
+            percent = percent / 100.0
+        else:
+            err = "A string was entered for the de-spiking/scrubbing " \
+                  "threshold, but there is no percent value."
+            raise Exception(err)
+    elif isinstance(threshold, float) or isinstance(threshold, int):
+        return threshold
+    else:
+        err = "Invalid input for the de-spiking/scrubbing threshold."
+        raise Exception(err)
+
+    with open(fd_file, 'r') as f:
+        nums = sorted([float(x.rstrip('\n')) for x in f.readlines()])
+
+    # get the threshold value at the top percent mark provided
+    threshold = nums[int(0-(len(nums) * percent))]
+
+    return threshold
+
+
 def calc_friston_twenty_four(in_file):
     """
     Method to calculate friston twenty four parameters
@@ -369,6 +401,15 @@ def motion_power_statistics(calculation='Jenkinson',
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 
+    # if threshold set to 'Top 5%', calculate the top 5% here
+    calc_perc = pe.Node(util.Function(input_names=['threshold',
+                                                   'fd_file'],
+                                      output_names=['threshold'],
+                                      function=calc_percent),
+                        name='calc_spike_percent')
+
+    pm.connect(scrubbing_input, 'threshold', calc_perc, 'threshold')
+
     # calculating frames to exclude and include after scrubbing
     exc_frames_imports = ['import os', 'import numpy as np',
                           'from numpy import loadtxt']
@@ -382,12 +423,13 @@ def motion_power_statistics(calculation='Jenkinson',
                              name='exclude_frames')
 
     if calculation == 'Jenkinson':
+        pm.connect(calculate_FDJ, 'out_file', calc_perc, 'fd_file')
         pm.connect(calculate_FDJ, 'out_file', exclude_frames, 'in_file')
     elif calculation == 'Power':
+        pm.connect(calculate_FDP, 'out_file', calc_perc, 'fd_file')
         pm.connect(calculate_FDP, 'out_file', exclude_frames, 'in_file')
 
-    pm.connect(scrubbing_input, 'threshold', 
-               exclude_frames, 'threshold')
+    pm.connect(calc_perc, 'threshold', exclude_frames, 'threshold')
     pm.connect(scrubbing_input, 'remove_frames_before',
                exclude_frames, 'frames_before')
     pm.connect(scrubbing_input, 'remove_frames_after',
@@ -410,8 +452,7 @@ def motion_power_statistics(calculation='Jenkinson',
     elif calculation == 'Power':
         pm.connect(calculate_FDP, 'out_file', include_frames, 'in_file')
 
-    pm.connect(scrubbing_input, 'threshold', 
-               include_frames, 'threshold')
+    pm.connect(calc_perc, 'threshold', include_frames, 'threshold')
     pm.connect(exclude_frames, 'out_file', 
                include_frames, 'exclude_list')
     pm.connect(include_frames, 'out_file', 
@@ -460,7 +501,7 @@ def motion_power_statistics(calculation='Jenkinson',
                calc_power_parameters, 'FDP_1D')
     pm.connect(calculate_FDJ, 'out_file',
                calc_power_parameters, 'FDJ_1D')
-    pm.connect(scrubbing_input, 'threshold',
+    pm.connect(calc_perc, 'threshold',
                calc_power_parameters, 'threshold')
 
     pm.connect(calc_power_parameters, 'out_file', 

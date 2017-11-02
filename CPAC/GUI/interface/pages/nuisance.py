@@ -107,17 +107,19 @@ class NuisanceRegression(wx.ScrolledWindow):
                               "scrubbing.",
                       values=["Jenkinson", "Power"])
 
-        self.page.add(label="Framewise Displacement (FD) Threshold (mm) ",
+        self.page.add(label="Framewise Displacement (FD) Threshold (mm or %) ",
                       control=control.TEXT_BOX,
                       name='spikeThreshold',
                       type=dtype.LNUM,
-                      values="0.2",
+                      values="5%",
                       validator=CharValidator("no-alpha"),
                       comment="(Motion Spike De-Noising only) Specify the "
                               "maximum acceptable Framewise Displacement "
-                              "(FD) in millimeters.\n\nAny volume exhibiting "
-                              "FD greater than this value will be regressed "
-                              "out or scrubbed.",
+                              "(FD) in millimeters or in percentage (with "
+                              "a %).\n\nAny volume exhibiting FD greater "
+                              "than the value (or within the top percentage "
+                              "of the percent value, if given) will be "
+                              "regressed out or scrubbed.",
                       size=(100, -1))
 
         self.page.add(label="Number of Preceding Volumes to De-Noise ",

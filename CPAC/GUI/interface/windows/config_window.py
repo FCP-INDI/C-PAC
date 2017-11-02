@@ -1118,11 +1118,16 @@ class MainFrame(wx.Frame):
                     else:
                         lvalue = [value]
 
-
                     if value.find('.') != -1:
                         lvalue = [float(item) for item in lvalue]
                     elif len(value) > 0:
-                        lvalue = [int(item) for item in lvalue]
+                        try:
+                            new_lvalue = [int(item) for item in lvalue]
+                        except ValueError:
+                            # this trips only if user inputs a percentage for
+                            # de-spiking/scrubbing motion threshold
+                            new_lvalue = [str(item) for item in lvalue]
+                        lvalue = new_lvalue
                     else:
                         lvalue = 0
 
