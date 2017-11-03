@@ -412,6 +412,13 @@ class MainFrame(wx.Frame):
                       "of your participant list YAML file.\n\n"
                 raise Exception(err)
 
+            if not isinstance(func_files, dict):
+                err = "\n\n[!] The functional files in the participant " \
+                      "list YAML should be listed with a scan name key and " \
+                      "a file path value.\n\nFor example:\nfunc_1: " \
+                      "/path/to/func_1.nii.gz\n\n"
+                raise Exception(err)
+
             if anat_file.lower().startswith(s3_str):
                 dl_dir = tempfile.mkdtemp()
                 try:

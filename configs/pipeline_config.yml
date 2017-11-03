@@ -344,11 +344,6 @@ runMotionSpike :  ['Off']
 fdCalc: ['Jenkinson']
 
 
-# (Motion Spike De-Noising only) Specify the maximum acceptable Framewise 
-# Displacement (FD) in millimeters. Any volume exhibiting FD greater than
-# this value will be regressed out or scrubbed.
-
-
 # (Motion Spike De-Noising only) Specify the maximum acceptable Framewise
 # Displacement (FD) in millimeters or in percentage (with a %). Any volume
 # exhibiting FD greater than the value (or within the top percentage of the
