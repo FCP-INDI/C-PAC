@@ -472,7 +472,8 @@ class MainFrame(wx.Frame):
                         # user is downloading public data - leave it to down-
                         # stream to handle creds issues
                         creds_path = None
-                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
+                    func_file = check_for_s3(func_file, creds_path,
+                                             dl_dir=dl_dir, img_type='func')
                     checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):

@@ -221,7 +221,10 @@ class ListBox(wx.Frame):
         else:
             text1.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
             
-        img = wx.Image(p.resource_filename('CPAC', 'GUI/resources/images/cpac_new_logo.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        img = wx.Image(p.resource_filename('CPAC',
+                                           'GUI/resources/images/cpac_new_logo.png'),
+                       wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+
         logo = wx.StaticBitmap(mainPanel, -1, img)
         hbox.Add(text1, 1, wx.TOP | wx.EXPAND, 15)
         hbox.Add(logo, 0,wx.ALIGN_RIGHT | wx.RIGHT)
