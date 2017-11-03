@@ -52,14 +52,15 @@ lateral_ventricles_mask,Lateral Ventricles Mask (Standard Space),Nuisance Regres
 Regressors,Regressors,Nuisance Regression
 nComponents,CompCor Components,Nuisance Regression
 runFristonModel,Use Friston 24-Parameter Model,Nuisance Regression
+runMotionSpike,Run Scrubbing,Nuisance Regression
+fdCalc,Framewise Displacement (FD) Calculation,Nuisance Regression
+spikeThreshold,Framewise Displacement (FD) Threshold (mm),Nuisance Regression
+numRemovePrecedingFrames,Number of Preceding Volumes to Remove,Nuisance Regression
+numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Nuisance Regression
 runMedianAngleCorrection,Run Median Angle Correction,Median Angle Correction
 targetAngleDeg,Target Angle (degrees),Median Angle Correction
 runFrequencyFiltering,Run Temporal Filtering,Temporal Filtering Options
 nuisanceBandpassFreq,Band-Pass Filters,Temporal Filtering Options
-runScrubbing,Run Scrubbing,Scrubbing Options
-scrubbingThreshold,Framewise Displacement (FD) Threshold (mm),Scrubbing Options
-numRemovePrecedingFrames,Number of Preceeding Volumes to Remove,Scrubbing Options
-numRemoveSubsequentFrames,Number of Subsequent Volumes to Remove,Scrubbing Options
 runROITimeseries,Extract ROI Average Time Series,ROI TSE Options
 tsa_roi_paths,TSE ROI Paths,ROI TSE Options
 runSCA,Run Seed-based Correlation Analysis,SCA Options

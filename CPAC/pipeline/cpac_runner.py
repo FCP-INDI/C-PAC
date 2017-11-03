@@ -18,7 +18,7 @@ from time import strftime
 # Validate length of directory
 def validate(config_obj):
     
-    #check for path lengths
+    # check for path lengths
     working_dir = config_obj.workingDirectory
     
     try:
@@ -49,8 +49,9 @@ def get_vectors(strat):
                 # make this an if statement because it trips up when it gets a
                 # 'None' entry for one of the iterables
                 if val != None:
-                                    ### check if val is float, correct it on some version of python or ipython
-                    ### avoid auto change to double quote of the path
+                    ### check if val is float, correct it on some version of
+                    # python or ipython avoid auto change to double quote of
+                    # the path
                     if isinstance(val[0], float):
                         #val = '%.2f' % val[0]
                         val = [str(val[0])]
@@ -62,18 +63,14 @@ def get_vectors(strat):
                 else:
                     dfs(list(val_list), str(val) + '#' + path)
 
-
     val_list = []
 
     for key in sorted(strat.keys()):
         val_list.append(strat[key])
 
-
     dfs(val_list, '')
-    
 
     return paths
-
 
 
 def make_entries(paths, path_iterables):
@@ -110,8 +107,6 @@ def make_entries(paths, path_iterables):
     return entries
 
 
-
-
 def build_strategies(configuration):
 
     import collections
@@ -124,22 +119,14 @@ def build_strategies(configuration):
                     'nc':'Compcor: Number Of Components = ', '_compcor':'Nuisance Signal Regressors = ',
                     '_target_angle_deg':'Median Angle Correction: Target Angle in Degree = '}
 
+    config_iterables = {'_threshold': eval('configuration.spikeThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
 
-    config_iterables = {'_threshold': eval('configuration.scrubbingThreshold'), '_compcor': eval('configuration.Regressors'), '_target_angle_deg': eval('configuration.targetAngleDeg')}
-
-
-    ### This is really dirty code and ordering of corrections in 
-    ### in output directory is dependant on the nuisance workflow
-    ### when the workflow is changed , change this section as well
+    # This is really dirty code and ordering of corrections in
+    # in output directory is dependant on the nuisance workflow
+    # when the workflow is changed , change this section as well
     corrections_order = ['pc1', 'linear', 'wm', 'global', 'motion', 'quadratic', 'gm', 'compcor', 'csf']
 
-
     corrections_dict_list = config_iterables['_compcor']
-
-
-    print "corrections dictionary list: "
-    print corrections_dict_list
-
     main_all_options = []
 
     if corrections_dict_list != None:
@@ -162,11 +149,7 @@ def build_strategies(configuration):
 
             main_all_options.append(str(str(all_options).strip('[]')).strip('\'\''))
 
-
         config_iterables['_compcor'] = main_all_options
-
-
-    ############
 
     try:
         paths = get_vectors(config_iterables)
@@ -366,7 +349,7 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
             raise
 
     except:
-        #make tempfile and add seeds to it
+        # make tempfile and add seeds to it
         import tempfile
 
         try:
@@ -390,7 +373,8 @@ def append_seeds_to_file(working_dir, seed_list, seed_file):
 
 
 # Run C-PAC subjects via job queue
-def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=None):
+def run(config_file, subject_list_file, p_name=None, plugin=None,
+        plugin_args=None):
     '''
     '''
 
@@ -433,7 +417,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
     try:
         sublist = yaml.load(open(subject_list_file, 'r'))
     except:
-        print "Subject list is not in proper YAML format. Please check your file"
+        print "Subject list is not in proper YAML format. Please check " \
+              "your file"
         raise Exception
 
     # NOTE: strategies list is only needed in cpac_pipeline prep_workflow for
@@ -483,18 +468,19 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
 
         # Check if its a condor job, and run that
         if 'condor' in c.resourceManager.lower():
-            run_condor_jobs(c, config_file, strategies_file, subject_list_file, p_name)
+            run_condor_jobs(c, config_file, strategies_file,
+                            subject_list_file, p_name)
         # All other schedulers are supported
         else:
-            run_cpac_on_cluster(config_file, subject_list_file, strategies_file,
-                                cluster_files_dir)
+            run_cpac_on_cluster(config_file, subject_list_file,
+                                strategies_file, cluster_files_dir)
 
     # Run on one computer
     else:
         # Init variables
         procss = [Process(target=prep_workflow,
-                          args=(sub, c, strategies, 1,
-                                pipeline_timing_info, p_name, plugin, plugin_args)) \
+                          args=(sub, c, strategies, 1, pipeline_timing_info,
+                                p_name, plugin, plugin_args))
                   for sub in sublist]
 
         if not os.path.exists(c.workingDirectory):
@@ -514,17 +500,17 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
         if len(sublist) <= c.numParticipantsAtOnce:
             for p in procss:
                 p.start()
-                print >>pid,p.pid
+                print >>pid, p.pid
         # Otherwise manage resources to run processes incrementally
         else:
             idx = 0
-            while(idx < len(sublist)):
+            while idx < len(sublist):
                 # If the job queue is empty and we haven't started indexing
                 if len(jobQueue) == 0 and idx == 0:
                     # Init subject process index
                     idc = idx
                     # Launch processes (one for each subject)
-                    for p in procss[idc : idc+c.numParticipantsAtOnce]:
+                    for p in procss[idc: idc+c.numParticipantsAtOnce]:
                         p.start()
                         print >>pid, p.pid
                         jobQueue.append(p)
@@ -539,7 +525,8 @@ def run(config_file, subject_list_file, p_name=None, plugin=None, plugin_args=No
                             print 'found dead job ', job
                             loc = jobQueue.index(job)
                             del jobQueue[loc]
-                            # ...and start the next available process (subject)
+                            # ...and start the next available process
+                            # (subject)
                             procss[idx].start()
                             # Append this to job queue and increment index
                             jobQueue.append(procss[idx])

@@ -90,8 +90,6 @@ class Mybook(wx.Treebook):
 
         page16 = FilteringSettings(self, 9)
 
-        page19 = Scrubbing(self, 4)
-
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
 
@@ -135,8 +133,6 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
 
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
-
-        self.AddSubPage(page19, "Scrubbing Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
@@ -416,6 +412,13 @@ class MainFrame(wx.Frame):
                       "of your participant list YAML file.\n\n"
                 raise Exception(err)
 
+            if not isinstance(func_files, dict):
+                err = "\n\n[!] The functional files in the participant " \
+                      "list YAML should be listed with a scan name key and " \
+                      "a file path value.\n\nFor example:\nfunc_1: " \
+                      "/path/to/func_1.nii.gz\n\n"
+                raise Exception(err)
+
             if anat_file.lower().startswith(s3_str):
                 dl_dir = tempfile.mkdtemp()
                 try:
@@ -469,7 +472,8 @@ class MainFrame(wx.Frame):
                         # user is downloading public data - leave it to down-
                         # stream to handle creds issues
                         creds_path = None
-                    func_file = check_for_s3(func_file, creds_path, dl_dir=dl_dir,img_type='func')
+                    func_file = check_for_s3(func_file, creds_path,
+                                             dl_dir=dl_dir, img_type='func')
                     checked_s3 = True
                 # Check if functional file exists
                 if os.path.exists(func_file):
@@ -1122,11 +1126,16 @@ class MainFrame(wx.Frame):
                     else:
                         lvalue = [value]
 
-
                     if value.find('.') != -1:
                         lvalue = [float(item) for item in lvalue]
                     elif len(value) > 0:
-                        lvalue = [int(item) for item in lvalue]
+                        try:
+                            new_lvalue = [int(item) for item in lvalue]
+                        except ValueError:
+                            # this trips only if user inputs a percentage for
+                            # de-spiking/scrubbing motion threshold
+                            new_lvalue = [str(item) for item in lvalue]
+                        lvalue = new_lvalue
                     else:
                         lvalue = 0
 

@@ -25,7 +25,8 @@ class DataConfig(wx.Frame):
     # Init method
     def __init__(self, parent):
 
-        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup", size = (820,620))
+        wx.Frame.__init__(self, parent, title="CPAC - Subject List Setup",
+                          size=(820,620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -39,8 +40,8 @@ class DataConfig(wx.Frame):
                       control=control.CHOICE_BOX,
                       name='dataFormat',
                       type=dtype.BOOL,
-                      comment="Select if data is organized using BIDS standard "\
-                              "or custom format",
+                      comment="Select if data is organized using BIDS "
+                              "standard or custom format",
                       values=["BIDS", "Custom"],
                       wkf_switch=True)
 
@@ -49,19 +50,17 @@ class DataConfig(wx.Frame):
                  name = "bidsBaseDir",
                  type = dtype.STR,
                  comment = "Base directory of BIDS-organized data",
-                 values ="")#,
-                 #style= wx.EXPAND | wx.ALL,
-                 #size = (532,-1))
+                 values ="")
 
         self.page.add(label= "Anatomical File Path Template ",
                  control = control.TEXT_BOX,
                  name = "anatomicalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Anatomical Files\n\n"
-                           "Place tags for the appropriate data directory " \
-                           "levels with tags such as {site}, {participant}, "\
-                           "{session}, and {series}. These are not all " \
-                           "required.\n\nSee User Guide for more detailed " \
+                           "Place tags for the appropriate data directory "
+                           "levels with tags such as {site}, {participant}, "
+                           "{session}, and {series}. These are not all "
+                           "required.\n\nSee User Guide for more detailed "
                            "instructions.",
                  values ="",
                  style= wx.EXPAND | wx.ALL,
@@ -72,10 +71,10 @@ class DataConfig(wx.Frame):
                  name = "functionalTemplate",
                  type = dtype.STR,
                  comment = "File Path Template for Functional Files\n\n"
-                           "Place tags for the appropriate data directory " \
-                           "levels with tags such as {site}, {participant}, "\
-                           "{session}, and {series}. These are not all " \
-                           "required.\n\nSee User Guide for more detailed " \
+                           "Place tags for the appropriate data directory "
+                           "levels with tags such as {site}, {participant}, "
+                           "{session}, and {series}. These are not all "
+                           "required.\n\nSee User Guide for more detailed "
                            "instructions.",
                  values ="",
                  style= wx.EXPAND | wx.ALL,
@@ -85,10 +84,12 @@ class DataConfig(wx.Frame):
                  control=control.COMBO_BOX, 
                  name = "subjectList", 
                  type = dtype.COMBO, 
-                 comment = "Include only a sub-set of the subjects present in the folders defined above.\n\n"
-                           "List subjects in this box (e.g., sub101, sub102) or provide the path to a\n"
-                           "text file with one subject on each line.\n\n"
-                           "If 'None' is specified, CPAC will include all subjects.", 
+                 comment = "Include only a sub-set of the subjects present "
+                           "in the folders defined above.\n\nList subjects "
+                           "in this box (e.g., sub101, sub102) or provide "
+                           "the path to a\ntext file with one subject on "
+                           "each line.\n\nIf 'None' is specified, CPAC will "
+                           "include all subjects.",
                  values = "None")
         
         self.page.add(label="Subjects to Exclude (Optional) ", 
@@ -518,7 +519,10 @@ class DataConfig(wx.Frame):
                     else:
                         val = value
 
-                    ctrl.set_value(str(val))
+                    if "None" in val or "none" in val:
+                        ctrl.set_value("None ")
+                    else:
+                        ctrl.set_value(str(val))
 
             # There was an error loading parameters, report it
             except Exception as exc:

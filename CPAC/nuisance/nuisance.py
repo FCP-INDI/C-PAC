@@ -95,11 +95,13 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
 
 def calc_residuals(subject,
                    selector,
+                   despiking=False,
                    wm_sig_file = None,
                    csf_sig_file = None,
                    gm_sig_file = None,
                    motion_file = None,
-                   compcor_ncomponents = 0):
+                   compcor_ncomponents = 0,
+                   frames_ex=None):
     """
     Calculates residuals of nuisance regressors for every voxel for a subject.
     
@@ -118,6 +120,9 @@ def calc_residuals(subject,
         Path to subject's grey matter mask (in the same space as the subject's functional file)
     compcor_ncomponents : integer, optional
         The first `n` principal of CompCor components to use as regressors.  Default is 0.
+    frames_ex : string, optional
+        Filepath to the 1D file describing the volumes to be excluded (for
+        de-spiking), selected via the threshold set for excessive motion.
         
     Returns
     -------
@@ -190,7 +195,7 @@ def calc_residuals(subject,
 
     # Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor']:
+    if selector['compcor'] and selector['wm']:
         regressor_map['compcor'] = \
             calc_compcor_components(data, compcor_ncomponents, wm_sigs,
                                     csf_sigs)
@@ -211,7 +216,7 @@ def calc_residuals(subject,
         bdata = data[global_mask].T
         bdatac = bdata - np.tile(bdata.mean(0), (bdata.shape[0], 1))
         U, S, Vh = np.linalg.svd(bdatac, full_matrices=False)
-        regressor_map['pc1'] = U[:,0]
+        regressor_map['pc1'] = U[:, 0]
         
     if selector['motion']:
         regressor_map['motion'] = motion
@@ -221,7 +226,12 @@ def calc_residuals(subject,
     
     if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
-    
+
+    # insert the de-spiking regressor matrix here, if running de-spiking
+    if frames_ex:
+        regressor_map['despike'] = \
+            create_despike_regressor_matrix(frames_ex, nii.shape[3])
+
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
     for rname, rval in regressor_map.items():
@@ -238,7 +248,22 @@ def calc_residuals(subject,
         raise ValueError('Regressor file contains NaN')
 
     Y = data[global_mask].T
-    B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+
+    try:
+        B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+    except np.linalg.LinAlgError as e:
+        if "Singular matrix" in e:
+            raise Exception("Error details: {0}\n\nSingular matrix error: "
+                            "The nuisance regression configuration you "
+                            "selected may have been too stringent, and the "
+                            "regression could not be completed. Ensure your "
+                            "parameters (such as the motion threshold for "
+                            "de-spiking or scrubbing) are not too "
+                            "extreme.\n\n".format(e))
+        else:
+            raise Exception("Error details: {0}\n\nSomething went wrong with "
+                            "nuisance regression.\n\n".format(e))
+
     Y_res = Y - X.dot(B)
     
     data[global_mask] = Y_res.T
@@ -281,18 +306,18 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % lat_ventricles_mask)
 
-
     if not safe_shape(data, lat_ventricles_mask):
-        raise ValueError('Spatial dimensions for data and the lateral ventricles mask do not match')
+        raise ValueError('Spatial dimensions for data and the lateral '
+                         'ventricles mask do not match')
 
     try:
         wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % wm_seg)
 
-
     if not safe_shape(data, wm_seg):
-        raise ValueError('Spatial dimensions for data, white matter segment do not match')
+        raise ValueError('Spatial dimensions for data, white matter segment '
+                         'do not match')
 
     wm_mask = erode_mask(wm_seg > 0)
     wm_sigs = data[wm_mask]
@@ -305,9 +330,9 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % csf_seg)
 
-
     if not safe_shape(data, csf_seg):
-        raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
+        raise ValueError('Spatial dimensions for data, cerebral spinal '
+                         'fluid segment do not match')
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
@@ -317,24 +342,20 @@ def extract_tissue_data(data_file,
     np.save(file_csf, csf_sigs)
     del csf_sigs
 
-
     try:
         gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % gm_seg)
 
-
     if not safe_shape(data, gm_seg):
-        raise ValueError('Spatial dimensions for data, gray matter segment do not match')
-
+        raise ValueError('Spatial dimensions for data, gray matter '
+                         'segment do not match')
 
     gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
     np.save(file_gm, gm_sigs)
     del gm_sigs
-
-
 
     nii = nb.load(wm_seg_file)
     wm_mask_file = os.path.join(os.getcwd(), 'wm_mask.nii.gz')
@@ -428,7 +449,8 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'motion_components',
                                                        'selector',
                                                        'compcor_ncomponents',
-                                                       'template_brain']),
+                                                       'template_brain',
+                                                       'frames_ex']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'regressors']),
@@ -484,7 +506,7 @@ def create_nuisance(use_ants, name='nuisance'):
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 
-        #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
+        # resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
         
     else:
         ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm_flirt_applyxfm')
@@ -515,14 +537,16 @@ def create_nuisance(use_ants, name='nuisance'):
 
     calc_imports = ['import os', 'import scipy', 'import numpy as np',
                     'import nibabel as nb', 
-                    'from CPAC.nuisance import calc_compcor_components']
+                    'from CPAC.nuisance import calc_compcor_components',
+                    'from CPAC.nuisance.utils import create_despike_regressor_matrix']
     calc_r = pe.Node(util.Function(input_names=['subject',
                                                 'selector',
                                                 'wm_sig_file',
                                                 'csf_sig_file',
                                                 'gm_sig_file',
                                                 'motion_file',
-                                                'compcor_ncomponents'],
+                                                'compcor_ncomponents',
+                                                'frames_ex'],
                                    output_names=['residual_file',
                                                 'regressors_file'],
                                    function=calc_residuals,
@@ -537,6 +561,8 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'selector', calc_r, 'selector')
     nuisance.connect(inputspec, 'compcor_ncomponents', 
                      calc_r, 'compcor_ncomponents')
+    nuisance.connect(inputspec, 'frames_ex', calc_r, 'frames_ex')
+
     nuisance.connect(calc_r, 'residual_file', outputspec, 'subject')
     nuisance.connect(calc_r, 'regressors_file', outputspec, 'regressors')
     

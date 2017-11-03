@@ -1424,10 +1424,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         nodes = getNodeList(strat)
 
-        if ('BET' in c.functionalMasking) and (
-            'func_preproc_automask' not in nodes):
+        if ('BET' in c.functionalMasking) and ('func_preproc_automask' not in nodes):
 
-            func_preproc = create_func_preproc(use_bet=True, \
+            func_preproc = create_func_preproc(use_bet=True,
                                                wf_name='func_preproc_bet_%d' % num_strat)
             node = None
             out_file = None
@@ -1484,6 +1483,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter += 1
     if 1 in c.runFristonModel:
         workflow_bit_id['fristons_parameter_model'] = workflow_counter
+
         for strat in strat_list:
 
             fristons_model = fristons_twenty_four(
@@ -1567,8 +1567,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'anatomical_brain')
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
-
-
 
             except:
                 logConnectionError(
@@ -1673,7 +1671,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                      func_to_anat_bbreg,
                                      'inputspec.linear_reg_matrix')
 
-
                 except:
                     logConnectionError(
                         'Register Functional to Anatomical (BBReg)',
@@ -1726,13 +1723,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_bit_id['gen_motion_stats'] = workflow_counter
     for strat in strat_list:
 
-        gen_motion_stats = motion_power_statistics(
-            'gen_motion_stats_%d' % num_strat)
-        gen_motion_stats.inputs.scrubbing_input.threshold = c.scrubbingThreshold
+        gen_motion_stats = motion_power_statistics(c.fdCalc[0],
+                                                   'gen_motion_stats_%d'
+                                                   % num_strat)
+        gen_motion_stats.inputs.scrubbing_input.threshold = c.spikeThreshold
         gen_motion_stats.inputs.scrubbing_input.remove_frames_before = c.numRemovePrecedingFrames
         gen_motion_stats.inputs.scrubbing_input.remove_frames_after = c.numRemoveSubsequentFrames
-        gen_motion_stats.get_node('scrubbing_input').iterables = (
-        'threshold', c.scrubbingThreshold)
+        gen_motion_stats.get_node('scrubbing_input').iterables = ('threshold',
+                                                                  c.spikeThreshold)
 
         try:
             # #**special case where the workflow is not getting outputs from resource pool
@@ -1777,17 +1775,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.append_name(gen_motion_stats.name)
 
         strat.update_resource_pool({'frame_wise_displacement': (
-        gen_motion_stats, 'outputspec.FD_1D'),
-                                    'scrubbing_frames_excluded': (
-                                    gen_motion_stats,
-                                    'outputspec.frames_ex_1D'),
-                                    'scrubbing_frames_included': (
-                                    gen_motion_stats,
-                                    'outputspec.frames_in_1D'),
+                                        gen_motion_stats, 'outputspec.FD_1D'),
                                     'power_params': (gen_motion_stats,
                                                      'outputspec.power_params'),
                                     'motion_params': (gen_motion_stats,
                                                       'outputspec.motion_params')})
+
+        if "De-Spiking" in c.runMotionSpike and 1 in c.runNuisance:
+            strat.update_resource_pool({'despiking_frames_excluded': (
+                                            gen_motion_stats, 'outputspec.frames_ex_1D'),
+                                        'despiking_frames_included': (
+                                            gen_motion_stats, 'outputspec.frames_in_1D')})
+        elif "Scrubbing" in c.runMotionSpike and 1 in c.runNuisance:
+            strat.update_resource_pool({'scrubbing_frames_excluded': (
+                                            gen_motion_stats, 'outputspec.frames_ex_1D'),
+                                        'scrubbing_frames_included': (
+                                            gen_motion_stats, 'outputspec.frames_in_1D')})
 
         create_log_node(gen_motion_stats, 'outputspec.motion_params',
                         num_strat)
@@ -1855,6 +1858,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         'movement_parameters')
                     workflow.connect(node, out_file,
                                      nuisance, 'inputspec.motion_components')
+
+                    #TODO: DE-SPIKING OPTIONS
+                    if "De-Spiking" in c.runMotionSpike:
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'despiking_frames_excluded')
+                        workflow.connect(node, out_file,
+                                         nuisance, 'inputspec.frames_ex')
+                    else:
+                        nuisance.inputs.inputspec.frames_ex = None
 
                     node, out_file = strat.get_node_from_resource_pool(
                         'functional_to_anat_linear_xfm')
@@ -2079,7 +2091,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     workflow_counter += 1
 
-    if 1 in c.runScrubbing:
+    if "Scrubbing" in c.runMotionSpike and 1 in c.runNuisance:
 
         workflow_bit_id['scrubbing'] = workflow_counter
 
@@ -2114,7 +2126,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                        strat.get_resource_pool(), '0014')
                     raise
 
-                if 0 in c.runScrubbing:
+                if 0 in c.runNuisance:
                     tmp = strategy()
                     tmp.resource_pool = dict(strat.resource_pool)
                     tmp.leaf_node = (strat.leaf_node)
@@ -2129,10 +2141,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                           'outputspec.preprocessed')
 
                 strat.update_resource_pool({'scrubbing_movement_parameters': (
-                scrubbing, 'outputspec.scrubbed_movement_parameters'),
+                                                scrubbing, 'outputspec.scrubbed_movement_parameters'),
                                             'scrubbed_preprocessed': (
-                                            scrubbing,
-                                            'outputspec.preprocessed')})
+                                                scrubbing, 'outputspec.preprocessed')})
 
                 create_log_node(scrubbing, 'outputspec.preprocessed',
                                 num_strat)

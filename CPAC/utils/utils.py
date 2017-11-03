@@ -53,6 +53,8 @@ files_folders_wf = {
     'power_spectrum_distribution': 'alff',
     'functional_freq_filtered': 'func',
     'scrubbing_movement_parameters': 'parameters',
+    'despiking_frames_included': 'parameters',
+    'despiking_frames_excluded': 'parameters',
     'scrubbing_frames_included': 'parameters',
     'scrubbing_frames_excluded': 'parameters',
     'motion_params': 'parameters',
