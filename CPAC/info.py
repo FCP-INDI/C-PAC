@@ -10,7 +10,7 @@ This script was borrowed from and inspired by nipype's info.py file.
 # version
 _version_major = 1
 _version_minor = 0
-_version_micro = 2
+_version_micro = 3
 _version_extra = ''
 
 def get_cpac_gitversion():
@@ -94,7 +94,7 @@ User documentation can be found here: http://fcp-indi.github.com/docs/user/index
 
 Developer documention can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
-Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.0
+Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.3
 
 
 Dicussion Forum
