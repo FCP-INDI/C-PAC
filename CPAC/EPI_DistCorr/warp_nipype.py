@@ -33,7 +33,7 @@ inputNode = pe.Node(util.IdentityInterface(fields=['distcorr']),
                         name='inputspec')
 
 outputNode = pe.Node(util.IdentityInterface(fields=['roi_file','fieldmap','epireg']),name='outputspec')
-
+preproc = pe.Workflow(name='preprocflow')
 ## Specify commands to be run
 
 # Extract first three volumes from fmri
@@ -43,7 +43,7 @@ fslroi.inputs.t_size=3
 
 preproc.connect(inputNode,'distcorr',fslroi,'in_file') 
 
-preproc.connect(fslroi,'out_file',outputNode,'roi_file')
+preproc.connect(fslroi,'roi_file',outputNode,'fslroi_file')
 # Skullstrip
 
 skullstrip = pe.Node(interface=afni.preprocess.SkullStrip(),name='skullstrip')
@@ -76,7 +76,7 @@ fugue.shift_out_file = 'opname_shiftout_file'
 fugue.dwell_to_asym_ratio=(0.77e-3*3)/(2.46e-3)
 
 preproc.connect(inputNode,'mask',fugue,'mask_file')
-preproc.connect(prepare,'out_filedmap',fugue,'in_file')
+preproc.connect(prepare,'out_fieldmap',fugue,'in_file')
 
 
 # Co-Register EPI and Correct field inhomogeniety distortions
