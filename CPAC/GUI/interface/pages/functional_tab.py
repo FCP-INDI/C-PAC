@@ -84,7 +84,26 @@ class TimeSeriesOptions(wx.ScrolledWindow):
 
     def get_counter(self):
         return self.counter
+class EPI_DistCorr(wx.ScrolledWindow):
+    
+    def __init__(self, parent, counter =0):
+        wx.ScrolledWindow.__init__(self, parent)
+        
+        self.page = GenericClass(self, "EPI Distortion correction options")
+        self.counter = counter 
+                
+                
+        self.page.add(label= "perform distortion correction with fieldmap correction ",
+                 control=control.CHOICE_BOX, 
+                 name='fieldmap correction', 
+                 type=dtype.LSTR, 
+                 comment="perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
+                 values=["On","Off", "On/Off"])
+        self.page.set_sizer() 
+        parent.get_page_list().append(self)
 
+    def get_counter(self):
+        return self.counter
 
 
 
