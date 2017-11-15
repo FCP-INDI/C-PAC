@@ -1,5 +1,5 @@
 from .anatomical import AnatomicalPreprocessing, Segmentation,  Registration
-from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, FuncToMNIRegistration
+from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, EPI_DIstCorr, FuncToMNIRegistration
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
 from .sca import SCA, SCASettings
@@ -25,4 +25,4 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings']
+           'GroupAnalysis', 'GPASettings', 'EPI_DistCorr']
