@@ -1,5 +1,5 @@
 from .anatomical import AnatomicalPreprocessing, Segmentation,  Registration
-from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, EPI_DIstCorr, FuncToMNIRegistration
+from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, EPI_DistCorr, FuncToMNIRegistration
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
 from .sca import SCA, SCASettings
