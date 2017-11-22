@@ -51,16 +51,16 @@ def warp_nipype():
     preproc.connect(fslroi,'roi_file',outputNode,'fslroi_file')
 # Skullstrip
 
-    skullstrip = pe.Node(interface=afni.preprocess.SkullStrip(),name='skullstrip')
-    skullstrip.inputs.outputtype='NIFTI_GZ'
-
+    skullstrip = pe.Node(interface=fsl.BET(),name='skullstrip')
+    skullstrip.inputs.output_type = 'NIFTI_GZ'
+    skullstrip.inputs.frac = 1.0
     preproc.connect(inputNode,'fmap_mag',skullstrip,'in_file')
-
+    preproc.connect(skullstrip,'out_file',outputNode,'magnitude_image')
 
 #SkullStrip the anatomy file
-    skullstrip_anat = pe.Node(interface=afni.preprocess.SkullStrip(),name='skullstrip_anat')
-    skullstrip_anat.inputs.outputtype='NIFTI_GZ'
-
+    skullstrip_anat = pe.Node(interface=fsl.BET(),name='skullstrip_anat')
+    skullstrip_anat.inputs.output_type = 'NIFTI_GZ'
+    skullstrip_anat.inputs.frac = 0.5
     preproc.connect(inputNode,'anat_file',skullstrip_anat,'in_file')
     preproc.connect(skullstrip_anat,'out_file',outputNode,'stripped_anat')
 #Note for the user. Ensure the phase image is within 0-4096 (upper threshold is 90% of 4096), fsl_prepare_fieldmap will only work 
@@ -71,7 +71,7 @@ def warp_nipype():
     prepare.inputs.delta_TE = 2.46
 
     preproc.connect(inputNode,'fmap_pha',prepare,'in_phase')
-    preproc.connect(inputNode,'fmap_mag',prepare,'in_magnitude')
+    preproc.connect(skullstrip,'out_file',prepare,'in_magnitude')
     preproc.connect(prepare,'out_fieldmap',outputNode,'fieldmap')
 
 #perform fugue to compute vsm 
@@ -79,7 +79,8 @@ def warp_nipype():
     fugue.inputs.unwarp_direction='y'
     fugue.inputs.save_unmasked_fmap=True
     fugue.inputs.shift_out_file = 'opname_shiftout_file'
-    fugue.inputs.dwell_to_asym_ratio=0.93902439
+  # fugue.inputs.asym_se_time=
+  # fugue.inputs.dwell_to_asym_ratio=0.93902439
     preproc.connect(inputNode, 'fmap_pha', fugue, 'phasemap_in_file')
     preproc.connect(inputNode,'mask',fugue,'mask_file')
     preproc.connect(prepare,'out_fieldmap',fugue,'in_file')
