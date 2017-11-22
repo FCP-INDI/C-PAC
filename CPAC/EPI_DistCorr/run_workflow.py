@@ -10,7 +10,7 @@ import glob
 import nipype.interfaces.io as nio
 import nipype.pipeline.engine as pe
 from nipype.interfaces.fsl import ImageStats
-from nose.tools import *
+#rom nose.tools import *
 ## This script runs the warp_nipype workflow to execute the interfaces and with the inputs already provided
 ## It accepts as it's arguments the input whihc you;d give the warp_nipe file, an output_dir which can be either be mentioned or if it is set to none will write it in the current working directory.
 ## The argument run can either be tset to true(default) or to false. If set to false, it should connect to the nipype workflow and return the workflow object instead
@@ -30,12 +30,12 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    num_of_cores = 1
    #resource_pool({'epireg': (warp_nipype2.warp_nipype, 'outputspec.epireg')})
    t_node = warp_nipype2.warp_nipype()####
-   t_node.inputs.inputspec.anat_file= '/home/nrajamani/FieldMap_SubjectExampleData/SubjectData/anatomy/stripped_sMT0160-0005-00001-000176-01.nii'
+   t_node.inputs.inputspec.anat_file=  '/home/nrajamani/sub-A00073677/ses-NFB3/anat/sub-A00073677_ses-NFB3_T1w.nii.gz'
    t_node.inputs.inputspec.func_file= '/home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run1/fMT0160-0014-00002-000002-01.nii' 
-   t_node.inputs.inputspec.fmap_pha=  '/home/nrajamani/FieldMap_SubjectExampleData/SubjectData/fieldmap/phase_scaled.nii.gz'
+   t_node.inputs.inputspec.fmap_pha= '/home/nrajamani/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_magnitude1.nii.gz'
    t_node.inputs.inputspec.t1_head = '/usr/local/fsl/data/standard/MNI152lin_T1_2mm.nii.gz'
    #'home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run2/fMT0160-0015-00002-000002-01_BRAIN.nii.gz',
-   t_node.inputs.inputspec.fmap_mag= '/home/nrajamani/FieldMap_SubjectExampleData/SubjectData/fieldmap/sMT0160-0012-00001-000001-01_brain.nii.gz'
+   t_node.inputs.inputspec.fmap_mag= '/home/nrajamani/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_phasediff.nii.gz'
    #'home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run2/fMT0160-0015-00003-000003-01_BRAIN.nii.gz',
    t_node.inputs.inputspec.mask ='/usr/local/fsl/data/standard/MNI152lin_T1_2mm_brain_mask.nii.gz'
    
