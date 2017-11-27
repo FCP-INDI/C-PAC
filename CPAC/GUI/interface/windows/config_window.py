@@ -12,7 +12,7 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     ALFF, ALFFSettings,\
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
-    TimeSeries, ROITimeseries, \
+    TimeSeries, EPI_DistCorr, ROITimeseries, \
     GroupAnalysis, GPASettings, TimeSeriesOptions
 
 
@@ -81,12 +81,13 @@ class Mybook(wx.Treebook):
 
         page8 = FunctionalPreProcessing(self)
         page9 = TimeSeriesOptions(self)
-        page10 = AnatToFuncRegistration(self, 5)
-        page11 = FuncToMNIRegistration(self, 6)
+        page10 = EPI_DistCorr(self)                     
+        page11 = AnatToFuncRegistration(self, 5)
+        page12 = FuncToMNIRegistration(self, 6)
 
-        page12 = Nuisance(self)
-        page13 = NuisanceRegression(self, 7)
-        page14 = MedianAngleCorrection(self, 8)
+        page13= Nuisance(self)
+        page14= NuisanceRegression(self, 7)
+        page15= MedianAngleCorrection(self, 8)
 
         page16 = FilteringSettings(self, 9)
 
@@ -125,12 +126,13 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page10, "Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page11, "Functional to MNI Registration", wx.ID_ANY)
+        self.AddSubPage(Page10, "EPI_DistCorr", wx.ID_ANY)
+        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
 
-        self.AddPage(page12, "Nuisance", wx.ID_ANY)
-        self.AddSubPage(page13, "Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
+        self.AddPage(page13,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(page14,"Nuisance Regression", wx.ID_ANY)
+        self.AddSubPage(page15,"Median Angle Correction", wx.ID_ANY)
 
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
 
