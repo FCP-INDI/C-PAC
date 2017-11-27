@@ -91,14 +91,16 @@ class EPI_DistCorr(wx.ScrolledWindow):
         
         self.page = GenericClass(self, "EPI Distortion correction options")
         self.counter = counter 
-                
+        fsl = os.environ.get('FSLDIR')
+        if fsl == None:
+            fsl = "$FSLDIR"        
                 
         self.page.add(label= "perform distortion correction with fieldmap correction ",
                  control=control.CHOICE_BOX, 
                  name='fieldmap correction', 
                  type=dtype.LSTR, 
                  comment="perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
-                 values=["On","Off", "On/Off"])
+                 values=["On","Off"],wkf_switch = True)
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
