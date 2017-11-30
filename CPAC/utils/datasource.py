@@ -20,7 +20,8 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                             'characters. Please update this and try again.')
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path'],
+                                fields=['subject', 'scan', 'creds_path',
+                                        'phase_diff', 'mag_one', 'mag_two'],
                                 mandatory_inputs=True),
                         name='inputnode')
     inputnode.iterables = [('scan', scan_names)]
@@ -41,9 +42,10 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     check_s3_node.inputs.img_type = 'func'
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['subject',
-                                                        'rest',
-                                                        'scan']),
+    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
+                                                        'scan', 'phase_diff',
+                                                        'mag_one',
+                                                        'mag_two']),
                          name='outputspec')
 
     wf.connect(inputnode, 'scan', selectrest, 'scan')
@@ -51,6 +53,10 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'subject', outputnode, 'subject')
     wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
+
+    wf.connect(inputnode, 'phase_diff', outputnode, 'phase_diff')
+    wf.connect(inputnode, 'mag_one', outputnode, 'mag_one')
+    wf.connect(inputnode, 'mag_two', outputnode, 'mag_two')
 
     return wf
 

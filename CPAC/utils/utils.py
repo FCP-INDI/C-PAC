@@ -1503,7 +1503,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
 
     unit = 's'
 
-    # if the user has mandated that we the timining informaiton in the header,
+    # if the user has mandated that we the timing information in the header,
     # that takes precedence
     if "Use NIFTI Header" in tpattern:
         pattern = ''
