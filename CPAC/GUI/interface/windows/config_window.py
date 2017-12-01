@@ -126,7 +126,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(Page10, "EPI_DistCorr", wx.ID_ANY)
+        self.AddSubPage(page10, "EPI_DistCorr", wx.ID_ANY)
         self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
         self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
 
