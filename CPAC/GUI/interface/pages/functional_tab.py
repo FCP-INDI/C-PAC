@@ -97,7 +97,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                 
         self.page.add(label= "perform distortion correction with fieldmap correction ",
                  control=control.CHOICE_BOX, 
-                 name='fieldmap correction', 
+                 name='runEPI_DistCorr', 
                  type=dtype.LSTR, 
                  comment="perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
                  values=["On","Off"],wkf_switch = True)
