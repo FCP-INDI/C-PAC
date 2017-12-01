@@ -33,6 +33,7 @@ import CPAC
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import create_func_preproc, \
     create_wf_edit_func
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -1047,7 +1048,53 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
+    new_strat_list = []
+    num_strat = 0
 
+    workflow_counter += 1
+
+    if 1 in c.runEPI_DistCorr:
+
+        workflow_bit_id['preprocflow'] = workflow_counter
+
+        for strat in strat_list:
+            nodes = getNodeList(strat)
+            try:
+                    node, out_file = strat.get_leaf_properties()
+                    
+                    workflow.connect(node, out_file,
+                                     preprocflow, 'inputspec.func_file')
+            except:
+                    logConnectionError('EPI_DistCorr Workflow', num_strat,
+                                       strat.get_resource_pool(), '0004')
+                    raise
+
+            if 0 in c.EPI_DistCorr:
+                    tmp = strategy()
+                    tmp.resource_pool = dict(strat.resource_pool)
+                    tmp.leaf_node = (strat.leaf_node)
+                    tmp.leaf_out_file = str(strat.leaf_out_file)
+                    tmp.name = list(strat.name)
+                    strat = tmp
+                    new_strat_list.append(strat)
+
+            strat.append_name(epi_distcorr.name)
+
+            strat.set_leaf_properties(epi_distcorr,
+                                          'outputspec.preprocessed')
+
+            strat.update_resource_pool({'despiked fieldmap': (
+                                                epi_distcorr, 'outputspec.fmap_despike'),
+                                            'registered_epi': (
+                                                epi_distcorr, 'outputspec.epireg'),
+                                            'unwarped_functional_map':(epi_distcorr, 'outputspec.func_file')})
+
+            create_log_node(epi_distcorr, 'outputspec.func_file',
+                                num_strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
     '''
     Inserting Functional Data workflow
     '''
