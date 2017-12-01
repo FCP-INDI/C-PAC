@@ -1073,15 +1073,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         fmap_mag_one = None
         fmap_mag_two = None
         if 'fmap' in sub_dict.keys():
+
             try:
                 fmap_phasediff = sub_dict['fmap']['phase_diff']
                 fmap_mag_one = sub_dict['fmap']['mag1']
-                fmap_mag_two = sub_dict['fmap']['mag2']
             except KeyError as e:
                 err = "[!] Some of the required field map files are " \
                       "missing from your data configuration.\n\nDetails: " \
                       "{0}\n\n".format(e)
                 raise KeyError(err)
+
+            if 'mag2' in sub_dict.keys():
+                fmap_mag_two = sub_dict['fmap']['mag2']
 
         try:
             funcFlow = create_func_datasource(func_paths_dict,
