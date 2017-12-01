@@ -60,4 +60,5 @@ multiple_value_wfs = ['runAnatomicalPreprocessing',
                       'runFrequencyFiltering',
                       'runMedianAngleCorrection',
                       'runScrubbing',
-                      'runFristonModel']
+                      'runFristonModel'
+                      'runEPI_DistCorr']
