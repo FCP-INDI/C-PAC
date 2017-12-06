@@ -34,7 +34,7 @@ import nipype.interfaces.utility as util
                             mask_file = epi_mask.nii
                             dwell_to_asymm ratio = (0.77e-3 * 3)/(2.46e-3)
   """                          
-def create_EPI_DistCorr():
+def create_EPI_DistCorr(wf_name = 'epi_distcorr_reg'):
     preproc = pe.Workflow(name='preprocflow')
                           
     inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag','t1_head','mask']),name = 'inputspec')
