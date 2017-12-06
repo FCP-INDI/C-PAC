@@ -16,7 +16,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
     realigned_file : string
         Path of a realigned nifti file.
     bandpass_freqs : tuple
-        Tuple containing the bandpass frequencies. (LowCutoff, HighCutoff)
+        Tuple containing the bandpass frequencies. (LowCutoff_HighPass HighCutoff_LowPass)
     sample_period : float, optional
         Length of sampling period in seconds.  If not specified,
         this value is read from the nifti file provided.
@@ -32,8 +32,8 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
         # Derived from YAN Chao-Gan 120504 based on REST.
         sample_freq = 1. / sample_period
         sample_length = data.shape[0]
-
-        data_p = np.zeros(int(2 ** np.ceil(np.log2(sample_length))))
+        
+        data_p = np.zeros(int(nextpow2(sample_length)))
         data_p[:sample_length] = data
 
         LowCutoff, HighCutoff = bandpass_freqs
