@@ -1246,13 +1246,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     
     if 1 in c.runEPI_DistCorr:
 
-        workflow_bit_id['epi_distcorr'] = workflow_counter
+        workflow_bit_id['epi_distcorr_reg'] = workflow_counter
 
         for strat in strat_list:
             nodes = getNodeList(strat)
             if 'EPI_DistCorr' in nodes:
                 
-                epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % num_strat)
+                epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_reg_%d' % num_strat)
                 
                 try:
                     node, out_file = strat.get_leaf_properties()
@@ -1274,7 +1274,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'despiked fieldmap': (epi_distcorr, 'outputspec.fmap_despike'),
                                         'registered_epi': (epi_distcorr, 'outputspec.epireg'),
                                         'unwarped_functional_map':(epi_distcorr, 'outputspec.func_file')})
-            create_log_node(epi_distcorr, 'outputspec.func_file',num_strat)
+            create_log_node(epi_distcorr,'outputspec.func_file', num_strat)
 
             num_strat += 1
 
