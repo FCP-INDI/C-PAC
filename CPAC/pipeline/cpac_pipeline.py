@@ -1252,7 +1252,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             nodes = getNodeList(strat)
             if 'EPI_DistCorr' in nodes:
                 
-                epi_distcorr = create_EPI_DistCorr('epi_distcorr_%d' % num_strat)
+                epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % num_strat)
                 
                 try:
                     node, out_file = strat.get_leaf_properties()
