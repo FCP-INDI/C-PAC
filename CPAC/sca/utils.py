@@ -50,9 +50,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
 
         if len(dims) == 5:
             x, y, z, one, roi_number = dims
-
             corr_data = np.reshape(corr_data, (x * y * z, roi_number), order='F')
-
 
         for i in range(0, len(roi_numbers)):
 
@@ -61,23 +59,15 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d):
                 sub_data = np.reshape(corr_data[:, i], (x, y, z), order='F')
 
             sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(), affine=corr_img.get_affine())
-
             sub_z_score_file = os.path.join(os.getcwd(), 'z_score_ROI_number_%s.nii.gz' % (roi_numbers[i]))
-
             sub_img.to_filename(sub_z_score_file)
-
             out_file.append(sub_z_score_file)
 
     else:
-
         z_score_img = nb.Nifti1Image(corr_data, header=hdr, affine=corr_img.get_affine())
-
         z_score_file = os.path.join(os.getcwd(), 'z_score.nii.gz')
-
         z_score_img.to_filename(z_score_file)
-
         out_file.append(z_score_file)
-
 
     return out_file
 
@@ -135,54 +125,52 @@ def map_to_roi(timeseries, maps):
         (which == 'RT')
     """
 
-    try:
-        import os
-        import numpy as np
-        testMat = np.loadtxt(timeseries)
-        timepoints, rois = testMat.shape
+    testMat = np.loadtxt(timeseries)
+    timepoints, rois = testMat.shape
 
-        if rois > timepoints:
-            raise Exception('The number of timepoints is smaller than the'
-                            + ' number of ROIs to run - therefore the'
-                            + ' GLM is underspecified and can\'t run.')
+    if rois > timepoints:
+        raise Exception('The number of timepoints is smaller than the number '
+                        'of ROIs to run - therefore the GLM is '
+                        'underspecified and can\'t run.')
 
-        # pull in the ROI labels from the header of the extracted timeseries
-        # CSV file
-        with open(timeseries, "r") as f:
-            roi_file_lines = f.read().splitlines()
+    # pull in the ROI labels from the header of the extracted timeseries
+    # CSV file
+    with open(timeseries, "r") as f:
+        roi_file_lines = f.read().splitlines()
 
-        roi_err = "\n\n[!] The output of 3dROIstats, used in extracting " \
-                  "the timeseries, was not in the expected format.\n\nROI " \
-                  "output file: %s\n\n" % timeseries
+    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting " \
+              "the timeseries, was not in the expected format.\n\nROI " \
+              "output file: {0}\n\n".format(timeseries)
 
-        for line in roi_file_lines:
-            if "Mean_" in line:
-                try:
-                    roi_list = line.split("\t")
-                    # clear out any blank strings/non ROI labels in the list
-                    roi_list = [x for x in roi_list if "Mean" in x]
-                    # rename labels
-                    roi_list = [x.replace("Mean","sca_tempreg_z_maps_roi").\
-                                    replace(" ","") for x in roi_list]
-                except:
-                    raise Exception(roi_err)
-                break
-        else:
-            raise Exception(roi_err)
+    for line in roi_file_lines:
+        if "Mean_" in line:
+            try:
+                roi_list = line.split("\t")
+                # clear out any blank strings/non ROI labels in the list
+                roi_list = [x for x in roi_list if "Mean" in x]
+                # rename labels
+                roi_list = \
+                    [x.replace("Mean",
+                               "sca_tempreg_z_maps_roi").replace(" ", "")
+                     for x in roi_list]
+            except:
+                raise Exception(roi_err)
+            break
+    else:
+        raise Exception(roi_err)
 
-        new_labels = []
-        for roi_label in roi_list:
-            new_labels.append(os.path.join(os.getcwd(),roi_label))
+    new_labels = []
+    for roi_label in roi_list:
+        new_labels.append(os.path.join(os.getcwd(), roi_label))
 
-        numMaps = len(maps)
-        maps.sort()
-        if not numMaps / 2 == rois:
-            raise Exception('You specified ' + str(rois) + ' timeseries but '
-                            + ' only ' + str(numMaps / 2) + ' spatial maps were'
-                            + ' generated')
-        maps = maps[:rois]
+    numMaps = len(maps)
+    maps.sort()
 
-    except Exception:
-        print "Error while mapping roi to dual regression split 3d volumes"
+    # if not numMaps / 2 == rois:
+    #     raise Exception('You specified {0} timeseries but only {1} spatial '
+    #                     'maps were generated'.format(str(rois),
+    #                                                  str(numMaps/2)))
+
+    maps = maps[:rois]
 
     return roi_list, maps

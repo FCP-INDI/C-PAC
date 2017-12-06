@@ -207,9 +207,7 @@ def extract_data(c, param_map):
     anat_session_present, anat_session_path, anat_relative = \
         check_for_sessions(anat_relative, anat_relative_len)
 
-    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName[0]), 'wb')
-
-
+    f = open(os.path.join(c.outputSubjectListLocation, "CPAC_subject_list_%s.yml" % c.subjectListName), 'wb')
 
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
@@ -298,8 +296,6 @@ def extract_data(c, param_map):
             logging.exception(err_msg)
             raise Exception(err_msg)
 
-
-
     def walk(index, sub):
         """
         Method which walks across each subject
@@ -380,10 +376,7 @@ def extract_data(c, param_map):
         raise
 
     finally:
-
         f.close()
-
-
 
 
 def generate_supplementary_files(output_path, subject_list_name):
@@ -399,8 +392,11 @@ def generate_supplementary_files(output_path, subject_list_name):
     subject_list_name = subject_list_name
 
     try:
-        subjects_list = yaml.load(open(os.path.join(output_path, 'CPAC_' \
-                'subject_list_%s.yml' % subject_list_name), 'r'))
+        sublist_file = os.path.join(output_path,
+                                    'CPAC_subject_list_%s.yml'
+                                    % subject_list_name)
+        with open(sublist_file, 'r') as f:
+            subjects_list = yaml.load(f)
     except:
         print 'Subject list couldn\'t be read!'
         print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' \
@@ -416,7 +412,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     try:
         for sub in subjects_list:
-            
             if sub['unique_id']:
                 subject_id = sub['subject_id'] + "_" + sub['unique_id']
             else:
@@ -464,12 +459,9 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         data_list.append(list1)
 
-
-
     # generate the phenotypic file templates for group analysis
-
-    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv' \
-            % subject_list_name)
+    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv'
+                             % subject_list_name)
 
     try:
         f = open(file_name, 'wb')
@@ -490,7 +482,6 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
-
     # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
 
@@ -508,7 +499,6 @@ def generate_supplementary_files(output_path, subject_list_name):
             raise IOError
 
         writer = csv.writer(f)
-
         writer.writerow(['participant', 'session', 'series', 'EV1', '..'])
 
         for session in sorted(session_set):
@@ -518,7 +508,8 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
+        print "Template Phenotypic file for group analysis with repeated " \
+              "measures (multiple sessions and scans) - %s" % file_name
 
     if (len(session_set) > 1):
 
@@ -531,7 +522,7 @@ def generate_supplementary_files(output_path, subject_list_name):
             print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
             print file_name, '\n\n'
             print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
+                  'worry.. I\'ll wait.\n\n'
             raise IOError
 
         writer = csv.writer(f)
@@ -544,7 +535,8 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
+        print "Template Phenotypic file for group analysis with repeated " \
+              "measures (multiple sessions) - %s" % file_name
 
     if (len(scan_set) > 1):
 
@@ -557,7 +549,7 @@ def generate_supplementary_files(output_path, subject_list_name):
             print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
             print file_name, '\n\n'
             print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
+                  'worry.. I\'ll wait.\n\n'
             raise IOError
 
         writer = csv.writer(f)
@@ -570,109 +562,27 @@ def generate_supplementary_files(output_path, subject_list_name):
 
         f.close()
 
-
-
+    print "Template Phenotypic file for group analysis with repeated " \
+          "measures (multiple scans) - %s" % file_name
 
     # generate the group analysis subject lists
-
-    file_name = os.path.join(output_path, 'participant_list_group_analysis' \
-            '_%s.csv' % subject_list_name)
+    file_name = os.path.join(output_path,
+                             'participant_list_group_analysis_%s.txt'
+                             % subject_list_name)
 
     try:
-        f = open(file_name, 'w')
+        with open(file_name, 'w') as f:
+            for sub in sorted(subID_set):
+                print >> f, sub
     except:
         print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
         print file_name, '\n\n'
         print 'Make sure you have write access? Then come back. Don\'t ' \
-                'worry.. I\'ll wait.\n\n'
+              'worry.. I\'ll wait.\n\n'
         raise IOError
 
-    print >>f, "participant"
-
-    for sub in sorted(subID_set):
-        print >> f, sub
-
-
-    print "Participant list required later for group analysis - %s" % file_name
-    f.close()
-
-
-    # generate the group analysis subject lists for repeated measures
-    if (len(session_set) > 1) and (len(scan_set) > 1):
-
-        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
-                'repeated_measures_mult_sessions_and_scans_%s.txt' \
-                % subject_list_name)
-
-        try:
-            f = open(file_name, 'w')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
-            raise IOError
-
-        print >> f, "participant,session,series"
-
-        for session in sorted(session_set):
-            for scan in sorted(scan_set):
-                for sub in sorted(subID_set):
-                    print >> f, sub + ',' + session + ',' + scan
-
-        f.close()
-
-
-
-    if (len(session_set) > 1):
-
-        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
-                'repeated_measures_multiple_sessions_%s.txt' \
-                % subject_list_name)
-
-        try:
-            f = open(file_name, 'w')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
-            raise IOError
-
-        print >> f, "participant,session"
-
-        for session in sorted(session_set):
-            for sub in sorted(subID_set):
-                print >> f, sub + ',' + session
-
-        f.close()
-
-
-
-    if (len(scan_set) > 1):
-
-        file_name = os.path.join(output_path, 'participant_list_group_analysis_' \
-                'repeated_measures_multiple_scans_%s.txt' \
-                % subject_list_name)
-
-        try:
-            f = open(file_name, 'w')
-        except:
-            print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
-            print file_name, '\n\n'
-            print 'Make sure you have write access? Then come back. Don\'t ' \
-                    'worry.. I\'ll wait.\n\n'
-            raise IOError
-
-        print >> f, "participant,series"
-
-        for scan in sorted(scan_set):
-            for sub in sorted(subID_set):
-                print >> f, sub + ',' + scan
-
-        f.close()
-
-
+    print "Participant list required later for group analysis - %s" \
+          % file_name
 
 
 def read_csv(csv_input):
@@ -729,6 +639,7 @@ def run(data_config):
     Run method takes data_config
     file as the input argument
     """
+    import CPAC
     root = logging.getLogger()
     if root.handlers:
         for handler in root.handlers:
@@ -744,12 +655,12 @@ def run(data_config):
     if c.scanParametersCSV is not None:
         s_param_map = read_csv(c.scanParametersCSV)
     else:
-        logging.debug("no scan parameters csv included"\
-              "make sure you turn off slice timing correction option"\
-              "in CPAC configuration")
+        logging.debug("no scan parameters csv included\n"\
+              "make sure you turn off slice timing correction option\n"\
+              "in CPAC configuration\n")
         s_param_map = None
 
-    extract_data(c, s_param_map)
+    CPAC.utils.build_sublist.build_sublist(data_config)
     generate_supplementary_files(c.outputSubjectListLocation, c.subjectListName)
 
 

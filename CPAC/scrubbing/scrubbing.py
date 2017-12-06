@@ -108,7 +108,7 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
     scrubbed_preprocessed = pe.Node(util.Function(input_names=['scrub_input'],
                                                   output_names=['scrubbed_image'],
                                                   function=scrub_image),
-                            name='scrubbed_preprocessed')
+                                    name='scrubbed_preprocessed')
 
     scrub.connect(inputNode, 'preprocessed', craft_scrub_input, 'scrub_input')
     scrub.connect(inputNode, 'frames_in_1D', craft_scrub_input, 'frames_in_1D_file')
@@ -190,18 +190,17 @@ def get_indx(scrub_input, frames_in_1D_file):
         looks something like " 4dfile.nii.gz[0,1,2,..100] "
     
     """
-    
-    f = open(frames_in_1D_file, 'r')
-    line = f.readline()
+
+    with open(frames_in_1D_file, 'r') as f:
+        line = f.readline()
+
     line = line.strip(',')
     if line:
         indx = map(int, line.split(","))
     else:
         raise Exception("No time points remaining after scrubbing.")
-    f.close()
     
-    scrub_input_string = scrub_input + str(indx).replace(" ","")
-       
+    scrub_input_string = scrub_input + str(indx).replace(" ", "")
     
     return scrub_input_string
     

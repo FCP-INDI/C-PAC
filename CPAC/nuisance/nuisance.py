@@ -6,7 +6,8 @@ import nipype.interfaces.ants as ants
 #from nipype import logging
 #logger = logging.getLogger('workflow')
 
-def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
+
+def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
     """
     Performs ideal bandpass filtering on each voxel time-series.
     
@@ -26,53 +27,43 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         Path of filtered output (nifti file).
     
     """
-    
-    import os
-    import nibabel as nb
-    import numpy as np
 
     def ideal_bandpass(data, sample_period, bandpass_freqs):
-        #Derived from YAN Chao-Gan 120504 based on REST.
-        from scipy.fftpack import fft, ifft
-        
-    #    sample_period = T
-    #    LowCutoff = 10.
-    #    HighCutoff = 15.
-    #    data = x
-        
-        def nextpow2(n):
-            x = np.log2(n)
-            return 2**np.ceil(x)
-        
-        sample_freq = 1./sample_period
+        # Derived from YAN Chao-Gan 120504 based on REST.
+        sample_freq = 1. / sample_period
         sample_length = data.shape[0]
         
         data_p = np.zeros(int(nextpow2(sample_length)))
         data_p[:sample_length] = data
-        
+
         LowCutoff, HighCutoff = bandpass_freqs
-        
-        if(LowCutoff is None): #No lower cutoff (low-pass filter)
+
+        if (LowCutoff is None):  # No lower cutoff (low-pass filter)
             low_cutoff_i = 0
-        elif(LowCutoff > sample_freq/2.): #Cutoff beyond fs/2 (all-stop filter)
-            low_cutoff_i = int(data_p.shape[0]/2)
+        elif (LowCutoff > sample_freq / 2.):
+            # Cutoff beyond fs/2 (all-stop filter)
+            low_cutoff_i = int(data_p.shape[0] / 2)
         else:
-            low_cutoff_i = np.ceil(LowCutoff*data_p.shape[0]*sample_period).astype('int')
-        
-        if(HighCutoff > sample_freq/2. or HighCutoff is None): #Cutoff beyond fs/2 or unspecified (become a highpass filter)
-            high_cutoff_i = int(data_p.shape[0]/2)
+            low_cutoff_i = np.ceil(
+                LowCutoff * data_p.shape[0] * sample_period).astype('int')
+
+        if (HighCutoff > sample_freq / 2. or HighCutoff is None):
+            # Cutoff beyond fs/2 or unspecified (become a highpass filter)
+            high_cutoff_i = int(data_p.shape[0] / 2)
         else:
-            high_cutoff_i = np.fix(HighCutoff*data_p.shape[0]*sample_period).astype('int')
-        
+            high_cutoff_i = np.fix(
+                HighCutoff * data_p.shape[0] * sample_period).astype('int')
+
         freq_mask = np.zeros_like(data_p, dtype='bool')
-        freq_mask[low_cutoff_i:high_cutoff_i+1] = True
-        freq_mask[data_p.shape[0]-high_cutoff_i:data_p.shape[0]+1-low_cutoff_i] = True
-        
-        
+        freq_mask[low_cutoff_i:high_cutoff_i + 1] = True
+        freq_mask[
+        data_p.shape[0] - high_cutoff_i:data_p.shape[
+                                            0] + 1 - low_cutoff_i] = True
+
         f_data = fft(data_p)
         f_data[freq_mask != True] = 0.
         data_bp = np.real_if_close(ifft(f_data)[:sample_length])
-        
+
         return data_bp
 
     nii = nb.load(realigned_file)
@@ -88,26 +79,29 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period = None):
         if sample_period > 20.0:
             sample_period /= 1000.0
 
-    print 'Frequency filtering using sample period: ', sample_period, 'sec'
-
     Y_bp = np.zeros_like(Y)
     for j in range(Y.shape[1]):
-        Y_bp[:,j] = ideal_bandpass(Yc[:,j], sample_period, bandpass_freqs)
+        Y_bp[:, j] = ideal_bandpass(Yc[:, j], sample_period, bandpass_freqs)
         
     data[mask] = Y_bp.T
-    img = nb.Nifti1Image(data, header=nii.get_header(), affine=nii.get_affine())
-    bandpassed_file = os.path.join(os.getcwd(), 'bandpassed_demeaned_filtered.nii.gz')
+    img = nb.Nifti1Image(data, header=nii.get_header(),
+                         affine=nii.get_affine())
+    bandpassed_file = os.path.join(os.getcwd(),
+                                   'bandpassed_demeaned_filtered.nii.gz')
     img.to_filename(bandpassed_file)
     
     return bandpassed_file
 
+
 def calc_residuals(subject,
                    selector,
+                   despiking=False,
                    wm_sig_file = None,
                    csf_sig_file = None,
                    gm_sig_file = None,
                    motion_file = None,
-                   compcor_ncomponents = 0):
+                   compcor_ncomponents = 0,
+                   frames_ex=None):
     """
     Calculates residuals of nuisance regressors for every voxel for a subject.
     
@@ -118,14 +112,17 @@ def calc_residuals(subject,
     selector : dictionary
         Dictionary of selected regressors.  Keys are  represented as a string of the regressor name and keys 
         are True/False.  See notes for an example.
-    wm_mask_file : string, optional
+    wm_sig_file : string, optional
         Path to subject's white matter mask (in the same space as the subject's functional file)
-    csf_mask_file : string, optional
+    csf_sig_file : string, optional
         Path to subject's cerebral spinal fluid mask (in the same space as the subject's functional file)
-    gm_mask_file : string, optional
+    gm_sig_file : string, optional
         Path to subject's grey matter mask (in the same space as the subject's functional file)
     compcor_ncomponents : integer, optional
         The first `n` principal of CompCor components to use as regressors.  Default is 0.
+    frames_ex : string, optional
+        Filepath to the 1D file describing the volumes to be excluded (for
+        de-spiking), selected via the threshold set for excessive motion.
         
     Returns
     -------
@@ -149,82 +146,92 @@ def calc_residuals(subject,
     >>> 'motion' : True,
     >>> 'linear' : True,
     >>> 'quadratic' : True}
-    
-    
     """
-    import numpy as np
-    import nibabel as nb
-    import os
-    import scipy
-    from CPAC.nuisance import calc_compcor_components
-    
     
     nii = nb.load(subject)
     data = nii.get_data().astype(np.float64)
     global_mask = (data != 0).sum(-1) != 0
     
-    
-    #Check and define regressors which are provided from files
+    # Check and define regressors which are provided from files
     if wm_sig_file is not None:
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
-            raise ValueError('White matter signals length %d do not match data timepoints %d' % (wm_sigs.shape[1], data.shape[3]))
+            raise ValueError('White matter signals length {0} do not match '
+                             'data timepoints {1}'.format(wm_sigs.shape[1], 
+                                                          data.shape[3]))
         if wm_sigs.size == 0:
-            raise ValueError('White matter signal file %s is empty'%(wm_sig_file))
+            raise ValueError('White matter signal file {0} is '
+                             'empty'.format(wm_sig_file))
+        
     if csf_sig_file is not None:
         csf_sigs = np.load(csf_sig_file)
         if csf_sigs.shape[1] != data.shape[3]:
-            raise ValueError('CSF signals length %d do not match data timepoints %d' % (csf_sigs.shape[1], data.shape[3]))
+            raise ValueError('CSF signals length {0} do not match data '
+                             'timepoints {1}'.format(csf_sigs.shape[1], 
+                                                     data.shape[3]))
         if csf_sigs.size == 0:
-            raise ValueError('CSF signal file %s is empty'%(csf_sig_file))
+            raise ValueError('CSF signal file {0} is '
+                             'empty'.format(csf_sig_file))
+        
     if gm_sig_file is not None:
         gm_sigs = np.load(gm_sig_file)
         if gm_sigs.shape[1] != data.shape[3]:
-            raise ValueError('Grey matter signals length %d do not match data timepoints %d' % (gm_sigs.shape[1], data.shape[3]))
+            raise ValueError('Grey matter signals length {0} do not match '
+                             'data timepoints {1}'.format(gm_sigs.shape[1], 
+                                                          data.shape[3]))
         if gm_sigs.size == 0:
-            raise ValueError('Grey matter signal file %s is empty'%(gm_sig_file))
+            raise ValueError('Grey matter signal file {0} is '
+                             'empty'.format(gm_sig_file))
+        
     if motion_file is not None:
         motion = np.genfromtxt(motion_file)
         if motion.shape[0] != data.shape[3]:
-            raise ValueError('Motion parameters %d do not match data timepoints %d' % (motion.shape[0], data.shape[3]) )
+            raise ValueError('Motion parameters {0} do not match data '
+                             'timepoints {1}'.format(motion.shape[0], 
+                                                     data.shape[3]))
         if motion.size == 0:
-            raise ValueError('Motion signal file %s is empty'%(motion_file))
+            raise ValueError('Motion signal file {0} is '
+                             'empty'.format(motion_file))
 
-    #Calculate regressors
+    # Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if(selector['compcor']):
-        print 'compcor_ncomponents ', compcor_ncomponents
-        regressor_map['compcor'] = calc_compcor_components(data, compcor_ncomponents, wm_sigs, csf_sigs)
+    if selector['compcor'] and selector['wm']:
+        regressor_map['compcor'] = \
+            calc_compcor_components(data, compcor_ncomponents, wm_sigs,
+                                    csf_sigs)
     
-    if(selector['wm']):
+    if selector['wm']:
         regressor_map['wm'] = wm_sigs.mean(0)
         
-    if(selector['csf']):
+    if selector['csf']:
         regressor_map['csf'] = csf_sigs.mean(0)
         
-    if(selector['gm']):
+    if selector['gm']:
         regressor_map['gm'] = gm_sigs.mean(0)
         
-    if(selector['global']):
+    if selector['global']:
         regressor_map['global'] = data[global_mask].mean(0)
         
-    if(selector['pc1']):
+    if selector['pc1']:
         bdata = data[global_mask].T
         bdatac = bdata - np.tile(bdata.mean(0), (bdata.shape[0], 1))
         U, S, Vh = np.linalg.svd(bdatac, full_matrices=False)
-        regressor_map['pc1'] = U[:,0]
+        regressor_map['pc1'] = U[:, 0]
         
-    if(selector['motion']):
+    if selector['motion']:
         regressor_map['motion'] = motion
         
-    if(selector['linear']):
+    if selector['linear']:
         regressor_map['linear'] = np.arange(0, data.shape[3])
     
-    if(selector['quadratic']):
+    if selector['quadratic']:
         regressor_map['quadratic'] = np.arange(0, data.shape[3])**2
-    
-    print 'Regressors include: ', regressor_map.keys()
-    
+
+    # insert the de-spiking regressor matrix here, if running de-spiking
+    if frames_ex:
+        regressor_map['despike'] = \
+            create_despike_regressor_matrix(frames_ex, nii.shape[3])
+
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
     for rname, rval in regressor_map.items():
@@ -237,29 +244,44 @@ def calc_residuals(subject,
     csv_filename = os.path.join(os.getcwd(), csv_filename)
     np.savetxt(csv_filename, X, delimiter='\t')
     
-    print 'Regressors dim: ', X.shape, ' starting regression'
-    
     if np.isnan(X).any() or np.isnan(X).any():
         raise ValueError('Regressor file contains NaN')
 
     Y = data[global_mask].T
-    B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+
+    try:
+        B = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+    except np.linalg.LinAlgError as e:
+        if "Singular matrix" in e:
+            raise Exception("Error details: {0}\n\nSingular matrix error: "
+                            "The nuisance regression configuration you "
+                            "selected may have been too stringent, and the "
+                            "regression could not be completed. Ensure your "
+                            "parameters (such as the motion threshold for "
+                            "de-spiking or scrubbing) are not too "
+                            "extreme.\n\n".format(e))
+        else:
+            raise Exception("Error details: {0}\n\nSomething went wrong with "
+                            "nuisance regression.\n\n".format(e))
+
     Y_res = Y - X.dot(B)
     
     data[global_mask] = Y_res.T
     
-    print 'Writing residual and regressors'
-    img = nb.Nifti1Image(data, header=nii.get_header(), affine=nii.get_affine())
+    img = nb.Nifti1Image(data, header=nii.get_header(),
+                         affine=nii.get_affine())
     residual_file = os.path.join(os.getcwd(), 'residual.nii.gz')
     img.to_filename(residual_file)
     
-    #Easier to read for debugging purposes
+    # Easier to read for debugging purposes
     regressors_file = os.path.join(os.getcwd(), 'nuisance_regressors.mat')
 
     if scipy.__version__ == '0.7.0':
-        scipy.io.savemat(regressors_file, regressor_map)                        ### for scipy v0.7.0
+        # for scipy v0.7.0
+        scipy.io.savemat(regressors_file, regressor_map)
     else:
-        scipy.io.savemat(regressors_file, regressor_map, oned_as='column')   ### for scipy v0.12: OK
+        # for scipy v0.12: OK
+        scipy.io.savemat(regressors_file, regressor_map, oned_as='column')
     
     return residual_file, regressors_file
 
@@ -284,18 +306,18 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % lat_ventricles_mask)
 
-
     if not safe_shape(data, lat_ventricles_mask):
-        raise ValueError('Spatial dimensions for data and the lateral ventricles mask do not match')
+        raise ValueError('Spatial dimensions for data and the lateral '
+                         'ventricles mask do not match')
 
     try:
         wm_seg = nb.load(wm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % wm_seg)
 
-
     if not safe_shape(data, wm_seg):
-        raise ValueError('Spatial dimensions for data, white matter segment do not match')
+        raise ValueError('Spatial dimensions for data, white matter segment '
+                         'do not match')
 
     wm_mask = erode_mask(wm_seg > 0)
     wm_sigs = data[wm_mask]
@@ -308,9 +330,9 @@ def extract_tissue_data(data_file,
     except:
         raise MemoryError('Unable to load %s' % csf_seg)
 
-
     if not safe_shape(data, csf_seg):
-        raise ValueError('Spatial dimensions for data, cerebral spinal fluid segment do not match')
+        raise ValueError('Spatial dimensions for data, cerebral spinal '
+                         'fluid segment do not match')
 
     # Only take the CSF at the lateral ventricles as labeled in the Harvard
     # Oxford parcellation regions 4 and 43
@@ -320,24 +342,20 @@ def extract_tissue_data(data_file,
     np.save(file_csf, csf_sigs)
     del csf_sigs
 
-
     try:
         gm_seg = nb.load(gm_seg_file).get_data().astype('float64')
     except:
         raise MemoryError('Unable to load %s' % gm_seg)
 
-
     if not safe_shape(data, gm_seg):
-        raise ValueError('Spatial dimensions for data, gray matter segment do not match')
-
+        raise ValueError('Spatial dimensions for data, gray matter '
+                         'segment do not match')
 
     gm_mask = erode_mask(gm_seg > 0)
     gm_sigs = data[gm_mask]
     file_gm = os.path.join(os.getcwd(), 'gm_signals.npy')
     np.save(file_gm, gm_sigs)
     del gm_sigs
-
-
 
     nii = nb.load(wm_seg_file)
     wm_mask_file = os.path.join(os.getcwd(), 'wm_mask.nii.gz')
@@ -348,7 +366,6 @@ def extract_tissue_data(data_file,
     nb.Nifti1Image(gm_mask, header=nii.get_header(), affine=nii.get_affine()).to_filename(gm_mask_file)
 
     return file_wm, file_csf, file_gm
-
 
 
 def create_nuisance(use_ants, name='nuisance'):
@@ -432,12 +449,12 @@ def create_nuisance(use_ants, name='nuisance'):
                                                        'motion_components',
                                                        'selector',
                                                        'compcor_ncomponents',
-                                                       'template_brain']),
+                                                       'template_brain',
+                                                       'frames_ex']),
                         name='inputspec')
     outputspec = pe.Node(util.IdentityInterface(fields=['subject',
                                                         'regressors']),
                          name='outputspec')
-
 
     # Resampling the masks from 1mm to 2mm, but remaining in subject space
     wm_anat_to_2mm = pe.Node(interface=fsl.FLIRT(), name='wm_anat_to_2mm_flirt_applyxfm')
@@ -463,7 +480,6 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'in_file')
     nuisance.connect(inputspec, 'gm_mask', gm_anat_to_2mm, 'reference')
 
-
     func_to_2mm = pe.Node(interface=fsl.FLIRT(), name='func_to_2mm_flirt_applyxfm')
     func_to_2mm.inputs.args = '-applyisoxfm 2'
     func_to_2mm.interface.estimated_memory_gb = 2.0
@@ -472,9 +488,7 @@ def create_nuisance(use_ants, name='nuisance'):
     nuisance.connect(inputspec, 'csf_mask', func_to_2mm, 'reference')
     nuisance.connect(inputspec, 'func_to_anat_linear_xfm', func_to_2mm, 'in_matrix_file')
 
-
-    if use_ants == True:
-
+    if use_ants:
         collect_linear_transforms = pe.Node(util.Merge(3), name='ho_mni_to_2mm_ants_collect_linear_transforms')
 
         ho_mni_to_2mm = pe.Node(interface=ants.ApplyTransforms(), name='ho_mni_to_2mm_ants_applyxfm')
@@ -492,12 +506,9 @@ def create_nuisance(use_ants, name='nuisance'):
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'input_image')
         nuisance.connect(csf_anat_to_2mm, 'out_file', ho_mni_to_2mm, 'reference_image')
 
-        #resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
+        # resample_to_2mm = pe.Node(interface=afni.Resample(), name='resample_to_2mm_ants_output'
         
-
-
     else:
-
         ho_mni_to_2mm = pe.Node(interface=fsl.FLIRT(), name='ho_mni_to_2mm_flirt_applyxfm')
         ho_mni_to_2mm.inputs.args = '-applyisoxfm 2'
         ho_mni_to_2mm.inputs.interp = 'nearestneighbour'
@@ -505,7 +516,6 @@ def create_nuisance(use_ants, name='nuisance'):
         nuisance.connect(inputspec, 'mni_to_anat_linear_xfm', ho_mni_to_2mm, 'in_matrix_file')
         nuisance.connect(inputspec, 'lat_ventricles_mask', ho_mni_to_2mm, 'in_file')
         nuisance.connect(inputspec, 'csf_mask', ho_mni_to_2mm, 'reference')
-
 
     tissue_masks = pe.Node(util.Function(input_names=['data_file',
                                                       'ventricles_mask_file',
@@ -515,48 +525,45 @@ def create_nuisance(use_ants, name='nuisance'):
                            name='tissue_masks')
     tissue_masks._interface.estimated_memory_gb = 3.0
 
-
     nuisance.connect(func_to_2mm, 'out_file', tissue_masks, 'data_file')
     nuisance.connect(wm_anat_to_2mm, 'out_file', tissue_masks, 'wm_seg_file')
     nuisance.connect(csf_anat_to_2mm, 'out_file', tissue_masks, 'csf_seg_file')
     nuisance.connect(gm_anat_to_2mm, 'out_file', tissue_masks, 'gm_seg_file')
 
-    if use_ants == True:
+    if use_ants:
         nuisance.connect(ho_mni_to_2mm, 'output_image', tissue_masks, 'ventricles_mask_file')
-
     else:
         nuisance.connect(ho_mni_to_2mm, 'out_file', tissue_masks, 'ventricles_mask_file')
 
-
-
+    calc_imports = ['import os', 'import scipy', 'import numpy as np',
+                    'import nibabel as nb', 
+                    'from CPAC.nuisance import calc_compcor_components',
+                    'from CPAC.nuisance.utils import create_despike_regressor_matrix']
     calc_r = pe.Node(util.Function(input_names=['subject',
                                                 'selector',
                                                 'wm_sig_file',
                                                 'csf_sig_file',
                                                 'gm_sig_file',
                                                 'motion_file',
-                                                'compcor_ncomponents'],
+                                                'compcor_ncomponents',
+                                                'frames_ex'],
                                    output_names=['residual_file',
                                                 'regressors_file'],
-                                   function=calc_residuals),
+                                   function=calc_residuals,
+                                   imports=calc_imports),
                      name='residuals')
-    nuisance.connect(inputspec, 'subject',
-                     calc_r, 'subject')
-    nuisance.connect(tissue_masks, 'file_wm',
-                     calc_r, 'wm_sig_file')
-    nuisance.connect(tissue_masks, 'file_csf',
-                     calc_r, 'csf_sig_file')
-    nuisance.connect(tissue_masks, 'file_gm',
-                     calc_r, 'gm_sig_file')
-    nuisance.connect(inputspec, 'motion_components',
-                     calc_r, 'motion_file')
-    nuisance.connect(inputspec, 'selector',
-                     calc_r, 'selector')
-    nuisance.connect(inputspec, 'compcor_ncomponents',
+    
+    nuisance.connect(inputspec, 'subject', calc_r, 'subject')
+    nuisance.connect(tissue_masks, 'file_wm', calc_r, 'wm_sig_file')
+    nuisance.connect(tissue_masks, 'file_csf', calc_r, 'csf_sig_file')
+    nuisance.connect(tissue_masks, 'file_gm', calc_r, 'gm_sig_file')
+    nuisance.connect(inputspec, 'motion_components', calc_r, 'motion_file')
+    nuisance.connect(inputspec, 'selector', calc_r, 'selector')
+    nuisance.connect(inputspec, 'compcor_ncomponents', 
                      calc_r, 'compcor_ncomponents')
-    nuisance.connect(calc_r, 'residual_file',
-                     outputspec, 'subject')
-    nuisance.connect(calc_r, 'regressors_file',
-                     outputspec, 'regressors')
+    nuisance.connect(inputspec, 'frames_ex', calc_r, 'frames_ex')
+
+    nuisance.connect(calc_r, 'residual_file', outputspec, 'subject')
+    nuisance.connect(calc_r, 'regressors_file', outputspec, 'regressors')
     
     return nuisance

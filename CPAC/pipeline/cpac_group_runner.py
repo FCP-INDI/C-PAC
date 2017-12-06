@@ -2,7 +2,7 @@
 
 def load_config_yml(config_file):
 
-	# loads a configuration YAML file
+    # loads a configuration YAML file
     #
     # input
     #   config_file: full filepath to YAML (.yml) file
@@ -31,7 +31,6 @@ def load_config_yml(config_file):
     return config
 
 
-
 def load_text_file(filepath, label="file"):
 
     # loads a text file and returns the lines in a list
@@ -51,15 +50,14 @@ def load_text_file(filepath, label="file"):
         with open(filepath,"r") as f:
             lines_list = f.readlines()
     except Exception as e:
-    	err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
+        err = "\n\n[!] CPAC says: Could not load or read the %s:\n%s\n" \
               "Details: %s\n\n" % (label, filepath, e)
-    	raise Exception(err)
+        raise Exception(err)
 
     # get rid of those \n's that love to show up everywhere
     lines_list = [i.rstrip("\n") for i in lines_list]
 
     return lines_list
-
 
 
 def load_pheno_csv_into_df(pheno_file):
@@ -82,9 +80,7 @@ def load_pheno_csv_into_df(pheno_file):
     with open(os.path.abspath(pheno_file),"r") as f:
         pheno_dataframe = pd.read_csv(f)
 
-
     return pheno_dataframe
-
 
 
 def gather_nifti_globs(pipeline_output_folder, resource_list):
@@ -138,12 +134,11 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
     if len(nifti_globs) == 0:
         err = "\n\n[!] No output filepaths found in the pipeline output " \
               "directory provided for the derivatives selected!\n\nPipeline "\
-              "output directory provided: %s\nDerivatives selected:\s\n\n" \
+              "output directory provided: %s\nDerivatives selected:%s\n\n" \
               % (pipeline_output_folder, resource_list)
         raise Exception(err)
 
     return nifti_globs
-
 
 
 def grab_raw_score_filepath(filepath, resource_id):
@@ -194,7 +189,6 @@ def grab_raw_score_filepath(filepath, resource_id):
     return raw_score_path
 
 
-
 def find_power_params_file(filepath, resource_id, series_id):
 
     import os
@@ -226,7 +220,6 @@ def find_power_params_file(filepath, resource_id, series_id):
         raise Exception(err)
 
     return power_params_file
-
 
 
 def extract_power_params(power_params_lines, power_params_filepath):
@@ -264,9 +257,8 @@ def extract_power_params(power_params_lines, power_params_filepath):
     return meanfd_power, meanfd_jenk, meandvars
  
 
-
-def create_output_dict_list(nifti_globs, pipeline_output_folder, \
-                                get_motion=False, get_raw_score=False):
+def create_output_dict_list(nifti_globs, pipeline_output_folder,
+                            get_motion=False, get_raw_score=False):
 
     import os
     import glob
@@ -332,7 +324,6 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder, \
     return output_dict_list
 
 
-
 def create_output_df_dict(output_dict_list, inclusion_list=None):
 
     import pandas as pd
@@ -355,7 +346,6 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     return output_df_dict
 
 
-
 def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
                        get_motion, get_raw_score):
 
@@ -367,7 +357,6 @@ def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
     return output_df_dict
-
 
 
 def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
@@ -414,7 +403,6 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     return pheno_df
 
 
-
 def pheno_series_to_repeated_measures(pheno_df, series_list, \
     repeated_sessions=False):
 
@@ -459,7 +447,6 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
     return pheno_df
 
 
-
 def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     # this is for repeated measures only.
@@ -490,7 +477,6 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
             dropped_parts.append(part_ID)
 
     return pheno_df, dropped_parts
-
 
 
 def prep_analysis_df_dict(config_file, pipeline_output_folder):
@@ -578,7 +564,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                                         full_inclusion_list, \
                                         get_motion, \
                                         get_raw_score)
-
 
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
@@ -760,7 +745,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
 
     return analysis_dict
-
 
 
 def run(config_file, pipeline_output_folder):

@@ -266,7 +266,6 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     return register_func_to_mni
 
 
-
 def create_register_func_to_anat(name='register_func_to_anat'):
     
     """
@@ -323,8 +322,6 @@ def create_register_func_to_anat(name='register_func_to_anat'):
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
 
-  
-
     register_func_to_anat.connect(inputspec, 'func',
                                  linear_reg, 'in_file')
     
@@ -340,9 +337,7 @@ def create_register_func_to_anat(name='register_func_to_anat'):
     register_func_to_anat.connect(linear_reg, 'out_file',
                                  outputspec, 'anat_func_nobbreg')
 
-    
     return register_func_to_anat
-
 
 
 def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
@@ -584,9 +579,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
                                         combine_inputs_into_list, \
                                         hardcoded_reg
 
-
     calc_ants_warp_wf = pe.Workflow(name=name)
-
 
     inputspec = pe.Node(util.IdentityInterface(fields=['anatomical_brain',
             'reference_brain', 'dimension', 'use_histogram_matching',
@@ -596,8 +589,7 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
             'convergence_threshold', 'convergence_window_size', 'transforms',
             'transform_parameters', 'shrink_factors', 'smoothing_sigmas',
             'write_composite_transform', 'anatomical_skull',
-            'reference_skull']), name='inputspec')#,'wait']),name='inputspec')
-
+            'reference_skull']), name='inputspec')
 
     # use ANTS to warp the masked anatomical image to a template image
     '''
@@ -607,7 +599,17 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calculate_ants_warp.inputs.output_warped_image = True
     calculate_ants_warp.inputs.initial_moving_transform_com = 0
     '''
-    calculate_ants_warp = pe.Node(interface=util.Function(input_names=['anatomical_brain', 'reference_brain', 'anatomical_skull', 'reference_skull', 'wait'], output_names=['warp_list', 'warped_image'], function=hardcoded_reg), name='calc_ants_warp')
+    reg_imports = ['import os', 'import subprocess']
+    calculate_ants_warp = \
+        pe.Node(interface=util.Function(input_names=['anatomical_brain',
+                                                     'reference_brain',
+                                                     'anatomical_skull',
+                                                     'reference_skull'],
+                                        output_names=['warp_list',
+                                                      'warped_image'],
+                                        function=hardcoded_reg,
+                                        imports=reg_imports),
+                name='calc_ants_warp')
     calculate_ants_warp.interface.num_threads = num_threads
 
     select_forward_initial = pe.Node(util.Function(input_names=['warp_list',
@@ -616,13 +618,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     select_forward_initial.inputs.selection = "Initial"
 
-
     select_forward_rigid = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_rigid')
 
     select_forward_rigid.inputs.selection = "Rigid"
-
 
     select_forward_affine = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
@@ -630,13 +630,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     select_forward_affine.inputs.selection = "Affine"
 
-
     select_forward_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
             function=seperate_warps_list), name='select_forward_warp')
 
     select_forward_warp.inputs.selection = "3Warp"
-
 
     select_inverse_warp = pe.Node(util.Function(input_names=['warp_list',
             'selection'], output_names=['selected_warp'],
@@ -644,17 +642,13 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
     select_inverse_warp.inputs.selection = "Inverse"
 
-
     outputspec = pe.Node(util.IdentityInterface(fields=['ants_initial_xfm',
             'ants_rigid_xfm', 'ants_affine_xfm', 'warp_field',
             'inverse_warp_field', 'composite_transform', 'wait',
             'normalized_output_brain']), name='outputspec')
 
-
     # connections from inputspec
-
     if mult_input == 1:
-
         '''
         combine_inputs = pe.Node(util.Function(input_names=['input1', 'input2', 'input3'],
                 output_names=['inputs_list'], function=combine_inputs_into_list),
@@ -676,9 +670,6 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
         calc_ants_warp_wf.connect(inputspec, 'reference_skull',
                 calculate_ants_warp, 'reference_skull')
-
-        #calc_ants_warp_wf.connect(inputspec, 'wait',
-        #        calculate_ants_warp, 'wait')
 
         '''
         calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
@@ -707,7 +698,6 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
         '''
 
     else:
-
         '''
         calc_ants_warp_wf.connect(inputspec, 'anatomical_brain',
                 calculate_ants_warp, 'moving_image')
@@ -727,10 +717,6 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
 
         calc_ants_warp_wf.connect(inputspec, 'reference_brain',
                 calculate_ants_warp, 'reference_skull')
-
-        #calc_ants_warp_wf.connect(inputspec, 'wait',
-        #        calculate_ants_warp, 'wait')
-
 
     calc_ants_warp_wf.connect(inputspec, 'dimension', calculate_ants_warp,
             'dimension')
@@ -820,15 +806,11 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     calc_ants_warp_wf.connect(calculate_ants_warp, 'warped_image',
             outputspec, 'normalized_output_brain')
 
-#    calc_ants_warp_wf.connect(inputspec, 'wait',
-#            outputspec, 'wait')
-
-
     return calc_ants_warp_wf
 
 
-
-def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_threads=1):
+def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp',
+                              ants_threads=1):
 
     """
     Applies previously calculated ANTS registration transforms to input
@@ -931,11 +913,11 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp', ants_t
     apply_ants_warp_wf.connect(apply_ants_warp, 'output_image',
             outputspec, 'output_image')
 
-
     return apply_ants_warp_wf
 
 
-def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_fsl_to_itk'):
+def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0,
+                             name='create_wf_c3d_fsl_to_itk'):
 
     """
     Converts an FSL-format output matrix to an ITK-format (ANTS) matrix
@@ -979,10 +961,8 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
 
     fsl_to_itk_conversion = pe.Workflow(name=name)
 
-
     inputspec = pe.Node(util.IdentityInterface(fields=['affine_file',
             'reference_file', 'source_file']), name='inputspec')
-
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
@@ -997,24 +977,26 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
     fsl_reg_2_itk.inputs.itk_transform = True
     fsl_reg_2_itk.inputs.fsl2ras = True
 
+    itk_imports = ['import os']
+
     if map_node == 0:
-        change_transform = pe.Node(util.Function(\
+        change_transform = pe.Node(util.Function(
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
-                function=change_itk_transform_type),
+                function=change_itk_transform_type,
+                imports=itk_imports),
                 name='change_transform_type')
 
     elif map_node == 1:
-        change_transform = pe.MapNode(util.Function(\
+        change_transform = pe.MapNode(util.Function(
                 input_names=['input_affine_file'],
                 output_names=['updated_affine_file'], 
-                function=change_itk_transform_type),
+                function=change_itk_transform_type,
+                imports=itk_imports),
                 name='change_transform_type', iterfield=['input_affine_file'])
-
 
     outputspec = pe.Node(util.IdentityInterface(fields=['itk_transform']),
             name='outputspec')
-
 
     fsl_to_itk_conversion.connect(inputspec, 'affine_file', fsl_reg_2_itk,
             'transform_file')
@@ -1031,8 +1013,14 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
 
     elif input_image_type == 3:
 
-        tstat_source = pe.Node(interface=preprocess.TStat(),
-                name='fsl_to_itk_tcat_source')
+        try:
+            tstat_source = pe.Node(interface=preprocess.TStat(),
+                                   name='fsl_to_itk_tcat_source')
+        except AttributeError:
+            from nipype.interfaces.afni import utils as afni_utils
+            tstat_source = pe.Node(interface=afni_utils.TStat(),
+                                   name='fsl_to_itk_tcat_source')
+
         tstat_source.inputs.outputtype = 'NIFTI_GZ'
         tstat_source.inputs.options = '-mean'
 
@@ -1042,16 +1030,13 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0, name='create_wf_c3d_f
         fsl_to_itk_conversion.connect(tstat_source, 'out_file', fsl_reg_2_itk,
                 'source_file')
 
-
     fsl_to_itk_conversion.connect(fsl_reg_2_itk, 'itk_transform',
             change_transform, 'input_affine_file')
 
     fsl_to_itk_conversion.connect(change_transform, 'updated_affine_file', 
             outputspec, 'itk_transform')
 
-
     return fsl_to_itk_conversion
-
 
 
 def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
@@ -1063,11 +1048,9 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     collect_transforms_wf = pe.Workflow(name=name)
 
-
     inputspec = pe.Node(util.IdentityInterface(fields=['warp_file',
             'linear_initial', 'linear_affine', 'linear_rigid', \
             'fsl_to_itk_affine']), name='inputspec')
-
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
@@ -1081,7 +1064,6 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')
-
 
     # Field file from anatomical nonlinear registration
     collect_transforms_wf.connect(inputspec, 'warp_file', collect_transforms,
@@ -1105,7 +1087,6 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
 
     collect_transforms_wf.connect(collect_transforms, 'out', outputspec,
             'transformation_series')
-
 
     return collect_transforms_wf
 

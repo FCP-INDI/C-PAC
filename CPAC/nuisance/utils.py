@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     import scipy.signal as signal
     
@@ -22,6 +23,7 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     U, S, Vh = np.linalg.svd(Yc)
     
     return U[:,:nComponents]
+
 
 def erode_mask(data):
     mask = data != 0
@@ -49,3 +51,29 @@ def erode_mask(data):
     eroded_data[eroded_mask] = data[eroded_mask]
     
     return eroded_data
+
+
+def create_despike_regressor_matrix(frames_excluded, total_vols):
+    """Create a Numpy array describing which volumes are to be regressed out
+    during nuisance regression, for de-spiking.
+
+    :param frames_excluded: 1D file of the volume indices to be excluded. This
+    is a 1D text file of integers separated by commas.
+    :param total_vols: integer value of the length of the time series (number
+    of volumes).
+    :return: Numpy array consisting of a row for every volume, and a column
+    for every volume being regressed out, with a 1 where they match.
+    """
+
+    with open(frames_excluded, 'r') as f:
+        excl_vols = f.readlines()
+    excl_vols = sorted([int(x) for x in excl_vols[0].split(',') if x != ''])
+
+    reg_matrix = np.zeros((total_vols, len(excl_vols)), dtype=int)
+
+    i = 0
+    for vol in excl_vols:
+        reg_matrix[vol][i] = 1
+        i += 1
+
+    return reg_matrix

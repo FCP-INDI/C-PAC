@@ -29,7 +29,6 @@ def write_new_sub_file(current_mod_path, subject_list, new_participant_list):
     return new_sub_file
 
 
-
 def create_dir(dir_path, description):
 
     if not os.path.isdir(dir_path):
@@ -40,7 +39,6 @@ def create_dir(dir_path, description):
                   "Attempted directory creation: %s\n\n" \
                   "Error details: %s\n\n" % (description, dir_path, e)
             raise Exception(err)
-
 
 
 def create_merged_copefile(list_of_output_files, merged_outfile):
@@ -64,7 +62,6 @@ def create_merged_copefile(list_of_output_files, merged_outfile):
     return merged_outfile
 
 
-
 def create_merge_mask(merged_file, mask_outfile):
 
     import subprocess
@@ -84,7 +81,6 @@ def create_merge_mask(merged_file, mask_outfile):
     return mask_outfile
 
 
-
 def check_merged_file(list_of_output_files, merged_outfile):
 
     import subprocess
@@ -94,8 +90,8 @@ def check_merged_file(list_of_output_files, merged_outfile):
     #   with the output file it should correspond to
     i = 0
     for output_file in list_of_output_files:
-        test_string = ["3ddot", "-demean", output_file, \
-            merged_outfile + "[" + str(i) + "]"]
+        test_string = ["3ddot", "-demean",
+                       "{0}[{1}]".format(merged_outfile, str(i)), output_file]
 
         try:
             retcode = subprocess.check_output(test_string)
@@ -120,7 +116,6 @@ def check_merged_file(list_of_output_files, merged_outfile):
             raise Exception(err)
 
         i += 1
-
 
 
 def calculate_measure_mean_in_df(model_df, merge_mask):
@@ -169,7 +164,6 @@ def calculate_measure_mean_in_df(model_df, merge_mask):
     return model_df
 
 
-
 def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
     output_id=None):
 
@@ -214,7 +208,6 @@ def check_mask_file_resolution(data_file, roi_mask, group_mask, out_dir, \
     return roi_mask
 
 
-
 def trim_mask(input_mask, ref_mask, output_mask_path):
 
     import os
@@ -234,7 +227,6 @@ def trim_mask(input_mask, ref_mask, output_mask_path):
         raise Exception(err)
 
     return output_mask_path
-
 
 
 def calculate_custom_roi_mean_in_df(model_df, roi_mask):   
@@ -310,7 +302,6 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
     return model_df
 
 
-
 def parse_out_covariates(design_formula):
 
     patsy_ops = ["~","+","-","*","/",":","**",")","("]
@@ -324,7 +315,6 @@ def parse_out_covariates(design_formula):
     covariates = [x for x in words if x != ""]
 
     return covariates
-
 
 
 def split_groups(pheno_df, group_ev, ev_list, cat_list):   
@@ -401,7 +391,6 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
     return pheno_df, grp_vector, new_ev_list, new_cat_list
 
 
-
 def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
 
     closer = ")"
@@ -429,7 +418,6 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
         formula = formula.replace("+intercept", "")
 
     return formula
-
 
 
 def check_multicollinearity(matrix):
@@ -464,7 +452,6 @@ def check_multicollinearity(matrix):
                       'check your model design.\n\n'
 
 
-
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
     contrasts_dict = {}
@@ -488,7 +475,6 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
         contrasts_dict[con_equation] = con_vec
 
     return contrasts_dict
-
 
 
 def prep_group_analysis_workflow(model_df, pipeline_config_path, \
@@ -571,29 +557,28 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         if count_ftests > 0:
             fTest = True
 
-
     # create path for output directory
-    out_dir = os.path.join(group_config_obj.output_dir, \
-        "group_analysis_results_%s" % pipeline_ID, \
-        "group_model_%s" % model_name, resource_id, \
+    out_dir = os.path.join(group_config_obj.output_dir,
+        "group_analysis_results_%s" % pipeline_ID,
+        "group_model_%s" % model_name, resource_id,
         series_or_repeated_label, preproc_strat)
 
     if 'sca_roi' in resource_id:
-        out_dir = os.path.join(out_dir, \
-            re.search('sca_roi_(\d)+',os.path.splitext(\
+        out_dir = os.path.join(out_dir,
+            re.search('sca_ROI_(\d)+',os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
             
     if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource_id:
-        out_dir = os.path.join(out_dir, \
+        out_dir = os.path.join(out_dir,
             re.search('temp_reg_map_z_(\d)+',os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
             
     if 'centrality' in resource_id:
         names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
-                 'eigenvector_centrality_binarize', \
-                 'eigenvector_centrality_weighted', \
+                 'eigenvector_centrality_binarize',
+                 'eigenvector_centrality_weighted',
                  'lfcd_binarize', 'lfcd_weighted']
 
         for name in names:
@@ -623,7 +608,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     create_dir(work_dir, "group analysis working")
     create_dir(log_dir, "group analysis logfile")
 
-
     # create new subject list based on which subjects are left after checking
     # for missing outputs
     new_participant_list = []
@@ -642,12 +626,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     num_subjects = len(list(model_df["Participant"]))
 
-
     # start processing the dataframe further
     design_formula = group_config_obj.design_formula
 
     # demean EVs set for demeaning
-    for demean_EV in group_config_obj.ev_selections["demean"]:
+    for demean_EV in group_config_obj.ev_selections.get("demean",[]):
         model_df[demean_EV] = model_df[demean_EV].astype(float)
         model_df[demean_EV] = model_df[demean_EV].sub(model_df[demean_EV].mean())
 
@@ -657,7 +640,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         for param in params:
             model_df[param] = model_df[param].astype(float)
             model_df[param] = model_df[param].sub(model_df[param].mean())
-
 
     # create 4D merged copefile, in the correct order, identical to design
     # matrix
@@ -669,7 +651,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     # create merged group mask
     merge_mask_outfile = model_name + "_" + resource_id + \
-                             "_merged_mask.nii.gz"
+                         "_merged_mask.nii.gz"
     merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
     merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
@@ -726,14 +708,12 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
                     new_design_substring = new_design_substring + " %s" % col
                 else:
                     new_design_substring = new_design_substring +" + %s" % col
-        design_formula = design_formula.replace("Custom_ROI_Mean", \
+        design_formula = design_formula.replace("Custom_ROI_Mean",
                                                 new_design_substring)
-
 
     cat_list = []
     if "categorical" in group_config_obj.ev_selections.keys():
         cat_list = group_config_obj.ev_selections["categorical"]
-
 
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
@@ -749,11 +729,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
             design_formula = design_formula + " + %s" % col
             cat_list.append(col)
 
-
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included
     ev_list = parse_out_covariates(design_formula)
-
 
     # SPLIT GROUPS here.
     #   CURRENT PROBLEMS: was creating a few doubled-up new columns

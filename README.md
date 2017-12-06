@@ -1,7 +1,8 @@
 
 C-PAC: Configurable Pipeline for the Analysis of Connectomes
 ============================================================
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
+[![DOI](http://bids.neuroimaging.io/openneuro_badge.svg)](https://openneuro.org) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.164638.svg)](https://doi.org/10.5281/zenodo.164638)
+
 
 A configurable, open-source, Nipype-based, automated processing pipeline for resting state fMRI data. 
 Designed for use by both novice users and experts, C-PAC brings the power, flexibility and elegance 
@@ -24,7 +25,7 @@ User documentation can be found here: http://fcp-indi.github.com/docs/user/index
 
 Developer documentation can be found here: http://fcp-indi.github.com/docs/developer/index.html
 
-Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.0
+Documentation pertaining to this latest release can be found here: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.0.2
 
 
 Discussion Forum

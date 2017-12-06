@@ -112,6 +112,7 @@ def main(**extra_args):
                 'cpac_extract_parameters=CPAC.utils.extract_parameters:main'
                 ]
             },
+          package_data = {'CPAC': ['test_data/*']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
