@@ -1267,7 +1267,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat = tmp
                     new_strat_list.append(strat)
         strat.append_name(epi_distcorr.name)
-        strat.set_leaf_properties(epi_distcorr,'outputspec.preprocessed')
+        strat.set_leaf_properties(epi_distcorr,'outputspec.fmap_despiked')
 
         strat.update_resource_pool({'despiked fieldmap': (epi_distcorr, 'outputspec.fmap_despike'),
                                         'registered_epi': (epi_distcorr, 'outputspec.epireg'),
