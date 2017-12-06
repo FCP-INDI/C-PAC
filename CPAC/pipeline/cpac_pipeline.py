@@ -1048,53 +1048,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-    new_strat_list = []
-    num_strat = 0
+    
 
-    workflow_counter += 1
+ 
 
-    if 1 in c.runEPI_DistCorr:
-
-        workflow_bit_id['preprocflow'] = workflow_counter
-
-        for strat in strat_list:
-            nodes = getNodeList(strat)
-            try:
-                    node, out_file = strat.get_leaf_properties()
-                    
-                    workflow.connect(node, out_file,
-                                     preprocflow, 'inputspec.func_file')
-            except:
-                    logConnectionError('EPI_DistCorr Workflow', num_strat,
-                                       strat.get_resource_pool(), '0004')
-                    raise
-
-            if 0 in c.EPI_DistCorr:
-                    tmp = strategy()
-                    tmp.resource_pool = dict(strat.resource_pool)
-                    tmp.leaf_node = (strat.leaf_node)
-                    tmp.leaf_out_file = str(strat.leaf_out_file)
-                    tmp.name = list(strat.name)
-                    strat = tmp
-                    new_strat_list.append(strat)
-
-            strat.append_name(epi_distcorr.name)
-
-            strat.set_leaf_properties(epi_distcorr,
-                                          'outputspec.preprocessed')
-
-            strat.update_resource_pool({'despiked fieldmap': (
-                                                epi_distcorr, 'outputspec.fmap_despike'),
-                                            'registered_epi': (
-                                                epi_distcorr, 'outputspec.epireg'),
-                                            'unwarped_functional_map':(epi_distcorr, 'outputspec.func_file')})
-
-            create_log_node(epi_distcorr, 'outputspec.func_file',
-                                num_strat)
-
-            num_strat += 1
-
-    strat_list += new_strat_list
     '''
     Inserting Functional Data workflow
     '''
@@ -1280,6 +1237,51 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # replace the leaf node with the output from the recently added workflow
         strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
         num_strat = num_strat + 1
+
+    #Inserting EPI_DistCorr workflow here
+ 
+    new_strat_list = []
+    num_strat = 0
+    workflow_counter += 1
+    
+    if 1 in c.runEPI_DistCorr:
+
+        workflow_bit_id['epi_distcorr'] = workflow_counter
+
+        for strat in strat_list:
+            nodes = getNodeList(strat)
+            if 'EPI_DistCorr' in nodes:
+                
+                epi_distcorr = create_EPI_DistCorr('epi_distcorr_%d' % num_strat)
+                
+                try:
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file,epi_distcorr, 'inputspec.func_file')
+                except:
+                    logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+                    raise
+            if 0 in c.runEPI_DistCorr:
+                    tmp = strategy()
+                    tmp.resource_pool = dict(strat.resource_pool)
+                    tmp.leaf_node = (strat.leaf_node)
+                    tmp.leaf_out_file = str(strat.leaf_out_file)
+                    tmp.name = list(strat.name)
+                    strat = tmp
+                    new_strat_list.append(strat)
+            strat.append_name(epi_distcorr.name)
+            strat.set_leaf_properties(epi_distcorr,'outputspec.preprocessed')
+
+            strat.update_resource_pool({'despiked fieldmap': (epi_distcorr, 'outputspec.fmap_despike'),
+                                        'registered_epi': (epi_distcorr, 'outputspec.epireg'),
+                                        'unwarped_functional_map':(epi_distcorr, 'outputspec.func_file')})
+            create_log_node(epi_distcorr, 'outputspec.func_file',num_strat)
+
+            num_strat += 1
+
+    strat_list += new_strat_list
+
+
+
 
     """
     Inserting slice timing correction
@@ -5371,7 +5373,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
-
                 if forklabel not in forkName:
                     forkName = forkName + '__' + forklabel
 
