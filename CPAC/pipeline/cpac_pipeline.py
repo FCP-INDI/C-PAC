@@ -1242,41 +1242,36 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
  
     new_strat_list = []
     num_strat = 0
+   
     workflow_counter += 1
-    
+   
     if 1 in c.runEPI_DistCorr:
-
-        workflow_bit_id['epi_distcorr_reg'] = workflow_counter
-
-        for strat in strat_list:
-            #nodes = getNodeList(strat)
-           # if 'EPI_DistCorr' in nodes:
-                epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_reg_%d' % num_strat) 
-                try:
-                    node, out_file = strat.get_leaf_properties()
-                    workflow.connect(node, out_file,epi_distcorr, 'inputspec.func_file')
-                except:
-                    logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
-                    raise
-                if 0 in c.runEPI_DistCorr:
-                    tmp = strategy()
-                    tmp.resource_pool = dict(strat.resource_pool)
-                    tmp.leaf_node = (strat.leaf_node)
-                    tmp.leaf_out_file = str(strat.leaf_out_file)
-                    tmp.name = list(strat.name)
-                    strat = tmp
-                    new_strat_list.append(strat)
-                strat.append_name(epi_distcorr.name)
-
-                strat.update_resource_pool({'despiked fieldmap': (epi_distcorr, 'outputspec.fmap_despike'),
-                                        'registered_epi': (epi_distcorr, 'outputspec.epireg'),
-                                        'unwarped_functional_map':(epi_distcorr, 'outputspec.func_file')})
-                create_log_node(epi_distcorr,'outputspec.func_file', num_strat)
-
-                num_strat += 1
-
+       workflow_bit_id['epi_distcorr'] = workflow_counter
+       
+       for strat in strat_list:
+           epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % num_strat)
+           try:
+               node,out_file = strat.get_leaf_properties()
+               workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
+           except:
+               logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+               raise
+           if 0 in c.runEPI_DistCorr:
+               tmp = strategy()
+               tmp.resource_pool = dict(strat.resource_pool)
+               tmp.leaf_node = (strat.leaf_node)
+               tmp.leaf_out_file=str(strat.leaf_out_file)
+               tmp.name = list(strat.name)
+               strat = tmp
+               new_strat_list.append(strat)
+           strat.append_name(epi_distcorr.name)
+           strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
+           strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
+           strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
+           
+           num_strat += 1
     strat_list += new_strat_list
-
+           
 
 
 
@@ -5438,7 +5433,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for name in strat.get_name():
                 import re
-                extra_string = re.search('_\d+', name).group(0)
+                print (name)
+                extra_string = re.search('_%d+', name).group(0)
 
                 if extra_string:
                     name = name.split(extra_string)[0]
