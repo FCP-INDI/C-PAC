@@ -1246,10 +1246,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter += 1
    
     if 1 in c.runEPI_DistCorr:
-       workflow_bit_id['epi_distcorr'] = workflow_counter
+       workflow_bit_id['epi_distcorr1'] = workflow_counter
        
        for strat in strat_list:
-           epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % num_strat)
+           epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_1%d' % num_strat)
            try:
                node,out_file = strat.get_leaf_properties()
                workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
@@ -5434,7 +5434,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             for name in strat.get_name():
                 import re
                 print (name)
-                extra_string = re.search('_%d+', name).group(0)
+                extra_string = re.search('_\d+', name).group(0)
 
                 if extra_string:
                     name = name.split(extra_string)[0]
