@@ -67,7 +67,11 @@ def create_despike_regressor_matrix(frames_excluded, total_vols):
 
     with open(frames_excluded, 'r') as f:
         excl_vols = f.readlines()
-    excl_vols = sorted([int(x) for x in excl_vols[0].split(',') if x != ''])
+
+    if len(excl_vols) > 0:
+        excl_vols = sorted([int(x) for x in excl_vols[0].split(',') if x != ''])
+    else:
+        return None
 
     reg_matrix = np.zeros((total_vols, len(excl_vols)), dtype=int)
 

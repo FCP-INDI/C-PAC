@@ -229,8 +229,9 @@ def calc_residuals(subject,
 
     # insert the de-spiking regressor matrix here, if running de-spiking
     if frames_ex:
-        regressor_map['despike'] = \
-            create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        despike_mat = create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        if despike_mat:
+            regressor_map['despike'] = despike_mat
 
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
