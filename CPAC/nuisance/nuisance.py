@@ -230,7 +230,9 @@ def calc_residuals(subject,
     # insert the de-spiking regressor matrix here, if running de-spiking
     if frames_ex:
         despike_mat = create_despike_regressor_matrix(frames_ex, nii.shape[3])
-        if despike_mat:
+        # this needs to be "is not None" instead of "if despike_mat:" because
+        # despike_mat could be either a Numpy array or None
+        if despike_mat is not None:
             regressor_map['despike'] = despike_mat
 
     X = np.zeros((data.shape[3], 1))
