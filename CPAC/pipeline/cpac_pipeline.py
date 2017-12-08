@@ -1250,6 +1250,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
        
        for strat in strat_list:
             epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
+            epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
+            epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
+            epi_distcorr.inputs_asymR.asymR = c.AssymetricRatio_EPI_DistCorr
+            epi_distcorr.get_node('input_delTE').iterables = ('delTE',
+                                                   c.deltTE_EPI_DistCorr)
+            epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
+                                                   c.DwellTime_EPI_DistCorr)
+            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.AssymtericRatio_EPI_DistCorr)
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
