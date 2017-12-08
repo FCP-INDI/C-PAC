@@ -101,6 +101,33 @@ class EPI_DistCorr(wx.ScrolledWindow):
                  type=dtype.LSTR, 
                  comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
                  values=["On","Off"],wkf_switch = True)
+        
+        
+        self.page.add(label= "DeltaTE, in ms",
+                      control = control.TEXT_BOX,
+                      name='deltaTE_EPI_DIstCorr',
+                      type = dtype.LNUM,
+                      comment="Set the Delta-TE value, used for preparing fieldmap,time delay between the first and second echo images.Default value is 2.46 ms",
+                      validator = CharValidator("no-alpha"),
+                      values="2.46")
+        
+        self.page.add(label = "Dwell Time, in s",
+                      control = control.TEXT_BOX,
+                      name='DwellTime_EPI_DistCorr',
+                      type = dtype.LNUM,
+                      comment = "Set the Dwell time for the fugue input.This is the time between scans, default value is 0.00231 s",
+                      validator = CharValidator("no-alpha"),
+                      values = "0.00231")
+        
+        
+        self.page.add(label = "Asymmetric ratio",
+                      control = control.TEXT_BOX,
+                      name='AssymetricRatio_EPI_DIstCorr',
+                      type = dtype.LNUM,
+                      comment = "Set the asymmetric ratio value for the fugue input",
+                      validator = CharValidator("no-alpha"),
+                      values = "0.93902439")
+        
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
