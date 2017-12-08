@@ -1246,30 +1246,31 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_counter += 1
    
     if 1 in c.runEPI_DistCorr:
-       workflow_bit_id['epi_distcorr1'] = workflow_counter
+       workflow_bit_id['epi_distcorr'] = workflow_counter
        
        for strat in strat_list:
-           epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_1%d' % num_strat)
-           try:
-               node,out_file = strat.get_leaf_properties()
-               workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-           except:
-               logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
-               raise
-           if 0 in c.runEPI_DistCorr:
-               tmp = strategy()
-               tmp.resource_pool = dict(strat.resource_pool)
-               tmp.leaf_node = (strat.leaf_node)
-               tmp.leaf_out_file=str(strat.leaf_out_file)
-               tmp.name = list(strat.name)
-               strat = tmp
-               new_strat_list.append(strat)
-           strat.append_name(epi_distcorr.name)
-           strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-           strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
-           strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
+            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
+            try:
+                node,out_file = strat.get_leaf_properties()
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
+                node,out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
+            except:
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
+            if 0 in c.runEPI_DistCorr:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file=str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+            strat.append_name(epi_distcorr.name)
+            strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
+            strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
+            strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
-           num_strat += 1
+            num_strat += 1
     strat_list += new_strat_list
            
 
@@ -1284,7 +1285,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     if 1 in c.slice_timing_correction:
 
-        for strat in strat_list:
+       for strat in strat_list:
 
             # create TShift AFNI node
             try:
@@ -1372,9 +1373,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
         # add new strats (if forked)
-        strat_list += new_strat_list
+    strat_list += new_strat_list
 
-        logger.info(" finished connecting slice timing pattern")
+    logger.info(" finished connecting slice timing pattern")
 
     """
     Inserting Functional Image Preprocessing
@@ -5365,6 +5366,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
+                if 'epi_distcorr' in fork:
+                    forklabel = 'epi_distcorr'
                 if forklabel not in forkName:
                     forkName = forkName + '__' + forklabel
 
