@@ -313,33 +313,52 @@ def extract_scan_params(scan_params_csv):
     # Init csv dictionary reader
     reader = csv.DictReader(csv_open)
 
+    placeholders = ['None', 'none', 'All', 'all', '', ' ']
+
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
-        site = dict_row['Site']
 
-        scan = None
-        scan_placeholders = ['None', 'none', 'All', 'all', '', ' ']
-        if 'Scan' in dict_row.keys():
-            scan = dict_row['Scan']
+        if dict_row['Site'] in placeholders:
+            site = 'All'
+        else:
+            site = dict_row['Site']
 
-        if scan and scan not in scan_placeholders:
+        ses = 'All'
+        if 'Session' in dict_row.keys():
+            if dict_row['Session'] not in placeholders:
+                ses = dict_row['Session']
+
+        if ses != 'All':
             # for scan-specific scan parameters (less common)
-            scan = dict_row['Scan']
-            site_dict[site] = {scan: {key.lower(): val for key, val in
-                               dict_row.items() \
-                               if key != 'Site' and key != 'Scan'}}
+            if site in site_dict.keys():
+                site_dict[site][ses] = {key.lower(): val
+                                        for key, val in dict_row.items()
+                                        if key != 'Site' and key != 'Session'}
+            else:
+                site_dict[site] = {ses: {key.lower(): val
+                                         for key, val in dict_row.items()
+                                         if key != 'Site' and key != 'Session'}}
+
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][scan]['tr'] = \
-                site_dict[site][scan].pop('tr (seconds)')
+            site_dict[site][ses]['tr'] = \
+                site_dict[site][ses].pop('tr (seconds)')
+
         else:
             # site-specific scan parameters only (more common)
-            site_dict[site] = \
+            if site not in site_dict.keys():
+                site_dict[site] = \
+                    {ses: {key.lower(): val for key, val in dict_row.items()
+                           if key != 'Site' and key != 'Session'}}
+            else:
+                site_dict[site][ses] = \
                 {key.lower(): val for key, val in dict_row.items()
-                 if key != 'Site' and key != 'Scan'}
+                 if key != 'Site' and key != 'Session'}
+
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site]['tr'] = site_dict[site].pop('tr (seconds)')
+            site_dict[site][ses]['tr'] = \
+                site_dict[site][ses].pop('tr (seconds)')
 
     # Return site dictionary
     return site_dict
@@ -730,7 +749,7 @@ def parse_BIDS_filepaths(bids_filepaths, bids_base_dir, creds_path=None):
 
             if type != 'anat' and type != 'func':
                 print '\nFilepath not in BIDS format! Skipping..\n' \
-                      'Filepath: {0}\n'.format(path)=
+                      'Filepath: {0}\n'.format(path)
                 continue
 
             sub_id = None
@@ -1092,7 +1111,8 @@ def build_sublist(data_config_yml):
                     scan_params = site_scan_params[site]
                     # check for scan-specific level
                     if scan in scan_params.keys():
-
+                        #TODO: WHAT WAS HERE????????!!!!
+                        pass
 
                 except KeyError as exc:
                     print 'Site %s missing from scan parameters csv, ' \
