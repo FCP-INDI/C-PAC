@@ -1,8 +1,8 @@
 
 
-
-# this will go into core tools
 def gather_file_paths(base_directory, verbose=False):
+
+    # this will go into core tools eventually
 
     # ideas: return number of paths, optionally instead
     #        or write out, optionally, a text file with all paths, for easy
@@ -160,9 +160,14 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
     import glob
 
     # should have the {participant} label at the very least
-    if '{participant}' not in anat_template or \
-            '{participant}' not in func_template:
-        print "ERROR"
+    if '{participant}' not in anat_template:
+        err = "\n[!] The {participant} keyword is missing from your " \
+              "anatomical path template.\n"
+        raise Exception(err)
+    if '{participant}' not in func_template:
+        err = "\n[!] The {participant} keyword is missing from your " \
+              "functional path template.\n"
+        raise Exception(err)
 
     keywords = ['{site}', '{participant}', '{session}', '{scan}']
 
@@ -170,6 +175,18 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
     # only paths that will work with the templates
     anat_glob = anat_template
     func_glob = func_template
+
+    # backwards compatibility
+    if '{series}' in anat_glob:
+        anat_glob = anat_glob.replace('{series}', '{scan}')
+    if '{series}' in func_glob:
+        func_glob = func_glob.replace('{series}', '{scan}')
+
+    if '{scan}' in anat_glob:
+        err = "\n[!] CPAC does not support multiple anatomical scans at " \
+              "this time. You are seeing this message because you have a " \
+              "{scan} or {series} keyword in your anatomical path template.\n"
+        raise Exception(err)
 
     for keyword in keywords:
         if keyword in anat_glob:
@@ -181,11 +198,6 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
     # and func files only, respectively, if the templates were set up properly
     anat_pool = glob.glob(anat_glob)
     func_pool = glob.glob(func_glob)
-
-    # okay, a few cases here:
-    #   - one participant label alone in directory
-    #   - one participant label in a string with other things
-    #   - multiple participant labels
 
     data_dct = {}
 
@@ -225,15 +237,30 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             if label not in path_dct.keys():
                 path_dct[label] = id
+                skip = False
             else:
                 if path_dct[label] != id:
-                    print "warning"
+                    warn = "\n\n[!] WARNING: While parsing your input data " \
+                           "files, a file path was found with conflicting " \
+                           "IDs for the same data level.\n\n" \
+                           "File path: {0}\n" \
+                           "Level: {1}\n" \
+                           "Conflicting IDs: {2}, {3}\n\n" \
+                           "This file has not been added to the data " \
+                           "configuration.".format(anat_path, label,
+                                                   path_dct[label], id)
+                    print warn
+                    skip = True
+                    break
 
             new_template = new_template.replace(part1, '', 1)
             new_template = new_template.replace(label, '', 1)
 
             new_path = new_path.replace(part1, '', 1)
             new_path = new_path.replace(id, '', 1)
+
+        if skip:
+            continue
 
         sub_id = path_dct['{participant}']
 
@@ -282,7 +309,8 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
         if ses_id not in data_dct[site_id][sub_id].keys():
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
-            #TODO: THROW ERROR/WARNING!!!
+            warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
+                   "entry found in your input data directory!\n\n"
             pass
 
     # functional time
@@ -324,15 +352,30 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             if label not in path_dct.keys():
                 path_dct[label] = id
+                skip = False
             else:
                 if path_dct[label] != id:
-                    print "warning"
+                    warn = "\n\n[!] WARNING: While parsing your input data " \
+                           "files, a file path was found with conflicting " \
+                           "IDs for the same data level.\n\n" \
+                           "File path: {0}\n" \
+                           "Level: {1}\n" \
+                           "Conflicting IDs: {2}, {3}\n\n" \
+                           "This file has not been added to the data " \
+                           "configuration.".format(func_path, label,
+                                                   path_dct[label], id)
+                    print warn
+                    skip = True
+                    break
 
             new_template = new_template.replace(part1, '', 1)
             new_template = new_template.replace(label, '', 1)
 
             new_path = new_path.replace(part1, '', 1)
             new_path = new_path.replace(id, '', 1)
+
+        if skip:
+            continue
 
         sub_id = path_dct['{participant}']
 
@@ -426,10 +469,9 @@ def run(data_settings_yml):
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
 
-    print "settings: ", settings_dct
-
     # local (not on AWS S3 bucket), non-BIDS files
-    if 'Custom' in settings_dct['dataFormat'] or 'custom' in settings_dct['dataFormat']:
+    if 'Custom' in settings_dct['dataFormat'] or \
+            'custom' in settings_dct['dataFormat']:
 
         params_dct = None
         if settings_dct['scanParametersCSV']:
@@ -437,24 +479,22 @@ def run(data_settings_yml):
                 params_dct = \
                     extract_scan_params(settings_dct['scanParametersCSV'])
 
-        print params_dct
-
         incl_dct = format_incl_excl_dct(settings_dct['siteList'],
                                         settings_dct['subjectList'],
                                         settings_dct['sessionList'],
                                         settings_dct['scanList'])
-        print incl_dct
+
         excl_dct = format_incl_excl_dct(settings_dct['exclusionSiteList'],
                                         settings_dct['exclusionSubjectList'],
                                         settings_dct['exclusionSessionList'],
                                         settings_dct['exclusionScanList'])
-        print excl_dct
+
         data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
                                     settings_dct['functionalTemplate'],
                                     params_dct,
                                     settings_dct['awsCredentialsFile'],
                                     incl_dct, excl_dct)
-        print data_dct
+
         # get some data
         num_sites = len(data_dct.keys())
         num_subs = num_sess = num_scan = 0
@@ -470,13 +510,31 @@ def run(data_settings_yml):
         if len(data_dct) > 0:
             data_config_outfile = \
                 os.path.join(settings_dct['outputSubjectListLocation'],
-                             "data_config_{0}.yml".format(settings_dct['subjectListName']))
+                             "data_config_{0}.yml"
+                             "".format(settings_dct['subjectListName']))
 
-            #TODO: WRITE IT OUT IN CPAC SUBLIST FORMAT!!!!
-            #TODO: also what's with the &id001 thing in scan params
+            #TODO: run from GUI, and update cpac_setup.py (and rename that)
+            #TODO: create default data_settings, and make cpac write it out
+            #TODO:     in key order so it looks nice
+
+            # put data_dct contents in an ordered list for the YAML dump
+            data_list = []
+            for site in sorted(data_dct.keys()):
+                for sub in sorted(data_dct[site].keys()):
+                    for ses in sorted(data_dct[site][sub].keys()):
+                        data_list.append(data_dct[site][sub][ses])
 
             with open(data_config_outfile, "wt") as f:
-                yaml.dump(data_dct, f)
+                # Make sure YAML doesn't dump aliases (so it's more human
+                # read-able)
+                f.write("# CPAC Data Configuration File\n# Version 1.0.3\n")
+                f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
+                        "# Tip: This file can be edited manually with "
+                        "a text editor for quick modifications.\n\n")
+                noalias_dumper = yaml.dumper.SafeDumper
+                noalias_dumper.ignore_aliases = lambda self, data: True
+                f.write(yaml.dump(data_list, default_flow_style=False,
+                                  Dumper=noalias_dumper))
 
             if os.path.exists(data_config_outfile):
                 print "\nCPAC DATA SETTINGS file entered:" \
@@ -487,7 +545,10 @@ def run(data_settings_yml):
                 print "...sites: {0}".format(num_sites)
                 print "...participants: {0}".format(num_subs)
                 print "...participant-sessions: {0}".format(num_sess)
-                print "...functional scans: {0}".format(num_scan)
+                print "...functional scans: {0}\n".format(num_scan)
+
+        else:
+            print "error nothing found"
 
 
 

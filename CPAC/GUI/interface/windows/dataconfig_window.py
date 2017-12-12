@@ -55,19 +55,23 @@ class DataConfig(wx.Frame):
                       values="")
 
         self.page.add(label="Anatomical File Path Template ",
-                     control=control.TEXT_BOX,
-                     name="anatomicalTemplate",
-                     type=dtype.STR,
-                     comment = "File Path Template for Anatomical Files\n"
-                               "Custom Data Format only.\n\n"
-                               "Place tags for the appropriate data directory "
-                               "levels with tags such as {site}, {participant}, "
-                               "{session}, and {series}. These are not all "
-                               "required.\n\nSee User Guide for more detailed "
-                               "instructions.",
-                     values ="",
-                     style= wx.EXPAND | wx.ALL,
-                     size = (532,-1))
+                      control=control.TEXT_BOX,
+                      name="anatomicalTemplate",
+                      type=dtype.STR,
+                      comment="File Path Template for Anatomical Files\n"
+                              "Custom Data Format only.\n\n"
+                              "Place tags for the appropriate data directory "
+                              "levels with the tags {site}, {participant}, "
+                              "and {session}. Only {participant} is "
+                              "required.\n\nExamples:\n"
+                              "/data/{site}/{session}/anat/{participant}"
+                              "/mprage.nii.gz\n"
+                              "/data/{site}/{participant}/anat.nii.gz\n\n"
+                              "See the User Guide for more detailed "
+                              "instructions.",
+                      values="",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
         
         self.page.add(label="Functional File Path Template ",
                  control=control.TEXT_BOX,
@@ -76,9 +80,13 @@ class DataConfig(wx.Frame):
                  comment = "File Path Template for Functional Files\n"
                            "Custom Data Format only.\n\n"
                            "Place tags for the appropriate data directory "
-                           "levels with tags such as {site}, {participant}, "
-                           "{session}, and {series}. These are not all "
-                           "required.\n\nSee User Guide for more detailed "
+                           "levels with the tags {site}, {participant}, "
+                           "{session}, and {scan}. Only {participant} is "
+                           "required.\n\nExamples:\n"
+                           "/data/{site}/{participant}/{session}/func/"
+                           "{scan}_bold.nii.gz\n"
+                           "/data/{site}/{participant}/{scan}/func.nii.gz\n\n"
+                           "See the User Guide for more detailed "
                            "instructions.",
                  values ="",
                  style= wx.EXPAND | wx.ALL,
@@ -109,7 +117,25 @@ class DataConfig(wx.Frame):
                          'local files.',
                  values='None')
 
-        self.page.add(label="Include: Subjects (Optional) ",
+        self.page.add(label = "Save Config Files Here: ",
+                      control = control.DIR_COMBO_BOX,
+                      name = "outputSubjectListLocation",
+                      type = dtype.STR,
+                      comment="Directory where CPAC should place data "
+                              "configuration files.",
+                      values="")
+
+        self.page.add(label = "Participant List Name ",
+                      control = control.TEXT_BOX,
+                      name = "subjectListName",
+                      type = dtype.STR,
+                      comment = "A label to be appended to the generated " \
+                                "participant list files.",
+                      values = "",
+                      style= wx.EXPAND | wx.ALL,
+                      size = (300,-1))
+
+        self.page.add(label="(Optional) Include: Subjects ",
                  control=control.COMBO_BOX, 
                  name = "subjectList", 
                  type =dtype.COMBO,
@@ -121,7 +147,7 @@ class DataConfig(wx.Frame):
                            "specified, CPAC will include all participants.",
                  values = "None")
         
-        self.page.add(label="Exclude: Subjects (Optional) ",
+        self.page.add(label="(Optional) Exclude: Subjects ",
                  control=control.COMBO_BOX, 
                  name = "exclusionSubjectList", 
                  type = dtype.COMBO, 
@@ -133,7 +159,7 @@ class DataConfig(wx.Frame):
                            "will not exclude any participants.",
                  values = "None")
         
-        self.page.add(label= "Include: Sites (Optional) ",
+        self.page.add(label= "(Optional) Include: Sites ",
                  control =control.COMBO_BOX,
                  name = "siteList",
                  type =dtype.COMBO,
@@ -147,7 +173,7 @@ class DataConfig(wx.Frame):
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
-        self.page.add(label= "Exclude: Sites (Optional) ",
+        self.page.add(label= "(Optional) Exclude: Sites ",
                  control =control.COMBO_BOX,
                  name = "exclusionSiteList",
                  type =dtype.COMBO,
@@ -161,7 +187,7 @@ class DataConfig(wx.Frame):
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
-        self.page.add(label="Include: Sessions (Optional) ",
+        self.page.add(label="(Optional) Include: Sessions ",
                       control=control.COMBO_BOX,
                       name="sessionList",
                       type=dtype.COMBO,
@@ -176,7 +202,7 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label="Exclude: Sessions (Optional) ",
+        self.page.add(label="(Optional) Exclude: Sessions ",
                       control=control.COMBO_BOX,
                       name="exclusionSessionList",
                       type=dtype.COMBO,
@@ -190,7 +216,7 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label="Include: Scans (Optional) ",
+        self.page.add(label="(Optional) Include: Scans ",
                       control=control.COMBO_BOX,
                       name="scanList",
                       type=dtype.COMBO,
@@ -204,7 +230,7 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label="Exclude: Scans (Optional) ",
+        self.page.add(label="(Optional) Exclude: Scans ",
                       control=control.COMBO_BOX,
                       name="exclusionScanList",
                       type=dtype.COMBO,
@@ -218,25 +244,6 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label = "Save Config Files Here: ",
-                      control = control.DIR_COMBO_BOX, 
-                      name = "outputSubjectListLocation", 
-                      type = dtype.STR, 
-                      comment="Directory where CPAC should place data "
-                              "configuration files.",
-                      values="")
-
-        self.page.add(label = "Participant List Name ",
-                      control = control.TEXT_BOX, 
-                      name = "subjectListName", 
-                      type = dtype.STR, 
-                      comment = "A label to be appended to the generated " \
-                                "participant list files.",
-                      values = "",
-                      style= wx.EXPAND | wx.ALL,
-                      size = (300,-1))
-
-
         self.page.set_sizer()
          
         mainSizer.Add(self.window, 1, wx.EXPAND)
@@ -246,26 +253,23 @@ class DataConfig(wx.Frame):
         
         buffer2 = wx.StaticText(btnPanel, label = "\t")
         hbox.Add(buffer2)
-
-        run_ext = wx.Button(btnPanel, ID_RUN_EXT, "Generate Subject Lists", (280,10), wx.DefaultSize, 0 )
-        self.Bind(wx.EVT_BUTTON, lambda event: self.save(event,'run'), id=ID_RUN_EXT)
-        hbox.Add( run_ext, 1, flag=wx.LEFT|wx.ALIGN_LEFT, border=10)
-        
-        buffer = wx.StaticText(btnPanel, label="\t\t\t\t")
-        hbox.Add(buffer)
     
-        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",(220,10), wx.DefaultSize, 0 )
+        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",(220,10), wx.DefaultSize, 0)
 
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
-        hbox.Add( cancel, 0, flag=wx.LEFT|wx.BOTTOM, border=5)
+        hbox.Add( cancel, 0, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        load = wx.Button(btnPanel, wx.ID_ADD, "Load Settings", (280,10), wx.DefaultSize, 0 )
+        load = wx.Button(btnPanel, wx.ID_ADD, "Load Preset", (280,10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.load, id=wx.ID_ADD)
-        hbox.Add(load, 0.6, flag=wx.LEFT|wx.BOTTOM, border=5)
+        hbox.Add(load, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
         
-        save = wx.Button(btnPanel, wx.ID_SAVE, "Save Settings", (280,10), wx.DefaultSize, 0 )
+        save = wx.Button(btnPanel, wx.ID_SAVE, "Save Preset", (280,10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, lambda event: self.save(event,'save'), id=wx.ID_SAVE)
-        hbox.Add(save, 0.6, flag=wx.LEFT|wx.BOTTOM, border=5)
+        hbox.Add(save, 0.6, flag=wx.LEFT | wx.BOTTOM, border=5)
+
+        run_ext = wx.Button(btnPanel, ID_RUN_EXT, "Generate Data Config", (280,10), wx.DefaultSize, 0)
+        self.Bind(wx.EVT_BUTTON, lambda event: self.save(event,'run'), id=ID_RUN_EXT)
+        hbox.Add( run_ext, 1, flag=wx.LEFT | wx.BOTTOM, border=10)
     
         btnPanel.SetSizer(hbox)
         
@@ -288,11 +292,6 @@ class DataConfig(wx.Frame):
         try:
             # Load in configuration file
             config_map = yaml.load(open(config, 'r'))
-            # Get subject list output path
-            out_location = os.path.join(os.path.realpath(config_map.get('outputSubjectListLocation')), 'data_config_{0}.yml'.format(config_map.get('subjectListName')))
-
-            # Build the subject list from the data config
-            CPAC.utils.build_sublist.build_sublist(config)
 
             # Extract arguments for supplementary files
             sublist_outdir = config_map.get('outputSubjectListLocation')
@@ -302,9 +301,16 @@ class DataConfig(wx.Frame):
             if isinstance(sublist_name, list):
                 sublist_name = sublist_name[0]
 
+            sublist_name = "data_config_{0}.yml".format(sublist_name)
+
+            # Get subject list output path
+            out_location = os.path.join(sublist_outdir, sublist_name)
+
+            # Build the subject list from the data config
+            CPAC.utils.build_data_config.run(config)
+
             # Generate group analysis files and such
-            CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir,
-                                                                 sublist_name)
+            CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
 
             # will be changed at some point
             sublist_name = "data_config_{0}.yml".format(sublist_name)
@@ -316,12 +322,12 @@ class DataConfig(wx.Frame):
                 if map.get(sublist_name) == None:
                     map[sublist_name] = out_location
                     parent.listbox2.Append(sublist_name)
-                    ret = -1
+                    ret = 1
                     break
                 else:
-                    dlg3 = wx.MessageDialog(self, 'Subject List with '
+                    dlg3 = wx.MessageDialog(self, 'A data config with '
                                                   'this name already '
-                                                  'exist', 'Error!',
+                                                  'exists.', 'Error!',
                                             wx.OK | wx.ICON_ERROR)
                     dlg3.ShowModal()
                     dlg3.Destroy()
@@ -486,7 +492,8 @@ class DataConfig(wx.Frame):
                     print >>f, ctrl_name, " : ", value, "\n"
                 
                 f.close()
-                print "saving %s"%path
+
+                print "\nSaving data settings file:\n{0}\n".format(path)
                 
                 if flag == 'run':
                     if self.run(path) >0:
