@@ -21,15 +21,27 @@ def main():
 
     args = parser.parse_args()
 
+    #TODO: more modular/non-redundant way to do this?
     settings_text = \
         ""
 
+    if not args.data_settings_file and not args.generate_template:
+        print "No inputs provided. Use the -h flag for instructions.\n"
+
     if args.data_settings_file:
-        if os.path.exists(args.data_settings_file):
-            CPAC.utils.build_data_config(args.data_settings_file)
+        input_file = os.path.abspath(args.data_settings_file)
+        if os.path.exists(input_file):
+            if not input_file.endswith((".yml", ".yaml", ".YML", ".YAML")):
+                err = "\n[!] Data settings file must be a YAML " \
+                      "(.yml/.yaml) file.\n"
+                print err
+            else:
+                # create the data config!
+                CPAC.utils.build_data_config.run(input_file)
         else:
             err = "\n[!] Data settings file path cannot be found:\n" \
-                  "{0}\n".format(args.data_settings_file)
+                  "{0}\n".format(input_file)
+            print err
 
     if args.generate_template:
         settings_file = os.path.join(os.getcwd(), "cpac_data_settings.yml")

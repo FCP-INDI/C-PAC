@@ -479,7 +479,9 @@ class DataConfig(wx.Frame):
                 path = dlg.GetPath()
                 dlg.Destroy()
                 f = open(path, 'w')
-                for ctrl_name in config_dict.keys():
+
+                for ctrl_tuple in config_list:
+                    ctrl_name = ctrl_tuple[0]
         
                     val = config_dict[ctrl_name][0]
 
@@ -496,7 +498,7 @@ class DataConfig(wx.Frame):
                 print "\nSaving data settings file:\n{0}\n".format(path)
                 
                 if flag == 'run':
-                    if self.run(path) >0:
+                    if self.run(path) > 0:
                         self.Close()
 
     # Load in data configuration file

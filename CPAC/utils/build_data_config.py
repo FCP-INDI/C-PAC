@@ -464,7 +464,7 @@ def run(data_settings_yml):
     import os
     import yaml
 
-    print "Generating data configuration file.."
+    print "\nGenerating data configuration file.."
 
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
@@ -513,9 +513,7 @@ def run(data_settings_yml):
                              "data_config_{0}.yml"
                              "".format(settings_dct['subjectListName']))
 
-            #TODO: run from GUI, and update cpac_setup.py (and rename that)
-            #TODO: create default data_settings, and make cpac write it out
-            #TODO:     in key order so it looks nice
+            #TODO: create default data_settings
 
             # put data_dct contents in an ordered list for the YAML dump
             data_list = []
