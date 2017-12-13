@@ -287,8 +287,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow.config['execution'] = {'hash_method': 'timestamp',
                                     'crashdump_dir': os.path.abspath(
                                         c.crashLogDirectory)}
-    config.update_config(
-        {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
+    if c.disable_log and c.disable_log == True:
+        config.update_config(
+            {'logging': {'log_to_file': False}})
+    else:
+        config.update_config(
+            {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
     logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
