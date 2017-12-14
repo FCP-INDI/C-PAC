@@ -444,6 +444,7 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
         if scan_params:
             temp_func_dct.update({'scan_parameters': scan_params})
 
+        #TODO: fill these
         if site_id not in data_dct.keys():
             print "error"
         if sub_id not in data_dct[site_id].keys():
@@ -513,8 +514,6 @@ def run(data_settings_yml):
                              "data_config_{0}.yml"
                              "".format(settings_dct['subjectListName']))
 
-            #TODO: create default data_settings
-
             # put data_dct contents in an ordered list for the YAML dump
             data_list = []
             for site in sorted(data_dct.keys()):
@@ -546,6 +545,7 @@ def run(data_settings_yml):
                 print "...functional scans: {0}\n".format(num_scan)
 
         else:
+            #TODO: fill this
             print "error nothing found"
 
 

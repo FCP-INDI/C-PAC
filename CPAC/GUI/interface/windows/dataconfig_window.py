@@ -42,7 +42,7 @@ class DataConfig(wx.Frame):
                       name='dataFormat',
                       type=dtype.BOOL,
                       comment="Select if data is organized using BIDS "
-                              "standard or custom format.",
+                              "standard or a custom format.",
                       values=["BIDS", "Custom"],
                       wkf_switch=True)
 
@@ -50,8 +50,10 @@ class DataConfig(wx.Frame):
                       control=control.DIR_COMBO_BOX,
                       name="bidsBaseDir",
                       type=dtype.STR,
-                      comment="BIDS Data Format only.\n\nBase directory of "
-                              "BIDS-organized data.",
+                      comment="Base directory of BIDS-organized data.\n"
+                              "BIDS Data Format only.\n\nThis should be the "
+                              "path to the overarching directory containing "
+                              "the entire dataset.",
                       values="")
 
         self.page.add(label="Anatomical File Path Template ",
@@ -96,8 +98,8 @@ class DataConfig(wx.Frame):
                  control=control.COMBO_BOX,
                  name="scanParametersCSV",
                  type=dtype.COMBO,
-                 comment="Custom Data Format only.\nFor Slice Timing "
-                         "Correction.\n\n"
+                 comment="For Slice Timing Correction.\nCustom Data Format "
+                         "only.\n\n"
                          "Path to a .csv file (if not using BIDS-format "
                          "JSON files) containing information about scan "
                          "acquisition parameters.\n\nFor instructions on "
@@ -346,11 +348,12 @@ class DataConfig(wx.Frame):
             print "Error loading data config file", exc
             return -1
 
-    # Save data config
     def save(self, event, flag):
+        # Save data config
         
-        config_list =[]
+        config_list = []
         config_dict = {}
+
         def display(win, msg):
             wx.MessageBox(msg, "Error")
             win.SetBackgroundColour("pink")
@@ -358,17 +361,24 @@ class DataConfig(wx.Frame):
             win.Refresh()
             raise ValueError
 
+        key_order = ['dataFormat', 'bidsBaseDir', 'anatomicalTemplate',
+                     'functionalTemplate', 'scanParametersCSV',
+                     'awsCredentialsFile', 'outputSubjectListLocation',
+                     'subjectListName', 'subjectList', 'exclusionSubjectList',
+                     'siteList', 'exclusionSiteList', 'sessionList',
+                     'exclusionSessionList', 'scanList', 'exclusionScanList']
+
         path_fields = ['scanParametersCSV', 'awsCredentialsFile',
                        'outputSubjectListLocation']
 
         try:
             for ctrl in self.page.get_ctrl_list():
-
                 win = ctrl.get_ctrl()
                 value = str(ctrl.get_selection())
                 value = value.strip()
                 name = ctrl.get_name()
                 dtype = ctrl.get_datatype()
+                help = ctrl.get_help()
 
                 if name == 'subjectListName':
                     subject_list_name = value
@@ -394,7 +404,7 @@ class DataConfig(wx.Frame):
                                     % ctrl.get_name())
          
                 config_list.append((name, value, dtype))
-                config_dict[name] = (value, dtype)
+                config_dict[name] = (value, dtype, help)
 
             # some final checks
             if "BIDS" in config_dict["dataFormat"][0]:
@@ -478,22 +488,33 @@ class DataConfig(wx.Frame):
             if dlg.ShowModal() == wx.ID_OK:
                 path = dlg.GetPath()
                 dlg.Destroy()
-                f = open(path, 'w')
 
-                for ctrl_tuple in config_list:
-                    ctrl_name = ctrl_tuple[0]
-        
-                    val = config_dict[ctrl_name][0]
+                with open(path, "wt") as f:
+                    f.write(
+                        "# CPAC Data Settings File\n# Version 1.0.3\n")
+                    f.write(
+                        "#\n# http://fcp-indi.github.io for more info.\n#\n"
+                        "# Use this file to generate the data configuration "
+                        "(participant list) YAML file by loading it via the "
+                        "'Load Preset' button in the Data Configuration "
+                        "Builder UI, or via command line by providing it to "
+                        "the cpac_data_config_setup.py script with the "
+                        "--data_settings_file input flag.\n\n\n")
 
-                    if "/" in val or "%s" in val or 'None' in val or \
-                        ctrl_name =='subjectListName': 
-                        value = val
-                    else:
-                        value =[item.strip() for item in val.split(',')]
-                    
-                    print >>f, ctrl_name, " : ", value, "\n"
-                
-                f.close()
+                    for key in key_order:
+                        val = config_dict[key][0]
+                        help = config_dict[key][2]
+
+                        if "/" in val or "%s" in val or 'None' in val or \
+                                key == 'subjectListName':
+                            value = val
+                        else:
+                            value =[item.strip() for item in val.split(',')]
+
+                        help = help.replace("\n", "\n# ")
+
+                        f.write("# {0}\n".format(help))
+                        f.write("{0}: {1}\n\n\n".format(key, value))
 
                 print "\nSaving data settings file:\n{0}\n".format(path)
                 
