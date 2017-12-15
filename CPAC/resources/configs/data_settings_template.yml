@@ -24,7 +24,7 @@ bidsBaseDir: ['']
 # Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}. Only {participant} is required.
 # 
 # Examples:
-# /data/{site}/{session}/anat/{participant}/mprage.nii.gz
+# /data/{site}/{participant}/{session}/anat/mprage.nii.gz
 # /data/{site}/{participant}/anat.nii.gz
 # 
 # See the User Guide for more detailed instructions.
@@ -44,17 +44,6 @@ anatomicalTemplate:
 functionalTemplate:
 
 
-# For Slice Timing Correction.
-# Custom Data Format only.
-# 
-# Path to a .csv file (if not using BIDS-format JSON files) containing information about scan acquisition parameters.
-# 
-# For instructions on how to create this file, see the User Guide.
-# 
-# If 'None' is specified, CPAC will look for scan parameters information provided in the pipeline configuration file.
-scanParametersCSV: None
-
-
 # Required if downloading data from a non-public S3 bucket on Amazon Web Services instead of using local files.
 awsCredentialsFile: None
 
@@ -65,6 +54,41 @@ outputSubjectListLocation:
 
 # A label to be appended to the generated participant list files.
 subjectListName:
+
+
+# For Slice Timing Correction.
+# Custom Data Format only.
+#
+# Path to a .csv file (if not using BIDS-format JSON files) containing information about scan acquisition parameters.
+#
+# For instructions on how to create this file, see the User Guide.
+#
+# If 'None' is specified, CPAC will look for scan parameters information provided in the pipeline configuration file.
+scanParametersCSV: None
+
+
+# File Path Template for Field Map Phase files
+# For field-map based distortion correction.
+# Custom Data Format only.
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/fmap/phase.nii.gz
+# /data/{site}/{participant}/{session}/{participant}_{session}_phase.nii.gz
+fieldMapPhase: None
+
+
+# File Path Template for Field Map Magnitude files
+# For field-map based distortion correction.
+# Custom Data Format only.
+#
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}.
+#
+# Examples:
+# /data/{site}/{participant}/{session}/fmap/magnitude.nii.gz
+# /data/{site}/{participant}/{session}/{participant}_{session}_magnitude.nii.gz
+fieldMapMagnitude: None
 
 
 # Include only a sub-set of the participants present in the folders defined above.

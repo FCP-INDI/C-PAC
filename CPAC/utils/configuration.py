@@ -12,7 +12,6 @@ class Configuration(object):
             setattr(self, key, config_map[key])
         self.__update_attr()
 
-
     def return_config_elements(self):
 
         # this returns a list of tuples
@@ -22,7 +21,6 @@ class Configuration(object):
         attributes = [(attr, getattr(self, attr)) for attr in dir(self) \
                      if not callable(attr) and not attr.startswith("__")] 
         return attributes
-
         
     #method to find any pattern ($) in the configuration
     #and update the attributes with its pattern value
@@ -48,8 +46,7 @@ class Configuration(object):
                 else:
                     return orig_key
             else:
-                return orig_key    
-            
+                return orig_key
                 
         def check_path(key):
             if type(key) is str and '/' in key:

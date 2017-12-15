@@ -27,6 +27,34 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
+def pull_s3_sublist(data_folder, creds_path=None):
+
+    import os
+    from indi_aws import fetch_creds
+
+    if creds_path:
+        creds_path = os.path.abspath(creds_path)
+
+    s3_path = data_folder.split("s3://")[1]
+    bucket_name = s3_path.split("/")[0]
+    bucket_prefix = s3_path.split(bucket_name + "/")[1]
+
+    s3_list = []
+    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+    # ensure slash at end of bucket_prefix, so that if the final
+    # directory name is a substring in other directory names, these
+    # other directories will not be pulled into the file list
+    if "/" not in bucket_prefix[-1]:
+        bucket_prefix += "/"
+
+    # Build S3-subjects to download
+    for bk in bucket.objects.filter(Prefix=bucket_prefix):
+        s3_list.append(str(bk.key).replace(bucket_prefix,""))
+
+    return s3_list
+
+
 def extract_scan_params(scan_params_csv):
     """
     Function to extract the site-based scan parameters from a csv file
@@ -143,6 +171,7 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
 
 
 def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
+                     fmap_phase_template=None, fmap_mag_template=None,
                      aws_creds_path=None, inclusion_dct=None,
                      exclusion_dct=None):
 
@@ -309,6 +338,7 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
         if ses_id not in data_dct[site_id][sub_id].keys():
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
+            #TODO: finish this
             warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
                    "entry found in your input data directory!\n\n"
             pass
@@ -457,6 +487,243 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
         else:
             data_dct[site_id][sub_id][ses_id]['func'].update(temp_func_dct)
 
+    if fmap_phase_template and fmap_mag_template:
+        # if we're doing the whole field map distortion correction thing
+
+        # make globby templates, to use them to filter down the path_list into
+        # only paths that will work with the templates
+        fmap_phase_glob = fmap_phase_template
+        fmap_mag_glob = fmap_mag_template
+
+        # backwards compatibility
+        if '{series}' in fmap_phase_glob:
+            fmap_phase_glob = fmap_phase_glob.replace('{series}', '{scan}')
+        if '{series}' in fmap_mag_glob:
+            fmap_mag_glob = fmap_mag_glob.replace('{series}', '{scan}')
+
+        for keyword in keywords:
+            if keyword in fmap_phase_glob:
+                fmap_phase_glob = fmap_phase_glob.replace(keyword, '*')
+            if keyword in fmap_mag_glob:
+                fmap_mag_glob = fmap_mag_glob.replace(keyword, '*')
+
+        # presumably, the paths contained in each of these pools should be
+        # field map files only, if the templates were set up properly
+        fmap_phase_pool = glob.glob(fmap_phase_glob)
+        fmap_mag_pool = glob.glob(fmap_mag_glob)
+
+        for fmap_phase in fmap_phase_pool:
+
+            path_dct = {}
+
+            site_parts = fmap_phase_template.split('{site}')
+
+            partic_parts = []
+            for part in site_parts:
+                partic_parts = partic_parts + part.split('{participant}')
+            ses_parts = []
+            for part in partic_parts:
+                ses_parts = ses_parts + part.split('{session}')
+            scan_parts = []
+            for part in ses_parts:
+                scan_parts = scan_parts + part.split('{scan}')
+
+            new_template = fmap_phase_template
+            new_path = fmap_phase
+
+            for idx in range(0, len(scan_parts)):
+                part1 = scan_parts[idx]
+                try:
+                    part2 = scan_parts[idx+1]
+                except IndexError:
+                    break
+
+                label = new_template.split(part1, 1)[1]
+                label = label.split(part2, 1)[0]
+
+                id = new_path.split(part1, 1)[1]
+                id = id.split(part2, 1)[0]
+
+                if label not in path_dct.keys():
+                    path_dct[label] = id
+                    skip = False
+                else:
+                    if path_dct[label] != id:
+                        warn = "\n\n[!] WARNING: While parsing your input data " \
+                               "files, a file path was found with conflicting " \
+                               "IDs for the same data level.\n\n" \
+                               "File path: {0}\n" \
+                               "Level: {1}\n" \
+                               "Conflicting IDs: {2}, {3}\n\n" \
+                               "This file has not been added to the data " \
+                               "configuration.".format(fmap_phase, label,
+                                                       path_dct[label], id)
+                        print warn
+                        skip = True
+                        break
+
+                new_template = new_template.replace(part1, '', 1)
+                new_template = new_template.replace(label, '', 1)
+
+                new_path = new_path.replace(part1, '', 1)
+                new_path = new_path.replace(id, '', 1)
+
+            if skip:
+                continue
+
+            sub_id = path_dct['{participant}']
+
+            if '{site}' in path_dct.keys():
+                site_id = path_dct['{site}']
+            else:
+                site_id = 'site-1'
+
+            if '{session}' in path_dct.keys():
+                ses_id = path_dct['{session}']
+            else:
+                ses_id = 'ses-1'
+
+            if '{scan}' in path_dct.keys():
+                scan_id = path_dct['{scan}']
+            else:
+                scan_id = None
+
+            temp_fmap_dct = {"phase": fmap_phase}
+
+            # TODO: fill these
+            if site_id not in data_dct.keys():
+                print "error"
+            if sub_id not in data_dct[site_id].keys():
+                print "error"
+            if ses_id not in data_dct[site_id][sub_id].keys():
+                print "error"
+
+            if scan_id:
+                # if the field map files are at scan level
+                if 'fmap' not in data_dct[site_id][sub_id][ses_id][scan_id].keys():
+                    data_dct[site_id][sub_id][ses_id][scan_id]['fmap'] = temp_fmap_dct
+                else:
+                    data_dct[site_id][sub_id][ses_id][scan_id]['fmap'].update(temp_fmap_dct)
+            else:
+                # if the field map fields are at session level
+                if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
+                    data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
+                else:
+                    data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
+
+        for fmap_mag in fmap_mag_pool:
+
+            path_dct = {}
+
+            site_parts = fmap_mag_template.split('{site}')
+
+            partic_parts = []
+            for part in site_parts:
+                partic_parts = partic_parts + part.split('{participant}')
+            ses_parts = []
+            for part in partic_parts:
+                ses_parts = ses_parts + part.split('{session}')
+            scan_parts = []
+            for part in ses_parts:
+                scan_parts = scan_parts + part.split('{scan}')
+
+            new_template = fmap_mag_template
+            new_path = fmap_mag
+
+            for idx in range(0, len(scan_parts)):
+                part1 = scan_parts[idx]
+                try:
+                    part2 = scan_parts[idx + 1]
+                except IndexError:
+                    break
+
+                label = new_template.split(part1, 1)[1]
+                label = label.split(part2, 1)[0]
+
+                id = new_path.split(part1, 1)[1]
+                id = id.split(part2, 1)[0]
+
+                if label not in path_dct.keys():
+                    path_dct[label] = id
+                    skip = False
+                else:
+                    if path_dct[label] != id:
+                        warn = "\n\n[!] WARNING: While parsing your input data " \
+                               "files, a file path was found with conflicting " \
+                               "IDs for the same data level.\n\n" \
+                               "File path: {0}\n" \
+                               "Level: {1}\n" \
+                               "Conflicting IDs: {2}, {3}\n\n" \
+                               "This file has not been added to the data " \
+                               "configuration.".format(fmap_mag, label,
+                                                       path_dct[label], id)
+                        print warn
+                        skip = True
+                        break
+
+                new_template = new_template.replace(part1, '', 1)
+                new_template = new_template.replace(label, '', 1)
+
+                new_path = new_path.replace(part1, '', 1)
+                new_path = new_path.replace(id, '', 1)
+
+            if skip:
+                continue
+
+            sub_id = path_dct['{participant}']
+
+            if '{site}' in path_dct.keys():
+                site_id = path_dct['{site}']
+            else:
+                site_id = 'site-1'
+
+            if '{session}' in path_dct.keys():
+                ses_id = path_dct['{session}']
+            else:
+                ses_id = 'ses-1'
+
+            if '{scan}' in path_dct.keys():
+                scan_id = path_dct['{scan}']
+            else:
+                scan_id = None
+
+            temp_fmap_dct = {"magnitude": fmap_mag}
+
+            # TODO: fill these
+            if site_id not in data_dct.keys():
+                print "error"
+                continue
+            if sub_id not in data_dct[site_id].keys():
+                print "error"
+                continue
+            if ses_id not in data_dct[site_id][sub_id].keys():
+                print "error"
+                continue
+
+            # TODO: reintroduce once scan-level nesting is implemented
+            '''
+            if scan_id:
+                # if the field map files are at scan level
+                if 'fmap' not in data_dct[site_id][sub_id][ses_id][scan_id].keys():
+                    data_dct[site_id][sub_id][ses_id]['func'][scan_id]['fmap'] = temp_fmap_dct
+                else:
+                    data_dct[site_id][sub_id][ses_id]['func'][scan_id]['fmap'].update(temp_fmap_dct)
+
+            else:
+                # if the field map fields are at session level
+                if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
+                    data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
+                else:
+                    data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
+            '''
+
+            # if the field map fields are at session level
+            if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
+                data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
+            else:
+                data_dct[site_id][sub_id][ses_id]['fmap'].update(
+                    temp_fmap_dct)
+
     return data_dct
 
 
@@ -493,6 +760,8 @@ def run(data_settings_yml):
         data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
                                     settings_dct['functionalTemplate'],
                                     params_dct,
+                                    settings_dct['fieldMapPhase'],
+                                    settings_dct['fieldMapMagnitude'],
                                     settings_dct['awsCredentialsFile'],
                                     incl_dct, excl_dct)
 

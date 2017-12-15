@@ -21,7 +21,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     inputnode = pe.Node(util.IdentityInterface(
                                 fields=['subject', 'scan', 'creds_path',
-                                        'phase_diff', 'mag_one', 'mag_two'],
+                                        'phase_diff', 'magnitude'],
                                 mandatory_inputs=True),
                         name='inputnode')
     inputnode.iterables = [('scan', scan_names)]
@@ -44,8 +44,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
                                                         'scan', 'phase_diff',
-                                                        'mag_one',
-                                                        'mag_two']),
+                                                        'magnitude']),
                          name='outputspec')
 
     wf.connect(inputnode, 'scan', selectrest, 'scan')
@@ -55,8 +54,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
     wf.connect(inputnode, 'phase_diff', outputnode, 'phase_diff')
-    wf.connect(inputnode, 'mag_one', outputnode, 'mag_one')
-    wf.connect(inputnode, 'mag_two', outputnode, 'mag_two')
+    wf.connect(inputnode, 'magnitude', outputnode, 'magnitude')
 
     return wf
 

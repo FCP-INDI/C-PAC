@@ -27,7 +27,7 @@ class DataConfig(wx.Frame):
 
         wx.Frame.__init__(self, parent, title="CPAC - Data Configuration "
                                               "Setup",
-                          size=(820, 620))
+                          size=(940, 620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -66,7 +66,7 @@ class DataConfig(wx.Frame):
                               "levels with the tags {site}, {participant}, "
                               "and {session}. Only {participant} is "
                               "required.\n\nExamples:\n"
-                              "/data/{site}/{session}/anat/{participant}"
+                              "/data/{site}/{participant}/{session}/anat"
                               "/mprage.nii.gz\n"
                               "/data/{site}/{participant}/anat.nii.gz\n\n"
                               "See the User Guide for more detailed "
@@ -94,31 +94,6 @@ class DataConfig(wx.Frame):
                  style= wx.EXPAND | wx.ALL,
                  size = (532,-1))
 
-        self.page.add(label="Scan Parameters File (Optional) ",
-                 control=control.COMBO_BOX,
-                 name="scanParametersCSV",
-                 type=dtype.COMBO,
-                 comment="For Slice Timing Correction.\nCustom Data Format "
-                         "only.\n\n"
-                         "Path to a .csv file (if not using BIDS-format "
-                         "JSON files) containing information about scan "
-                         "acquisition parameters.\n\nFor instructions on "
-                         "how to create this file, see the User Guide.\n\n"
-                         "If 'None' is specified, CPAC will look for scan "
-                         "parameters information provided in the pipeline "
-                         "configuration file.",
-                 values="None")
-
-        # Add AWS credentials path
-        self.page.add(label='AWS credentials file (Optional) ',
-                 control=control.COMBO_BOX,
-                 name='awsCredentialsFile',
-                 type=dtype.COMBO,
-                 comment='Required if downloading data from a non-public S3 '\
-                         'bucket on Amazon Web Services instead of using '\
-                         'local files.',
-                 values='None')
-
         self.page.add(label = "Save Config Files Here: ",
                       control = control.DIR_COMBO_BOX,
                       name = "outputSubjectListLocation",
@@ -136,6 +111,69 @@ class DataConfig(wx.Frame):
                       values = "",
                       style= wx.EXPAND | wx.ALL,
                       size = (300,-1))
+
+        # Add AWS credentials path
+        self.page.add(label="(Optional) AWS credentials file ",
+                 control=control.COMBO_BOX,
+                 name='awsCredentialsFile',
+                 type=dtype.COMBO,
+                 comment='Required if downloading data from a non-public S3 '\
+                         'bucket on Amazon Web Services instead of using '\
+                         'local files.',
+                 values='None')
+
+        self.page.add(label="(Optional) Scan Parameters File ",
+                 control=control.COMBO_BOX,
+                 name="scanParametersCSV",
+                 type=dtype.COMBO,
+                 comment="For Slice Timing Correction.\nCustom Data Format "
+                         "only.\n\n"
+                         "Path to a .csv file (if not using BIDS-format "
+                         "JSON files) containing information about scan "
+                         "acquisition parameters.\n\nFor instructions on "
+                         "how to create this file, see the User Guide.\n\n"
+                         "If 'None' is specified, CPAC will look for scan "
+                         "parameters information provided in the pipeline "
+                         "configuration file.",
+                 values="None")
+
+        self.page.add(label="(Optional) Field Map Phase File Path Template ",
+                      control=control.TEXT_BOX,
+                      name="fieldMapPhase",
+                      type=dtype.STR,
+                      comment="File Path Template for Field Map Phase "
+                              "files\nFor field-map based distortion "
+                              "correction.\nCustom Data Format only.\n\n"
+                              "Place tags for the appropriate data "
+                              "directory levels with the tags {site}, "
+                              "{participant}, and {session}. Only "
+                              "{participant} is required.\n\nExamples:\n"
+                              "/data/{site}/{participant}/{session}/fmap/"
+                              "phase.nii.gz\n/data/{site}/{participant}/"
+                              "{session}/{participant}_{session}_"
+                              "phase.nii.gz",
+                      values="None",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
+
+        self.page.add(label="(Optional) Field Map Magnitude File Path Template ",
+                      control=control.TEXT_BOX,
+                      name="fieldMapMagnitude",
+                      type=dtype.STR,
+                      comment="File Path Template for Field Map Magnitude "
+                              "files\nFor field-map based distortion "
+                              "correction.\nCustom Data Format only.\n\n"
+                              "Place tags for the appropriate data "
+                              "directory levels with the tags {site}, "
+                              "{participant}, and {session}. Only"
+                              "{participant} is required.\n\nExamples:\n"
+                              "/data/{site}/{participant}/{session}/fmap/"
+                              "magnitude.nii.gz\n/data/{site}/{participant}/"
+                              "{session}/{participant}_{session}_"
+                              "magnitude.nii.gz",
+                      values="None",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
 
         self.page.add(label="(Optional) Include: Subjects ",
                  control=control.COMBO_BOX, 
@@ -362,11 +400,13 @@ class DataConfig(wx.Frame):
             raise ValueError
 
         key_order = ['dataFormat', 'bidsBaseDir', 'anatomicalTemplate',
-                     'functionalTemplate', 'scanParametersCSV',
-                     'awsCredentialsFile', 'outputSubjectListLocation',
-                     'subjectListName', 'subjectList', 'exclusionSubjectList',
-                     'siteList', 'exclusionSiteList', 'sessionList',
-                     'exclusionSessionList', 'scanList', 'exclusionScanList']
+                     'functionalTemplate', 'outputSubjectListLocation',
+                     'subjectListName', 'awsCredentialsFile',
+                     'scanParametersCSV', 'fieldMapPhase',
+                     'fieldMapMagnitude', 'subjectList',
+                     'exclusionSubjectList', 'siteList', 'exclusionSiteList',
+                     'sessionList', 'exclusionSessionList', 'scanList',
+                     'exclusionScanList']
 
         path_fields = ['scanParametersCSV', 'awsCredentialsFile',
                        'outputSubjectListLocation']
@@ -388,10 +428,6 @@ class DataConfig(wx.Frame):
                                     name != "anatomicalTemplate" and \
                                     name != "functionalTemplate":
                         display(win,"%s field must contain some text!"%ctrl.get_name())
-                            
-                if 'Template' in name:
-                    if value.startswith('%s'):
-                        display(win, "Template cannot start with %s")
 
                 if name in path_fields:
                     if "s3://" not in value and len(value) > 0 and \
