@@ -12,6 +12,8 @@ def gather_file_paths(base_directory, verbose=False):
     #   - proper data directory
     #   - empty directory
 
+    # TODO: this is not being used by the data config builder- do we need?
+
     import os
 
     path_list = []
@@ -27,7 +29,7 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
-def pull_s3_sublist(data_folder, creds_path=None):
+def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
 
     import os
     from indi_aws import fetch_creds
@@ -50,7 +52,19 @@ def pull_s3_sublist(data_folder, creds_path=None):
 
     # Build S3-subjects to download
     for bk in bucket.objects.filter(Prefix=bucket_prefix):
-        s3_list.append(str(bk.key).replace(bucket_prefix,""))
+        if keep_prefix:
+            fullpath = os.path.join("s3://", bucket_name, str(bk.key))
+            s3_list.append(fullpath)
+        else:
+            s3_list.append(str(bk.key).replace(bucket_prefix, ""))
+
+    print "Finished pulling from S3. " \
+          "{0} file paths found.".format(len(s3_list))
+
+    if not s3_list:
+        err = "\n\n[!] No input data found matching your data settings in " \
+              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        raise Exception(err)
 
     return s3_list
 
@@ -161,6 +175,8 @@ def extract_scan_params_csv(scan_params_csv):
 
 def extract_scan_params_json(scan_params_json):
 
+    # TODO: this is never used in data config builder- do we/will we need it?
+
     import json
 
     with open(scan_params_json, "r") as f:
@@ -206,8 +222,8 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     return incl_dct
 
 
-def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
-                      exclusion_dct=None):
+def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
+                      inclusion_dct=None, exclusion_dct=None):
 
     import os
     import glob
@@ -245,9 +261,32 @@ def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
-    site_jsons = glob.glob(os.path.join(bids_base_dir, "*.json"))
-    sub_jsons = glob.glob(os.path.join(bids_base_dir, "sub-*/*.json"))
-    ses_jsons = glob.glob(os.path.join(bids_base_dir, "sub-*/ses-*/*.json"))
+    site_jsons_glob = os.path.join(bids_base_dir, "*bold.json")
+    sub_jsons_glob = os.path.join(bids_base_dir, "sub-*/*bold.json")
+    ses_jsons_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*bold.json")
+
+    if file_list:
+        import fnmatch
+        ses = False
+        site_jsons = []
+        sub_jsons = []
+        ses_jsons = []
+        for filepath in file_list:
+            if fnmatch.fnmatch(filepath, sess_glob):
+                ses = True
+            if fnmatch.fnmatch(filepath, site_jsons_glob):
+                site_jsons.append(filepath)
+            if fnmatch.fnmatch(filepath, sub_jsons_glob):
+                sub_jsons.append(filepath)
+            if fnmatch.fnmatch(filepath, ses_jsons_glob):
+                ses_jsons.append(filepath)
+    else:
+        ses = False
+        if len(glob.glob(sess_glob)) > 0:
+            ses = True
+        site_jsons = glob.glob(site_jsons_glob)
+        sub_jsons = glob.glob(sub_jsons_glob)
+        ses_jsons = glob.glob(ses_jsons_glob)
 
     # setting site level to "All" because in BIDS datasets, it is either
     # assumed that the dataset is from one site, or that site information is
@@ -291,7 +330,10 @@ def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
         if len(site_jsons) > 1:
             # TODO: find out site-level naming convention for scan param JSONs
             # TODO: improve this message (if it is necessary)
-            print "More than one dataset-level JSON file!!!"
+            print "\nMore than one dataset-level JSON file!!!"
+            for json in site_jsons:
+                print "...{0}".format(json)
+            print "\n"
         else:
             if "All" not in scan_params_dct.keys():
                 scan_params_dct["All"] = {}
@@ -301,9 +343,10 @@ def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
             for json_file in site_jsons:
                 scan_params_dct["All"]["All"]["All"] = json_file
 
-    if len(glob.glob(sess_glob)) > 0:
+    if ses:
         # if there is a session level in the BIDS dataset
-        data_dct = get_nonBIDS_data(anat_sess, func_sess, scan_params_dct,
+        data_dct = get_nonBIDS_data(anat_sess, func_sess, file_list=file_list,
+                                    scan_params_dct=scan_params_dct,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
                                     aws_creds_path=aws_creds_path,
@@ -311,7 +354,8 @@ def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
                                     exclusion_dct=exclusion_dct)
     else:
         # no session level
-        data_dct = get_nonBIDS_data(anat, func, scan_params_dct,
+        data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
+                                    scan_params_dct=scan_params_dct,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
                                     aws_creds_path=aws_creds_path,
@@ -321,10 +365,10 @@ def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
     return data_dct
 
 
-def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
-                     fmap_phase_template=None, fmap_mag_template=None,
-                     aws_creds_path=None, inclusion_dct=None,
-                     exclusion_dct=None):
+def get_nonBIDS_data(anat_template, func_template, file_list=None,
+                     scan_params_dct=None, fmap_phase_template=None,
+                     fmap_mag_template=None, aws_creds_path=None,
+                     inclusion_dct=None, exclusion_dct=None, verbose=False):
 
     # go over the file paths, validate for nifti's?
     # work with the template
@@ -339,6 +383,7 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
     import os
     import glob
+    import fnmatch
 
     # should have the {participant} label at the very least
     if '{participant}' not in anat_template:
@@ -377,8 +422,18 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
     # presumably, the paths contained in each of these pools should be anat
     # and func files only, respectively, if the templates were set up properly
-    anat_pool = glob.glob(anat_glob)
-    func_pool = glob.glob(func_glob)
+    if file_list:
+        # mainly for AWS S3-stored data sets
+        anat_pool = []
+        func_pool = []
+        for filepath in file_list:
+            if fnmatch.fnmatch(filepath, anat_glob):
+                anat_pool.append(filepath)
+            elif fnmatch.fnmatch(filepath, func_glob):
+                func_pool.append(filepath)
+    else:
+        anat_pool = glob.glob(anat_glob)
+        func_pool = glob.glob(func_glob)
 
     data_dct = {}
 
@@ -655,13 +710,21 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
         if scan_params:
             temp_func_dct.update({'scan_parameters': scan_params})
 
-        #TODO: fill these
         if site_id not in data_dct.keys():
-            print "error"
+            if verbose:
+                print "No anatomical for functional for site:" \
+                      "\n{0}\n{1}\n".format(func_path, site_id)
+            continue
         if sub_id not in data_dct[site_id].keys():
-            print "error"
+            if verbose:
+                print "No anatomical for functional for participant:" \
+                      "\n{0}\n{1}\n".format(func_path, sub_id)
+            continue
         if ses_id not in data_dct[site_id][sub_id].keys():
-            print "error"
+            if verbose:
+                print "No anatomical for functional for session:" \
+                      "\n{0}\n{1}\n".format(func_path, ses_id)
+            continue
 
         if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
             data_dct[site_id][sub_id][ses_id]['func'] = temp_func_dct
@@ -690,8 +753,18 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
         # presumably, the paths contained in each of these pools should be
         # field map files only, if the templates were set up properly
-        fmap_phase_pool = glob.glob(fmap_phase_glob)
-        fmap_mag_pool = glob.glob(fmap_mag_glob)
+        if file_list:
+            # mainly for AWS S3-stored data sets
+            fmap_phase_pool = []
+            fmap_mag_pool = []
+            for filepath in file_list:
+                if fnmatch.fnmatch(filepath, fmap_phase_glob):
+                    fmap_phase_pool.append(filepath)
+                elif fnmatch.fnmatch(filepath, fmap_mag_glob):
+                    fmap_mag_pool.append(filepath)
+        else:
+            fmap_phase_pool = glob.glob(fmap_phase_glob)
+            fmap_mag_pool = glob.glob(fmap_mag_glob)
 
         for fmap_phase in fmap_phase_pool:
 
@@ -771,12 +844,21 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             temp_fmap_dct = {"phase": fmap_phase}
 
-            # TODO: fill these
             if site_id not in data_dct.keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "site:\n{0}\n{1}\n".format(fmap_phase, site_id)
                 continue
             if sub_id not in data_dct[site_id].keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "participant:" \
+                          "\n{0}\n{1}\n".format(fmap_phase, sub_id)
                 continue
             if ses_id not in data_dct[site_id][sub_id].keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "session:\n{0}\n{1}\n".format(fmap_phase, ses_id)
                 continue
 
             if scan_id:
@@ -870,12 +952,21 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             temp_fmap_dct = {"magnitude": fmap_mag}
 
-            # TODO: fill these
             if site_id not in data_dct.keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "site:\n{0}\n{1}\n".format(fmap_mag, site_id)
                 continue
             if sub_id not in data_dct[site_id].keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "participant:" \
+                          "\n{0}\n{1}\n".format(fmap_mag, sub_id)
                 continue
             if ses_id not in data_dct[site_id][sub_id].keys():
+                if verbose:
+                    print "Missing inputs (no anat/func) for field map for " \
+                          "session:\n{0}\n{1}\n".format(fmap_mag, ses_id)
                 continue
 
             # TODO: reintroduce once scan-level nesting is implemented
@@ -915,6 +1006,9 @@ def run(data_settings_yml):
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
 
+    if "None" in settings_dct["awsCredentialsFile"]:
+        settings_dct["awsCredentialsFile"] = None
+
     incl_dct = format_incl_excl_dct(settings_dct['siteList'],
                                     settings_dct['subjectList'],
                                     settings_dct['sessionList'],
@@ -927,26 +1021,47 @@ def run(data_settings_yml):
 
     if 'BIDS' in settings_dct['dataFormat'] or \
             'bids' in settings_dct['dataFormat']:
-        # local (not on AWS S3 bucket), BIDS files
 
-        #TODO: scan params
-
-        if "s3://" not in settings_dct['bidsBaseDir']:
+        if "s3://" in settings_dct['bidsBaseDir']:
+            # hosted on AWS S3 bucket
+            file_list = pull_s3_sublist(settings_dct['bidsBaseDir'],
+                                        settings_dct['awsCredentialsFile'])
+        else:
+            # local (not on AWS S3 bucket), BIDS files
             if not os.path.isdir(settings_dct['bidsBaseDir']):
                 err = "\n[!] The BIDS base directory you provided does not " \
                       "exist:\n{0}\n\n".format(settings_dct['bidsBaseDir'])
                 raise Exception(err)
-
-        params_dct = None
+            file_list = None
 
         data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
+                                     file_list=file_list,
                                      aws_creds_path=settings_dct['awsCredentialsFile'],
                                      inclusion_dct=incl_dct,
                                      exclusion_dct=excl_dct)
 
     elif 'Custom' in settings_dct['dataFormat'] or \
             'custom' in settings_dct['dataFormat']:
-        # local (not on AWS S3 bucket), non-BIDS files
+
+        # keep as None if local data set (not on AWS S3 bucket)
+        file_list = None
+
+        if "s3://" in settings_dct["anatomicalTemplate"] and "s3://" in settings_dct["functionalTemplate"]:
+            # hosted on AWS S3 bucket
+
+            if '{site}' in settings_dct["anatomicalTemplate"]:
+                base_dir = \
+                    settings_dct["anatomicalTemplate"].split('{site}')[0]
+            elif '{participant}' in settings_dct["anatomicalTemplate"]:
+                base_dir = \
+                    settings_dct["anatomicalTemplate"].split('{participant}')[0]
+
+            file_list = pull_s3_sublist(base_dir,
+                                        settings_dct['awsCredentialsFile'])
+
+        else:
+            # TODO: message about everything being on S3
+            raise Exception
 
         params_dct = None
         if settings_dct['scanParametersCSV']:
@@ -956,27 +1071,33 @@ def run(data_settings_yml):
 
         data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
                                     settings_dct['functionalTemplate'],
-                                    params_dct,
-                                    settings_dct['fieldMapPhase'],
-                                    settings_dct['fieldMapMagnitude'],
-                                    settings_dct['awsCredentialsFile'],
-                                    incl_dct, excl_dct)
+                                    file_list=file_list,
+                                    scan_params_dct=params_dct,
+                                    fmap_phase_template=settings_dct['fieldMapPhase'],
+                                    fmap_mag_template=settings_dct['fieldMapMagnitude'],
+                                    aws_creds_path=settings_dct['awsCredentialsFile'],
+                                    inclusion_dct=incl_dct,
+                                    exclusion_dct=excl_dct)
 
-    #TODO: check data_dct for emptiness!
-
-    # get some data
-    num_sites = len(data_dct.keys())
-    num_subs = num_sess = num_scan = 0
-    for site in data_dct.keys():
-        num_subs += len(data_dct[site])
-        for sub in data_dct[site].keys():
-            num_sess += len(data_dct[site][sub])
-            for session in data_dct[site][sub].keys():
-                for scan in data_dct[site][sub][session]['func'].keys():
-                    if scan != "scan_parameters":
-                        num_scan += 1
+    else:
+        # TODO: no needed settings defined message
+        raise Exception
 
     if len(data_dct) > 0:
+
+        # get some data
+        num_sites = len(data_dct.keys())
+        num_subs = num_sess = num_scan = 0
+        for site in data_dct.keys():
+            num_subs += len(data_dct[site])
+            for sub in data_dct[site].keys():
+                num_sess += len(data_dct[site][sub])
+                for session in data_dct[site][sub].keys():
+                    if 'func' in data_dct[site][sub][session].keys():
+                        for scan in data_dct[site][sub][session]['func'].keys():
+                            if scan != "scan_parameters":
+                                num_scan += 1
+
         data_config_outfile = \
             os.path.join(settings_dct['outputSubjectListLocation'],
                          "data_config_{0}.yml"
@@ -1013,8 +1134,9 @@ def run(data_settings_yml):
             print "...functional scans: {0}\n".format(num_scan)
 
     else:
-        #TODO: fill this
-        print "error nothing found"
+        # TODO: fill this
+        err = "\n\nerror nothing found\n\n"
+        raise Exception(err)
 
 
 
