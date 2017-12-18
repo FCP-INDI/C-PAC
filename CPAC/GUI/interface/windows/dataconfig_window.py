@@ -184,7 +184,11 @@ class DataConfig(wx.Frame):
                            "participants in this box (e.g., sub101, sub102) "
                            "or provide the path to a text file with one "
                            "participant ID on each line.\n\nIf 'None' is "
-                           "specified, CPAC will include all participants.",
+                           "specified, CPAC will include all participants."
+                           "\n\nNote: for BIDS datasets, only list the ID "
+                           "value that comes after the label tag. For "
+                           "example, list '5001' to include what is labeled "
+                           "as 'sub-5001'.",
                  values = "None")
         
         self.page.add(label="(Optional) Exclude: Subjects ",

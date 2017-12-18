@@ -1432,7 +1432,7 @@ def check(subject_map, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
+def get_scan_params(subject_id, scan, subject_map, start_indx, stop_indx, tr,
                     tpattern):
     """
     Method to extract slice timing correction parameters
@@ -1440,7 +1440,7 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
 
     Parameters
     ----------
-    subject: a string
+    subject_id: a string
         subject id
     scan : a string
         scan id
@@ -1475,18 +1475,33 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
     last_tr = ''
     unit = 's'
 
-    if 'scan_parameters' in subject_map.keys():
-        if len(subject_map['scan_parameters']) > 0:
-            # get details from the configuration
-            TR = float(check(subject_map, subject, scan, 'tr', False))
-            pattern = str(check(subject_map, subject, scan, 'acquisition',
+    if 'scan_parameters' in subject_map['func'].keys():
+        
+        if ".json" in subject_map["func"]["scan_parameters"]:
+
+            if not os.path.exists(subject_map["func"]["scan_parameters"]):
+                # TODO: better handling of this
+                err = "[!] WARNING: Scan parameters JSON file listed in " \
+                      "your data configuration file does not exist:\n{0}" \
+                      "\n\n".format(subject_map["func"]["scan_parameters"])
+                print(err)
+
+            with open(subject_map["func"]["scan_parameters"], "r") as f:
+                params_dct = json.load(f)
+
+        elif len(subject_map['func']['scan_parameters']) > 0:
+            params_dct = subject_map["func"]["scan_parameters"]
+
+        # get details from the configuration
+        TR = float(check(params_dct, subject_id, scan, 'tr', False))
+        pattern = str(check(params_dct, subject_id, scan, 'acquisition',
+                            False))
+        ref_slice = int(check(params_dct, subject_id, scan, 'reference',
+                              False))
+        first_tr = check2(check(params_dct, subject_id, scan, 'first_tr',
                                 False))
-            ref_slice = int(check(subject_map, subject, scan, 'reference',
-                                  False))
-            first_tr = check2(check(subject_map, subject, scan, 'first_tr',
-                                    False))
-            last_tr = check2(check(subject_map, subject, scan, 'last_tr',
-                                   False))
+        last_tr = check2(check(params_dct, subject_id, scan, 'last_tr',
+                               False))
 
     # if values are still empty, override with GUI config
     if TR == '':
@@ -1556,8 +1571,8 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
             unit = 's'
 
     print("scan_parameters -> {0} {1} {2} {3} {4} "
-          "{5} {6}".format(subject, scan, str(TR) + unit, pattern, ref_slice,
-                           first_tr, last_tr))
+          "{5} {6}".format(subject_id, scan, str(TR) + unit, pattern,
+                           ref_slice, first_tr, last_tr))
 
     tr = "{0}{1}".format(str(TR), unit)
     tpattern = pattern

@@ -1103,12 +1103,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         Add in nodes to get parameters from configuration file
         """
 
-        scan_imports = ['import os', 'import warnings',
+        scan_imports = ['import os', 'import json', 'import warnings',
                         'from CPAC.utils import check']
 
         try:
             # a node which checks if scan_parameters are present for each scan
-            scan_params = pe.Node(util.Function(input_names=['subject',
+            scan_params = pe.Node(util.Function(input_names=['subject_id',
                                                              'scan',
                                                              'subject_map',
                                                              'start_indx',
@@ -1155,9 +1155,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # wire in the scan parameter workflow
         try:
             workflow.connect(funcFlow, 'outputspec.subject',
-                             scan_params, 'subject')
+                             scan_params, 'subject_id')
         except Exception as xxx:
-            logger.info("Error connecting scan_params 'subject' input." + \
+            logger.info("Error connecting scan_params 'subject_id' input." + \
                         " (%s:%d)" % dbg_file_lineno())
             raise
 

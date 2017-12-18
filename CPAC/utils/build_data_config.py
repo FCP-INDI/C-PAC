@@ -55,7 +55,7 @@ def pull_s3_sublist(data_folder, creds_path=None):
     return s3_list
 
 
-def extract_scan_params(scan_params_csv):
+def extract_scan_params_csv(scan_params_csv):
     """
     Function to extract the site-based scan parameters from a csv file
     and return a dictionary of their values
@@ -92,45 +92,81 @@ def extract_scan_params(scan_params_csv):
         else:
             site = dict_row['Site']
 
+        sub = "All"
+        if "Participant" in dict_row.keys():
+            if dict_row["Participant"] not in placeholders:
+                sub = dict_row["Participant"]
+
         ses = 'All'
         if 'Session' in dict_row.keys():
             if dict_row['Session'] not in placeholders:
                 ses = dict_row['Session']
 
         if ses != 'All':
-            # for scan-specific scan parameters (less common)
-            if site in site_dict.keys():
-                site_dict[site][ses] = {key.lower(): val
-                                        for key, val in dict_row.items()
-                                        if key != 'Site' and key != 'Session'}
-            else:
-                site_dict[site] = {ses: {key.lower(): val
+            # for session-specific scan parameters
+            if site not in site_dict.keys():
+                site_dict[site] = {}
+            if sub not in site_dict[site].keys():
+                site_dict[site][sub] = {}
+
+            site_dict[site][sub][ses] = {key.lower(): val
                                          for key, val in dict_row.items()
-                                         if key != 'Site' and key != 'Session'}}
+                                         if key != 'Site' and
+                                         key != 'Participant' and
+                                         key != 'Session'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][ses]['tr'] = \
-                site_dict[site][ses].pop('tr (seconds)')
+            site_dict[site][sub][ses]['tr'] = \
+                site_dict[site][sub][ses].pop('tr (seconds)')
+
+        elif sub != "All":
+            # participant-specific scan parameters
+            if site not in site_dict.keys():
+                site_dict[site] = {}
+            if sub not in site_dict[site].keys():
+                site_dict[site][sub] = {}
+
+            site_dict[site][sub][ses] = {key.lower(): val
+                                         for key, val in dict_row.items()
+                                         if key != 'Site' and
+                                         key != 'Participant' and
+                                         key != 'Session'}
+
+            # Assumes all other fields are formatted properly, but TR might
+            # not be
+            site_dict[site][sub][ses]['tr'] = site_dict[site][sub][ses].pop('tr (seconds)')
 
         else:
-            # site-specific scan parameters only (more common)
+            # site-specific scan parameters only
             if site not in site_dict.keys():
-                site_dict[site] = \
-                    {ses: {key.lower(): val for key, val in dict_row.items()
-                           if key != 'Site' and key != 'Session'}}
-            else:
-                site_dict[site][ses] = \
-                {key.lower(): val for key, val in dict_row.items()
-                 if key != 'Site' and key != 'Session'}
+                site_dict[site] = {}
+            if sub not in site_dict[site].keys():
+                site_dict[site][sub] = {}
+
+            site_dict[site][sub][ses] = {key.lower(): val
+                                         for key, val in dict_row.items()
+                                         if key != 'Site' and
+                                         key != 'Participant' and
+                                         key != 'Session'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][ses]['tr'] = \
-                site_dict[site][ses].pop('tr (seconds)')
+            site_dict[site][sub][ses]['tr'] = \
+                site_dict[site][sub][ses].pop('tr (seconds)')
 
     # Return site dictionary
     return site_dict
+
+
+def extract_scan_params_json(scan_params_json):
+
+    import json
+
+    with open(scan_params_json, "r") as f:
+        params_dct = json.load(f)
+
+    return params_dct
 
 
 def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
@@ -170,6 +206,121 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     return incl_dct
 
 
+def get_BIDS_data_dct(bids_base_dir, aws_creds_path=None, inclusion_dct=None,
+                      exclusion_dct=None):
+
+    import os
+    import glob
+
+    anat_sess = os.path.join(bids_base_dir,
+                             "sub-{participant}/ses-{session}/anat/sub-"
+                             "{participant}_ses-{session}_T1w.nii.gz")
+    anat = os.path.join(bids_base_dir,
+                        "sub-{participant}/anat/sub-{participant}_ses-"
+                        "{session}_T1w.nii.gz")
+
+    func_sess = os.path.join(bids_base_dir,
+                             "sub-{participant}/ses-{session}/func/sub-"
+                             "{participant}_ses-{session}_task-{scan}_"
+                             "bold.nii.gz")
+    func = os.path.join(bids_base_dir,
+                        "sub-{participant}/func/sub-{participant}_task-"
+                        "{scan}_bold.nii.gz")
+
+    fmap_phase_sess = os.path.join(bids_base_dir,
+                                   "sub-{participant}/ses-{session}/fmap/"
+                                   "sub-{participant}_ses-{session}_phase"
+                                   "diff.nii.gz")
+    fmap_phase = os.path.join(bids_base_dir,
+                              "sub-{participant}/fmap/sub-{participant}"
+                              "_phasediff.nii.gz")
+
+    fmap_mag_sess = os.path.join(bids_base_dir,
+                                 "sub-{participant}/ses-{session}/fmap/"
+                                 "sub-{participant}_ses-{session}_"
+                                 "magnitude1.nii.gz")
+    fmap_mag = os.path.join(bids_base_dir,
+                            "sub-{participant}/fmap/sub-{participant}"
+                            "_magnitude1.nii.gz")
+
+    sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
+
+    site_jsons = glob.glob(os.path.join(bids_base_dir, "*.json"))
+    sub_jsons = glob.glob(os.path.join(bids_base_dir, "sub-*/*.json"))
+    ses_jsons = glob.glob(os.path.join(bids_base_dir, "sub-*/ses-*/*.json"))
+
+    # setting site level to "All" because in BIDS datasets, it is either
+    # assumed that the dataset is from one site, or that site information is
+    # encoded in a separate file
+    # TODO: if site information is ever encoded into the JSON scan parameter
+    # TODO: file name, this must be implemented here
+
+    scan_params_dct = {}
+
+    if len(ses_jsons) > 0:
+        for json_file in ses_jsons:
+            ids = os.path.basename(json_file).rstrip(".json").split("_")
+            for id in ids:
+                if "sub-" in id:
+                    sub_id = id.replace("sub-", "")
+                if "ses-" in id:
+                    ses_id = id.replace("ses-", "")
+
+            if "All" not in scan_params_dct.keys():
+                scan_params_dct["All"] = {}
+            if sub_id not in scan_params_dct["All"].keys():
+                scan_params_dct["All"][sub_id] = {}
+
+            scan_params_dct["All"][sub_id][ses_id] = json_file
+
+    if len(sub_jsons) > 0:
+        for json_file in sub_jsons:
+            ids = os.path.basename(json_file).rstrip(".json").split("_")
+            for id in ids:
+                if "sub-" in id:
+                    sub_id = id.replace("sub-", "")
+
+            if "All" not in scan_params_dct.keys():
+                scan_params_dct["All"] = {}
+            if sub_id not in scan_params_dct["All"].keys():
+                scan_params_dct["All"][sub_id] = {}
+
+            scan_params_dct["All"][sub_id]["All"] = json_file
+
+    if len(site_jsons) > 0:
+        if len(site_jsons) > 1:
+            # TODO: find out site-level naming convention for scan param JSONs
+            # TODO: improve this message (if it is necessary)
+            print "More than one dataset-level JSON file!!!"
+        else:
+            if "All" not in scan_params_dct.keys():
+                scan_params_dct["All"] = {}
+            if "All" not in scan_params_dct["All"].keys():
+                scan_params_dct["All"]["All"] = {}
+
+            for json_file in site_jsons:
+                scan_params_dct["All"]["All"]["All"] = json_file
+
+    if len(glob.glob(sess_glob)) > 0:
+        # if there is a session level in the BIDS dataset
+        data_dct = get_nonBIDS_data(anat_sess, func_sess, scan_params_dct,
+                                    fmap_phase_template=fmap_phase_sess,
+                                    fmap_mag_template=fmap_mag_sess,
+                                    aws_creds_path=aws_creds_path,
+                                    inclusion_dct=inclusion_dct,
+                                    exclusion_dct=exclusion_dct)
+    else:
+        # no session level
+        data_dct = get_nonBIDS_data(anat, func, scan_params_dct,
+                                    fmap_phase_template=fmap_phase,
+                                    fmap_mag_template=fmap_mag,
+                                    aws_creds_path=aws_creds_path,
+                                    inclusion_dct=inclusion_dct,
+                                    exclusion_dct=exclusion_dct)
+
+    return data_dct
+
+
 def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
                      fmap_phase_template=None, fmap_mag_template=None,
                      aws_creds_path=None, inclusion_dct=None,
@@ -186,6 +337,7 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
     #   - throw error/warning if anat and func templates are identical
     #   - all permutations of scan parameters json/csv's at different levels
 
+    import os
     import glob
 
     # should have the {participant} label at the very least
@@ -454,22 +606,51 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
         temp_func_dct = {scan_id: func_path}
 
+        # scan parameters time
         scan_params = None
+
         if scan_params_dct:
+
+            #TODO: implement scan-specific level once scan-level nesting is
+            #TODO: available
+
             if site_id in scan_params_dct.keys():
-                if ses_id in scan_params_dct[site_id].keys():
-                    # site-specific and session-specific scan params
-                    scan_params = scan_params_dct[site_id][ses_id]
-                elif 'All' in scan_params_dct[site_id].keys():
-                    # site-specific scan params, same across all sessions
-                    scan_params = scan_params_dct[site_id]['All']
-            elif 'All' in scan_params_dct.keys():
-                if ses_id in scan_params_dct['All'].keys():
-                    # session-specific scan params, same across all sites
-                    scan_params = scan_params_dct['All'][ses_id]
-                elif 'All' in scan_params_dct['All'].keys():
-                    # same scan params across all sites and sessions
-                    scan_params = scan_params_dct['All']['All']
+                if sub_id in scan_params_dct[site_id].keys():
+                    if ses_id in scan_params_dct[site_id][sub_id].keys():
+                        # site, sub, session specific scan params
+                        scan_params = scan_params_dct[site_id][sub_id][ses_id]
+                    elif 'All' in scan_params_dct[site_id][sub_id].keys():
+                        # site and sub specific scan params, same across all
+                        # sessions
+                        scan_params = scan_params_dct[site_id][sub_id]['All']
+                    elif "All" in scan_params_dct[site_id].keys():
+                        if ses_id in scan_params_dct[site_id]["All"].keys():
+                            # site and session specific scan params, same
+                            # across all subs
+                            scan_params = scan_params_dct[site_id]["All"][ses_id]
+                        elif "All" in scan_params_dct[site_id]["All"].keys():
+                            # site specific scan params, same across all subs
+                            # and sessions
+                            scan_params = scan_params_dct[site_id]["All"]["All"]
+
+            elif "All" in scan_params_dct.keys():
+                if sub_id in scan_params_dct["All"].keys():
+                    if ses_id in scan_params_dct["All"][sub_id].keys():
+                        # sub and session specific scan params, same across
+                        # all sites
+                        scan_params = scan_params_dct["All"][sub_id][ses_id]
+                    elif "All" in scan_params_dct["All"][sub_id].keys():
+                        # sub specific scan params, same across all sites and
+                        # sessions
+                        scan_params = scan_params_dct["All"][sub_id]["All"]
+                elif "All" in scan_params_dct["All"].keys():
+                    if ses_id in scan_params_dct["All"]["All"].keys():
+                        # session-specific scan params, same across all sites
+                        # and subs
+                        scan_params = scan_params_dct["All"]["All"][ses_id]
+                    elif "All" in scan_params_dct["All"]["All"].keys():
+                        # same scan params across all sites and sessions
+                        scan_params = scan_params_dct["All"]["All"]["All"]
 
         if scan_params:
             temp_func_dct.update({'scan_parameters': scan_params})
@@ -737,25 +918,44 @@ def run(data_settings_yml):
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
 
-    # local (not on AWS S3 bucket), non-BIDS files
-    if 'Custom' in settings_dct['dataFormat'] or \
+    incl_dct = format_incl_excl_dct(settings_dct['siteList'],
+                                    settings_dct['subjectList'],
+                                    settings_dct['sessionList'],
+                                    settings_dct['scanList'])
+
+    excl_dct = format_incl_excl_dct(settings_dct['exclusionSiteList'],
+                                    settings_dct['exclusionSubjectList'],
+                                    settings_dct['exclusionSessionList'],
+                                    settings_dct['exclusionScanList'])
+
+    if 'BIDS' in settings_dct['dataFormat'] or \
+            'bids' in settings_dct['dataFormat']:
+        # local (not on AWS S3 bucket), BIDS files
+
+        #TODO: scan params
+
+        if "s3://" not in settings_dct['bidsBaseDir']:
+            if not os.path.isdir(settings_dct['bidsBaseDir']):
+                err = "\n[!] The BIDS base directory you provided does not " \
+                      "exist:\n{0}\n\n".format(settings_dct['bidsBaseDir'])
+                raise Exception(err)
+
+        params_dct = None
+
+        data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
+                                     aws_creds_path=settings_dct['awsCredentialsFile'],
+                                     inclusion_dct=incl_dct,
+                                     exclusion_dct=excl_dct)
+
+    elif 'Custom' in settings_dct['dataFormat'] or \
             'custom' in settings_dct['dataFormat']:
+        # local (not on AWS S3 bucket), non-BIDS files
 
         params_dct = None
         if settings_dct['scanParametersCSV']:
             if '.csv' in settings_dct['scanParametersCSV']:
                 params_dct = \
-                    extract_scan_params(settings_dct['scanParametersCSV'])
-
-        incl_dct = format_incl_excl_dct(settings_dct['siteList'],
-                                        settings_dct['subjectList'],
-                                        settings_dct['sessionList'],
-                                        settings_dct['scanList'])
-
-        excl_dct = format_incl_excl_dct(settings_dct['exclusionSiteList'],
-                                        settings_dct['exclusionSubjectList'],
-                                        settings_dct['exclusionSessionList'],
-                                        settings_dct['exclusionScanList'])
+                    extract_scan_params_csv(settings_dct['scanParametersCSV'])
 
         data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
                                     settings_dct['functionalTemplate'],
@@ -765,57 +965,59 @@ def run(data_settings_yml):
                                     settings_dct['awsCredentialsFile'],
                                     incl_dct, excl_dct)
 
-        # get some data
-        num_sites = len(data_dct.keys())
-        num_subs = num_sess = num_scan = 0
-        for site in data_dct.keys():
-            num_subs += len(data_dct[site])
-            for sub in data_dct[site].keys():
-                num_sess += len(data_dct[site][sub])
-                for session in data_dct[site][sub].keys():
-                    for scan in data_dct[site][sub][session]['func'].keys():
-                        if scan != "scan_parameters":
-                            num_scan += 1
+    #TODO: check data_dct for emptiness!
 
-        if len(data_dct) > 0:
-            data_config_outfile = \
-                os.path.join(settings_dct['outputSubjectListLocation'],
-                             "data_config_{0}.yml"
-                             "".format(settings_dct['subjectListName']))
+    # get some data
+    num_sites = len(data_dct.keys())
+    num_subs = num_sess = num_scan = 0
+    for site in data_dct.keys():
+        num_subs += len(data_dct[site])
+        for sub in data_dct[site].keys():
+            num_sess += len(data_dct[site][sub])
+            for session in data_dct[site][sub].keys():
+                for scan in data_dct[site][sub][session]['func'].keys():
+                    if scan != "scan_parameters":
+                        num_scan += 1
 
-            # put data_dct contents in an ordered list for the YAML dump
-            data_list = []
-            for site in sorted(data_dct.keys()):
-                for sub in sorted(data_dct[site].keys()):
-                    for ses in sorted(data_dct[site][sub].keys()):
-                        data_list.append(data_dct[site][sub][ses])
+    if len(data_dct) > 0:
+        data_config_outfile = \
+            os.path.join(settings_dct['outputSubjectListLocation'],
+                         "data_config_{0}.yml"
+                         "".format(settings_dct['subjectListName']))
 
-            with open(data_config_outfile, "wt") as f:
-                # Make sure YAML doesn't dump aliases (so it's more human
-                # read-able)
-                f.write("# CPAC Data Configuration File\n# Version 1.0.3\n")
-                f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
-                        "# Tip: This file can be edited manually with "
-                        "a text editor for quick modifications.\n\n")
-                noalias_dumper = yaml.dumper.SafeDumper
-                noalias_dumper.ignore_aliases = lambda self, data: True
-                f.write(yaml.dump(data_list, default_flow_style=False,
-                                  Dumper=noalias_dumper))
+        # put data_dct contents in an ordered list for the YAML dump
+        data_list = []
+        for site in sorted(data_dct.keys()):
+            for sub in sorted(data_dct[site].keys()):
+                for ses in sorted(data_dct[site][sub].keys()):
+                    data_list.append(data_dct[site][sub][ses])
 
-            if os.path.exists(data_config_outfile):
-                print "\nCPAC DATA SETTINGS file entered:" \
-                      "\n{0}".format(data_settings_yml)
-                print "\nCPAC DATA CONFIGURATION file created:" \
-                      "\n{0}\n".format(data_config_outfile)
-                print "Number of:"
-                print "...sites: {0}".format(num_sites)
-                print "...participants: {0}".format(num_subs)
-                print "...participant-sessions: {0}".format(num_sess)
-                print "...functional scans: {0}\n".format(num_scan)
+        with open(data_config_outfile, "wt") as f:
+            # Make sure YAML doesn't dump aliases (so it's more human
+            # read-able)
+            f.write("# CPAC Data Configuration File\n# Version 1.0.3\n")
+            f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
+                    "# Tip: This file can be edited manually with "
+                    "a text editor for quick modifications.\n\n")
+            noalias_dumper = yaml.dumper.SafeDumper
+            noalias_dumper.ignore_aliases = lambda self, data: True
+            f.write(yaml.dump(data_list, default_flow_style=False,
+                              Dumper=noalias_dumper))
 
-        else:
-            #TODO: fill this
-            print "error nothing found"
+        if os.path.exists(data_config_outfile):
+            print "\nCPAC DATA SETTINGS file entered:" \
+                  "\n{0}".format(data_settings_yml)
+            print "\nCPAC DATA CONFIGURATION file created:" \
+                  "\n{0}\n".format(data_config_outfile)
+            print "Number of:"
+            print "...sites: {0}".format(num_sites)
+            print "...participants: {0}".format(num_subs)
+            print "...participant-sessions: {0}".format(num_sess)
+            print "...functional scans: {0}\n".format(num_scan)
+
+    else:
+        #TODO: fill this
+        print "error nothing found"
 
 
 
