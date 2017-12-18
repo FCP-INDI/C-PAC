@@ -1476,7 +1476,7 @@ def get_scan_params(subject_id, scan, subject_map, start_indx, stop_indx, tr,
     unit = 's'
 
     if 'scan_parameters' in subject_map['func'].keys():
-        
+
         if ".json" in subject_map["func"]["scan_parameters"]:
 
             if not os.path.exists(subject_map["func"]["scan_parameters"]):

@@ -177,7 +177,7 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     if isinstance(site_incl_list, str):
         if '.txt' in site_incl_list:
             with open(site_incl_list, 'r') as f:
-                incl_dct['sites'] = [x for x in f.readlines() if x != '']
+                incl_dct['sites'] = [x.rstrip("\n") for x in f.readlines() if x != '']
     elif isinstance(site_incl_list, list):
         incl_dct['sites'] = site_incl_list
 
@@ -192,14 +192,14 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     if isinstance(session_incl_list, str):
         if '.txt' in session_incl_list:
             with open(session_incl_list, 'r') as f:
-                incl_dct['sessions'] = [x for x in f.readlines() if x != '']
+                incl_dct['sessions'] = [x.rstrip("\n") for x in f.readlines() if x != '']
     elif isinstance(session_incl_list, list):
         incl_dct['sessions'] = session_incl_list
 
     if isinstance(scan_incl_list, str):
         if '.txt' in scan_incl_list:
             with open(scan_incl_list, 'r') as f:
-                incl_dct['scans'] = [x for x in f.readlines() if x != '']
+                incl_dct['scans'] = [x.rstrip("\n") for x in f.readlines() if x != '']
     elif isinstance(scan_incl_list, list):
         incl_dct['scans'] = scan_incl_list
 
@@ -773,11 +773,11 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             # TODO: fill these
             if site_id not in data_dct.keys():
-                print "error"
+                continue
             if sub_id not in data_dct[site_id].keys():
-                print "error"
+                continue
             if ses_id not in data_dct[site_id][sub_id].keys():
-                print "error"
+                continue
 
             if scan_id:
                 # if the field map files are at scan level
@@ -872,13 +872,10 @@ def get_nonBIDS_data(anat_template, func_template, scan_params_dct=None,
 
             # TODO: fill these
             if site_id not in data_dct.keys():
-                print "error"
                 continue
             if sub_id not in data_dct[site_id].keys():
-                print "error"
                 continue
             if ses_id not in data_dct[site_id][sub_id].keys():
-                print "error"
                 continue
 
             # TODO: reintroduce once scan-level nesting is implemented
