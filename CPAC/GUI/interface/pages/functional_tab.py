@@ -39,27 +39,27 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                 
                 
         self.page.add(label= "First Timepoint ",
-                 control=control.INT_CTRL, 
-                 name='startIdx', 
-                 type=dtype.NUM, 
-                 comment="First timepoint to include in analysis.\n\nDefault is 0 (beginning of timeseries).", 
-                 values=0)
+                      control=control.INT_CTRL, 
+                      name='startIdx', 
+                      type=dtype.NUM, 
+                      comment="First timepoint to include in analysis.\n\nDefault is 0 (beginning of timeseries).", 
+                      values=0)
         
         self.page.add(label= "Last Timepoint ",
-                 control=control.TEXT_BOX, 
-                 name='stopIdx', 
-                 type=dtype.NUM, 
-                 values= "End",
-                 validator = CharValidator("no-alpha"),
-                 comment="Last timepoint to include in analysis.\n\nDefault is None or End (end of timeseries).")
+                      control=control.TEXT_BOX, 
+                      name='stopIdx', 
+                      type=dtype.NUM, 
+                      values= "End",
+                      validator = CharValidator("no-alpha"),
+                      comment="Last timepoint to include in analysis.\n\nDefault is None or End (end of timeseries).")
         
         self.page.add(label= "TR ",
-                 control=control.TEXT_BOX, 
-                 name='TR', 
-                 type=dtype.NUM, 
-                 values= "None",
-                 validator = CharValidator("no-alpha"),
-                 comment="Specify the TR at which images were acquired.\n\nDefault is None (TR information is read from image file header)")
+                      control=control.TEXT_BOX, 
+                      name='TR', 
+                      type=dtype.NUM, 
+                      values= "None",
+                      validator = CharValidator("no-alpha"),
+                      comment="Specify the TR at which images were acquired.\n\nDefault is None (TR information is read from image file header)")
 
         self.page.add(label="Perform Slice Time Correction:", 
                      control=control.CHOICE_BOX, 
@@ -96,16 +96,16 @@ class EPI_DistCorr(wx.ScrolledWindow):
             fsl = "$FSLDIR"        
                 
         self.page.add(label= "Perform distortion correction with fieldmap correction ",
-                 control=control.CHOICE_BOX, 
-                 name='runEPI_DistCorr', 
-                 type=dtype.LSTR, 
-                 comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
-                 values=["On","Off"],wkf_switch = True)
+                      control=control.CHOICE_BOX, 
+                      name='runEPI_DistCorr', 
+                      type=dtype.LSTR, 
+                      comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS", 
+                      values=["On","Off"],wkf_switch = True)
         
         
         self.page.add(label= "DeltaTE, in ms",
                       control = control.TEXT_BOX,
-                      name='deltaTE_EPI_DIstCorr',
+                      name='deltaTE_EPI_DistCorr',
                       type = dtype.LNUM,
                       comment="Set the Delta-TE value, used for preparing fieldmap,time delay between the first and second echo images.Default value is 2.46 ms",
                       validator = CharValidator("no-alpha"),
@@ -122,7 +122,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
         
         self.page.add(label = "Asymmetric ratio",
                       control = control.TEXT_BOX,
-                      name='AssymetricRatio_EPI_DIstCorr',
+                      name='AssymetricRatio_EPI_DistCorr',
                       type = dtype.LNUM,
                       comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
