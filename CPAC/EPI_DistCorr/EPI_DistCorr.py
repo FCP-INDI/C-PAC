@@ -37,13 +37,13 @@ import nipype.interfaces.utility as util
 def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     preproc = pe.Workflow(name=wf_name)
                           
-    inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag','t1_head','mask']),name = 'inputspec')
+    inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag','t1_head']),name = 'inputspec')
     
-    inputnode_delTE = pe.Node(util.IdentityInterface(fields = ['delTE']), name = 'input_delTE')
+#    inputnode_delTE = pe.Node(util.IdentityInterface(fields = ['delTE']), name = 'input_delTE')
     
-    inputnode_dwellT = pe.Node(util.IdentityInterface(fields = ['dwellTE']), name = 'input_dwellT')
+#    inputnode_dwellT = pe.Node(util.IdentityInterface(fields = ['dwellTE']), name = 'input_dwellT')
     
-    inputnode_asymR = pe.Node(util.IdentityInterface(fields = ['asymR']),name = 'input_asymR')
+#    inputnode_asymR = pe.Node(util.IdentityInterface(fields = ['asymR']),name = 'input_asymR')
     
     outputNode = pe.Node(util.IdentityInterface(fields=['func_file','roi_file','fieldmap','epireg','fmap_despiked','shiftfile']),name='outputspec')
 
@@ -75,7 +75,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(),name='prepare')
     prepare.inputs.output_type = "NIFTI_GZ"
 #    prepare.inputs.delta_TE = 2.46
-    preproc.connect(inputnode_delTE, 'input_delTE', prepare, 'delta_TE')
+    #preproc.connect(inputnode_delTE, 'input_delTE', prepare, 'delta_TE')
     preproc.connect(inputNode,'fmap_pha',prepare,'in_phase')
     preproc.connect(skullstrip,'out_file',prepare,'in_magnitude')
     preproc.connect(prepare,'out_fieldmap',outputNode,'fieldmap')
@@ -84,10 +84,10 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     fugue1.inputs.save_fmap=True
     fugue1.inputs.despike_2dfilter=True
     fugue1.outputs.fmap_out_file='fmap_despiked'
-    #fugue1.inputs.dwell_time = 0.00231
-    #fugue1.inputs.dwell_to_asym_ratio=0.93902439 
-    preproc.connect(inputnode_dwellT, 'input_dwelT', fugue1, 'dwell_time')
-    preproc.connect(inputnode_asymR, 'input_asymR', fugue1, 'dwell_to_asym_ratio')
+    fugue1.inputs.dwell_time = 0.00231
+    fugue1.inputs.dwell_to_asym_ratio=0.93902439 
+    #preproc.connect(inputnode_dwellT, 'input_dwelT', fugue1, 'dwell_time')
+    #preproc.connect(inputnode_asymR, 'input_asymR', fugue1, 'dwell_to_asym_ratio')
     preproc.connect(prepare,'out_fieldmap',fugue1,'fmap_in_file')
     preproc.connect(fugue1,'fmap_out_file',outputNode,'fmap_despiked')
 # Co-Register EPI and Correct field inhomogeniety distortions
@@ -98,7 +98,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     epireg.inputs.output_type='NIFTI_GZ'
     preproc.connect(inputNode,'func_file',epireg,'epi')
     preproc.connect(skullstrip_anat,'out_file', epireg,'t1_brain')
-    preproc.connect(inputNode, 't1_head', epireg, 't1_head')
+    preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
     preproc.connect(inputNode, 'fmap_mag',epireg, 'fmapmag')
     preproc.connect(skullstrip,'out_file',epireg,'fmapmagbrain')
     preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
