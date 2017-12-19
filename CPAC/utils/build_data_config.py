@@ -29,6 +29,47 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
+def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
+    """Download a single file from an AWS s3 bucket.
+
+    :type s3_path: str
+    :param s3_path: An "s3://" pre-pended path to a file stored on an
+                    Amazon AWS s3 bucket.
+    :type cfg_dict: dictionary
+    :param cfg_dict: A dictionary containing the pipeline setup
+                     parameters.
+    :rtype: str
+    :return: The local filepath of the downloaded s3 file.
+    """
+
+    import os
+    from indi_aws import fetch_creds, aws_utils
+
+    if not download_dir:
+        download_dir = os.getcwd()
+
+    if "s3://" in s3_path:
+        s3_prefix = s3_path.replace("s3://", "")
+    else:
+        err = "[!] S3 file paths must be pre-pended with the 's3://' prefix."
+        raise Exception(err)
+
+    bucket_name = s3_prefix.split("/")[0]
+    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+    data_dir = s3_path.split(bucket_name + "/")[1]
+    local_dl = os.path.join(download_dir, data_dir)
+
+    if os.path.isfile(local_dl):
+        print "\nS3 bucket file already downloaded! Skipping download."
+        print "S3 file: %s" % s3_path
+        print "Local file already exists: %s\n" % local_dl
+    else:
+        aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
+
+    return local_dl
+
+
 def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
 
     import os
@@ -40,6 +81,8 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
     s3_path = data_folder.split("s3://")[1]
     bucket_name = s3_path.split("/")[0]
     bucket_prefix = s3_path.split(bucket_name + "/")[1]
+
+    print "Pulling from {0} ...".format(data_folder)
 
     s3_list = []
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
@@ -223,20 +266,24 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
 
 
 def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
-                      inclusion_dct=None, exclusion_dct=None):
+                      inclusion_dct=None, exclusion_dct=None,
+                      config_dir=None):
 
     import os
     import glob
+
+    if not config_dir:
+        config_dir = os.getcwd()
 
     anat_sess = os.path.join(bids_base_dir,
                              "sub-{participant}/ses-{session}/anat/sub-"
                              "{participant}_ses-{session}_T1w.nii.gz")
     anat = os.path.join(bids_base_dir,
-                        "sub-{participant}/anat/sub-{participant}_ses-"
-                        "{session}_T1w.nii.gz")
+                        "sub-{participant}/anat/sub-{participant}_T1w.nii.gz")
 
     func_sess = os.path.join(bids_base_dir,
-                             "sub-{participant}/ses-{session}/func/sub-"
+                             "sub-{participant}"
+                             "/ses-{session}/func/sub-"
                              "{participant}_ses-{session}_task-{scan}_"
                              "bold.nii.gz")
     func = os.path.join(bids_base_dir,
@@ -261,38 +308,138 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
+    part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
+
     site_jsons_glob = os.path.join(bids_base_dir, "*bold.json")
-    sub_jsons_glob = os.path.join(bids_base_dir, "sub-*/*bold.json")
-    ses_jsons_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*bold.json")
+    sub_jsons_glob = os.path.join(bids_base_dir, "*sub-*/*bold.json")
+    ses_jsons_glob = os.path.join(bids_base_dir, "*sub-*/ses-*/*bold.json")
+
+    site_dir_glob = os.path.join(bids_base_dir, "*", "sub-*/*.nii*")
+
+    ses = False
+    site_dir = False
+    part_tsv = None
 
     if file_list:
         import fnmatch
-        ses = False
+
         site_jsons = []
         sub_jsons = []
         ses_jsons = []
+
         for filepath in file_list:
+
+            if fnmatch.fnmatch(filepath, site_dir_glob) and \
+                    "derivatives" not in filepath:
+                # check if there is a directory level encoding site ID, even
+                # though that is not BIDS format
+                site_dir = True
+                sess_glob = os.path.join(bids_base_dir, "*", "sub-*/ses-*/*")
+
             if fnmatch.fnmatch(filepath, sess_glob):
+                # check if there is a session level
                 ses = True
-            if fnmatch.fnmatch(filepath, site_jsons_glob):
-                site_jsons.append(filepath)
-            if fnmatch.fnmatch(filepath, sub_jsons_glob):
-                sub_jsons.append(filepath)
+            if fnmatch.fnmatch(filepath, part_tsv_glob):
+                # check if there is a participants.tsv file
+                part_tsv = filepath
+
             if fnmatch.fnmatch(filepath, ses_jsons_glob):
                 ses_jsons.append(filepath)
+            if fnmatch.fnmatch(filepath, sub_jsons_glob):
+                sub_jsons.append(filepath)
+            if fnmatch.fnmatch(filepath, site_jsons_glob):
+                site_jsons.append(filepath)
+
     else:
+        if len(glob.glob(site_dir_glob)) > 0:
+            # check if there is a directory level encoding site ID, even
+            # though that is not BIDS format
+            site_dir = True
+            sess_glob = os.path.join(bids_base_dir, "*", "sub-*/ses-*/*")
+
         ses = False
         if len(glob.glob(sess_glob)) > 0:
+            # check if there is a session level
             ses = True
+
+        # check if there is a participants.tsv file
+        part_tsv = glob.glob(part_tsv_glob)
         site_jsons = glob.glob(site_jsons_glob)
         sub_jsons = glob.glob(sub_jsons_glob)
         ses_jsons = glob.glob(ses_jsons_glob)
 
-    # setting site level to "All" because in BIDS datasets, it is either
-    # assumed that the dataset is from one site, or that site information is
-    # encoded in a separate file
-    # TODO: if site information is ever encoded into the JSON scan parameter
-    # TODO: file name, this must be implemented here
+    sites_dct = {}
+    sites_subs_dct = {}
+
+    if part_tsv:
+        # handle participants.tsv file in BIDS dataset if one is present
+        # this would contain site information if the dataset is multi-site
+        import csv
+
+        if file_list:
+            print "\n\nFound a participants.tsv file in your BIDS data " \
+                  "set on the S3 bucket. Downloading..\n"
+            part_tsv = download_single_s3_path(part_tsv, config_dir,
+                                               aws_creds_path)
+
+        print "Checking participants.tsv file for site information:" \
+              "\n{0}".format(part_tsv)
+
+        with open(part_tsv, "r") as f:
+            tsv = csv.DictReader(f)
+            for row in tsv:
+                if "site" in row.keys():
+                    site = row["site"]
+                    sub = row["participant_id"]
+                    if site not in sites_dct.keys():
+                        sites_dct[site] = []
+                    sites_dct[site].append(sub)
+
+        if sites_dct:
+            # check for duplicates
+            sites = sites_dct.keys()
+            print "{0} sites found in the participant.tsv " \
+                  "file.".format(len(sites))
+            for site in sites:
+                for other_site in sites:
+                    if site == other_site:
+                        continue
+                    dups = set(sites_dct[site]) & set(sites_dct[other_site])
+                    if dups:
+                        err = "\n\n[!] There are duplicate participant IDs " \
+                              "in different sites, as defined by your " \
+                              "participants.tsv file! Consider pre-fixing " \
+                              "the participant IDs with the site names.\n\n" \
+                              "Duplicates:\n" \
+                              "Sites: {0}, {1}\n" \
+                              "Duplicate IDs: {2}" \
+                              "\n\n".format(site, other_site, str(dups))
+                        raise Exception(err)
+
+                # now invert
+                for sub in sites_dct[site]:
+                    sites_subs_dct[sub] = site
+        else:
+            print "No site information found in the participants.tsv file."
+
+    if not sites_subs_dct:
+        # if there was no participants.tsv file, (or no site column in the
+        # participants.tsv file), check for a directory level where multiple
+        # sites might be encoded
+        if site_dir:
+            sub_dir = os.path.join(bids_base_dir, "sub-{participant}")
+            new_dir = os.path.join(bids_base_dir, "{site}",
+                                   "sub-{participant}")
+            if ses:
+                anat_sess = anat_sess.replace(sub_dir, new_dir)
+                func_sess = func_sess.replace(sub_dir, new_dir)
+                fmap_phase_sess = fmap_phase_sess.replace(sub_dir, new_dir)
+                fmap_mag_sess = fmap_mag_sess.replace(sub_dir, new_dir)
+            else:
+                anat = anat.replace(sub_dir, new_dir)
+                func = func.replace(sub_dir, new_dir)
+                fmap_phase = fmap_phase.replace(sub_dir, new_dir)
+                fmap_mag = fmap_mag.replace(sub_dir, new_dir)
 
     scan_params_dct = {}
 
@@ -305,12 +452,17 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                 if "ses-" in id:
                     ses_id = id.replace("ses-", "")
 
-            if "All" not in scan_params_dct.keys():
-                scan_params_dct["All"] = {}
-            if sub_id not in scan_params_dct["All"].keys():
-                scan_params_dct["All"][sub_id] = {}
+            site_id = "All"
+            if sites_subs_dct:
+                if sub_id in sites_subs_dct.keys():
+                    site_id = sites_subs_dct[sub_id]
 
-            scan_params_dct["All"][sub_id][ses_id] = json_file
+            if site_id not in scan_params_dct.keys():
+                scan_params_dct[site_id] = {}
+            if sub_id not in scan_params_dct[site_id].keys():
+                scan_params_dct[site_id][sub_id] = {}
+
+            scan_params_dct[site_id][sub_id][ses_id] = json_file
 
     if len(sub_jsons) > 0:
         for json_file in sub_jsons:
@@ -319,21 +471,39 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                 if "sub-" in id:
                     sub_id = id.replace("sub-", "")
 
-            if "All" not in scan_params_dct.keys():
-                scan_params_dct["All"] = {}
-            if sub_id not in scan_params_dct["All"].keys():
-                scan_params_dct["All"][sub_id] = {}
+            site_id = "All"
+            if sites_subs_dct:
+                if sub_id in sites_subs_dct.keys():
+                    site_id = sites_subs_dct[sub_id]
 
-            scan_params_dct["All"][sub_id]["All"] = json_file
+            if site_id not in scan_params_dct.keys():
+                scan_params_dct[site_id] = {}
+            if sub_id not in scan_params_dct[site_id].keys():
+                scan_params_dct[site_id][sub_id] = {}
+
+            scan_params_dct[site_id][sub_id]["All"] = json_file
 
     if len(site_jsons) > 0:
         if len(site_jsons) > 1:
-            # TODO: find out site-level naming convention for scan param JSONs
-            # TODO: improve this message (if it is necessary)
-            print "\nMore than one dataset-level JSON file!!!"
-            for json in site_jsons:
-                print "...{0}".format(json)
-            print "\n"
+            if not site_dir:
+                print "\nMore than one dataset-level JSON file. These may " \
+                      "be scan-specific JSON files. Scan-specific scan " \
+                      "parameters will be implemented soon. Files detected:"
+                for json in site_jsons:
+                    print "...{0}".format(json)
+                print "\n"
+            else:
+                # if this kicks, then there is a site directory level, and the
+                # site-specific JSON is sitting in it alongside the sub-*
+                # participant ID folders
+                for json in site_jsons:
+                    json_levels = json.split("/")
+                    site_name = json_levels[-2]
+                    if site_name not in scan_params_dct.keys():
+                        scan_params_dct[site_name] = {}
+                    if "All" not in scan_params_dct[site_name].keys():
+                        scan_params_dct[site_name]["All"] = {}
+                    scan_params_dct[site_name]["All"]["All"] = json
         else:
             if "All" not in scan_params_dct.keys():
                 scan_params_dct["All"] = {}
@@ -351,7 +521,8 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                                     fmap_mag_template=fmap_mag_sess,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
-                                    exclusion_dct=exclusion_dct)
+                                    exclusion_dct=exclusion_dct,
+                                    sites_dct=sites_subs_dct)
     else:
         # no session level
         data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
@@ -360,7 +531,8 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                                     fmap_mag_template=fmap_mag,
                                     aws_creds_path=aws_creds_path,
                                     inclusion_dct=inclusion_dct,
-                                    exclusion_dct=exclusion_dct)
+                                    exclusion_dct=exclusion_dct,
+                                    sites_dct=sites_subs_dct)
 
     return data_dct
 
@@ -368,7 +540,8 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      scan_params_dct=None, fmap_phase_template=None,
                      fmap_mag_template=None, aws_creds_path=None,
-                     inclusion_dct=None, exclusion_dct=None, verbose=False):
+                     inclusion_dct=None, exclusion_dct=None, sites_dct=None,
+                     verbose=False):
 
     # go over the file paths, validate for nifti's?
     # work with the template
@@ -476,18 +649,37 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 skip = False
             else:
                 if path_dct[label] != id:
-                    warn = "\n\n[!] WARNING: While parsing your input data " \
-                           "files, a file path was found with conflicting " \
-                           "IDs for the same data level.\n\n" \
-                           "File path: {0}\n" \
-                           "Level: {1}\n" \
-                           "Conflicting IDs: {2}, {3}\n\n" \
-                           "This file has not been added to the data " \
-                           "configuration.".format(anat_path, label,
-                                                   path_dct[label], id)
-                    print warn
-                    skip = True
-                    break
+                    if str(path_dct[label]) in id and "run-" in id:
+                        # TODO: this is here only because we do not support
+                        # TODO: multiple anat scans yet!!
+                        if "run-1" in id:
+                            warn = None
+                            pass
+                        else:
+                            warn = "\n\n[!] WARNING: Multiple anatomical " \
+                                   "scans found for a single participant. " \
+                                   "Multiple anatomical scans are not yet " \
+                                   "supported. Review the completed data " \
+                                   "configuration file to ensure the " \
+                                   "proper scans are included together.\n\n" \
+                                   "Scan not included:\n{0}" \
+                                   "\n\n".format(anat_path)
+                    else:
+                        warn = "\n\n[!] WARNING: While parsing your input data " \
+                               "files, a file path was found with conflicting " \
+                               "IDs for the same data level.\n\n" \
+                               "File path: {0}\n" \
+                               "Level: {1}\n" \
+                               "Conflicting IDs: {2}, {3}\n\n" \
+                               "This file has not been added to the data " \
+                               "configuration.".format(anat_path, label,
+                                                       path_dct[label], id)
+                    if warn:
+                        print warn
+                        skip = True
+                        break
+                    else:
+                        pass
 
             new_template = new_template.replace(part1, '', 1)
             new_template = new_template.replace(label, '', 1)
@@ -502,6 +694,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         if '{site}' in path_dct.keys():
             site_id = path_dct['{site}']
+        elif sites_dct:
+            # mainly if we're pulling site info from a participants.tsv file
+            # for a BIDS data set
+            try:
+                site_id = sites_dct[sub_id]
+            except KeyError:
+                site_id = "site-1"
         else:
             site_id = 'site-1'
 
@@ -601,7 +800,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                            "This file has not been added to the data " \
                            "configuration.".format(func_path, label,
                                                    path_dct[label], id)
-                    print warn
+                    #print warn
                     skip = True
                     break
 
@@ -618,6 +817,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         if '{site}' in path_dct.keys():
             site_id = path_dct['{site}']
+        elif sites_dct:
+            # mainly if we're pulling site info from a participants.tsv file
+            # for a BIDS data set
+            try:
+                site_id = sites_dct[sub_id]
+            except KeyError:
+                site_id = "site-1"
         else:
             site_id = 'site-1'
 
@@ -678,15 +884,15 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                         # site and sub specific scan params, same across all
                         # sessions
                         scan_params = scan_params_dct[site_id][sub_id]['All']
-                    elif "All" in scan_params_dct[site_id].keys():
-                        if ses_id in scan_params_dct[site_id]["All"].keys():
-                            # site and session specific scan params, same
-                            # across all subs
-                            scan_params = scan_params_dct[site_id]["All"][ses_id]
-                        elif "All" in scan_params_dct[site_id]["All"].keys():
-                            # site specific scan params, same across all subs
-                            # and sessions
-                            scan_params = scan_params_dct[site_id]["All"]["All"]
+                elif "All" in scan_params_dct[site_id].keys():
+                    if ses_id in scan_params_dct[site_id]["All"].keys():
+                        # site and session specific scan params, same
+                        # across all subs
+                        scan_params = scan_params_dct[site_id]["All"][ses_id]
+                    elif "All" in scan_params_dct[site_id]["All"].keys():
+                        # site specific scan params, same across all subs
+                        # and sessions
+                        scan_params = scan_params_dct[site_id]["All"]["All"]
 
             elif "All" in scan_params_dct.keys():
                 if sub_id in scan_params_dct["All"].keys():
@@ -829,6 +1035,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
             if '{site}' in path_dct.keys():
                 site_id = path_dct['{site}']
+            elif sites_dct:
+                # mainly if we're pulling site info from a participants.tsv
+                # file for a BIDS data set
+                try:
+                    site_id = sites_dct[sub_id]
+                except KeyError:
+                    site_id = "site-1"
             else:
                 site_id = 'site-1'
 
@@ -937,6 +1150,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
             if '{site}' in path_dct.keys():
                 site_id = path_dct['{site}']
+            elif sites_dct:
+                # mainly if we're pulling site info from a participants.tsv
+                # file for a BIDS data set
+                try:
+                    site_id = sites_dct[sub_id]
+                except KeyError:
+                    site_id = "site-1"
             else:
                 site_id = 'site-1'
 
@@ -1038,7 +1258,8 @@ def run(data_settings_yml):
                                      file_list=file_list,
                                      aws_creds_path=settings_dct['awsCredentialsFile'],
                                      inclusion_dct=incl_dct,
-                                     exclusion_dct=excl_dct)
+                                     exclusion_dct=excl_dct,
+                                     config_dir=settings_dct["outputSubjectListLocation"])
 
     elif 'Custom' in settings_dct['dataFormat'] or \
             'custom' in settings_dct['dataFormat']:
