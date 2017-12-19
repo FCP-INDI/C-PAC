@@ -546,15 +546,12 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     # go over the file paths, validate for nifti's?
     # work with the template
 
-    # TODO: handle both json and csv scan parameters
-
     # test cases:
     #   - no anats, no funcs
     #   - combination of .nii and .nii.gz?
     #   - throw error/warning if anat and func templates are identical
     #   - all permutations of scan parameters json/csv's at different levels
 
-    import os
     import glob
     import fnmatch
 
@@ -595,18 +592,24 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
     # presumably, the paths contained in each of these pools should be anat
     # and func files only, respectively, if the templates were set up properly
+    anat_pool = []
+    func_pool = []
+
     if file_list:
         # mainly for AWS S3-stored data sets
-        anat_pool = []
-        func_pool = []
         for filepath in file_list:
             if fnmatch.fnmatch(filepath, anat_glob):
                 anat_pool.append(filepath)
             elif fnmatch.fnmatch(filepath, func_glob):
                 func_pool.append(filepath)
-    else:
-        anat_pool = glob.glob(anat_glob)
-        func_pool = glob.glob(func_glob)
+
+    # run it anyway in case we're pulling anat from S3 and func from local or
+    # vice versa -
+    anat_local_pool = glob.glob(anat_glob)
+    func_local_pool = glob.glob(func_glob)
+
+    anat_pool = anat_pool + anat_local_pool
+    func_pool = func_pool + func_local_pool
 
     data_dct = {}
 
@@ -1266,10 +1269,10 @@ def run(data_settings_yml):
 
         # keep as None if local data set (not on AWS S3 bucket)
         file_list = None
+        base_dir = None
 
-        if "s3://" in settings_dct["anatomicalTemplate"] and "s3://" in settings_dct["functionalTemplate"]:
+        if "s3://" in settings_dct["anatomicalTemplate"]:
             # hosted on AWS S3 bucket
-
             if '{site}' in settings_dct["anatomicalTemplate"]:
                 base_dir = \
                     settings_dct["anatomicalTemplate"].split('{site}')[0]
@@ -1277,12 +1280,18 @@ def run(data_settings_yml):
                 base_dir = \
                     settings_dct["anatomicalTemplate"].split('{participant}')[0]
 
+        elif "s3://" in settings_dct["functionalTemplate"]:
+            # hosted on AWS S3 bucket
+            if '{site}' in settings_dct["functionalTemplate"]:
+                base_dir = \
+                    settings_dct["functionalTemplate"].split('{site}')[0]
+            elif '{participant}' in settings_dct["functionalTemplate"]:
+                base_dir = \
+                    settings_dct["functionalTemplate"].split('{participant}')[0]
+
+        if base_dir:
             file_list = pull_s3_sublist(base_dir,
                                         settings_dct['awsCredentialsFile'])
-
-        else:
-            # TODO: message about everything being on S3
-            raise Exception
 
         params_dct = None
         if settings_dct['scanParametersCSV']:
@@ -1301,8 +1310,10 @@ def run(data_settings_yml):
                                     exclusion_dct=excl_dct)
 
     else:
-        # TODO: no needed settings defined message
-        raise Exception
+        err = "\n\n[!] You must select a data format- either 'BIDS' or " \
+              "'Custom', in the 'dataFormat' field in the data settings " \
+              "YAML file.\n\n"
+        raise Exception(err)
 
     if len(data_dct) > 0:
 
@@ -1355,8 +1366,8 @@ def run(data_settings_yml):
             print "...functional scans: {0}\n".format(num_scan)
 
     else:
-        # TODO: fill this
-        err = "\n\nerror nothing found\n\n"
+        err = "\n\n[!] No anatomical input files were found given the data " \
+              "settings provided.\n\n"
         raise Exception(err)
 
 
