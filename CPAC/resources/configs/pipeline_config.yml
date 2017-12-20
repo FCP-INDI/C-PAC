@@ -62,8 +62,10 @@ crashLogDirectory :  /path/to/crash/directory
 # Directory where CPAC should place processed data.
 outputDirectory :  /path/to/output/directory
 
+
 # Directory where CPAC should place pipeline logs
 logDirectory : /path/to/log/directory
+
 
 # Create a user-friendly, well organized version of the output directory.
 # We recommend all users enable this option.
@@ -78,6 +80,10 @@ generateQualityControlImages :  [1]
 # This saves disk space, but any additional preprocessing or analysis will have
 # to be completely re-run.
 removeWorkingDir :  False
+
+
+# Whether to write log details of the pipeline run to logging files.
+run_logging: True
 
 
 # Uses the contents of the Working Directory to regenerate all outputs and their
