@@ -9,21 +9,58 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     wf = pe.Workflow(name=wf_name)
 
+    inputnode = pe.Node(util.IdentityInterface(
+                                fields=['subject', 'scan', 'creds_path',
+                                        'phase_diff', 'magnitude'],
+                                mandatory_inputs=True),
+                        name='inputnode')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
+                                                        'scan', 'scan_params',
+                                                        'phase_diff',
+                                                        'magnitude']),
+                         name='outputspec')
+
     # if the input data is taken from a BIDS directory
     scan_names = rest_dict.keys()
+
+    # TODO: this will need to be changed once scan-level nesting is
+    # TODO: implemented- the file name (for BIDS scan params JSON files) will
+    # TODO: have to be processed for the particular scan (task, and run) and
+    # TODO: then linked with the scan below (check the iterable inputnode
+    # TODO: parameter)
     if "scan_parameters" in scan_names:
         scan_names.remove("scan_parameters")
+
+        if isinstance(rest_dict["scan_parameters"], str):
+            if "s3://" in rest_dict["scan_parameters"]:
+                # if the scan parameters file is on AWS S3, download it
+                s3_scan_params = \
+                    pe.Node(util.Function(input_names=['file_path',
+                                                       'creds_path',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='s3_scan_params')
+
+                s3_scan_params.inputs.file_path = rest_dict["scan_parameters"]
+
+                wf.connect(inputnode, 'creds_path',
+                           s3_scan_params, 'creds_path')
+                wf.connect(s3_scan_params, 'local_path',
+                           outputnode, 'scan_params')
+
+        elif isinstance(rest_dict["scan_parameters"], dict):
+            outputnode.outputs.scan_params = rest_dict["scan_parameters"]
+
+    else:
+        outputnode.outputs.scan_params = None
 
     for scan in scan_names:
         if '.' in scan or '+' in scan or '*' in scan:
             raise Exception('\n[!] Scan names cannot contain any special '
                             'characters. Please update this and try again.')
 
-    inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path',
-                                        'phase_diff', 'magnitude'],
-                                mandatory_inputs=True),
-                        name='inputnode')
     inputnode.iterables = [('scan', scan_names)]
 
     selectrest = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
@@ -38,14 +75,10 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                           output_names=['local_path'],
                                           function=check_for_s3),
                             name='check_for_s3')
+
     wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     check_s3_node.inputs.img_type = 'func'
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
-                                                        'scan', 'phase_diff',
-                                                        'magnitude']),
-                         name='outputspec')
 
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 

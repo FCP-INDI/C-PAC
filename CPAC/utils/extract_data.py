@@ -421,12 +421,19 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
                     subject_set.add(subject_id)
                     scan_set.add(scan)
             except KeyError:
-                for scan in sub['rest'].keys():
-                    subject_scan_set.add((subject_id, scan))
+                try:
+                    for scan in sub['rest'].keys():
+                        subject_scan_set.add((subject_id, scan))
+                        subID_set.add(sub['subject_id'])
+                        session_set.add(sub['unique_id'])
+                        subject_set.add(subject_id)
+                        scan_set.add(scan)
+                except KeyError:
+                    # one of the participants in the subject list has no
+                    # functional scans
                     subID_set.add(sub['subject_id'])
                     session_set.add(sub['unique_id'])
                     subject_set.add(subject_id)
-                    scan_set.add(scan)
 
     except TypeError as e:
         print 'Subject list could not be populated!'
@@ -478,6 +485,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
+    """
     # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
 
@@ -565,6 +573,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     file_name = os.path.join(data_config_outdir,
                              'participant_list_group_analysis_%s.txt'
                              % data_config_name)
+    """
 
     try:
         with open(file_name, 'w') as f:
@@ -577,7 +586,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
               'worry.. I\'ll wait.\n\n'
         raise IOError
 
-    print "Participant list required later for group analysis - %s" \
+    print "Participant list required later for group analysis - %s\n\n" \
           % file_name
 
 

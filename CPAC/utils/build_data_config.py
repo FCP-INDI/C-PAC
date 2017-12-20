@@ -604,7 +604,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 func_pool.append(filepath)
 
     # run it anyway in case we're pulling anat from S3 and func from local or
-    # vice versa -
+    # vice versa - and if there is no file_list, this will run normally
     anat_local_pool = glob.glob(anat_glob)
     func_local_pool = glob.glob(func_glob)
 
@@ -747,10 +747,14 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         if ses_id not in data_dct[site_id][sub_id].keys():
             data_dct[site_id][sub_id][ses_id] = temp_sub_dct
         else:
-            #TODO: finish this
+            # doubt this ever happens, but just be safe
             warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
-                   "entry found in your input data directory!\n\n"
-            pass
+                   "entry found in your input data directory!\n\nDuplicate " \
+                   "sets:\n\n{0}\n\n{1}\n\nOnly adding the first one to " \
+                   "the data configuration file." \
+                   "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
+                                 str(temp_sub_dct))
+            print warn
 
     # functional time
     for func_path in func_pool:
@@ -803,7 +807,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                            "This file has not been added to the data " \
                            "configuration.".format(func_path, label,
                                                    path_dct[label], id)
-                    #print warn
+                    print warn
                     skip = True
                     break
 
@@ -875,8 +879,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         if scan_params_dct:
 
-            #TODO: implement scan-specific level once scan-level nesting is
-            #TODO: available
+            # TODO: implement scan-specific level once scan-level nesting is
+            # TODO: available
 
             if site_id in scan_params_dct.keys():
                 if sub_id in scan_params_dct[site_id].keys():
@@ -1012,15 +1016,29 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     skip = False
                 else:
                     if path_dct[label] != id:
-                        warn = "\n\n[!] WARNING: While parsing your input data " \
-                               "files, a file path was found with conflicting " \
-                               "IDs for the same data level.\n\n" \
-                               "File path: {0}\n" \
-                               "Level: {1}\n" \
-                               "Conflicting IDs: {2}, {3}\n\n" \
-                               "This file has not been added to the data " \
-                               "configuration.".format(fmap_phase, label,
-                                                       path_dct[label], id)
+                        if str(path_dct[label]) in id and "run-" in id:
+                            # TODO: this is here only because we do not
+                            # TODO: support scan-level nesting yet!!!
+                            warn = "\n\n[!] WARNING: Multiple field map " \
+                                   "phase or magnitude files were found " \
+                                   "for a single session. Multiple-run " \
+                                   "field map files are not supported yet. " \
+                                   "Review the completed data " \
+                                   "configuration file to ensure the " \
+                                   "proper scans are included together.\n\n" \
+                                   "File not included:\n{0}" \
+                                   "\n\n".format(fmap_phase)
+                        else:
+                            warn = "\n\n[!] WARNING: While parsing your input data " \
+                                   "files, a file path was found with conflicting " \
+                                   "IDs for the same data level.\n\n" \
+                                   "File path: {0}\n" \
+                                   "Level: {1}\n" \
+                                   "Conflicting IDs: {2}, {3}\n\n" \
+                                   "This file has not been added to the data " \
+                                   "configuration.".format(fmap_phase, label,
+                                                           path_dct[label], id)
+                    if warn:
                         print warn
                         skip = True
                         break
@@ -1127,15 +1145,29 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     skip = False
                 else:
                     if path_dct[label] != id:
-                        warn = "\n\n[!] WARNING: While parsing your input data " \
-                               "files, a file path was found with conflicting " \
-                               "IDs for the same data level.\n\n" \
-                               "File path: {0}\n" \
-                               "Level: {1}\n" \
-                               "Conflicting IDs: {2}, {3}\n\n" \
-                               "This file has not been added to the data " \
-                               "configuration.".format(fmap_mag, label,
-                                                       path_dct[label], id)
+                        if str(path_dct[label]) in id and "run-" in id:
+                            # TODO: this is here only because we do not
+                            # TODO: support scan-level nesting yet!!!
+                            warn = "\n\n[!] WARNING: Multiple field map " \
+                                   "phase or magnitude files were found " \
+                                   "for a single session. Multiple-run " \
+                                   "field map files are not supported yet. " \
+                                   "Review the completed data " \
+                                   "configuration file to ensure the " \
+                                   "proper scans are included together.\n\n" \
+                                   "File not included:\n{0}" \
+                                   "\n\n".format(fmap_phase)
+                        else:
+                            warn = "\n\n[!] WARNING: While parsing your input data " \
+                                   "files, a file path was found with conflicting " \
+                                   "IDs for the same data level.\n\n" \
+                                   "File path: {0}\n" \
+                                   "Level: {1}\n" \
+                                   "Conflicting IDs: {2}, {3}\n\n" \
+                                   "This file has not been added to the data " \
+                                   "configuration.".format(fmap_mag, label,
+                                                           path_dct[label], id)
+                    if warn:
                         print warn
                         skip = True
                         break

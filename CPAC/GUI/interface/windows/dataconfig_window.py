@@ -450,9 +450,9 @@ class DataConfig(wx.Frame):
             if "BIDS" in config_dict["dataFormat"][0]:
                 if len(config_dict["anatomicalTemplate"][0]) > 0 or \
                                 len(config_dict["functionalTemplate"][0]) > 0:
-                    err = wx.MessageDialog(self, "Custom filepath template " \
-                                                 "provided, but data format "\
-                                                 "is set to BIDS instead of "\
+                    err = wx.MessageDialog(self, "Custom filepath template "
+                                                 "provided, but data format "
+                                                 "is set to BIDS instead of "
                                                  "Custom.",
                                                  'Error!',
                                                  wx.OK | wx.ICON_ERROR)
@@ -462,10 +462,10 @@ class DataConfig(wx.Frame):
 
                 elif "s3://" not in config_dict["bidsBaseDir"][0] and \
                         not os.path.exists(config_dict["bidsBaseDir"][0]):
-                    err = wx.MessageDialog(self, "Data format is set to " \
-                                                 "BIDS, but no BIDS base " \
-                                                 "directory is set, or the " \
-                                                 "BIDS directory does not " \
+                    err = wx.MessageDialog(self, "Data format is set to "
+                                                 "BIDS, but no BIDS base "
+                                                 "directory is set, or the "
+                                                 "BIDS directory does not "
                                                  "exist.",
                                                  'Error!',
                                                  wx.OK | wx.ICON_ERROR)
@@ -475,9 +475,9 @@ class DataConfig(wx.Frame):
 
             elif "Custom" in config_dict["dataFormat"][0]:
                 if len(config_dict["bidsBaseDir"][0]) > 0:
-                    err = wx.MessageDialog(self, "BIDS base directory " \
-                                                 "provided, but data format "\
-                                                 "is set to Custom instead " \
+                    err = wx.MessageDialog(self, "BIDS base directory "
+                                                 "provided, but data format "
+                                                 "is set to Custom instead "
                                                  "of BIDS.",
                                                  'Error!',
                                                  wx.OK | wx.ICON_ERROR)
@@ -486,9 +486,9 @@ class DataConfig(wx.Frame):
                     return
 
                 if len(config_dict["anatomicalTemplate"][0]) == 0:
-                    err = wx.MessageDialog(self, "Custom data format " \
-                                                 "selected, but no custom " \
-                                                 "anatomical filepath " \
+                    err = wx.MessageDialog(self, "Custom data format "
+                                                 "selected, but no custom "
+                                                 "anatomical filepath "
                                                  "template provided.",
                                                  'Error!',
                                                  wx.OK | wx.ICON_ERROR)
@@ -497,9 +497,9 @@ class DataConfig(wx.Frame):
                     return
 
                 if len(config_dict["functionalTemplate"][0]) == 0:
-                    err = wx.MessageDialog(self, "Custom data format " \
-                                                 "selected, but no custom " \
-                                                 "functional filepath " \
+                    err = wx.MessageDialog(self, "Custom data format "
+                                                 "selected, but no custom "
+                                                 "functional filepath "
                                                  "template provided.",
                                                  'Error!',
                                                  wx.OK | wx.ICON_ERROR)
@@ -508,8 +508,9 @@ class DataConfig(wx.Frame):
                     return
                 
         except Exception, e:
-            errdlg = wx.MessageDialog(self, "Could not save your subject " \
-                               "list information.\n\n%s" % e,
+            errdlg = wx.MessageDialog(self, "Could not save your "
+                                            "participant list information."
+                                            "\n\n%s" % e,
                                'Error!',
                            wx.OK | wx.ICON_ERROR)
             errdlg.ShowModal()
@@ -592,14 +593,15 @@ class DataConfig(wx.Frame):
                 # If it's a dictionary, check it has anat template key
                 if type(config_map) == dict:
                     if not config_map.has_key('anatomicalTemplate'):
-                        err_msg = 'File is not a data configuration '\
+                        err_msg = 'File is not a data settings '\
                                   'file. It might be a pipeline '\
                                   'configuration file.'
                         raise Exception(err_msg)
                 # It didn't load in as a dictionary, report error
                 else:
-                    err_msg = 'File is not a data configuration '\
-                              'file. It might be a subject list file.'
+                    err_msg = 'File is not a data settings '\
+                              'file. It might be a data config/participant ' \
+                              'list file.'
                     raise Exception(err_msg)
 
                 # Populate GUI fields
@@ -624,8 +626,9 @@ class DataConfig(wx.Frame):
 
             # There was an error loading parameters, report it
             except Exception as exc:
-                err_msg = 'CPAC could not load your subject list information. '\
-                          'Check the formatting of your data_config YAML file.'\
+                err_msg = 'CPAC could not load your participant list ' \
+                          'information. Check the formatting of your ' \
+                          'data_settings YAML file.'\
                           '\n\nIssue info:\n%s' % exc
                 errdlg = wx.MessageDialog(self, err_msg, 'Error!',
                                           wx.OK | wx.ICON_ERROR)

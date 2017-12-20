@@ -1411,12 +1411,12 @@ def select_model_files(model, ftest, model_name):
     return fts_file, con_file, grp_file, mat_file
 
 
-def check(subject_map, subject, scan, val, throw_exception):
+def check(params_dct, subject, scan, val, throw_exception):
 
-    if isinstance(subject_map['scan_parameters'][val], dict):
-        ret_val = subject_map['scan_parameters'][val][scan]
+    if isinstance(params_dct[val], dict):
+        ret_val = params_dct[val][scan]
     else:
-        ret_val = subject_map['scan_parameters'][val]
+        ret_val = params_dct[val]
 
     if ret_val == 'None':
         if throw_exception:
@@ -1432,8 +1432,8 @@ def check(subject_map, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(subject_id, scan, subject_map, start_indx, stop_indx, tr,
-                    tpattern):
+def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
+                    stop_indx, tr, tpattern):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
@@ -1469,39 +1469,63 @@ def get_scan_params(subject_id, scan, subject_map, start_indx, stop_indx, tr,
 
     # initialize vars to empty
     TR = ''
+    TE = None
     pattern = ''
     ref_slice = ''
     first_tr = ''
     last_tr = ''
     unit = 's'
 
-    if 'scan_parameters' in subject_map['func'].keys():
+    if data_config_scan_params:
 
-        if ".json" in subject_map["func"]["scan_parameters"]:
+        if ".json" in data_config_scan_params:
 
-            if not os.path.exists(subject_map["func"]["scan_parameters"]):
-                # TODO: better handling of this
-                err = "[!] WARNING: Scan parameters JSON file listed in " \
+            if not os.path.exists(data_config_scan_params):
+                err = "\n[!] WARNING: Scan parameters JSON file listed in " \
                       "your data configuration file does not exist:\n{0}" \
-                      "\n\n".format(subject_map["func"]["scan_parameters"])
-                print(err)
+                      "\n\n".format(data_config_scan_params)
+                raise Exception(err)
 
-            with open(subject_map["func"]["scan_parameters"], "r") as f:
+            with open(data_config_scan_params, "r") as f:
                 params_dct = json.load(f)
 
-        elif len(subject_map['func']['scan_parameters']) > 0:
-            params_dct = subject_map["func"]["scan_parameters"]
+            # get details from the configuration
+            # if this is a JSON file, the key values are the BIDS format
+            # standard
+            # TODO: better handling of errant key values!!!
+            TR = float(check(params_dct, subject_id, scan, 'RepetitionTime',
+                             False))
+            TE = float(check(params_dct, subject_id, scan, 'EchoTime',
+                             False))
+            pattern = str(check(params_dct, subject_id, scan,
+                                'SliceAcquisitionOrder', False))
 
-        # get details from the configuration
-        TR = float(check(params_dct, subject_id, scan, 'tr', False))
-        pattern = str(check(params_dct, subject_id, scan, 'acquisition',
-                            False))
-        ref_slice = int(check(params_dct, subject_id, scan, 'reference',
-                              False))
-        first_tr = check2(check(params_dct, subject_id, scan, 'first_tr',
+        elif len(data_config_scan_params) > 0 and \
+                isinstance(data_config_scan_params, dict):
+            try:
+                params_dct = data_config_scan_params
+            except:
+                err = "\n[!] Could not parse the scan parameter information "\
+                      "included in your data configuration file for " \
+                      "participant: {0}\n\n".format(subject_id)
+                raise Exception(err)
+
+            # get details from the configuration
+            TR = float(check(params_dct, subject_id, scan, 'tr', False))
+            pattern = str(check(params_dct, subject_id, scan, 'acquisition',
                                 False))
-        last_tr = check2(check(params_dct, subject_id, scan, 'last_tr',
-                               False))
+            ref_slice = int(check(params_dct, subject_id, scan, 'reference',
+                                  False))
+            first_tr = check2(check(params_dct, subject_id, scan, 'first_tr',
+                                    False))
+            last_tr = check2(check(params_dct, subject_id, scan, 'last_tr',
+                                   False))
+
+        else:
+            err = "\n\n[!] Could not read the format of the scan parameters "\
+                  "information included in the data configuration file for " \
+                  "the participant {0}.\n\n".format(subject_id)
+            raise Exception(err)
 
     # if values are still empty, override with GUI config
     if TR == '':
@@ -1575,11 +1599,12 @@ def get_scan_params(subject_id, scan, subject_map, start_indx, stop_indx, tr,
                            ref_slice, first_tr, last_tr))
 
     tr = "{0}{1}".format(str(TR), unit)
+    te = TE
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
 
-    return tr, tpattern, ref_slice, start_indx, stop_indx
+    return tr, te, tpattern, ref_slice, start_indx, stop_indx
 
 
 def get_tr(tr):

@@ -369,8 +369,6 @@ def motion_power_statistics(calculation='Jenkinson',
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 
-    pm.connect(scrubbing_input, 'threshold', calc_perc, 'threshold')
-
     # calculating frames to exclude and include after scrubbing
     exc_frames_imports = ['import os', 'import numpy as np',
                           'from numpy import loadtxt']

@@ -1054,9 +1054,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-    
-
- 
 
     '''
     Inserting Functional Data workflow
@@ -1112,14 +1109,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         try:
             # a node which checks if scan_parameters are present for each scan
-            scan_params = pe.Node(util.Function(input_names=['subject_id',
+            scan_params = pe.Node(util.Function(input_names=['data_config_scan_params',
+                                                             'subject_id',
                                                              'scan',
-                                                             'subject_map',
                                                              'start_indx',
                                                              'stop_indx',
                                                              'tr',
                                                              'tpattern'],
                                                 output_names=['tr',
+                                                              'te',
                                                               'tpattern',
                                                               'ref_slice',
                                                               'start_indx',
@@ -1158,6 +1156,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # wire in the scan parameter workflow
         try:
+            workflow.connect(funcFlow, 'outputspec.scan_params',
+                             scan_params, 'data_config_scan_params')
+        except Exception as xxx:
+            logger.info("Error connecting scan_params 'data_config_"
+                        "scan_params' input. (%s:%d)" % dbg_file_lineno())
+            raise
+
+        try:
             workflow.connect(funcFlow, 'outputspec.subject',
                              scan_params, 'subject_id')
         except Exception as xxx:
@@ -1174,7 +1180,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             raise
 
         # connect in constants
-        scan_params.inputs.subject_map = sub_dict
         scan_params.inputs.start_indx = c.startIdx
         scan_params.inputs.stop_indx = c.stopIdx
         scan_params.inputs.tr = c.TR
@@ -1258,16 +1263,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         " (%s:%d)" % dbg_file_lineno())
             raise
 
-        # replace the leaf node with the output from the recently added workflow
+        # replace the leaf node with the output from the recently added
+        # workflow
         strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
         num_strat = num_strat + 1
 
-    #Inserting EPI_DistCorr workflow here
+    """
+    EPI Field-Map based Distortion Correction
+    """
  
     new_strat_list = []
     num_strat = 0
    
     workflow_counter += 1
+
+    # TODO: allow for TE to be entered via scan parameters from the data
+    # TODO: config/sublist. currently, TE can be pulled from the scan params
+    # TODO: sub-wf via:
+    # TODO:     "workflow.connect(scan_params, 'te', epi_distcorr, 'TE/etc.')"
+
+    # TODO: we can leave the input parameter for TE in the pipeline config/GUI
+    # TODO: for now as well, in case users only have the TE value and don't
+    # TODO: feel like creating an entire scan parameters structure
    
     if 1 in c.runEPI_DistCorr:
        workflow_bit_id['epi_distcorr'] = workflow_counter
@@ -1304,9 +1321,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
            
             num_strat += 1
     strat_list += new_strat_list
-           
-
-
 
     """
     Inserting slice timing correction
