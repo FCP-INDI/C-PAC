@@ -19,6 +19,7 @@ class _NoseTester(nosetester.NoseTester):
 test = _NoseTester().test
 
 import anat_preproc, \
+       EPI_DistCorr, \
        func_preproc, \
        reho, \
        seg_preproc, \
@@ -42,7 +43,7 @@ import anat_preproc, \
        cwas, \
        GUI
 
-__all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
+__all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
 
 from subprocess import Popen, PIPE
 import re
