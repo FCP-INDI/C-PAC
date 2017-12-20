@@ -1261,8 +1261,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-                node,out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                node,out_file = strat.get_node_from_resource_pool('anat')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
+                node, out_file = strat.get_node_from_resource_pool('mag1')
+                workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
+                node,out_file = strat.get_node_from_resource_pool('phase_diff')
+                workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
             if 0 in c.runEPI_DistCorr:
