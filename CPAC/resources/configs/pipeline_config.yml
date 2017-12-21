@@ -217,6 +217,19 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
+# Interpolate voxel time courses so they are sampled at the same time points.
+slice_timing_correction :  [0]
+
+
+# Specify the TR at which images were acquired.
+# Default is None (TR information is read from image file header)
+TR :  None
+
+
+# Acquisition strategy for acquiring image slices.
+slice_timing_pattern :  ['Use NIFTI Header']
+
+
 # First timepoint to include in analysis.
 # Default is 0 (beginning of timeseries).
 startIdx :  0
@@ -225,19 +238,6 @@ startIdx :  0
 # Last timepoint to include in analysis.
 # Default is None or End (end of timeseries).
 stopIdx :  None
-
-
-# Specify the TR at which images were acquired.
-# Default is None (TR information is read from image file header)
-TR :  None
-
-
-# Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [0]
-
-
-# Acquisition strategy for acquiring image slices.
-slice_timing_pattern :  ['Use NIFTI Header']
 
 
 # Run Functional to Anatomical Registration

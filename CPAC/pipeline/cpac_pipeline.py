@@ -289,12 +289,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     'crashdump_dir': os.path.abspath(
                                         c.crashLogDirectory)}
 
-    if c.run_logging and c.run_logging == True:
+    try:
+        if c.run_logging == True:
+            config.update_config(
+                {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+        else:
+            config.update_config(
+                {'logging': {'log_to_file': False}})
+    except AttributeError:
         config.update_config(
             {'logging': {'log_directory': log_dir, 'log_to_file': True}})
-    else:
-        config.update_config(
-            {'logging': {'log_to_file': False}})
 
     logging.update_logging(config)
 
@@ -1109,22 +1113,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         try:
             # a node which checks if scan_parameters are present for each scan
-            scan_params = pe.Node(util.Function(input_names=['data_config_scan_params',
-                                                             'subject_id',
-                                                             'scan',
-                                                             'start_indx',
-                                                             'stop_indx',
-                                                             'tr',
-                                                             'tpattern'],
-                                                output_names=['tr',
-                                                              'te',
-                                                              'tpattern',
-                                                              'ref_slice',
-                                                              'start_indx',
-                                                              'stop_indx'],
-                                                function=get_scan_params,
-                                                imports=scan_imports),
-                                  name='scan_params_%d' % num_strat)
+            scan_params = \
+                pe.Node(util.Function(input_names=['data_config_scan_params',
+                                                   'subject_id',
+                                                   'scan',
+                                                   'pipeconfig_tr',
+                                                   'pipeconfig_tpattern',
+                                                   'pipeconfig_start_indx',
+                                                   'pipeconfig_stop_indx'],
+                                      output_names=['tr',
+                                                    'te',
+                                                    'tpattern',
+                                                    'ref_slice',
+                                                    'start_indx',
+                                                    'stop_indx'],
+                                      function=get_scan_params,
+                                      imports=scan_imports),
+                        name='scan_params_%d' % num_strat)
         except Exception as xxx:
             logger.info("Error creating scan_params node. (%s:%d)"
                         % dbg_file_lineno())
@@ -1180,10 +1185,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             raise
 
         # connect in constants
-        scan_params.inputs.start_indx = c.startIdx
-        scan_params.inputs.stop_indx = c.stopIdx
-        scan_params.inputs.tr = c.TR
-        scan_params.inputs.tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_tr = c.TR
+        scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_start_indx = c.startIdx
+        scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
 
         # node to convert TR between seconds and milliseconds
         try:
@@ -1331,7 +1336,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     if 1 in c.slice_timing_correction:
 
-       for strat in strat_list:
+        for strat in strat_list:
 
             # create TShift AFNI node
             try:
@@ -1358,25 +1363,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  func_slice_timing_correction, 'in_file')
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'infile' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'infile' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
                 raise
 
             logger.info("connected input to slc")
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
-            logger.info("TR %s" % c.TR)
-            if c.TR:
-                try:
-                    workflow.connect(scan_params, 'tr',
-                                     func_slice_timing_correction, 'tr')
-                except Exception as xxx:
-                    logger.info(
-                        "Error connecting input 'tr' to func_slice_timing_correction afni node." + \
-                        " (%s:%d)" % dbg_file_lineno())
-                    print xxx
-                    raise
-                logger.info("connected TR")
+            try:
+                workflow.connect(scan_params, 'tr',
+                                 func_slice_timing_correction, 'tr')
+            except Exception as xxx:
+                logger.info(
+                    "Error connecting input 'tr' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
+                print xxx
+                raise
+            logger.info("connected TR")
 
             # we might prefer to use the slice timing information stored in
             # the NIFTI header if not, use the value in the scan_params node
@@ -1414,11 +1417,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                       'out_file')
 
             # add the outputs to the resource pool
-            strat.update_resource_pool({'slice_time_corrected': (
-            func_slice_timing_correction, 'out_file')})
+            strat.update_resource_pool({'slice_time_corrected':
+                                            (func_slice_timing_correction, 'out_file')})
             num_strat += 1
 
-        # add new strats (if forked)
+    # add new strats (if forked)
     strat_list += new_strat_list
 
     logger.info(" finished connecting slice timing pattern")

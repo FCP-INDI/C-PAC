@@ -1432,8 +1432,9 @@ def check(params_dct, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
-                    stop_indx, tr, tpattern):
+def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
+                    pipeconfig_tpattern, pipeconfig_start_indx,
+                    pipeconfig_stop_indx):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
@@ -1493,12 +1494,18 @@ def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
             # if this is a JSON file, the key values are the BIDS format
             # standard
             # TODO: better handling of errant key values!!!
-            TR = float(check(params_dct, subject_id, scan, 'RepetitionTime',
-                             False))
-            TE = float(check(params_dct, subject_id, scan, 'EchoTime',
-                             False))
-            pattern = str(check(params_dct, subject_id, scan,
-                                'SliceAcquisitionOrder', False))
+            if "RepetitionTime" in params_dct.keys():
+                TR = float(check(params_dct, subject_id, scan,
+                                 'RepetitionTime', False))
+            if "EchoTime" in params_dct.keys():
+                TE = float(check(params_dct, subject_id, scan, 'EchoTime',
+                                 False))
+            if "SliceTiming" in params_dct.keys():
+                pattern = str(check(params_dct, subject_id, scan,
+                                    'SliceTiming', False))
+            elif "SliceAcquisitionOrder" in params_dct.keys():
+                pattern = str(check(params_dct, subject_id, scan,
+                                    'SliceAcquisitionOrder', False))
 
         elif len(data_config_scan_params) > 0 and \
                 isinstance(data_config_scan_params, dict):
@@ -1529,29 +1536,29 @@ def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
 
     # if values are still empty, override with GUI config
     if TR == '':
-        if tr:
-            TR = float(tr)
+        if pipeconfig_tr:
+            TR = float(pipeconfig_tr)
         else:
             TR = None
 
     if first_tr == '':
-        first_tr = start_indx
+        first_tr = pipeconfig_start_indx
 
     if last_tr == '':
-        last_tr = stop_indx
+        last_tr = pipeconfig_stop_indx
 
     unit = 's'
 
     # if the user has mandated that we the timing information in the header,
     # that takes precedence
-    if "Use NIFTI Header" in tpattern:
+    if "Use NIFTI Header" in pipeconfig_tpattern:
         pattern = ''
     else:
         # otherwise he slice acquisition pattern in the subject file takes
         # precedence, but if it isn't set we use the value in the
         # configuration file
         if pattern == '':
-            pattern = tpattern
+            pattern = pipeconfig_tpattern
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
@@ -1559,7 +1566,24 @@ def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
                                    'altminus',
                                    'alt-z2', 'seq+z', 'seqplus', 'seq-z',
                                    'seqminus']:
-        if not os.path.exists(pattern):
+
+        if isinstance(pattern, list) or \
+                ("[" in pattern and "]" in pattern and "," in pattern):
+            # if we got the slice timing as a list, from a BIDS-format scan
+            # parameters JSON file
+
+            if not isinstance(pattern, list):
+                pattern = pattern.replace("[", "").replace("]", "").split(",")
+
+            slice_timings = pattern
+
+            # write out a tpattern file for AFNI 3dTShift
+            tpattern_file = os.path.join(os.getcwd(), "tpattern.txt")
+            with open(tpattern_file, "wt") as f:
+                for time in slice_timings:
+                    f.write("{0}\n".format(time))
+
+        elif not os.path.exists(pattern):
             raise Exception("Invalid Pattern file path {0}, Please provide "
                             "the correct path".format(pattern))
         else:
@@ -1569,22 +1593,22 @@ def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
                 raise Exception('Invalid slice timing file format. The file '
                                 'should contain only one value per row. Use '
                                 'new line char as delimiter')
-
-            pattern = '@{0}'.format(pattern)
-
+            tpattern_file = pattern
             slice_timings = [float(l.rstrip('\r\n')) for l in lines]
 
-            slice_timings.sort()
-            max_slice_offset = slice_timings[-1]
+        pattern = '@{0}'.format(tpattern_file)
 
-            # checking if the unit of TR and slice timing match or not
-            # if slice timing in ms convert TR to ms as well
-            if TR and max_slice_offset > TR:
-                warnings.warn("TR is in seconds and slice timings are in "
-                              "milliseconds. Converting TR into milliseconds")
-                TR = TR * 1000
-                print("New TR value {0} ms".format(TR))
-                unit = 'ms'
+        slice_timings.sort()
+        max_slice_offset = slice_timings[-1]
+
+        # checking if the unit of TR and slice timing match or not
+        # if slice timing in ms convert TR to ms as well
+        if TR and max_slice_offset > TR:
+            warnings.warn("TR is in seconds and slice timings are in "
+                          "milliseconds. Converting TR into milliseconds")
+            TR = TR * 1000
+            print("New TR value {0} ms".format(TR))
+            unit = 'ms'
 
     else:
         # check to see, if TR is in milliseconds, convert it into seconds
@@ -1598,6 +1622,7 @@ def get_scan_params(data_config_scan_params, subject_id, scan, start_indx,
           "{5} {6}".format(subject_id, scan, str(TR) + unit, pattern,
                            ref_slice, first_tr, last_tr))
 
+    # swap back in
     tr = "{0}{1}".format(str(TR), unit)
     te = TE
     tpattern = pattern
