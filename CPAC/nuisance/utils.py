@@ -2,6 +2,7 @@ import numpy as np
 
 
 def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
+
     import scipy.signal as signal
     
     wmcsf_sigs = np.vstack((wm_sigs, csf_sigs))
@@ -11,8 +12,9 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     wmcsf_sigs = wmcsf_sigs[wmcsf_sigs.std(1)!=0,:]
 
     if wmcsf_sigs.shape.count(0):
-        print 'No wm or csf signals left after removing those with zero variance'
-        raise IndexError
+        err = "\n\n[!] No wm or csf signals left after removing those " \
+              "with zero variance.\n\n"
+        raise Exception(err)
     
     print 'Detrending and centering data'
     Y = signal.detrend(wmcsf_sigs, axis=1, type='linear').T
@@ -22,7 +24,7 @@ def calc_compcor_components(data, nComponents, wm_sigs, csf_sigs):
     print 'Calculating SVD decomposition of Y*Y\''
     U, S, Vh = np.linalg.svd(Yc)
     
-    return U[:,:nComponents]
+    return U[:, :nComponents]
 
 
 def erode_mask(data):

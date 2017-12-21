@@ -153,6 +153,9 @@ def calc_residuals(subject,
     global_mask = (data != 0).sum(-1) != 0
     
     # Check and define regressors which are provided from files
+    wm_sigs = None
+    csf_sigs = None
+
     if wm_sig_file is not None:
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
@@ -194,11 +197,21 @@ def calc_residuals(subject,
                              'empty'.format(motion_file))
 
     # Calculate regressors
-    regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor'] and selector['wm']:
+    regressor_map = {'constant': np.ones((data.shape[3],1))}
+
+    if selector['compcor']:
+        if not wm_sigs:
+            err = "\n\n[!] CompCor cannot be run because the white matter " \
+                  "mask was not generated.\n\n"
+            raise Exception(err)
+        if not csf_sigs:
+            err = "\n\n[!] CompCor cannot be run because the CSF mask " \
+                  "was not generated.\n\n"
+            raise Exception(err)
+
         regressor_map['compcor'] = \
-            calc_compcor_components(data, compcor_ncomponents, wm_sigs,
-                                    csf_sigs)
+            calc_compcor_components(data, compcor_ncomponents,
+                                    wm_sigs, csf_sigs)
     
     if selector['wm']:
         regressor_map['wm'] = wm_sigs.mean(0)
@@ -551,7 +564,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                                 'compcor_ncomponents',
                                                 'frames_ex'],
                                    output_names=['residual_file',
-                                                'regressors_file'],
+                                                 'regressors_file'],
                                    function=calc_residuals,
                                    imports=calc_imports),
                      name='residuals')
