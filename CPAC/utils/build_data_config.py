@@ -174,8 +174,8 @@ def extract_scan_params_csv(scan_params_csv):
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = \
-                site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] = \
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         elif sub != "All":
             # participant-specific scan parameters
@@ -192,7 +192,7 @@ def extract_scan_params_csv(scan_params_csv):
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] = site_dict[site][sub][ses].pop('tr (seconds)')
 
         else:
             # site-specific scan parameters only
@@ -209,8 +209,8 @@ def extract_scan_params_csv(scan_params_csv):
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = \
-                site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] = \
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
     # Return site dictionary
     return site_dict
