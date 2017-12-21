@@ -1,3 +1,11 @@
+# CPAC Pipeline Configuration YAML file
+# Version 1.0.3
+#
+# http://fcp-indi.github.io for more info.
+#
+# Tip: This file can be edited manually with a text editor for quick modifications.
+
+
 # Select False if you intend to run CPAC on a single machine.
 # If set to True, CPAC will attempt to submit jobs through the job scheduler /
 # resource manager selected below.
@@ -62,8 +70,10 @@ crashLogDirectory :  /path/to/crash/directory
 # Directory where CPAC should place processed data.
 outputDirectory :  /path/to/output/directory
 
+
 # Directory where CPAC should place pipeline logs
 logDirectory : /path/to/log/directory
+
 
 # Create a user-friendly, well organized version of the output directory.
 # We recommend all users enable this option.
@@ -78,6 +88,10 @@ generateQualityControlImages :  [1]
 # This saves disk space, but any additional preprocessing or analysis will have
 # to be completely re-run.
 removeWorkingDir :  False
+
+
+# Whether to write log details of the pipeline run to logging files.
+run_logging: True
 
 
 # Uses the contents of the Working Directory to regenerate all outputs and their
@@ -211,6 +225,19 @@ PRIORS_GRAY :  $priors_path/avg152T1_gray_bin.nii.gz
 PRIORS_CSF :  $priors_path/avg152T1_csf_bin.nii.gz
 
 
+# Interpolate voxel time courses so they are sampled at the same time points.
+slice_timing_correction :  [0]
+
+
+# Specify the TR at which images were acquired.
+# Default is None (TR information is read from image file header)
+TR :  None
+
+
+# Acquisition strategy for acquiring image slices.
+slice_timing_pattern :  ['Use NIFTI Header']
+
+
 # First timepoint to include in analysis.
 # Default is 0 (beginning of timeseries).
 startIdx :  0
@@ -219,19 +246,6 @@ startIdx :  0
 # Last timepoint to include in analysis.
 # Default is None or End (end of timeseries).
 stopIdx :  None
-
-
-# Specify the TR at which images were acquired.
-# Default is None (TR information is read from image file header)
-TR :  None
-
-
-# Interpolate voxel time courses so they are sampled at the same time points.
-slice_timing_correction :  [0]
-
-
-# Acquisition strategy for acquiring image slices.
-slice_timing_pattern :  ['Use NIFTI Header']
 
 
 # Run Functional to Anatomical Registration
@@ -345,10 +359,9 @@ fdCalc: ['Jenkinson']
 
 
 # (Motion Spike De-Noising only) Specify the maximum acceptable Framewise
-# Displacement (FD) in millimeters or in percentage (with a %). Any volume
-# exhibiting FD greater than the value (or within the top percentage of the
-# percent value, if given) will be regressed out or scrubbed.
-# Options: float value like [0.2] or [1.5], or a percent ['5%'] or ['10%']
+# Displacement (FD) in millimeters. Any volume exhibiting FD greater than the
+# value will be regressed out or scrubbed.
+# Options: float value like [0.2] or [1.5]
 spikeThreshold : ['0.5']
 
 

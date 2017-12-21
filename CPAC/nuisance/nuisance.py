@@ -16,7 +16,7 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
     realigned_file : string
         Path of a realigned nifti file.
     bandpass_freqs : tuple
-        Tuple containing the bandpass frequencies. (LowCutoff, HighCutoff)
+        Tuple containing the bandpass frequencies. (LowCutoff_HighPass HighCutoff_LowPass)
     sample_period : float, optional
         Length of sampling period in seconds.  If not specified,
         this value is read from the nifti file provided.
@@ -32,8 +32,8 @@ def bandpass_voxels(realigned_file, bandpass_freqs, sample_period=None):
         # Derived from YAN Chao-Gan 120504 based on REST.
         sample_freq = 1. / sample_period
         sample_length = data.shape[0]
-
-        data_p = np.zeros(int(2 ** np.ceil(np.log2(sample_length))))
+        
+        data_p = np.zeros(int(2**np.ceil(np.log2(sample_length))))
         data_p[:sample_length] = data
 
         LowCutoff, HighCutoff = bandpass_freqs
@@ -153,6 +153,9 @@ def calc_residuals(subject,
     global_mask = (data != 0).sum(-1) != 0
     
     # Check and define regressors which are provided from files
+    wm_sigs = None
+    csf_sigs = None
+
     if wm_sig_file is not None:
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
@@ -194,11 +197,21 @@ def calc_residuals(subject,
                              'empty'.format(motion_file))
 
     # Calculate regressors
-    regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor'] and selector['wm']:
+    regressor_map = {'constant': np.ones((data.shape[3],1))}
+
+    if selector['compcor']:
+        if not wm_sigs:
+            err = "\n\n[!] CompCor cannot be run because the white matter " \
+                  "mask was not generated.\n\n"
+            raise Exception(err)
+        if not csf_sigs:
+            err = "\n\n[!] CompCor cannot be run because the CSF mask " \
+                  "was not generated.\n\n"
+            raise Exception(err)
+
         regressor_map['compcor'] = \
-            calc_compcor_components(data, compcor_ncomponents, wm_sigs,
-                                    csf_sigs)
+            calc_compcor_components(data, compcor_ncomponents,
+                                    wm_sigs, csf_sigs)
     
     if selector['wm']:
         regressor_map['wm'] = wm_sigs.mean(0)
@@ -229,8 +242,11 @@ def calc_residuals(subject,
 
     # insert the de-spiking regressor matrix here, if running de-spiking
     if frames_ex:
-        regressor_map['despike'] = \
-            create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        despike_mat = create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        # this needs to be "is not None" instead of "if despike_mat:" because
+        # despike_mat could be either a Numpy array or None
+        if despike_mat is not None:
+            regressor_map['despike'] = despike_mat
 
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
@@ -548,7 +564,7 @@ def create_nuisance(use_ants, name='nuisance'):
                                                 'compcor_ncomponents',
                                                 'frames_ex'],
                                    output_names=['residual_file',
-                                                'regressors_file'],
+                                                 'regressors_file'],
                                    function=calc_residuals,
                                    imports=calc_imports),
                      name='residuals')

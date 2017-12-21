@@ -2,6 +2,7 @@ import create_all_qc
 import extract_data_multiscan
 import create_fsl_model
 import extract_parameters
+import build_data_config
 import build_sublist
 from utils import *
 from .extract_data import run

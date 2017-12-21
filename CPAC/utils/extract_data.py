@@ -379,29 +379,25 @@ def extract_data(c, param_map):
         f.close()
 
 
-def generate_supplementary_files(output_path, subject_list_name):
+def generate_supplementary_files(data_config_outdir, data_config_name):
 
     """
     Method to generate phenotypic template file
     and subject list for group analysis
     """
 
+    import os
     from sets import Set
     import csv
 
-    subject_list_name = subject_list_name
+    data_config_path = os.path.join(data_config_outdir, data_config_name)
 
     try:
-        sublist_file = os.path.join(output_path,
-                                    'CPAC_subject_list_%s.yml'
-                                    % subject_list_name)
-        with open(sublist_file, 'r') as f:
+        with open(data_config_path, 'r') as f:
             subjects_list = yaml.load(f)
     except:
-        print 'Subject list couldn\'t be read!'
-        print 'path: ', os.path.join(output_path, 'CPAC_subject_list_%s.yml' \
-                % subject_list_name)
-        raise Exception
+        err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
+              "path: {0}\n".format(data_config_path)
 
     subject_scan_set = Set()
     subID_set = Set()
@@ -425,12 +421,19 @@ def generate_supplementary_files(output_path, subject_list_name):
                     subject_set.add(subject_id)
                     scan_set.add(scan)
             except KeyError:
-                for scan in sub['rest'].keys():
-                    subject_scan_set.add((subject_id, scan))
+                try:
+                    for scan in sub['rest'].keys():
+                        subject_scan_set.add((subject_id, scan))
+                        subID_set.add(sub['subject_id'])
+                        session_set.add(sub['unique_id'])
+                        subject_set.add(subject_id)
+                        scan_set.add(scan)
+                except KeyError:
+                    # one of the participants in the subject list has no
+                    # functional scans
                     subID_set.add(sub['subject_id'])
                     session_set.add(sub['unique_id'])
                     subject_set.add(subject_id)
-                    scan_set.add(scan)
 
     except TypeError as e:
         print 'Subject list could not be populated!'
@@ -460,8 +463,8 @@ def generate_supplementary_files(output_path, subject_list_name):
         data_list.append(list1)
 
     # generate the phenotypic file templates for group analysis
-    file_name = os.path.join(output_path, 'phenotypic_template_%s.csv'
-                             % subject_list_name)
+    file_name = os.path.join(data_config_outdir, 'phenotypic_template_%s.csv'
+                             % data_config_name)
 
     try:
         f = open(file_name, 'wb')
@@ -482,12 +485,13 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     print "Template Phenotypic file for group analysis - %s" % file_name
 
+    """
     # generate the phenotypic file templates for repeated measures
     if (len(session_set) > 1) and (len(scan_set) > 1):
 
-        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
+        file_name = os.path.join(data_config_outdir, 'phenotypic_template_repeated' \
                 '_measures_mult_sessions_and_scans_%s.csv' \
-                % subject_list_name)
+                % data_config_name)
 
         try:
             f = open(file_name, 'wb')
@@ -513,8 +517,8 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     if (len(session_set) > 1):
 
-        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
-                '_measures_multiple_sessions_%s.csv' % subject_list_name)
+        file_name = os.path.join(data_config_outdir, 'phenotypic_template_repeated' \
+                '_measures_multiple_sessions_%s.csv' % data_config_name)
 
         try:
             f = open(file_name, 'wb')
@@ -540,8 +544,8 @@ def generate_supplementary_files(output_path, subject_list_name):
 
     if (len(scan_set) > 1):
 
-        file_name = os.path.join(output_path, 'phenotypic_template_repeated' \
-                '_measures_multiple_scans_%s.csv' % subject_list_name)
+        file_name = os.path.join(data_config_outdir, 'phenotypic_template_repeated' \
+                '_measures_multiple_scans_%s.csv' % data_config_name)
 
         try:
             f = open(file_name, 'wb')
@@ -566,9 +570,10 @@ def generate_supplementary_files(output_path, subject_list_name):
           "measures (multiple scans) - %s" % file_name
 
     # generate the group analysis subject lists
-    file_name = os.path.join(output_path,
+    file_name = os.path.join(data_config_outdir,
                              'participant_list_group_analysis_%s.txt'
-                             % subject_list_name)
+                             % data_config_name)
+    """
 
     try:
         with open(file_name, 'w') as f:
@@ -581,7 +586,7 @@ def generate_supplementary_files(output_path, subject_list_name):
               'worry.. I\'ll wait.\n\n'
         raise IOError
 
-    print "Participant list required later for group analysis - %s" \
+    print "Participant list required later for group analysis - %s\n\n" \
           % file_name
 
 

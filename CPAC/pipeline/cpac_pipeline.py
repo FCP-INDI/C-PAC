@@ -288,8 +288,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow.config['execution'] = {'hash_method': 'timestamp',
                                     'crashdump_dir': os.path.abspath(
                                         c.crashLogDirectory)}
-    config.update_config(
-        {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
+    try:
+        if c.run_logging == True:
+            config.update_config(
+                {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+        else:
+            config.update_config(
+                {'logging': {'log_to_file': False}})
+    except AttributeError:
+        config.update_config(
+            {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
     logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
@@ -1048,9 +1058,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             num_strat += 1
 
     strat_list += new_strat_list
-    
-
- 
 
     '''
     Inserting Functional Data workflow
@@ -1066,14 +1073,32 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # keep this in so that older participant lists that still have the
         # "rest" flag will still work
         try:
-            func_path = sub_dict['func']
+            # func_paths_dict is a dictionary of paths to the functional scans
+            func_paths_dict = sub_dict['func']
         except KeyError:
-            func_path = sub_dict['rest']
+            func_paths_dict = sub_dict['rest']
+
+        # for now, pull in field maps if they exist
+        fmap_phasediff = None
+        fmap_mag = None
+        if 'fmap' in sub_dict.keys():
+
+            try:
+                fmap_phasediff = sub_dict['fmap']['phase']
+                fmap_mag = sub_dict['fmap']['magnitude']
+            except KeyError as e:
+                err = "[!] Some of the required field map files are " \
+                      "missing from your data configuration.\n\nDetails: " \
+                      "{0}\n\n".format(e)
+                raise KeyError(err)
+
         try:
-            funcFlow = create_func_datasource(func_path,
+            funcFlow = create_func_datasource(func_paths_dict,
                                               'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
+            funcFlow.inputs.inputnode.phase_diff = fmap_phasediff
+            funcFlow.inputs.inputnode.magnitude = fmap_mag
         except Exception as xxx:
             logger.info("Error create_func_datasource failed." + \
                         " (%s:%d)" % dbg_file_lineno())
@@ -1083,26 +1108,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         Add in nodes to get parameters from configuration file
         """
 
-        scan_imports = ['import os', 'import warnings',
+        scan_imports = ['import os', 'import json', 'import warnings',
                         'from CPAC.utils import check']
 
         try:
             # a node which checks if scan_parameters are present for each scan
-            scan_params = pe.Node(util.Function(input_names=['subject',
-                                                             'scan',
-                                                             'subject_map',
-                                                             'start_indx',
-                                                             'stop_indx',
-                                                             'tr',
-                                                             'tpattern'],
-                                                output_names=['tr',
-                                                              'tpattern',
-                                                              'ref_slice',
-                                                              'start_indx',
-                                                              'stop_indx'],
-                                                function=get_scan_params,
-                                                imports=scan_imports),
-                                  name='scan_params_%d' % num_strat)
+            scan_params = \
+                pe.Node(util.Function(input_names=['data_config_scan_params',
+                                                   'subject_id',
+                                                   'scan',
+                                                   'pipeconfig_tr',
+                                                   'pipeconfig_tpattern',
+                                                   'pipeconfig_start_indx',
+                                                   'pipeconfig_stop_indx'],
+                                      output_names=['tr',
+                                                    'te',
+                                                    'tpattern',
+                                                    'ref_slice',
+                                                    'start_indx',
+                                                    'stop_indx'],
+                                      function=get_scan_params,
+                                      imports=scan_imports),
+                        name='scan_params_%d' % num_strat)
         except Exception as xxx:
             logger.info("Error creating scan_params node. (%s:%d)"
                         % dbg_file_lineno())
@@ -1134,10 +1161,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # wire in the scan parameter workflow
         try:
-            workflow.connect(funcFlow, 'outputspec.subject',
-                             scan_params, 'subject')
+            workflow.connect(funcFlow, 'outputspec.scan_params',
+                             scan_params, 'data_config_scan_params')
         except Exception as xxx:
-            logger.info("Error connecting scan_params 'subject' input." + \
+            logger.info("Error connecting scan_params 'data_config_"
+                        "scan_params' input. (%s:%d)" % dbg_file_lineno())
+            raise
+
+        try:
+            workflow.connect(funcFlow, 'outputspec.subject',
+                             scan_params, 'subject_id')
+        except Exception as xxx:
+            logger.info("Error connecting scan_params 'subject_id' input." + \
                         " (%s:%d)" % dbg_file_lineno())
             raise
 
@@ -1150,11 +1185,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             raise
 
         # connect in constants
-        scan_params.inputs.subject_map = sub_dict
-        scan_params.inputs.start_indx = c.startIdx
-        scan_params.inputs.stop_indx = c.stopIdx
-        scan_params.inputs.tr = c.TR
-        scan_params.inputs.tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_tr = c.TR
+        scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_start_indx = c.startIdx
+        scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
 
         # node to convert TR between seconds and milliseconds
         try:
@@ -1234,16 +1268,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         " (%s:%d)" % dbg_file_lineno())
             raise
 
-        # replace the leaf node with the output from the recently added workflow
+        # replace the leaf node with the output from the recently added
+        # workflow
         strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
         num_strat = num_strat + 1
 
-    #Inserting EPI_DistCorr workflow here
+    """
+    EPI Field-Map based Distortion Correction
+    """
  
     new_strat_list = []
     num_strat = 0
    
     workflow_counter += 1
+
+    # TODO: allow for TE to be entered via scan parameters from the data
+    # TODO: config/sublist. currently, TE can be pulled from the scan params
+    # TODO: sub-wf via:
+    # TODO:     "workflow.connect(scan_params, 'te', epi_distcorr, 'TE/etc.')"
+
+    # TODO: we can leave the input parameter for TE in the pipeline config/GUI
+    # TODO: for now as well, in case users only have the TE value and don't
+    # TODO: feel like creating an entire scan parameters structure
    
     if 1 in c.runEPI_DistCorr:
        workflow_bit_id['epi_distcorr'] = workflow_counter
@@ -1284,9 +1330,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
            
             num_strat += 1
     strat_list += new_strat_list
-           
-
-
 
     """
     Inserting slice timing correction
@@ -1297,7 +1340,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     if 1 in c.slice_timing_correction:
 
-       for strat in strat_list:
+        for strat in strat_list:
 
             # create TShift AFNI node
             try:
@@ -1324,25 +1367,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  func_slice_timing_correction, 'in_file')
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'infile' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'infile' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
                 raise
 
             logger.info("connected input to slc")
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
-            logger.info("TR %s" % c.TR)
-            if c.TR:
-                try:
-                    workflow.connect(scan_params, 'tr',
-                                     func_slice_timing_correction, 'tr')
-                except Exception as xxx:
-                    logger.info(
-                        "Error connecting input 'tr' to func_slice_timing_correction afni node." + \
-                        " (%s:%d)" % dbg_file_lineno())
-                    print xxx
-                    raise
-                logger.info("connected TR")
+            try:
+                workflow.connect(scan_params, 'tr',
+                                 func_slice_timing_correction, 'tr')
+            except Exception as xxx:
+                logger.info(
+                    "Error connecting input 'tr' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
+                print xxx
+                raise
+            logger.info("connected TR")
 
             # we might prefer to use the slice timing information stored in
             # the NIFTI header if not, use the value in the scan_params node
@@ -1380,11 +1421,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                       'out_file')
 
             # add the outputs to the resource pool
-            strat.update_resource_pool({'slice_time_corrected': (
-            func_slice_timing_correction, 'out_file')})
+            strat.update_resource_pool({'slice_time_corrected':
+                                            (func_slice_timing_correction, 'out_file')})
             num_strat += 1
 
-        # add new strats (if forked)
+    # add new strats (if forked)
     strat_list += new_strat_list
 
     logger.info(" finished connecting slice timing pattern")

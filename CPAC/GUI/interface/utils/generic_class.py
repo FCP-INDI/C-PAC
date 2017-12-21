@@ -5,6 +5,7 @@ from wx.lib.intctrl import IntCtrl
 import wx.lib.intctrl
 import pkg_resources as p
 
+
 class GenericClass(wx.ScrolledWindow):
     
     def __init__(self,parent,title="",no_static=False):
@@ -20,7 +21,6 @@ class GenericClass(wx.ScrolledWindow):
 
         self.__set_scroll()
         self.switch = None
-
     
     def __set_scroll(self):
         maxWidth = 1000
@@ -45,8 +45,6 @@ class GenericClass(wx.ScrolledWindow):
         
     __add_static = add_static
 
-
-
     def add_pheno_load_panel(self, sizer):
         
         buffer = wx.StaticText(self.parent, label="\t\t\t\t\t\t")
@@ -54,8 +52,6 @@ class GenericClass(wx.ScrolledWindow):
         self.flexSizer.Add(buffer)
         self.flexSizer.Add(sizer)
 
-        
-        
     def add(self, label, control, name, type = 0, 
             comment="", values="", style=0, size= wx.DefaultSize, 
             validator=wx.DefaultValidator, wkf_switch= False,
@@ -126,8 +122,6 @@ class GenericClass(wx.ScrolledWindow):
             self.parent.Bind(wx.EVT_CHECKBOX, lambda event: self.EvtCheckBoxGrid(event,ctrl), id =ctrl.get_id())
             self.flexSizer.Add(ctrl.get_ctrl(), proportion=0)
 
-
-
     def EvtChoice(self, event, ctrl):
         
         if type(event.GetString()) == unicode:
@@ -144,8 +138,7 @@ class GenericClass(wx.ScrolledWindow):
     def TxtEnterCombo(self, event, ctrl):
         ctrl.text_ctrl.SetBackgroundColour("white")
         ctrl.set_selection(ctrl.text_ctrl.GetValue())
-        
-    
+
     def EvtCheckListBox(self, event, ctrl):
         index = event.GetSelection()
         label = ctrl.get_ctrl().GetString(index)
@@ -162,8 +155,7 @@ class GenericClass(wx.ScrolledWindow):
             ctrl.set_selection(label, index)
         else:
             ctrl.set_selection(label,index, True)
-        
-        
+
     '''
     NEEDS DEV!
     '''
@@ -173,23 +165,19 @@ class GenericClass(wx.ScrolledWindow):
         if ctrl.get_ctrl().IsChecked(index):
             ctrl.set_selection(label, index)
         else:
-            ctrl.set_selection(label,index, True)       
-        
+            ctrl.set_selection(label,index, True)
     
     def OnShowDoc(self, event, comment):
             wx.TipWindow(self.parent, comment, 500)
-
 
     def set_sizer(self):
         
         self.mainSizer.Add(self.flexSizer,1,wx.EXPAND|wx.ALL,15)
         self.parent.SetSizer(self.mainSizer)
-        
-    
+
     def get_ctrl_list(self):
         return self.ctrl_list
 
-     
     def get_switch(self):    
         return self.switch
 
@@ -398,7 +386,6 @@ class Control(wx.Control):
             else:
                 self.selection.append(value)
 
-                
         elif self.get_type() == 9:
             self.ctrl.onReload_set_selections(value)
 
@@ -414,10 +401,8 @@ class Control(wx.Control):
         else:
             self.selection = value
 
-
         if self.get_type()==7:
             self.listbox_selections = self.selection
-
 
     def get_selection(self):
         return self.selection
@@ -483,4 +468,3 @@ class Control(wx.Control):
     
     def get_help(self):
         return self.help
-        

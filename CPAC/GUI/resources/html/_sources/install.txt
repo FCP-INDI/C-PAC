@@ -30,8 +30,7 @@ If you are using Ubuntu (version 12/14) you can download  and run cpac_install.s
 
 .. code-block:: bash
 
-    wget https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install.sh?raw=true
-    mv cpac_install.sh?raw=true cpac_install.sh
+    wget https://github.com/FCP-INDI/C-PAC/blob/master/scripts/cpac_install.sh?raw=true -O cpac_install.sh
     chmod +x cpac_install.sh
     sudo ./cpac_install.sh -r
    

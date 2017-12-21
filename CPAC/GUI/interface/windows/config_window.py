@@ -197,7 +197,7 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id=""):
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC Pipeline Configuration", \
+            self, parent=parent, title="CPAC Pipeline Configuration",
             size=(1200, 520))
 
         # Here we create a panel and a notebook on the panel
@@ -211,17 +211,17 @@ class MainFrame(wx.Frame):
         btnPanel = wx.Panel(self.p, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", \
+        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save",
             (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
         
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",\
+        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",
             (350, 10), wx.DefaultSize, 0)
         hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
-        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", \
+        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",
             (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
@@ -1029,7 +1029,10 @@ class MainFrame(wx.Frame):
             f = open(path, 'w')
 
             print >>f, "# CPAC Pipeline Configuration YAML file"
-            print >>f, "# version %s\n" % str(CPAC.__version__)
+            print >>f, "# Version %s\n#" % str(CPAC.__version__)
+            print >>f, "# http://fcp-indi.github.io for more info.\n#"
+            print >>f, "# Tip: This file can be edited manually with a " \
+                       "text editor for quick modifications.\n\n"
 
             for item in config_list:
 
@@ -1154,7 +1157,8 @@ class MainFrame(wx.Frame):
                         try:
                             val=ast.literal_eval(str(val))
                         except Exception as err:
-                            print "Exception trying to translate: %s, %s, %s, %s"%(label,str(value),val,err)
+                            print "Exception trying to translate: " \
+                                  "%s, %s, %s, %s"%(label,str(value),val,err)
                             print "value type: %s"%(type(val))
                         values.append(ast.literal_eval(str(val)))
 

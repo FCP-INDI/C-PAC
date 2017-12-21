@@ -1,52 +1,49 @@
 #!/usr/bin/python
 
-import sys
-from os import path
 
-def check_inputs(*pathstrs):
-    for pathstr in pathstrs:
-        if not path.exists(pathstr):
-            print "ERROR: input '%s' doesn't exist" % pathstr
-            raise SystemExit(2)
-        _,ext = path.splitext(pathstr)
-        if ext != ".yml":
-            print "ERROR: input '%s' is not a YAML file (*.yml)" % pathstr
-            raise SystemExit(2)
-    return
+def main():
 
-if len(sys.argv) != 3 and len(sys.argv) != 5:
-    print "Usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml" % path.basename(sys.argv[0])
-    print "Alternate usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml nipype=/path/to/custom/Nipype cpac=/path/to/custom/cpac" % path.basename(sys.argv[0])
-    print "Will run C-PAC"
-    raise SystemExit(1)
+    import os
+    import sys
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("pipeline_config", type=str,
+                        help="the path to the pipeline configuration YAML "
+                             "file")
+    parser.add_argument("data_config", type=str,
+                        help="the path to the data configuration YAML file "
+                             "(the participant list)")
+
+    parser.add_argument("--nipype_install", type=str, default=None,
+                        help="the build directory of a custom Nipype "
+                             "installation you wish to use for this run")
+    parser.add_argument("--cpac_install", type=str, default=None,
+                        help="the build directory of a custom CPAC "
+                             "installation you wish to use for this run")
+
+    args = parser.parse_args()
+
+    # put custom install directories at the beginning of sys.path
+    if args.nipype_install:
+        sys.path.insert(0, args.nipype_install)
+    if args.cpac_install:
+        sys.path.insert(0, args.cpac_install)
+
+    if not os.path.exists(args.pipeline_config):
+        err = "\n[!] The pipeline configuration file you provided " \
+              "does not exist:\n{0}\n".format(args.pipeline_config)
+        raise Exception(err)
+
+    if not os.path.exists(args.data_config):
+        err = "\n[!] The data configuration file you provided " \
+              "does not exist:\n{0}\n".format(args.data_config)
+        raise Exception(err)
+
+    import CPAC
+    CPAC.pipeline.cpac_runner.run(args.pipeline_config, args.data_config)
 
 
-def check_custom_path(custom_path):
-
-    if custom_path != None:
-
-        if "nipype=" in custom_path:
-            nipype_path = custom_path.replace("nipype=","")
-            sys.path.insert(0,nipype_path)
-        elif "cpac=" in custom_path:
-            cpac_path = custom_path.replace("cpac=","")
-            sys.path.insert(0,cpac_path)
-        else:
-            print "Improper format for custom paths.\n"
-            print "Usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml" % path.basename(sys.argv[0])
-            print "Alternate usage: %s /path/to/pipeline_config.yml /path/to/CPAC_subject_list.yml nipype=/path/to/custom/Nipype cpac=/path/to/custom/cpac" % path.basename(sys.argv[0])
-            print "Will run C-PAC"
-            raise SystemExit(1)
-
-
-config_file         = sys.argv[1]
-subject_list_file   = sys.argv[2]
-
-if len(sys.argv)==5:
-    check_custom_path(sys.argv[3])
-    check_custom_path(sys.argv[4])
-
-check_inputs(config_file, subject_list_file)
-
-import CPAC
-CPAC.pipeline.cpac_runner.run(config_file, subject_list_file)
+if __name__ == "__main__":
+    main()
