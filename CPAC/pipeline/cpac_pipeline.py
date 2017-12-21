@@ -1254,7 +1254,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
             epi_distcorr.inputs_asymR.asymR = c.AssymetricRatio_EPI_DistCorr
             epi_distcorr.get_node('input_delTE').iterables = ('delTE',
-                                                   c.deltTE_EPI_DistCorr)
+                                                   c.deltaTE_EPI_DistCorr)
             epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
             epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.AssymtericRatio_EPI_DistCorr)
@@ -5378,8 +5378,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
-                if 'epi_distcorr' in fork:
-                    forklabel = 'epi_distcorr'
+                    #if 'epi_distcorr' in fork:
+                    #forklabel = 'epi_distcorr'
                 if forklabel not in forkName:
                     forkName = forkName + '__' + forklabel
 
