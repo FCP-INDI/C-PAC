@@ -1213,6 +1213,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.update_resource_pool(
             {'raw_functional': (funcFlow, 'outputspec.rest')})
 
+        if fmap_phasediff and fmap_mag:
+            strat.update_resource_pool(
+                {"fmap_phase_diff": (funcFlow, 'outputspec.phase_diff'),
+                 "fmap_magnitude": (funcFlow, 'outputspec.magnitude')})
+
         if "Selected Functional Volume" in c.func_reg_input:
             strat.update_resource_pool(
                 {'selected_func_volume': (get_func_volume, 'out_file')})
@@ -1292,26 +1297,48 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # TODO: feel like creating an entire scan parameters structure
    
     if 1 in c.runEPI_DistCorr:
-       workflow_bit_id['epi_distcorr'] = workflow_counter
+
+        if not fmap_phasediff:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map phase difference file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        if not fmap_mag:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map magnitude file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        workflow_bit_id['epi_distcorr'] = workflow_counter
        
-       for strat in strat_list:
+        for strat in strat_list:
             epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
-            epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
-            epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
-            epi_distcorr.inputs_asymR.asymR = c.AssymetricRatio_EPI_DistCorr
+            epi_distcorr.inputs.input_delTE.delTE = c.deltaTE_EPI_DistCorr
+            epi_distcorr.inputs.input_dwellT.dwellT = c.DwellTime_EPI_DistCorr
+            epi_distcorr.inputs.input_asymR.asymR = c.asymmetric_ratio_EPI_distCorr
             epi_distcorr.get_node('input_delTE').iterables = ('delTE',
                                                    c.deltaTE_EPI_DistCorr)
             epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
-            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.AssymtericRatio_EPI_DistCorr)
+            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.asymmetric_ratio_EPI_distCorr)
             try:
+                # functional timeseries into field map dist corr
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-                node,out_file = strat.get_node_from_resource_pool('anat')
+
+                # anatomical file
+                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
-                node, out_file = strat.get_node_from_resource_pool('mag1')
+
+                # field map magnitude file
+                node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
-                node,out_file = strat.get_node_from_resource_pool('phase_diff')
+
+                # field map phase difference file
+                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
@@ -1329,6 +1356,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1
+
     strat_list += new_strat_list
 
     """
@@ -1349,16 +1377,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     name='func_slice_timing_correction_%d' % (num_strat))
                 func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
             except Exception as xxx:
-                logger.info("Error connecting input 'stop_idx' to trunc_wf." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error connecting input 'stop_idx' to trunc_wf. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # find the output data on the leaf node
             try:
                 node, out_file = strat.get_leaf_properties()
             except Exception as xxx:
-                logger.info("Error  get_leaf_properties failed." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error  get_leaf_properties failed. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # connect the output of the leaf node as the in_file
@@ -1393,23 +1421,34 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     try:
                         logger.info("connecting slice timing pattern %s" %
                                     c.slice_timing_pattern[0])
+
+                        from CPAC.utils.utils import add_afni_prefix
+                        add_prefix = pe.Node(util.Function(input_names=['tpattern'],
+                                                           output_names=['afni_prefix'],
+                                                           function=add_afni_prefix),
+                                             name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
                         workflow.connect(scan_params, 'tpattern',
+                                         add_prefix, 'tpattern')
+                        workflow.connect(add_prefix, 'afni_prefix',
                                          func_slice_timing_correction,
                                          'tpattern')
+
                         logger.info("connected slice timing pattern %s" %
                                     c.slice_timing_pattern[0])
                     except Exception as xxx:
                         logger.info(
-                            "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                            "Error connecting input 'acquisition' to "
+                            "func_slice_timing_correction afni node. "
+                            "(%s:%d)" % dbg_file_lineno())
                         print xxx
                         raise
                     logger.info("connected slice timing pattern %s" %
                                 c.slice_timing_pattern[0])
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'acquisition' to "
+                    "func_slice_timing_correction afni node. "
+                    "(%s:%d)" % dbg_file_lineno())
                 print xxx
                 raise
 

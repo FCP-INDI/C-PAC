@@ -1562,6 +1562,7 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
+    tpattern_file = None
     if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z',
                                    'altminus',
                                    'alt-z2', 'seq+z', 'seqplus', 'seq-z',
@@ -1575,13 +1576,19 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
             if not isinstance(pattern, list):
                 pattern = pattern.replace("[", "").replace("]", "").split(",")
 
-            slice_timings = pattern
+            slice_timings = [float(x) for x in pattern]
 
             # write out a tpattern file for AFNI 3dTShift
             tpattern_file = os.path.join(os.getcwd(), "tpattern.txt")
-            with open(tpattern_file, "wt") as f:
-                for time in slice_timings:
-                    f.write("{0}\n".format(time))
+            try:
+                with open(tpattern_file, "wt") as f:
+                    for time in slice_timings:
+                        f.write("{0}\n".format(time).replace(" ", ""))
+            except:
+                err = "\n[!] Could not write the slice timing file meant as "\
+                      "an input for AFNI 3dTshift (slice timing correction):"\
+                      "\n{0}\n\n".format(tpattern_file)
+                raise Exception(err)
 
         elif not os.path.exists(pattern):
             raise Exception("Invalid Pattern file path {0}, Please provide "
@@ -1596,7 +1603,8 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
             tpattern_file = pattern
             slice_timings = [float(l.rstrip('\r\n')) for l in lines]
 
-        pattern = '@{0}'.format(tpattern_file)
+        #pattern = '@{0}'.format(tpattern_file)
+        pattern = tpattern_file
 
         slice_timings.sort()
         max_slice_offset = slice_timings[-1]
@@ -1674,6 +1682,14 @@ def check_tr(tr, in_file):
             'Warning: The TR information does not match between the config and subject list files.')
 
     return TR
+
+
+def add_afni_prefix(tpattern):
+    # TODO: this isinstance is clearly not firing
+    if isinstance(tpattern, str):
+        if ".txt" in tpattern:
+            tpattern = "@{0}".format(tpattern)
+    return tpattern
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id):
