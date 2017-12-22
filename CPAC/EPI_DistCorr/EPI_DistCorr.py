@@ -99,6 +99,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     epireg.inputs.echospacing=0.00046
     epireg.inputs.pedir='y'
     epireg.inputs.output_type='NIFTI_GZ'
+
     preproc.connect(inputNode,'func_file',epireg,'epi')
     preproc.connect(skullstrip_anat,'out_file', epireg,'t1_brain')
     preproc.connect(inputNode, 'anat_file', epireg, 't1_head')

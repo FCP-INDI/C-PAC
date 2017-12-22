@@ -1085,24 +1085,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if 'fmap' in sub_dict.keys():
 
             try:
-                fmap_phasediff = sub_dict['fmap']['phase']
+                fmap_phasediff = sub_dict['fmap']['phase_diff']
                 fmap_mag = sub_dict['fmap']['magnitude']
             except KeyError as e:
                 err = "[!] Some of the required field map files are " \
                       "missing from your data configuration.\n\nDetails: " \
                       "{0}\n\n".format(e)
-                raise KeyError(err)
+                raise Exception(err)
 
         try:
             funcFlow = create_func_datasource(func_paths_dict,
+                                              fmap_phasediff,
+                                              fmap_mag,
                                               'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
-            funcFlow.inputs.inputnode.phase_diff = fmap_phasediff
-            funcFlow.inputs.inputnode.magnitude = fmap_mag
         except Exception as xxx:
-            logger.info("Error create_func_datasource failed." + \
-                        " (%s:%d)" % dbg_file_lineno())
+            logger.info("Error create_func_datasource failed. "
+                        "(%s:%d)" % dbg_file_lineno())
             raise
 
         """
@@ -1285,7 +1285,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
  
     new_strat_list = []
     num_strat = 0
-   
+
     workflow_counter += 1
 
     # TODO: allow for TE to be entered via scan parameters from the data
@@ -1352,8 +1352,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat = tmp
                 new_strat_list.append(strat)
             strat.append_name(epi_distcorr.name)
+
+            strat.set_leaf_properties(epi_distcorr, 'outputspec.epireg')
+
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-            strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
+            strat.update_resource_pool({'functional_distortion_corrected':(epi_distcorr,'outputspec.epireg')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1

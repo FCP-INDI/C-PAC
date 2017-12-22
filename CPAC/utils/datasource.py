@@ -2,7 +2,8 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def create_func_datasource(rest_dict, wf_name='func_datasource'):
+def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
+                           wf_name='func_datasource'):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
@@ -10,8 +11,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path',
-                                        'phase_diff', 'magnitude'],
+                                fields=['subject', 'scan', 'creds_path'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -86,8 +86,29 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
-    wf.connect(inputnode, 'phase_diff', outputnode, 'phase_diff')
-    wf.connect(inputnode, 'magnitude', outputnode, 'magnitude')
+    if fmap_phase and fmap_mag:
+        s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3),
+                                name='s3_fmap_phase')
+        s3_fmap_phase.inputs.file_path = fmap_phase
+        s3_fmap_phase.inputs.img_type = "other"
+        wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
+
+        s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
+                                                         'creds_path',
+                                                         'img_type'],
+                                            output_names=['local_path'],
+                                            function=check_for_s3),
+                              name='s3_fmap_mag')
+        s3_fmap_mag.inputs.file_path = fmap_mag
+        s3_fmap_mag.inputs.img_type = "other"
+        wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
+
+        wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
+        wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     return wf
 
@@ -179,6 +200,8 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
                 raise IOError('File: %s must be a functional image with 4 '\
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
+        elif img_type == "other":
+            pass
 
     # Return the local path
     return local_path

@@ -22,6 +22,8 @@ files_folders_wf = {
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
     'functional_mask_to_spatial_map': 'func',
+    'fmap_phase_diff': 'func',
+    'fmap_magnitude': 'func',
     'slice_time_corrected': 'func',
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',

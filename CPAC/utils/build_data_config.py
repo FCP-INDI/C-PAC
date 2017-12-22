@@ -651,6 +651,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 path_dct[label] = id
                 skip = False
             else:
+                warn = None
                 if path_dct[label] != id:
                     if str(path_dct[label]) in id and "run-" in id:
                         # TODO: this is here only because we do not support
@@ -677,12 +678,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                "This file has not been added to the data " \
                                "configuration.".format(anat_path, label,
                                                        path_dct[label], id)
-                    if warn:
-                        print warn
-                        skip = True
-                        break
-                    else:
-                        pass
+                if warn:
+                    print warn
+                    skip = True
+                    break
+                else:
+                    skip = False
+                    pass
 
             new_template = new_template.replace(part1, '', 1)
             new_template = new_template.replace(label, '', 1)
@@ -1015,6 +1017,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     path_dct[label] = id
                     skip = False
                 else:
+                    warn = None
                     if path_dct[label] != id:
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
@@ -1042,6 +1045,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                         print warn
                         skip = True
                         break
+                    else:
+                        skip = False
 
                 new_template = new_template.replace(part1, '', 1)
                 new_template = new_template.replace(label, '', 1)
@@ -1144,6 +1149,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     path_dct[label] = id
                     skip = False
                 else:
+                    warn = None
                     if path_dct[label] != id:
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
@@ -1171,6 +1177,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                         print warn
                         skip = True
                         break
+                    else:
+                        skip = False
 
                 new_template = new_template.replace(part1, '', 1)
                 new_template = new_template.replace(label, '', 1)
