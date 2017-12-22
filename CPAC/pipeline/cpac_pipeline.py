@@ -59,18 +59,19 @@ from CPAC.network_centrality import create_resting_state_graphs, \
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
 
-### no create_log_template here, move in CPAC/utils/utils.py
+# TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, gen_func_anat_xfm, gen_snr, \
     generateQCPages, cal_snr_val
+
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
     get_tr, extract_txt, create_log, \
     create_log_template, extract_output_mean, \
     create_output_mean_csv, get_zscore, \
-    get_fisher_zscore, dbg_file_lineno
+    get_fisher_zscore, dbg_file_lineno, add_afni_prefix
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -1422,7 +1423,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         logger.info("connecting slice timing pattern %s" %
                                     c.slice_timing_pattern[0])
 
-                        from CPAC.utils.utils import add_afni_prefix
+                        # add the @ prefix to the tpattern file going into
+                        # AFNI 3dTshift - needed this so the tpattern file
+                        # output from get_scan_params would be tied downstream
+                        # via a connection (to avoid poofing)
                         add_prefix = pe.Node(util.Function(input_names=['tpattern'],
                                                            output_names=['afni_prefix'],
                                                            function=add_afni_prefix),
@@ -4814,6 +4818,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
      QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
+    # TODO - QA pages: re-introduce
     '''
     if 1 in c.generateQualityControlImages:
 
@@ -5786,6 +5791,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
 
         # If QC is enabled
+        # TODO - QA pages: re-introduce
         '''
         if 1 in c.generateQualityControlImages:
             # For each pipeline ID, generate the QC pages

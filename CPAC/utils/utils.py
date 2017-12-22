@@ -1685,10 +1685,8 @@ def check_tr(tr, in_file):
 
 
 def add_afni_prefix(tpattern):
-    # TODO: this isinstance is clearly not firing
-    if isinstance(tpattern, str):
-        if ".txt" in tpattern:
-            tpattern = "@{0}".format(tpattern)
+    if ".txt" in tpattern:
+        tpattern = "@{0}".format(tpattern)
     return tpattern
 
 
