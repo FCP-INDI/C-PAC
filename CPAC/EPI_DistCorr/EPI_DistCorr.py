@@ -57,18 +57,19 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     preproc.connect(fslroi,'roi_file',outputNode,'fslroi_file')
 # Skullstrip
 
-    skullstrip = pe.Node(interface=fsl.BET(),name='skullstrip')
-    skullstrip.inputs.output_type = 'NIFTI_GZ'
-    skullstrip.inputs.frac = 1.0
-    preproc.connect(inputNode,'fmap_mag',skullstrip,'in_file')
-    preproc.connect(skullstrip,'out_file',outputNode,'magnitude_image')
+    bet = pe.Node(interface=fsl.BET(),name='bet')
+    bet.inputs.output_type = 'NIFTI_GZ'
+    bet.inputs.frac = 1.0
+    bet.inputs.robust = True
+    preproc.connect(inputNode,'fmap_mag',bet,'in_file')
+    preproc.connect(bet,'out_file',outputNode,'magnitude_image')
 
 #SkullStrip the anatomy file
-    skullstrip_anat = pe.Node(interface=fsl.BET(),name='skullstrip_anat')
-    skullstrip_anat.inputs.output_type = 'NIFTI_GZ'
-    skullstrip_anat.inputs.frac = 0.5
-    preproc.connect(inputNode,'anat_file',skullstrip_anat,'in_file')
-    preproc.connect(skullstrip_anat,'out_file',outputNode,'stripped_anat')
+    bet_anat = pe.Node(interface=fsl.BET(),name='bet_anat')
+    bet_anat.inputs.output_type = 'NIFTI_GZ'
+    bet_anat.inputs.frac = 0.5
+    preproc.connect(inputNode,'anat_file',bet_anat,'in_file')
+    preproc.connect(bet_anat,'out_file',outputNode,'stripped_anat')
 #Note for the user. Ensure the phase image is within 0-4096 (upper threshold is 90% of 4096), fsl_prepare_fieldmap will only work 
 #in the case of the SIEMENS format. #Maybe we could use deltaTE also as an option in the GUI. 
 # Prepare Fieldmap
@@ -77,7 +78,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     #prepare.inputs.delta_TE = 2.46
     preproc.connect(inputnode_delTE, 'input_delTE', prepare, 'delta_TE')
     preproc.connect(inputNode,'fmap_pha',prepare,'in_phase')
-    preproc.connect(skullstrip,'out_file',prepare,'in_magnitude')
+    preproc.connect(bet,'out_file',prepare,'in_magnitude')
     preproc.connect(prepare,'out_fieldmap',outputNode,'fieldmap')
 #fugue 
     fugue1= pe.Node(interface = fsl.FUGUE(),name='fugue1')
@@ -97,10 +98,10 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     epireg.inputs.pedir='y'
     epireg.inputs.output_type='NIFTI_GZ'
     preproc.connect(inputNode,'func_file',epireg,'epi')
-    preproc.connect(skullstrip_anat,'out_file', epireg,'t1_brain')
+    preproc.connect(bet_anat,'out_file', epireg,'t1_brain')
     preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
     preproc.connect(inputNode, 'fmap_mag',epireg, 'fmapmag')
-    preproc.connect(skullstrip,'out_file',epireg,'fmapmagbrain')
+    preproc.connect(bet,'out_file',epireg,'fmapmagbrain')
     preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
     preproc.connect(epireg,'out_file',outputNode,'epireg')
     preproc.connect(inputNode, 'func_file',outputNode,'func_file')
