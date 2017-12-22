@@ -1317,11 +1317,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
        
         for strat in strat_list:
             epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
-            epi_distcorr.inputs.input_delTE.delTE = c.deltaTE_EPI_DistCorr
+
+            # TODO: NOTE, should move c.deltaTE to scan_params node up above,
+            # TODO: and deal with it within that function
+            # TODO: wired it in below (workflow.connect call)
+            #epi_distcorr.inputs.input_delTE.delTE = c.deltaTE_EPI_DistCorr
             epi_distcorr.inputs.input_dwellT.dwellT = c.DwellTime_EPI_DistCorr
             epi_distcorr.inputs.input_asymR.asymR = c.asymmetric_ratio_EPI_distCorr
-            epi_distcorr.get_node('input_delTE').iterables = ('delTE',
-                                                   c.deltaTE_EPI_DistCorr)
+            #epi_distcorr.get_node('input_delTE').iterables = ('delTE',
+            #                                       c.deltaTE_EPI_DistCorr)
             epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
             epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.asymmetric_ratio_EPI_distCorr)
@@ -1341,6 +1345,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # field map phase difference file
                 node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
+
+                # Echo Time (TE)
+                workflow.connect(scan_params, 'te',
+                                 epi_distcorr, 'inputspec.input_delTE')
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
             if 0 in c.runEPI_DistCorr:
