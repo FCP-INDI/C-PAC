@@ -150,7 +150,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
         
         self.page.add(label = "Asymmetric ratio",
                       control = control.TEXT_BOX,
-                      name='asymmetric_ratio_EPI_distCorr',
+                      name='assymetric_ratio_EPI_DistCorr',
                       type = dtype.LNUM,
                       comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
