@@ -113,10 +113,11 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     # Co-Register EPI and Correct field inhomogeniety distortions
     # echospacing can also be in the GUI
     epireg = pe.Node(interface=fsl.epi.EpiReg(), name='epireg')
-    epireg.inputs.echospacing=0.00046
+    #epireg.inputs.echospacing=0.00046
     epireg.inputs.pedir='y'
     epireg.inputs.output_type='NIFTI_GZ'
-
+    
+    preproc.connect(inputnode_dwellT,'dwellT',epireg,'echospacing')
     preproc.connect(inputNode,'func_file',epireg,'epi')
     preproc.connect(bet_anat,'out_file', epireg,'t1_brain')
     preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
