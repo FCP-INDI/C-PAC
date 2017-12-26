@@ -1350,7 +1350,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # Echo Time (TE)
                 workflow.connect(scan_params, 'te',
-                                 epi_distcorr, 'inputspec.input_delTE')
+                                 epi_distcorr, 'input_delTE.delTE')
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
             if 0 in c.runEPI_DistCorr:

@@ -57,12 +57,13 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     preproc.connect(fslroi,'roi_file',outputNode,'fslroi_file')
 
 
+    '''
     # Skullstrip
     skullstrip = pe.Node(interface=fsl.BET(),name='skullstrip')
     skullstrip.inputs.output_type = 'NIFTI_GZ'
     skullstrip.inputs.frac = 1.0
     preproc.connect(inputNode,'fmap_mag',skullstrip,'in_file')
-    preproc.connect(skullstrip,'out_file',outputNode,'magnitude_image')
+    #preproc.connect(skullstrip,'out_file',outputNode,'magnitude_image')
 
     # SkullStrip the anatomy file
     skullstrip_anat = pe.Node(interface=fsl.BET(),name='skullstrip_anat')
@@ -70,6 +71,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     skullstrip_anat.inputs.frac = 0.5
     preproc.connect(inputNode,'anat_file',skullstrip_anat,'in_file')
     preproc.connect(skullstrip_anat,'out_file',outputNode,'stripped_anat')
+    '''
 
     # Note for the user. Ensure the phase image is within 0-4096 (upper
     # threshold is 90% of 4096), fsl_prepare_fieldmap will only work in the
@@ -82,7 +84,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     bet.inputs.frac = 1.0
     bet.inputs.robust = True
     preproc.connect(inputNode,'fmap_mag',bet,'in_file')
-    preproc.connect(bet,'out_file',outputNode,'magnitude_image')
+    #preproc.connect(bet,'out_file',outputNode,'magnitude_image')
 
 #SkullStrip the anatomy file
     bet_anat = pe.Node(interface=fsl.BET(),name='bet_anat')

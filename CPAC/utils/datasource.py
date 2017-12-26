@@ -165,6 +165,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
         # Download file
         try:
+            print("Attempting to download from AWS S3: {0}".format(file_path))
             bucket.download_file(Key=s3_key, Filename=local_path)
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])

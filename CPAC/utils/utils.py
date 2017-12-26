@@ -1434,9 +1434,9 @@ def check(params_dct, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
-                    pipeconfig_te, pipeconfig_tpattern, pipeconfig_start_indx,
-                    pipeconfig_stop_indx):
+def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
+                    pipeconfig_tpattern, pipeconfig_start_indx,
+                    pipeconfig_stop_indx, data_config_scan_params=None):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
