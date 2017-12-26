@@ -77,7 +77,6 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     # option in the GUI.
 
     # Prepare Fieldmap
-=======
     bet = pe.Node(interface=fsl.BET(),name='bet')
     bet.inputs.output_type = 'NIFTI_GZ'
     bet.inputs.frac = 1.0

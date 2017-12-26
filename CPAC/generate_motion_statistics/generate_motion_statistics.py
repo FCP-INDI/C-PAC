@@ -807,6 +807,8 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
         path to csv file containing all the pow parameters 
     """
 
+    threshold = float(threshold)
+
     powersFD_data = loadtxt(FDP_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
@@ -841,13 +843,13 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
     with open(out_file, 'w') as f:
         f.write("Subject, Scan, MeanFD_Power, MeanFD_Jenkinson, "
                 "NumFD_greater_than_{0:.2f}, rootMeanSquareFD, "
-                "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f},"
-                "MeanDVARS".format(threshold, threshold))
+                "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f}, "
+                "MeanDVARS\n".format(threshold, threshold))
 
-        f.write("{0}, {1}".format(subject_id, scan_id))
-        f.write('{0:.4f}, {1:.4f}'.format(meanFD_Power, meanFD_Jenkinson))
-        f.write('{0:.4f}, {1:.4f}'.format(numFD, rmsFD))
-        f.write('{0:.4f}, {1:.4f}'.format(FDquartile, percentFD))
+        f.write("{0}, {1}, ".format(subject_id, scan_id))
+        f.write('{0:.4f}, {1:.4f}, '.format(meanFD_Power, meanFD_Jenkinson))
+        f.write('{0:.4f}, {1:.4f}, '.format(numFD, rmsFD))
+        f.write('{0:.4f}, {1:.4f}, '.format(FDquartile, percentFD))
         f.write('{0:.4f}'.format(meanDVARS))
     
     return out_file
