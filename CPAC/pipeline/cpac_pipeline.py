@@ -3205,7 +3205,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     new_strat_list = []
     num_strat = 0
 
-    if 1 in c.runSCA and (1 in c.runVoxelTimeseries):
+    # old version: if 1 in c.runSCA and (1 in c.runVoxelTimeseries):
+    if 1 in c.runSCA:
         for strat in strat_list:
 
             sca_seed = create_sca('sca_seed_%d' % num_strat)
