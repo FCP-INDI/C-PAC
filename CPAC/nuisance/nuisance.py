@@ -195,7 +195,7 @@ def calc_residuals(subject,
 
     # Calculate regressors
     regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor'] and selector['wm']:
+    if selector['compcor']:
         regressor_map['compcor'] = \
             calc_compcor_components(data, compcor_ncomponents, wm_sigs,
                                     csf_sigs)
