@@ -141,6 +141,13 @@ def extract_scan_params_csv(scan_params_csv):
 
     placeholders = ['None', 'NONE', 'none', 'All', 'ALL', 'all', '', ' ']
 
+    keys = {"TR (seconds)": "TR",
+            "TE (seconds)": "TE",
+            "Reference (slice no)": "reference",
+            "Acquisition (pattern)": "acquisition",
+            "FirstTR (start volume index)": "first_TR",
+            "LastTR (final volume index)": "last_TR"}
+
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
 
@@ -166,11 +173,11 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
@@ -184,15 +191,16 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            #site_dict[site][sub][ses]['tr'] = site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] =
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         else:
             # site-specific scan parameters only
@@ -201,18 +209,17 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
             #site_dict[site][sub][ses]['tr'] = \
             #    site_dict[site][sub][ses].pop('tr (seconds)')
 
-    # Return site dictionary
     return site_dict
 
 

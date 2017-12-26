@@ -2,6 +2,14 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
+def get_rest(scan, rest_dict):
+    return rest_dict[scan]
+
+
+def extract_scan_params_dct(scan_params_dct):
+    return scan_params_dct
+
+
 def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
                            wf_name='func_datasource'):
 
@@ -51,10 +59,15 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
                            outputnode, 'scan_params')
 
         elif isinstance(rest_dict["scan_parameters"], dict):
-            outputnode.outputs.scan_params = rest_dict["scan_parameters"]
-
-    else:
-        outputnode.outputs.scan_params = None
+            get_scan_params_dct = \
+                    pe.Node(util.Function(input_names=['scan_params_dct'],
+                                          output_names=['scan_params_dct'],
+                                          function=extract_scan_params_dct),
+                            name='s3_scan_params')
+            get_scan_params_dct.inputs.scan_params_dct = \
+                rest_dict["scan_parameters"]
+            wf.connect(get_scan_params_dct, 'scan_params_dct',
+                       outputnode, 'scan_params')
 
     for scan in scan_names:
         if '.' in scan or '+' in scan or '*' in scan:
@@ -111,10 +124,6 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
         wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     return wf
-
-
-def get_rest(scan, rest_dict):
-    return rest_dict[scan]
 
 
 # Check if passed-in file is on S3
