@@ -63,7 +63,7 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
                     pe.Node(util.Function(input_names=['scan_params_dct'],
                                           output_names=['scan_params_dct'],
                                           function=extract_scan_params_dct),
-                            name='s3_scan_params')
+                            name='get_scan_params_dct')
             get_scan_params_dct.inputs.scan_params_dct = \
                 rest_dict["scan_parameters"]
             wf.connect(get_scan_params_dct, 'scan_params_dct',

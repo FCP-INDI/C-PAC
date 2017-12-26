@@ -1119,6 +1119,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                    'subject_id',
                                                    'scan',
                                                    'pipeconfig_tr',
+                                                   'pipeconfig_te',
                                                    'pipeconfig_tpattern',
                                                    'pipeconfig_start_indx',
                                                    'pipeconfig_stop_indx'],
@@ -1187,6 +1188,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # connect in constants
         scan_params.inputs.pipeconfig_tr = c.TR
+        scan_params.inputs.pipeconfig_te = c.deltaTE_EPI_DistCorr[0]
         scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
         scan_params.inputs.pipeconfig_start_indx = c.startIdx
         scan_params.inputs.pipeconfig_stop_indx = c.stopIdx

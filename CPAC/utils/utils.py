@@ -1435,7 +1435,7 @@ def check(params_dct, subject, scan, val, throw_exception):
 
 
 def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
-                    pipeconfig_tpattern, pipeconfig_start_indx,
+                    pipeconfig_te, pipeconfig_tpattern, pipeconfig_start_indx,
                     pipeconfig_stop_indx):
     """
     Method to extract slice timing correction parameters
@@ -1480,8 +1480,13 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
     last_tr = ''
     unit = 's'
 
-    if "None" in pipeconfig_tpattern:
-        pipeconfig_tpattern = None
+    if isinstance(pipeconfig_tpattern, list) or isinstance(pipeconfig_tpattern, str):
+        if "None" in pipeconfig_tpattern:
+            pipeconfig_tpattern = None
+
+    if isinstance(pipeconfig_te, list) or isinstance(pipeconfig_te, str):
+        if "None" in pipeconfig_te:
+            pipeconfig_te = None
 
     if data_config_scan_params:
 
@@ -1548,6 +1553,12 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
         else:
             TR = None
 
+    if not TE:
+        if pipeconfig_te:
+            TE = float(pipeconfig_te)
+        else:
+            TE = None
+
     if first_tr == '':
         first_tr = pipeconfig_start_indx
 
@@ -1558,14 +1569,15 @@ def get_scan_params(data_config_scan_params, subject_id, scan, pipeconfig_tr,
 
     # if the user has mandated that we the timing information in the header,
     # that takes precedence
-    if "Use NIFTI Header" in pipeconfig_tpattern:
-        pattern = ''
-    elif pipeconfig_tpattern:
-        # otherwise he slice acquisition pattern in the subject file takes
-        # precedence, but if it isn't set we use the value in the
-        # configuration file
-        if pattern == '':
-            pattern = pipeconfig_tpattern
+    if pipeconfig_tpattern:
+        if "Use NIFTI Header" in pipeconfig_tpattern:
+            pattern = ''
+        else:
+            # otherwise he slice acquisition pattern in the subject file takes
+            # precedence, but if it isn't set we use the value in the
+            # configuration file
+            if pattern == '':
+                pattern = pipeconfig_tpattern
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
