@@ -147,8 +147,8 @@ def create_fts_file(ftest_list, con_names, model_name,
 
         with open(out_file, 'w') as f:
 
-            print >>f, '/NumWaves\t', len(con_names)
-            print >>f, '/NumContrasts\t', len(ftest_list)
+            print >>f, '/NumWaves\t', len(ftest_list)
+            print >>f, '/NumContrasts\t', len(con_names)
 
             # process each f-test
             ftst = []
