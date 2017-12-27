@@ -253,6 +253,11 @@ class ListBox(wx.Frame):
         try:
             import CPAC
             from CPAC.utils import Configuration
+        except ImportError, e:
+            wx.MessageBox("Error importing CPAC. %s" % e, "Error")
+            print "Error importing CPAC"
+            print e
+
             from nipype.pipeline.plugins.callback_log import log_nodes_cb
             c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
             plugin_args = {'n_procs': c.maxCoresPerParticipant,
@@ -261,16 +266,12 @@ class ListBox(wx.Frame):
 
             # TODO: make this work
             if self.pids:
-                print "THERE'S SOMETHING RUNNING!"
+                #print "THERE'S SOMETHING RUNNING!"
+                pass
 
             CPAC.pipeline.cpac_runner.run(pipeline, sublist, p,
                                           plugin='MultiProc',
                                           plugin_args=plugin_args)
-        
-        except ImportError, e:
-            wx.MessageBox("Error importing CPAC. %s"%e, "Error") 
-            print "Error importing CPAC"
-            print e
 
     def runIndividualAnalysis(self, event):
 
