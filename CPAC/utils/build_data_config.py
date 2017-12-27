@@ -1092,7 +1092,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             else:
                 scan_id = None
 
-            temp_fmap_dct = {"phase": fmap_phase}
+            temp_fmap_dct = {"phase_diff": fmap_phase}
 
             if site_id not in data_dct.keys():
                 if verbose:
