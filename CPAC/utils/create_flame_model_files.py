@@ -107,7 +107,7 @@ def create_con_file(con_vecs, con_names, col_names, model_name,
             f.write("/ContrastName%s\t%s\n" %(num,key))
             num += 1
 
-        f.write("/NumWaves\t%d\n" %len(con_vecs))
+        f.write("/NumWaves\t%d\n" %len(col_names))
         f.write("/NumContrasts\t%d\n" %len(con_names))
         f.write("/PPheights%s" %create_dummy_string(len(con_vecs)))
         f.write("/RequiredEffect%s" %create_dummy_string(len(con_vecs)))
@@ -147,8 +147,8 @@ def create_fts_file(ftest_list, con_names, model_name,
 
         with open(out_file, 'w') as f:
 
-            print >>f, '/NumWaves\t', len(ftest_list)
-            print >>f, '/NumContrasts\t', len(con_names)
+            print >>f, '/NumWaves\t', len(con_names)
+            print >>f, '/NumContrasts\t', len(ftest_list)
 
             # process each f-test
             ftst = []
