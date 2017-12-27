@@ -42,6 +42,8 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
     :return: The local filepath of the downloaded s3 file.
     """
 
+    # TODO: really for core tools and/or utility
+
     import os
     from indi_aws import fetch_creds, aws_utils
 
@@ -66,6 +68,8 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
         print "Local file already exists: %s\n" % local_dl
     else:
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
+
+
 
     return local_dl
 
