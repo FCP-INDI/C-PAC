@@ -1188,7 +1188,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # connect in constants
         scan_params.inputs.pipeconfig_tr = c.TR
-        scan_params.inputs.pipeconfig_te = c.deltaTE_EPI_DistCorr[0]
+        scan_params.inputs.pipeconfig_te = c.fmap_distcorr_deltaTE[0]
         scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
         scan_params.inputs.pipeconfig_start_indx = c.startIdx
         scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
@@ -1289,17 +1289,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     num_strat = 0
 
     workflow_counter += 1
-
-    # TODO: allow for TE to be entered via scan parameters from the data
-    # TODO: config/sublist. currently, TE can be pulled from the scan params
-    # TODO: sub-wf via:
-    # TODO:     "workflow.connect(scan_params, 'te', epi_distcorr, 'TE/etc.')"
-
-    # TODO: we can leave the input parameter for TE in the pipeline config/GUI
-    # TODO: for now as well, in case users only have the TE value and don't
-    # TODO: feel like creating an entire scan parameters structure
    
-    if 1 in c.runEPI_DistCorr:
+    if 1 in c.run_fmap_distcorr:
 
         if not fmap_phasediff:
             err = "\n\n[!] Field-map distortion correction is enabled, but " \
@@ -1320,17 +1311,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for strat in strat_list:
             epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
 
-            # TODO: NOTE, should move c.deltaTE to scan_params node up above,
-            # TODO: and deal with it within that function
-            # TODO: wired it in below (workflow.connect call)
-            #epi_distcorr.inputs.input_delTE.delTE = c.deltaTE_EPI_DistCorr
-            epi_distcorr.inputs.input_dwellT.dwellT = c.DwellTime_EPI_DistCorr
-            epi_distcorr.inputs.input_asymR.asymR = c.asymmetric_ratio_EPI_distCorr
-            #epi_distcorr.get_node('input_delTE').iterables = ('delTE',
-            #                                       c.deltaTE_EPI_DistCorr)
+            epi_distcorr.inputs.input_dwellT.dwellT = c.fmap_distcorr_dwell_time
+            epi_distcorr.inputs.input_asymR.asymR = c.fmap_distcorr_asymmetric_ratio
+
             epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
-                                                   c.DwellTime_EPI_DistCorr)
-            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.asymmetric_ratio_EPI_distCorr)
+                                                   c.fmap_distcorr_dwell_time)
+            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.fmap_distcorr_asymmetric_ratio)
+
             try:
                 # functional timeseries into field map dist corr
                 node,out_file = strat.get_leaf_properties()
@@ -1352,8 +1339,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(scan_params, 'te',
                                  epi_distcorr, 'input_delTE.delTE')
             except:
-                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
-            if 0 in c.runEPI_DistCorr:
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+
+            if 0 in c.run_fmap_distcorr:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
