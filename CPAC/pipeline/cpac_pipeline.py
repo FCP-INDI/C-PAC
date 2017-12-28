@@ -2891,7 +2891,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # '/path/to/rois3.nii.gz': 'Avg, MultReg',
     # '/path/to/rois4.nii.gz': 'DualReg'}]
 
-
     if 1 in c.runROITimeseries:
 
         if c.tsa_roi_paths:

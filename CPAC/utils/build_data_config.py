@@ -29,7 +29,8 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
-def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
+def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
+                            overwrite=False):
     """Download a single file from an AWS s3 bucket.
 
     :type s3_path: str
@@ -47,9 +48,6 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
     import os
     from indi_aws import fetch_creds, aws_utils
 
-    if not download_dir:
-        download_dir = os.getcwd()
-
     if "s3://" in s3_path:
         s3_prefix = s3_path.replace("s3://", "")
     else:
@@ -57,19 +55,26 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
         raise Exception(err)
 
     bucket_name = s3_prefix.split("/")[0]
+    data_dir = s3_path.split(bucket_name + "/")[1]
+
+    if not download_dir:
+        download_dir = os.getcwd()
+        local_dl = os.path.join(download_dir, data_dir)
+    else:
+        local_dl = os.path.join(download_dir, data_dir.split("/")[-1])
+
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
-    data_dir = s3_path.split(bucket_name + "/")[1]
-    local_dl = os.path.join(download_dir, data_dir)
-
     if os.path.isfile(local_dl):
-        print "\nS3 bucket file already downloaded! Skipping download."
-        print "S3 file: %s" % s3_path
-        print "Local file already exists: %s\n" % local_dl
+        if overwrite:
+            print "\nS3 bucket file already downloaded! Overwriting.."
+            aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
+        else:
+            print "\nS3 bucket file already downloaded! Skipping download."
+            print "S3 file: %s" % s3_path
+            print "Local file already exists: %s\n" % local_dl
     else:
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
-
-
 
     return local_dl
 
@@ -391,7 +396,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
             print "\n\nFound a participants.tsv file in your BIDS data " \
                   "set on the S3 bucket. Downloading..\n"
             part_tsv = download_single_s3_path(part_tsv, config_dir,
-                                               aws_creds_path)
+                                               aws_creds_path, overwrite=True)
 
         print "Checking participants.tsv file for site information:" \
               "\n{0}".format(part_tsv)
