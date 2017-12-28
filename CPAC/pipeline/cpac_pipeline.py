@@ -1312,11 +1312,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
 
             epi_distcorr.inputs.input_dwellT.dwellT = c.fmap_distcorr_dwell_time
-            epi_distcorr.inputs.input_asymR.asymR = c.fmap_distcorr_asymmetric_ratio
+            #epi_distcorr.inputs.input_asymR.asymR = c.fmap_distcorr_asymmetric_ratio
 
             epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
                                                    c.fmap_distcorr_dwell_time)
-            epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.fmap_distcorr_asymmetric_ratio)
+            #epi_distcorr.get_node('input_asymR').iterables = ('asymR', c.fmap_distcorr_asymmetric_ratio)
 
             try:
                 # functional timeseries into field map dist corr
@@ -1326,6 +1326,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # anatomical file
                 node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
+
+                # skull-stripped anatomical
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file, epi_distcorr, 'inputspec.anat_brain')
 
                 # field map magnitude file
                 node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
@@ -5590,7 +5594,35 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
+            debugging_outputs = ['anatomical_csf_mask', 'anatomical_gm_mask',
+                                 'anatomical_wm_mask', 'despiked_fieldmap',
+                                 'despiking_frames_excluded',
+                                 'despiking_frames_included',
+                                 'dr_tempreg_maps_stack',
+                                 'dr_tempreg_maps_stack_to_standard',
+                                 'dr_tempreg_maps_stack_to_standard_smooth',
+                                 'dr_tempreg_maps_zstat_stack',
+                                 'dr_tempreg_maps_zstat_stack_to_standard',
+                                 'dr_tempreg_maps_zstat_stack_to_standard_smooth',
+                                 'fmap_magnitude',
+                                 'fmap_phase_diff',
+                                 'raw_functional',
+                                 'sca_roi_correlation_stack',
+                                 'sca_roi_stack_smooth',
+                                 'sca_roi_stack_to_standard',
+                                 'sca_roi_stack_to_standard_smooth',
+                                 'sca_tempreg_maps_stack',
+                                 'sca_tempreg_maps_stack_smooth',
+                                 'sca_tempreg_maps_zstat_stack',
+                                 'sca_tempreg_maps_zstat_stack_smooth',
+                                 'seg_mixeltype',
+                                 'seg_partial_volume_files',
+                                 'seg_partial_volume_map']
+
             for key in sorted(rp.keys()):
+
+                if key in debugging_outputs:
+                    continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory

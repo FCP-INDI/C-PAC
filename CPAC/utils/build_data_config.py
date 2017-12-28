@@ -397,6 +397,10 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                   "set on the S3 bucket. Downloading..\n"
             part_tsv = download_single_s3_path(part_tsv, config_dir,
                                                aws_creds_path, overwrite=True)
+        else:
+            # then participants.tsv is local, and we need to pull it out of
+            # the glob return list
+            part_tsv = part_tsv[0]
 
         print "Checking participants.tsv file for site information:" \
               "\n{0}".format(part_tsv)
