@@ -60,12 +60,13 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     fslroi_mag = pe.Node(interface=fsl.ExtractROI(),name='fslroi_mag')
     fslroi_mag.inputs.t_min=0
     fslroi_mag.inputs.t_size=3
-    preproc.connect(inputNode, 'fmap_pha', fslroi_mag, 'in_file'
+    preproc.connect(inputNode, 'fmap_pha', fslroi_mag, 'in_file')
+    preproc.connect(fslroi_mag, 'roi_file',outputNode,'roi_file_mag')
 # Skullstrip
 
     bet = pe.Node(interface=fsl.BET(),name='bet')
     bet.inputs.output_type = 'NIFTI_GZ'
-    bet.inputs.frac = 0.5
+    bet.inputs.frac = 0.6
     bet.inputs.robust = True
     preproc.connect(inputNode,'fmap_mag',bet,'in_file')
     preproc.connect(bet,'out_file',outputNode,'magnitude_image')
@@ -107,7 +108,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     preproc.connect(fslroi,'roi_file', epireg,'t1_brain')
     preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
     preproc.connect(inputNode, 'fmap_mag',epireg, 'fmapmag')
-    preproc.connect(fslroi_mag,'out_file',epireg,'fmapmagbrain')
+    preproc.connect(fslroi_mag,'roi_file',epireg,'fmapmagbrain')
     preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
     preproc.connect(epireg,'out_file',outputNode,'epireg')
     preproc.connect(inputNode, 'func_file',outputNode,'func_file')
