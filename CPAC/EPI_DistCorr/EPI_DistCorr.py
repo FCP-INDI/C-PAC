@@ -66,7 +66,7 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
 
     bet = pe.Node(interface=fsl.BET(),name='bet')
     bet.inputs.output_type = 'NIFTI_GZ'
-    bet.inputs.frac = 0.6
+    bet.inputs.frac = 0.7
     bet.inputs.robust = True
     preproc.connect(inputNode,'fmap_mag',bet,'in_file')
     preproc.connect(bet,'out_file',outputNode,'magnitude_image')
