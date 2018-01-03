@@ -16,9 +16,8 @@ def calc_percent(threshold, fd_file):
             percent = int(threshold.replace('%', ''))
             percent = percent / 100.0
         else:
-            err = "A string was entered for the de-spiking/scrubbing " \
-                  "threshold, but there is no percent value."
-            raise Exception(err)
+            threshold = float(threshold)
+            return threshold
     elif isinstance(threshold, float) or isinstance(threshold, int):
         return threshold
     else:
