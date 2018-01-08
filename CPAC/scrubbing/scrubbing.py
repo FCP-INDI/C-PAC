@@ -233,6 +233,3 @@ def scrub_image(scrub_input):
     scrubbed_image = os.path.join(os.getcwd(), "scrubbed_preprocessed.nii.gz")
 
     return scrubbed_image
-
-    
-    

@@ -287,8 +287,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow.config['execution'] = {'hash_method': 'timestamp',
                                     'crashdump_dir': os.path.abspath(
                                         c.crashLogDirectory)}
-    config.update_config(
-        {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
+    try:
+        if c.run_logging == True:
+            config.update_config(
+                {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+        else:
+            config.update_config(
+                {'logging': {'log_to_file': False}})
+    except AttributeError:
+        config.update_config(
+            {'logging': {'log_directory': log_dir, 'log_to_file': True}})
+
     logging.update_logging(config)
 
     if c.reGenerateOutputs is True:
@@ -3190,40 +3200,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     strat_list += new_strat_list
 
-    '''
-    Inserting SCA
-    Workflow for Voxel INPUT
-    '''
-
-    '''
-    new_strat_list = []
-    num_strat = 0
-
-    if 1 in c.runSCA and (1 in c.runVoxelTimeseries):
-        for strat in strat_list:
-
-            sca_seed = create_sca('sca_seed_%d' % num_strat)
-
-            try:
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file,
-                                 sca_seed, 'inputspec.functional_file')
-
-                node, out_file = strat.get_node_from_resource_pool('voxel_timeseries_for_SCA')
-                workflow.connect(node, (out_file, extract_one_d),
-                                 sca_seed, 'inputspec.timeseries_one_d')
-            except:
-                logConnectionError('SCA', num_strat, strat.get_resource_pool(), '0036')
-                raise
-
-
-            strat.update_resource_pool({'sca_seed_correlation_files':(sca_seed, 'outputspec.correlation_files')})
-
-            strat.append_name(sca_seed.name)
-            num_strat += 1
-
-    strat_list += new_strat_list
-    '''
 
     '''
     (Dual Regression) Temporal Regression for Dual Regression

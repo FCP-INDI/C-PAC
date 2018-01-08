@@ -194,11 +194,21 @@ def calc_residuals(subject,
                              'empty'.format(motion_file))
 
     # Calculate regressors
-    regressor_map = {'constant' : np.ones((data.shape[3],1))}
-    if selector['compcor'] and selector['wm']:
+    regressor_map = {'constant': np.ones((data.shape[3], 1))}
+
+    if selector['compcor']:
+        if not wm_sig_file:
+            err = "\n\n[!] CompCor cannot be run because the white matter " \
+                  "mask was not generated.\n\n"
+            raise Exception(err)
+        if not csf_sig_file:
+            err = "\n\n[!] CompCor cannot be run because the CSF mask " \
+                  "was not generated.\n\n"
+            raise Exception(err)
+
         regressor_map['compcor'] = \
-            calc_compcor_components(data, compcor_ncomponents, wm_sigs,
-                                    csf_sigs)
+            calc_compcor_components(data, compcor_ncomponents,
+                                    wm_sigs, csf_sigs)
     
     if selector['wm']:
         regressor_map['wm'] = wm_sigs.mean(0)
@@ -229,8 +239,11 @@ def calc_residuals(subject,
 
     # insert the de-spiking regressor matrix here, if running de-spiking
     if frames_ex:
-        regressor_map['despike'] = \
-            create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        despike_mat = create_despike_regressor_matrix(frames_ex, nii.shape[3])
+        # this needs to be "is not None" instead of "if despike_mat:" because
+        # despike_mat could be either a Numpy array or None
+        if despike_mat is not None:
+            regressor_map['despike'] = despike_mat
 
     X = np.zeros((data.shape[3], 1))
     csv_filename = ''
