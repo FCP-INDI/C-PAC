@@ -67,16 +67,15 @@ class TimeSeriesOptions(wx.ScrolledWindow):
         self.page.add(label="Slice Acquisition Pattern ",
                       control=control.CHOICE_BOX,
                       name='slice_timing_pattern',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Acquisition strategy for acquiring image "
-                              "slices.\n\nDefault is None- slice acquisition "
-                              "information is then read from scan parameters "
-                              "in the data configuration file, or the image "
-                              "file header if there is no scan information "
-                              "in the data configuration.\n\nNote: the "
+                              "slices.\n\nSlice acquisition information is "
+                              "read from scan parameters in the data "
+                              "configuration file- if this is not provided, "
+                              "then this option will apply.\n\nNote: the "
                               "selection here applies to all scans of all "
                               "participants.",
-                      values=["None", "Use NIFTI Header", "alt+z", "alt+z2",
+                      values=["Use NIFTI Header", "alt+z", "alt+z2",
                               "alt-z", "alt-z2", "seq+z", "seq-z"],
                       wkf_switch=True)
 
@@ -141,12 +140,8 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       name='fmap_distcorr_deltaTE',
                       type=dtype.LNUM,
                       comment="Set the Delta-TE value, used for preparing "
-                              "the field map, the time delay between the "
-                              "first and second echo images.\n\nNote, TE "
-                              "can be specified in the data configuration "
-                              "YAML file via scan parameters setup. If it "
-                              "is not specified there, this value will be "
-                              "used instead.",
+                              "the field map. This is the time delay between "
+                              "the first and second echo images.",
                       validator=CharValidator("no-alpha"),
                       values="2.46")
         

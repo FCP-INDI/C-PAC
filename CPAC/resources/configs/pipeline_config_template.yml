@@ -170,7 +170,7 @@ TR :  None
 # Acquisition strategy for acquiring image slices.
 # Default is None- slice acquisition information is then read from scan parameters in the data configuration file, or the image file header if there is no scan information in the data configuration.
 # Note: the selection here applies to all scans of all participants.
-slice_timing_pattern :  ['None']
+slice_timing_pattern :  'Use NIFTI Header'
 
 
 # First timepoint to include in analysis.
@@ -194,7 +194,7 @@ run_fmap_distcorr :  [0]
 
 # Set the Delta-TE value, used for preparing the field map, the time delay between the first and second echo images.
 # Note, TE can be specified in the data configuration YAML file via scan parameters setup. If it is not specified there, this value will be used instead.
-fmap_distcorr_deltaTE : [2.46]
+fmap_distcorr_deltaTE : 2.46
 
 
 # Set the Dwell time for FSL FUGUE. This is the time between scans.
