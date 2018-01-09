@@ -454,7 +454,7 @@ def check_multicollinearity(matrix):
 
 def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
 
-    contrasts_dict = {}
+    contrasts_vectors = []
 
     for con_equation in contrasts_list:
 
@@ -472,9 +472,9 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
             raise Exception(err)
 
         con_vec = lincon.coefs[0]
-        contrasts_dict[con_equation] = con_vec
+        contrasts_vectors.append(con_vec)
 
-    return contrasts_dict
+    return contrasts_vectors
 
 
 def prep_group_analysis_workflow(model_df, pipeline_config_path, \
@@ -816,7 +816,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         raise Exception(err)
 
     # time for contrasts
-    contrasts_dict = None
+    contrasts_list = None
+    contrasts_vectors = None
 
     if ((custom_confile == None) or (custom_confile == '') or \
             ("None" in custom_confile) or ("none" in custom_confile)):
@@ -824,7 +825,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
-        contrasts_dict = create_contrasts_dict(dmatrix, contrasts_list,
+        contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
             resource_id)
 
     # check the merged file's order
@@ -856,13 +857,13 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         readme_flags.append("cat_demeaned")
 
     # send off the info so the FLAME input model files can be generated!
-    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix, \
-        column_names, contrasts_dict, custom_confile, ftest_list, \
-        group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0], \
+    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix,
+        column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
+        group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
         model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(dmatrix, model_df["Participant"], column_names, \
+    write_design_matrix_csv(dmatrix, model_df["Participant"], column_names,
         dmat_csv_path)
 
     # workflow time
@@ -870,10 +871,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     wf = pe.Workflow(name=wf_name)
 
     wf.base_dir = work_dir
-    crash_dir = os.path.join(pipeline_config_obj.crashLogDirectory, \
+    crash_dir = os.path.join(pipeline_config_obj.crashLogDirectory,
                              "group_analysis", model_name)
 
-    wf.config['execution'] = {'hash_method': 'timestamp', \
+    wf.config['execution'] = {'hash_method': 'timestamp',
                               'crashdump_dir': crash_dir} 
 
     # gpa_wf
@@ -885,7 +886,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     gpa_wf.inputs.inputspec.z_threshold = z_threshold
     gpa_wf.inputs.inputspec.p_threshold = p_threshold
-    gpa_wf.inputs.inputspec.parameters = (pipeline_config_obj.FSLDIR, \
+    gpa_wf.inputs.inputspec.parameters = (pipeline_config_obj.FSLDIR,
                                           'MNI152')
 
     gpa_wf.inputs.inputspec.mat_file = mat_file

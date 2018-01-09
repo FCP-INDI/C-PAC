@@ -153,9 +153,6 @@ def calc_residuals(subject,
     global_mask = (data != 0).sum(-1) != 0
     
     # Check and define regressors which are provided from files
-    wm_sigs = None
-    csf_sigs = None
-
     if wm_sig_file is not None:
         wm_sigs = np.load(wm_sig_file)
         if wm_sigs.shape[1] != data.shape[3]:
@@ -197,14 +194,14 @@ def calc_residuals(subject,
                              'empty'.format(motion_file))
 
     # Calculate regressors
-    regressor_map = {'constant': np.ones((data.shape[3],1))}
+    regressor_map = {'constant': np.ones((data.shape[3], 1))}
 
     if selector['compcor']:
-        if not wm_sigs:
+        if not wm_sig_file:
             err = "\n\n[!] CompCor cannot be run because the white matter " \
                   "mask was not generated.\n\n"
             raise Exception(err)
-        if not csf_sigs:
+        if not csf_sig_file:
             err = "\n\n[!] CompCor cannot be run because the CSF mask " \
                   "was not generated.\n\n"
             raise Exception(err)

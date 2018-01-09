@@ -35,6 +35,10 @@ stopIdx,Last Timepoint,Time Series Options
 slice_timing_correction,Slice Timing Correction,Time Series Options
 slice_timing_pattern,Slice Timing Correction Pattern,Time Series Options
 TR,TR,Time Series Options
+run_fmap_distcorr,Perform Field-Map Distortion Correction,Distortion Correction
+fmap_distcorr_deltaTE,DeltaTE, in ms,Distortion Correction
+fmap_distcorr_dwell_time,Dwell Time, in s,Distortion Correction
+fmap_distcorr_asymmetric_ratio,Asymmetric Ratio,Distortion Correction
 runRegisterFuncToAnat,Run Functional to Anatomical Registration,Functional to Anatomical Registration
 runBBReg,Using BB Register,Functional to Anatomical Registration
 boundaryBasedRegistrationSchedule,Boundary Based Registration Scheduler,Functional to Anatomical Registration

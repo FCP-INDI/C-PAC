@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 
+def print_data_config_info(data_config_yml):
+    pass
+
+
 def main():
 
     import os
@@ -18,13 +22,19 @@ def main():
                         action='store_true', default=False,
                         help="Write a summary report in PDF "
                         "format.")
+    parser.add_argument("--data_config_info", type=str, default=None,
+                        help="the path to a data configuration YML file "
+                             "you want information about")
 
     args = parser.parse_args()
 
-    if not args.data_settings_file and not args.generate_template:
+    if not args.data_settings_file and not args.generate_template and \
+            not args.data_config_info:
         print "No inputs provided. Use the -h flag for instructions.\n"
 
-    if args.data_settings_file:
+    if args.data_settings_file and not args.generate_template and \
+            not args.data_config_info:
+
         input_file = os.path.abspath(args.data_settings_file)
         if os.path.exists(input_file):
             if not input_file.endswith((".yml", ".yaml", ".YML", ".YAML")):
@@ -39,7 +49,8 @@ def main():
                   "{0}\n".format(input_file)
             print err
 
-    if args.generate_template:
+    elif args.generate_template and not args.data_settings_file and \
+            not args.data_config_info:
 
         import shutil
         import pkg_resources as p
@@ -71,6 +82,27 @@ def main():
               "--data_settings_file flag.\nAdditionally, it can also be " \
               "loaded into the CPAC data configuration file builder UI " \
               "using the 'Load Preset' button.\n".format(settings_file)
+
+    elif args.data_config_info and not args.data_settings_file and \
+            not args.generate_template:
+
+        input_file = os.path.abspath(args.data_config_info)
+        if os.path.exists(input_file):
+            if not input_file.endswith((".yml", ".yaml", ".YML", ".YAML")):
+                err = "\n[!] Data configuration file must be a YAML " \
+                      "(.yml/.yaml) file.\n"
+                print err
+            else:
+                # get data config info!!
+                print_data_config_info(input_file)
+
+        else:
+            err = "\n[!] Data configuration file path cannot be found:\n" \
+                  "{0}\n".format(input_file)
+            print err
+
+    else:
+        print "Too many arguments. Only one option is accepted at a time.\n"
 
 
 if __name__ == "__main__":

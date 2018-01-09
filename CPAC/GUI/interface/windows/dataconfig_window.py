@@ -363,18 +363,26 @@ class DataConfig(wx.Frame):
             while True:
                 parent = self.Parent
                 map = parent.get_sublist_map()
-                if map.get(sublist_name) == None:
-                    map[sublist_name] = out_location
-                    parent.listbox2.Append(sublist_name)
-                    ret = 1
-                    break
-                else:
-                    dlg3 = wx.MessageDialog(self, 'A data config with '
-                                                  'this name already '
-                                                  'exists.', 'Error!',
-                                            wx.OK | wx.ICON_ERROR)
-                    dlg3.ShowModal()
-                    dlg3.Destroy()
+                map[sublist_name] = out_location
+                parent.listbox2.Append(sublist_name)
+                ret = 1
+                break
+
+                # TODO: fix this- should warn user and force a decision if
+                # TODO: another data config in the dialog box already exists
+                # TODO: with the same name
+                #if map.get(sublist_name) == None:
+                #    map[sublist_name] = out_location
+                #    parent.listbox2.Append(sublist_name)
+                #    ret = 1
+                #    break
+                #else:
+                #    dlg3 = wx.MessageDialog(self, 'A data config with '
+                #                                  'this name already '
+                #                                  'exists.', 'Error!',
+                #                            wx.OK | wx.ICON_ERROR)
+                #    dlg3.ShowModal()
+                #    dlg3.Destroy()
 
             return ret
 

@@ -59,18 +59,19 @@ from CPAC.network_centrality import create_resting_state_graphs, \
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
 
-### no create_log_template here, move in CPAC/utils/utils.py
+# TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, gen_func_anat_xfm, gen_snr, \
     generateQCPages, cal_snr_val
+
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
     get_tr, extract_txt, create_log, \
     create_log_template, extract_output_mean, \
     create_output_mean_csv, get_zscore, \
-    get_fisher_zscore, dbg_file_lineno
+    get_fisher_zscore, dbg_file_lineno, add_afni_prefix
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -1084,24 +1085,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if 'fmap' in sub_dict.keys():
 
             try:
-                fmap_phasediff = sub_dict['fmap']['phase']
+                fmap_phasediff = sub_dict['fmap']['phase_diff']
                 fmap_mag = sub_dict['fmap']['magnitude']
             except KeyError as e:
                 err = "[!] Some of the required field map files are " \
                       "missing from your data configuration.\n\nDetails: " \
                       "{0}\n\n".format(e)
-                raise KeyError(err)
+                raise Exception(err)
 
         try:
             funcFlow = create_func_datasource(func_paths_dict,
+                                              fmap_phasediff,
+                                              fmap_mag,
                                               'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
-            funcFlow.inputs.inputnode.phase_diff = fmap_phasediff
-            funcFlow.inputs.inputnode.magnitude = fmap_mag
         except Exception as xxx:
-            logger.info("Error create_func_datasource failed." + \
-                        " (%s:%d)" % dbg_file_lineno())
+            logger.info("Error create_func_datasource failed. "
+                        "(%s:%d)" % dbg_file_lineno())
             raise
 
         """
@@ -1118,6 +1119,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                    'subject_id',
                                                    'scan',
                                                    'pipeconfig_tr',
+                                                   'pipeconfig_te',
                                                    'pipeconfig_tpattern',
                                                    'pipeconfig_start_indx',
                                                    'pipeconfig_stop_indx'],
@@ -1186,6 +1188,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # connect in constants
         scan_params.inputs.pipeconfig_tr = c.TR
+        scan_params.inputs.pipeconfig_te = c.fmap_distcorr_deltaTE[0]
         scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
         scan_params.inputs.pipeconfig_start_indx = c.startIdx
         scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
@@ -1212,6 +1215,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.set_leaf_properties(funcFlow, 'outputspec.rest')
         strat.update_resource_pool(
             {'raw_functional': (funcFlow, 'outputspec.rest')})
+
+        if fmap_phasediff and fmap_mag:
+            strat.update_resource_pool(
+                {"fmap_phase_diff": (funcFlow, 'outputspec.phase_diff'),
+                 "fmap_magnitude": (funcFlow, 'outputspec.magnitude')})
 
         if "Selected Functional Volume" in c.func_reg_input:
             strat.update_resource_pool(
@@ -1279,29 +1287,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
  
     new_strat_list = []
     num_strat = 0
-   
+
     workflow_counter += 1
-
-    # TODO: allow for TE to be entered via scan parameters from the data
-    # TODO: config/sublist. currently, TE can be pulled from the scan params
-    # TODO: sub-wf via:
-    # TODO:     "workflow.connect(scan_params, 'te', epi_distcorr, 'TE/etc.')"
-
-    # TODO: we can leave the input parameter for TE in the pipeline config/GUI
-    # TODO: for now as well, in case users only have the TE value and don't
-    # TODO: feel like creating an entire scan parameters structure
    
-    if 1 in c.runEPI_DistCorr:
-       workflow_bit_id['epi_distcorr'] = workflow_counter
-       
-       for strat in strat_list:
-            epi_distcorr.get_node('skullstrip_method').iterables = ('skullstrip_method',c.skullstrip_method_EPI_DistCorr)
-            
-            if 'FSL-BET' in c.skullstrip_method_EPI_DistCorr:
-                epi_distcorr = create_EPI_DistCorr(use_afni= False,wf_name='epi_distcorr_%d' % (num_strat))
-            elif 'AFNI-SkullStrip' in c.skullstrip_method_EPI_DistCorr:
-                epi_distcorr = create_EPI_DistCorr(use_afni= True,wf_name='epi_distcorr_%d' % (num_strat))
+    if 1 in c.run_fmap_distcorr:
 
+        if not fmap_phasediff:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map phase difference file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        if not fmap_mag:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map magnitude file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        workflow_bit_id['epi_distcorr'] = workflow_counter
+       
+        for strat in strat_list:
+            epi_distcorr.get_node('skullstrip_method').iterables = ('skullstrip_method',c.skullstrip_method_EPI_DistCorr)
             epi_distcorr.inputs_bet_frac.bet_frac = c.bet_frac_EPI_DistCorr
             epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
             epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
@@ -1313,19 +1321,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.get_node('dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
             epi_distcorr.get_node('dwell_asym_ratio').iterables = ('dwell_asym_ratio',c.dwell_asym_ratio_EPI_DistCorr)
-            
+
+            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
+
             try:
+                # functional timeseries into field map dist corr
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-                node,out_file = strat.get_node_from_resource_pool('anat')
+
+                # anatomical file
+                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
-                node, out_file = strat.get_node_from_resource_pool('mag1')
+
+                # skull-stripped anatomical
+                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                workflow.connect(node, out_file, epi_distcorr, 'inputspec.anat_brain')
+
+                # field map magnitude file
+                node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
-                node,out_file = strat.get_node_from_resource_pool('phase_diff')
+
+                # field map phase difference file
+                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
+
+                # Echo Time (TE)
+                workflow.connect(scan_params, 'te',
+                                 epi_distcorr, 'input_delTE.delTE')
             except:
-                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
-            if 0 in c.runEPI_DistCorr:
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+
+            if 0 in c.run_fmap_distcorr:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
@@ -1334,11 +1360,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat = tmp
                 new_strat_list.append(strat)
             strat.append_name(epi_distcorr.name)
+
+            strat.set_leaf_properties(epi_distcorr, 'outputspec.epireg')
+
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-            strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
+            strat.update_resource_pool({'functional_distortion_corrected':(epi_distcorr,'outputspec.epireg')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1
+
     strat_list += new_strat_list
 
     """
@@ -1359,16 +1389,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     name='func_slice_timing_correction_%d' % (num_strat))
                 func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
             except Exception as xxx:
-                logger.info("Error connecting input 'stop_idx' to trunc_wf." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error connecting input 'stop_idx' to trunc_wf. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # find the output data on the leaf node
             try:
                 node, out_file = strat.get_leaf_properties()
             except Exception as xxx:
-                logger.info("Error  get_leaf_properties failed." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error  get_leaf_properties failed. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # connect the output of the leaf node as the in_file
@@ -1403,23 +1433,37 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     try:
                         logger.info("connecting slice timing pattern %s" %
                                     c.slice_timing_pattern[0])
+
+                        # add the @ prefix to the tpattern file going into
+                        # AFNI 3dTshift - needed this so the tpattern file
+                        # output from get_scan_params would be tied downstream
+                        # via a connection (to avoid poofing)
+                        add_prefix = pe.Node(util.Function(input_names=['tpattern'],
+                                                           output_names=['afni_prefix'],
+                                                           function=add_afni_prefix),
+                                             name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
                         workflow.connect(scan_params, 'tpattern',
+                                         add_prefix, 'tpattern')
+                        workflow.connect(add_prefix, 'afni_prefix',
                                          func_slice_timing_correction,
                                          'tpattern')
+
                         logger.info("connected slice timing pattern %s" %
                                     c.slice_timing_pattern[0])
                     except Exception as xxx:
                         logger.info(
-                            "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                            "Error connecting input 'acquisition' to "
+                            "func_slice_timing_correction afni node. "
+                            "(%s:%d)" % dbg_file_lineno())
                         print xxx
                         raise
                     logger.info("connected slice timing pattern %s" %
                                 c.slice_timing_pattern[0])
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'acquisition' to "
+                    "func_slice_timing_correction afni node. "
+                    "(%s:%d)" % dbg_file_lineno())
                 print xxx
                 raise
 
@@ -2856,7 +2900,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # '/path/to/rois2.nii.gz': 'Avg, MultReg',
     # '/path/to/rois3.nii.gz': 'Avg, MultReg',
     # '/path/to/rois4.nii.gz': 'DualReg'}]
-
 
     if 1 in c.runROITimeseries:
 
@@ -4785,6 +4828,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
      QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
+    # TODO - QA pages: re-introduce
     '''
     if 1 in c.generateQualityControlImages:
 
@@ -5556,7 +5600,35 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
+            debugging_outputs = ['anatomical_csf_mask', 'anatomical_gm_mask',
+                                 'anatomical_wm_mask', 'despiked_fieldmap',
+                                 'despiking_frames_excluded',
+                                 'despiking_frames_included',
+                                 'dr_tempreg_maps_stack',
+                                 'dr_tempreg_maps_stack_to_standard',
+                                 'dr_tempreg_maps_stack_to_standard_smooth',
+                                 'dr_tempreg_maps_zstat_stack',
+                                 'dr_tempreg_maps_zstat_stack_to_standard',
+                                 'dr_tempreg_maps_zstat_stack_to_standard_smooth',
+                                 'fmap_magnitude',
+                                 'fmap_phase_diff',
+                                 'raw_functional',
+                                 'sca_roi_correlation_stack',
+                                 'sca_roi_stack_smooth',
+                                 'sca_roi_stack_to_standard',
+                                 'sca_roi_stack_to_standard_smooth',
+                                 'sca_tempreg_maps_stack',
+                                 'sca_tempreg_maps_stack_smooth',
+                                 'sca_tempreg_maps_zstat_stack',
+                                 'sca_tempreg_maps_zstat_stack_smooth',
+                                 'seg_mixeltype',
+                                 'seg_partial_volume_files',
+                                 'seg_partial_volume_map']
+
             for key in sorted(rp.keys()):
+
+                if key in debugging_outputs:
+                    continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory
@@ -5757,6 +5829,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
 
         # If QC is enabled
+        # TODO - QA pages: re-introduce
         '''
         if 1 in c.generateQualityControlImages:
             # For each pipeline ID, generate the QC pages

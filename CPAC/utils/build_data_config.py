@@ -29,7 +29,8 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
-def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
+def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
+                            overwrite=False):
     """Download a single file from an AWS s3 bucket.
 
     :type s3_path: str
@@ -42,11 +43,10 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
     :return: The local filepath of the downloaded s3 file.
     """
 
+    # TODO: really for core tools and/or utility
+
     import os
     from indi_aws import fetch_creds, aws_utils
-
-    if not download_dir:
-        download_dir = os.getcwd()
 
     if "s3://" in s3_path:
         s3_prefix = s3_path.replace("s3://", "")
@@ -55,15 +55,24 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None):
         raise Exception(err)
 
     bucket_name = s3_prefix.split("/")[0]
+    data_dir = s3_path.split(bucket_name + "/")[1]
+
+    if not download_dir:
+        download_dir = os.getcwd()
+        local_dl = os.path.join(download_dir, data_dir)
+    else:
+        local_dl = os.path.join(download_dir, data_dir.split("/")[-1])
+
     bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
-    data_dir = s3_path.split(bucket_name + "/")[1]
-    local_dl = os.path.join(download_dir, data_dir)
-
     if os.path.isfile(local_dl):
-        print "\nS3 bucket file already downloaded! Skipping download."
-        print "S3 file: %s" % s3_path
-        print "Local file already exists: %s\n" % local_dl
+        if overwrite:
+            print "\nS3 bucket file already downloaded! Overwriting.."
+            aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
+        else:
+            print "\nS3 bucket file already downloaded! Skipping download."
+            print "S3 file: %s" % s3_path
+            print "Local file already exists: %s\n" % local_dl
     else:
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
 
@@ -141,6 +150,13 @@ def extract_scan_params_csv(scan_params_csv):
 
     placeholders = ['None', 'NONE', 'none', 'All', 'ALL', 'all', '', ' ']
 
+    keys = {"TR (seconds)": "TR",
+            "TE (seconds)": "TE",
+            "Reference (slice no)": "reference",
+            "Acquisition (pattern)": "acquisition",
+            "FirstTR (start volume index)": "first_TR",
+            "LastTR (final volume index)": "last_TR"}
+
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
 
@@ -166,16 +182,16 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = \
-                site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] = \
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         elif sub != "All":
             # participant-specific scan parameters
@@ -184,15 +200,16 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] =
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
         else:
             # site-specific scan parameters only
@@ -201,18 +218,17 @@ def extract_scan_params_csv(scan_params_csv):
             if sub not in site_dict[site].keys():
                 site_dict[site][sub] = {}
 
-            site_dict[site][sub][ses] = {key.lower(): val
+            site_dict[site][sub][ses] = {keys[key]: val
                                          for key, val in dict_row.items()
                                          if key != 'Site' and
                                          key != 'Participant' and
-                                         key != 'Session'}
+                                         key != 'Session' and key != 'Series'}
 
             # Assumes all other fields are formatted properly, but TR might
             # not be
-            site_dict[site][sub][ses]['tr'] = \
-                site_dict[site][sub][ses].pop('tr (seconds)')
+            #site_dict[site][sub][ses]['tr'] = \
+            #    site_dict[site][sub][ses].pop('tr (seconds)')
 
-    # Return site dictionary
     return site_dict
 
 
@@ -380,7 +396,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
             print "\n\nFound a participants.tsv file in your BIDS data " \
                   "set on the S3 bucket. Downloading..\n"
             part_tsv = download_single_s3_path(part_tsv, config_dir,
-                                               aws_creds_path)
+                                               aws_creds_path, overwrite=True)
+        else:
+            # then participants.tsv is local, and we need to pull it out of
+            # the glob return list
+            part_tsv = part_tsv[0]
 
         print "Checking participants.tsv file for site information:" \
               "\n{0}".format(part_tsv)
@@ -651,6 +671,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 path_dct[label] = id
                 skip = False
             else:
+                warn = None
                 if path_dct[label] != id:
                     if str(path_dct[label]) in id and "run-" in id:
                         # TODO: this is here only because we do not support
@@ -677,12 +698,13 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                "This file has not been added to the data " \
                                "configuration.".format(anat_path, label,
                                                        path_dct[label], id)
-                    if warn:
-                        print warn
-                        skip = True
-                        break
-                    else:
-                        pass
+                if warn:
+                    print warn
+                    skip = True
+                    break
+                else:
+                    skip = False
+                    pass
 
             new_template = new_template.replace(part1, '', 1)
             new_template = new_template.replace(label, '', 1)
@@ -1015,6 +1037,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     path_dct[label] = id
                     skip = False
                 else:
+                    warn = None
                     if path_dct[label] != id:
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
@@ -1042,6 +1065,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                         print warn
                         skip = True
                         break
+                    else:
+                        skip = False
 
                 new_template = new_template.replace(part1, '', 1)
                 new_template = new_template.replace(label, '', 1)
@@ -1076,7 +1101,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             else:
                 scan_id = None
 
-            temp_fmap_dct = {"phase": fmap_phase}
+            temp_fmap_dct = {"phase_diff": fmap_phase}
 
             if site_id not in data_dct.keys():
                 if verbose:
@@ -1144,6 +1169,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                     path_dct[label] = id
                     skip = False
                 else:
+                    warn = None
                     if path_dct[label] != id:
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
@@ -1171,6 +1197,8 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                         print warn
                         skip = True
                         break
+                    else:
+                        skip = False
 
                 new_template = new_template.replace(part1, '', 1)
                 new_template = new_template.replace(label, '', 1)
