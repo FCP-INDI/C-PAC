@@ -1295,18 +1295,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
        workflow_bit_id['epi_distcorr'] = workflow_counter
        
        for strat in strat_list:
-            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
+            epi_distcorr.get_node('skullstrip_method').iterables = ('skullstrip_method',c.skullstrip_method_EPI_DistCorr)
+            
+            if 'FSL-BET' in c.skullstrip_method_EPI_DistCorr:
+                epi_distcorr = create_EPI_DistCorr(use_afni= False,wf_name='epi_distcorr_%d' % (num_strat))
+            elif 'AFNI-SkullStrip' in c.skullstrip_method_EPI_DistCorr:
+                epi_distcorr = create_EPI_DistCorr(use_afni= True,wf_name='epi_distcorr_%d' % (num_strat))
+
             epi_distcorr.inputs_bet_frac.bet_frac = c.bet_frac_EPI_DistCorr
             epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
             epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
             
             epi_distcorr.inputs_dwell_asym_ratio.dwell_asym_ratio = c.dwell_asym_ratio_EPI_DistCorr
-            epi_distcorr.get_node('input_bet_frac').iterables = ('bet_frac',c.bet_frac_EPI_DistCorr)
-            epi_distcorr.get_node('input_delTE').iterables = ('delTE',
+            epi_distcorr.get_node('bet_frac').iterables = ('bet_frac',c.bet_frac_EPI_DistCorr)
+            epi_distcorr.get_node('deltaTE').iterables = ('deltaTE',
                                                    c.deltaTE_EPI_DistCorr)
-            epi_distcorr.get_node('input_dwellT').iterables = ('dwellT',
+            epi_distcorr.get_node('dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
-            epi_distcorr.get_node('input_dwell_asym_ratio').iterables = ('dwell_asym_ratio', c.dwell_asym_ratio_EPI_DistCorr)
+            epi_distcorr.get_node('dwell_asym_ratio').iterables = ('dwell_asym_ratio',c.dwell_asym_ratio_EPI_DistCorr)
+            
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
