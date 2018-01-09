@@ -17,10 +17,10 @@ from nipype.interfaces.fsl import ImageStats
 ##What all should it return?: if the run had been set to true, it would generate the filepath of the output from the workflow. If the run was set to false, then it will return the file path of the 
 ##base directory, the workflow object, etc.
 def run_warp_nipype(inputs,output_dir=None,run=True):
-   import EPI_distCorr
+   import EPI_DistCorr
    warp_workflow = pe.Workflow(name = 'preproc')
    if output_dir == None:
-     output_dir = '/home/nrajamani'
+     output_dir = '/Users/nandu_afni'
         
    workflow_dir = os.path.join(output_dir,"Workflow_output")
    warp_workflow.base_dir = workflow_dir
@@ -30,16 +30,12 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    num_of_cores = 1
    #resource_pool({'epireg': (warp_nipype2.warp_nipype, 'outputspec.epireg')})
    t_node = EPI_DistCorr.create_EPI_DistCorr()####
-   t_node.inputs.inputspec.anat_file=  '/home/nrajamani/sub-A00073677/ses-NFB3/anat/sub-A00073677_ses-NFB3_T1w.nii.gz'
-   t_node.inputs.inputspec.func_file= '/home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run1/fMT0160-0014-00002-000002-01.nii' 
-   t_node.inputs.inputspec.fmap_pha= '/home/nrajamani/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_magnitude1.nii.gz'
-   t_node.inputs.inputspec.t1_head = '/usr/local/fsl/data/standard/MNI152lin_T1_2mm.nii.gz'
-   #'home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run2/fMT0160-0015-00002-000002-01_BRAIN.nii.gz',
-   t_node.inputs.inputspec.fmap_mag= '/home/nrajamani/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_phasediff.nii.gz'
+   t_node.inputs.inputspec.anat_file=  '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/anat/sub-A00073677_ses-NFB3_T1w.nii.gz'
+   t_node.inputs.inputspec.func_file= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/func/sub-A00073677_ses-NFB3_task-MSIT_bold.nii.gz'
+   t_node.inputs.inputspec.fmap_pha= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_magnitude1.nii.gz'
+   t_node.inputs.inputspec.fmap_mag= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_phasediff.nii.gz'
    #'home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run2/fMT0160-0015-00003-000003-01_BRAIN.nii.gz',
-   t_node.inputs.inputspec.mask ='/usr/local/fsl/data/standard/MNI152lin_T1_2mm_brain_mask.nii.gz'
-   
-#   for image in inputs:
+   #   for image in inputs:
 #       if not(image.endswith('.nii') or image.endswith('.nii.gz')):
 #           raise 'The input image is not the right format'
 #   try:
@@ -65,7 +61,7 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    else:
        return warp_workflow, warp_workflow.base_dir
 
-run_warp_nipype(['anat_file','func_file','fmap_pha','t1_head', 'mask'],output_dir=None,run=True)  
+run_warp_nipype(['anat_file','func_file','fmap_pha'],output_dir=None,run=True)
     
     
     
