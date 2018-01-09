@@ -131,14 +131,22 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       type=dtype.LSTR,
                       comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS",
                       values=["On","Off"],wkf_switch = True)
+                      
+        self.page.add(label="SkullStripping method",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_method_EPI_DistCorr',
+                      type=dtype.LSTR,
+                      comment="Since the quality of the distortion heavily relies on the skullstrip,we provide a choice on which tool to be used for SkullStripping- AFNI 3dSkullStrip or FSL-BET.This is a feature localized for Distortion correction only.",
+                      values=["AFNI-3dSkullStrip", "BET"])
+
                     
         self.page.add(label= "BET threshold (-f), in ms",
                       control = control.TEXT_BOX,
                       name='bet_frac_EPI_DistCorr',
                       type = dtype.LNUM,
-                      comment="Set the threshold value, used for brain extraction using FSL-BET, FSL specifies a tight extraction in order to prevent noisy voxels from interferring with preparing fieldmap.The default value is 0.7"
+                      comment="Set the threshold value, used for brain extraction using FSL-BET, FSL specifies a tight extraction in order to prevent noisy voxels from interferring with preparing fieldmap.The default value is 0.5",
                       validator = CharValidator("no-alpha"),
-                      values="0.7")
+                      values="0.5")
                         
         self.page.add(label= "DeltaTE, in ms",
                       control = control.TEXT_BOX,
@@ -152,13 +160,13 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       control = control.TEXT_BOX,
                       name='DwellTime_EPI_DistCorr',
                       type = dtype.LNUM,
-                      comment = "Set the Dwell time for the fugue input.This is the time between scans, default value is 0.00231 s",
+                      comment = "Set the Dwell time for the fugue input.This is the time between scans, default value is 0.0005 s",
                       validator = CharValidator("no-alpha"),
-                      values = "0.00231")
+                      values = "0.0005")
                                 
-        self.page.add(label = "Asymmetric ratio",
+        self.page.add(label = "Dwell to asymmetric ratio",
                       control = control.TEXT_BOX,
-                      name='assymetric_ratio_EPI_DistCorr',
+                      name='dwell_asym_ratio_EPI_DistCorr',
                       type = dtype.LNUM,
                       comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
