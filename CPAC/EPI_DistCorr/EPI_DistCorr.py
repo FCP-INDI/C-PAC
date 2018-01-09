@@ -34,20 +34,20 @@ import nipype.interfaces.utility as util
                             mask_file = epi_mask.nii
                             dwell_to_asymm ratio = (0.77e-3 * 3)/(2.46e-3)
   """                          
-def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
+def create_EPI_DistCorr(use_afni = False,wf_name = 'epi_distcorr'):
     preproc = pe.Workflow(name=wf_name)
                           
-    inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag']),name = 'inputspec')
+    inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag','delTE','dwellT','dwell_asym_ratio','bet_frac']),name = 'inputspec')
     
-    inputNode_delTE = pe.Node(util.IdentityInterface(fields=['delTE']),name='input_delTE')
+    # inputNode_delTE = pe.Node(util.IdentityInterface(fields=['delTE']),name='input_delTE')
     
-    inputNode_dwellT = pe.Node(util.IdentityInterface(fields=['dwellT']),name = 'input_dwellT')
+    #inputNode_dwellT = pe.Node(util.IdentityInterface(fields=['dwellT']),name = 'input_dwellT')
     
-    inputNode_dwell_asym_ratio = pe.Node(util.IdentityInterface(fields=['dwell_asym_ratio']),name='input_dwell_asym_ratio')
+    #inputNode_dwell_asym_ratio = pe.Node(util.IdentityInterface(fields=['dwell_asym_ratio']),name='input_dwell_asym_ratio')
     
-    inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),name='input_bet_frac')
+    #inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),name='input_bet_frac')
     
-    inputNode_skullstrip_method = pe.Node(util.IdentityInterface(fields=['FSL-BET','AFNI-3dSkullStrip']),name = 'input_skullstrip_method')
+    #inputNode_skullstrip_method = pe.Node(util.IdentityInterface(fields=['FSL-BET','AFNI-3dSkullStrip']),name = 'input_skullstrip_method')
     
     outputNode = pe.Node(util.IdentityInterface(fields=['func_file','fieldmap','epireg','fmap_despiked','partial_volume_files','partial_volume_map','threshold_image','fmapmagbrain','T1_wm_seg']),name='outputspec')
 
@@ -67,7 +67,8 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
 #    preproc.connect(inputNode, 'fmap_pha', fslroi_mag, 'in_file')
 #    preproc.connect(fslroi_mag, 'roi_file',outputNode,'roi_file_mag')
 # Skullstrip
-    if (inputNode_skullstrip_method,skullstrip_method == 'AFNI-3dSkullStrip'):
+#if (inputNode_skullstrip_method,skullstrip_method == 'AFNI-3dSkullStrip'):
+    if use_afni == True:
         bet = pe.Node(interface=afni.SkullStrip(),name='bet')
         bet.inputs.outputtype = 'NIFTI_GZ'
         bet.inputs.args = '-shrink_fac SF'
@@ -75,8 +76,8 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
         preproc.connect(inputNode,'fmap_mag',bet,'in_file')
         preproc.connect(bet,'out_file',outputNode,'magnitude_image')
     
-    
-    elif(inputNode_skullstrip_method == 'FSL-BET'):
+    #elif (inputNode_skullstrip_method,skullstrip_method == 'FSL-BET')
+    else:
         bet = pe.Node(interface=fsl.BET(),name='bet')
         bet.inputs.output_type='NIFTI_GZ'
         preproc.connect(inputNode,'bet_frac',bet,'frac')
@@ -101,13 +102,17 @@ def create_EPI_DistCorr(wf_name = 'epi_distcorr'):
     fast_anat.inputs.bias_lowpass=10
     fast_anat.inputs.segments=True
     fast_anat.outputs_basename='T1'
+    fast_anat.outputs.partial_volume_files = ['T1_brain_pve_0','T1_brain_pve_1','T1_brain_pve_2']
     preproc.connect(bet_anat,'out_file',fast_anat,'in_files')
     preproc.connect(fast_anat,'partial_volume_map',outputNode,'partial_volume_map')
     preproc.connect(fast_anat,'partial_volume_files',outputNode,'partial_volume_files')
+    def picksecond(files):
+        return files[2]
+    
     
     fslmath_anat = pe.Node(interface=fsl.Threshold(),name='fsl_anat')
     fslmath_anat.inputs.thresh = 0.5
-    preproc.connect(fast_anat,'T1_brain',fslmath_anat,'in_file')
+    preproc.connect(fast_anat,('partial_volume_files',picksecond),fslmath_anat,'in_file')
     preproc.connect(fslmath_anat,'out_file',outputNode,'threshold_image')
     
     fslmath_wmseg = pe.Node(interface=fsl.UnaryMaths(),name='fslmath_wmseg')
