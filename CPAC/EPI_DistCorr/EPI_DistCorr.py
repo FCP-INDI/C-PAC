@@ -11,7 +11,7 @@ from nipype.interfaces import afni,fsl
 import nipype.interfaces.utility as util
 
 
-
+def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
 """
   Fieldmap correction takes in an input magnitude image which is Skull Stripped (Tight).
   The magnitude images are obtained from each echo series. It also requires a phase image
@@ -55,9 +55,19 @@ import nipype.interfaces.utility as util
                      Parameters: dwell_to_asymm ratio = (0.77e-3 * 3)/(2.46e-3)
                                  dwell time = 0.0005 ms
                                  in_file = field map which is a 4D image (containing 2 unwarpped image)
-    -- epireg       :Performs registration of the echo image using the fieldmap and th
+    -- epireg       :Performs registration of the echo image using the fieldmap and the anatomical file.
+                     Parameters: echospacing = 0.0005 ms
+                                 unwarp direction = -y
+                     in_files:   epi_file
+                                 t1_head  : anatomical file
+                                 t1_brain : brain extracted anatomical file
+                                 wmseg    : white matter segmented anatomical brain 
+                                 fieldmap : prepared fieldmap
+                                 fmap_mag : magnitude image
+                                 fmapmagbrain : brain extracted magnitude image
+                                                                
   """                          
-def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
+
     preproc = pe.Workflow(name=wf_name)
                           
     inputNode = pe.Node(util.IdentityInterface(fields=['anat_file','func_file','fmap_pha','fmap_mag','partial_volume_files']),name = 'inputspec')
@@ -160,5 +170,4 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(fslmath_mag,'out_file',epireg,'fmapmagbrain')
     preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
     preproc.connect(epireg,'out_file',outputNode,'epireg')
-    preproc.connect(inputNode, 'func_file',outputNode,'func_file')
     return preproc
