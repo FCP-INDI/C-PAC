@@ -67,15 +67,16 @@ class TimeSeriesOptions(wx.ScrolledWindow):
         self.page.add(label="Slice Acquisition Pattern ",
                       control=control.CHOICE_BOX,
                       name='slice_timing_pattern',
-                      type=dtype.STR,
+                      type=dtype.LSTR,
                       comment="Acquisition strategy for acquiring image "
-                              "slices.\n\nSlice acquisition information is "
-                              "read from scan parameters in the data "
-                              "configuration file- if this is not provided, "
-                              "then this option will apply.\n\nNote: the "
+                              "slices.\n\nDefault is None- slice acquisition "
+                              "information is then read from scan parameters "
+                              "in the data configuration file, or the image "
+                              "file header if there is no scan information "
+                              "in the data configuration.\n\nNote: the "
                               "selection here applies to all scans of all "
                               "participants.",
-                      values=["Use NIFTI Header", "alt+z", "alt+z2",
+                      values=["None", "Use NIFTI Header", "alt+z", "alt+z2",
                               "alt-z", "alt-z2", "seq+z", "seq-z"],
                       wkf_switch=True)
 
@@ -170,7 +171,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
                       values = "0.93902439")
-
+                                    
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
