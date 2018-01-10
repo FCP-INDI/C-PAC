@@ -67,15 +67,16 @@ class TimeSeriesOptions(wx.ScrolledWindow):
         self.page.add(label="Slice Acquisition Pattern ",
                       control=control.CHOICE_BOX,
                       name='slice_timing_pattern',
-                      type=dtype.STR,
+                      type=dtype.LSTR,
                       comment="Acquisition strategy for acquiring image "
-                              "slices.\n\nSlice acquisition information is "
-                              "read from scan parameters in the data "
-                              "configuration file- if this is not provided, "
-                              "then this option will apply.\n\nNote: the "
+                              "slices.\n\nDefault is None- slice acquisition "
+                              "information is then read from scan parameters "
+                              "in the data configuration file, or the image "
+                              "file header if there is no scan information "
+                              "in the data configuration.\n\nNote: the "
                               "selection here applies to all scans of all "
                               "participants.",
-                      values=["Use NIFTI Header", "alt+z", "alt+z2",
+                      values=["None", "Use NIFTI Header", "alt+z", "alt+z2",
                               "alt-z", "alt-z2", "seq+z", "seq-z"],
                       wkf_switch=True)
 
@@ -133,7 +134,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       
         self.page.add(label="SkullStripping method",
                       control=control.CHOICE_BOX,
-                      name='skullstrip_method_EPI_DistCorr',
+                      name='fmap_distcorr_skullstrip',
                       type=dtype.LSTR,
                       comment="Since the quality of the distortion heavily relies on the skullstrip,we provide a choice on which tool to be used for SkullStripping- AFNI 3dSkullStrip or FSL-BET.This is a feature localized for Distortion correction only.",
                       values=["AFNI-3dSkullStrip", "BET"])
@@ -141,7 +142,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                     
         self.page.add(label= "BET threshold/AFNI shrink factor",
                       control = control.TEXT_BOX,
-                      name='bet_frac_EPI_DistCorr',
+                      name='fmap_distcorr_frac',
                       type = dtype.LNUM,
                       comment="Set the threshold value, used for brain extraction using FSL-BET, FSL specifies a tight extraction in order to prevent noisy voxels from interferring with preparing fieldmap.The default value is 0.5",
                       validator = CharValidator("no-alpha"),
@@ -149,7 +150,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                         
         self.page.add(label= "DeltaTE, in ms",
                       control = control.TEXT_BOX,
-                      name='deltaTE_EPI_DistCorr',
+                      name='fmap_distcorr_deltaTE',
                       type = dtype.LNUM,
                       comment="Set the Delta-TE value, used for preparing fieldmap,time delay between the first and second echo images.Default value is 2.46 ms",
                       validator = CharValidator("no-alpha"),
@@ -157,7 +158,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                             
         self.page.add(label = "Dwell Time, in s",
                       control = control.TEXT_BOX,
-                      name='DwellTime_EPI_DistCorr',
+                      name='fmap_distcorr_dwell_time',
                       type = dtype.LNUM,
                       comment = "Set the Dwell time for the fugue input.This is the time between scans, default value is 0.0005 s",
                       validator = CharValidator("no-alpha"),
@@ -165,12 +166,12 @@ class EPI_DistCorr(wx.ScrolledWindow):
                                 
         self.page.add(label = "Dwell to asymmetric ratio",
                       control = control.TEXT_BOX,
-                      name='dwell_asym_ratio_EPI_DistCorr',
+                      name='fmap_distcorr_dwell_asym_ratio',
                       type = dtype.LNUM,
                       comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
                       values = "0.93902439")
-
+                                    
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
