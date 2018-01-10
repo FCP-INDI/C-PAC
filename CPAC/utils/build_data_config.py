@@ -252,7 +252,7 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     if isinstance(site_incl_list, str):
         if '.txt' in site_incl_list:
             with open(site_incl_list, 'r') as f:
-                incl_dct['sites'] = [x.rstrip("\n") for x in f.readlines() if x != '']
+                incl_dct['sites'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
     elif isinstance(site_incl_list, list):
         incl_dct['sites'] = site_incl_list
 
@@ -260,21 +260,21 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
         if '.txt' in participant_incl_list:
             with open(participant_incl_list, 'r') as f:
                 incl_dct['participants'] = \
-                    [x.rstrip('\n') for x in f.readlines() if x != '']
+                    [x.rstrip('\n').replace(" ", "") for x in f.readlines() if x != '']
     elif isinstance(participant_incl_list, list):
         incl_dct['participants'] = participant_incl_list
 
     if isinstance(session_incl_list, str):
         if '.txt' in session_incl_list:
             with open(session_incl_list, 'r') as f:
-                incl_dct['sessions'] = [x.rstrip("\n") for x in f.readlines() if x != '']
+                incl_dct['sessions'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
     elif isinstance(session_incl_list, list):
         incl_dct['sessions'] = session_incl_list
 
     if isinstance(scan_incl_list, str):
         if '.txt' in scan_incl_list:
             with open(scan_incl_list, 'r') as f:
-                incl_dct['scans'] = [x.rstrip("\n") for x in f.readlines() if x != '']
+                incl_dct['scans'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
     elif isinstance(scan_incl_list, list):
         incl_dct['scans'] = scan_incl_list
 
@@ -1397,6 +1397,7 @@ def run(data_settings_yml):
 
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
+
         for site in sorted(data_dct.keys()):
             for sub in sorted(data_dct[site].keys()):
                 for ses in sorted(data_dct[site][sub].keys()):
