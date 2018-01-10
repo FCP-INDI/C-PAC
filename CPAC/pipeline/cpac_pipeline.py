@@ -1295,22 +1295,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
        workflow_bit_id['epi_distcorr'] = workflow_counter
     
        for strat in strat_list:
-            if 'BET' in c.skullstrip_method_EPI_DistCorr:
+            if 'BET' in c.fmap_distcorr_skullstrip_method:
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
             else:
                epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
-            epi_distcorr.inputs.bet_frac_input.bet_frac = c.bet_frac_EPI_DistCorr
-            epi_distcorr.inputs.deltaTE_input.deltaTE = c.deltaTE_EPI_DistCorr
-            epi_distcorr.inputs.dwellT_input.dwellT = c.DwellTime_EPI_DistCorr
-            epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.dwell_asym_ratio_EPI_DistCorr
+            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_bet_frac
+            epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
+            epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
+            epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
 
 
-            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.bet_frac_EPI_DistCorr)
+            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_bet_frac)
             epi_distcorr.get_node('deltaTE_input').iterables = ('deltaTE',
-                                                   c.deltaTE_EPI_DistCorr)
+                                                   c.fmap_distcorr_deltaTE)
             epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
-                                                   c.DwellTime_EPI_DistCorr)
-            epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.dwell_asym_ratio_EPI_DistCorr)
+                                                   c.fmap_distcorr_dwell_time)
+            epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
