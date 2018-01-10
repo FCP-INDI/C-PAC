@@ -103,7 +103,7 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                               "\nLast timepoint selection in the scan "
                               "parameters in the data configuration file, if "
                               "present, will over-ride this selection.\n\n"
-                              "Note: the selection here applies to all scans "
+                              "NOte: the selection here applies to all scans "
                               "of all participants.")
 
         self.page.set_sizer() 
@@ -118,15 +118,15 @@ class EPI_DistCorr(wx.ScrolledWindow):
     def __init__(self, parent, counter =0):
         wx.ScrolledWindow.__init__(self, parent)
         
-        self.page = GenericClass(self, "EPI Distortion Correction options")
+        self.page = GenericClass(self, "EPI Distortion correction options")
         self.counter = counter 
         fsl = os.environ.get('FSLDIR')
         if fsl == None:
             fsl = "$FSLDIR"        
                 
-        self.page.add(label="Perform Field-Map Distortion Correction ",
+        self.page.add(label= "Perform distortion correction with fieldmap correction ",
                       control=control.CHOICE_BOX,
-                      name='run_fmap_distcorr',
+                      name='runEPI_DistCorr',
                       type=dtype.LSTR,
                       comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS",
                       values=["On","Off"],wkf_switch = True)
@@ -139,7 +139,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       values=["AFNI-3dSkullStrip", "BET"])
 
                     
-        self.page.add(label= "BET threshold (-f), in ms",
+        self.page.add(label= "BET threshold/AFNI shrink factor",
                       control = control.TEXT_BOX,
                       name='bet_frac_EPI_DistCorr',
                       type = dtype.LNUM,
@@ -167,44 +167,10 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       control = control.TEXT_BOX,
                       name='dwell_asym_ratio_EPI_DistCorr',
                       type = dtype.LNUM,
-                      comment = "Set the dwell_to_asymmetric ratio value for the fugue input",
+                      comment = "Set the asymmetric ratio value for the fugue input",
                       validator = CharValidator("no-alpha"),
                       values = "0.93902439")
-                      comment="Perform fieldmap correction using FSL FUGUE, "
-                              "with a single phase difference image, a "
-                              "subtraction of the two phase images from "
-                              "each echo.\n\n"
-                              "Default scanner for this method is SIEMENS.",
-                      values=["On", "Off"], wkf_switch=True)
-        
-        self.page.add(label="DeltaTE, in ms",
-                      control=control.TEXT_BOX,
-                      name='fmap_distcorr_deltaTE',
-                      type=dtype.LNUM,
-                      comment="Set the Delta-TE value, used for preparing "
-                              "the field map. This is the time delay between "
-                              "the first and second echo images.",
-                      validator=CharValidator("no-alpha"),
-                      values="2.46")
-        
-        self.page.add(label="Dwell Time, in s",
-                      control=control.TEXT_BOX,
-                      name='fmap_distcorr_dwell_time',
-                      type=dtype.LNUM,
-                      comment="Set the Dwell time for FSL FUGUE. This is "
-                              "the time between scans.\n\n"
-                              "The default value is commonly 0.00231s.",
-                      validator=CharValidator("no-alpha"),
-                      values="0.00231")
-        
-        self.page.add(label="Asymmetric Ratio",
-                      control=control.TEXT_BOX,
-                      name='fmap_distcorr_asymmetric_ratio',
-                      type=dtype.LNUM,
-                      comment="Set the asymmetric ratio input value for "
-                              "FSL FUGUE.",
-                      validator=CharValidator("no-alpha"),
-                      values="0.93902439")
+
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
