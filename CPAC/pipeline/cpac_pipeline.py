@@ -1290,7 +1290,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     workflow_counter += 1
    
-    if 1 in c.run_fmap_distcorr:
+    if 1 in c.runEPI_DistCorr:
 
         if not fmap_phasediff:
             err = "\n\n[!] Field-map distortion correction is enabled, but " \
@@ -1306,50 +1306,40 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                   "\n\n".format(sub_dict['subject_id'])
             raise Exception(err)
 
+      
         workflow_bit_id['epi_distcorr'] = workflow_counter
-       
+    
         for strat in strat_list:
+            if 'BET' in c.fmap_distcorr_skullstrip_method:
+               epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
+            else:
+               epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
+            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_bet_frac
+            epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
+            epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
+            epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
 
-            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
 
-            epi_distcorr.get_node('skullstrip_method').iterables = ('skullstrip_method',c.skullstrip_method_EPI_DistCorr)
-            epi_distcorr.inputs_bet_frac.bet_frac = c.bet_frac_EPI_DistCorr
-            epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
-            epi_distcorr.inputs_dwellT.dwellT = c.DwellTime_EPI_DistCorr
-            
-            epi_distcorr.inputs_dwell_asym_ratio.dwell_asym_ratio = c.dwell_asym_ratio_EPI_DistCorr
-            epi_distcorr.get_node('bet_frac').iterables = ('bet_frac',c.bet_frac_EPI_DistCorr)
-            epi_distcorr.get_node('deltaTE').iterables = ('deltaTE',
-                                                   c.deltaTE_EPI_DistCorr)
-            epi_distcorr.get_node('dwellT').iterables = ('dwellT',
-                                                   c.DwellTime_EPI_DistCorr)
-            epi_distcorr.get_node('dwell_asym_ratio').iterables = ('dwell_asym_ratio',c.dwell_asym_ratio_EPI_DistCorr)
-
+            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_bet_frac)
+            epi_distcorr.get_node('deltaTE_input').iterables = ('deltaTE',
+                                                   c.fmap_distcorr_deltaTE)
+            epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
+                                                   c.fmap_distcorr_dwell_time)
+            epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
             try:
-                # functional timeseries into field map dist corr
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-
-                # anatomical file
-                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                node,out_file = strat.get_node_from_resource_pool('anat')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
-
-                # skull-stripped anatomical
-                node, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                workflow.connect(node, out_file, epi_distcorr, 'inputspec.anat_brain')
-
-                # field map magnitude file
-                node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
+                node, out_file = strat.get_node_from_resource_pool('mag1')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
-
-                # field map phase difference file
-                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
+                node,out_file = strat.get_node_from_resource_pool('phase_diff')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
-
+                node,out_file = strat.get_node_from_resource_pool('partial_volume_files')
+                workflow.connect(node,out_file,epi_distcorr, 'inputspec.partial_volume_files')
             except:
-                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
-
-            if 0 in c.run_fmap_distcorr:
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
+            if 0 in c.runEPI_DistCorr:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
                 tmp.leaf_node = (strat.leaf_node)
@@ -1358,16 +1348,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat = tmp
                 new_strat_list.append(strat)
             strat.append_name(epi_distcorr.name)
-
-            strat.set_leaf_properties(epi_distcorr, 'outputspec.epireg')
-
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-            strat.update_resource_pool({'functional_distortion_corrected':(epi_distcorr,'outputspec.epireg')})
+            strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1
-
     strat_list += new_strat_list
+
 
     """
     Inserting slice timing correction
