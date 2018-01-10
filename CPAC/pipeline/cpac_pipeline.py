@@ -1306,7 +1306,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                   "\n\n".format(sub_dict['subject_id'])
             raise Exception(err)
 
-      
         workflow_bit_id['epi_distcorr'] = workflow_counter
     
         for strat in strat_list:
@@ -1314,13 +1313,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
             else:
                epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
-            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_bet_frac
+            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
             epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
             epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
             epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
 
-
-            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_bet_frac)
+            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_frac)
             epi_distcorr.get_node('deltaTE_input').iterables = ('deltaTE',
                                                    c.fmap_distcorr_deltaTE)
             epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
@@ -1329,14 +1327,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
-                node,out_file = strat.get_node_from_resource_pool('anat')
+
+                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
-                node, out_file = strat.get_node_from_resource_pool('mag1')
+
+                node, out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
-                node,out_file = strat.get_node_from_resource_pool('phase_diff')
+
+                node,out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
-                node,out_file = strat.get_node_from_resource_pool('partial_volume_files')
+
+                node,out_file = strat.get_node_from_resource_pool('seg_partial_volume_files')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.partial_volume_files')
+
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
             if 0 in c.runEPI_DistCorr:
