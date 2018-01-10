@@ -516,7 +516,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.template_skull_for_anat
                 fnirt_reg_anat_mni.inputs.inputspec.ref_mask = c.ref_mask
 
-                # assign the FSL FNIRT config file specified in pipeline config.yml
+                # assign the FSL FNIRT config file specified in pipeline
+                # config.yml
                 fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
 
 
@@ -771,7 +772,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     fnirt_reg_anat_symm_mni.inputs.inputspec.reference_skull = c.template_symmetric_skull
                     fnirt_reg_anat_symm_mni.inputs.inputspec.ref_mask = c.dilated_symmetric_brain_mask
 
-                    # assign the FSL FNIRT config file specified in pipeline config.yml
+                    # assign the FSL FNIRT config file specified in pipeline
+                    # config.yml
                     fnirt_reg_anat_symm_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
 
                     # node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
@@ -834,7 +836,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     # reported to be better, but it requires very high
                     # quality skullstripping. If skullstripping is imprecise
                     # registration with skull is preferred
-                    if (1 in c.regWithSkull):
+                    if 1 in c.regWithSkull:
 
                         if already_skullstripped == 1:
                             err_msg = '\n\n[!] CPAC says: You selected ' \
@@ -861,7 +863,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         ants_reg_anat_symm_mni.inputs.inputspec.reference_brain = \
                             c.template_symmetric_brain_only
 
-                        # get the reorient skull-on anatomical from resource pool
+                        # get the reorient skull-on anatomical from resource
+                        # pool
                         node, out_file = strat.get_node_from_resource_pool(
                             'anatomical_reorient')
 
@@ -1119,12 +1122,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                    'subject_id',
                                                    'scan',
                                                    'pipeconfig_tr',
-                                                   'pipeconfig_te',
                                                    'pipeconfig_tpattern',
                                                    'pipeconfig_start_indx',
                                                    'pipeconfig_stop_indx'],
                                       output_names=['tr',
-                                                    'te',
                                                     'tpattern',
                                                     'ref_slice',
                                                     'start_indx',
@@ -1188,8 +1189,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # connect in constants
         scan_params.inputs.pipeconfig_tr = c.TR
-        scan_params.inputs.pipeconfig_te = c.fmap_distcorr_deltaTE[0]
-        scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern
         scan_params.inputs.pipeconfig_start_indx = c.startIdx
         scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
 
@@ -1309,6 +1309,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['epi_distcorr'] = workflow_counter
        
         for strat in strat_list:
+
+            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
+
             epi_distcorr.get_node('skullstrip_method').iterables = ('skullstrip_method',c.skullstrip_method_EPI_DistCorr)
             epi_distcorr.inputs_bet_frac.bet_frac = c.bet_frac_EPI_DistCorr
             epi_distcorr.inputs_delTE.delTE = c.deltaTE_EPI_DistCorr
@@ -1321,8 +1324,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.get_node('dwellT').iterables = ('dwellT',
                                                    c.DwellTime_EPI_DistCorr)
             epi_distcorr.get_node('dwell_asym_ratio').iterables = ('dwell_asym_ratio',c.dwell_asym_ratio_EPI_DistCorr)
-
-            epi_distcorr = create_EPI_DistCorr(wf_name='epi_distcorr_%d' % (num_strat))
 
             try:
                 # functional timeseries into field map dist corr
@@ -1345,9 +1346,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
 
-                # Echo Time (TE)
-                workflow.connect(scan_params, 'te',
-                                 epi_distcorr, 'input_delTE.delTE')
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
 
@@ -1427,12 +1425,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # we might prefer to use the slice timing information stored in
             # the NIFTI header if not, use the value in the scan_params node
-            logger.info("slice timing pattern %s" % c.slice_timing_pattern[0])
+            logger.info("slice timing pattern %s" % c.slice_timing_pattern)
             try:
-                if not "Use NIFTI Header" in c.slice_timing_pattern[0]:
+                if not "Use NIFTI Header" in c.slice_timing_pattern:
                     try:
                         logger.info("connecting slice timing pattern %s" %
-                                    c.slice_timing_pattern[0])
+                                    c.slice_timing_pattern)
 
                         # add the @ prefix to the tpattern file going into
                         # AFNI 3dTshift - needed this so the tpattern file
@@ -1449,7 +1447,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                          'tpattern')
 
                         logger.info("connected slice timing pattern %s" %
-                                    c.slice_timing_pattern[0])
+                                    c.slice_timing_patter)
                     except Exception as xxx:
                         logger.info(
                             "Error connecting input 'acquisition' to "
@@ -1458,7 +1456,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         print xxx
                         raise
                     logger.info("connected slice timing pattern %s" %
-                                c.slice_timing_pattern[0])
+                                c.slice_timing_pattern)
             except Exception as xxx:
                 logger.info(
                     "Error connecting input 'acquisition' to "
@@ -1800,7 +1798,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg, 'inputspec.func')
 
-                    # Input segmentation probability maps for white matter segmentation
+                    # Input segmentation probability maps for white matter
+                    # segmentation
                     node, out_file = strat.get_node_from_resource_pool(
                         'seg_probability_maps')
                     workflow.connect(node, (out_file, pick_wm),

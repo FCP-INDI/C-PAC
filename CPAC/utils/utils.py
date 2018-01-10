@@ -1437,9 +1437,9 @@ def check(params_dct, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
-                    pipeconfig_tpattern, pipeconfig_start_indx,
-                    pipeconfig_stop_indx, data_config_scan_params=None):
+def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
+                    pipeconfig_start_indx, pipeconfig_stop_indx,
+                    data_config_scan_params=None):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
@@ -1487,10 +1487,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
         if "None" in pipeconfig_tpattern:
             pipeconfig_tpattern = None
 
-    if isinstance(pipeconfig_te, list) or isinstance(pipeconfig_te, str):
-        if "None" in pipeconfig_te:
-            pipeconfig_te = None
-
     if data_config_scan_params:
 
         if ".json" in data_config_scan_params:
@@ -1511,9 +1507,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
             if "RepetitionTime" in params_dct.keys():
                 TR = float(check(params_dct, subject_id, scan,
                                  'RepetitionTime', False))
-            if "EchoTime" in params_dct.keys():
-                TE = float(check(params_dct, subject_id, scan, 'EchoTime',
-                                 False))
             if "SliceTiming" in params_dct.keys():
                 pattern = str(check(params_dct, subject_id, scan,
                                     'SliceTiming', False))
@@ -1533,7 +1526,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
 
             # get details from the configuration
             TR = float(check(params_dct, subject_id, scan, 'TR', False))
-            TE = float(check(params_dct, subject_id, scan, 'TE', False))
             pattern = str(check(params_dct, subject_id, scan, 'acquisition',
                                 False))
             ref_slice = int(check(params_dct, subject_id, scan, 'reference',
@@ -1556,12 +1548,6 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
         else:
             TR = None
 
-    if not TE:
-        if pipeconfig_te:
-            TE = float(pipeconfig_te)
-        else:
-            TE = None
-
     if first_tr == '':
         first_tr = pipeconfig_start_indx
 
@@ -1570,16 +1556,11 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
 
     unit = 's'
 
-    # if the user has mandated that we the timing information in the header,
-    # that takes precedence
-    if pipeconfig_tpattern:
-        if "Use NIFTI Header" in pipeconfig_tpattern:
-            pattern = ''
-        else:
-            # otherwise he slice acquisition pattern in the subject file takes
-            # precedence, but if it isn't set we use the value in the
-            # configuration file
-            if pattern == '':
+    if not pattern:
+        if pipeconfig_tpattern:
+            if "Use NIFTI Header" in pipeconfig_tpattern:
+                pattern = ''
+            else:
                 pattern = pipeconfig_tpattern
 
     # pattern can be one of a few keywords, a filename, or blank which
@@ -1662,12 +1643,11 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_te,
 
     # swap back in
     tr = "{0}{1}".format(str(TR), unit)
-    te = TE
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
 
-    return tr, te, tpattern, ref_slice, start_indx, stop_indx
+    return tr, tpattern, ref_slice, start_indx, stop_indx
 
 
 def get_tr(tr):
