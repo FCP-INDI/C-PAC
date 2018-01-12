@@ -4,7 +4,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.c3 as c3
 
 
-def create_nonlinear_register(name='nonlinear_register'):
+def create_nonlinear_register(fieldmap_distortion,name='nonlinear_register'):
     """
     Performs non-linear registration of an input file to a reference file.
 
@@ -70,21 +70,36 @@ def create_nonlinear_register(name='nonlinear_register'):
                                                        'reference_brain',
                                                        'reference_skull',
                                                        'ref_mask',
-                                                       'fnirt_config']),
+                                                       'fnirt_config',
+                                                       'fieldmap',
+                                                       'fieldmapmask',
+                                                       'wm_seg_distortion']),
                         name='inputspec')
+    inputNode_echospacing = pe.Node(util.IdentityInterface(fields=['echospacing']),name = 'echospacing_input')
   
+    inputNode_pedir = pe.Node(util.IdentityInterface(fields=['pedir']),name = 'pedir_input')
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
                                                        'linear_xfm',
                                                        'invlinear_xfm',
                                                        'nonlinear_xfm']),
                          name='outputspec')
-    
-    linear_reg = pe.Node(interface =fsl.FLIRT(),
+    if fieldmap_distortion == False:
+        linear_reg = pe.Node(interface =fsl.FLIRT(),
                          name='linear_reg_0')
-    linear_reg.inputs.cost = 'corratio'
-    
+        linear_reg.inputs.cost = 'corratio'
+    else:
+        linear_reg = pe.Node(interface=fsl.FLIRT(),name = 'linear_reg_distortion')
+        linear_reg.inputs.cost = 'corratio'
+        nonlinear_register.connect(inputNode_pedir,'pedir',linear_reg,'pedir')
+        nonlinear_register.connect(inputspec,'fieldmap',linear_reg,'fieldmap')
+        nonlinear_register.connect(inputspec,'fieldmapmask',linear_reg,'fieldmapmask')
+        nonlinear_register.connect(inputspec,'wm_seg_distortion',linear_reg,'wm_seg')
+        nonlinear_register.connect(inputNode_echospacing,'echospacing',linear_reg,'echospacing')
+
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
+    
+    
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
 
@@ -115,6 +130,7 @@ def create_nonlinear_register(name='nonlinear_register'):
     # ${FSLDIR}/etc/flirtsch/TI_2_MNI152_2mm.cnf (or user-specified)
     nonlinear_register.connect(inputspec, 'fnirt_config',
                                nonlinear_reg, 'config_file')
+    
 
     nonlinear_register.connect(linear_reg, 'out_matrix_file',
                                nonlinear_reg, 'affine_file')

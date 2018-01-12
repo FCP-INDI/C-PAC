@@ -80,7 +80,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),name='bet_frac_input')
     
-    outputNode = pe.Node(util.IdentityInterface(fields=['func_file','fieldmap','epireg','fmap_despiked','threshold_image','fmapmagbrain','T1_wm_seg']),name='outputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['func_file','fieldmap','fmap_despiked','fmapmagbrain','T1_wm_seg','fieldmapmask']),name='outputspec')
 
     # Skullstrip
     if use_BET == False:
@@ -97,18 +97,11 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
         preproc.connect(inputNode,'fmap_mag',bet,'in_file')
         preproc.connect(bet,'out_file',outputNode,'magnitude_image')
 
-    #generating fmap_mag_brain#
-    fslmath_mag = pe.Node(interface=fsl.ErodeImage(),name='fslmath_mag')
-    fslmath_mag.inputs.args = '-ero'
-    preproc.connect(bet,'out_file',fslmath_mag,'in_file')
-    preproc.connect(fslmath_mag,'out_file',outputNode,'fmapmagbrain')
-
-    #SkullStrip the anatomy file
-    bet_anat = pe.Node(interface=fsl.BET(),name='bet_anat')
-    bet_anat.inputs.output_type = 'NIFTI_GZ'
-    bet_anat.inputs.frac = 0.5
-    preproc.connect(inputNode,'anat_file',bet_anat,'in_file')
-    preproc.connect(bet_anat,'out_file',outputNode,'stripped_anat')
+    #    bet_anat = pe.Node(interface=fsl.BET(),name='bet_anat')
+    #    bet_anat.inputs.output_type = 'NIFTI_GZ'
+    #    bet_anat.inputs.frac = 0.5
+    #    preproc.connect(inputNode,'anat_file',bet_anat,'in_file')
+    #    preproc.connect(bet_anat,'out_file',outputNode,'stripped_anat')
     
     #  fast_anat = pe.Node(interface=fsl.FAST(),name='fast_anat')
     #fast_anat.inputs.output_biascorrected=True
@@ -149,6 +142,11 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(bet,'out_file',prepare,'in_magnitude')
     preproc.connect(prepare,'out_fieldmap',outputNode,'fieldmap')
 
+    #generating the automask#
+    automask = pe.Node(interface=afni.automask(),name = 'automask')
+    preproc.connect(inputNode,'out_fieldmap',automask,'in_file')
+    preproc.connect(automask,'out_file',outputNode,'fieldmapmask')
+
     #fugue
     fugue1= pe.Node(interface = fsl.FUGUE(),name='fugue1')
     fugue1.inputs.save_fmap=True
@@ -163,18 +161,20 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
 
     # Co-Register EPI and Correct field inhomogeniety distortions
     # echospacing can also be in the GUI
-    epireg = pe.Node(interface=fsl.epi.EpiReg(), name='epireg')
+
+    #epireg = pe.Node(interface=fsl.epi.EpiReg(), name='epireg')
     #epireg.inputs.echospacing=0.0005
-    epireg.inputs.pedir='-y'
-    epireg.inputs.output_type='NIFTI_GZ'
-    preproc.connect(inputNode_dwellT,'dwellT',epireg,'echospacing')
-    preproc.connect(fslmath_wmseg,'out_file',epireg,'wmseg')
-    preproc.connect(inputNode,'func_file',epireg,'epi')
-    preproc.connect(bet_anat,'out_file', epireg,'t1_brain')
-    preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
-    preproc.connect(inputNode, 'fmap_mag',epireg, 'fmapmag')
-    preproc.connect(fslmath_mag,'out_file',epireg,'fmapmagbrain')
-    preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
-    preproc.connect(epireg,'out_file',outputNode,'epireg')
+    #epireg.inputs.pedir='-y'
+    #epireg.inputs.output_type='NIFTI_GZ'
+    #preproc.connect(inputNode_dwellT,'dwellT',epireg,'echospacing')
+    #preproc.connect(fslmath_wmseg,'out_file',epireg,'wmseg')
+    #preproc.connect(inputNode,'func_file',epireg,'epi')
+    #preproc.connect(bet_anat,'out_file', epireg,'t1_brain')
+    #preproc.connect(inputNode, 'anat_file', epireg, 't1_head')
+    #preproc.connect(inputNode, 'fmap_mag',epireg, 'fmapmag')
+    #preproc.connect(fslmath_mag,'out_file',epireg,'fmapmagbrain')
+    #preproc.connect(fugue1, 'fmap_out_file', epireg, 'fmap')
+    #preproc.connect(epireg,'out_file',outputNode,'epireg')
+
 
     return preproc

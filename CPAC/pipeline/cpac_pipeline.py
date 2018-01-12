@@ -479,8 +479,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     workflow_bit_id['anat_mni_register'] = workflow_counter
     for strat in strat_list:
-
-        if 'FSL' in c.regOption:
+          if 'FSL' in c.regOption:
 
             # this is to prevent the user from running FNIRT if they are
             # providing already-skullstripped inputs. this is because
@@ -1352,7 +1351,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 new_strat_list.append(strat)
             strat.append_name(epi_distcorr.name)
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-            strat.update_resource_pool({'registered_epi':(epi_distcorr,'outputspec.epireg')})
+            strat.update_resource_pool({'wmseg_distortion':(epi_distcorr,'outputspec.emseg_distortion')})
+            strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1
