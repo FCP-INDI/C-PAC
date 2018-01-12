@@ -118,57 +118,76 @@ class EPI_DistCorr(wx.ScrolledWindow):
     def __init__(self, parent, counter =0):
         wx.ScrolledWindow.__init__(self, parent)
         
-        self.page = GenericClass(self, "EPI Distortion correction options")
+        self.page = GenericClass(self, "Field Map Distortion Correction "
+                                       "Options")
         self.counter = counter 
         fsl = os.environ.get('FSLDIR')
         if fsl == None:
             fsl = "$FSLDIR"        
                 
-        self.page.add(label= "Perform distortion correction with fieldmap correction ",
+        self.page.add(label="Perform Field Map Distortion Correction ",
                       control=control.CHOICE_BOX,
                       name='runEPI_DistCorr',
                       type=dtype.LSTR,
-                      comment="Perform fieldmap correction using a single phase difference image, a subtraction of the two phase images from each echo..Default scanner for this method is SIEMENS",
-                      values=["On","Off"],wkf_switch = True)
+                      comment="Perform field map correction using a single "
+                              "phase difference image, a subtraction of the "
+                              "two phase images from each echo. Default "
+                              "scanner for this method is SIEMENS.",
+                      values=["Off", "On"],
+                      wkf_switch=True)
                       
-        self.page.add(label="SkullStripping method",
+        self.page.add(label="Skull-strip magnitude file with: ",
                       control=control.CHOICE_BOX,
                       name='fmap_distcorr_skullstrip',
                       type=dtype.LSTR,
-                      comment="Since the quality of the distortion heavily relies on the skullstrip,we provide a choice on which tool to be used for SkullStripping- AFNI 3dSkullStrip or FSL-BET.This is a feature localized for Distortion correction only.",
-                      values=["AFNI-3dSkullStrip", "BET"])
+                      comment="Since the quality of the distortion heavily "
+                              "relies on the skullstrip,we provide a choice "
+                              "on which tool to be used for skull-stripping- "
+                              "AFNI 3dSkullStrip or FSL BET. This is a "
+                              "feature localized for Distortion correction "
+                              "only.",
+                      values=["3dSkullStrip", "BET"])
 
-        self.page.add(label= "BET threshold/AFNI shrink factor",
+        self.page.add(label="BET threshold/AFNI shrink factor ",
                       control = control.TEXT_BOX,
                       name='fmap_distcorr_frac',
-                      type = dtype.LNUM,
-                      comment="Set the threshold value, used for brain extraction using FSL-BET, FSL specifies a tight extraction in order to prevent noisy voxels from interferring with preparing fieldmap.The default value is 0.5",
+                      type=dtype.LNUM,
+                      comment="Set the threshold value, used for brain "
+                              "extraction using FSL-BET, FSL specifies a "
+                              "tight extraction in order to prevent noisy "
+                              "voxels from interfering with preparing "
+                              "field map. The default value is 0.5.",
                       validator = CharValidator("no-alpha"),
                       values="0.5")
                         
-        self.page.add(label= "DeltaTE, in ms",
-                      control = control.TEXT_BOX,
+        self.page.add(label="DeltaTE, in ms",
+                      control=control.TEXT_BOX,
                       name='fmap_distcorr_deltaTE',
-                      type = dtype.LNUM,
-                      comment="Set the Delta-TE value, used for preparing fieldmap,time delay between the first and second echo images.Default value is 2.46 ms",
+                      type=dtype.LNUM,
+                      comment="Set the Delta-TE value, used for preparing "
+                              "field map, time delay between the first and "
+                              "second echo images. Default value is 2.46 ms.",
                       validator = CharValidator("no-alpha"),
                       values="2.46")
                             
-        self.page.add(label = "Dwell Time, in s",
-                      control = control.TEXT_BOX,
+        self.page.add(label="Dwell Time, in s",
+                      control=control.TEXT_BOX,
                       name='fmap_distcorr_dwell_time',
-                      type = dtype.LNUM,
-                      comment = "Set the Dwell time for the fugue input.This is the time between scans, default value is 0.0005 s",
+                      type=dtype.LNUM,
+                      comment = "Set the Dwell Time for the fugue input. "
+                                "This is the time between scans, default "
+                                "value is 0.0005s.",
                       validator = CharValidator("no-alpha"),
                       values = "0.0005")
                                 
-        self.page.add(label = "Dwell to asymmetric ratio",
-                      control = control.TEXT_BOX,
+        self.page.add(label="Dwell to asymmetric ratio",
+                      control=control.TEXT_BOX,
                       name='fmap_distcorr_dwell_asym_ratio',
-                      type = dtype.LNUM,
-                      comment = "Set the asymmetric ratio value for the fugue input",
-                      validator = CharValidator("no-alpha"),
-                      values = "0.93902439")
+                      type=dtype.LNUM,
+                      comment = "Set the asymmetric ratio value for the "
+                                "fugue input.",
+                      validator=CharValidator("no-alpha"),
+                      values="0.93902439")
                                     
         self.page.set_sizer() 
         parent.get_page_list().append(self)

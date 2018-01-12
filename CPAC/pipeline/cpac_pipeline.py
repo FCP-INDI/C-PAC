@@ -1308,6 +1308,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['epi_distcorr'] = workflow_counter
     
         for strat in strat_list:
+
             if 'BET' in c.fmap_distcorr_skullstrip_method:
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
             else:
@@ -1323,6 +1324,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
                                                    c.fmap_distcorr_dwell_time)
             epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
+
             try:
                 node,out_file = strat.get_leaf_properties()
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
@@ -1340,7 +1342,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.partial_volume_files')
 
             except:
-                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')   
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+
             if 0 in c.runEPI_DistCorr:
                 tmp = strategy()
                 tmp.resource_pool = dict(strat.resource_pool)
@@ -1349,6 +1352,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 tmp.name = list(strat.name)
                 strat = tmp
                 new_strat_list.append(strat)
+
             strat.append_name(epi_distcorr.name)
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
             strat.update_resource_pool({'wmseg_distortion':(epi_distcorr,'outputspec.emseg_distortion')})
@@ -1674,8 +1678,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['func_to_anat'] = workflow_counter
 
         for strat in strat_list:
-            func_to_anat = create_register_func_to_anat(
-                'func_to_anat_FLIRT_%d' % num_strat)
+
+            # if field map-based distortion correction is on, but BBR is off,
+            # send in the distortion correction files here
+            # TODO: is this robust to the possibility of forking both
+            # TODO: distortion correction and BBR at the same time?
+            # TODO: (check the comment above "if 'seg_preproc' in nodes:"
+            # TODO:  under BBR below)...
+            if 1 in c.runEPI_DistCorr and 1 not in c.runBBReg:
+                dist_corr = True
+            else:
+                dist_corr = False
+
+            func_to_anat = create_register_func_to_anat(dist_corr,
+                                                        'func_to_anat_FLIRT'
+                                                        '_%d' % num_strat)
 
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
@@ -1705,6 +1722,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
+                if dist_corr:
+                    node, out_file = strat.get_node_from_resource_pool("fmap_despiked")
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.fieldmap')
+
+                    node, out_file = strat.get_node_from_resource_pool("fieldmap_mask")
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.fieldmapmask')
+
             except:
                 logConnectionError(
                     'Register Functional to Anatomical (pre BBReg)',
@@ -1723,11 +1749,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.append_name(func_to_anat.name)
             # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
-            strat.update_resource_pool({'mean_functional_in_anat': (
-            func_to_anat, 'outputspec.anat_func_nobbreg'),
-                                        'functional_to_anat_linear_xfm': (
-                                        func_to_anat,
-                                        'outputspec.func_to_anat_linear_xfm_nobbreg')})
+            strat.update_resource_pool({'mean_functional_in_anat': (func_to_anat, 'outputspec.anat_func_nobbreg'),
+                                        'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')})
 
             # Outputs:
             # functional_to_anat_linear_xfm = func-t1.mat, linear, sent to 'premat' of post-FNIRT applywarp,
@@ -1742,8 +1765,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     Func -> T1 Registration (BBREG)
     '''
 
-    # Outputs 'functional_to_anat_linear_xfm', a matrix file of the functional-to-anatomical
-    # registration warp to be applied LATER in func_mni_warp, which accepts it as input 'premat'
+    # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
+    # functional-to-anatomical registration warp to be applied LATER in
+    # func_mni_warp, which accepts it as input 'premat'
 
     new_strat_list = []
     num_strat = 0
@@ -1763,8 +1787,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # a crash) on the strat without segmentation
             if 'seg_preproc' in nodes:
 
-                func_to_anat_bbreg = create_bbregister_func_to_anat(
-                    'func_to_anat_bbreg_%d' % num_strat)
+                dist_corr = False
+                if 1 in c.runEPI_DistCorr:
+                    dist_corr = True
+
+                func_to_anat_bbreg = create_bbregister_func_to_anat(dist_corr,
+                                                                    'func_to_anat_bbreg_%d' % num_strat)
 
                 # Input registration parameters
                 func_to_anat_bbreg.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
@@ -1788,14 +1816,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg, 'inputspec.func')
 
-                    # Input segmentation probability maps for white matter
-                    # segmentation
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'seg_probability_maps')
-                    workflow.connect(node, (out_file, pick_wm),
-                                     func_to_anat_bbreg,
-                                     'inputspec.anat_wm_segmentation')
-
                     # Input anatomical whole-head image (reoriented)
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_reorient')
@@ -1808,6 +1828,36 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg,
                                      'inputspec.linear_reg_matrix')
+
+                    if dist_corr:
+                        node, out_file = strat.get_node_from_resource_pool(
+                            "fmap_despiked")
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmap')
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            "fieldmap_mask")
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmapmask')
+
+                        # Input segmentation probability maps for white matter
+                        # segmentation
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'wmseg_distortion')
+                        workflow.connect(node, (out_file, pick_wm),
+                                         func_to_anat_bbreg,
+                                         'inputspec.anat_wm_segmentation')
+
+                    else:
+                        # Input segmentation probability maps for white matter
+                        # segmentation
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'seg_probability_maps')
+                        workflow.connect(node, (out_file, pick_wm),
+                                         func_to_anat_bbreg,
+                                         'inputspec.anat_wm_segmentation')
 
                 except:
                     logConnectionError(
@@ -1834,11 +1884,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 strat.append_name(func_to_anat_bbreg.name)
 
-                strat.update_resource_pool({'mean_functional_in_anat': (
-                func_to_anat_bbreg, 'outputspec.anat_func'),
-                                            'functional_to_anat_linear_xfm': (
-                                            func_to_anat_bbreg,
-                                            'outputspec.func_to_anat_linear_xfm')})
+                strat.update_resource_pool({'mean_functional_in_anat': (func_to_anat_bbreg, 'outputspec.anat_func'),
+                                            'functional_to_anat_linear_xfm': (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')})
 
                 # Outputs:
                 # functional_to_anat_linear_xfm = func-t1.mat, linear, sent to 'premat' of post-FNIRT applywarp,
