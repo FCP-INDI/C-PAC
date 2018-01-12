@@ -138,7 +138,6 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       comment="Since the quality of the distortion heavily relies on the skullstrip,we provide a choice on which tool to be used for SkullStripping- AFNI 3dSkullStrip or FSL-BET.This is a feature localized for Distortion correction only.",
                       values=["AFNI-3dSkullStrip", "BET"])
 
-                    
         self.page.add(label= "BET threshold/AFNI shrink factor",
                       control = control.TEXT_BOX,
                       name='fmap_distcorr_frac',
