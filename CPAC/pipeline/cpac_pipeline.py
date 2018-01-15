@@ -1332,10 +1332,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
                 workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
 
-                node, out_file = strat.get_node_from_resource_pool('fmap_magnitude')
+                node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
 
-                node,out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
+                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
 
             except:
