@@ -133,7 +133,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                               "phase difference image, a subtraction of the "
                               "two phase images from each echo. Default "
                               "scanner for this method is SIEMENS.",
-                      values=["Off", "On"],
+                      values=["Off", "On", "On/Off"],
                       wkf_switch=True)
                       
         self.page.add(label="Skull-strip the magnitude file with: ",
@@ -220,7 +220,7 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                       name='runRegisterFuncToAnat',
                       type=dtype.LSTR,
                       comment="Run Functional to Anatomical Registration",
-                      values=["On","Off"],
+                      values=["On", "Off"],
                       wkf_switch = True)
 
         self.page.add(label="Using BB Register ", 
@@ -228,7 +228,7 @@ class AnatToFuncRegistration(wx.ScrolledWindow):
                       name='runBBReg',
                       type=dtype.LSTR,
                       comment="Run Functional to Anatomical Registration with BB Register",
-                      values=["On","Off","On/Off"],
+                      values=["On", "Off", "On/Off"],
                       wkf_switch = True)
        
         self.page.add(label="Boundary Based Registration Scheduler ", 
