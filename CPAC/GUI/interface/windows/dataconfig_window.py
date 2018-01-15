@@ -83,11 +83,12 @@ class DataConfig(wx.Frame):
                            "Custom Data Format only.\n\n"
                            "Place tags for the appropriate data directory "
                            "levels with the tags {site}, {participant}, "
-                           "{session}, and {scan}. Only {participant} is "
+                           "{session}, and {series}. Only {participant} is "
                            "required.\n\nExamples:\n"
                            "/data/{site}/{participant}/{session}/func/"
-                           "{scan}_bold.nii.gz\n"
-                           "/data/{site}/{participant}/{scan}/func.nii.gz\n\n"
+                           "{series}_bold.nii.gz\n"
+                           "/data/{site}/{participant}/{series}/func.nii.gz"
+                           "\n\n"
                            "See the User Guide for more detailed "
                            "instructions.",
                  values ="",
@@ -260,30 +261,30 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label="(Optional) Include: Scans ",
+        self.page.add(label="(Optional) Include: Series ",
                       control=control.COMBO_BOX,
                       name="scanList",
                       type=dtype.COMBO,
-                      comment="Include only a sub-set of the scans present "
-                              "in the folders defined above.\n\nList scans "
+                      comment="Include only a sub-set of the series present "
+                              "in the folders defined above.\n\nList series "
                               "in this box (e.g., func-1, func-2) or provide "
-                              "the path to a text file with one scan name on "
-                              "each line.\n\nIf 'None' is specified, CPAC "
-                              "will include all scans.",
+                              "the path to a text file with one series name "
+                              "on each line.\n\nIf 'None' is specified, CPAC "
+                              "will include all series.",
                       values="None",
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))
 
-        self.page.add(label="(Optional) Exclude: Scans ",
+        self.page.add(label="(Optional) Exclude: Series ",
                       control=control.COMBO_BOX,
                       name="exclusionScanList",
                       type=dtype.COMBO,
-                      comment="Exclude a sub-set of the scans present "
-                              "in the folders defined above.\n\nList scans "
+                      comment="Exclude a sub-set of the series present "
+                              "in the folders defined above.\n\nList series "
                               "in this box (e.g., func-1, func-2) or provide "
-                              "the path to a text file with one scan name on "
-                              "each line.\n\nIf 'None' is specified, CPAC "
-                              "will include all scans.",
+                              "the path to a text file with one series name "
+                              "on each line.\n\nIf 'None' is specified, CPAC "
+                              "will include all series.",
                       values="None",
                       style=wx.EXPAND | wx.ALL,
                       size=(532, -1))

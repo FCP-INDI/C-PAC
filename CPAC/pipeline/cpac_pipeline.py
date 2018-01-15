@@ -1351,6 +1351,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 new_strat_list.append(strat)
 
             strat.append_name(epi_distcorr.name)
+
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
             strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
@@ -5516,6 +5517,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = '3dAutoMask(func)'
                 if 'bet' in fork:
                     forklabel = 'BET(func)'
+                if 'epi_distcorr' in fork:
+                    forklabel = 'dist_corr'
                 if 'bbreg' in fork:
                     forklabel = 'bbreg'
                 if 'frequency' in fork:

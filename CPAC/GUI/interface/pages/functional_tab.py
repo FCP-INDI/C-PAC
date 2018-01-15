@@ -141,23 +141,22 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       name='fmap_distcorr_skullstrip',
                       type=dtype.LSTR,
                       comment="Since the quality of the distortion heavily "
-                              "relies on the skullstrip,we provide a choice "
-                              "on which tool to be used for skull-stripping- "
-                              "AFNI 3dSkullStrip or FSL BET. This is a "
-                              "feature localized for Distortion correction "
-                              "only.",
+                              "relies on the skull-stripping step, we "
+                              "provide a choice of method (AFNI 3dSkullStrip "
+                              "or FSL BET).",
                       values=["BET", "3dSkullStrip"])
 
         self.page.add(label="BET threshold/AFNI shrink factor ",
-                      control = control.TEXT_BOX,
+                      control=control.TEXT_BOX,
                       name='fmap_distcorr_frac',
                       type=dtype.LNUM,
-                      comment="Set the threshold value, used for brain "
-                              "extraction using FSL-BET, FSL specifies a "
-                              "tight extraction in order to prevent noisy "
-                              "voxels from interfering with preparing "
-                              "field map. The default value is 0.5.",
-                      validator = CharValidator("no-alpha"),
+                      comment="Set the threshold value for the skull-"
+                              "stripping of the magnitude file. Depending "
+                              "on the data, a tighter extraction may be "
+                              "necessary in order to prevent noisy voxels "
+                              "from interfering with preparing the field map."
+                              "\n\nThe default value is 0.5.",
+                      validator=CharValidator("no-alpha"),
                       values="0.5")
                         
         self.page.add(label="DeltaTE, in ms ",
@@ -193,9 +192,8 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='fmap_distcorr_pedir',
                       type=dtype.LSTR,
-                      comment="Set the pedir if you choose to run the "
-                              "registration with the distortion correction. "
-                              "You can choose between x/y/z or -x/-y/-z",
+                      comment="Set the phase-encoding direction. The options "
+                              "are: x, y, z, -x, -y, -z.",
                       values=["x", "y", "z", "-x", "-y", "-z"])
 
         self.page.set_sizer() 
