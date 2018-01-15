@@ -1309,7 +1309,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     
         for strat in strat_list:
 
-            if 'BET' in c.fmap_distcorr_skullstrip_method:
+            if 'BET' in c.fmap_distcorr_skullstrip:
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
             else:
                epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))

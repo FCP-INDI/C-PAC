@@ -191,7 +191,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
         self.page.add(label="Phase-encoding direction ",
                       control=control.CHOICE_BOX,
                       name='fmap_distcorr_pedir',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Set the phase-encoding direction. The options "
                               "are: x, y, z, -x, -y, -z.",
                       values=["x", "y", "z", "-x", "-y", "-z"])
