@@ -125,21 +125,6 @@ class Registration(wx.ScrolledWindow):
                      type=dtype.STR, 
                      values =  str(os.path.join("T1_2_MNI152_2mm")),
                      comment="Configuration file to be used by FSL to set FNIRT parameters.\n\nIt is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.")
-        self.page.add(label="Echospacing value (for distortion correction only)",
-                      control=control.TEXT_BOX,
-                      name='echospacing',
-                      type=dtype.LNUM,
-                      validator= CharValidator("no-alpha"),
-                      comment="Set the echospacing value,same as the dwell time value, if you choose to run registration with distortion correction.The default value is 0.0005"
-                      values = "0.0005")
-                      
-        self.page.add(label="Unwrapping direction for (for distortion correction only)",
-                      control=control.TEXT_BOX,
-                      name='pedir',
-                      type=dtype.STR,
-                      comment="Set the pedir if you choose to run the registration with the distortion correction. You can choose between x/y/z or -x/-y/-z",
-                      vales=["x","y","z","-x","-y","-z"])
-                      
 
         self.page.add(label="FSL FNIRT Reference Mask (FSL only) ", 
                      control=control.COMBO_BOX, 

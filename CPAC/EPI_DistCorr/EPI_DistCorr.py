@@ -73,8 +73,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     inputNode = pe.Node(util.IdentityInterface(fields=['anat_file',
                                                        'func_file',
                                                        'fmap_pha',
-                                                       'fmap_mag',
-                                                       'partial_volume_files']),
+                                                       'fmap_mag']),
                         name='inputspec')
     
     inputNode_delTE = pe.Node(util.IdentityInterface(fields=['deltaTE']),
@@ -92,7 +91,6 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
                                                         'fmap_despiked',
                                                         'fmapmagbrain',
-                                                        'T1_wm_seg',
                                                         'fieldmapmask']),
                          name='outputspec')
 
@@ -129,20 +127,6 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     #preproc.connect(fast_anat,'partial_volume_map',outputNode,'partial_volume_map')
     #preproc.connect(fast_anat,'partial_volume_files',outputNode,'partial_volume_files')
 
-    def picksecond(files):
-        return files[2]
-
-    fslmath_anat = pe.Node(interface=fsl.Threshold(), name='fsl_anat')
-    fslmath_anat.inputs.thresh = 0.5
-    preproc.connect(inputNode, ('partial_volume_files', picksecond),
-                    fslmath_anat, 'in_file')
-    preproc.connect(fslmath_anat, 'out_file', outputNode, 'threshold_image')
-    
-    fslmath_wmseg = pe.Node(interface=fsl.UnaryMaths(), name='fslmath_wmseg')
-    fslmath_wmseg.inputs.operation = 'bin'
-    preproc.connect(fslmath_anat, 'out_file', fslmath_wmseg, 'in_file')
-    preproc.connect(fslmath_wmseg, 'out_file', outputNode, 'T1_wm_seg')
-
     # Note for the user. Ensure the phase image is within 0-4096 (upper
     # threshold is 90% of 4096), fsl_prepare_fieldmap will only work in the
     # case of the SIEMENS format. #Maybe we could use deltaTE also as an
@@ -158,8 +142,8 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
 
     # generating the automask
-    automask = pe.Node(interface=afni.automask(), name='automask')
-    preproc.connect(inputNode, 'out_fieldmap', automask, 'in_file')
+    automask = pe.Node(interface=afni.Automask(), name='automask')
+    preproc.connect(prepare, 'out_fieldmap', automask, 'in_file')
     preproc.connect(automask, 'out_file', outputNode, 'fieldmapmask')
 
     # fugue

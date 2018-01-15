@@ -136,7 +136,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch=True)
                       
-        self.page.add(label="Skull-strip magnitude file with: ",
+        self.page.add(label="Skull-strip the magnitude file with: ",
                       control=control.CHOICE_BOX,
                       name='fmap_distcorr_skullstrip',
                       type=dtype.LSTR,
@@ -146,7 +146,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                               "AFNI 3dSkullStrip or FSL BET. This is a "
                               "feature localized for Distortion correction "
                               "only.",
-                      values=["3dSkullStrip", "BET"])
+                      values=["BET", "3dSkullStrip"])
 
         self.page.add(label="BET threshold/AFNI shrink factor ",
                       control = control.TEXT_BOX,
@@ -160,7 +160,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       validator = CharValidator("no-alpha"),
                       values="0.5")
                         
-        self.page.add(label="DeltaTE, in ms",
+        self.page.add(label="DeltaTE, in ms ",
                       control=control.TEXT_BOX,
                       name='fmap_distcorr_deltaTE',
                       type=dtype.LNUM,
@@ -170,32 +170,39 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       validator = CharValidator("no-alpha"),
                       values="2.46")
                             
-        self.page.add(label="Dwell Time, in s",
+        self.page.add(label="Dwell Time, in s ",
                       control=control.TEXT_BOX,
                       name='fmap_distcorr_dwell_time',
                       type=dtype.LNUM,
-                      comment = "Set the Dwell Time for the fugue input. "
-                                "This is the time between scans, default "
-                                "value is 0.0005s.",
-                      validator = CharValidator("no-alpha"),
-                      values = "0.0005")
+                      comment="Set the Dwell Time for the fugue input. "
+                              "This is the time between scans, default "
+                              "value is 0.0005s.",
+                      validator=CharValidator("no-alpha"),
+                      values="0.0005")
                                 
-        self.page.add(label="Dwell to asymmetric ratio",
+        self.page.add(label="Dwell to asymmetric ratio ",
                       control=control.TEXT_BOX,
                       name='fmap_distcorr_dwell_asym_ratio',
                       type=dtype.LNUM,
-                      comment = "Set the asymmetric ratio value for the "
-                                "fugue input.",
+                      comment="Set the asymmetric ratio value for FSL Fugue "
+                              "input.",
                       validator=CharValidator("no-alpha"),
                       values="0.93902439")
-                                    
+
+        self.page.add(label="Phase-encoding direction ",
+                      control=control.CHOICE_BOX,
+                      name='fmap_distcorr_pedir',
+                      type=dtype.LSTR,
+                      comment="Set the pedir if you choose to run the "
+                              "registration with the distortion correction. "
+                              "You can choose between x/y/z or -x/-y/-z",
+                      values=["x", "y", "z", "-x", "-y", "-z"])
+
         self.page.set_sizer() 
         parent.get_page_list().append(self)
 
     def get_counter(self):
         return self.counter
-
-
 
 
 class AnatToFuncRegistration(wx.ScrolledWindow):

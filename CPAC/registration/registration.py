@@ -454,7 +454,19 @@ def create_bbregister_func_to_anat(fieldmap_distortion=False,
                                  bbreg_func_to_anat, 'in_matrix_file')
 
     if fieldmap_distortion:
-        register_bbregister_func_to_anat.connect(inputNode_pedir, 'pedir',
+
+        def convert_pedir(pedir):
+            # FSL Flirt requires pedir input encoded as an int
+            conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
+            if not isinstance(pedir, str):
+                raise Exception("\n\nPhase-encoding direction must be a "
+                                "string value.\n\n")
+            if pedir not in conv_dct.keys():
+                raise Exception("\n\nInvalid phase-encoding direction "
+                                "entered: {0}\n\n".format(pedir))
+            return conv_dct[pedir]
+
+        register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
                                                  bbreg_func_to_anat, 'pedir')
         register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
                                                  bbreg_func_to_anat, 'fieldmap')

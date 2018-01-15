@@ -1338,9 +1338,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node,out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
 
-                node,out_file = strat.get_node_from_resource_pool('seg_partial_volume_files')
-                workflow.connect(node,out_file,epi_distcorr, 'inputspec.partial_volume_files')
-
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
 
@@ -1355,13 +1352,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             strat.append_name(epi_distcorr.name)
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
-            strat.update_resource_pool({'wmseg_distortion':(epi_distcorr,'outputspec.emseg_distortion')})
             strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
            
             num_strat += 1
     strat_list += new_strat_list
-
 
     """
     Inserting slice timing correction
@@ -1666,8 +1661,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     Func -> T1 Registration (Initial Linear reg)
     '''
 
-    # Depending on configuration, either passes output matrix to Func -> Template ApplyWarp,
-    # or feeds into linear reg of BBReg operation (if BBReg is enabled)
+    # Depending on configuration, either passes output matrix to
+    # Func -> Template ApplyWarp, or feeds into linear reg of BBReg operation
+    # (if BBReg is enabled)
 
     new_strat_list = []
     num_strat = 0
@@ -1679,16 +1675,24 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         for strat in strat_list:
 
+            nodes = getNodeList(strat)
+
             # if field map-based distortion correction is on, but BBR is off,
             # send in the distortion correction files here
             # TODO: is this robust to the possibility of forking both
             # TODO: distortion correction and BBR at the same time?
-            # TODO: (check the comment above "if 'seg_preproc' in nodes:"
-            # TODO:  under BBR below)...
-            if 1 in c.runEPI_DistCorr and 1 not in c.runBBReg:
+            # TODO: (note if you are forking with BBR on/off, at this point
+            # TODO:  there is still only one strat, so you would have to fork
+            # TODO:  here instead to have a func->anat with fieldmap and
+            # TODO:  without, and send the without-fieldmap to the BBR fork)
+            dist_corr = False
+            if 'epi_distcorr' in nodes and 1 not in c.runBBReg:
                 dist_corr = True
-            else:
-                dist_corr = False
+                # TODO: for now, disabling dist corr when BBR is disabled
+                err = "\n\n[!] Field map distortion correction is enabled, " \
+                      "but Boundary-Based Registration is off- BBR is " \
+                      "required for distortion correction.\n\n"
+                raise Exception(err)
 
             func_to_anat = create_register_func_to_anat(dist_corr,
                                                         'func_to_anat_FLIRT'
@@ -1723,7 +1727,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  func_to_anat, 'inputspec.anat')
 
                 if dist_corr:
-                    node, out_file = strat.get_node_from_resource_pool("fmap_despiked")
+                    # apply field map distortion correction outputs to
+                    # the func->anat registration
+
+                    func_to_anat.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
+                    func_to_anat.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
+
+                    node, out_file = strat.get_node_from_resource_pool("despiked_fieldmap")
                     workflow.connect(node, out_file,
                                      func_to_anat, 'inputspec.fieldmap')
 
@@ -1788,7 +1798,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if 'seg_preproc' in nodes:
 
                 dist_corr = False
-                if 1 in c.runEPI_DistCorr:
+                if 'epi_distcorr' in nodes:
                     dist_corr = True
 
                 func_to_anat_bbreg = create_bbregister_func_to_anat(dist_corr,
@@ -1829,9 +1839,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                      func_to_anat_bbreg,
                                      'inputspec.linear_reg_matrix')
 
+                    # Input segmentation probability maps for white matter
+                    # segmentation
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'seg_probability_maps')
+                    workflow.connect(node, (out_file, pick_wm),
+                                     func_to_anat_bbreg,
+                                     'inputspec.anat_wm_segmentation')
+
                     if dist_corr:
+                        # apply field map distortion correction outputs to
+                        # the func->anat registration
+
+                        func_to_anat_bbreg.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
+                        func_to_anat_bbreg.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
+
                         node, out_file = strat.get_node_from_resource_pool(
-                            "fmap_despiked")
+                            "despiked_fieldmap")
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg,
                                          'inputspec.fieldmap')
@@ -1841,23 +1865,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg,
                                          'inputspec.fieldmapmask')
-
-                        # Input segmentation probability maps for white matter
-                        # segmentation
-                        node, out_file = strat.get_node_from_resource_pool(
-                            'wmseg_distortion')
-                        workflow.connect(node, (out_file, pick_wm),
-                                         func_to_anat_bbreg,
-                                         'inputspec.anat_wm_segmentation')
-
-                    else:
-                        # Input segmentation probability maps for white matter
-                        # segmentation
-                        node, out_file = strat.get_node_from_resource_pool(
-                            'seg_probability_maps')
-                        workflow.connect(node, (out_file, pick_wm),
-                                         func_to_anat_bbreg,
-                                         'inputspec.anat_wm_segmentation')
 
                 except:
                     logConnectionError(
@@ -1893,6 +1900,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # create_log_node(func_to_anat, 'outputspec.mni_func', num_strat)
                 num_strat += 1
+
+            else:
+                # anatomical segmentation is not being run in this particular
+                # strategy/fork - we don't want this to stop workflow building
+                # unless there is only one strategy
+                if len(strat_list) > 1:
+                    pass
+                else:
+                    err = "\n\n[!] Boundary-based registration (BBR) for " \
+                          "functional-to-anatomical registration is " \
+                          "enabled, but anatomical segmentation is not. " \
+                          "BBR requires the outputs of segmentation. " \
+                          "Please modify your pipeline configuration and " \
+                          "run again.\n\n"
+                    raise Exception(err)
+
 
     strat_list += new_strat_list
 
