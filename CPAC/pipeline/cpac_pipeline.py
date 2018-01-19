@@ -1313,6 +1313,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
             else:
                epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
+
             epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
             epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
             epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
@@ -1355,9 +1356,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
             strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')})
-            strat.update_resource_pool({'segmented_white_matter':(epi_distcorr,'T1_wm_seg')})
            
             num_strat += 1
+            
     strat_list += new_strat_list
 
     """

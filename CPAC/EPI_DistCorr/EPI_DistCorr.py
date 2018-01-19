@@ -96,15 +96,16 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
         bet.inputs.output_type='NIFTI_GZ'
         preproc.connect(inputNode_bet_frac, 'bet_frac', bet, 'frac')
         preproc.connect(inputNode, 'fmap_mag', bet, 'in_file')
-        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image') 
+        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
 
+    # Prepare Fieldmap
     prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
     prepare.inputs.output_type = "NIFTI_GZ"
-    preproc.connect(inputNode_deltaTE, 'deltaTE', prepare, 'delta_TE')
+    preproc.connect(inputNode_delTE, 'deltaTE', prepare, 'delta_TE')
     preproc.connect(inputNode, 'fmap_pha', prepare, 'in_phase')
     preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
     preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
-                  
+
     fslmath_mag = pe.Node(interface=fsl.ErodeImage(),name='fslmath_mag')
     preproc.connect(bet,'out_file',fslmath_mag,'in_file')
     preproc.connect(fslmath_mag,'out_file',outputNode,'fmapmagbrain')
@@ -144,15 +145,6 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     # threshold is 90% of 4096), fsl_prepare_fieldmap will only work in the
     # case of the SIEMENS format. #Maybe we could use deltaTE also as an
     # option in the GUI.
-
-    # Prepare Fieldmap
-    prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
-    prepare.inputs.output_type = "NIFTI_GZ"
-    #prepare.inputs.delta_TE = 2.46
-    preproc.connect(inputNode_delTE, 'deltaTE', prepare, 'delta_TE')
-    preproc.connect(inputNode, 'fmap_pha', prepare, 'in_phase')
-    preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
-    preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
 
     # fugue
     fugue1 = pe.Node(interface=fsl.FUGUE(), name='fugue1')
