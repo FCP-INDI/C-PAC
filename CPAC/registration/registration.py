@@ -4,7 +4,7 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.c3 as c3
 
 
-def create_nonlinear_register(fieldmap_distortion,name='nonlinear_register'):
+def create_nonlinear_register(name='nonlinear_register'):
     """
     Performs non-linear registration of an input file to a reference file.
 
@@ -70,40 +70,24 @@ def create_nonlinear_register(fieldmap_distortion,name='nonlinear_register'):
                                                        'reference_brain',
                                                        'reference_skull',
                                                        'ref_mask',
-                                                       'fnirt_config',
-                                                       'fieldmap',
-                                                       'fieldmapmask',
-                                                       'wm_seg_distortion']),
+                                                       'fnirt_config']),
                         name='inputspec')
-    inputNode_echospacing = pe.Node(util.IdentityInterface(fields=['echospacing']),name = 'echospacing_input')
-  
-    inputNode_pedir = pe.Node(util.IdentityInterface(fields=['pedir']),name = 'pedir_input')
+    
     outputspec = pe.Node(util.IdentityInterface(fields=['output_brain',
-                                                       'linear_xfm',
-                                                       'invlinear_xfm',
-                                                       'nonlinear_xfm']),
+                                                        'linear_xfm',
+                                                        'invlinear_xfm',
+                                                        'nonlinear_xfm']),
                          name='outputspec')
-    if fieldmap_distortion == False:
-        linear_reg = pe.Node(interface =fsl.FLIRT(),
-                         name='linear_reg_0')
-        linear_reg.inputs.cost = 'corratio'
-    else:
-        linear_reg = pe.Node(interface=fsl.FLIRT(),name = 'linear_reg_distortion')
-        linear_reg.inputs.cost = 'corratio'
-        nonlinear_register.connect(inputNode_pedir,'pedir',linear_reg,'pedir')
-        nonlinear_register.connect(inputspec,'fieldmap',linear_reg,'fieldmap')
-        nonlinear_register.connect(inputspec,'fieldmapmask',linear_reg,'fieldmapmask')
-        nonlinear_register.connect(inputspec,'wm_seg_distortion',linear_reg,'wm_seg')
-        nonlinear_register.connect(inputNode_echospacing,'echospacing',linear_reg,'echospacing')
+
+    linear_reg = pe.Node(interface=fsl.FLIRT(), name='linear_reg_0')
+    linear_reg.inputs.cost = 'corratio'
 
     nonlinear_reg = pe.Node(interface=fsl.FNIRT(),
                             name='nonlinear_reg_1')
     
-    
     nonlinear_reg.inputs.fieldcoeff_file = True
     nonlinear_reg.inputs.jacobian_file = True
 
-   
     brain_warp = pe.Node(interface=fsl.ApplyWarp(),
                          name='brain_warp')    
     
@@ -282,7 +266,8 @@ def create_register_func_to_mni(name='register_func_to_mni'):
     return register_func_to_mni
 
 
-def create_register_func_to_anat(name='register_func_to_anat'):
+def create_register_func_to_anat(fieldmap_distortion=False, 
+                                 name='register_func_to_anat'):
     
     """
     Registers a functional scan in native space to anatomical space using a
@@ -290,6 +275,9 @@ def create_register_func_to_anat(name='register_func_to_anat'):
 
     Parameters
     ----------
+    fieldmap_distortion : bool, optional
+        If field map-based distortion correction is being run, FLIRT should
+        take in the appropriate field map-related inputs.
     name : string, optional
         Name of the workflow.
 
@@ -317,19 +305,24 @@ def create_register_func_to_anat(name='register_func_to_anat'):
             Functional scan registered to anatomical space
             
     """
-
     
     register_func_to_anat = pe.Workflow(name=name)
     
     inputspec = pe.Node(util.IdentityInterface(fields=['func',
                                                        'anat',
-                                                       'interp']),
+                                                       'interp',
+                                                       'fieldmap',
+                                                       'fieldmapmask','anat_skull']),
                         name='inputspec')
 
+    inputNode_echospacing = pe.Node(
+        util.IdentityInterface(fields=['echospacing']),
+        name='echospacing_input')
+
+    inputNode_pedir = pe.Node(util.IdentityInterface(fields=['pedir']),
+                              name='pedir_input')
+
     outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm_nobbreg',
-                                                        #'func_to_mni_linear_xfm',
-                                                        #'mni_to_func_linear_xfm',
-                                                        #'anat_wm_edge',
                                                         'anat_func_nobbreg']),
                          name='outputspec')
     
@@ -337,26 +330,35 @@ def create_register_func_to_anat(name='register_func_to_anat'):
                          name='linear_func_to_anat')
     linear_reg.inputs.cost = 'corratio'
     linear_reg.inputs.dof = 6
+    
+    if fieldmap_distortion:
+        register_func_to_anat.connect(inputNode_pedir, 'pedir', 
+                                      linear_reg, 'pedir')
+        register_func_to_anat.connect(inputspec, 'fieldmap', 
+                                      linear_reg, 'fieldmap')
+        register_func_to_anat.connect(inputspec, 'fieldmapmask', 
+                                      linear_reg, 'fieldmapmask')
+        register_func_to_anat.connect(inputNode_echospacing, 'echospacing', 
+                                      linear_reg, 'echospacing')
 
-    register_func_to_anat.connect(inputspec, 'func',
-                                 linear_reg, 'in_file')
+    register_func_to_anat.connect(inputspec, 'func', linear_reg, 'in_file')
     
-    register_func_to_anat.connect(inputspec, 'anat',
-                                 linear_reg, 'reference')
+    register_func_to_anat.connect(inputspec, 'anat_skull', linear_reg, 'reference')
     
-    register_func_to_anat.connect(inputspec, 'interp',
-                                 linear_reg, 'interp')
+    register_func_to_anat.connect(inputspec, 'interp', linear_reg, 'interp')
 
     register_func_to_anat.connect(linear_reg, 'out_matrix_file',
-                                 outputspec, 'func_to_anat_linear_xfm_nobbreg')
+                                  outputspec,
+                                  'func_to_anat_linear_xfm_nobbreg')
 
     register_func_to_anat.connect(linear_reg, 'out_file',
-                                 outputspec, 'anat_func_nobbreg')
+                                  outputspec, 'anat_func_nobbreg')
 
     return register_func_to_anat
 
 
-def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
+def create_bbregister_func_to_anat(fieldmap_distortion=False,
+                                   name='bbregister_func_to_anat'):
   
     """
     Registers a functional scan in native space to structural.  This is meant to be used 
@@ -364,6 +366,9 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
 
     Parameters
     ----------
+    fieldmap_distortion : bool, optional
+        If field map-based distortion correction is being run, FLIRT should
+        take in the appropriate field map-related inputs.
     name : string, optional
         Name of the workflow.
 
@@ -402,39 +407,29 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
                                                        'anat_skull',
                                                        'linear_reg_matrix',
                                                        'anat_wm_segmentation',
-                                                       'bbr_schedule']),
+                                                       'bbr_schedule',
+                                                       'fieldmap',
+                                                       'fieldmapmask'
+                                                       ]),
                         name='inputspec')
 
+    inputNode_echospacing = pe.Node(
+        util.IdentityInterface(fields=['echospacing']),
+        name='echospacing_input')
+
+    inputNode_pedir = pe.Node(util.IdentityInterface(fields=['pedir']),
+                              name='pedir_input')
+
     outputspec = pe.Node(util.IdentityInterface(fields=['func_to_anat_linear_xfm',
-                                                        #'func_to_mni_linear_xfm',
-                                                        #'mni_to_func_linear_xfm',
-                                                        #'anat_wm_edge',
                                                         'anat_func']),
                          name='outputspec')
-    
-
 
     wm_bb_mask = pe.Node(interface=fsl.ImageMaths(),
                          name='wm_bb_mask')
     wm_bb_mask.inputs.op_string = '-thr 0.5 -bin'
 
-
     register_bbregister_func_to_anat.connect(inputspec, 'anat_wm_segmentation',
-                                 wm_bb_mask, 'in_file')
-
-    def wm_bb_edge_args(mas_file):
-        return '-edge -bin -mas ' + mas_file
-
-
-    #wm_bb_edge = pe.Node(interface=fsl.ImageMaths(),
-    #                     name='wm_bb_edge')
-
-
-    #register_func_to_mni.connect(wm_bb_mask, 'out_file',
-    #                             wm_bb_edge, 'in_file')
-
-    #register_func_to_mni.connect(wm_bb_mask, ('out_file', wm_bb_edge_args),
-    #                             wm_bb_edge, 'op_string')
+                                             wm_bb_mask, 'in_file')
 
     def bbreg_args(bbreg_target):
         return '-cost bbr -wmseg ' + bbreg_target
@@ -458,20 +453,36 @@ def create_bbregister_func_to_anat(name='bbregister_func_to_anat'):
     register_bbregister_func_to_anat.connect(inputspec, 'linear_reg_matrix',
                                  bbreg_func_to_anat, 'in_matrix_file')
 
+    if fieldmap_distortion:
+
+        def convert_pedir(pedir):
+            # FSL Flirt requires pedir input encoded as an int
+            conv_dct = {'x': 1, 'y': 2, 'z': 3, '-x': -1, '-y': -2, '-z': -3}
+            if not isinstance(pedir, str):
+                raise Exception("\n\nPhase-encoding direction must be a "
+                                "string value.\n\n")
+            if pedir not in conv_dct.keys():
+                raise Exception("\n\nInvalid phase-encoding direction "
+                                "entered: {0}\n\n".format(pedir))
+            return conv_dct[pedir]
+
+        register_bbregister_func_to_anat.connect(inputNode_pedir, ('pedir', convert_pedir),
+                                                 bbreg_func_to_anat, 'pedir')
+        register_bbregister_func_to_anat.connect(inputspec, 'fieldmap',
+                                                 bbreg_func_to_anat, 'fieldmap')
+        register_bbregister_func_to_anat.connect(inputspec, 'fieldmapmask',
+                                                 bbreg_func_to_anat, 'fieldmapmask')
+        register_bbregister_func_to_anat.connect(inputNode_echospacing, 'echospacing',
+                                                 bbreg_func_to_anat, 'echospacing')
+
     register_bbregister_func_to_anat.connect(bbreg_func_to_anat, 'out_matrix_file',
                                  outputspec, 'func_to_anat_linear_xfm')
     
     register_bbregister_func_to_anat.connect(bbreg_func_to_anat, 'out_file',
                                  outputspec, 'anat_func')
-   
-    
-    #register_func_to_mni.connect(wm_bb_edge, 'out_file',
-    #                             outputspec, 'anat_wm_edge')
     
     return register_bbregister_func_to_anat
     
-    
-
 
 def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_input=0, num_threads=1):
 
