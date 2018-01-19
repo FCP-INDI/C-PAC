@@ -212,7 +212,7 @@ fmap_distcorr_deltaTE : 2.46
 
 # Set the Dwell time for FSL FUGUE. This is the time between scans.
 # The default value is commonly 0.00231s.
-fmap_distcorr_dwell_time : [0.00231]
+fmap_distcorr_dwell_time : [0.0005]
 
 
 # Set the asymmetric ratio input value for FSL FUGUE.
