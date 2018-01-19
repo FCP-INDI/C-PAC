@@ -75,7 +75,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
                                                         'fmapmagbrain',
-                                                        'fieldmapmask','fmap_despiked']),name ='outputspec')
+                                                        'fieldmapmask','fmap_despiked','T1_wm_seg']),name ='outputspec')
 
     # Skull-strip
     if use_BET == False:
