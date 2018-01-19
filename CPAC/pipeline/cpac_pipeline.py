@@ -1358,7 +1358,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')})
            
             num_strat += 1
-            
+
     strat_list += new_strat_list
 
     """

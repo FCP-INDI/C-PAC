@@ -459,15 +459,19 @@ class DataConfig(wx.Frame):
             if "BIDS" in config_dict["dataFormat"][0]:
                 if len(config_dict["anatomicalTemplate"][0]) > 0 or \
                                 len(config_dict["functionalTemplate"][0]) > 0:
-                    err = wx.MessageDialog(self, "Custom filepath template "
-                                                 "provided, but data format "
-                                                 "is set to BIDS instead of "
-                                                 "Custom.",
-                                                 'Error!',
-                                                 wx.OK | wx.ICON_ERROR)
-                    err.ShowModal()
-                    err.Destroy()
-                    return
+                    if ("None" in config_dict["anatomicalTemplate"][0] or "none" in config_dict["anatomicalTemplate"][0]) and \
+                            ("None" in config_dict["functionalTemplate"][0] or "none" in config_dict["functionalTemplate"][0]):
+                        pass
+                    else:
+                        err = wx.MessageDialog(self, "Custom filepath template "
+                                                     "provided, but data format "
+                                                     "is set to BIDS instead of "
+                                                     "Custom.",
+                                                     'Error!',
+                                                     wx.OK | wx.ICON_ERROR)
+                        err.ShowModal()
+                        err.Destroy()
+                        return
 
                 elif "s3://" not in config_dict["bidsBaseDir"][0] and \
                         not os.path.exists(config_dict["bidsBaseDir"][0]):
@@ -618,7 +622,10 @@ class DataConfig(wx.Frame):
                     name = ctrl.get_name()
                     value = config_map.get(name)
                     dtype = ctrl.get_datatype()
-                    if isinstance(value, list):
+
+                    if not value:
+                        val = "None"
+                    elif isinstance(value, list):
                         val = None
                         for v in value:
                             if val:
