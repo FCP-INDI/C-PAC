@@ -65,18 +65,24 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
                                                        'fmap_mag']),
                         name='inputspec')
     
-    inputNode_delTE = pe.Node(util.IdentityInterface(fields=['deltaTE']),name='deltaTE_input')
+    inputNode_delTE = pe.Node(util.IdentityInterface(fields=['deltaTE']),
+                              name='deltaTE_input')
     
-    inputNode_dwellT = pe.Node(util.IdentityInterface(fields=['dwellT']),name='dwellT_input')
+    inputNode_dwellT = pe.Node(util.IdentityInterface(fields=['dwellT']),
+                               name='dwellT_input')
     
-    inputNode_dwell_asym_ratio = pe.Node(util.IdentityInterface(fields=['dwell_asym_ratio']),name='dwell_asym_ratio_input')
+    inputNode_dwell_asym_ratio = pe.Node(util.IdentityInterface(fields=['dwell_asym_ratio']),
+                                         name='dwell_asym_ratio_input')
     
-    inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),name='bet_frac_input')
+    inputNode_bet_frac = pe.Node(util.IdentityInterface(fields=['bet_frac']),
+                                 name='bet_frac_input')
     
     outputNode = pe.Node(util.IdentityInterface(fields=['fieldmap',
+                                                        'fmap_despiked',
                                                         'fmapmagbrain',
-                                                        'fieldmapmask','fmap_despiked','T1_wm_seg']),name ='outputspec')
-
+                                                        'fieldmapmask']),
+                         name='outputspec')
+    
     # Skull-strip
     if use_BET == False:
         bet = pe.Node(interface=afni.SkullStrip(),name='bet')
@@ -90,16 +96,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
         bet.inputs.output_type='NIFTI_GZ'
         preproc.connect(inputNode_bet_frac, 'bet_frac', bet, 'frac')
         preproc.connect(inputNode, 'fmap_mag', bet, 'in_file')
-        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image')
-    ##generating fmapmagbrain for further processing#
-
-    bet_anat = pe.Node(interface=fsl.BET(),name='bet_anat')
-    bet_anat.inputs.output_type = 'NIFTI_GZ'
-    bet_anat.inputs.frac = 0.5
-    preproc.connect(inputNode,'anat_file',bet_anat,'in_file')
-    preproc.connect(bet_anat,'out_file',outputNode,'stripped_anat')
-    
-
+        preproc.connect(bet, 'out_file', outputNode, 'magnitude_image') 
 
     prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
     prepare.inputs.output_type = "NIFTI_GZ"
@@ -107,34 +104,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(inputNode, 'fmap_pha', prepare, 'in_phase')
     preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
     preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
-
-
-
-    fast_anat = pe.Node(interface=fsl.FAST(),name='fast_anat')
-    fast_anat.inputs.output_biascorrected=True
-    fast_anat.inputs.img_type=1
-    fast_anat.inputs.bias_iters=10
-    fast_anat.inputs.bias_lowpass=10
-    fast_anat.inputs.segments=True
-    fast_anat.outputs_basename='T1_'
-    fast_anat.outputs.partial_volume_files = ['T1_brain_pve_0','T1_brain_pve_1','T1_brain_pve_2']
-    preproc.connect(bet_anat,'out_file',fast_anat,'in_files')
-    preproc.connect(fast_anat,'partial_volume_files',outputNode,'pve')
-
-    def picksecond(files):
-        return files[2]
-                               
-    fslmath_anat = pe.Node(interface=fsl.Threshold(),name='fsl_anat')
-    fslmath_anat.inputs.thresh = 0.5
-    preproc.connect(fast_anat,('partial_volume_files',picksecond),fslmath_anat,'in_file')
-    preproc.connect(fslmath_anat,'out_file',outputNode,'threshold_image')
-                               
-    fslmath_wmseg = pe.Node(interface=fsl.UnaryMaths(),name='fslmath_wmseg')
-    fslmath_wmseg.inputs.operation = 'bin'
-    preproc.connect(fslmath_anat,'out_file',fslmath_wmseg,'in_file')
-    preproc.connect(fslmath_wmseg,'out_file',outputNode,'T1_wm_seg')
-                               
-                               
+                  
     fslmath_mag = pe.Node(interface=fsl.ErodeImage(),name='fslmath_mag')
     preproc.connect(bet,'out_file',fslmath_mag,'in_file')
     preproc.connect(fslmath_mag,'out_file',outputNode,'fmapmagbrain')
@@ -169,12 +139,20 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
     preproc.connect(fslmath_mask_2,'out_file',fslmath_mask,'in_file')
     preproc.connect(fslmath_bin,'out_file',fslmath_mask,'operand_file')
     preproc.connect(fslmath_mask,'out_file',outputNode,'fieldmapmask')
+
     # Note for the user. Ensure the phase image is within 0-4096 (upper
     # threshold is 90% of 4096), fsl_prepare_fieldmap will only work in the
     # case of the SIEMENS format. #Maybe we could use deltaTE also as an
     # option in the GUI.
 
     # Prepare Fieldmap
+    prepare = pe.Node(interface=fsl.epi.PrepareFieldmap(), name='prepare')
+    prepare.inputs.output_type = "NIFTI_GZ"
+    #prepare.inputs.delta_TE = 2.46
+    preproc.connect(inputNode_delTE, 'deltaTE', prepare, 'delta_TE')
+    preproc.connect(inputNode, 'fmap_pha', prepare, 'in_phase')
+    preproc.connect(bet, 'out_file', prepare, 'in_magnitude')
+    preproc.connect(prepare, 'out_fieldmap', outputNode, 'fieldmap')
 
     # fugue
     fugue1 = pe.Node(interface=fsl.FUGUE(), name='fugue1')
@@ -186,7 +164,5 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
                     fugue1, 'dwell_to_asym_ratio')
     preproc.connect(prepare, 'out_fieldmap', fugue1, 'fmap_in_file')
     preproc.connect(fugue1, 'fmap_out_file', outputNode, 'fmap_despiked')
-
-
 
     return preproc

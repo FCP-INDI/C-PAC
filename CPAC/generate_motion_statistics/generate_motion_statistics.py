@@ -177,7 +177,7 @@ def motion_power_statistics(calculation='Jenkinson',
         
     Workflow Outputs::
         
-        outputspec.FD_1D : 1D file
+        outputspec.FDP_1D : 1D file
             mean Framewise Displacement (FD)
             
         outputspec.frames_ex_1D : 1D file
@@ -327,7 +327,7 @@ def motion_power_statistics(calculation='Jenkinson',
                                                              'remove_frames_after']),
                               name='scrubbing_input')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
+    outputNode = pe.Node(util.IdentityInterface(fields=['FDP_1D',
                                                         'FDJ_1D',
                                                         'frames_ex_1D',
                                                         'frames_in_1D',
@@ -354,7 +354,7 @@ def motion_power_statistics(calculation='Jenkinson',
     pm.connect(inputNode, 'movement_parameters', 
                calculate_FDP, 'in_file' )
     pm.connect(calculate_FDP, 'out_file', 
-               outputNode, 'FD_1D')
+               outputNode, 'FDP_1D')
     
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     fdj_imports = ['import os', 'import math', 'import numpy as np']
@@ -365,7 +365,7 @@ def motion_power_statistics(calculation='Jenkinson',
                             name='calculate_FDJ')
     
     pm.connect(inputNode, 'oned_matrix_save', 
-               calculate_FDJ, 'in_file' )
+               calculate_FDJ, 'in_file')
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
 

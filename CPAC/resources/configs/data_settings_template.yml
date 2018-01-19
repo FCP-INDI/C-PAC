@@ -34,11 +34,11 @@ anatomicalTemplate:
 # File Path Template for Functional Files
 # Custom Data Format only.
 # 
-# Place tags for the appropriate data directory levels with the tags {site}, {participant}, {session}, and {scan}. Only {participant} is required.
+# Place tags for the appropriate data directory levels with the tags {site}, {participant}, {session}, and {series}. Only {participant} is required.
 # 
 # Examples:
-# /data/{site}/{participant}/{session}/func/{scan}_bold.nii.gz
-# /data/{site}/{participant}/{scan}/func.nii.gz
+# /data/{site}/{participant}/{session}/func/{series}_bold.nii.gz
+# /data/{site}/{participant}/{series}/func.nii.gz
 # 
 # See the User Guide for more detailed instructions.
 functionalTemplate:
@@ -139,19 +139,19 @@ sessionList: None
 exclusionSessionList: None
 
 
-# Include only a sub-set of the scans present in the folders defined above.
+# Include only a sub-set of the series present in the folders defined above.
 # 
-# List scans in this box (e.g., func-1, func-2) or provide the path to a text file with one scan name on each line.
+# List series in this box (e.g., func-1, func-2) or provide the path to a text file with one series name on each line.
 # 
-# If 'None' is specified, CPAC will include all scans.
+# If 'None' is specified, CPAC will include all series.
 scanList: None
 
 
-# Exclude a sub-set of the scans present in the folders defined above.
+# Exclude a sub-set of the series present in the folders defined above.
 # 
-# List scans in this box (e.g., func-1, func-2) or provide the path to a text file with one scan name on each line.
+# List series in this box (e.g., func-1, func-2) or provide the path to a text file with one series name on each line.
 # 
-# If 'None' is specified, CPAC will include all scans.
+# If 'None' is specified, CPAC will include all series.
 exclusionScanList: None
 
 
