@@ -143,6 +143,7 @@ def create_EPI_DistCorr(use_BET,wf_name = 'epi_distcorr'):
 
     # generating the automask
     automask = pe.Node(interface=afni.Automask(), name='automask')
+    automask.inputs.output_type= "NIFTI_GZ"
     preproc.connect(prepare, 'out_fieldmap', automask, 'in_file')
     preproc.connect(automask, 'out_file', outputNode, 'fieldmapmask')
 

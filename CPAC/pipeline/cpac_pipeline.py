@@ -1983,8 +1983,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat.append_name(gen_motion_stats.name)
 
-        strat.update_resource_pool({'frame_wise_displacement': (
-                                        gen_motion_stats, 'outputspec.FD_1D'),
+        strat.update_resource_pool({'frame_wise_displacement_power': (
+                                        gen_motion_stats, 'outputspec.FDP_1D'),
+                                    'frame_wise_displacement_jenkinson': (
+                                        gen_motion_stats, 'outputspec.FDJ_1D'),
                                     'power_params': (gen_motion_stats,
                                                      'outputspec.power_params'),
                                     'motion_params': (gen_motion_stats,
