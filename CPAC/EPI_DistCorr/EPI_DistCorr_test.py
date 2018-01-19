@@ -20,9 +20,9 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    import EPI_DistCorr
    warp_workflow = pe.Workflow(name = 'preproc')
    if output_dir == None:
-     output_dir = '/Users/nandu_afni'
+     output_dir = '/Users/nanditharajamani'
         
-   workflow_dir = os.path.join(output_dir,"Workflow_output")
+   workflow_dir = os.path.join(output_dir,"workflow_output_with_fieldmap_with_change")
    warp_workflow.base_dir = workflow_dir
    # taken from QAP files 
    #resource_pool = {}
@@ -30,10 +30,15 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    num_of_cores = 1
    #resource_pool({'epireg': (warp_nipype2.warp_nipype, 'outputspec.epireg')})
    t_node = EPI_DistCorr.create_EPI_DistCorr()####
-   t_node.inputs.inputspec.anat_file=  '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/anat/sub-A00073677_ses-NFB3_T1w.nii.gz'
-   t_node.inputs.inputspec.func_file= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/func/sub-A00073677_ses-NFB3_task-MSIT_bold.nii.gz'
-   t_node.inputs.inputspec.fmap_pha= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_magnitude1.nii.gz'
-   t_node.inputs.inputspec.fmap_mag= '/Users/nandu_afni/Desktop/sub-A00073677/ses-NFB3/fmap/sub-A00073677_ses-NFB3_phasediff.nii.gz'
+   t_node.inputs.inputspec.anat_file=  '/Users/nanditharajamani/Downloads/ExBox19/T1.nii.gz'
+   t_node.inputs.inputspec.func_file= '/Users/nanditharajamani/Downloads/ExBox19/func.nii.gz'
+   t_node.inputs.inputspec.fmap_pha= '/Users/nanditharajamani/Downloads/ExBox19/fmap_phase.nii.gz'
+   t_node.inputs.inputspec.fmap_mag= '/Users/nanditharajamani/Downloads/ExBox19/fmap_mag.nii.gz'
+   t_node.inputs.inputspec.bbr_schedule='/usr/local/fsl/etc/flirtsch/bbr.sch'
+   t_node.inputs.inputspec.deltaTE = 2.46
+   t_node.inputs.inputspec.dwellT = 0.0005
+   t_node.inputs.inputspec.dwell_asym_ratio = 0.93902439
+   t_node.inputs.inputspec.bet_frac = 0.5
    #'home/nrajamani/FieldMap_SubjectExampleData/SubjectData/epi_run2/fMT0160-0015-00003-000003-01_BRAIN.nii.gz',
    #   for image in inputs:
 #       if not(image.endswith('.nii') or image.endswith('.nii.gz')):
@@ -51,9 +56,13 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    dataSink = pe.Node(nio.DataSink(), name='dataSink_file')
    dataSink.inputs.base_directory = workflow_dir
    #node, out_file = resource_pool["epireg"]
-   warp_workflow.connect(t_node,'outputspec.roi_file',dataSink,'roi_file')
+   #warp_workflow.connect(t_node,'outputspec.roi_file',dataSink,'roi_file')
    warp_workflow.connect(t_node,'outputspec.fieldmap',dataSink,'fieldmap_file')
-   warp_workflow.connect(t_node,'outputspec.epireg',dataSink,'epireg_file')
+   warp_workflow.connect(t_node,'outputspec.fmapmagbrain',dataSink,'fmapmagbrain')
+   warp_workflow.connect(t_node,'outputspec.fieldmapmask',dataSink,'fieldmapmask')
+   warp_workflow.connect(t_node,'outputspec.fmap_despiked',dataSink,'fmap_despiked')
+   warp_workflow.connect(t_node,'outputspec.struct',dataSink,'epi2struct')
+   warp_workflow.connect(t_node,'outputspec.anat_func',dataSink,'anat_func')
    if run == True:
        warp_workflow.run(plugin='MultiProc', plugin_args ={'n_procs': num_of_cores})
        #outpath = glob.glob(os.path.join(workflow_dir, "EPI_DistCorr","*"))[0]
@@ -61,7 +70,7 @@ def run_warp_nipype(inputs,output_dir=None,run=True):
    else:
        return warp_workflow, warp_workflow.base_dir
 
-run_warp_nipype(['anat_file','func_file','fmap_pha'],output_dir=None,run=True)
+run_warp_nipype(['anat_file','func_file','fmap_pha','fmap_mag','deltaTE','dwellT','dwell_asym_ratio','bet_frac','bbr_schedule'],output_dir=None,run=True)
     
     
     

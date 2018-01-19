@@ -1354,7 +1354,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
             strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
-            strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')}) 
+            strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')})
+            strat.update_resource_pool({'segmented_white_matter':(epi_distcorr,'T1_wm_seg')})
            
             num_strat += 1
     strat_list += new_strat_list
