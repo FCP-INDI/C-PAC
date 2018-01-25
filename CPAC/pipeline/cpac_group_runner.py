@@ -235,8 +235,8 @@ def extract_power_params(power_params_lines, power_params_filepath):
     values_list = power_params_lines[1].split(",")
 
     # let's make extra sure
-    if (values_list[0] not in power_params_filepath) or \
-        (values_list[1] not in power_params_filepath):
+    if (values_list[0].replace(" ", "") not in power_params_filepath) or \
+        (values_list[1].replace(" ", "") not in power_params_filepath):
         err = "\n\n[!] There is a mismatch between the contents of the " \
               "power parameters file and where it is located!\n" \
               "Filepath: %s\n\n" % power_params_filepath
