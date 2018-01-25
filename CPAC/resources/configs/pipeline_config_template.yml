@@ -195,7 +195,7 @@ runEPI_DistCorr :  [0]
 # Since the quality of the distortion heavily relies on the skull-stripping,
 # step, we provide a choice of method (AFNI 3dSkullStrip or FSL BET).
 # Options: ["BET", "3dSkullStrip"]
-fmap_distcorr_skullstrip_method: ["BET"]
+fmap_distcorr_skullstrip: ["BET"]
 
 
 # Set the threshold value for the skull-stripping of the magnitude file.
