@@ -242,9 +242,9 @@ def extract_power_params(power_params_lines, power_params_filepath):
               "Filepath: %s\n\n" % power_params_filepath
         raise Exception(err)
 
-    if (names_list[2] != "MeanFD_Power") or \
-        (names_list[3] != "MeanFD_Jenkinson") or \
-            (names_list[-1] != "MeanDVARS"):
+    if (names_list[2].replace(" ", "") != "MeanFD_Power") or \
+        (names_list[3].replace(" ", "") != "MeanFD_Jenkinson") or \
+            (names_list[-1].replace(" ", "") != "MeanDVARS"):
         err = "\n\n[!] There is a mismatch between the power parameters " \
               "format and what is expected!!\nFilepath: %s\n\n" \
               % power_params_filepath
