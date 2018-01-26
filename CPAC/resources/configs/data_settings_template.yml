@@ -15,7 +15,7 @@ dataFormat: ['']
 # BIDS Data Format only.
 #
 # This should be the path to the overarching directory containing the entire dataset.
-bidsBaseDir: ['']
+bidsBaseDir:
 
 
 # File Path Template for Anatomical Files
