@@ -287,7 +287,7 @@ def extract_keyword_from_path(filepath, keyword, template):
 
 # Extract site-based scan parameters
 def extract_scan_params(scan_params_csv):
-    '''
+    """
     Function to extract the site-based scan parameters from a csv file
     and return a dictionary of their values
 
@@ -301,7 +301,7 @@ def extract_scan_params(scan_params_csv):
     site_dict : dictionary
         a dictionary where site names are the keys and the scan
         parameters for that site are the values stored as a dictionary
-    '''
+    """
 
     # Import packages
     import csv
@@ -313,13 +313,52 @@ def extract_scan_params(scan_params_csv):
     # Init csv dictionary reader
     reader = csv.DictReader(csv_open)
 
+    placeholders = ['None', 'none', 'All', 'all', '', ' ']
+
     # Iterate through the csv and pull in parameters
     for dict_row in reader:
-        site = dict_row['Site']
-        site_dict[site] = {key.lower(): val for key, val in dict_row.items()\
-                           if key != 'Site'}
-        # Assumes all other fields are formatted properly, but TR might not
-        site_dict[site]['tr'] = site_dict[site].pop('tr (seconds)')
+
+        if dict_row['Site'] in placeholders:
+            site = 'All'
+        else:
+            site = dict_row['Site']
+
+        ses = 'All'
+        if 'Session' in dict_row.keys():
+            if dict_row['Session'] not in placeholders:
+                ses = dict_row['Session']
+
+        if ses != 'All':
+            # for scan-specific scan parameters (less common)
+            if site in site_dict.keys():
+                site_dict[site][ses] = {key.lower(): val
+                                        for key, val in dict_row.items()
+                                        if key != 'Site' and key != 'Session'}
+            else:
+                site_dict[site] = {ses: {key.lower(): val
+                                         for key, val in dict_row.items()
+                                         if key != 'Site' and key != 'Session'}}
+
+            # Assumes all other fields are formatted properly, but TR might
+            # not be
+            site_dict[site][ses]['tr'] = \
+                site_dict[site][ses].pop('tr (seconds)')
+
+        else:
+            # site-specific scan parameters only (more common)
+            if site not in site_dict.keys():
+                site_dict[site] = \
+                    {ses: {key.lower(): val for key, val in dict_row.items()
+                           if key != 'Site' and key != 'Session'}}
+            else:
+                site_dict[site][ses] = \
+                {key.lower(): val for key, val in dict_row.items()
+                 if key != 'Site' and key != 'Session'}
+
+            # Assumes all other fields are formatted properly, but TR might
+            # not be
+            site_dict[site][ses]['tr'] = \
+                site_dict[site][ses].pop('tr (seconds)')
 
     # Return site dictionary
     return site_dict
@@ -597,17 +636,9 @@ def return_s3_filepaths(base_dir, creds_path=None):
 
     Parameters
     ----------
-    path_template : string
-        filepath template in the form of:
-        's3://bucket_name/base_dir/{site}/{participant}/{session}/..
-        ../file.nii.gz'; if bids_flag is set, path_template is just the
-        base directory of the BIDS data set
     creds_path : string (optional); default=None
         filepath to a credentials file containing the AWS credentials
         to access the S3 bucket objects
-    bids_flag : boolean (optional); default=False
-        flag to indicate if the dataset to gather is organized to the
-        BIDS standard
 
     Returns
     -------
@@ -698,6 +729,8 @@ def process_s3_paths(s3_filepaths, path_template):
 
 
 def parse_BIDS_filepaths(bids_filepaths, bids_base_dir, creds_path=None):
+    """Return a data configuration dictionary (subject list dictionary) when
+    given a list of BIDS-formatted input data file paths."""
 
     sub_dict = {}
     json_dict = {}
@@ -903,7 +936,8 @@ def build_sublist(data_config_yml):
     log_path = os.path.join(sublist_outdir,
                             'sublist_build_%s.log' % \
                             os.path.basename(data_config_yml).split('.')[0])
-    logger = setup_logger('sublist_builder', log_path, logging.INFO, to_screen=True)
+    logger = setup_logger('sublist_builder', log_path, logging.INFO,
+                          to_screen=True)
 
     # Older data configs won't have this field
     try:
@@ -1051,13 +1085,6 @@ def build_sublist(data_config_yml):
             except TypeError:
                 sess = "ses-1"
             site = extract_keyword_from_path(func, "{site}", func_template)
-            scan_params = None
-            if scan_params_csv is not None:
-                try:
-                    scan_params = site_scan_params[site]
-                except KeyError as exc:
-                    print 'Site %s missing from scan parameters csv, ' \
-                          'skipping...' % site
 
             # Build tmp key and get subject dictionary from tmp dictionary
             tmp_key = '_'.join([subj, site, sess])
@@ -1076,6 +1103,20 @@ def build_sublist(data_config_yml):
                                                  func_template)
             else:
                 scan = func_sp[-1].split('.nii')[0]
+
+            # Deal with scan parameters
+            scan_params = None
+            if scan_params_csv is not None:
+                try:
+                    scan_params = site_scan_params[site]
+                    # check for scan-specific level
+                    if scan in scan_params.keys():
+                        #TODO: WHAT WAS HERE????????!!!!
+                        pass
+
+                except KeyError as exc:
+                    print 'Site %s missing from scan parameters csv, ' \
+                          'skipping...' % site
 
             # Set the rest dictionary with the scan
             subj_d['func'][scan] = func

@@ -145,4 +145,3 @@ def create_anat_preproc(already_skullstripped=False):
                     outputNode, 'brain')
 
     return preproc
-

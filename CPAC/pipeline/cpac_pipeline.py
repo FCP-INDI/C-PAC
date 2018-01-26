@@ -33,6 +33,7 @@ import CPAC
 from CPAC import network_centrality
 from CPAC.network_centrality.utils import merge_lists
 from CPAC.anat_preproc.anat_preproc import create_anat_preproc
+from CPAC.EPI_DistCorr.EPI_DistCorr import create_EPI_DistCorr
 from CPAC.func_preproc.func_preproc import create_func_preproc, \
     create_wf_edit_func
 from CPAC.seg_preproc.seg_preproc import create_seg_preproc
@@ -58,18 +59,19 @@ from CPAC.network_centrality import create_resting_state_graphs, \
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
 
-### no create_log_template here, move in CPAC/utils/utils.py
+# TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
     gen_std_dev, gen_func_anat_xfm, gen_snr, \
     generateQCPages, cal_snr_val
+
 from CPAC.utils.utils import extract_one_d, set_gauss, \
     process_outputs, get_scan_params, \
     get_tr, extract_txt, create_log, \
     create_log_template, extract_output_mean, \
     create_output_mean_csv, get_zscore, \
-    get_fisher_zscore, dbg_file_lineno
+    get_fisher_zscore, dbg_file_lineno, add_afni_prefix
 from CPAC.vmhc.vmhc import create_vmhc
 from CPAC.reho.reho import create_reho
 from CPAC.alff.alff import create_alff
@@ -477,8 +479,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     workflow_bit_id['anat_mni_register'] = workflow_counter
     for strat in strat_list:
-
-        if 'FSL' in c.regOption:
+          if 'FSL' in c.regOption:
 
             # this is to prevent the user from running FNIRT if they are
             # providing already-skullstripped inputs. this is because
@@ -514,7 +515,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 fnirt_reg_anat_mni.inputs.inputspec.reference_skull = c.template_skull_for_anat
                 fnirt_reg_anat_mni.inputs.inputspec.ref_mask = c.ref_mask
 
-                # assign the FSL FNIRT config file specified in pipeline config.yml
+                # assign the FSL FNIRT config file specified in pipeline
+                # config.yml
                 fnirt_reg_anat_mni.inputs.inputspec.fnirt_config = c.fnirtConfig
 
 
@@ -769,7 +771,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     fnirt_reg_anat_symm_mni.inputs.inputspec.reference_skull = c.template_symmetric_skull
                     fnirt_reg_anat_symm_mni.inputs.inputspec.ref_mask = c.dilated_symmetric_brain_mask
 
-                    # assign the FSL FNIRT config file specified in pipeline config.yml
+                    # assign the FSL FNIRT config file specified in pipeline
+                    # config.yml
                     fnirt_reg_anat_symm_mni.inputs.inputspec.fnirt_config = c.configFileTwomm
 
                     # node, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
@@ -832,7 +835,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     # reported to be better, but it requires very high
                     # quality skullstripping. If skullstripping is imprecise
                     # registration with skull is preferred
-                    if (1 in c.regWithSkull):
+                    if 1 in c.regWithSkull:
 
                         if already_skullstripped == 1:
                             err_msg = '\n\n[!] CPAC says: You selected ' \
@@ -859,7 +862,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         ants_reg_anat_symm_mni.inputs.inputspec.reference_brain = \
                             c.template_symmetric_brain_only
 
-                        # get the reorient skull-on anatomical from resource pool
+                        # get the reorient skull-on anatomical from resource
+                        # pool
                         node, out_file = strat.get_node_from_resource_pool(
                             'anatomical_reorient')
 
@@ -1072,43 +1076,62 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # keep this in so that older participant lists that still have the
         # "rest" flag will still work
         try:
-            func_path = sub_dict['func']
+            # func_paths_dict is a dictionary of paths to the functional scans
+            func_paths_dict = sub_dict['func']
         except KeyError:
-            func_path = sub_dict['rest']
+            func_paths_dict = sub_dict['rest']
+
+        # for now, pull in field maps if they exist
+        fmap_phasediff = None
+        fmap_mag = None
+        if 'fmap' in sub_dict.keys():
+
+            try:
+                fmap_phasediff = sub_dict['fmap']['phase_diff']
+                fmap_mag = sub_dict['fmap']['magnitude']
+            except KeyError as e:
+                err = "[!] Some of the required field map files are " \
+                      "missing from your data configuration.\n\nDetails: " \
+                      "{0}\n\n".format(e)
+                raise Exception(err)
+
         try:
-            funcFlow = create_func_datasource(func_path,
+            funcFlow = create_func_datasource(func_paths_dict,
+                                              fmap_phasediff,
+                                              fmap_mag,
                                               'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
         except Exception as xxx:
-            logger.info("Error create_func_datasource failed." + \
-                        " (%s:%d)" % dbg_file_lineno())
+            logger.info("Error create_func_datasource failed. "
+                        "(%s:%d)" % dbg_file_lineno())
             raise
 
         """
         Add in nodes to get parameters from configuration file
         """
 
-        scan_imports = ['import os', 'import warnings',
+        scan_imports = ['import os', 'import json', 'import warnings',
                         'from CPAC.utils import check']
 
         try:
             # a node which checks if scan_parameters are present for each scan
-            scan_params = pe.Node(util.Function(input_names=['subject',
-                                                             'scan',
-                                                             'subject_map',
-                                                             'start_indx',
-                                                             'stop_indx',
-                                                             'tr',
-                                                             'tpattern'],
-                                                output_names=['tr',
-                                                              'tpattern',
-                                                              'ref_slice',
-                                                              'start_indx',
-                                                              'stop_indx'],
-                                                function=get_scan_params,
-                                                imports=scan_imports),
-                                  name='scan_params_%d' % num_strat)
+            scan_params = \
+                pe.Node(util.Function(input_names=['data_config_scan_params',
+                                                   'subject_id',
+                                                   'scan',
+                                                   'pipeconfig_tr',
+                                                   'pipeconfig_tpattern',
+                                                   'pipeconfig_start_indx',
+                                                   'pipeconfig_stop_indx'],
+                                      output_names=['tr',
+                                                    'tpattern',
+                                                    'ref_slice',
+                                                    'start_indx',
+                                                    'stop_indx'],
+                                      function=get_scan_params,
+                                      imports=scan_imports),
+                        name='scan_params_%d' % num_strat)
         except Exception as xxx:
             logger.info("Error creating scan_params node. (%s:%d)"
                         % dbg_file_lineno())
@@ -1140,10 +1163,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # wire in the scan parameter workflow
         try:
-            workflow.connect(funcFlow, 'outputspec.subject',
-                             scan_params, 'subject')
+            workflow.connect(funcFlow, 'outputspec.scan_params',
+                             scan_params, 'data_config_scan_params')
         except Exception as xxx:
-            logger.info("Error connecting scan_params 'subject' input." + \
+            logger.info("Error connecting scan_params 'data_config_"
+                        "scan_params' input. (%s:%d)" % dbg_file_lineno())
+            raise
+
+        try:
+            workflow.connect(funcFlow, 'outputspec.subject',
+                             scan_params, 'subject_id')
+        except Exception as xxx:
+            logger.info("Error connecting scan_params 'subject_id' input." + \
                         " (%s:%d)" % dbg_file_lineno())
             raise
 
@@ -1156,11 +1187,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             raise
 
         # connect in constants
-        scan_params.inputs.subject_map = sub_dict
-        scan_params.inputs.start_indx = c.startIdx
-        scan_params.inputs.stop_indx = c.stopIdx
-        scan_params.inputs.tr = c.TR
-        scan_params.inputs.tpattern = c.slice_timing_pattern[0]
+        scan_params.inputs.pipeconfig_tr = c.TR
+        scan_params.inputs.pipeconfig_tpattern = c.slice_timing_pattern
+        scan_params.inputs.pipeconfig_start_indx = c.startIdx
+        scan_params.inputs.pipeconfig_stop_indx = c.stopIdx
 
         # node to convert TR between seconds and milliseconds
         try:
@@ -1184,6 +1214,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.set_leaf_properties(funcFlow, 'outputspec.rest')
         strat.update_resource_pool(
             {'raw_functional': (funcFlow, 'outputspec.rest')})
+
+        if fmap_phasediff and fmap_mag:
+            strat.update_resource_pool(
+                {"fmap_phase_diff": (funcFlow, 'outputspec.phase_diff'),
+                 "fmap_magnitude": (funcFlow, 'outputspec.magnitude')})
 
         if "Selected Functional Volume" in c.func_reg_input:
             strat.update_resource_pool(
@@ -1240,9 +1275,91 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         " (%s:%d)" % dbg_file_lineno())
             raise
 
-        # replace the leaf node with the output from the recently added workflow
+        # replace the leaf node with the output from the recently added
+        # workflow
         strat.set_leaf_properties(trunc_wf, 'outputspec.edited_func')
         num_strat = num_strat + 1
+
+    """
+    EPI Field-Map based Distortion Correction
+    """
+ 
+    new_strat_list = []
+    num_strat = 0
+
+    workflow_counter += 1
+   
+    if 1 in c.runEPI_DistCorr:
+
+        if not fmap_phasediff:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map phase difference file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        if not fmap_mag:
+            err = "\n\n[!] Field-map distortion correction is enabled, but " \
+                  "there is no field map magnitude file set in the " \
+                  "data configuration YAML file for participant {0}." \
+                  "\n\n".format(sub_dict['subject_id'])
+            raise Exception(err)
+
+        workflow_bit_id['epi_distcorr'] = workflow_counter
+    
+        for strat in strat_list:
+
+            if 'BET' in c.fmap_distcorr_skullstrip:
+               epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
+            else:
+               epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
+
+            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+            epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
+            epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
+            epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
+
+            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_frac)
+            epi_distcorr.get_node('deltaTE_input').iterables = ('deltaTE',
+                                                   c.fmap_distcorr_deltaTE)
+            epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
+                                                   c.fmap_distcorr_dwell_time)
+            epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
+
+            try:
+                node,out_file = strat.get_leaf_properties()
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
+
+                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
+
+                node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
+                workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
+
+                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
+                workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
+
+            except:
+                logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
+
+            if 0 in c.runEPI_DistCorr:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.leaf_out_file=str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+
+            strat.append_name(epi_distcorr.name)
+
+            strat.update_resource_pool({'despiked_fieldmap':(epi_distcorr,'outputspec.fmap_despiked')})
+            strat.update_resource_pool({'fieldmap_mask':(epi_distcorr,'outputspec.fieldmapmask')})
+            strat.update_resource_pool({'prepared_fieldmap_map':(epi_distcorr,'outputspec.fieldmap')})
+           
+            num_strat += 1
+
+    strat_list += new_strat_list
 
     """
     Inserting slice timing correction
@@ -1262,16 +1379,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     name='func_slice_timing_correction_%d' % (num_strat))
                 func_slice_timing_correction.inputs.outputtype = 'NIFTI_GZ'
             except Exception as xxx:
-                logger.info("Error connecting input 'stop_idx' to trunc_wf." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error connecting input 'stop_idx' to trunc_wf. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # find the output data on the leaf node
             try:
                 node, out_file = strat.get_leaf_properties()
             except Exception as xxx:
-                logger.info("Error  get_leaf_properties failed." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                logger.info("Error  get_leaf_properties failed. "
+                            "(%s:%d)" % dbg_file_lineno())
                 raise
 
             # connect the output of the leaf node as the in_file
@@ -1280,51 +1397,63 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  func_slice_timing_correction, 'in_file')
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'infile' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'infile' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
                 raise
 
             logger.info("connected input to slc")
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
-            logger.info("TR %s" % c.TR)
-            if c.TR:
-                try:
-                    workflow.connect(scan_params, 'tr',
-                                     func_slice_timing_correction, 'tr')
-                except Exception as xxx:
-                    logger.info(
-                        "Error connecting input 'tr' to func_slice_timing_correction afni node." + \
-                        " (%s:%d)" % dbg_file_lineno())
-                    print xxx
-                    raise
-                logger.info("connected TR")
+            try:
+                workflow.connect(scan_params, 'tr',
+                                 func_slice_timing_correction, 'tr')
+            except Exception as xxx:
+                logger.info(
+                    "Error connecting input 'tr' to func_slice_timing_"
+                    "correction afni node. (%s:%d)" % dbg_file_lineno())
+                print xxx
+                raise
+            logger.info("connected TR")
 
             # we might prefer to use the slice timing information stored in
             # the NIFTI header if not, use the value in the scan_params node
-            logger.info("slice timing pattern %s" % c.slice_timing_pattern[0])
+            logger.info("slice timing pattern %s" % c.slice_timing_pattern)
             try:
-                if not "Use NIFTI Header" in c.slice_timing_pattern[0]:
+                if not "Use NIFTI Header" in c.slice_timing_pattern:
                     try:
                         logger.info("connecting slice timing pattern %s" %
-                                    c.slice_timing_pattern[0])
+                                    c.slice_timing_pattern)
+
+                        # add the @ prefix to the tpattern file going into
+                        # AFNI 3dTshift - needed this so the tpattern file
+                        # output from get_scan_params would be tied downstream
+                        # via a connection (to avoid poofing)
+                        add_prefix = pe.Node(util.Function(input_names=['tpattern'],
+                                                           output_names=['afni_prefix'],
+                                                           function=add_afni_prefix),
+                                             name='func_slice_timing_correction_add_afni_prefix_%d' % num_strat)
                         workflow.connect(scan_params, 'tpattern',
+                                         add_prefix, 'tpattern')
+                        workflow.connect(add_prefix, 'afni_prefix',
                                          func_slice_timing_correction,
                                          'tpattern')
+
                         logger.info("connected slice timing pattern %s" %
-                                    c.slice_timing_pattern[0])
+                                    c.slice_timing_patter)
                     except Exception as xxx:
                         logger.info(
-                            "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                            " (%s:%d)" % dbg_file_lineno())
+                            "Error connecting input 'acquisition' to "
+                            "func_slice_timing_correction afni node. "
+                            "(%s:%d)" % dbg_file_lineno())
                         print xxx
                         raise
                     logger.info("connected slice timing pattern %s" %
-                                c.slice_timing_pattern[0])
+                                c.slice_timing_pattern)
             except Exception as xxx:
                 logger.info(
-                    "Error connecting input 'acquisition' to func_slice_timing_correction afni node." + \
-                    " (%s:%d)" % dbg_file_lineno())
+                    "Error connecting input 'acquisition' to "
+                    "func_slice_timing_correction afni node. "
+                    "(%s:%d)" % dbg_file_lineno())
                 print xxx
                 raise
 
@@ -1336,14 +1465,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                       'out_file')
 
             # add the outputs to the resource pool
-            strat.update_resource_pool({'slice_time_corrected': (
-            func_slice_timing_correction, 'out_file')})
+            strat.update_resource_pool({'slice_time_corrected':
+                                            (func_slice_timing_correction, 'out_file')})
             num_strat += 1
 
-        # add new strats (if forked)
-        strat_list += new_strat_list
+    # add new strats (if forked)
+    strat_list += new_strat_list
 
-        logger.info(" finished connecting slice timing pattern")
+    logger.info(" finished connecting slice timing pattern")
 
     """
     Inserting Functional Image Preprocessing
@@ -1535,8 +1664,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     Func -> T1 Registration (Initial Linear reg)
     '''
 
-    # Depending on configuration, either passes output matrix to Func -> Template ApplyWarp,
-    # or feeds into linear reg of BBReg operation (if BBReg is enabled)
+    # Depending on configuration, either passes output matrix to
+    # Func -> Template ApplyWarp, or feeds into linear reg of BBReg operation
+    # (if BBReg is enabled)
 
     new_strat_list = []
     num_strat = 0
@@ -1547,8 +1677,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         workflow_bit_id['func_to_anat'] = workflow_counter
 
         for strat in strat_list:
-            func_to_anat = create_register_func_to_anat(
-                'func_to_anat_FLIRT_%d' % num_strat)
+
+            nodes = getNodeList(strat)
+
+            # if field map-based distortion correction is on, but BBR is off,
+            # send in the distortion correction files here
+            # TODO: is this robust to the possibility of forking both
+            # TODO: distortion correction and BBR at the same time?
+            # TODO: (note if you are forking with BBR on/off, at this point
+            # TODO:  there is still only one strat, so you would have to fork
+            # TODO:  here instead to have a func->anat with fieldmap and
+            # TODO:  without, and send the without-fieldmap to the BBR fork)
+            dist_corr = False
+            if 'epi_distcorr' in nodes and 1 not in c.runBBReg:
+                dist_corr = True
+                # TODO: for now, disabling dist corr when BBR is disabled
+                err = "\n\n[!] Field map distortion correction is enabled, " \
+                      "but Boundary-Based Registration is off- BBR is " \
+                      "required for distortion correction.\n\n"
+                raise Exception(err)
+
+            func_to_anat = create_register_func_to_anat(dist_corr,
+                                                        'func_to_anat_FLIRT'
+                                                        '_%d' % num_strat)
 
             # Input registration parameters
             func_to_anat.inputs.inputspec.interp = 'trilinear'
@@ -1578,6 +1729,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 workflow.connect(node, out_file,
                                  func_to_anat, 'inputspec.anat')
 
+                if dist_corr:
+                    # apply field map distortion correction outputs to
+                    # the func->anat registration
+
+                    func_to_anat.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
+                    func_to_anat.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
+
+                    node, out_file = strat.get_node_from_resource_pool("despiked_fieldmap")
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.fieldmap')
+
+                    node, out_file = strat.get_node_from_resource_pool("fieldmap_mask")
+                    workflow.connect(node, out_file,
+                                     func_to_anat, 'inputspec.fieldmapmask')
+
             except:
                 logConnectionError(
                     'Register Functional to Anatomical (pre BBReg)',
@@ -1596,11 +1762,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.append_name(func_to_anat.name)
             # strat.set_leaf_properties(func_mni_warp, 'out_file')
 
-            strat.update_resource_pool({'mean_functional_in_anat': (
-            func_to_anat, 'outputspec.anat_func_nobbreg'),
-                                        'functional_to_anat_linear_xfm': (
-                                        func_to_anat,
-                                        'outputspec.func_to_anat_linear_xfm_nobbreg')})
+            strat.update_resource_pool({'mean_functional_in_anat': (func_to_anat, 'outputspec.anat_func_nobbreg'),
+                                        'functional_to_anat_linear_xfm': (func_to_anat, 'outputspec.func_to_anat_linear_xfm_nobbreg')})
 
             # Outputs:
             # functional_to_anat_linear_xfm = func-t1.mat, linear, sent to 'premat' of post-FNIRT applywarp,
@@ -1615,8 +1778,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     Func -> T1 Registration (BBREG)
     '''
 
-    # Outputs 'functional_to_anat_linear_xfm', a matrix file of the functional-to-anatomical
-    # registration warp to be applied LATER in func_mni_warp, which accepts it as input 'premat'
+    # Outputs 'functional_to_anat_linear_xfm', a matrix file of the
+    # functional-to-anatomical registration warp to be applied LATER in
+    # func_mni_warp, which accepts it as input 'premat'
 
     new_strat_list = []
     num_strat = 0
@@ -1636,8 +1800,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # a crash) on the strat without segmentation
             if 'seg_preproc' in nodes:
 
-                func_to_anat_bbreg = create_bbregister_func_to_anat(
-                    'func_to_anat_bbreg_%d' % num_strat)
+                dist_corr = False
+                if 'epi_distcorr' in nodes:
+                    dist_corr = True
+
+                func_to_anat_bbreg = create_bbregister_func_to_anat(dist_corr,
+                                                                    'func_to_anat_bbreg_%d' % num_strat)
 
                 # Input registration parameters
                 func_to_anat_bbreg.inputs.inputspec.bbr_schedule = c.boundaryBasedRegistrationSchedule
@@ -1661,13 +1829,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         workflow.connect(node, out_file,
                                          func_to_anat_bbreg, 'inputspec.func')
 
-                    # Input segmentation probability maps for white matter segmentation
-                    node, out_file = strat.get_node_from_resource_pool(
-                        'seg_probability_maps')
-                    workflow.connect(node, (out_file, pick_wm),
-                                     func_to_anat_bbreg,
-                                     'inputspec.anat_wm_segmentation')
-
                     # Input anatomical whole-head image (reoriented)
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_reorient')
@@ -1680,6 +1841,33 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file,
                                      func_to_anat_bbreg,
                                      'inputspec.linear_reg_matrix')
+
+                    # Input segmentation probability maps for white matter
+                    # segmentation
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'seg_probability_maps')
+                    workflow.connect(node, (out_file, pick_wm),
+                                     func_to_anat_bbreg,
+                                     'inputspec.anat_wm_segmentation')
+
+                    if dist_corr:
+                        # apply field map distortion correction outputs to
+                        # the func->anat registration
+
+                        func_to_anat_bbreg.inputs.echospacing_input.echospacing = c.fmap_distcorr_dwell_time[0]
+                        func_to_anat_bbreg.inputs.pedir_input.pedir = c.fmap_distcorr_pedir
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            "despiked_fieldmap")
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmap')
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            "fieldmap_mask")
+                        workflow.connect(node, out_file,
+                                         func_to_anat_bbreg,
+                                         'inputspec.fieldmapmask')
 
                 except:
                     logConnectionError(
@@ -1706,11 +1894,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 strat.append_name(func_to_anat_bbreg.name)
 
-                strat.update_resource_pool({'mean_functional_in_anat': (
-                func_to_anat_bbreg, 'outputspec.anat_func'),
-                                            'functional_to_anat_linear_xfm': (
-                                            func_to_anat_bbreg,
-                                            'outputspec.func_to_anat_linear_xfm')})
+                strat.update_resource_pool({'mean_functional_in_anat': (func_to_anat_bbreg, 'outputspec.anat_func'),
+                                            'functional_to_anat_linear_xfm': (func_to_anat_bbreg, 'outputspec.func_to_anat_linear_xfm')})
 
                 # Outputs:
                 # functional_to_anat_linear_xfm = func-t1.mat, linear, sent to 'premat' of post-FNIRT applywarp,
@@ -1718,6 +1903,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 # create_log_node(func_to_anat, 'outputspec.mni_func', num_strat)
                 num_strat += 1
+
+            else:
+                # anatomical segmentation is not being run in this particular
+                # strategy/fork - we don't want this to stop workflow building
+                # unless there is only one strategy
+                if len(strat_list) > 1:
+                    pass
+                else:
+                    err = "\n\n[!] Boundary-based registration (BBR) for " \
+                          "functional-to-anatomical registration is " \
+                          "enabled, but anatomical segmentation is not. " \
+                          "BBR requires the outputs of segmentation. " \
+                          "Please modify your pipeline configuration and " \
+                          "run again.\n\n"
+                    raise Exception(err)
+
 
     strat_list += new_strat_list
 
@@ -1784,8 +1985,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         strat.append_name(gen_motion_stats.name)
 
-        strat.update_resource_pool({'frame_wise_displacement': (
-                                        gen_motion_stats, 'outputspec.FD_1D'),
+        strat.update_resource_pool({'frame_wise_displacement_power': (
+                                        gen_motion_stats, 'outputspec.FDP_1D'),
+                                    'frame_wise_displacement_jenkinson': (
+                                        gen_motion_stats, 'outputspec.FDJ_1D'),
                                     'power_params': (gen_motion_stats,
                                                      'outputspec.power_params'),
                                     'motion_params': (gen_motion_stats,
@@ -2761,7 +2964,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # '/path/to/rois2.nii.gz': 'Avg, MultReg',
     # '/path/to/rois3.nii.gz': 'Avg, MultReg',
     # '/path/to/rois4.nii.gz': 'DualReg'}]
-
 
     if 1 in c.runROITimeseries:
 
@@ -4656,6 +4858,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
      QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
+    # TODO - QA pages: re-introduce
     '''
     if 1 in c.generateQualityControlImages:
 
@@ -5284,6 +5487,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = '3dAutoMask(func)'
                 if 'bet' in fork:
                     forklabel = 'BET(func)'
+                if 'epi_distcorr' in fork:
+                    forklabel = 'dist_corr'
                 if 'bbreg' in fork:
                     forklabel = 'bbreg'
                 if 'frequency' in fork:
@@ -5300,7 +5505,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'scrub'
                 if 'slice' in fork:
                     forklabel = 'slice'
-
+                    #if 'epi_distcorr' in fork:
+                    #forklabel = 'epi_distcorr'
                 if forklabel not in forkName:
                     forkName = forkName + '__' + forklabel
 
@@ -5369,6 +5575,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for name in strat.get_name():
                 import re
+                print (name)
                 extra_string = re.search('_\d+', name).group(0)
 
                 if extra_string:
@@ -5425,7 +5632,32 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
+            debugging_outputs = ['despiked_fieldmap',
+                                 'dr_tempreg_maps_stack',
+                                 'dr_tempreg_maps_stack_to_standard',
+                                 'dr_tempreg_maps_stack_to_standard_smooth',
+                                 'dr_tempreg_maps_zstat_stack',
+                                 'dr_tempreg_maps_zstat_stack_to_standard',
+                                 'dr_tempreg_maps_zstat_stack_to_standard_smooth',
+                                 'fmap_magnitude',
+                                 'fmap_phase_diff',
+                                 'raw_functional',
+                                 'sca_roi_correlation_stack',
+                                 'sca_roi_stack_smooth',
+                                 'sca_roi_stack_to_standard',
+                                 'sca_roi_stack_to_standard_smooth',
+                                 'sca_tempreg_maps_stack',
+                                 'sca_tempreg_maps_stack_smooth',
+                                 'sca_tempreg_maps_zstat_stack',
+                                 'sca_tempreg_maps_zstat_stack_smooth',
+                                 'seg_mixeltype',
+                                 'seg_partial_volume_files',
+                                 'seg_partial_volume_map']
+
             for key in sorted(rp.keys()):
+
+                if key in debugging_outputs:
+                    continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory
@@ -5626,6 +5858,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
 
         # If QC is enabled
+        # TODO - QA pages: re-introduce
         '''
         if 1 in c.generateQualityControlImages:
             # For each pipeline ID, generate the QC pages

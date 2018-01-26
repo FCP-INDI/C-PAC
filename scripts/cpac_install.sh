@@ -179,7 +179,7 @@ function get_missing_system_dependencies()
 function compile_libxp {
     # Compiles libxp- this is necessary for some newer versions of Ubuntu
     # where the is no Debian package available.
-    git clone https://cgit.freedesktop.org/xorg/lib/libXp/
+    git clone https://anongit.freedesktop.org/git/xorg/lib/libXp.git
     cd libXp
     ./autogen.sh
     ./configure

@@ -130,7 +130,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     func_drop_trs.inputs.expr = 'a'
     func_drop_trs.inputs.outputtype = 'NIFTI_GZ'
 
-    # wire in the inpus
+    # wire in the inputs
     try:
         preproc.connect(inputNode, 'func',
                         func_drop_trs, 'in_file_a')

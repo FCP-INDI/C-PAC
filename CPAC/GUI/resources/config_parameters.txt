@@ -16,6 +16,7 @@ awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
 s3Encryption,S3 Encryption,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
+run_logging,Run Logging,Output Settings
 reGenerateOutputs,Regenerate Outputs,Output Settings
 resolution_for_anat,Anatomical Template Resolution,Anatomical Registration
 template_brain_only_for_anat,Anatomical Template (Brain Only),Anatomical Registration
@@ -35,6 +36,13 @@ stopIdx,Last Timepoint,Time Series Options
 slice_timing_correction,Slice Timing Correction,Time Series Options
 slice_timing_pattern,Slice Timing Correction Pattern,Time Series Options
 TR,TR,Time Series Options
+runEPI_DistCorr,Perform Field-Map Distortion Correction,Distortion Correction
+fmap_distcorr_skullstrip,Skull-strip the magnitude file with:,Distortion Correction
+fmap_distcorr_frac,BET threshold/AFNI shrink factor,Distortion Correction
+fmap_distcorr_deltaTE,DeltaTE, in ms,Distortion Correction
+fmap_distcorr_dwell_time,Dwell Time, in s,Distortion Correction
+fmap_distcorr_dwell_asym_ratio,Dwell to Asymmetric Ratio,Distortion Correction
+fmap_distcorr_pedir,Phase-encoding direction,Distortion Correction
 runRegisterFuncToAnat,Run Functional to Anatomical Registration,Functional to Anatomical Registration
 runBBReg,Using BB Register,Functional to Anatomical Registration
 boundaryBasedRegistrationSchedule,Boundary Based Registration Scheduler,Functional to Anatomical Registration

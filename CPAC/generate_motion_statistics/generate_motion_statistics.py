@@ -2,37 +2,6 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def calc_percent(threshold, fd_file):
-    """Calculate the de-spiking/scrubbing threshold based on the highest Mean
-    FD values by some percentage.
-
-    :param threshold: user's threshold input, either a float or string
-    :param fd_file: text file containing the mean framewise displacement
-    :return: a float value for the calculated threshold
-    """
-
-    if isinstance(threshold, str):
-        if '%' in threshold:
-            percent = int(threshold.replace('%', ''))
-            percent = percent / 100.0
-        else:
-            threshold = float(threshold)
-            return threshold
-    elif isinstance(threshold, float) or isinstance(threshold, int):
-        return threshold
-    else:
-        err = "Invalid input for the de-spiking/scrubbing threshold."
-        raise Exception(err)
-
-    with open(fd_file, 'r') as f:
-        nums = sorted([float(x.rstrip('\n')) for x in f.readlines()])
-
-    # get the threshold value at the top percent mark provided
-    threshold = nums[int(0-(len(nums) * percent))]
-
-    return threshold
-
-
 def calc_friston_twenty_four(in_file):
     """
     Method to calculate friston twenty four parameters
@@ -208,7 +177,7 @@ def motion_power_statistics(calculation='Jenkinson',
         
     Workflow Outputs::
         
-        outputspec.FD_1D : 1D file
+        outputspec.FDP_1D : 1D file
             mean Framewise Displacement (FD)
             
         outputspec.frames_ex_1D : 1D file
@@ -358,7 +327,7 @@ def motion_power_statistics(calculation='Jenkinson',
                                                              'remove_frames_after']),
                               name='scrubbing_input')
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['FD_1D',
+    outputNode = pe.Node(util.IdentityInterface(fields=['FDP_1D',
                                                         'FDJ_1D',
                                                         'frames_ex_1D',
                                                         'frames_in_1D',
@@ -385,7 +354,7 @@ def motion_power_statistics(calculation='Jenkinson',
     pm.connect(inputNode, 'movement_parameters', 
                calculate_FDP, 'in_file' )
     pm.connect(calculate_FDP, 'out_file', 
-               outputNode, 'FD_1D')
+               outputNode, 'FDP_1D')
     
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     fdj_imports = ['import os', 'import math', 'import numpy as np']
@@ -396,18 +365,9 @@ def motion_power_statistics(calculation='Jenkinson',
                             name='calculate_FDJ')
     
     pm.connect(inputNode, 'oned_matrix_save', 
-               calculate_FDJ, 'in_file' )
+               calculate_FDJ, 'in_file')
     pm.connect(calculate_FDJ, 'out_file', 
                outputNode, 'FDJ_1D')
-
-    # if threshold set to 'Top 5%', calculate the top 5% here
-    calc_perc = pe.Node(util.Function(input_names=['threshold',
-                                                   'fd_file'],
-                                      output_names=['threshold'],
-                                      function=calc_percent),
-                        name='calc_spike_percent')
-
-    pm.connect(scrubbing_input, 'threshold', calc_perc, 'threshold')
 
     # calculating frames to exclude and include after scrubbing
     exc_frames_imports = ['import os', 'import numpy as np',
@@ -422,13 +382,11 @@ def motion_power_statistics(calculation='Jenkinson',
                              name='exclude_frames')
 
     if calculation == 'Jenkinson':
-        pm.connect(calculate_FDJ, 'out_file', calc_perc, 'fd_file')
         pm.connect(calculate_FDJ, 'out_file', exclude_frames, 'in_file')
     elif calculation == 'Power':
-        pm.connect(calculate_FDP, 'out_file', calc_perc, 'fd_file')
         pm.connect(calculate_FDP, 'out_file', exclude_frames, 'in_file')
 
-    pm.connect(calc_perc, 'threshold', exclude_frames, 'threshold')
+    pm.connect(scrubbing_input, 'threshold', exclude_frames, 'threshold')
     pm.connect(scrubbing_input, 'remove_frames_before',
                exclude_frames, 'frames_before')
     pm.connect(scrubbing_input, 'remove_frames_after',
@@ -451,7 +409,7 @@ def motion_power_statistics(calculation='Jenkinson',
     elif calculation == 'Power':
         pm.connect(calculate_FDP, 'out_file', include_frames, 'in_file')
 
-    pm.connect(calc_perc, 'threshold', include_frames, 'threshold')
+    pm.connect(scrubbing_input, 'threshold', include_frames, 'threshold')
     pm.connect(exclude_frames, 'out_file', 
                include_frames, 'exclude_list')
     pm.connect(include_frames, 'out_file', 
@@ -500,7 +458,7 @@ def motion_power_statistics(calculation='Jenkinson',
                calc_power_parameters, 'FDP_1D')
     pm.connect(calculate_FDJ, 'out_file',
                calc_power_parameters, 'FDJ_1D')
-    pm.connect(calc_perc, 'threshold',
+    pm.connect(scrubbing_input, 'threshold',
                calc_power_parameters, 'threshold')
 
     pm.connect(calc_power_parameters, 'out_file', 
@@ -860,6 +818,8 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
         path to csv file containing all the pow parameters 
     """
 
+    threshold = float(threshold)
+
     powersFD_data = loadtxt(FDP_1D)
     jenkFD_data = loadtxt(FDJ_1D)
     
@@ -892,20 +852,16 @@ def gen_power_parameters(subject_id, scan_id, FDP_1D, FDJ_1D, DVARS,
     out_file = os.path.join(os.getcwd(), 'pow_params.txt')
 
     with open(out_file, 'w') as f:
-        f.write("Subject,Scan,MeanFD_Power,MeanFD_Jenkinson,"
-                "NumFD_greater_than_{0:.2f},rootMeanSquareFD,"
-                "FDquartile(top1/4thFD),PercentFD_greater_than_{1:.2f},"
+        f.write("Subject, Scan, MeanFD_Power, MeanFD_Jenkinson, "
+                "NumFD_greater_than_{0:.2f}, rootMeanSquareFD, "
+                "FDquartile(top1/4thFD), PercentFD_greater_than_{1:.2f}, "
                 "MeanDVARS\n".format(threshold, threshold))
 
-        # f.write("{0}, {1}".format(subject_id, scan_id))
-        # f.write('{0:.4f}, {1:.4f}'.format(meanFD_Power, meanFD_Jenkinson))
-        # f.write('{0:.4f}, {1:.4f}'.format(numFD, rmsFD))
-        # f.write('{0:.4f}, {1:.4f}'.format(FDquartile, percentFD))
-        # f.write('{0:.4f}'.format(meanDVARS))
-
-        f.write("{0},{1},{2}\n".format(subject_id, scan_id, ','.join(['{0:.4f}'.format(val) for val in
-                                                                      [meanFD_Power, meanFD_Jenkinson, numFD, rmsFD,
-                                                                       FDquartile, percentFD, meanDVARS]])))
+        f.write("{0}, {1}, ".format(subject_id, scan_id))
+        f.write('{0:.4f}, {1:.4f}, '.format(meanFD_Power, meanFD_Jenkinson))
+        f.write('{0:.4f}, {1:.4f}, '.format(numFD, rmsFD))
+        f.write('{0:.4f}, {1:.4f}, '.format(FDquartile, percentFD))
+        f.write('{0:.4f}'.format(meanDVARS))
     
     return out_file
 

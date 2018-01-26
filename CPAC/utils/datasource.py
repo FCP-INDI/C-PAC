@@ -2,27 +2,78 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def create_func_datasource(rest_dict, wf_name='func_datasource'):
+def get_rest(scan, rest_dict):
+    return rest_dict[scan]
+
+
+def extract_scan_params_dct(scan_params_dct):
+    return scan_params_dct
+
+
+def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
+                           wf_name='func_datasource'):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
 
+    inputnode = pe.Node(util.IdentityInterface(
+                                fields=['subject', 'scan', 'creds_path'],
+                                mandatory_inputs=True),
+                        name='inputnode')
+
+    outputnode = pe.Node(util.IdentityInterface(fields=['subject', 'rest',
+                                                        'scan', 'scan_params',
+                                                        'phase_diff',
+                                                        'magnitude']),
+                         name='outputspec')
+
     # if the input data is taken from a BIDS directory
     scan_names = rest_dict.keys()
+
+    # TODO: this will need to be changed once scan-level nesting is
+    # TODO: implemented- the file name (for BIDS scan params JSON files) will
+    # TODO: have to be processed for the particular scan (task, and run) and
+    # TODO: then linked with the scan below (check the iterable inputnode
+    # TODO: parameter)
     if "scan_parameters" in scan_names:
         scan_names.remove("scan_parameters")
+
+        if isinstance(rest_dict["scan_parameters"], str):
+            if "s3://" in rest_dict["scan_parameters"]:
+                # if the scan parameters file is on AWS S3, download it
+                s3_scan_params = \
+                    pe.Node(util.Function(input_names=['file_path',
+                                                       'creds_path',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='s3_scan_params')
+
+                s3_scan_params.inputs.file_path = rest_dict["scan_parameters"]
+
+                wf.connect(inputnode, 'creds_path',
+                           s3_scan_params, 'creds_path')
+                wf.connect(s3_scan_params, 'local_path',
+                           outputnode, 'scan_params')
+
+        elif isinstance(rest_dict["scan_parameters"], dict):
+            get_scan_params_dct = \
+                    pe.Node(util.Function(input_names=['scan_params_dct'],
+                                          output_names=['scan_params_dct'],
+                                          function=extract_scan_params_dct),
+                            name='get_scan_params_dct')
+            get_scan_params_dct.inputs.scan_params_dct = \
+                rest_dict["scan_parameters"]
+            wf.connect(get_scan_params_dct, 'scan_params_dct',
+                       outputnode, 'scan_params')
 
     for scan in scan_names:
         if '.' in scan or '+' in scan or '*' in scan:
             raise Exception('\n[!] Scan names cannot contain any special '
                             'characters. Please update this and try again.')
 
-    inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path'],
-                                mandatory_inputs=True),
-                        name='inputnode')
     inputnode.iterables = [('scan', scan_names)]
 
     selectrest = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
@@ -37,14 +88,10 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
                                           output_names=['local_path'],
                                           function=check_for_s3),
                             name='check_for_s3')
+
     wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
     check_s3_node.inputs.img_type = 'func'
-
-    outputnode = pe.Node(util.IdentityInterface(fields=['subject',
-                                                        'rest',
-                                                        'scan']),
-                         name='outputspec')
 
     wf.connect(inputnode, 'scan', selectrest, 'scan')
 
@@ -52,11 +99,31 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
+    if fmap_phase and fmap_mag:
+        s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3),
+                                name='s3_fmap_phase')
+        s3_fmap_phase.inputs.file_path = fmap_phase
+        s3_fmap_phase.inputs.img_type = "other"
+        wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
+
+        s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
+                                                         'creds_path',
+                                                         'img_type'],
+                                            output_names=['local_path'],
+                                            function=check_for_s3),
+                              name='s3_fmap_mag')
+        s3_fmap_mag.inputs.file_path = fmap_mag
+        s3_fmap_mag.inputs.img_type = "other"
+        wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
+
+        wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
+        wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
+
     return wf
-
-
-def get_rest(scan, rest_dict):
-    return rest_dict[scan]
 
 
 # Check if passed-in file is on S3
@@ -98,6 +165,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
 
         # Download file
         try:
+            print("Attempting to download from AWS S3: {0}".format(file_path))
             bucket.download_file(Key=s3_key, Filename=local_path)
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response['Error']['Code'])
@@ -142,6 +210,8 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
                 raise IOError('File: %s must be a functional image with 4 '\
                               'dimensions but %d dimensions found!'
                               % (local_path, len(img_nii.shape)))
+        elif img_type == "other":
+            pass
 
     # Return the local path
     return local_path

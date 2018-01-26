@@ -312,7 +312,7 @@ def create_register_func_to_anat(fieldmap_distortion=False,
                                                        'anat',
                                                        'interp',
                                                        'fieldmap',
-                                                       'fieldmapmask']),
+                                                       'fieldmapmask','anat_skull']),
                         name='inputspec')
 
     inputNode_echospacing = pe.Node(
@@ -343,7 +343,7 @@ def create_register_func_to_anat(fieldmap_distortion=False,
 
     register_func_to_anat.connect(inputspec, 'func', linear_reg, 'in_file')
     
-    register_func_to_anat.connect(inputspec, 'anat', linear_reg, 'reference')
+    register_func_to_anat.connect(inputspec, 'anat_skull', linear_reg, 'reference')
     
     register_func_to_anat.connect(inputspec, 'interp', linear_reg, 'interp')
 

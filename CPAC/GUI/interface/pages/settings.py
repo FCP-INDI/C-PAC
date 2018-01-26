@@ -238,6 +238,14 @@ class DirectorySettings(wx.ScrolledWindow):
                       values=["False", "True"],
                       comment="Deletes the contents of the Working Directory after running.\n\nThis saves disk space, but any additional preprocessing or analysis will have to be completely re-run.")
 
+        self.page.add(label="Run Logging ",
+                      control=control.CHOICE_BOX,
+                      name="run_logging",
+                      type=dtype.BOOL,
+                      values=["True", "False"],
+                      comment="Whether to write log details of the pipeline. "
+                              "run to the logging files.")
+
         self.page.add(label="Regenerate Outputs ",
                       control=control.CHOICE_BOX,
                       name='reGenerateOutputs',
