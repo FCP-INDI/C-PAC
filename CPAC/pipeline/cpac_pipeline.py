@@ -5666,10 +5666,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
-            debugging_outputs = ['anatomical_csf_mask', 'anatomical_gm_mask',
-                                 'anatomical_wm_mask', 'despiked_fieldmap',
-                                 'despiking_frames_excluded',
-                                 'despiking_frames_included',
+            debugging_outputs = ['despiked_fieldmap',
                                  'dr_tempreg_maps_stack',
                                  'dr_tempreg_maps_stack_to_standard',
                                  'dr_tempreg_maps_stack_to_standard_smooth',

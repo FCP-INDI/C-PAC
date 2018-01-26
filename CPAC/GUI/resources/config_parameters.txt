@@ -16,6 +16,7 @@ awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
 s3Encryption,S3 Encryption,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
+run_logging,Run Logging,Output Settings
 reGenerateOutputs,Regenerate Outputs,Output Settings
 resolution_for_anat,Anatomical Template Resolution,Anatomical Registration
 template_brain_only_for_anat,Anatomical Template (Brain Only),Anatomical Registration

@@ -2,6 +2,7 @@
 
 
 def print_data_config_info(data_config_yml):
+    # TODO: implement this!
     pass
 
 
@@ -20,20 +21,24 @@ def main():
                              "functional file templates")
     parser.add_argument("--generate_template",
                         action='store_true', default=False,
-                        help="Write a summary report in PDF "
-                        "format.")
+                        help="create a blank template of the data settings "
+                             "file - configure your settings and provide "
+                             "this file to this script to generate your "
+                             "data configuration file")
+    '''
     parser.add_argument("--data_config_info", type=str, default=None,
                         help="the path to a data configuration YML file "
                              "you want information about")
+    '''
 
     args = parser.parse_args()
 
-    if not args.data_settings_file and not args.generate_template and \
-            not args.data_config_info:
+    if not args.data_settings_file and not args.generate_template: # and \
+            #not args.data_config_info:
         print "No inputs provided. Use the -h flag for instructions.\n"
 
-    if args.data_settings_file and not args.generate_template and \
-            not args.data_config_info:
+    if args.data_settings_file and not args.generate_template: # and \
+            #not args.data_config_info:
 
         input_file = os.path.abspath(args.data_settings_file)
         if os.path.exists(input_file):
@@ -49,8 +54,8 @@ def main():
                   "{0}\n".format(input_file)
             print err
 
-    elif args.generate_template and not args.data_settings_file and \
-            not args.data_config_info:
+    elif args.generate_template and not args.data_settings_file: #and \
+            #not args.data_config_info:
 
         import shutil
         import pkg_resources as p
@@ -83,6 +88,10 @@ def main():
               "loaded into the CPAC data configuration file builder UI " \
               "using the 'Load Preset' button.\n".format(settings_file)
 
+    else:
+        print "Too many arguments. Only one option is accepted at a time.\n"
+
+    '''
     elif args.data_config_info and not args.data_settings_file and \
             not args.generate_template:
 
@@ -103,6 +112,7 @@ def main():
 
     else:
         print "Too many arguments. Only one option is accepted at a time.\n"
+    '''
 
 
 if __name__ == "__main__":

@@ -243,7 +243,7 @@ class DirectorySettings(wx.ScrolledWindow):
                       name="run_logging",
                       type=dtype.BOOL,
                       values=["True", "False"],
-                      comment="Whether to write log details of the pipeline "
+                      comment="Whether to write log details of the pipeline. "
                               "run to the logging files.")
 
         self.page.add(label="Regenerate Outputs ",
