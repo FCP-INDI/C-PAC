@@ -37,7 +37,7 @@ def main():
             #not args.data_config_info:
         print "No inputs provided. Use the -h flag for instructions.\n"
 
-    if args.data_settings_file and not args.generate_template: # and \
+    elif args.data_settings_file and not args.generate_template: # and \
             #not args.data_config_info:
 
         input_file = os.path.abspath(args.data_settings_file)
