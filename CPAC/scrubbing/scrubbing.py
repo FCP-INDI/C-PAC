@@ -81,16 +81,14 @@ def create_scrubbing_preproc(wf_name = 'scrubbing'):
                                                     ]),
                         name='inputspec')
 
-
     outputNode = pe.Node(util.IdentityInterface(fields=['preprocessed',
-                                                         'scrubbed_movement_parameters']),
-                        name='outputspec')
-
+                                                        'scrubbed_movement_parameters']),
+                         name='outputspec')
 
     craft_scrub_input = pe.Node(util.Function(input_names=['scrub_input', 'frames_in_1D_file'],
-                                     output_names=['scrub_input_string'],
-                                     function=get_indx),
-               name = 'scrubbing_craft_input_string')
+                                              output_names=['scrub_input_string'],
+                                              function=get_indx),
+                                name = 'scrubbing_craft_input_string')
 
     scrubbed_movement_parameters = pe.Node(util.Function(input_names=['infile_a', 'infile_b'], 
                                                  output_names=['out_file'],

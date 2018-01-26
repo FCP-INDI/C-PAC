@@ -91,7 +91,8 @@ def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
 
 
 
-def create_con_file(con_dict, col_names, model_name, current_output, out_dir):
+def create_con_file(con_vecs, con_names, col_names, model_name,
+                    current_output, out_dir):
 
     import os
 
@@ -102,14 +103,14 @@ def create_con_file(con_dict, col_names, model_name, current_output, out_dir):
         # write header
         num = 1
 
-        for key in con_dict:
+        for key in con_names:
             f.write("/ContrastName%s\t%s\n" %(num,key))
             num += 1
 
-        f.write("/NumWaves\t%d\n" %len(con_dict[key]))
-        f.write("/NumContrasts\t%d\n" %len(con_dict))
-        f.write("/PPheights%s" %create_dummy_string(len(con_dict[key])))
-        f.write("/RequiredEffect%s" %create_dummy_string(len(con_dict[key])))
+        f.write("/NumWaves\t%d\n" %len(col_names))
+        f.write("/NumContrasts\t%d\n" %len(con_names))
+        f.write("/PPheights%s" %create_dummy_string(len(con_vecs)))
+        f.write("/RequiredEffect%s" %create_dummy_string(len(con_vecs)))
         f.write("\n\n")
 
         # print labels for the columns - mainly for double-checking your
@@ -122,8 +123,8 @@ def create_con_file(con_dict, col_names, model_name, current_output, out_dir):
         # write data
         f.write("/Matrix\n")
 
-        for key in con_dict:
-            for v in con_dict[key]:
+        for vector in con_vecs:
+            for v in vector:
                 f.write("%1.5e\t" %v)
             f.write("\n")
 
@@ -131,8 +132,8 @@ def create_con_file(con_dict, col_names, model_name, current_output, out_dir):
 
 
 
-def create_fts_file(ftest_list, con_dict, model_name, current_output, \
-                        out_dir):
+def create_fts_file(ftest_list, con_names, model_name,
+                    current_output, out_dir):
 
     import os
     import numpy as np
@@ -146,7 +147,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
 
         with open(out_file, 'w') as f:
 
-            print >>f, '/NumWaves\t', len(con_dict)
+            print >>f, '/NumWaves\t', len(con_names)
             print >>f, '/NumContrasts\t', len(ftest_list)
 
             # process each f-test
@@ -158,7 +159,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
                 
                 cons_in_ftest = ftest_string.split(",")
 
-                for con in con_dict.keys():
+                for con in con_names:
                     if con in cons_in_ftest:
                         ftest_vector.append(1)
                     else:
@@ -172,7 +173,7 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
             # print labels for the columns - mainly for double-checking your
             # model
             col_string = '\n'
-            for con in con_dict.keys():
+            for con in con_names:
                 col_string = col_string + con + '\t'
             print >>f, col_string, '\n'
 
@@ -396,30 +397,31 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     return out_file, ftest_out_file
 
 
+def create_flame_model_files(design_matrix, col_names, contrasts_vectors,
+                             contrast_names, custom_contrasts_csv, ftest_list,
+                             group_sep, grouping_vector, coding_scheme,
+                             model_name, output_measure, output_dir):
 
-def create_flame_model_files(design_matrix, col_names, contrasts_dict, \
-	custom_contrasts_csv, ftest_list, group_sep, grouping_vector, \
-	coding_scheme, model_name, output_measure, output_dir):
-
-    mat_file = write_mat_file(design_matrix, output_dir, model_name, \
+    mat_file = write_mat_file(design_matrix, output_dir, model_name,
         col_names, output_measure)
 
-    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir, \
+    grp_file = create_grp_file(design_matrix, grouping_vector, output_dir,
         model_name)
 
-    if contrasts_dict:
-        con_file = create_con_file(contrasts_dict, col_names, model_name, \
-            output_measure, output_dir)
+    if contrasts_vectors:
+        con_file = create_con_file(contrasts_vectors, contrast_names,
+                                   col_names, model_name, output_measure,
+                                   output_dir)
 
         if len(ftest_list) > 0:
-	        fts_file = create_fts_file(ftest_list, contrasts_dict, \
-                model_name, output_measure, output_dir)
+            fts_file = create_fts_file(ftest_list, contrast_names,
+                                       model_name, output_measure, output_dir)
         else:
             fts_file = None
 
     elif custom_contrasts_csv:
-        con_file, fts_file = create_con_ftst_file(custom_contrasts_csv, \
-            model_name, output_measure, output_dir, col_names, coding_scheme,\
+        con_file, fts_file = create_con_ftst_file(custom_contrasts_csv,
+            model_name, output_measure, output_dir, col_names, coding_scheme,
             group_sep)
 
     return mat_file, grp_file, con_file, fts_file

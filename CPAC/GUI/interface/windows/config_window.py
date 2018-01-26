@@ -12,7 +12,7 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     ALFF, ALFFSettings,\
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
-    TimeSeries, ROITimeseries, \
+    TimeSeries, EPI_DistCorr, ROITimeseries, \
     GroupAnalysis, GPASettings, TimeSeriesOptions
 
 
@@ -81,12 +81,13 @@ class Mybook(wx.Treebook):
 
         page8 = FunctionalPreProcessing(self)
         page9 = TimeSeriesOptions(self)
-        page10 = AnatToFuncRegistration(self, 5)
-        page11 = FuncToMNIRegistration(self, 6)
+        page10 = EPI_DistCorr(self)                     
+        page11 = AnatToFuncRegistration(self, 5)
+        page12 = FuncToMNIRegistration(self, 6)
 
-        page12 = Nuisance(self)
-        page13 = NuisanceRegression(self, 7)
-        page14 = MedianAngleCorrection(self, 8)
+        page13= Nuisance(self)
+        page14= NuisanceRegression(self, 7)
+        page15= MedianAngleCorrection(self, 8)
 
         page16 = FilteringSettings(self, 9)
 
@@ -125,12 +126,13 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page10, "Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page11, "Functional to MNI Registration", wx.ID_ANY)
+        self.AddSubPage(page10, "Distortion Correction", wx.ID_ANY)
+        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
 
-        self.AddPage(page12, "Nuisance", wx.ID_ANY)
-        self.AddSubPage(page13, "Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page14, "Median Angle Correction", wx.ID_ANY)
+        self.AddPage(page13,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(page14,"Nuisance Regression", wx.ID_ANY)
+        self.AddSubPage(page15,"Median Angle Correction", wx.ID_ANY)
 
         self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
 
@@ -195,7 +197,7 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent, option='save', path="", pipeline_id=""):
         wx.Frame.__init__(
-            self, parent=parent, title="CPAC Pipeline Configuration", \
+            self, parent=parent, title="CPAC Pipeline Configuration",
             size=(1200, 520))
 
         # Here we create a panel and a notebook on the panel
@@ -209,17 +211,17 @@ class MainFrame(wx.Frame):
         btnPanel = wx.Panel(self.p, -1)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save", \
+        submit = wx.Button(btnPanel, wx.ID_SAVE, "Save",
             (280, 10), wx.DefaultSize, 0)
         hbox.Add(submit, 0.6, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.submit_item, id=wx.ID_SAVE)
         
-        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",\
+        testConfig = wx.Button(btnPanel, wx.ID_PREVIEW, "Test Configuration",
             (350, 10), wx.DefaultSize, 0)
         hbox.Add(testConfig, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.testConfig, id=wx.ID_PREVIEW)
         
-        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel", \
+        cancel = wx.Button(btnPanel, wx.ID_CANCEL, "Cancel",
             (220, 10), wx.DefaultSize, 0)
         self.Bind(wx.EVT_BUTTON, self.cancel, id=wx.ID_CANCEL)
         hbox.Add(cancel, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
@@ -1027,7 +1029,10 @@ class MainFrame(wx.Frame):
             f = open(path, 'w')
 
             print >>f, "# CPAC Pipeline Configuration YAML file"
-            print >>f, "# version %s\n" % str(CPAC.__version__)
+            print >>f, "# Version %s\n#" % str(CPAC.__version__)
+            print >>f, "# http://fcp-indi.github.io for more info.\n#"
+            print >>f, "# Tip: This file can be edited manually with a " \
+                       "text editor for quick modifications.\n\n"
 
             for item in config_list:
 
@@ -1152,7 +1157,8 @@ class MainFrame(wx.Frame):
                         try:
                             val=ast.literal_eval(str(val))
                         except Exception as err:
-                            print "Exception trying to translate: %s, %s, %s, %s"%(label,str(value),val,err)
+                            print "Exception trying to translate: " \
+                                  "%s, %s, %s, %s"%(label,str(value),val,err)
                             print "value type: %s"%(type(val))
                         values.append(ast.literal_eval(str(val)))
 

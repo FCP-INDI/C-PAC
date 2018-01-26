@@ -22,6 +22,12 @@ files_folders_wf = {
     'functional_preprocessed_mask': 'func',
     'functional_to_spatial_map': 'func',
     'functional_mask_to_spatial_map': 'func',
+    'fmap_phase_diff': 'func',
+    'fmap_magnitude': 'func',
+    'functional_distortion_corrected': 'func',
+    'despiked_fieldmap': 'func',
+    'prepared_fieldmap_map': 'func',
+    'fieldmap_mask': 'func',
     'slice_time_corrected': 'func',
     'slice_timing_corrected': 'func',
     'movement_parameters': 'parameters',
@@ -46,7 +52,8 @@ files_folders_wf = {
     'functional_gm_mask': 'segmentation',
     'functional_wm_mask': 'segmentation',
     'functional_csf_mask': 'segmentation',
-    'frame_wise_displacement': 'parameters',
+    'frame_wise_displacement_power': 'parameters',
+    'frame_wise_displacement_jenkinson': 'parameters',
     'functional_nuisance_residuals': 'func',
     'functional_nuisance_regressors': 'func',
     'functional_median_angle_corrected': 'func',
@@ -1411,12 +1418,12 @@ def select_model_files(model, ftest, model_name):
     return fts_file, con_file, grp_file, mat_file
 
 
-def check(subject_map, subject, scan, val, throw_exception):
+def check(params_dct, subject, scan, val, throw_exception):
 
-    if isinstance(subject_map['scan_parameters'][val], dict):
-        ret_val = subject_map['scan_parameters'][val][scan]
+    if isinstance(params_dct[val], dict):
+        ret_val = params_dct[val][scan]
     else:
-        ret_val = subject_map['scan_parameters'][val]
+        ret_val = params_dct[val]
 
     if ret_val == 'None':
         if throw_exception:
@@ -1432,15 +1439,16 @@ def check(subject_map, subject, scan, val, throw_exception):
     return ret_val
 
 
-def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
-                    tpattern):
+def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
+                    pipeconfig_start_indx, pipeconfig_stop_indx,
+                    data_config_scan_params=None):
     """
     Method to extract slice timing correction parameters
     and scan parameters.
 
     Parameters
     ----------
-    subject: a string
+    subject_id: a string
         subject id
     scan : a string
         scan id
@@ -1465,87 +1473,163 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
         ending TR or ending volume index
     """
 
-    check2 = lambda val: val if val == None or val == '' else int(val)
+    check2 = lambda val: val if val == None or val == '' or \
+                                isinstance(val, str) else int(val)
 
     # initialize vars to empty
     TR = ''
+    TE = None
     pattern = ''
     ref_slice = ''
     first_tr = ''
     last_tr = ''
     unit = 's'
 
-    if 'scan_parameters' in subject_map.keys():
-        if len(subject_map['scan_parameters']) > 0:
+    if isinstance(pipeconfig_tpattern, list) or isinstance(pipeconfig_tpattern, str):
+        if "None" in pipeconfig_tpattern:
+            pipeconfig_tpattern = None
+
+    if data_config_scan_params:
+
+        if ".json" in data_config_scan_params:
+
+            if not os.path.exists(data_config_scan_params):
+                err = "\n[!] WARNING: Scan parameters JSON file listed in " \
+                      "your data configuration file does not exist:\n{0}" \
+                      "\n\n".format(data_config_scan_params)
+                raise Exception(err)
+
+            with open(data_config_scan_params, "r") as f:
+                params_dct = json.load(f)
+
             # get details from the configuration
-            TR = float(check(subject_map, subject, scan, 'tr', False))
-            pattern = str(check(subject_map, subject, scan, 'acquisition',
+            # if this is a JSON file, the key values are the BIDS format
+            # standard
+            # TODO: better handling of errant key values!!!
+            if "RepetitionTime" in params_dct.keys():
+                TR = float(check(params_dct, subject_id, scan,
+                                 'RepetitionTime', False))
+            if "SliceTiming" in params_dct.keys():
+                pattern = str(check(params_dct, subject_id, scan,
+                                    'SliceTiming', False))
+            elif "SliceAcquisitionOrder" in params_dct.keys():
+                pattern = str(check(params_dct, subject_id, scan,
+                                    'SliceAcquisitionOrder', False))
+
+        elif len(data_config_scan_params) > 0 and \
+                isinstance(data_config_scan_params, dict):
+            try:
+                params_dct = data_config_scan_params
+            except:
+                err = "\n[!] Could not parse the scan parameter information "\
+                      "included in your data configuration file for " \
+                      "participant: {0}\n\n".format(subject_id)
+                raise Exception(err)
+
+            # get details from the configuration
+            TR = float(check(params_dct, subject_id, scan, 'TR', False))
+            pattern = str(check(params_dct, subject_id, scan, 'acquisition',
                                 False))
-            ref_slice = int(check(subject_map, subject, scan, 'reference',
+            ref_slice = int(check(params_dct, subject_id, scan, 'reference',
                                   False))
-            first_tr = check2(check(subject_map, subject, scan, 'first_tr',
+            first_tr = check2(check(params_dct, subject_id, scan, 'first_TR',
                                     False))
-            last_tr = check2(check(subject_map, subject, scan, 'last_tr',
+            last_tr = check2(check(params_dct, subject_id, scan, 'last_TR',
                                    False))
+
+        else:
+            err = "\n\n[!] Could not read the format of the scan parameters "\
+                  "information included in the data configuration file for " \
+                  "the participant {0}.\n\n".format(subject_id)
+            raise Exception(err)
 
     # if values are still empty, override with GUI config
     if TR == '':
-        if tr:
-            TR = float(tr)
+        if pipeconfig_tr:
+            TR = float(pipeconfig_tr)
         else:
             TR = None
 
     if first_tr == '':
-        first_tr = start_indx
+        first_tr = pipeconfig_start_indx
 
     if last_tr == '':
-        last_tr = stop_indx
+        last_tr = pipeconfig_stop_indx
 
     unit = 's'
 
-    # if the user has mandated that we the timining informaiton in the header,
-    # that takes precedence
-    if "Use NIFTI Header" in tpattern:
-        pattern = ''
-    else:
-        # otherwise he slice acquisition pattern in the subject file takes
-        # precedence, but if it isn't set we use the value in the
-        # configuration file
-        if pattern == '':
-            pattern = tpattern
+    if not pattern:
+        if pipeconfig_tpattern:
+            if "Use NIFTI Header" in pipeconfig_tpattern:
+                pattern = ''
+            else:
+                pattern = pipeconfig_tpattern
 
     # pattern can be one of a few keywords, a filename, or blank which
     # indicates that the images header information should be used
+    tpattern_file = None
     if pattern and pattern not in ['alt+z', 'altplus', 'alt+z2', 'alt-z',
-                                   'altminus',
-                                   'alt-z2', 'seq+z', 'seqplus', 'seq-z',
-                                   'seqminus']:
-        if not os.path.exists(pattern):
+                                   'altminus', 'alt-z2', 'seq+z', 'seqplus',
+                                   'seq-z', 'seqminus']:
+
+        if isinstance(pattern, list) or \
+                ("[" in pattern and "]" in pattern and "," in pattern):
+            # if we got the slice timing as a list, from a BIDS-format scan
+            # parameters JSON file
+
+            if not isinstance(pattern, list):
+                pattern = pattern.replace("[", "").replace("]", "").split(",")
+
+            slice_timings = [float(x) for x in pattern]
+
+            # write out a tpattern file for AFNI 3dTShift
+            tpattern_file = os.path.join(os.getcwd(), "tpattern.txt")
+            try:
+                with open(tpattern_file, "wt") as f:
+                    for time in slice_timings:
+                        f.write("{0}\n".format(time).replace(" ", ""))
+            except:
+                err = "\n[!] Could not write the slice timing file meant as "\
+                      "an input for AFNI 3dTshift (slice timing correction):"\
+                      "\n{0}\n\n".format(tpattern_file)
+                raise Exception(err)
+
+        elif ".txt" in pattern and not os.path.exists(pattern):
+            # if the user provided an acquisition pattern text file for
+            # 3dTshift
             raise Exception("Invalid Pattern file path {0}, Please provide "
                             "the correct path".format(pattern))
-        else:
+        elif ".txt" in pattern:
             with open(pattern, "r") as f:
                 lines = f.readlines()
             if len(lines) < 2:
                 raise Exception('Invalid slice timing file format. The file '
                                 'should contain only one value per row. Use '
                                 'new line char as delimiter')
-
-            pattern = '@{0}'.format(pattern)
-
+            tpattern_file = pattern
             slice_timings = [float(l.rstrip('\r\n')) for l in lines]
+        else:
+            # this only happens if there is a non-path string set in the data
+            # config dictionary for acquisition pattern (like "alt+z"), except
+            # the pattern is not listed in that list
+            err = "\n[!] The slice timing acquisition pattern provided is " \
+                  "not supported by AFNI 3dTshift:\n" \
+                  "{0}\n".format(str(pattern))
+            raise Exception(err)
 
-            slice_timings.sort()
-            max_slice_offset = slice_timings[-1]
+        pattern = tpattern_file
 
-            # checking if the unit of TR and slice timing match or not
-            # if slice timing in ms convert TR to ms as well
-            if TR and max_slice_offset > TR:
-                warnings.warn("TR is in seconds and slice timings are in "
-                              "milliseconds. Converting TR into milliseconds")
-                TR = TR * 1000
-                print("New TR value {0} ms".format(TR))
-                unit = 'ms'
+        slice_timings.sort()
+        max_slice_offset = slice_timings[-1]
+
+        # checking if the unit of TR and slice timing match or not
+        # if slice timing in ms convert TR to ms as well
+        if TR and max_slice_offset > TR:
+            warnings.warn("TR is in seconds and slice timings are in "
+                          "milliseconds. Converting TR into milliseconds")
+            TR = TR * 1000
+            print("New TR value {0} ms".format(TR))
+            unit = 'ms'
 
     else:
         # check to see, if TR is in milliseconds, convert it into seconds
@@ -1556,9 +1640,10 @@ def get_scan_params(subject, scan, subject_map, start_indx, stop_indx, tr,
             unit = 's'
 
     print("scan_parameters -> {0} {1} {2} {3} {4} "
-          "{5} {6}".format(subject, scan, str(TR) + unit, pattern, ref_slice,
-                           first_tr, last_tr))
+          "{5} {6}".format(subject_id, scan, str(TR) + unit, pattern,
+                           ref_slice, first_tr, last_tr))
 
+    # swap back in
     tr = "{0}{1}".format(str(TR), unit)
     tpattern = pattern
     start_indx = first_tr
@@ -1609,6 +1694,12 @@ def check_tr(tr, in_file):
             'Warning: The TR information does not match between the config and subject list files.')
 
     return TR
+
+
+def add_afni_prefix(tpattern):
+    if ".txt" in tpattern:
+        tpattern = "@{0}".format(tpattern)
+    return tpattern
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id):

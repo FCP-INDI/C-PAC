@@ -235,16 +235,16 @@ def extract_power_params(power_params_lines, power_params_filepath):
     values_list = power_params_lines[1].split(",")
 
     # let's make extra sure
-    if (values_list[0] not in power_params_filepath) or \
-        (values_list[1] not in power_params_filepath):
+    if (values_list[0].replace(" ", "") not in power_params_filepath) or \
+        (values_list[1].replace(" ", "") not in power_params_filepath):
         err = "\n\n[!] There is a mismatch between the contents of the " \
               "power parameters file and where it is located!\n" \
               "Filepath: %s\n\n" % power_params_filepath
         raise Exception(err)
 
-    if (names_list[2] != "MeanFD_Power") or \
-        (names_list[3] != "MeanFD_Jenkinson") or \
-            (names_list[-1] != "MeanDVARS"):
+    if (names_list[2].replace(" ", "") != "MeanFD_Power") or \
+        (names_list[3].replace(" ", "") != "MeanFD_Jenkinson") or \
+            (names_list[-1].replace(" ", "") != "MeanDVARS"):
         err = "\n\n[!] There is a mismatch between the power parameters " \
               "format and what is expected!!\nFilepath: %s\n\n" \
               % power_params_filepath
