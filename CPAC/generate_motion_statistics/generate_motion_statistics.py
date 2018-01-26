@@ -691,7 +691,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
     Returns 
     -------
     out_file : string 
-        path to csv file contianing various motion parameters
+        path to csv file containing various motion parameters
 
     """
 
@@ -745,36 +745,47 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
                 "Mean_Relative_dS-I,Mean_Relative_dL-R,Mean_Relative_dP-A,Max_Abs_Roll,"
                 "Max_Abs_Pitch,Max_Abs_Yaw,Max_Abs_dS-I,Max_Abs_dL-R,Max_Abs_dP-A,"
                 "Mean_Abs_Roll,Mean_Abs_Pitch,Mean_Abs_Yaw,Mean_Abs_dS-I,Mean_Abs_dL-R,Mean_Abs_dP-A\n")
-        f.write("{0},{1}".format(subject_id, scan_id))
-        f.write("%.3f," % (MEANrms))
-        f.write("%.3f," % (MAXrms))
-        f.write("%.3f," % (NUMmove))
-        f.write("%.3f," % (MEANrot))
-        f.write("%.3f," % (mean))
-        f.write("%.3f," % (relMAX))
-        f.write("%.3f," %(MAX))
+
+        f.write("{0},{1},{2}".format(subject_id, scan_id, ",".join(
+            ["{0:.3f}".format(val) for val in [MEANrms, MAXrms, NUMmove, MEANrot, mean, relMAX, MAX]])))
+
+        # f.write("%.3f," % (MEANrms))
+        # f.write("%.3f," % (MAXrms))
+        # f.write("%.3f," % (NUMmove))
+        # f.write("%.3f," % (MEANrot))
+        # f.write("%.3f," % (mean))
+        # f.write("%.3f," % (relMAX))
+        # f.write("%.3f," % (MAX))
 
         # Max Relative Roll,Max Relative Pitch,
         # Max Relative Yaw,Max Relative dS-I,
         # Max Relative dL-R,Max Relative dP-A
-        for i in range(6):
-            f.write("%.6f," %(np.max(abs(np.diff(arr[i])))))
+        f.write(",{0}".format(",".join(["{0:.6f}".format(np.max(abs(np.diff(arr[i])))) for i in range(6)])))
+        # for i in range(6):
+        #     f.write("%.6f," %(np.max(abs(np.diff(arr[i])))))
 
         # Mean Relative Roll,Mean Relative Pitch,
         # Mean Relative Yaw,Mean Relative dS-I,
         # Mean Relative dL-R,Mean Relative dP-A
-        for i in range(6):
-            f.write("%.6f," %(np.mean(np.diff(arr[i]))))
+        f.write(",{0}".format(",".join(["{0:.6f}".format(np.mean(np.diff(arr[i]))) for i in range(6)])))
+        #
+        # for i in range(6):
+        #     f.write("%.6f," %(np.mean(np.diff(arr[i]))))
 
         # Max Abs Roll,Max Abs Pitch,Max Abs Yaw,
         # Max Abs dS-I,Max Abs dL-R,Max Abs dP-A
-        for i in range(6):
-            f.write("%.6f," %(np.max(abs(arr[i]))))
+        # for i in range(6):
+        #     f.write("%.6f," %(np.max(abs(arr[i]))))
+        f.write(",{0}".format(",".join(["{0:.6f}".format(np.max(abs(arr[i]))) for i in range(6)])))
+
 
         # Mean Abs Roll,Mean Abs Pitch,Mean Abs Yaw,
         # Mean Abs dS-I,Mean Abs dL-R,Mean Abs dP-A
-        for i in range(6):
-            f.write("%.6f," %(np.mean(abs(arr[i]))))
+        # for i in range(6):
+        #     f.write("%.6f," %(np.mean(abs(arr[i]))))
+        f.write(",{0}".format(",".join(["{0:.6f}".format(np.mean(abs(arr[i]))) for i in range(6)])))
+
+        f.write("\n")
 
     return out_file
 
