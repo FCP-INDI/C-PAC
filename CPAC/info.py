@@ -134,7 +134,7 @@ MINOR               = _version_minor
 MICRO               = _version_micro
 ISRELEASE           = _version_extra == ''
 VERSION             = __version__
-REQUIRES            = ["matplotlib (>=1.2)", "pylockfile (>=0.9)", 
+REQUIRES            = ["matplotlib (>=1.2)", "lockfile (>=0.9)", 
                        "pyyaml (>=3.0)", "pygraphviz (>=1.3)", 
                        "nibabel (>=2.0.1)", "nipype (>=0.12.1)", 
                        "patsy (>=0.3)", "psutil (>=2.1)", "boto3 (>=1.2)", 
@@ -143,7 +143,7 @@ REQUIRES            = ["matplotlib (>=1.2)", "pylockfile (>=0.9)",
                        "Jinja2 (>=2.6)", "pandas (>=0.15)", 
                        "INDI_Tools (>=0.0.6)", "memory_profiler (>=0.41)",
                        "ipython (>=5.1)"]
-INSTALL_REQUIRES    = ["matplotlib >=1.2", "pylockfile >=0.9", "pyyaml >=3.0",
+INSTALL_REQUIRES    = ["matplotlib >=1.2", "lockfile >=0.9", "pyyaml >=3.0",
                        "pygraphviz >=1.3", "nibabel >=2.0.1", 
                        "nipype >=0.12.1", "patsy >=0.3", "psutil >=2.1", 
                        "boto3 >=1.2", "future ==0.15.2", "prov >=1.4.0", 
