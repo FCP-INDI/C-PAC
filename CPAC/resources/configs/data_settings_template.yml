@@ -93,7 +93,7 @@ fieldMapMagnitude: None
 
 # Include only a sub-set of the participants present in the folders defined above.
 # 
-# List participants in this box (e.g., sub101, sub102) or provide the path to a text file with one participant ID on each line.
+# List participants in this box (ex: ['sub101', 'sub102']) or provide the path to a text file with one participant ID on each line.
 # 
 # If 'None' is specified, CPAC will include all participants.
 subjectList: None
@@ -101,7 +101,7 @@ subjectList: None
 
 # Exclude a sub-set of the participants present in the folders defined above.
 # 
-# List participants in this box (e.g., sub101, sub102) or provide the path to a text file with one participant ID on each line.
+# List participants in this box (ex: ['sub101', 'sub102']) or provide the path to a text file with one participant ID on each line.
 # 
 # If 'None' is specified, CPAC will not exclude any participants.
 exclusionSubjectList: None
@@ -109,7 +109,7 @@ exclusionSubjectList: None
 
 # Include only a sub-set of the sites present in the folders defined above.
 # 
-# List sites in this box (e.g., NYU, UCLA) or provide the path to a text file with one site name on each line.
+# List sites in this box (ex: ['NYU', 'UCLA']) or provide the path to a text file with one site name on each line.
 # 
 # If 'None' is specified, CPAC will include all sites.
 siteList: None
@@ -117,7 +117,7 @@ siteList: None
 
 # Exclude a sub-set of the sites present in the folders defined above.
 # 
-# List sites in this box (e.g., NYU, UCLA) or provide the path to a text file with one site name on each line.
+# List sites in this box (ex: ['NYU', 'UCLA']) or provide the path to a text file with one site name on each line.
 # 
 # If 'None' is specified, CPAC will include all sites.
 exclusionSiteList: None
@@ -125,7 +125,7 @@ exclusionSiteList: None
 
 # Include only a sub-set of the sessions present in the folders defined above.
 # 
-# List sessions in this box (e.g., session-1, session-2) or provide the path to a text file with one session name on each line.
+# List sessions in this box (ex: ['session-1', 'session-2']) or provide the path to a text file with one session name on each line.
 # 
 # If 'None' is specified, CPAC will include all sessions.
 sessionList: None
@@ -133,7 +133,7 @@ sessionList: None
 
 # Exclude a sub-set of the sessions present in the folders defined above.
 # 
-# List sessions in this box (e.g., session-1, session-2) or provide the path to a text file with one session name on each line.
+# List sessions in this box (ex: ['session-1', 'session-2']) or provide the path to a text file with one session name on each line.
 # 
 # If 'None' is specified, CPAC will include all sessions.
 exclusionSessionList: None
@@ -141,7 +141,7 @@ exclusionSessionList: None
 
 # Include only a sub-set of the series present in the folders defined above.
 # 
-# List series in this box (e.g., func-1, func-2) or provide the path to a text file with one series name on each line.
+# List series in this box (ex: ['func-1', 'func-2']) or provide the path to a text file with one series name on each line.
 # 
 # If 'None' is specified, CPAC will include all series.
 scanList: None
@@ -149,7 +149,7 @@ scanList: None
 
 # Exclude a sub-set of the series present in the folders defined above.
 # 
-# List series in this box (e.g., func-1, func-2) or provide the path to a text file with one series name on each line.
+# List series in this box (ex: ['func-1', 'func-2']) or provide the path to a text file with one series name on each line.
 # 
 # If 'None' is specified, CPAC will include all series.
 exclusionScanList: None
