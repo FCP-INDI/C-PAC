@@ -206,7 +206,6 @@ fmap_distcorr_frac: [0.5]
 
 
 # Set the Delta-TE value, used for preparing the field map, the time delay between the first and second echo images.
-# Note, TE can be specified in the data configuration YAML file via scan parameters setup. If it is not specified there, this value will be used instead.
 fmap_distcorr_deltaTE : 2.46
 
 
