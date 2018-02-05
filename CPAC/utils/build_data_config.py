@@ -594,8 +594,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
     # backwards compatibility
     if '{series}' in anat_glob:
+        anat_template = anat_template.replace('{series}', '{scan}')
         anat_glob = anat_glob.replace('{series}', '{scan}')
     if '{series}' in func_glob:
+        func_template = func_template.replace('{series}', '{scan}')
         func_glob = func_glob.replace('{series}', '{scan}')
 
     if '{scan}' in anat_glob:
@@ -976,8 +978,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
         # backwards compatibility
         if '{series}' in fmap_phase_glob:
+            fmap_phase_template = fmap_phase_template.replace('{series}', '{scan}')
             fmap_phase_glob = fmap_phase_glob.replace('{series}', '{scan}')
         if '{series}' in fmap_mag_glob:
+            fmap_mag_template = fmap_mag_template.replace('{series}', '{scan}')
             fmap_mag_glob = fmap_mag_glob.replace('{series}', '{scan}')
 
         for keyword in keywords:

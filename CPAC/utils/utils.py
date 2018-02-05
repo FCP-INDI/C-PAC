@@ -1489,6 +1489,10 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
         if "None" in pipeconfig_tpattern:
             pipeconfig_tpattern = None
 
+    if isinstance(pipeconfig_tr, str):
+        if "None" in pipeconfig_tr or "none" in pipeconfig_tr:
+            pipeconfig_tr = None
+
     if data_config_scan_params:
 
         if ".json" in data_config_scan_params:
@@ -1644,7 +1648,10 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
                            ref_slice, first_tr, last_tr))
 
     # swap back in
-    tr = "{0}{1}".format(str(TR), unit)
+    if TR:
+        tr = "{0}{1}".format(str(TR), unit)
+    else:
+        tr = ""
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
@@ -1657,13 +1664,13 @@ def get_tr(tr):
     Method to return TR in seconds
     """
     import re
-    if 'None' in tr:
-        tr = None
     if tr:
         tr = re.search("\d+.\d+", str(tr)).group(0)
         tr = float(tr)
         if tr > 10:
             tr = tr / 1000.0
+    else:
+        tr = ""
     return tr
 
 
