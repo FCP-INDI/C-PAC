@@ -1405,8 +1405,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
             try:
-                workflow.connect(scan_params, 'tr',
-                                 func_slice_timing_correction, 'tr')
+                if c.TR:
+                    if isinstance(c.TR, str):
+                        if "None" in c.TR or "none" in c.TR:
+                            pass
+                        else:
+                            workflow.connect(scan_params, 'tr',
+                                             func_slice_timing_correction, 'tr')
+                    else:
+                        workflow.connect(scan_params, 'tr',
+                                         func_slice_timing_correction, 'tr')
             except Exception as xxx:
                 logger.info(
                     "Error connecting input 'tr' to func_slice_timing_"
