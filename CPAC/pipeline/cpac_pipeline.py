@@ -337,11 +337,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             log_wf.inputs.inputspec.inputs = log_dir
             return log_wf
 
-    def logStandardError(sectionName, errLine, errNum):
+    def logStandardError(sectionName, errLine, errNum, errInfo=None):
 
-        logger.info(
-            "\n\n" + 'ERROR: %s - %s' % (sectionName, errLine) + "\n\n" + \
-            "Error name: cpac_pipeline_%s" % (errNum) + "\n\n")
+        logger.info("\n\nERROR: {0} - {1}\n\nError name: cpac_pipeline"
+                    "_{2}\n\n".format(sectionName, errLine, errNum))
+        if errInfo:
+            logger.info("Error details: {0}\n\n".format(errInfo))
 
     def logConnectionError(workflow_name, numStrat, resourcePool, errNum):
 
@@ -5047,9 +5048,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         qc_plot_id[8] = 'fd_plot'
 
 
-                except:
-                    logStandardError('QC', 'unable to get resources for FD plot', '0053')
-                    raise
+                except Exception as e:
+                    logStandardError('QC', 'unable to get resources for FD plot', '0053', e)
+                    raise Exception
 
             # make QC montages for Skull Stripping Visualization
 

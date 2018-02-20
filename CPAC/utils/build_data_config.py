@@ -281,9 +281,9 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
     return incl_dct
 
 
-def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
-                      inclusion_dct=None, exclusion_dct=None,
-                      config_dir=None):
+def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
+                      aws_creds_path=None, inclusion_dct=None,
+                      exclusion_dct=None, config_dir=None):
 
     import os
     import glob
@@ -296,6 +296,10 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
                              "{participant}_ses-{session}_T1w.nii.gz")
     anat = os.path.join(bids_base_dir,
                         "sub-{participant}/anat/sub-{participant}_T1w.nii.gz")
+
+    if anat_scan:
+        anat_sess = anat_sess.replace("_T1w", "_*_T1w")
+        anat = anat.replace("_T1w", "_*_T1w")
 
     func_sess = os.path.join(bids_base_dir,
                              "sub-{participant}"
@@ -330,7 +334,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
     sub_jsons_glob = os.path.join(bids_base_dir, "*sub-*/*bold.json")
     ses_jsons_glob = os.path.join(bids_base_dir, "*sub-*/ses-*/*bold.json")
 
-    site_dir_glob = os.path.join(bids_base_dir, "*", "sub-*/*.nii*")
+    site_dir_glob = os.path.join(bids_base_dir, "*", "sub-*/*/*.nii*")
 
     ses = False
     site_dir = False
@@ -558,10 +562,10 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, aws_creds_path=None,
 
 
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
-                     scan_params_dct=None, fmap_phase_template=None,
-                     fmap_mag_template=None, aws_creds_path=None,
-                     inclusion_dct=None, exclusion_dct=None, sites_dct=None,
-                     verbose=False):
+                     anat_scan=None, scan_params_dct=None,
+                     fmap_phase_template=None, fmap_mag_template=None,
+                     aws_creds_path=None, inclusion_dct=None,
+                     exclusion_dct=None, sites_dct=None, verbose=False):
 
     # go over the file paths, validate for nifti's?
     # work with the template
@@ -572,6 +576,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     #   - throw error/warning if anat and func templates are identical
     #   - all permutations of scan parameters json/csv's at different levels
 
+    import os
     import glob
     import fnmatch
 
@@ -642,8 +647,15 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         if '.nii' not in anat_path:
             continue
 
+        # pick the right anatomical scan
+        if anat_scan:
+            if anat_scan not in os.path.basename(anat_path):
+                continue
+
         path_dct = {}
 
+        # reduce the template down to only the substrings that do not have
+        # these tags or IDs
         site_parts = anat_template.split('{site}')
 
         partic_parts = []
@@ -652,10 +664,18 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         ses_parts = []
         for part in partic_parts:
             ses_parts = ses_parts + part.split('{session}')
+        if "*" in anat_template:
+            wild_parts = []
+            for part in ses_parts:
+                wild_parts = wild_parts + part.split('*')
+            ses_parts = wild_parts
 
         new_template = anat_template
         new_path = anat_path
 
+        # go through the non-label/non-ID substrings and parse them out,
+        # going from left to right and chopping out both sides of the whole
+        # string until only the tag, and the ID, are left
         for idx in range(0, len(ses_parts)):
             part1 = ses_parts[idx]
             try:
@@ -663,8 +683,28 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             except IndexError:
                 break
 
+            # example: /home/{site}/ses-{session}/..
+            #          part1 = /home/, part2 = /ses-
+            #          first split ->  ['', '{site}/ses-{session}/..']
+            #              (pick second item)
+            #          second split -> ['{site}', '{session}/..']
+            #              (pick first item)
             label = new_template.split(part1, 1)[1]
             label = label.split(part2, 1)[0]
+
+            if label == "*":
+                continue
+
+            # example: /home/{site}/*/ses-{session}/..
+            #          /home/NYU/folder1/ses-1/..
+            #          part1 = /home/, part2 = /*/ses-
+            #          first split ->  ['', 'NYU/folder1/ses-1/..']
+            #              (pick second item)
+            #          what it would be -> ['NYU/folder1/ses-1/..'] because /*/ses-1 doesn't exist in there
+            #          what we want     -> ['NYU', '1/..']
+            #              (pick first item)
+            # so, '/*/ses-', we want to transform into '/folder1/ses-'
+            # TODO: BASICALLY we want to convert the TEMPLATE so that its actual * will be filled with the current real path's real substring!
 
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
@@ -691,11 +731,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    "Scan not included:\n{0}" \
                                    "\n\n".format(anat_path)
                     else:
-                        warn = "\n\n[!] WARNING: While parsing your input data " \
-                               "files, a file path was found with conflicting " \
-                               "IDs for the same data level.\n\n" \
-                               "File path: {0}\n" \
-                               "Level: {1}\n" \
+                        warn = "\n\n[!] WARNING: While parsing your input " \
+                               "data files, a file path was found with " \
+                               "conflicting IDs for the same data level." \
+                               "\n\nFile path: {0}\nLevel: {1}\n" \
                                "Conflicting IDs: {2}, {3}\n\n" \
                                "This file has not been added to the data " \
                                "configuration.".format(anat_path, label,
@@ -758,6 +797,12 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 if sub_id in exclusion_dct['participants']:
                     continue
 
+        if "*" in anat_path:
+            if "s3://" in anat_path:
+                err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
+                      "(s3://) paths!"
+            paths = glob.glob(anat_path)
+
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
@@ -800,6 +845,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         scan_parts = []
         for part in ses_parts:
             scan_parts = scan_parts + part.split('{scan}')
+        if "*" in func_template:
+            wild_parts = []
+            for part in scan_parts:
+                wild_parts = wild_parts + part.split('*')
+            scan_parts = wild_parts
 
         new_template = func_template
         new_path = func_path
@@ -813,6 +863,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
             label = new_template.split(part1, 1)[1]
             label = label.split(part2, 1)[0]
+
+            if label == "*":
+                continue
 
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
@@ -1020,6 +1073,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             scan_parts = []
             for part in ses_parts:
                 scan_parts = scan_parts + part.split('{scan}')
+            if "*" in fmap_phase_template:
+                wild_parts = []
+                for part in scan_parts:
+                    wild_parts = wild_parts + part.split('*')
+                scan_parts = wild_parts
 
             new_template = fmap_phase_template
             new_path = fmap_phase
@@ -1033,6 +1091,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
                 label = new_template.split(part1, 1)[1]
                 label = label.split(part2, 1)[0]
+
+                if label == "*":
+                    continue
 
                 id = new_path.split(part1, 1)[1]
                 id = id.split(part2, 1)[0]
@@ -1152,6 +1213,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             scan_parts = []
             for part in ses_parts:
                 scan_parts = scan_parts + part.split('{scan}')
+            if "*" in fmap_mag_template:
+                wild_parts = []
+                for part in scan_parts:
+                    wild_parts = wild_parts + part.split('*')
+                scan_parts = wild_parts
 
             new_template = fmap_mag_template
             new_path = fmap_mag
@@ -1165,6 +1231,9 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
 
                 label = new_template.split(part1, 1)[1]
                 label = label.split(part2, 1)[0]
+
+                if label == "*":
+                    continue
 
                 id = new_path.split(part1, 1)[1]
                 id = id.split(part2, 1)[0]
@@ -1287,6 +1356,7 @@ def run(data_settings_yml):
 
     import os
     import yaml
+    import CPAC
 
     print "\nGenerating data configuration file.."
 
@@ -1323,6 +1393,7 @@ def run(data_settings_yml):
 
         data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
                                      file_list=file_list,
+                                     anat_scan=settings_dct['anatomical_scan'],
                                      aws_creds_path=settings_dct['awsCredentialsFile'],
                                      inclusion_dct=incl_dct,
                                      exclusion_dct=excl_dct,
@@ -1366,6 +1437,7 @@ def run(data_settings_yml):
         data_dct = get_nonBIDS_data(settings_dct['anatomicalTemplate'],
                                     settings_dct['functionalTemplate'],
                                     file_list=file_list,
+                                    anat_scan=settings_dct['anatomical_scan'],
                                     scan_params_dct=params_dct,
                                     fmap_phase_template=settings_dct['fieldMapPhase'],
                                     fmap_mag_template=settings_dct['fieldMapMagnitude'],
@@ -1410,7 +1482,8 @@ def run(data_settings_yml):
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
             # read-able)
-            f.write("# CPAC Data Configuration File\n# Version 1.0.3\n")
+            f.write("# CPAC Data Configuration File\n# Version {0}"
+                    "\n".format(CPAC.__version__))
             f.write("#\n# http://fcp-indi.github.io for more info.\n#\n"
                     "# Tip: This file can be edited manually with "
                     "a text editor for quick modifications.\n\n")
