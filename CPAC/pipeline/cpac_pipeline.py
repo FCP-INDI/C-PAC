@@ -1405,16 +1405,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
             try:
-                if c.TR:
-                    if isinstance(c.TR, str):
-                        if "None" in c.TR or "none" in c.TR:
-                            pass
-                        else:
-                            workflow.connect(scan_params, 'tr',
-                                             func_slice_timing_correction, 'tr')
-                    else:
-                        workflow.connect(scan_params, 'tr',
-                                         func_slice_timing_correction, 'tr')
+                workflow.connect(scan_params, 'tr',
+                                 func_slice_timing_correction, 'tr')
             except Exception as xxx:
                 logger.info(
                     "Error connecting input 'tr' to func_slice_timing_"
@@ -4866,8 +4858,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
      QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    # TODO - QA pages: re-introduce
-    '''
+
     if 1 in c.generateQualityControlImages:
 
         #register color palettes
@@ -4916,7 +4907,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 output_names=['new_fname'],
                                                     function=gen_std_dev),
                                     name='std_dev_%d' % num_strat)
-
+                                    #all functional calls are in the pipeline figure#
                 std_dev_anat = pe.Node(util.Function(input_names=['func_',
                                                                     'ref_',
                                                                     'xfm_',
@@ -4942,7 +4933,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 montage_snr = create_montage('montage_snr_%d' % num_strat,
                                 'red_to_blue', 'snr')
 
-
+#Are you making connections here in the pipeline because there is not inputspec and outputspec in the qc scripts indivually???#
                 workflow.connect(preproc, out_file,
                                     std_dev, 'func_')
 
@@ -5027,16 +5018,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if 'gen_motion_stats' in nodes:
 
                 try:
+                    if c.fdCalc == 'Power':
+                        fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_power')
+                    else:
+                        fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_jenkinson')
+                    if ("De-Spiking" in c.runMotionSpike and 1 in c.runNuisance):
+                        excluded, out_file_ex = strat.get_node_from_resource_pool('despiking_frames_excluded')
+                    elif ("Scrubbing" in c.runMotionSpike and 1 in c.runNuisance):
+                        excluded, out_file_ex = strat.get_node_from_resource_pool('scrubbing_frames_excluded')
 
-                    fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement')
-                    excluded, out_file_ex = strat.get_node_from_resource_pool('scrubbing_frames_excluded')
-
-                    fd_plot = pe.Node(util.Function(input_names=['arr',
-                                                                 'ex_vol',
-                                                                 'measure'],
-                                                    output_names=['hist_path'],
-                                                    function=gen_plot_png),
-                                      name='fd_plot_%d' % num_strat)
+                    fd_plot = pe.Node(util.Function(input_names=['arr','ex_vol','measure'],output_names=['hist_path'],function=gen_plot_png),name='fd_plot_%d' % num_strat)
                     fd_plot.inputs.measure = 'FD'
                     workflow.connect(fd, out_file,
                                      fd_plot, 'arr')
@@ -5190,7 +5181,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # make QC montage for Mean Functional in MNI with MNI edge
 
             try:
-                m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_in_mni')
+                m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_to_standard')
 
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
                                     'red', 'MNI_edge_on_mean_func_mni')   ###
@@ -5294,21 +5285,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
             # ReHo QA montages
-            if 1 in c.runReHo:
+            #if 1 in c.runReHo:
 
-                if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('reho_to_standard', 15)
-
-                    if c.fwhm != None:
-                        QA_montages('reho_to_standard_smooth', 16)
-
-                    if 1 in c.runZScoring:
-
-                        if c.fwhm != None:
-                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
-
-                        else:
-                            QA_montages('reho_to_standard_fisher_zstd', 18)
+#    if 1 in c.runRegisterFuncToMNI:
+#                    QA_montages('reho_to_standard', 15)
+#
+#                    if c.fwhm != None:
+#                        QA_montages('reho_to_standard_smooth', 16)
+#
+#                    if 1 in c.runZScoring:
+#
+#                        if c.fwhm != None:
+#                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
+#
+#                        else:
+#                            QA_montages('reho_to_standard_fisher_zstd', 18)
 
 
 
@@ -5363,7 +5354,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
             # Dual Regression QA montages
-            if (1 in c.runDualReg) and (1 in c.runSpatialRegression):
+            if ("DualReg" in sca_analysis_dict.keys()) and (1 in c.runSpatialRegression):
 
                 QA_montages('dr_tempreg_maps_files', 31)
                 QA_montages('dr_tempreg_maps_zstat_files', 32)
@@ -5398,7 +5389,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
             num_strat += 1
-    '''
+    
 
     logger.info('\n\n' + 'Pipeline building completed.' + '\n\n')
 
