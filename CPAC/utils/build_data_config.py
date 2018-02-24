@@ -29,6 +29,123 @@ def gather_file_paths(base_directory, verbose=False):
     return path_list
 
 
+def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
+
+    import os
+    from indi_aws import fetch_creds
+
+    if creds_path:
+        creds_path = os.path.abspath(creds_path)
+
+    s3_path = data_folder.split("s3://")[1]
+    bucket_name = s3_path.split("/")[0]
+    bucket_prefix = s3_path.split(bucket_name + "/")[1]
+
+    print "Pulling from {0} ...".format(data_folder)
+
+    s3_list = []
+    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+    # ensure slash at end of bucket_prefix, so that if the final
+    # directory name is a substring in other directory names, these
+    # other directories will not be pulled into the file list
+    if "/" not in bucket_prefix[-1]:
+        bucket_prefix += "/"
+
+    # Build S3-subjects to download
+    for bk in bucket.objects.filter(Prefix=bucket_prefix):
+        if keep_prefix:
+            fullpath = os.path.join("s3://", bucket_name, str(bk.key))
+            s3_list.append(fullpath)
+        else:
+            s3_list.append(str(bk.key).replace(bucket_prefix, ""))
+
+    print "Finished pulling from S3. " \
+          "{0} file paths found.".format(len(s3_list))
+
+    if not s3_list:
+        err = "\n\n[!] No input data found matching your data settings in " \
+              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        raise Exception(err)
+
+    return s3_list
+
+
+def get_file_list(base_directory, creds_path=None, write_txt=None,
+                  write_pkl=None, write_info=False):
+
+    import os
+
+    if "s3://" in base_directory:
+        # AWS S3 bucket
+        file_list = pull_s3_sublist(base_directory, creds_path)
+    else:
+        # local
+        base_directory = os.path.abspath(base_directory)
+        file_list = gather_file_paths(base_directory)
+
+    if len(file_list) == 0:
+        warn = "\n\n[!] No files were found in the base directory you " \
+               "provided.\n\nDirectory: {0}\n\n".format(base_directory)
+        raise Exception(warn)
+
+    if write_txt:
+        if ".txt" not in write_txt:
+            write_txt = "{0}.txt".format(write_txt)
+        write_txt = os.path.abspath(write_txt)
+        with open(write_txt, "wt") as f:
+            for path in file_list:
+                f.write("{0}\n".format(path))
+        print "\nFilepath list text file written:\n" \
+              "{0}".format(write_txt)
+
+    if write_pkl:
+        import pickle
+        if ".pkl" not in write_pkl:
+            write_pkl = "{0}.pkl".format(write_pkl)
+        write_pkl = os.path.abspath(write_pkl)
+        with open(write_pkl, "wt") as f:
+            pickle.dump(file_list, f)
+        print "\nFilepath list pickle file written:\n" \
+              "{0}".format(write_pkl)
+
+    if write_info:
+        niftis = []
+        jsons = []
+        scan_jsons = []
+        csvs = []
+        tsvs = []
+        part_tsvs = []
+        for path in file_list:
+            if ".nii" in path:
+                niftis.append(path)
+            elif ".json" in path:
+                jsons.append(path)
+                if "bold.json" in path:
+                    scan_jsons.append(path)
+            elif ".csv" in path:
+                csvs.append(path)
+            elif ".tsv" in path:
+                tsvs.append(path)
+                if "participants.tsv" in path:
+                    part_tsvs.append(path)
+
+        print "\nBase directory: {0}".format(base_directory)
+        print "File paths found: {0}".format(len(file_list))
+        print "..NIFTI files: {0}".format(len(niftis))
+        print "..JSON files: {0}".format(len(jsons))
+        if jsons:
+            print "....{0} of which are scan parameter JSON files" \
+                  "".format(len(scan_jsons))
+        print "..CSV files: {0}".format(len(csvs))
+        print "..TSV files: {0}".format(len(tsvs))
+        if tsvs:
+            print "....{0} of which are participants.tsv files" \
+                  "".format(len(part_tsvs))
+
+    return file_list
+
+
 def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
                             overwrite=False):
     """Download a single file from an AWS s3 bucket.
@@ -77,48 +194,6 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
         aws_utils.s3_download(bucket, ([data_dir], [local_dl]))
 
     return local_dl
-
-
-def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
-
-    import os
-    from indi_aws import fetch_creds
-
-    if creds_path:
-        creds_path = os.path.abspath(creds_path)
-
-    s3_path = data_folder.split("s3://")[1]
-    bucket_name = s3_path.split("/")[0]
-    bucket_prefix = s3_path.split(bucket_name + "/")[1]
-
-    print "Pulling from {0} ...".format(data_folder)
-
-    s3_list = []
-    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
-
-    # ensure slash at end of bucket_prefix, so that if the final
-    # directory name is a substring in other directory names, these
-    # other directories will not be pulled into the file list
-    if "/" not in bucket_prefix[-1]:
-        bucket_prefix += "/"
-
-    # Build S3-subjects to download
-    for bk in bucket.objects.filter(Prefix=bucket_prefix):
-        if keep_prefix:
-            fullpath = os.path.join("s3://", bucket_name, str(bk.key))
-            s3_list.append(fullpath)
-        else:
-            s3_list.append(str(bk.key).replace(bucket_prefix, ""))
-
-    print "Finished pulling from S3. " \
-          "{0} file paths found.".format(len(s3_list))
-
-    if not s3_list:
-        err = "\n\n[!] No input data found matching your data settings in " \
-              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
-        raise Exception(err)
-
-    return s3_list
 
 
 def extract_scan_params_csv(scan_params_csv):
@@ -286,6 +361,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                       exclusion_dct=None, config_dir=None):
 
     import os
+    import re
     import glob
 
     if not config_dir:
@@ -330,22 +406,37 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
+    '''
     site_jsons_glob = os.path.join(bids_base_dir, "*bold.json")
     sub_jsons_glob = os.path.join(bids_base_dir, "*sub-*/*bold.json")
-    ses_jsons_glob = os.path.join(bids_base_dir, "*sub-*/ses-*/*bold.json")
+    ses_jsons_glob = os.path.join(bids_base_dir, "*ses-*bold.json")
+    ses_scan_jsons_glob = os.path.join(bids_base_dir, "*ses-*task-*bold.json")
+    scan_jsons_glob = os.path.join(bids_base_dir, "*task-*bold.json")
+    '''
 
     site_dir_glob = os.path.join(bids_base_dir, "*", "sub-*/*/*.nii*")
+
+    json_globs = [os.path.join(bids_base_dir, "sub-*/ses-*/func/*bold.json"),
+                  os.path.join(bids_base_dir, "sub-*/ses-*/*bold.json"),
+                  os.path.join(bids_base_dir, "sub-*/func/*bold.json"),
+                  os.path.join(bids_base_dir, "sub-*/*bold.json"),
+                  os.path.join(bids_base_dir, "*bold.json")]
+
+    site_json_globs = [os.path.join(bids_base_dir, "*/sub-*/ses-*/func/*bold.json"),
+                       os.path.join(bids_base_dir, "*/sub-*/ses-*/*bold.json"),
+                       os.path.join(bids_base_dir, "*/sub-*/func/*bold.json"),
+                       os.path.join(bids_base_dir, "*/sub-*/*bold.json"),
+                       os.path.join(bids_base_dir, "*/*bold.json")]
 
     ses = False
     site_dir = False
     part_tsv = None
 
+    site_jsons = []
+    jsons = []
+
     if file_list:
         import fnmatch
-
-        site_jsons = []
-        sub_jsons = []
-        ses_jsons = []
 
         for filepath in file_list:
 
@@ -363,12 +454,14 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 # check if there is a participants.tsv file
                 part_tsv = filepath
 
-            if fnmatch.fnmatch(filepath, ses_jsons_glob):
-                ses_jsons.append(filepath)
-            if fnmatch.fnmatch(filepath, sub_jsons_glob):
-                sub_jsons.append(filepath)
-            if fnmatch.fnmatch(filepath, site_jsons_glob):
-                site_jsons.append(filepath)
+            for glob_str in site_json_globs:
+                site_dir = True
+                if fnmatch.fnmatch(filepath, glob_str):
+                    site_jsons.append(filepath)
+
+            for glob_str in json_globs:
+                if fnmatch.fnmatch(filepath, glob_str):
+                    jsons.append(filepath)
 
     else:
         if len(glob.glob(site_dir_glob)) > 0:
@@ -384,9 +477,12 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
         # check if there is a participants.tsv file
         part_tsv = glob.glob(part_tsv_glob)
-        site_jsons = glob.glob(site_jsons_glob)
-        sub_jsons = glob.glob(sub_jsons_glob)
-        ses_jsons = glob.glob(ses_jsons_glob)
+
+        for glob_str in site_json_globs:
+            site_jsons = site_jsons + glob.glob(glob_str)
+
+        for glob_str in json_globs:
+            jsons = jsons + glob.glob(glob_str)
 
     sites_dct = {}
     sites_subs_dct = {}
@@ -467,75 +563,124 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     scan_params_dct = {}
 
-    if len(ses_jsons) > 0:
-        for json_file in ses_jsons:
-            ids = os.path.basename(json_file).rstrip(".json").split("_")
+    if site_jsons:
+        # if there is a site-level directory in the BIDS dataset (not BIDS
+        # compliant)
+        #     example: /bids_dir/site01/sub-01/func/sub-01_task-rest_bold.json
+        #     instead of /bids_dir/sub-01/func/sub-01_task-rest_bold.json
+        for json_file in site_jsons:
+
+            # get site ID
+            site_id = json_file.replace("{0}/".format(bids_base_dir), "").split("/")[0]
+            if "site-" in site_id:
+                site_id = site_id.replace("site-", "")
+
+            # get other IDs, from the BIDS format tags, such as "sub-01" or
+            # "task-rest". also handle things like "task-rest_run-1"
+            ids = re.split("/|_", json_file)
+
+            sub_id = "All"
+            ses_id = "All"
+            scan_id = "All"
+            run_id = None
+            acq_id = None
+
             for id in ids:
                 if "sub-" in id:
                     sub_id = id.replace("sub-", "")
                 if "ses-" in id:
                     ses_id = id.replace("ses-", "")
+                if "task-" in id:
+                    scan_id = id.replace("task-", "")
+                if "run-" in id:
+                    run_id = id.replace("run-", "")
+                if "acq-" in id:
+                    acq_id = id.replace("acq-", "")
 
-            site_id = "All"
-            if sites_subs_dct:
-                if sub_id in sites_subs_dct.keys():
-                    site_id = sites_subs_dct[sub_id]
+            if run_id or acq_id:
+                json_filename = os.path.basename(json_file)
+                if "task-" in json_filename:
+                    # if we have a scan ID already, get the "full" scan ID
+                    # including any run- and acq- tags, since the rest of
+                    # CPAC encodes all of the task-, acq-, and run- tags
+                    # together for each series/scan
+                    scan_id = json_filename.split("task-")[1].split("_bold")[0]
+                elif "_" in json_filename:
+                    # if this is an all-scan JSON file, but specific only to
+                    # the run or acquisition: create a tag that reads
+                    # {All}_run-1, for example, to be interpreted later when
+                    # matching scan params JSONs to each func scan
+                    scan_id = "[All]"
+                    for id in json_filename.split("_"):
+                        if "run-" in id or "acq-" in id:
+                            scan_id = "{0}_{1}".format(scan_id, id)
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
             if sub_id not in scan_params_dct[site_id].keys():
                 scan_params_dct[site_id][sub_id] = {}
+            if ses_id not in scan_params_dct[site_id][sub_id].keys():
+                scan_params_dct[site_id][sub_id][ses_id] = {}
 
-            scan_params_dct[site_id][sub_id][ses_id] = json_file
+            scan_params_dct[site_id][sub_id][ses_id][scan_id] = json_file
 
-    if len(sub_jsons) > 0:
-        for json_file in sub_jsons:
-            ids = os.path.basename(json_file).rstrip(".json").split("_")
+            # scan_id can now be something like {All}_run-2, change other code
+
+    elif jsons:
+        for json_file in jsons:
+
+            # get other IDs, from the BIDS format tags, such as "sub-01" or
+            # "task-rest". also handle things like "task-rest_run-1"
+            ids = re.split("/|_", json_file)
+
+            site_id = "All"
+            sub_id = "All"
+            ses_id = "All"
+            scan_id = "All"
+            run_id = None
+            acq_id = None
+
             for id in ids:
                 if "sub-" in id:
                     sub_id = id.replace("sub-", "")
+                if "ses-" in id:
+                    ses_id = id.replace("ses-", "")
+                if "task-" in id:
+                    scan_id = id.replace("task-", "")
+                if "run-" in id:
+                    run_id = id.replace("run-", "")
+                if "acq-" in id:
+                    acq_id = id.replace("acq-", "")
 
-            site_id = "All"
-            if sites_subs_dct:
-                if sub_id in sites_subs_dct.keys():
-                    site_id = sites_subs_dct[sub_id]
+            if run_id or acq_id:
+                json_filename = os.path.basename(json_file)
+                if "task-" in json_filename:
+                    # if we have a scan ID already, get the "full" scan ID
+                    # including any run- and acq- tags, since the rest of
+                    # CPAC encodes all of the task-, acq-, and run- tags
+                    # together for each series/scan
+                    scan_id = json_filename.split("task-")[1].split("_bold")[
+                        0]
+                elif "_" in json_filename:
+                    # if this is an all-scan JSON file, but specific only to
+                    # the run or acquisition: create a tag that reads
+                    # {All}_run-1, for example, to be interpreted later when
+                    # matching scan params JSONs to each func scan
+                    scan_id = "[All]"
+                    for id in json_filename.split("_"):
+                        if "run-" in id or "acq-" in id:
+                            scan_id = "{0}_{1}".format(scan_id, id)
 
             if site_id not in scan_params_dct.keys():
                 scan_params_dct[site_id] = {}
             if sub_id not in scan_params_dct[site_id].keys():
                 scan_params_dct[site_id][sub_id] = {}
+            if ses_id not in scan_params_dct[site_id][sub_id].keys():
+                scan_params_dct[site_id][sub_id][ses_id] = {}
 
-            scan_params_dct[site_id][sub_id]["All"] = json_file
+            scan_params_dct[site_id][sub_id][ses_id][scan_id] = json_file
 
-    if len(site_jsons) > 0:
-        if len(site_jsons) > 1:
-            if not site_dir:
-                print "\nMore than one dataset-level JSON file. These may " \
-                      "be scan-specific JSON files. Scan-specific scan " \
-                      "parameters will be implemented soon. Files detected:"
-                for json in site_jsons:
-                    print "...{0}".format(json)
-                print "\n"
-            else:
-                # if this kicks, then there is a site directory level, and the
-                # site-specific JSON is sitting in it alongside the sub-*
-                # participant ID folders
-                for json in site_jsons:
-                    json_levels = json.split("/")
-                    site_name = json_levels[-2]
-                    if site_name not in scan_params_dct.keys():
-                        scan_params_dct[site_name] = {}
-                    if "All" not in scan_params_dct[site_name].keys():
-                        scan_params_dct[site_name]["All"] = {}
-                    scan_params_dct[site_name]["All"]["All"] = json
-        else:
-            if "All" not in scan_params_dct.keys():
-                scan_params_dct["All"] = {}
-            if "All" not in scan_params_dct["All"].keys():
-                scan_params_dct["All"]["All"] = {}
-
-            for json_file in site_jsons:
-                scan_params_dct["All"]["All"]["All"] = json_file
+            # scan_id can now be something like {All}_run-2, change other code
 
     if ses:
         # if there is a session level in the BIDS dataset
@@ -606,9 +751,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
         func_glob = func_glob.replace('{series}', '{scan}')
 
     if '{scan}' in anat_glob:
-        err = "\n[!] CPAC does not support multiple anatomical scans at " \
-              "this time. You are seeing this message because you have a " \
-              "{scan} or {series} keyword in your anatomical path template.\n"
+        err = "\n[!] CPAC does not support multiple anatomical scans. You " \
+              "are seeing this message because you have a {scan} or " \
+              "{series} keyword in your anatomical path template.\n\nSee " \
+              "the help details for the 'Which Anatomical Scan?' " \
+              "(anatomical_scan) setting for more information.\n\n"
         raise Exception(err)
 
     for keyword in keywords:
@@ -695,17 +842,6 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             if label == "*":
                 continue
 
-            # example: /home/{site}/*/ses-{session}/..
-            #          /home/NYU/folder1/ses-1/..
-            #          part1 = /home/, part2 = /*/ses-
-            #          first split ->  ['', 'NYU/folder1/ses-1/..']
-            #              (pick second item)
-            #          what it would be -> ['NYU/folder1/ses-1/..'] because /*/ses-1 doesn't exist in there
-            #          what we want     -> ['NYU', '1/..']
-            #              (pick first item)
-            # so, '/*/ses-', we want to transform into '/folder1/ses-'
-            # TODO: BASICALLY we want to convert the TEMPLATE so that its actual * will be filled with the current real path's real substring!
-
             id = new_path.split(part1, 1)[1]
             id = id.split(part2, 1)[0]
 
@@ -715,21 +851,19 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             else:
                 warn = None
                 if path_dct[label] != id:
-                    if str(path_dct[label]) in id and "run-" in id:
-                        # TODO: this is here only because we do not support
-                        # TODO: multiple anat scans yet!!
-                        if "run-1" in id:
-                            warn = None
-                            pass
-                        else:
-                            warn = "\n\n[!] WARNING: Multiple anatomical " \
-                                   "scans found for a single participant. " \
-                                   "Multiple anatomical scans are not yet " \
-                                   "supported. Review the completed data " \
-                                   "configuration file to ensure the " \
-                                   "proper scans are included together.\n\n" \
-                                   "Scan not included:\n{0}" \
-                                   "\n\n".format(anat_path)
+                    if str(path_dct[label]) in id:
+                        warn = "\n\n[!] WARNING: Multiple anatomical " \
+                               "scans found for a single participant. " \
+                               "One anatomical scan must be selected " \
+                               "for the pipeline run. You can use the " \
+                               "'Which Anatomical Scan?' (anatomical_" \
+                               "scan) setting in the data config" \
+                               "uration builder to select which one to " \
+                               "use. Otherwise, review the completed " \
+                               "data configuration file to ensure the " \
+                               "proper scans are included together.\n\n" \
+                               "Scan not included:\n{0}" \
+                               "\n\n".format(anat_path)
                     else:
                         warn = "\n\n[!] WARNING: While parsing your input " \
                                "data files, a file path was found with " \
@@ -949,56 +1083,154 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 if scan_id in exclusion_dct['scans']:
                     continue
 
-        temp_func_dct = {scan_id: func_path}
+        temp_func_dct = {scan_id: {"scan": func_path}}
 
         # scan parameters time
         scan_params = None
 
         if scan_params_dct:
 
-            # TODO: implement scan-specific level once scan-level nesting is
-            # TODO: available
-
             if site_id in scan_params_dct.keys():
+                # all site-specific
                 if sub_id in scan_params_dct[site_id].keys():
+                    # all site-specific and sub-specific
                     if ses_id in scan_params_dct[site_id][sub_id].keys():
-                        # site, sub, session specific scan params
-                        scan_params = scan_params_dct[site_id][sub_id][ses_id]
+                        if scan_id in scan_params_dct[site_id][sub_id][ses_id].keys():
+                            # site, sub, session, scan specific scan params
+                            scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct[site_id][sub_id][ses_id].keys():
+                                scan_params = scan_params_dct[site_id][sub_id][ses_id][run_acq_id]
+                        elif 'All' in scan_params_dct[site_id][sub_id][ses_id].keys():
+                            # site, sub, session specific scan params
+                            scan_params = scan_params_dct[site_id][sub_id][ses_id]['All']
                     elif 'All' in scan_params_dct[site_id][sub_id].keys():
-                        # site and sub specific scan params, same across all
-                        # sessions
-                        scan_params = scan_params_dct[site_id][sub_id]['All']
+                        if scan_id in scan_params_dct[site_id][sub_id]['All'].keys():
+                            # site, sub, scan specific scan params
+                            scan_params = scan_params_dct[site_id][sub_id]['All'][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct[site_id][sub_id]['All'].keys():
+                                scan_params = scan_params_dct[site_id][sub_id]['All'][run_acq_id]
+                        elif 'All' in scan_params_dct[site_id][sub_id]['All'].keys():
+                            # site and sub specific scan params, same across
+                            # all sessions and scans
+                            scan_params = scan_params_dct[site_id][sub_id]['All']['All']
                 elif "All" in scan_params_dct[site_id].keys():
+                    # same across all subs
                     if ses_id in scan_params_dct[site_id]["All"].keys():
-                        # site and session specific scan params, same
-                        # across all subs
-                        scan_params = scan_params_dct[site_id]["All"][ses_id]
+                        if scan_id in scan_params_dct[site_id]["All"][ses_id].keys():
+                            # site, session, scan specific, same across all
+                            # subs
+                            scan_params = scan_params_dct[site_id]["All"][ses_id][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct[site_id]["All"][ses_id].keys():
+                                scan_params = scan_params_dct[site_id]["All"][ses_id][run_acq_id]
+                        elif "All" in scan_params_dct[site_id]["All"][ses_id].keys():
+                            # site and session specific scan params, same
+                            # across all subs and scans
+                            scan_params = scan_params_dct[site_id]["All"][ses_id]["All"]
                     elif "All" in scan_params_dct[site_id]["All"].keys():
-                        # site specific scan params, same across all subs
-                        # and sessions
-                        scan_params = scan_params_dct[site_id]["All"]["All"]
+                        # TODO: but what about task-rest_acq-1 but for all runs???
+                        # TODO: scan_id would be rest_acq-1_run-1, but scan_params_dct tag would be rest_acq-1
+                        if scan_id in scan_params_dct[site_id]["All"]["All"].keys():
+                            # site and scan specific, same across all subs and
+                            # all sessions
+                            scan_params = scan_params_dct[site_id]["All"]["All"][scan_id]
+                        elif "run-" in scan_id and "acq-" in scan_id:
+                            # not scan specific, but run and acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct[site_id]["All"]["All"].keys():
+                                scan_params = scan_params_dct[site_id]["All"]["All"][run_acq_id]
+                            elif "acq-" in scan_id:
+                                # not scan or run specific, but acquisition
+                                # specific
+                                acq_id = "[All]_{0}".format(scan_id.split("acq-")[1].split("_")[0])
+                                if site_id == "NKI_TRT":
+                                    print acq_id
+                                    print scan_params_dct[site_id]["All"]["All"].keys()
+                                if acq_id in scan_params_dct[site_id]["All"]["All"].keys():
+                                    scan_params = scan_params_dct[site_id]["All"]["All"][acq_id]
+                        elif "All" in scan_params_dct[site_id]["All"]["All"].keys():
+                            # site specific scan params, same across all subs,
+                            # sessions, and scans
+                            scan_params = scan_params_dct[site_id]["All"]["All"]["All"]
 
             elif "All" in scan_params_dct.keys():
+                # not site specific
                 if sub_id in scan_params_dct["All"].keys():
+                    # sub-specific
                     if ses_id in scan_params_dct["All"][sub_id].keys():
-                        # sub and session specific scan params, same across
-                        # all sites
-                        scan_params = scan_params_dct["All"][sub_id][ses_id]
+                        if scan_id in scan_params_dct["All"][sub_id][ses_id].keys():
+                            # sub, session, scan specific, same across all
+                            # sites (or no site specified)
+                            scan_params = scan_params_dct["All"][sub_id][ses_id][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct["All"][sub_id][ses_id].keys():
+                                scan_params = scan_params_dct["All"][sub_id][ses_id][run_acq_id]
+                        elif "All" in scan_params_dct["All"][sub_id][ses_id].keys():
+                            # sub, session specific, same across all scans and
+                            # sites (or site and scan not specified)
+                            scan_params = scan_params_dct["All"][sub_id][ses_id][scan_id]["All"]
                     elif "All" in scan_params_dct["All"][sub_id].keys():
-                        # sub specific scan params, same across all sites and
-                        # sessions
-                        scan_params = scan_params_dct["All"][sub_id]["All"]
+                        if scan_id in scan_params_dct["All"][sub_id]["All"].keys():
+                            # sub and scan specific, same across all sites and
+                            # sessions (or site and session not specified)
+                            scan_params = scan_params_dct["All"][sub_id]["All"][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct["All"][sub_id]["All"].keys():
+                                scan_params = scan_params_dct["All"][sub_id]["All"][run_acq_id]
+                        elif "All" in scan_params_dct["All"][sub_id]["All"].keys():
+                            # sub specific, same across all sites, sessions,
+                            # and scans (or site, session, and scan not
+                            # specified)
+                            scan_params = scan_params_dct["All"][sub_id]["All"]["All"]
                 elif "All" in scan_params_dct["All"].keys():
                     if ses_id in scan_params_dct["All"]["All"].keys():
-                        # session-specific scan params, same across all sites
-                        # and subs
-                        scan_params = scan_params_dct["All"]["All"][ses_id]
+                        if scan_id in scan_params_dct["All"]["All"][ses_id].keys():
+                            # session and scan specific only
+                            scan_params = scan_params_dct["All"]["All"][ses_id][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct["All"]["All"][ses_id].keys():
+                                scan_params = scan_params_dct["All"]["All"][ses_id][run_acq_id]
+                        elif "All" in scan_params_dct["All"]["All"][ses_id].keys():
+                            # session specific only
+                            scan_params = scan_params_dct["All"]["All"][ses_id]["All"]
                     elif "All" in scan_params_dct["All"]["All"].keys():
-                        # same scan params across all sites and sessions
-                        scan_params = scan_params_dct["All"]["All"]["All"]
+                        if scan_id in scan_params_dct["All"]["All"]["All"].keys():
+                            # scan specific only
+                            scan_params = scan_params_dct["All"]["All"]["All"][scan_id]
+                        elif "run-" in scan_id or "acq-" in scan_id:
+                            # not scan specific, but run and/or acquisition
+                            # specific
+                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
+                            if run_acq_id in scan_params_dct["All"]["All"]["All"].keys():
+                                scan_params = scan_params_dct["All"]["All"]["All"][run_acq_id]
+                        elif "All" in scan_params_dct["All"]["All"]["All"].keys():
+                            # same scan params across all sites, subs,
+                            # sessions, and scans
+                            scan_params = scan_params_dct["All"]["All"]["All"]["All"]
 
         if scan_params:
-            temp_func_dct.update({'scan_parameters': scan_params})
+            temp_func_dct[scan_id].update({'scan_parameters': scan_params})
 
         if site_id not in data_dct.keys():
             if verbose:
@@ -1104,6 +1336,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 else:
                     warn = None
                     if path_dct[label] != id:
+                        '''
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
                             # TODO: support scan-level nesting yet!!!
@@ -1117,15 +1350,16 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    "File not included:\n{0}" \
                                    "\n\n".format(fmap_phase)
                         else:
-                            warn = "\n\n[!] WARNING: While parsing your input data " \
-                                   "files, a file path was found with conflicting " \
-                                   "IDs for the same data level.\n\n" \
-                                   "File path: {0}\n" \
-                                   "Level: {1}\n" \
-                                   "Conflicting IDs: {2}, {3}\n\n" \
-                                   "This file has not been added to the data " \
-                                   "configuration.".format(fmap_phase, label,
-                                                           path_dct[label], id)
+                        '''
+                        warn = "\n\n[!] WARNING: While parsing your input data " \
+                               "files, a file path was found with conflicting " \
+                               "IDs for the same data level.\n\n" \
+                               "File path: {0}\n" \
+                               "Level: {1}\n" \
+                               "Conflicting IDs: {2}, {3}\n\n" \
+                               "This file has not been added to the data " \
+                               "configuration.".format(fmap_phase, label,
+                                                       path_dct[label], id)
                     if warn:
                         print warn
                         skip = True
@@ -1166,7 +1400,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             else:
                 scan_id = None
 
-            temp_fmap_dct = {"phase_diff": fmap_phase}
+            temp_fmap_dct = {"fmap_phase": fmap_phase}
 
             if site_id not in data_dct.keys():
                 if verbose:
@@ -1186,17 +1420,10 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 continue
 
             if scan_id:
-                # if the field map files are at scan level
-                if 'fmap' not in data_dct[site_id][sub_id][ses_id][scan_id].keys():
-                    data_dct[site_id][sub_id][ses_id][scan_id]['fmap'] = temp_fmap_dct
-                else:
-                    data_dct[site_id][sub_id][ses_id][scan_id]['fmap'].update(temp_fmap_dct)
+                data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
             else:
-                # if the field map fields are at session level
-                if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
-                    data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
-                else:
-                    data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
+                for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
+                    data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
 
         for fmap_mag in fmap_mag_pool:
 
@@ -1244,6 +1471,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                 else:
                     warn = None
                     if path_dct[label] != id:
+                        '''
                         if str(path_dct[label]) in id and "run-" in id:
                             # TODO: this is here only because we do not
                             # TODO: support scan-level nesting yet!!!
@@ -1257,15 +1485,16 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                                    "File not included:\n{0}" \
                                    "\n\n".format(fmap_phase)
                         else:
-                            warn = "\n\n[!] WARNING: While parsing your input data " \
-                                   "files, a file path was found with conflicting " \
-                                   "IDs for the same data level.\n\n" \
-                                   "File path: {0}\n" \
-                                   "Level: {1}\n" \
-                                   "Conflicting IDs: {2}, {3}\n\n" \
-                                   "This file has not been added to the data " \
-                                   "configuration.".format(fmap_mag, label,
-                                                           path_dct[label], id)
+                        '''
+                        warn = "\n\n[!] WARNING: While parsing your input data " \
+                               "files, a file path was found with conflicting " \
+                               "IDs for the same data level.\n\n" \
+                               "File path: {0}\n" \
+                               "Level: {1}\n" \
+                               "Conflicting IDs: {2}, {3}\n\n" \
+                               "This file has not been added to the data " \
+                               "configuration.".format(fmap_mag, label,
+                                                       path_dct[label], id)
                     if warn:
                         print warn
                         skip = True
@@ -1306,7 +1535,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             else:
                 scan_id = None
 
-            temp_fmap_dct = {"magnitude": fmap_mag}
+            temp_fmap_dct = {"fmap_mag": fmap_mag}
 
             if site_id not in data_dct.keys():
                 if verbose:
@@ -1325,29 +1554,11 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                           "session:\n{0}\n{1}\n".format(fmap_mag, ses_id)
                 continue
 
-            # TODO: reintroduce once scan-level nesting is implemented
-            '''
             if scan_id:
-                # if the field map files are at scan level
-                if 'fmap' not in data_dct[site_id][sub_id][ses_id][scan_id].keys():
-                    data_dct[site_id][sub_id][ses_id]['func'][scan_id]['fmap'] = temp_fmap_dct
-                else:
-                    data_dct[site_id][sub_id][ses_id]['func'][scan_id]['fmap'].update(temp_fmap_dct)
-
+                data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
             else:
-                # if the field map fields are at session level
-                if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
-                    data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
-                else:
-                    data_dct[site_id][sub_id][ses_id]['fmap'].update(temp_fmap_dct)
-            '''
-
-            # if the field map fields are at session level
-            if 'fmap' not in data_dct[site_id][sub_id][ses_id].keys():
-                data_dct[site_id][sub_id][ses_id]['fmap'] = temp_fmap_dct
-            else:
-                data_dct[site_id][sub_id][ses_id]['fmap'].update(
-                    temp_fmap_dct)
+                for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
+                    data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
 
     return data_dct
 
@@ -1366,6 +1577,10 @@ def run(data_settings_yml):
     if "None" in settings_dct["awsCredentialsFile"]:
         settings_dct["awsCredentialsFile"] = None
 
+    if "None" in settings_dct["anatomical_scan"] or \
+            "none" in settings_dct["anatomical_scan"]:
+        settings_dct["anatomical_scan"] = None
+
     incl_dct = format_incl_excl_dct(settings_dct['siteList'],
                                     settings_dct['subjectList'],
                                     settings_dct['sessionList'],
@@ -1379,17 +1594,8 @@ def run(data_settings_yml):
     if 'BIDS' in settings_dct['dataFormat'] or \
             'bids' in settings_dct['dataFormat']:
 
-        if "s3://" in settings_dct['bidsBaseDir']:
-            # hosted on AWS S3 bucket
-            file_list = pull_s3_sublist(settings_dct['bidsBaseDir'],
-                                        settings_dct['awsCredentialsFile'])
-        else:
-            # local (not on AWS S3 bucket), BIDS files
-            if not os.path.isdir(settings_dct['bidsBaseDir']):
-                err = "\n[!] The BIDS base directory you provided does not " \
-                      "exist:\n{0}\n\n".format(settings_dct['bidsBaseDir'])
-                raise Exception(err)
-            file_list = None
+        file_list = get_file_list(settings_dct["bidsBaseDir"],
+                                  creds_path=settings_dct["awsCredentialsFile"])
 
         data_dct = get_BIDS_data_dct(settings_dct['bidsBaseDir'],
                                      file_list=file_list,
@@ -1463,8 +1669,7 @@ def run(data_settings_yml):
                 for session in data_dct[site][sub].keys():
                     if 'func' in data_dct[site][sub][session].keys():
                         for scan in data_dct[site][sub][session]['func'].keys():
-                            if scan != "scan_parameters":
-                                num_scan += 1
+                            num_scan += 1
 
         data_config_outfile = \
             os.path.join(settings_dct['outputSubjectListLocation'],

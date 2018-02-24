@@ -1082,24 +1082,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         except KeyError:
             func_paths_dict = sub_dict['rest']
 
-        # for now, pull in field maps if they exist
-        fmap_phasediff = None
-        fmap_mag = None
-        if 'fmap' in sub_dict.keys():
-
-            try:
-                fmap_phasediff = sub_dict['fmap']['phase_diff']
-                fmap_mag = sub_dict['fmap']['magnitude']
-            except KeyError as e:
-                err = "[!] Some of the required field map files are " \
-                      "missing from your data configuration.\n\nDetails: " \
-                      "{0}\n\n".format(e)
-                raise Exception(err)
-
         try:
             funcFlow = create_func_datasource(func_paths_dict,
-                                              fmap_phasediff,
-                                              fmap_mag,
                                               'func_gather_%d' % num_strat)
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path

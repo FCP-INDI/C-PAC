@@ -3,15 +3,15 @@ import nipype.interfaces.utility as util
 
 
 def get_rest(scan, rest_dict):
-    return rest_dict[scan]
+    # return the time-series NIFTI file of the chosen series/scan
+    return rest_dict[scan]["scan"]
 
 
 def extract_scan_params_dct(scan_params_dct):
     return scan_params_dct
 
 
-def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
-                           wf_name='func_datasource'):
+def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
@@ -29,52 +29,104 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
                                                         'magnitude']),
                          name='outputspec')
 
-    # if the input data is taken from a BIDS directory
     scan_names = rest_dict.keys()
-
-    # TODO: this will need to be changed once scan-level nesting is
-    # TODO: implemented- the file name (for BIDS scan params JSON files) will
-    # TODO: have to be processed for the particular scan (task, and run) and
-    # TODO: then linked with the scan below (check the iterable inputnode
-    # TODO: parameter)
-    if "scan_parameters" in scan_names:
-        scan_names.remove("scan_parameters")
-
-        if isinstance(rest_dict["scan_parameters"], str):
-            if "s3://" in rest_dict["scan_parameters"]:
-                # if the scan parameters file is on AWS S3, download it
-                s3_scan_params = \
-                    pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
-                            name='s3_scan_params')
-
-                s3_scan_params.inputs.file_path = rest_dict["scan_parameters"]
-
-                wf.connect(inputnode, 'creds_path',
-                           s3_scan_params, 'creds_path')
-                wf.connect(s3_scan_params, 'local_path',
-                           outputnode, 'scan_params')
-
-        elif isinstance(rest_dict["scan_parameters"], dict):
-            get_scan_params_dct = \
-                    pe.Node(util.Function(input_names=['scan_params_dct'],
-                                          output_names=['scan_params_dct'],
-                                          function=extract_scan_params_dct),
-                            name='get_scan_params_dct')
-            get_scan_params_dct.inputs.scan_params_dct = \
-                rest_dict["scan_parameters"]
-            wf.connect(get_scan_params_dct, 'scan_params_dct',
-                       outputnode, 'scan_params')
+    inputnode.iterables = [('scan', scan_names)]
 
     for scan in scan_names:
-        if '.' in scan or '+' in scan or '*' in scan:
-            raise Exception('\n[!] Scan names cannot contain any special '
-                            'characters. Please update this and try again.')
 
-    inputnode.iterables = [('scan', scan_names)]
+        scan_resources = rest_dict[scan]
+
+        # actual 4D time series file
+        if "scan" not in scan_resources.keys():
+            err = "\n\n[!] The {0} scan is missing its actual time-series " \
+                  "scan file, which should be a filepath labeled with the " \
+                  "'scan' key.\n\n".format(scan)
+            raise Exception(err)
+
+        scan_file = scan_resources["scan"]
+
+        if '.' in scan_file or '+' in scan_file or '*' in scan_file:
+            raise Exception('\n\n[!] Scan names cannot contain any special '
+                            'characters (., +, *, etc.). Please update this '
+                            'and try again.\n\nScan: {0}'
+                            '\n\n'.format(scan_file))
+
+        # scan parameters CSV
+        if "scan_parameters" in scan_resources.keys():
+            if isinstance(scan_resources["scan_parameters"], str):
+                if "s3://" in scan_resources["scan_parameters"]:
+                    # if the scan parameters file is on AWS S3, download it
+                    s3_scan_params = \
+                        pe.Node(util.Function(input_names=['file_path',
+                                                           'creds_path',
+                                                           'img_type'],
+                                              output_names=['local_path'],
+                                              function=check_for_s3),
+                                name='s3_scan_params')
+
+                    s3_scan_params.inputs.file_path = \
+                        scan_resources["scan_parameters"]
+
+                    wf.connect(inputnode, 'creds_path',
+                               s3_scan_params, 'creds_path')
+                    wf.connect(s3_scan_params, 'local_path',
+                               outputnode, 'scan_params')
+
+            elif isinstance(scan_resources["scan_parameters"], dict):
+                get_scan_params_dct = \
+                        pe.Node(util.Function(input_names=['scan_params_dct'],
+                                              output_names=['scan_params_dct'],
+                                              function=extract_scan_params_dct),
+                                name='get_scan_params_dct')
+                get_scan_params_dct.inputs.scan_params_dct = \
+                    scan_resources["scan_parameters"]
+                wf.connect(get_scan_params_dct, 'scan_params_dct',
+                           outputnode, 'scan_params')
+
+        # field map files (if applicable)
+        if "fmap_phase" in scan_resources.keys():
+
+            fmap_phase = scan_resources["fmap_phase"]
+
+            if "fmap_mag" not in scan_resources.keys():
+                err = "\n\n[!] The field map phase difference file has " \
+                      "been listed for scan {0}, but there is no field " \
+                      "map magnitude file.\n\nPhase difference file " \
+                      "listed: {1}\n\n".format(scan, fmap_phase)
+                raise Exception(err)
+
+            s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
+                                                               'creds_path',
+                                                               'img_type'],
+                                                  output_names=['local_path'],
+                                                  function=check_for_s3),
+                                    name='s3_fmap_phase')
+            s3_fmap_phase.inputs.file_path = fmap_phase
+            s3_fmap_phase.inputs.img_type = "other"
+            wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
+            wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
+
+        if "fmap_mag" in scan_resources.keys():
+
+            fmap_mag = scan_resources["fmap_mag"]
+
+            if "fmap_phase" not in scan_resources.keys():
+                err = "\n\n[!] The field map magnitude file has been" \
+                      "listed for scan {0}, but there is no field map phase" \
+                      "difference file.\n\nPhase magnitude file " \
+                      "listed: {1}\n\n".format(scan, fmap_mag)
+                raise Exception(err)
+
+            s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
+                                                             'creds_path',
+                                                             'img_type'],
+                                                output_names=['local_path'],
+                                                function=check_for_s3),
+                                  name='s3_fmap_mag')
+            s3_fmap_mag.inputs.file_path = fmap_mag
+            s3_fmap_mag.inputs.img_type = "other"
+            wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
+            wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     selectrest = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
                                        output_names=['rest'],
@@ -98,30 +150,6 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
     wf.connect(inputnode, 'subject', outputnode, 'subject')
     wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
-
-    if fmap_phase and fmap_mag:
-        s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3),
-                                name='s3_fmap_phase')
-        s3_fmap_phase.inputs.file_path = fmap_phase
-        s3_fmap_phase.inputs.img_type = "other"
-        wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
-
-        s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
-                                                         'creds_path',
-                                                         'img_type'],
-                                            output_names=['local_path'],
-                                            function=check_for_s3),
-                              name='s3_fmap_mag')
-        s3_fmap_mag.inputs.file_path = fmap_mag
-        s3_fmap_mag.inputs.img_type = "other"
-        wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
-
-        wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
-        wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     return wf
 
