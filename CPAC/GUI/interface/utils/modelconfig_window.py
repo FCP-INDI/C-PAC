@@ -214,23 +214,16 @@ class ModelConfig(wx.Frame):
                       size = (200,100),
                       combo_type = 8)
 
-
         self.page.set_sizer()
-        
-        
+
         if 'group_sep' in self.gpa_settings.keys():
-
             for ctrl in self.page.get_ctrl_list():
-
                 name = ctrl.get_name()
-
                 if name == 'group_sep':
-
                     if self.gpa_settings['group_sep'] == True:
                         ctrl.set_value('On')
                     elif self.gpa_settings['group_sep'] == False:
                         ctrl.set_value('Off')
-
 
         mainSizer.Add(self.window, 1, wx.EXPAND)
 
@@ -303,7 +296,15 @@ class ModelConfig(wx.Frame):
                     ctrl.set_value(self.gpa_settings['group_sep'])
 
                 if name == 'grouping_var':
-                    ctrl.set_value(self.gpa_settings['grouping_var'])
+                    grouping_var = self.gpa_settings['grouping_var']
+
+                    if isinstance(grouping_var, list) or "[" in grouping_var:
+                        new_grouping_var = ""
+                        for cov in grouping_var:
+                            new_grouping_var += "{0},".format(cov)
+                        new_grouping_var = new_grouping_var.rstrip(",")
+
+                    ctrl.set_value(new_grouping_var)
 
                 if ("list" in name) and (name != "participant_list"):
 
@@ -328,7 +329,6 @@ class ModelConfig(wx.Frame):
 
                     ctrl.set_value(new_derlist)
 
-
     def cancel(self, event):
         self.Close()
 
@@ -338,7 +338,6 @@ class ModelConfig(wx.Frame):
         win.SetFocus()
         win.Refresh()
         raise ValueError
-   
 
     ''' button: LOAD SETTINGS '''
     def load(self, event):
@@ -363,8 +362,7 @@ class ModelConfig(wx.Frame):
             # load the group analysis .yml config file (in dictionary form)
             # into the self.gpa_settings dictionary which holds all settings
             self.gpa_settings = config_map
-            
-            
+
             if self.gpa_settings is None:
                 errDlgFileTest = wx.MessageDialog(
                     self, "Error reading file - group analysis " \
@@ -392,7 +390,6 @@ class ModelConfig(wx.Frame):
                     if ctrl.get_name() == 'model_setup':
                         ctrl.set_value(phenoHeaderItems)
                         ctrl.set_selection(self.gpa_settings['ev_selections'])
-
 
             # populate the rest of the controls
             for ctrl in self.page.get_ctrl_list():
@@ -425,21 +422,30 @@ class ModelConfig(wx.Frame):
                         ctrl.set_value(None)
 
                 elif name == 'z_threshold' or name == 'p_threshold':
-                    value = value[0]
-                    ctrl.set_value(value)
+                    try:
+                        value = value[0]
+                        ctrl.set_value(value)
+                    except TypeError:
+                        # if the user has put it in as a float and not a list
+                        ctrl.set_value(str(value))
                     
                 elif name == 'group_sep':
                     value = s_map.get(value)
-                    ctrl.set_value(value)                
+                    ctrl.set_value(value)
+
+                elif name == 'grouping_var':
+                    if isinstance(value, list) or "[" in value:
+                        grouping_var = ""
+                        for cov in value:
+                            grouping_var += "{0},".format(cov)
+                        grouping_var = grouping_var.rstrip(",")
+
+                    ctrl.set_value(grouping_var)
 
                 elif name != 'model_setup' and name != 'derivative_list':
                     ctrl.set_value(value)
-                
 
             dlg.Destroy()
-
-
-
 
     def read_phenotypic(self, pheno_file, ev_selections):
 
@@ -450,8 +456,6 @@ class ModelConfig(wx.Frame):
         # Read in the phenotypic CSV file into a dictionary named pheno_dict
         # while preserving the header fields as they correspond to the data
         p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
-
-        #pheno_dict_list = []
         
         # dictionary to store the data in a format Patsy can use
         # i.e. a dictionary where each header is a key, and the value is a
@@ -492,7 +496,6 @@ class ModelConfig(wx.Frame):
 
 
         return pheno_data_dict
-
 
           
     ''' button: LOAD PHENOTYPE FILE '''
@@ -577,7 +580,6 @@ class ModelConfig(wx.Frame):
                 for sub in self.subs:  
                     if sub in row:
                         break
-                
 
         for ctrl in self.page.get_ctrl_list():
 
@@ -616,7 +618,6 @@ class ModelConfig(wx.Frame):
                 ctrl.set_value(formula_string)
 
 
-
     ''' button: NEXT '''
     def load_next_stage(self, event):
 
@@ -628,8 +629,7 @@ class ModelConfig(wx.Frame):
             name = ctrl.get_name()
 
             self.gpa_settings[name] = str(ctrl.get_selection())
-            
-                
+
         ### CHECK PHENOFILE if can open etc.
         
         # function for file path checking
@@ -649,12 +649,10 @@ class ModelConfig(wx.Frame):
                 errDlgFileTest.ShowModal()
                 errDlgFileTest.Destroy()
                 raise Exception
-                
-        
+
         testFile(self.gpa_settings['participant_list'], 'Participant List')
         testFile(self.gpa_settings['pheno_file'], 'Phenotype/EV File')
 
-     
         phenoFile = open(os.path.abspath(self.gpa_settings['pheno_file']),"rU")
 
         phenoHeaderString = phenoFile.readline().rstrip('\r\n')
@@ -671,8 +669,6 @@ class ModelConfig(wx.Frame):
             errSubID.ShowModal()
             errSubID.Destroy()
             raise Exception
-
-
 
         for ctrl in self.page.get_ctrl_list():
             
@@ -696,11 +692,9 @@ class ModelConfig(wx.Frame):
 
                 self.gpa_settings['group_sep'] = ctrl.get_selection()
 
-
             elif name == 'grouping_var':
 
                 self.gpa_settings['grouping_var'] = ctrl.get_selection()
-
 
             if ("list" in name) and (name != "participant_list"):
 
@@ -710,7 +704,6 @@ class ModelConfig(wx.Frame):
 
             else:
                 self.gpa_settings[name] = str(ctrl.get_selection())
-
 
         self.pheno_data_dict = self.read_phenotypic(self.gpa_settings['pheno_file'], \
                                                     self.gpa_settings['ev_selections'])
@@ -750,7 +743,6 @@ class ModelConfig(wx.Frame):
         formula_strip = formula_strip.replace(')',' ')
         EVs_to_test = formula_strip.split()
 
-
         # ensure the design formula only has valid EVs in it
         for EV in EVs_to_test:
 
@@ -789,7 +781,6 @@ class ModelConfig(wx.Frame):
                 
                             raise Exception
 
-
                 if int_check != 1:
 
                     errmsg = 'CPAC says: The interaction \'%s\' you ' \
@@ -805,7 +796,6 @@ class ModelConfig(wx.Frame):
                     errSubID.Destroy()
                 
                     raise Exception
-
                     
             # ensure these interactions are input correctly
             elif (':' in EV) or ('/' in EV) or ('*' in EV):
@@ -866,7 +856,6 @@ class ModelConfig(wx.Frame):
                 
                     raise Exception
 
-
         # design formula/input parameters checks
 
         if "Custom_ROI_Mean" in formula and \
@@ -885,7 +874,6 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
 
             raise Exception
-
 
         if "Custom_ROI_Mean" not in formula and \
             (self.gpa_settings['custom_roi_mask'] != None and \
@@ -906,7 +894,7 @@ class ModelConfig(wx.Frame):
             errSubID.Destroy()
 
             raise Exception
-            
+
             
         # if there is a custom ROI mean mask file provided, and the user
         # includes it as a regressor in their design matrix formula, calculate
@@ -945,7 +933,6 @@ class ModelConfig(wx.Frame):
 
             for num in range(0,num_rois):
                 custom_roi_labels.append("Custom_ROI_Mean_%d" % int(num+1))
-                
 
         # pull in phenotype file
         try:
@@ -956,12 +943,10 @@ class ModelConfig(wx.Frame):
                   "details: %s\n\n" % (self.gpa_settings["pheno_file"], e)
             raise Exception(err)
 
-
         # enforce the sub ID label to "Participant"
         pheno_df.rename(columns={self.gpa_settings["participant_id_label"]:"Participant"}, \
                         inplace=True)   
         pheno_df["Participant"] = pheno_df["Participant"].astype(str)
-
 
         # let's create dummy columns for MeanFD, Measure_Mean, and
         # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
@@ -992,7 +977,6 @@ class ModelConfig(wx.Frame):
 
             formula = formula.replace("Custom_ROI_Mean",add_formula_string)   
 
-
         repeated_sessions = False
 
         # if repeated measures
@@ -1010,7 +994,6 @@ class ModelConfig(wx.Frame):
                                     repeated_sessions)
             self.gpa_settings["ev_selections"]["categorical"].append("Series")
             formula = formula + " + Series"
-
 
         # if modeling group variances separately
         if str(self.gpa_settings["group_sep"]) == "On":
@@ -1033,66 +1016,199 @@ class ModelConfig(wx.Frame):
 
                 raise Exception
         
-            if self.gpa_settings["grouping_var"] not in formula:           
-                
-                warn_string = "Note: You have specified '%s' as your " \
-                    "grouping variable for modeling the group variances " \
-                    "separately, but you have not included this variable " \
-                    "in your design formula.\n\nPlease include this " \
-                    "variable in your design, or choose a different " \
-                    "grouping variable." % self.gpa_settings["grouping_var"]
+            if self.gpa_settings["grouping_var"] not in formula:
 
-                errSubID = wx.MessageDialog(self, warn_string,
-                    'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
+                # if it's because we have multiple grouping variables in a
+                # list
+                if isinstance(self.gpa_settings["grouping_var"], list) or \
+                                "[" in self.gpa_settings["grouping_var"]:
+                    for item in list(self.gpa_settings["grouping_var"]):
+                        if item not in formula:
+                            warn_string = "Note: You have specified '%s' as your " \
+                                "grouping variable for modeling the group variances " \
+                                "separately, but you have not included this variable " \
+                                "in your design formula.\n\nPlease include this " \
+                                "variable in your design, or choose a different " \
+                                "grouping variable." % item
 
-                raise Exception
+                            errSubID = wx.MessageDialog(self, warn_string,
+                                'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+
+                            raise Exception
+
+                elif "," in self.gpa_settings["grouping_var"]:
+                    for item in self.gpa_settings["grouping_var"].split(","):
+                        if item not in formula:
+                            warn_string = "Note: You have specified '%s' as your " \
+                                "grouping variable for modeling the group variances " \
+                                "separately, but you have not included this variable " \
+                                "in your design formula.\n\nPlease include this " \
+                                "variable in your design, or choose a different " \
+                                "grouping variable." % item
+
+                            errSubID = wx.MessageDialog(self, warn_string,
+                                'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+
+                            raise Exception
+
+                else:
+                    warn_string = "Note: You have specified '%s' as your " \
+                        "grouping variable for modeling the group variances " \
+                        "separately, but you have not included this variable " \
+                        "in your design formula.\n\nPlease include this " \
+                        "variable in your design, or choose a different " \
+                        "grouping variable." % self.gpa_settings["grouping_var"]
+
+                    errSubID = wx.MessageDialog(self, warn_string,
+                        'Grouping Variable not in Design', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+
+                    raise Exception
 
             if self.gpa_settings["grouping_var"] not in \
-                self.gpa_settings["ev_selections"]["categorical"]:           
-                
-                warn_string = "Note: The grouping variable must be one of " \
-                              "the categorical covariates."
+                    self.gpa_settings["ev_selections"]["categorical"]:
 
-                errSubID = wx.MessageDialog(self, warn_string,
-                    'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
-                errSubID.ShowModal()
-                errSubID.Destroy()
+                # if it's because we have multiple grouping variables in a
+                # list
+                if isinstance(self.gpa_settings["grouping_var"], list) or \
+                                "[" in self.gpa_settings["grouping_var"]:
+                    for item in list(self.gpa_settings["grouping_var"]):
+                        if item not in formula:
+                            warn_string = "Note: The grouping variable must be one of " \
+                                  "the categorical covariates."
 
-                raise Exception
+                            errSubID = wx.MessageDialog(self, warn_string,
+                                'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
 
+                            raise Exception
+
+                elif "," in self.gpa_settings["grouping_var"]:
+                    for item in self.gpa_settings["grouping_var"].split(","):
+                        if item not in formula:
+                            warn_string = "Note: The grouping variable must be one of " \
+                                  "the categorical covariates."
+
+                            errSubID = wx.MessageDialog(self, warn_string,
+                                'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
+                            errSubID.ShowModal()
+                            errSubID.Destroy()
+
+                            raise Exception
+
+                else:
+                    warn_string = "Note: The grouping variable must be one of " \
+                                  "the categorical covariates."
+
+                    errSubID = wx.MessageDialog(self, warn_string,
+                        'Grouping Variable not Categorical', wx.OK | wx.ICON_ERROR)
+                    errSubID.ShowModal()
+                    errSubID.Destroy()
+
+                    raise Exception
 
             # get ev list
             ev_list = parse_out_covariates(formula)
 
-            # split up the groups
-            pheno_df, grp_vector, new_ev_list, cat_list = split_groups(pheno_df, \
-                              self.gpa_settings["grouping_var"], ev_list, \
-                              self.gpa_settings["ev_selections"]["categorical"])
+            if isinstance(self.gpa_settings["grouping_var"], list) or \
+                    "," in self.gpa_settings["grouping_var"]:
+                # if this happens, it's because the grouping variable has been
+                # set to multiple (dummy-coded) categorical covariates that
+                # have been set up by the new group analysis presets feature
+                #     this code also lives in cpac_ga_model_generator!
+                #     must consolidate!
+                group_ev = self.gpa_settings["grouping_var"]
 
-            self.gpa_settings["ev_selections"]["categorical"] = cat_list
+                if not isinstance(group_ev, list):
+                    group_ev = group_ev.split(",")
 
-            # make the grouping variable categorical for Patsy (if we try to
-            # do this automatically below, it will categorical-ize all of 
-            # the substrings too)
-            formula = formula.replace(self.gpa_settings["grouping_var"], \
-                                      "C(" + self.gpa_settings["grouping_var"] \
-                                      + ")")
-            if self.gpa_settings["coding_scheme"] == "Sum":
-                formula = formula.replace(")", ", Sum)")
+                grp_vector = []
 
-            # update design formula
-            rename = {}
-            for old_ev in ev_list:
-                for new_ev in new_ev_list:
-                    if old_ev + "__FOR" in new_ev:
-                        if old_ev not in rename.keys():
-                            rename[old_ev] = []
-                        rename[old_ev].append(new_ev)
+                if len(group_ev) == 2:
+                    for x, y in zip(pheno_df[group_ev[0]], pheno_df[group_ev[1]]):
+                        if x == 1:
+                            grp_vector.append(1)
+                        elif y == 1:
+                            grp_vector.append(2)
+                        else:
+                            err = "\n\n[!] The two categorical covariates you " \
+                                  "provided as the two separate groups (in order " \
+                                  "to model each group's variances separately) " \
+                                  "either have more than 2 levels (1/0), or are " \
+                                  "not encoded as 1's and 0's.\n\nCovariates:\n" \
+                                  "{0}\n{1}\n\n".format(group_ev[0],
+                                                        group_ev[1])
+                            raise Exception(err)
 
-            for old_ev in rename.keys():
-                formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
+                elif len(group_ev) == 3:
+                    for x, y, z in zip(pheno_df[group_ev[0]], pheno_df[group_ev[1]],
+                                       pheno_df[group_ev[2]]):
+                        if x == 1:
+                            grp_vector.append(1)
+                        elif y == 1:
+                            grp_vector.append(2)
+                        elif z == 1:
+                            grp_vector.append(3)
+                        else:
+                            err = "\n\n[!] The three categorical covariates you " \
+                                  "provided as the three separate groups (in order " \
+                                  "to model each group's variances separately) " \
+                                  "either have more than 2 levels (1/0), or are " \
+                                  "not encoded as 1's and 0's.\n\nCovariates:\n" \
+                                  "{0}\n{1}\n{2}\n\n".format(group_ev[0],
+                                                             group_ev[1],
+                                                             group_ev[2])
+                            raise Exception(err)
+
+                else:
+                    # we're only going to see this if someone plays around
+                    # with their preset or config file manually
+                    err = "\n\n[!] If you are seeing this message, it's because:\n" \
+                          "1. You are using the group-level analysis presets\n" \
+                          "2. You are running a model with multiple groups having " \
+                          "their variances modeled separately (i.e. multiple " \
+                          "values in the FSL FLAME .grp input file), and\n" \
+                          "3. For some reason, the configuration has been set up " \
+                          "in a way where CPAC currently thinks you're including " \
+                          "only one group, or more than three, neither of which " \
+                          "are supported.\n\nGroups provided:\n{0}" \
+                          "\n\n".format(str(group_ev))
+                    raise Exception(err)
+
+            else:
+                # split up the groups
+                pheno_df, grp_vector, new_ev_list, cat_list = split_groups(pheno_df, \
+                                  self.gpa_settings["grouping_var"], ev_list, \
+                                  self.gpa_settings["ev_selections"]["categorical"])
+
+                self.gpa_settings["ev_selections"]["categorical"] = cat_list
+
+                # make the grouping variable categorical for Patsy (if we try
+                # to do this automatically below, it will categorical-ize all
+                # of the substrings too)
+                formula = formula.replace(self.gpa_settings["grouping_var"], \
+                                          "C(" + self.gpa_settings["grouping_var"] \
+                                          + ")")
+                if self.gpa_settings["coding_scheme"] == "Sum":
+                    formula = formula.replace(")", ", Sum)")
+
+                # update design formula
+                rename = {}
+                for old_ev in ev_list:
+                    for new_ev in new_ev_list:
+                        if old_ev + "__FOR" in new_ev:
+                            if old_ev not in rename.keys():
+                                rename[old_ev] = []
+                            rename[old_ev].append(new_ev)
+
+                for old_ev in rename.keys():
+                    formula = formula.replace(old_ev, " + ".join(rename[old_ev]))
 
         # remove duplicates
         self.gpa_settings["ev_selections"]["categorical"] = \
@@ -1100,12 +1216,21 @@ class ModelConfig(wx.Frame):
 
         # categorical-ize design formula
         if 'categorical' in self.gpa_settings['ev_selections']:
+
+            # pad with spaces if they aren't present
+            formula = formula.replace("+", " + ")
+            formula = formula.replace("-", " - ")
+            formula = formula.replace("=", " = ")
+            formula = formula.replace("(", " ( ").replace(")", " ) ")
+            formula = formula.replace("*", " * ")
+            formula = formula.replace("/", " / ")
+
             for EV_name in self.gpa_settings['ev_selections']['categorical']:
 
                 if self.gpa_settings['coding_scheme'] == 'Treatment':
-                    formula = formula.replace(EV_name, 'C(' + EV_name + ')')
+                    formula = formula.replace(" {0} ".format(EV_name), 'C(' + EV_name + ')')
                 elif self.gpa_settings['coding_scheme'] == 'Sum':
-                    formula = formula.replace(EV_name, 'C(' + EV_name + ', Sum)')
+                    formula = formula.replace(" {0} ".format(EV_name), 'C(' + EV_name + ', Sum)')
 
         # let's avoid an Intercept unless the user explicitly wants one
         #   (then they need to include "+ Intercept" into the formula)
@@ -1134,7 +1259,6 @@ class ModelConfig(wx.Frame):
             print "Phenotypic matrix (not demeaned yet):\n %s\n\n" % pheno_df
             print "Patsy error: %s\n\n" % e
             raise Exception
-
 
         column_names = dmatrix.design_info.column_names
         

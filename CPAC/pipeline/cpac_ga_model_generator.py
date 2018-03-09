@@ -308,7 +308,7 @@ def parse_out_covariates(design_formula):
 
     for op in patsy_ops:
         if op in design_formula:
-            design_formula = design_formula.replace(op," ")
+            design_formula = design_formula.replace(op, " ")
 
     words = design_formula.split(" ")
 
@@ -323,8 +323,7 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
         
     new_ev_list = []
     new_cat_list = []
-    print group_ev
-    print cat_list
+
     if group_ev not in cat_list:
         err = "\n\n[!] The grouping variable must be one of the categorical "\
               "covariates!\n\n"
@@ -399,10 +398,18 @@ def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
     elif encoding == "Sum":
         closer = ", Sum)"
 
+    # pad with spaces if they aren't present
+    formula = formula.replace("+", " + ")
+    formula = formula.replace("-", " - ")
+    formula = formula.replace("=", " = ")
+    formula = formula.replace("(", " ( ").replace(")", " ) ")
+    formula = formula.replace("*", " * ")
+    formula = formula.replace("/", " / ")
+
     for ev in categorical_list:
         if ev in formula:
             new_ev = "C(" + ev + closer
-            formula = formula.replace(ev, new_ev)
+            formula = formula.replace(" {0} ".format(ev), new_ev)
 
     # remove Intercept - if user wants one, they should add "+ Intercept" when
     # specifying the design formula
@@ -521,13 +528,13 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # determine if f-tests are included or not
     custom_confile = group_config_obj.custom_contrasts
 
-    if ((custom_confile == None) or (custom_confile == '') or \
+    if ((custom_confile is None) or (custom_confile == '') or
             ("None" in custom_confile) or ("none" in custom_confile)):
 
         custom_confile = None
 
         if (len(group_config_obj.f_tests) == 0) or \
-            (group_config_obj.f_tests == None):
+                (group_config_obj.f_tests is None):
             fTest = False
         else:
             fTest = True
@@ -559,9 +566,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     # create path for output directory
     out_dir = os.path.join(group_config_obj.output_dir,
-        "group_analysis_results_%s" % pipeline_ID,
-        "group_model_%s" % model_name, resource_id,
-        series_or_repeated_label, preproc_strat)
+                           "group_analysis_results_%s" % pipeline_ID,
+                           "group_model_%s" % model_name, resource_id,
+                           series_or_repeated_label, preproc_strat)
 
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir,
@@ -611,7 +618,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     # create new subject list based on which subjects are left after checking
     # for missing outputs
     new_participant_list = []
-    for part in list(model_df["Participant"]):
+    for part in list(model_df["participant_id"]):
         # do this instead of using "set" just in case, to preserve order
         #   only reason there may be duplicates is because of multiple-series
         #   repeated measures runs
@@ -624,7 +631,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     group_config_obj.update('participant_list',new_sub_file)
 
-    num_subjects = len(list(model_df["Participant"]))
+    num_subjects = len(list(model_df["participant_id"]))
 
     # start processing the dataframe further
     design_formula = group_config_obj.design_formula
@@ -660,7 +667,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     else:
         individual_masks_dir = os.path.join(model_path, "individual_masks")
         create_dir(individual_masks_dir, "individual masks")
-        for unique_id, series_id, raw_filepath in zip(model_df["Participant"],
+        for unique_id, series_id, raw_filepath in zip(model_df["participant_id"],
             model_df["Series"], model_df["Raw_Filepath"]):
             
             mask_for_means_path = os.path.join(individual_masks_dir,
@@ -739,39 +746,106 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     if group_config_obj.group_sep:
 
-        # model group variances separately
-        old_ev_list = ev_list
+        # check if the group_ev parameter is a list instead of a string:
+        # this was added to handle the new group-level analysis presets. this is
+        # the only modification that was required to the group analysis workflow,
+        # and it handles cases where the group variances must be modeled
+        # separately, by creating separate groups for the FSL FLAME .grp file.
+        #     the group_ev parameter gets sent in as a list if coming from any
+        #     of the presets that deal with multiple groups- in these cases,
+        #     the pheno_df/design matrix is already set up properly for the
+        #     multiple groups, and we need to bypass all of the processing
+        #     that usually occurs when the "modeling group variances
+        #     separately" option is enabled in the group analysis config YAML
+        group_ev = group_config_obj.grouping_var
 
-        model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
-                                group_config_obj.grouping_var, \
-                                ev_list, cat_list)
+        if isinstance(group_ev, list):
 
-        # make the grouping variable categorical for Patsy (if we try to
-        # do this automatically below, it will categorical-ize all of 
-        # the substrings too)
-        design_formula = design_formula.replace(group_config_obj.grouping_var, \
-                                  "C(" + group_config_obj.grouping_var + ")")
-        if group_config_obj.coding_scheme == "Sum":
-            design_formula = design_formula.replace(")", ", Sum)")
+            grp_vector = []
 
-        # update design formula
-        rename = {}
-        for old_ev in old_ev_list:
-            for new_ev in ev_list:
-                if old_ev + "__FOR" in new_ev:
-                    if old_ev not in rename.keys():
-                        rename[old_ev] = []
-                    rename[old_ev].append(new_ev)
+            if len(group_ev) == 2:
+                for x, y in zip(model_df[group_ev[0]], model_df[group_ev[1]]):
+                    if x == 1:
+                        grp_vector.append(1)
+                    elif y == 1:
+                        grp_vector.append(2)
+                    else:
+                        err = "\n\n[!] The two categorical covariates you " \
+                              "provided as the two separate groups (in order " \
+                              "to model each group's variances separately) " \
+                              "either have more than 2 levels (1/0), or are " \
+                              "not encoded as 1's and 0's.\n\nCovariates:\n" \
+                              "{0}\n{1}\n\n".format(group_ev[0], group_ev[1])
+                        raise Exception(err)
 
-        for old_ev in rename.keys():
-            design_formula = design_formula.replace(old_ev, \
-                                                   " + ".join(rename[old_ev]))
+            elif len(group_ev) == 3:
+                for x, y, z in zip(model_df[group_ev[0]], model_df[group_ev[1]],
+                                   model_df[group_ev[2]]):
+                    if x == 1:
+                        grp_vector.append(1)
+                    elif y == 1:
+                        grp_vector.append(2)
+                    elif z == 1:
+                        grp_vector.append(3)
+                    else:
+                        err = "\n\n[!] The three categorical covariates you " \
+                              "provided as the three separate groups (in order " \
+                              "to model each group's variances separately) " \
+                              "either have more than 2 levels (1/0), or are " \
+                              "not encoded as 1's and 0's.\n\nCovariates:\n" \
+                              "{0}\n{1}\n{2}\n\n".format(group_ev[0],
+                                                         group_ev[1],
+                                                         group_ev[2])
+                        raise Exception(err)
 
+            else:
+                # we're only going to see this if someone plays around with
+                # their preset or config file manually
+                err = "\n\n[!] If you are seeing this message, it's because:\n" \
+                      "1. You are using the group-level analysis presets\n" \
+                      "2. You are running a model with multiple groups having " \
+                      "their variances modeled separately (i.e. multiple " \
+                      "values in the FSL FLAME .grp input file), and\n" \
+                      "3. For some reason, the configuration has been set up " \
+                      "in a way where CPAC currently thinks you're including " \
+                      "only one group, or more than three, neither of which " \
+                      "are supported.\n\nGroups provided:\n{0}" \
+                      "\n\n".format(str(group_ev))
+                raise Exception(err)
+
+        else:
+            # model group variances separately
+            old_ev_list = ev_list
+
+            model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
+                                    group_config_obj.grouping_var, \
+                                    ev_list, cat_list)
+
+            # make the grouping variable categorical for Patsy (if we try to
+            # do this automatically below, it will categorical-ize all of
+            # the substrings too)
+            design_formula = design_formula.replace(group_config_obj.grouping_var, \
+                                      "C(" + group_config_obj.grouping_var + ")")
+            if group_config_obj.coding_scheme == "Sum":
+                design_formula = design_formula.replace(")", ", Sum)")
+
+            # update design formula
+            rename = {}
+            for old_ev in old_ev_list:
+                for new_ev in ev_list:
+                    if old_ev + "__FOR" in new_ev:
+                        if old_ev not in rename.keys():
+                            rename[old_ev] = []
+                        rename[old_ev].append(new_ev)
+
+            for old_ev in rename.keys():
+                design_formula = design_formula.replace(old_ev,
+                                                        " + ".join(rename[old_ev]))
 
     # prep design formula for Patsy
-    design_formula = patsify_design_formula(design_formula, cat_list, \
-                         group_config_obj.coding_scheme[0])
-    print design_formula
+    design_formula = patsify_design_formula(design_formula, cat_list,
+                                            group_config_obj.coding_scheme[0])
+
     # send to Patsy
     try:
         dmatrix = patsy.dmatrix(design_formula, model_df)
@@ -779,13 +853,10 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         err = "\n\n[!] Something went wrong with processing the group model "\
               "design matrix using the Python Patsy package. Patsy might " \
               "not be properly installed, or there may be an issue with the "\
-              "formatting of the design matrix.\n\nPatsy-formatted design " \
-              "formula: %s\n\nError details: %s\n\n" \
-              % (model_df.columns, design_formula, e)
+              "formatting of the design matrix.\n\nDesign matrix columns: " \
+              "%s\n\nPatsy-formatted design formula: %s\n\nError details: " \
+              "%s\n\n" % (model_df.columns, design_formula, e)
         raise Exception(err)
-
-    print dmatrix.design_info.column_names
-    print dmatrix
 
     # check the model for multicollinearity - Patsy takes care of this, but
     # just in case
@@ -793,10 +864,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     # prepare for final stages
     column_names = dmatrix.design_info.column_names
-
-    # what is this for?
-    design_matrix = np.array(dmatrix, dtype=np.float16)
-    
         
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
@@ -863,7 +930,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(dmatrix, model_df["Participant"], column_names,
+    write_design_matrix_csv(dmatrix, model_df["participant_id"], column_names,
         dmat_csv_path)
 
     # workflow time

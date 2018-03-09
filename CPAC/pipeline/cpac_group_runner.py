@@ -294,7 +294,7 @@ def create_output_dict_list(nifti_globs, pipeline_output_folder,
             
             new_row_dict = {}
             
-            new_row_dict["Participant"] = unique_id
+            new_row_dict["participant_id"] = unique_id
             new_row_dict["Series"] = series_id
                                    
             new_row_dict["Filepath"] = filepath
@@ -337,7 +337,7 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
         
         # drop whatever is not in the inclusion lists
         if inclusion_list:
-            new_df = new_df[new_df.Participant.isin(inclusion_list)]
+            new_df = new_df[new_df.participant_id.isin(inclusion_list)]
                    
         # unique_resource_id is tuple (resource_id,strat_info)
         if unique_resource_id not in output_df_dict.keys():
@@ -375,8 +375,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     participant_id_cols = {}
     i = 0
 
-    for participant_unique_id in list(pheno_df["Participant"]):
-        part_col = [0] * len(pheno_df["Participant"])
+    for participant_unique_id in list(pheno_df["participant_id"]):
+        part_col = [0] * len(pheno_df["participant_id"])
         for session in sessions_list:
             if session in participant_unique_id:
                 # generate/update sessions categorical column
@@ -394,7 +394,7 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
         i += 1
     
     pheno_df["Session"] = sessions_col
-    pheno_df["Participant_ID"] = part_ids_col
+    pheno_df["participant"] = part_ids_col
 
     # add new participant ID columns
     for new_col in participant_id_cols.keys():
@@ -428,9 +428,9 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
         participant_id_cols = {}
         i = 0
 
-        for participant_unique_id in pheno_df["Participant"]:
+        for participant_unique_id in pheno_df["participant_id"]:
 
-            part_col = [0] * len(pheno_df["Participant"])
+            part_col = [0] * len(pheno_df["participant_id"])
             header_title = "participant_%s" % participant_unique_id
 
             if header_title not in participant_id_cols.keys():
@@ -461,7 +461,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     from collections import Counter
 
-    part_ID_count = Counter(pheno_df["Participant_ID"])
+    part_ID_count = Counter(pheno_df["participant_ID"])
 
     if series_list:
         sessions_x_series = len(sessions_list) * len(series_list)
@@ -472,7 +472,7 @@ def balance_repeated_measures(pheno_df, sessions_list, series_list=None):
 
     for part_ID in part_ID_count.keys():
         if part_ID_count[part_ID] != sessions_x_series:
-            pheno_df = pheno_df[pheno_df.Participant_ID != part_ID]
+            pheno_df = pheno_df[pheno_df.participant != part_ID]
             del pheno_df["participant_%s" % part_ID]
             dropped_parts.append(part_ID)
 
@@ -589,9 +589,9 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
         pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
 
         # enforce the sub ID label to "Participant"
-        pheno_df.rename(columns={group_model.participant_id_label:"Participant"}, \
+        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"}, \
                         inplace=True)   
-        pheno_df["Participant"] = pheno_df["Participant"].astype(str)
+        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
 
         # unique_resource = (output_measure_type, preprocessing strategy)
         # output_df_dict[unique_resource] = dataframe
@@ -617,7 +617,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
             inclusion_list = load_text_file(group_model.participant_list, \
                 "group-level analysis participant list")
             output_df = \
-                output_df[output_df["Participant"].isin(inclusion_list)]
+                output_df[output_df["participant_id"].isin(inclusion_list)]
 
             new_pheno_df = pheno_df.copy()
             
@@ -656,7 +656,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                 #   sessions and all series, because in repeated measures/
                 #   within-subject, if one goes, they all have to go    
                 new_pheno_df = \
-                    new_pheno_df[pheno_df["Participant"].isin(output_df["Participant"])]
+                    new_pheno_df[pheno_df["participant_id"].isin(output_df["participant_id"])]
 
                 if len(new_pheno_df) == 0:
                     err = "\n\n[!] There is a mis-match between the "\
@@ -664,7 +664,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                           "ant list and the phenotype file.\n\n"
                     raise Exception(err)
 
-                join_columns = ["Participant"]
+                join_columns = ["participant_id"]
 
                 # if Series is one of the categorically-encoded covariates,
                 # make sure we only are including the series the user has
@@ -710,8 +710,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                         series_df = series_df_tuple[1]
 
                         # trim down the pheno DF to match the output DF and merge
-                        newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
-                        newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
+                        newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                        newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["participant_id"])
 
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
@@ -739,8 +739,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     # series_df = output_df but with only one of the Series
                     series_df = series_df_tuple[1]
                     # trim down the pheno DF to match the output DF and merge
-                    newer_pheno_df = new_pheno_df[pheno_df["Participant"].isin(series_df["Participant"])]
-                    newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["Participant"])
+                    newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                    newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["participant_id"])
                     # send it in
                     analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
 

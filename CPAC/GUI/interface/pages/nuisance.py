@@ -111,7 +111,7 @@ class NuisanceRegression(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='spikeThreshold',
                       type=dtype.LNUM,
-                      values="5%",
+                      values="0.2",
                       validator=CharValidator("no-alpha"),
                       comment="(Motion Spike De-Noising only) Specify the "
                               "maximum acceptable Framewise Displacement "
