@@ -1405,8 +1405,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # we might prefer to use the TR stored in the NIFTI header
             # if not, use the value in the scan_params node
             try:
-                workflow.connect(scan_params, 'tr',
-                                 func_slice_timing_correction, 'tr')
+                if c.TR:
+                    if isinstance(c.TR, str):
+                        if "None" in c.TR or "none" in c.TR:
+                            pass
+                        else:
+                            workflow.connect(scan_params, 'tr',
+                                             func_slice_timing_correction, 'tr')
+                    else:
+                        workflow.connect(scan_params, 'tr',
+                                         func_slice_timing_correction, 'tr')
             except Exception as xxx:
                 logger.info(
                     "Error connecting input 'tr' to func_slice_timing_"
@@ -2982,10 +2990,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 analysis_type = analysis_type.replace(" ", "")
 
-                if analysis_type not in ts_analysis_dict.keys():
+            if analysis_type not in ts_analysis_dict.keys():
                     ts_analysis_dict[analysis_type] = []
 
-                ts_analysis_dict[analysis_type].append(roi_path)
+            ts_analysis_dict[analysis_type].append(roi_path)
 
     if 1 in c.runSCA:
 
@@ -4858,8 +4866,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
      QUALITY CONTROL - to be re-implemented later
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
-
+    # TODO - QA pages: re-introduce
+    
     if 1 in c.generateQualityControlImages:
+
+        preproc, out_file = strat.get_node_from_resource_pool('preprocessed')
+        brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
+        func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+        anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
+        mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
+
 
         #register color palettes
         register_pallete(os.path.realpath(
@@ -4872,19 +4888,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
-
-        hist = pe.Node(util.Function(input_names=['measure_file',
-                                                   'measure'],
-                                     output_names=['hist_path'],
-                                     function=gen_histogram),
-                        name='histogram')
+                
+        hist = pe.Node(util.Function(input_names=['measure_file','measure'],output_names = ['hist_path'],function = gen_histogram),name = 'histogram')
+    
+        
 
         for strat in strat_list:
 
             nodes = getNodeList(strat)
 
             #make SNR plot
-
+ 
             try:
 
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
@@ -4896,115 +4910,99 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                     function=drop_percent_),
                                     name='dp_snr_%d' % num_strat)
                 drop_percent.inputs.percent_ = 99
-
-                preproc, out_file = strat.get_node_from_resource_pool('preprocessed')
-                brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-                mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
-
+                
+                montage_snr = create_montage('montage_snr_%d' % num_strat,
+                                             'red_to_blue', 'snr')
+                
                 std_dev = pe.Node(util.Function(input_names=['mask_', 'func_'],
                                                 output_names=['new_fname'],
-                                                    function=gen_std_dev),
-                                    name='std_dev_%d' % num_strat)
-                                    #all functional calls are in the pipeline figure#
+                                                function=gen_std_dev),
+                                  name='std_dev_%d' % num_strat)
+                    
                 std_dev_anat = pe.Node(util.Function(input_names=['func_',
-                                                                    'ref_',
-                                                                    'xfm_',
-                                                                    'interp_'],
-                                                        output_names=['new_fname'],
-                                                        function=gen_func_anat_xfm),
-                                        name='std_dev_anat_%d' % num_strat)
-
-                snr = pe.Node(util.Function(input_names=['std_dev', 'mean_func_anat'],
-                                            output_names=['new_fname'],
-                                            function=gen_snr),
-                                name='snr_%d' % num_strat)
-
-                ###
+                                                                  'ref_',
+                                                                  'xfm_',
+                                                                  'interp_'],
+                                                         output_names=['new_fname'],
+                                                         function=gen_func_anat_xfm),
+                                           name='std_dev_anat_%d' % num_strat)
+                        
+                snr = pe.Node(util.Function(input_names=['std_dev', 'mean_func_anat'],output_names=['new_fname'],function=gen_snr),name='snr_%d' % num_strat)
                 snr_val = pe.Node(util.Function(input_names=['measure_file'],
-                                            output_names=['snr_storefl'],
-                                            function=cal_snr_val),
-                                name='snr_val%d' % num_strat)
-
-
+                                                output_names=['snr_storefl'],
+                                                function=cal_snr_val),name='snr_val%d' % num_strat)
+                            
+                            
                 std_dev_anat.inputs.interp_ = 'trilinear'
-
-                montage_snr = create_montage('montage_snr_%d' % num_strat,
-                                'red_to_blue', 'snr')
-
-#Are you making connections here in the pipeline because there is not inputspec and outputspec in the qc scripts indivually???#
+                                                        
+                                                        
                 workflow.connect(preproc, out_file,
-                                    std_dev, 'func_')
-
+                                std_dev, 'func_')
+                                                        
                 workflow.connect(brain_mask, mask_file,
-                                  std_dev, 'mask_')
-
+                                 std_dev, 'mask_')
+                                                        
                 workflow.connect(std_dev, 'new_fname',
-                                    std_dev_anat, 'func_')
-
+                                 std_dev_anat, 'func_')
+                                                        
                 workflow.connect(func_to_anat_xfm, xfm_file,
                                  std_dev_anat, 'xfm_')
-
+                                                        
                 workflow.connect(anat_ref, ref_file,
                                  std_dev_anat, 'ref_')
-
+                                                        
                 workflow.connect(std_dev_anat, 'new_fname',
-                                 snr, 'std_dev')
-
+                                snr,'std_dev')
+                                                        
                 workflow.connect(mfa, mfa_file,
-                                 snr, 'mean_func_anat')
-
+                                snr, 'mean_func_anat')
+                                                        
                 workflow.connect(snr, 'new_fname',
-                                 hist_, 'measure_file')
-
+                                hist_, 'measure_file')
+                                                        
                 workflow.connect(snr, 'new_fname',
-                                 drop_percent, 'measure_file')
-
+                                drop_percent, 'measure_file')
+                                                        
                 workflow.connect(snr, 'new_fname',
-                                 snr_val, 'measure_file')   ###
-
-
+                                snr_val, 'measure_file')   ###
+                                                        
+                                                        
                 workflow.connect(drop_percent, 'modified_measure_file',
-                                 montage_snr, 'inputspec.overlay')
-
+                                montage_snr, 'inputspec.overlay')
+                                                        
                 workflow.connect(anat_ref, ref_file,
-                                 montage_snr, 'inputspec.underlay')
-
-
+                                montage_snr, 'inputspec.underlay')
+            
+                                             
                 strat.update_resource_pool({'qc___snr_a': (montage_snr, 'outputspec.axial_png'),
                                             'qc___snr_s': (montage_snr, 'outputspec.sagittal_png'),
                                             'qc___snr_hist': (hist_, 'hist_path'),
-                                            'qc___snr_val': (snr_val, 'snr_storefl')})   ###
+                                            'qc___snr_val': (snr_val, 'snr_storefl')})
                 if not 3 in qc_montage_id_a:
                     qc_montage_id_a[3] = 'snr_a'
                     qc_montage_id_s[3] = 'snr_s'
                     qc_hist_id[3] = 'snr_hist'
-
+    
+    
             except:
                 logStandardError('QC', 'unable to get resources for SNR plot', '0051')
                 raise
-
-
             #make motion parameters plot
-
+            
             try:
-
+            
                 mov_param, out_file = strat.get_node_from_resource_pool('movement_parameters')
                 mov_plot = pe.Node(util.Function(input_names=['motion_parameters'],
-                                                    output_names=['translation_plot',
-                                                                'rotation_plot'],
-                                                    function=gen_motion_plt),
-                                    name='motion_plt_%d' % num_strat)
-
-                workflow.connect(mov_param, out_file,
-                                    mov_plot, 'motion_parameters')
-                strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),
-                                            'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
-
+                                                 output_names=['translation_plot',
+                                                               'rotation_plot'],
+                                                 function=gen_motion_plt),
+                                                 name='motion_plt_%d' % num_strat)
+                workflow.connect(mov_param, out_file, mov_plot, 'motion_parameters')
+                strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
+            
                 if not 6 in qc_plot_id:
                     qc_plot_id[6] = 'movement_trans_plot'
-
+            
                 if not 7 in qc_plot_id:
                     qc_plot_id[7] = 'movement_rot_plot'
 
@@ -5013,71 +5011,63 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 logStandardError('QC', 'unable to get resources for Motion Parameters plot', '0052')
                 raise
 
-
-            # make FD plot and volumes removed
+#       make FD plot and volumes removed
             if 'gen_motion_stats' in nodes:
-
-                try:
-                    if c.fdCalc == 'Power':
-                        fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_power')
-                    else:
-                        fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_jenkinson')
-                    if ("De-Spiking" in c.runMotionSpike and 1 in c.runNuisance):
-                        excluded, out_file_ex = strat.get_node_from_resource_pool('despiking_frames_excluded')
-                    elif ("Scrubbing" in c.runMotionSpike and 1 in c.runNuisance):
-                        excluded, out_file_ex = strat.get_node_from_resource_pool('scrubbing_frames_excluded')
-
-                    fd_plot = pe.Node(util.Function(input_names=['arr','ex_vol','measure'],output_names=['hist_path'],function=gen_plot_png),name='fd_plot_%d' % num_strat)
-                    fd_plot.inputs.measure = 'FD'
-                    workflow.connect(fd, out_file,
-                                     fd_plot, 'arr')
-                    workflow.connect(excluded, out_file_ex,
-                                     fd_plot, 'ex_vol')
-                    strat.update_resource_pool({'qc___fd_plot': (fd_plot, 'hist_path')})
-                    if not 8 in qc_plot_id:
-                        qc_plot_id[8] = 'fd_plot'
-
-
-                except:
-                    logStandardError('QC', 'unable to get resources for FD plot', '0053')
-                    raise
-
-            # make QC montages for Skull Stripping Visualization
-
+                if 1 in c.runNuisance:
+    
+                    try:
+                        if c.fdCalc == 'Power':
+                            fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_power')
+                        else:
+                            fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_jenkinson')
+                            if ("De-Spiking" in c.runMotionSpike):
+                                excluded, out_file_ex = strat.get_node_from_resource_pool('despiking_frames_excluded')
+                            elif ("Scrubbing" in c.runMotionSpike):
+                                excluded, out_file_ex = strat.get_node_from_resource_pool('scrubbing_frames_excluded')
+                      
+                    
+                            fd_plot = pe.Node(util.Function(input_names=['arr',
+                                                                 'ex_vol',
+                                                                 'measure'],
+                                                    output_names=['hist_path'],
+                                                    function=gen_plot_png),
+                                                    name='fd_plot_%d' % num_strat)
+                            fd_plot.inputs.measure = 'FD'
+                            workflow.connect(fd, out_file,fd_plot, 'arr')
+                            workflow.connect(excluded, out_file_ex,fd_plot, 'ex_vol')
+                            strat.update_resource_pool({'qc___fd_plot': (fd_plot, 'hist_path')})
+                            if not 8 in qc_plot_id:
+                                qc_plot_id[8] = 'fd_plot'
+                
+                
+                    except:
+                        logStandardError('QC', 'unable to get resources for FD plot', '0053')
+                        raise
+                            
+#                                   # make QC montages for Skull Stripping Visualization
             try:
-                anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
-                skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
-
-
-                montage_skull = create_montage('montage_skull_%d' % num_strat,
-                                    'red', 'skull_vis')   ###
-
-                skull_edge = pe.Node(util.Function(input_names=['file_'],
-                                                   output_names=['new_fname'],
-                                                   function=make_edge),
-                                     name='skull_edge_%d' % num_strat)
-
-
-                workflow.connect(skull, out_file_s,
-                                 skull_edge, 'file_')
-
-                workflow.connect(anat_underlay, out_file,
-                                 montage_skull, 'inputspec.underlay')
-
-                workflow.connect(skull_edge, 'new_fname',
-                                 montage_skull, 'inputspec.overlay')
-
-                strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),
-                                            'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
-
-                if not 1 in qc_montage_id_a:
+                    anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
+                    skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
+                    
+                    montage_skull = create_montage('montage_skull_%d' % num_strat,'red', 'skull_vis')   ###
+                    
+                    skull_edge = pe.Node(util.Function(input_names=['file_'],output_names=['new_fname'],function=make_edge),name='skull_edge_%d' % num_strat)
+                    
+                    workflow.connect(skull, out_file_s,skull_edge, 'file_')
+                    
+                    workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
+                    
+                    workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
+                    
+                    strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
+                    
+                    if not 1 in qc_montage_id_a:
                         qc_montage_id_a[1] = 'skullstrip_vis_a'
                         qc_montage_id_s[1] = 'skullstrip_vis_s'
-
+                
             except:
-                logStandardError('QC', 'Cannot generate QC montages for Skull Stripping: Resources Not Found', '0054')
-                raise
-
+                    logStandardError('QC', 'Cannot generate QC montages for Skull Stripping: Resources Not Found', '0054')
+                    raise
 
             ### make QC montages for mni normalized anatomical image
 
@@ -5226,15 +5216,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
                                                          'percent_'],
-                                           output_names=['modified_measure_file'],
-                                           function=drop_percent_),
+                                           output_names=['modified_measure_file'],                                           function=drop_percent_),
                                            name='dp_%s_%d' % (measure, num_strat), iterfield=['measure_file'])
                     drop_percent.inputs.percent_ = 99.999
 
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat),
-                                    'cyan_to_yellow', measure)
+                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
                     montage.inputs.inputspec.underlay = c.template_brain_only_for_func
 
                     workflow.connect(overlay, out_file,
@@ -5264,7 +5252,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # ALFF and f/ALFF QA montages
             if 1 in c.runALFF:
-
                 if 1 in c.runRegisterFuncToMNI:
                     QA_montages('alff_to_standard', 7)
                     QA_montages('falff_to_standard', 8)
@@ -5284,10 +5271,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             QA_montages('falff_to_standard_zstd', 14)
 
 
-            # ReHo QA montages
-            #if 1 in c.runReHo:
-
-#    if 1 in c.runRegisterFuncToMNI:
+# ReHo QA montages
+#            if 1 in c.runReHo:
+#                if 1 in c.runRegisterFuncToMNI:
 #                    QA_montages('reho_to_standard', 15)
 #
 #                    if c.fwhm != None:
@@ -5305,7 +5291,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # SCA ROI QA montages
             if (1 in c.runSCA) and (1 in c.runROITimeseries):
-
                 if 1 in c.runRegisterFuncToMNI:
                     QA_montages('sca_roi_to_standard', 19)
 
@@ -5344,17 +5329,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if "MultReg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
 
                 if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('sca_tempreg_maps_files', 27)
-                    QA_montages('sca_tempreg_maps_zstat_files', 28)
+                   QA_montages('sca_tempreg_maps_files', 27)
+                   QA_montages('sca_tempreg_maps_zstat_files', 28)
 
-                    if c.fwhm != None:
+                   if c.fwhm != None:
                         QA_montages('sca_tempreg_maps_files_smooth', 29)
                         QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
 
 
 
             # Dual Regression QA montages
-            if ("DualReg" in sca_analysis_dict.keys()) and (1 in c.runSpatialRegression):
+            if ("DualReg" in sca_analysis_dict.keys()) and ("SpatialReg" in ts_analysis_dict.keys()):
 
                 QA_montages('dr_tempreg_maps_files', 31)
                 QA_montages('dr_tempreg_maps_zstat_files', 32)
