@@ -197,8 +197,8 @@ def create_fts_file(ftest_list, con_names, model_name,
     return out_file
 
 
-def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
-                             column_names, coding_scheme, group_sep):
+def create_con_ftst_file(con_file, model_name, current_output, output_dir,
+                         column_names, coding_scheme, group_sep):
 
     """
     Create the contrasts and fts file
@@ -209,27 +209,29 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
     # Read the header of the contrasts file, which should contain the columns
     # of the design matrix and f-tests (if any)
-    with open(con_file,"r") as f:
+    with open(con_file, "r") as f:
         evs = f.readline()
 
     evs = evs.rstrip('\r\n').split(',')
 
     if evs[0].strip().lower() != "contrasts":
-        print "Error: first cell in contrasts file should contain 'Contrasts' "
+        print "Error: first cell in contrasts file should contain " \
+              "'Contrasts' "
         raise Exception
 
     # remove "Contrasts" label and replace it with "Intercept"
     evs[0] = "Intercept"
 
     # Count the number of f tests defined
-    count_ftests = len([ ev for ev in evs if "f_test" in ev ])
+    count_ftests = len([ev for ev in evs if "f_test" in ev ])
 
     # Whether any f tests are defined
-    fTest = count_ftests >0
+    fTest = count_ftests > 0
 
     # Now read the actual contrasts
     try:
-        contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
+        contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',',
+                                       dtype=None)
     except:
         print "Error: Could not successfully read in contrast file: ",con_file
         raise Exception
@@ -265,7 +267,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
         # add Intercept column
         if group_sep == False:
-
             if False:
                 # The following insertion gives an error further down the
                 # line, because this suggests that there will be an intercept
@@ -289,7 +290,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
     # if there are f-tests, create the array for them
     if fTest:
-
         ## TODO: Probably it would be more accurate to check that each
         ## f test itself contains enough contrasts, rather than whether
         ## there are in principle enough contrasts to form f tests.

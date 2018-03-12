@@ -490,7 +490,6 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     #                   example:
     #                     /home/cpac_run_1/output/pipeline_040_ANTS
 
-    import os
     import pandas as pd
 
     # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
@@ -506,9 +505,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     group_models = []
 
     for group_config_file in c.modelConfigs:
-        group_models.append((group_config_file, \
+        group_models.append((group_config_file,
                              load_config_yml(group_config_file)))
-
 
     # get the lowest common denominator of group model config choices
     #   - create full participant list
@@ -523,8 +521,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
         group_model = group_model_tuple[1]
 
-        inclusion = load_text_file(group_model.participant_list, \
-            "group-level analysis participant list")
+        inclusion = load_text_file(group_model.participant_list,
+                                   "group-level analysis participant list")
         full_inclusion_list = full_inclusion_list + inclusion
 
         full_output_measure_list = full_output_measure_list + \
@@ -532,18 +530,18 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
         # if any of the models will require motion parameters
         if ("MeanFD" in group_model.design_formula) or \
-            ("MeanDVARS" in group_model.design_formula):
+                ("MeanDVARS" in group_model.design_formula):
             get_motion = True
 
         # make sure "None" gets processed properly here...
         if (group_model.custom_roi_mask == "None") or \
-            (group_model.custom_roi_mask == "none"):
+                (group_model.custom_roi_mask == "none"):
             custom_roi_mask = None
         else:
             custom_roi_mask = group_model.custom_roi_mask
 
         if ("Measure_Mean" in group_model.design_formula) or \
-            (custom_roi_mask != None):
+                (custom_roi_mask != None):
             get_raw_score = True
 
     full_inclusion_list = list(set(full_inclusion_list))
@@ -559,11 +557,11 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     # - each dataframe will contain output filepaths and their associated
     #   information, and each dataframe will include ALL SERIES/SCANS
     # - the dataframes will be pruned for each model LATER
-    output_df_dict = gather_outputs(pipeline_output_folder, \
-                                        full_output_measure_list, \
-                                        full_inclusion_list, \
-                                        get_motion, \
-                                        get_raw_score)
+    output_df_dict = gather_outputs(pipeline_output_folder,
+                                    full_output_measure_list,
+                                    full_inclusion_list,
+                                    get_motion,
+                                    get_raw_score)
 
     # alright, group model processing time
     #   going to merge the phenotype DFs with the output file DF
@@ -589,7 +587,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
         pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
 
         # enforce the sub ID label to "Participant"
-        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"}, \
+        pheno_df.rename(columns={group_model.participant_id_label:"participant_id"},
                         inplace=True)   
         pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
 
@@ -614,8 +612,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
             # prune the output_df for this specific group model and output +
             # preprocessing strategy
-            inclusion_list = load_text_file(group_model.participant_list, \
-                "group-level analysis participant list")
+            inclusion_list = load_text_file(group_model.participant_list,
+                                            "group-level analysis participant list")
             output_df = \
                 output_df[output_df["participant_id"].isin(inclusion_list)]
 
@@ -638,15 +636,15 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                 if repeated_sessions == True:
                     new_pheno_df = pheno_sessions_to_repeated_measures( \
-                                       new_pheno_df, \
+                                       new_pheno_df,
                                        group_model.sessions_list)
 
                 # create new rows for all of the series, if applicable
                 #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
                 if repeated_series == True:
                     new_pheno_df = pheno_series_to_repeated_measures( \
-                                       new_pheno_df, \
-                                       group_model.series_list, \
+                                       new_pheno_df,
+                                       group_model.series_list,
                                        repeated_sessions)
 
                 # drop the pheno rows - if there are participants missing in
@@ -679,15 +677,15 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                         new_pheno_df[new_pheno_df["Series"].isin(group_model.series_list)]
                     join_columns.append("Series")
                     # pull together the pheno DF and the output files DF!
-                    new_pheno_df = pd.merge(new_pheno_df, output_df, how="inner",\
-                        on=join_columns)
+                    new_pheno_df = pd.merge(new_pheno_df, output_df,
+                                            how="inner", on=join_columns)
 
                     if repeated_sessions == True:
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
                         new_pheno_df, dropped_parts = \
-                            balance_repeated_measures(new_pheno_df, \
-                                                      group_model.sessions_list, \
+                            balance_repeated_measures(new_pheno_df,
+                                                      group_model.sessions_list,
                                                       group_model.series_list)
 
                         run_label = "repeated_measures_multiple_sessions_and_series"
@@ -706,23 +704,28 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                         series = series_df_tuple[0]
 
-                        # series_df is output_df but with only one of the Series
+                        # series_df is output_df but with only one of the
+                        # Series
                         series_df = series_df_tuple[1]
 
-                        # trim down the pheno DF to match the output DF and merge
+                        # TODO: is this a mistake?
+                        # trim down the pheno DF to match the output DF and
+                        # merge
                         newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
                         newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["participant_id"])
 
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
                         newer_pheno_df, dropped_parts = \
-                            balance_repeated_measures(newer_pheno_df, \
-                                                      group_model.sessions_list, \
+                            balance_repeated_measures(newer_pheno_df,
+                                                      group_model.sessions_list,
                                                       None)
 
                         # unique_resource =
-                        #              (output_measure_type, preprocessing strategy)
-                        analysis_dict[(model_name, group_config_file, resource_id, strat_info, "repeated_measures_%s" % series)] = newer_pheno_df
+                        #        (output_measure_type, preprocessing strategy)
+                        analysis_dict[(model_name, group_config_file,
+                                       resource_id, strat_info,
+                                       "repeated_measures_%s" % series)] = newer_pheno_df
 
             else:
                 # no repeated measures
@@ -740,9 +743,13 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                     series_df = series_df_tuple[1]
                     # trim down the pheno DF to match the output DF and merge
                     newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
-                    newer_pheno_df = pd.merge(new_pheno_df, series_df, how="inner", on=["participant_id"])
+                    newer_pheno_df = pd.merge(new_pheno_df, series_df,
+                                              how="inner",
+                                              on=["participant_id"])
+
                     # send it in
-                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, series)] = newer_pheno_df
+                    analysis_dict[(model_name, group_config_file, resource_id,
+                                   strat_info, series)] = newer_pheno_df
 
     return analysis_dict
 

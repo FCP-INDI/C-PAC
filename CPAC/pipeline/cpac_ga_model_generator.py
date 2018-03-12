@@ -484,9 +484,9 @@ def create_contrasts_dict(dmatrix_obj, contrasts_list, output_measure):
     return contrasts_vectors
 
 
-def prep_group_analysis_workflow(model_df, pipeline_config_path, \
-    model_name, group_config_path, resource_id, preproc_strat, \
-    series_or_repeated_label):
+def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
+                                 group_config_path, resource_id,
+                                 preproc_strat, series_or_repeated_label):
     
     #
     # this function runs once per derivative type and preproc strat combo
@@ -520,8 +520,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     p_threshold = float(group_config_obj.p_threshold[0])
 
-    sub_id_label = group_config_obj.participant_id_label
-
     ftest_list = []
     readme_flags = []
 
@@ -530,7 +528,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     if ((custom_confile is None) or (custom_confile == '') or
             ("None" in custom_confile) or ("none" in custom_confile)):
-
         custom_confile = None
 
         if (len(group_config_obj.f_tests) == 0) or \
@@ -541,7 +538,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
             ftest_list = group_config_obj.f_tests
 
     else:
-
         if not os.path.exists(custom_confile):
             errmsg = "\n[!] CPAC says: You've specified a custom contrasts " \
                      ".CSV file for your group model, but this file cannot " \
@@ -549,7 +545,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
                      "entered.\n\nFilepath: %s\n\n" % custom_confile
             raise Exception(errmsg)
 
-        with open(custom_confile,"r") as f:
+        with open(custom_confile, "r") as f:
             evs = f.readline()
 
         evs = evs.rstrip('\r\n').split(',')
@@ -572,18 +568,19 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
     if 'sca_roi' in resource_id:
         out_dir = os.path.join(out_dir,
-            re.search('sca_ROI_(\d)+',os.path.splitext(\
+            re.search('sca_ROI_(\d)+', os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
             
     if 'dr_tempreg_maps_zstat_files_to_standard_smooth' in resource_id:
         out_dir = os.path.join(out_dir,
-            re.search('temp_reg_map_z_(\d)+',os.path.splitext(\
+            re.search('temp_reg_map_z_(\d)+', os.path.splitext(\
                 os.path.splitext(os.path.basename(\
                     model_df["Filepath"][0]))[0])[0]).group(0))
             
     if 'centrality' in resource_id:
-        names = ['degree_centrality_binarize', 'degree_centrality_weighted', \
+        names = ['degree_centrality_binarize',
+                 'degree_centrality_weighted',
                  'eigenvector_centrality_binarize',
                  'eigenvector_centrality_weighted',
                  'lfcd_binarize', 'lfcd_weighted']
@@ -594,7 +591,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
                 break
 
     if 'tempreg_maps' in resource_id:
-        out_dir = os.path.join(out_dir, re.search('\w*[#]*\d+', \
+        out_dir = os.path.join(out_dir, re.search('\w*[#]*\d+',
             os.path.splitext(os.path.splitext(os.path.basename(\
                 model_df["Filepath"][0]))[0])[0]).group(0))
 
@@ -604,11 +601,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         out_dir.split("group_analysis_results_%s" % pipeline_ID)[1]
 
     # generate working directory for this output's group analysis run
-    work_dir = os.path.join(pipeline_config_obj.workingDirectory, \
-        "group_analysis", second_half_out.lstrip("/"))
+    work_dir = os.path.join(pipeline_config_obj.workingDirectory,
+                            "group_analysis", second_half_out.lstrip("/"))
 
-    log_dir = os.path.join(pipeline_config_obj.logDirectory, \
-        "group_analysis", second_half_out.lstrip("/"))
+    log_dir = os.path.join(pipeline_config_obj.logDirectory,
+                           "group_analysis", second_half_out.lstrip("/"))
 
     # create the actual directories
     create_dir(model_path, "group analysis output")
@@ -625,11 +622,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         if part not in new_participant_list:
             new_participant_list.append(part)
 
-    new_sub_file = write_new_sub_file(model_path, \
-                                      group_config_obj.participant_list, \
+    new_sub_file = write_new_sub_file(model_path,
+                                      group_config_obj.participant_list,
                                       new_participant_list)
 
-    group_config_obj.update('participant_list',new_sub_file)
+    group_config_obj.update('participant_list', new_sub_file)
 
     num_subjects = len(list(model_df["participant_id"]))
 
@@ -653,12 +650,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     merge_outfile = model_name + "_" + resource_id + "_merged.nii.gz"
     merge_outfile = os.path.join(model_path, merge_outfile)
 
-    merge_file = create_merged_copefile(list(model_df["Filepath"]), \
+    merge_file = create_merged_copefile(list(model_df["Filepath"]),
                                         merge_outfile)
 
     # create merged group mask
-    merge_mask_outfile = model_name + "_" + resource_id + \
-                         "_merged_mask.nii.gz"
+    merge_mask_outfile = model_name + "_" + resource_id + "_merged_mask.nii.gz"
     merge_mask_outfile = os.path.join(model_path, merge_mask_outfile)
     merge_mask = create_merge_mask(merge_file, merge_mask_outfile)
 
@@ -668,8 +664,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         individual_masks_dir = os.path.join(model_path, "individual_masks")
         create_dir(individual_masks_dir, "individual masks")
         for unique_id, series_id, raw_filepath in zip(model_df["participant_id"],
-            model_df["Series"], model_df["Raw_Filepath"]):
-            
+                model_df["Series"], model_df["Raw_Filepath"]):
             mask_for_means_path = os.path.join(individual_masks_dir,
                 "%s_%s_%s_mask.nii.gz" % (unique_id, series_id, resource_id))
             mask_for_means = create_merge_mask(raw_filepath, 
@@ -686,7 +681,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         custom_roi_mask = group_config_obj.custom_roi_mask
 
         if (custom_roi_mask == None) or (custom_roi_mask == "None") or \
-            (custom_roi_mask == "none") or (custom_roi_mask == ""):
+                (custom_roi_mask == "none") or (custom_roi_mask == ""):
             err = "\n\n[!] You included 'Custom_ROI_Mean' in your design " \
                   "formula, but you didn't supply a custom ROI mask file." \
                   "\n\nDesign formula: %s\n\n" % design_formula
@@ -694,8 +689,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
 
         # make sure the custom ROI mask file is the same resolution as the
         # output files - if not, resample and warn the user
-        roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0], \
-                                              custom_roi_mask, mask_for_means, \
+        roi_mask = check_mask_file_resolution(list(model_df["Raw_Filepath"])[0],
+                                              custom_roi_mask, mask_for_means,
                                               model_path, resource_id)
 
         # trim the custom ROI mask to be within mask constraints
@@ -732,7 +727,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         if "Series" not in cat_list:
             cat_list.append("Series")
     for col in list(model_df.columns):
-        if "participant_" in col:
+        # should only grab the repeated measures-designed participant_{ID}
+        # columns, not the "participant_id" column!
+        if "participant_" in col and "_id" not in col:
             design_formula = design_formula + " + %s" % col
             cat_list.append(col)
 
@@ -747,10 +744,11 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     if group_config_obj.group_sep:
 
         # check if the group_ev parameter is a list instead of a string:
-        # this was added to handle the new group-level analysis presets. this is
-        # the only modification that was required to the group analysis workflow,
-        # and it handles cases where the group variances must be modeled
-        # separately, by creating separate groups for the FSL FLAME .grp file.
+        # this was added to handle the new group-level analysis presets. this
+        # is the only modification that was required to the group analysis
+        # workflow, and it handles cases where the group variances must be
+        # modeled separately, by creating separate groups for the FSL FLAME
+        # .grp file.
         #     the group_ev parameter gets sent in as a list if coming from any
         #     of the presets that deal with multiple groups- in these cases,
         #     the pheno_df/design matrix is already set up properly for the
@@ -759,7 +757,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
         #     separately" option is enabled in the group analysis config YAML
         group_ev = group_config_obj.grouping_var
 
-        if isinstance(group_ev, list):
+        if isinstance(group_ev, list) or "," in group_ev:
 
             grp_vector = []
 
@@ -817,14 +815,14 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
             # model group variances separately
             old_ev_list = ev_list
 
-            model_df, grp_vector, ev_list, cat_list = split_groups(model_df, \
-                                    group_config_obj.grouping_var, \
+            model_df, grp_vector, ev_list, cat_list = split_groups(model_df,
+                                    group_config_obj.grouping_var,
                                     ev_list, cat_list)
 
             # make the grouping variable categorical for Patsy (if we try to
             # do this automatically below, it will categorical-ize all of
             # the substrings too)
-            design_formula = design_formula.replace(group_config_obj.grouping_var, \
+            design_formula = design_formula.replace(group_config_obj.grouping_var,
                                       "C(" + group_config_obj.grouping_var + ")")
             if group_config_obj.coding_scheme == "Sum":
                 design_formula = design_formula.replace(")", ", Sum)")
@@ -863,8 +861,15 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
     check_multicollinearity(np.array(dmatrix))
 
     # prepare for final stages
-    column_names = dmatrix.design_info.column_names
-        
+    dmatrix_column_names = dmatrix.design_info.column_names
+
+    # make sure "column_names" is in the same order as the original EV column
+    # header ordering in model_df
+    column_names = []
+    for col in model_df.columns:
+        if col in dmatrix_column_names:
+            column_names.append(col)
+
     # check to make sure there are more time points than EVs!
     if len(column_names) >= num_subjects:
         err = "\n\n[!] CPAC says: There are more EVs than there are " \
@@ -878,22 +883,23 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, \
               "subjects in your group analysis subject list, this may be " \
               "because not every subject in the subject list has an output " \
               "for %s in the individual-level analysis output directory.\n\n"\
-              % (resource_id, num_subjects, len(column_names), column_names, \
-                 resource_id)
+              "Design formula going in: %s\n\n"\
+              % (resource_id, num_subjects, len(column_names), column_names,
+                 resource_id, design_formula)
         raise Exception(err)
 
     # time for contrasts
     contrasts_list = None
     contrasts_vectors = None
 
-    if ((custom_confile == None) or (custom_confile == '') or \
+    if ((custom_confile == None) or (custom_confile == '') or
             ("None" in custom_confile) or ("none" in custom_confile)):
 
         # if no custom contrasts matrix CSV provided (i.e. the user
         # specified contrasts in the GUI)
         contrasts_list = group_config_obj.contrasts
         contrasts_vectors = create_contrasts_dict(dmatrix, contrasts_list,
-            resource_id)
+                                                  resource_id)
 
     # check the merged file's order
     check_merged_file(model_df["Filepath"], merge_file)

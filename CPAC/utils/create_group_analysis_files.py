@@ -259,7 +259,7 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
                                         ev_selections=ev_selections,
                                         pheno_sub_label=pheno_sub_label)
 
-    design_df["Group Mean"] = 1
+    design_df["Group_Mean"] = 1
 
     group_mean_contrast = {"contrasts": "Group Mean"}
 
@@ -267,7 +267,7 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
     # covariate past the Group Mean
     for col in design_df.columns:
         if col not in id_cols:
-            if col == "Group Mean":
+            if col == "Group_Mean":
                 group_mean_contrast.update({col: 1})
             else:
                 group_mean_contrast.update({col: 0})
@@ -297,7 +297,7 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
                                       "".format(model_name))
 
     # start group config yaml dictionary
-    design_formula = "Group Mean"
+    design_formula = "Group_Mean"
     if covariate:
         design_formula = "{0} + {1}".format(design_formula, covariate)
 

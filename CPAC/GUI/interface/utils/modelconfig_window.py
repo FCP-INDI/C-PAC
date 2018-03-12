@@ -381,7 +381,17 @@ class ModelConfig(wx.Frame):
 
                 phenoHeaderString = phenoFile.readline().rstrip('\r\n')
                 phenoHeaderItems = phenoHeaderString.split(',')
-                phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
+                try:
+                    phenoHeaderItems.remove(self.gpa_settings['participant_id_label'])
+                except ValueError:
+                    err = "\n[!] The participant ID label you provided in " \
+                          "the group analysis configuration file ({0}) was " \
+                          "not found as a column label in the phenotypic " \
+                          "file.\n\nPhenotypic file: {1}\n\n" \
+                          "".format(self.gpa_settings['participant_id_label'],
+                                    os.path.abspath(
+                                        self.gpa_settings['pheno_file']))
+                    raise Exception(err)
 
                 # update the 'Model Setup' box and populate it with the EVs and
                 # their associated checkboxes for categorical and demean
