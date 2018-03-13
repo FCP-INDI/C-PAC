@@ -302,9 +302,8 @@ def preset_single_group_avg(group_list, pheno_df=None, covariate=None,
         design_formula = "{0} + {1}".format(design_formula, covariate)
 
     group_config = {"pheno_file": design_mat_path,
-                    "participant_id_label": pheno_sub_label,
                     "ev_selections": {"demean": [covariate],
-                                      "categorical": ["Group Mean"]},
+                                      "categorical": ["Group_Mean"]},
                     "design_formula": design_formula,
                     "group_sep": "Off",
                     "grouping_var": None,
@@ -419,7 +418,6 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
     design_formula = "{0} + {1}".format(groups[0], groups[1])
 
     group_config = {"pheno_file": design_mat_path,
-                    "participant_id_label": pheno_sub_label,
                     "ev_selections": {"demean": [],
                                       "categorical": groups},
                     "design_formula": design_formula,
@@ -476,6 +474,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         group_list = read_group_list_text_file(group_list_text_file)
 
     group_config = {"participant_list": group_list_text_file,
+                    "participant_id_label": "participant_id",
                     "mean_mask": ["Group Mask"],
                     "custom_roi_mask": None,
                     "derivative_list": derivative_list,

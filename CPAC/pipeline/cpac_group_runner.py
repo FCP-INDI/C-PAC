@@ -492,6 +492,24 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
     import pandas as pd
 
+    # TODO
+    # make this a global list somewhere
+    derivatives = ['alff_to_standard_zstd',
+                   'alff_to_standard_smooth_zstd',
+                   'falff_to_standard_zstd',
+                   'falff_to_standard_smooth_zstd',
+                   'reho_to_standard_zstd',
+                   'reho_to_standard_smooth_zstd',
+                   'sca_roi_files_to_standard_fisher_zstd',
+                   'sca_roi_files_to_standard_smooth_fisher_zstd',
+                   'sca_tempreg_maps_zstat_files',
+                   'sca_tempreg_maps_zstat_files_smooth',
+                   'vmhc_fisher_zstd_zstat_map',
+                   'centrality_outputs_zstd',
+                   'centrality_outputs_smoothed_zstd',
+                   'dr_tempreg_maps_zstat_files_to_standard',
+                   'dr_tempreg_maps_zstat_files_to_standard_smooth']
+
     # Load the MAIN PIPELINE config file into 'c' as a CONFIGURATION OBJECT
     c = load_config_yml(config_file)
 
@@ -516,7 +534,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     full_output_measure_list = []
     get_motion = False
     get_raw_score = False
-    
+
     for group_model_tuple in group_models:
 
         group_model = group_model_tuple[1]
@@ -582,6 +600,22 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
             raise Exception(err)
         else:
             group_model_names.append(model_name)
+
+        if len(group_model.derivative_list) == 0:
+            err = "\n\n[!] There are no derivatives listed in the " \
+                  "derivative_list field of your group analysis " \
+                  "configuration file.\n\nConfiguration file: " \
+                  "{0}\n".format(group_config_file)
+            raise Exception(err)
+
+        for deriv_name in group_model.derivative_list:
+            if deriv_name not in derivatives:
+                err = "\n\n[!] One of the derivative names you provided " \
+                      "({0}) in the derivative_list field in your group " \
+                      "analysis configuration file is not a valid CPAC " \
+                      "output name.\n\nConfiguration file: {1}" \
+                      "\n".format(deriv_name, group_config_file)
+                raise Exception(err)
 
         # load original phenotype CSV into a dataframe
         pheno_df = load_pheno_csv_into_df(group_model.pheno_file)
@@ -738,11 +772,13 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                 # iterate over the Series/Scans
                 for series_df_tuple in output_df.groupby("Series"):
+                    print series_df_tuple
                     series = series_df_tuple[0]
                     # series_df = output_df but with only one of the Series
                     series_df = series_df_tuple[1]
                     # trim down the pheno DF to match the output DF and merge
-                    newer_pheno_df = new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
+                    newer_pheno_df = \
+                        new_pheno_df[pheno_df["participant_id"].isin(series_df["participant_id"])]
                     newer_pheno_df = pd.merge(new_pheno_df, series_df,
                                               how="inner",
                                               on=["participant_id"])
@@ -769,7 +805,6 @@ def run(config_file, pipeline_output_folder):
     procss = []
     
     for unique_resource_id in analysis_dict.keys():
-
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
         #          preprocessing strategy string,
@@ -784,15 +819,13 @@ def run(config_file, pipeline_output_folder):
         model_df = analysis_dict[unique_resource_id]
 
         if not c.runOnGrid:
-
             from CPAC.pipeline.cpac_ga_model_generator import \
                 prep_group_analysis_workflow
 
-            procss.append(Process(target=prep_group_analysis_workflow, \
-                                  args = (model_df, config_file, model_name, \
-                                          group_config_file, resource_id, \
-                                          preproc_strat, series_or_repeated)))
-            
+            procss.append(Process(target=prep_group_analysis_workflow,
+                                  args=(model_df, config_file, model_name,
+                                        group_config_file, resource_id,
+                                        preproc_strat, series_or_repeated)))
         else:
             print "\n\n[!] CPAC says: Group-level analysis has not yet been "\
                   "implemented to handle runs on a cluster or grid.\n\n" \
@@ -800,7 +833,7 @@ def run(config_file, pipeline_output_folder):
                   "continue with group-level analysis. This will submit " \
                   "the job to only one node, however.\n\nWe will update " \
                   "users on when this feature will be available through " \
-                  "release note announcements.\n\n"  
+                  "release note announcements.\n\n"
           
     # start kicking it off
     pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
@@ -824,29 +857,21 @@ def run(config_file, pipeline_output_folder):
         the value of the parameter stated above
         """
         idx = 0
-        while(idx < len(procss)):
-                
+        while idx < len(procss):
             if len(jobQueue) == 0 and idx == 0:
-                
                 idc = idx
-                    
                 for p in procss[idc: idc + c.numGPAModelsAtOnce]:
-                
                     p.start()
                     print >>pid,p.pid
                     jobQueue.append(p)
                     idx += 1
-                
             else:
-                
                 for job in jobQueue:
-                
                     if not job.is_alive():
                         print 'found dead job ', job
                         loc = jobQueue.index(job)
                         del jobQueue[loc]
                         procss[idx].start()
-                
                         jobQueue.append(procss[idx])
                         idx += 1
                 

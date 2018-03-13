@@ -495,6 +495,7 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     import os
     import patsy
+    import pandas as pd
     import numpy as np
 
     import nipype.pipeline.engine as pe
@@ -761,6 +762,9 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
             grp_vector = []
 
+            if "," in group_ev:
+                group_ev = group_ev.split(",")
+
             if len(group_ev) == 2:
                 for x, y in zip(model_df[group_ev[0]], model_df[group_ev[1]]):
                     if x == 1:
@@ -929,14 +933,18 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
         readme_flags.append("cat_demeaned")
 
+    dmatrix_df = pd.DataFrame(dmatrix,
+                              columns=dmatrix.design_info.column_names)
+    dmatrix_df = dmatrix_df[column_names]
+
     # send off the info so the FLAME input model files can be generated!
-    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix,
+    mat_file, grp_file, con_file, fts_file = create_flame_model_files(dmatrix_df,
         column_names, contrasts_vectors, contrasts_list, custom_confile, ftest_list,
         group_config_obj.group_sep, grp_vector, group_config_obj.coding_scheme[0],
         model_name, resource_id, model_path)
 
     dmat_csv_path = os.path.join(model_path, "design_matrix.csv")
-    write_design_matrix_csv(dmatrix, model_df["participant_id"], column_names,
+    write_design_matrix_csv(dmatrix_df, model_df["participant_id"], column_names,
         dmat_csv_path)
 
     # workflow time
@@ -988,19 +996,8 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
                                       (r'_cluster(.)*[/]',''),
                                       (r'_slicer(.)*[/]',''),
                                       (r'_overlay(.)*[/]','')]
-   
 
-    ########datasink connections#########
-    #if fTest:
-    #    wf.connect(gp_flow, 'outputspec.fts',
-    #               ds, 'model_files.@0') 
-        
-    #wf.connect(gp_flow, 'outputspec.mat',
-    #           ds, 'model_files.@1' )
-    #wf.connect(gp_flow, 'outputspec.con',
-    #           ds, 'model_files.@2')
-    #wf.connect(gp_flow, 'outputspec.grp',
-    #           ds, 'model_files.@3')
+    # datasink connections
     wf.connect(gpa_wf, 'outputspec.merged',
                ds, 'merged')
     wf.connect(gpa_wf, 'outputspec.zstats',
@@ -1029,8 +1026,6 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
                ds, 'rendered.@02')
     wf.connect(gpa_wf, 'outputspec.rendered_image',
                ds, 'rendered.@03')
-       
-    ######################################
 
     # Run the actual group analysis workflow
     wf.run()
@@ -1038,20 +1033,17 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
     print "\n\nWorkflow finished for model %s\n\n" % wf_name
 
 
-
 def run(config, subject_infos, resource):
-    import re
     import commands
     commands.getoutput('source ~/.bashrc')
     import os
-    import sys
     import pickle
     import yaml
     
     c = Configuration(yaml.load(open(os.path.realpath(config), 'r')))
     
-    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r') ), \
-        pickle.load(open(subject_infos, 'r')))
+    prep_group_analysis_workflow(c, pickle.load(open(resource, 'r')),
+                                 pickle.load(open(subject_infos, 'r')))
 
 
 

@@ -449,6 +449,8 @@ class ModelConfig(wx.Frame):
                         for cov in value:
                             grouping_var += "{0},".format(cov)
                         grouping_var = grouping_var.rstrip(",")
+                    else:
+                        grouping_var = value
 
                     ctrl.set_value(grouping_var)
 
@@ -1300,8 +1302,7 @@ class ModelConfig(wx.Frame):
             raise Exception
         
         # open the next window!
-        modelDesign_window.ModelDesign(self.parent, self.gpa_settings, \
-                                       dmatrix, column_names) #var_list_for_contrasts)
-
+        modelDesign_window.ModelDesign(self.parent, self.gpa_settings,
+                                       dmatrix, column_names)
 
         self.Close()
