@@ -2019,8 +2019,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
-    X = X.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     if  'skull_vis' in png_name:
         X[X < 20.0] = 0.0
@@ -2186,8 +2186,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
-    X = X.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
 
 
     if  'skull_vis' in png_name:
@@ -2309,10 +2309,10 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     X_csf = nb.load(overlay_csf).get_data()
     X_wm = nb.load(overlay_wm).get_data()
     X_gm = nb.load(overlay_gm).get_data()
-    X_csf = X_csf.astype(np.float16)
-    X_wm = X_wm.astype(np.float16)
-    X_gm = X_gm.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X_csf = X_csf.astype(np.float32)
+    X_wm = X_wm.astype(np.float32)
+    X_gm = X_gm.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     max_csf = np.nanmax(np.abs(X_csf.flatten()))
     X_csf[X_csf != 0.0] = max_csf
@@ -2420,10 +2420,10 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     X_csf = nb.load(overlay_csf).get_data()
     X_wm = nb.load(overlay_wm).get_data()
     X_gm = nb.load(overlay_gm).get_data()
-    X_csf = X_csf.astype(np.float16)
-    X_wm = X_wm.astype(np.float16)
-    X_gm = X_gm.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X_csf = X_csf.astype(np.float32)
+    X_wm = X_wm.astype(np.float32)
+    X_gm = X_gm.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     max_csf = np.nanmax(np.abs(X_csf.flatten()))
     X_csf[X_csf != 0.0] = max_csf
