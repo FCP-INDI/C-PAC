@@ -96,30 +96,24 @@ files_folders_wf = {
     'falff_to_standard_smooth': 'alff',
     'alff_to_standard_zstd': 'alff',
     'falff_to_standard_zstd': 'alff',
-    'alff_to_standard_smooth_zstd': 'alff',
-    'falff_to_standard_smooth_zstd': 'alff',
+    'alff_to_standard_zstd_smooth': 'alff',
+    'falff_to_standard_zstd_smooth': 'alff',
     'raw_reho_map': 'reho',
     'reho_smooth': 'reho',
     'reho_to_standard': 'reho',
     'reho_to_standard_smooth': 'reho',
     'reho_to_standard_zstd': 'reho',
-    'reho_to_standard_smooth_zstd': 'reho',
+    'reho_to_standard_zstd_smooth': 'reho',
     'voxel_timeseries': 'timeseries',
     'roi_timeseries': 'timeseries',
     'roi_timeseries_for_SCA': 'timeseries',
     'roi_timeseries_for_SCA_multreg': 'timeseries',
-    'sca_roi_correlation_stack': 'sca_roi',
     'sca_roi_correlation_files': 'sca_roi',
-    'sca_roi_stack_smooth': 'sca_roi',
     'sca_roi_files_smooth': 'sca_roi',
-    'sca_roi_stack_to_standard': 'sca_roi',
     'sca_roi_files_to_standard': 'sca_roi',
-    'sca_roi_stack_to_standard_smooth': 'sca_roi',
     'sca_roi_files_to_standard_smooth': 'sca_roi',
-    'sca_roi_stack_to_standard_fisher_zstd': 'sca_roi',
-    'sca_roi_stack_to_standard_smooth_fisher_zstd': 'sca_roi',
     'sca_roi_files_to_standard_fisher_zstd': 'sca_roi',
-    'sca_roi_files_to_standard_smooth_fisher_zstd': 'sca_roi',
+    'sca_roi_files_to_standard_fisher_zstd_smooth': 'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
@@ -127,7 +121,7 @@ files_folders_wf = {
     'centrality_outputs': 'centrality',
     'centrality_outputs_smoothed': 'centrality',
     'centrality_outputs_zstd': 'centrality',
-    'centrality_outputs_smoothed_zstd': 'centrality',
+    'centrality_outputs_zstd_smoothed': 'centrality',
     'centrality_graphs': 'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -135,25 +129,15 @@ files_folders_wf = {
     'seg_partial_volume_files': 'anat',
     'spatial_map_timeseries': 'timeseries',
     'spatial_map_timeseries_for_DR': 'timeseries',
-    'dr_tempreg_maps_stack': 'spatial_regression',
     'dr_tempreg_maps_files': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack': 'spatial_regression',
     'dr_tempreg_maps_zstat_files': 'spatial_regression',
-    'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
     'dr_tempreg_maps_files_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack_to_standard': 'spatial_regression',
     'dr_tempreg_maps_zstat_files_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_stack_to_standard_smooth': 'spatial_regression',
     'dr_tempreg_maps_files_to_standard_smooth': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack_to_standard_smooth': 'spatial_regression',
     'dr_tempreg_maps_zstat_files_to_standard_smooth': 'spatial_regression',
-    'sca_tempreg_maps_stack': 'sca_roi',
     'sca_tempreg_maps_files': 'sca_roi',
     'sca_tempreg_maps_files_smooth': 'sca_roi',
-    'sca_tempreg_maps_zstat_stack': 'sca_roi',
     'sca_tempreg_maps_zstat_files': 'sca_roi',
-    'sca_tempreg_maps_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_zstat_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_zstat_files_smooth': 'sca_roi',
 }
 
@@ -264,63 +248,7 @@ def get_zscore(input_name, wf_name='z_score'):
     return wflow
 
 
-def get_operand_string(mean, std_dev):
-    """
-    Method to get operand string for Fsl Maths
-
-    Parameters
-    ----------
-    mean : string
-        path to img containing mean
-    std_dev : string
-        path to img containing standard deviation
-
-    Returns
-    ------
-    op_string : string
-        operand string
-    """
-
-    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
-    op_string = str1 + " -mas %s"
-    return op_string
-
-
-def get_roi_num_list(timeseries_file, prefix=None):
-    # extracts the ROI labels from the 3dROIstats output CSV file
-    with open(timeseries_file, "r") as f:
-        roi_file_lines = f.read().splitlines()
-
-    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
-              "timeseries, was not in the expected format.\n\nROI output " \
-              "file: %s\n\n" % timeseries_file
-
-    for line in roi_file_lines:
-        if "Mean_" in line:
-            try:
-                roi_list = line.split("\t")
-                # clear out any blank strings/non ROI labels in the list
-                roi_list = [x for x in roi_list if "Mean" in x]
-                # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
-                            for x in roi_list]
-            except:
-                raise Exception(roi_err)
-            break
-    else:
-        raise Exception(roi_err)
-
-    if prefix:
-        temp_rois = []
-        for roi in roi_list:
-            roi = prefix + "_" + str(roi)
-            temp_rois.append(roi)
-        roi_list = temp_rois
-
-    return roi_list
-
-
-def get_fisher_zscore(input_name, map_node, wf_name='fisher_z_score'):
+def get_fisher_zscore(input_name, wf_name='fisher_z_score'):
     """
     Runs the compute_fisher_z_score function as part of a one-node workflow.
     """
@@ -470,6 +398,62 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
         out_file.append(z_score_file)
 
     return out_file
+
+
+def get_operand_string(mean, std_dev):
+    """
+    Method to get operand string for Fsl Maths
+
+    Parameters
+    ----------
+    mean : string
+        path to img containing mean
+    std_dev : string
+        path to img containing standard deviation
+
+    Returns
+    ------
+    op_string : string
+        operand string
+    """
+
+    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
+    op_string = str1 + " -mas %s"
+    return op_string
+
+
+def get_roi_num_list(timeseries_file, prefix=None):
+    # extracts the ROI labels from the 3dROIstats output CSV file
+    with open(timeseries_file, "r") as f:
+        roi_file_lines = f.read().splitlines()
+
+    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
+              "timeseries, was not in the expected format.\n\nROI output " \
+              "file: %s\n\n" % timeseries_file
+
+    for line in roi_file_lines:
+        if "Mean_" in line:
+            try:
+                roi_list = line.split("\t")
+                # clear out any blank strings/non ROI labels in the list
+                roi_list = [x for x in roi_list if "Mean" in x]
+                # rename labels
+                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
+                            for x in roi_list]
+            except:
+                raise Exception(roi_err)
+            break
+    else:
+        raise Exception(roi_err)
+
+    if prefix:
+        temp_rois = []
+        for roi in roi_list:
+            roi = prefix + "_" + str(roi)
+            temp_rois.append(roi)
+        roi_list = temp_rois
+
+    return roi_list
 
 
 def safe_shape(*vol_data):

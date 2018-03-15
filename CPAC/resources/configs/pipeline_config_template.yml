@@ -492,14 +492,20 @@ lfcdCorrelationThreshold :  0.001
 memoryAllocatedForDegreeCentrality :  3.0
 
 
+# Smooth the derivative outputs or not, or produce both unsmoothed and smoothed versions, if preferred.
+# Options: [1], [0], or [1,0]
+run_smoothing: [1]
+
+
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
 # Can be a single value or multiple values separated by commas.
 # Note that spatial smoothing is run as the last step in the individual-level analysis pipeline, such that all derivatives are output both smoothed and unsmoothed.
 fwhm : [4]
 
 
-# Decides format of outputs. Off will produce non-z-scored outputs, On will produce z-scores of outputs and non-z-scored outputs.
-runZScoring :  [1]
+# Decides format of outputs. Off will produce non-z-scored outputs, On will produce z-scores of outputs, and On/Off will produce both.
+# Options: [1]
+runZScoring : [1], [0], or [1,0]
 
 
 # This number depends on computing resources.
