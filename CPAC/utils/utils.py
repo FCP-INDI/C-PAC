@@ -142,7 +142,7 @@ files_folders_wf = {
 }
 
 
-def get_zscore(input_name, wf_name='z_score'):
+def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores
 
@@ -206,49 +206,64 @@ def get_zscore(input_name, wf_name='z_score'):
     outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
                          name='outputspec')
 
-    mean = pe.Node(interface=fsl.ImageStats(),
-                   name='mean')
+    if map_node:
+        mean = pe.MapNode(interface=fsl.ImageStats(),
+                          name='mean',
+                          iterfield=['in_file'])
+
+        standard_deviation = pe.MapNode(interface=fsl.ImageStats(),
+                                        name='standard_deviation',
+                                        iterfield=['in_file'])
+
+        op_string = pe.MapNode(util.Function(input_names=['mean', 'std_dev'],
+                                             output_names=['op_string'],
+                                             function=get_operand_string),
+                               name='op_string',
+                               iterfield=['mean', 'std_dev'])
+
+        z_score = pe.MapNode(interface=fsl.MultiImageMaths(),
+                             name='z_score',
+                             iterfield=['in_file', 'op_string'])
+
+    else:
+        mean = pe.Node(interface=fsl.ImageStats(), name='mean')
+
+        standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                     name='standard_deviation')
+
+        op_string = pe.Node(util.Function(input_names=['mean', 'std_dev'],
+                                          output_names=['op_string'],
+                                          function=get_operand_string),
+                            name='op_string')
+
+        z_score = pe.Node(interface=fsl.MultiImageMaths(), name='z_score')
+
+    # calculate the mean
     mean.inputs.op_string = '-k %s -m'
-    wflow.connect(inputNode, 'input_file',
-                  mean, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  mean, 'mask_file')
+    wflow.connect(inputNode, 'input_file', mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file', mean, 'mask_file')
 
-    standard_deviation = pe.Node(interface=fsl.ImageStats(),
-                                 name='standard_deviation')
+    # calculate the standard deviation
     standard_deviation.inputs.op_string = '-k %s -s'
-    wflow.connect(inputNode, 'input_file',
-                  standard_deviation, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  standard_deviation, 'mask_file')
+    wflow.connect(inputNode, 'input_file', standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file', standard_deviation, 'mask_file')
 
-    op_string = pe.Node(util.Function(input_names=['mean', 'std_dev'],
-                                      output_names=['op_string'],
-                                      function=get_operand_string),
-                        name='op_string')
-    wflow.connect(mean, 'out_stat',
-                  op_string, 'mean')
-    wflow.connect(standard_deviation, 'out_stat',
-                  op_string, 'std_dev')
-
-    z_score = pe.Node(interface=fsl.MultiImageMaths(),
-                      name='z_score')
+    # calculate the z-score
+    wflow.connect(mean, 'out_stat', op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
     z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
-    wflow.connect(op_string, 'op_string',
-                  z_score, 'op_string')
-    wflow.connect(inputNode, 'input_file',
-                  z_score, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  z_score, 'operand_files')
+    wflow.connect(op_string, 'op_string', z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file', z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file', z_score, 'operand_files')
 
     wflow.connect(z_score, 'out_file', outputNode, 'z_score_img')
 
     return wflow
 
 
-def get_fisher_zscore(input_name, wf_name='fisher_z_score'):
+def get_fisher_zscore(input_name, map_node=False, wf_name='fisher_z_score'):
     """
     Runs the compute_fisher_z_score function as part of a one-node workflow.
     """
@@ -267,16 +282,7 @@ def get_fisher_zscore(input_name, wf_name='fisher_z_score'):
         util.IdentityInterface(fields=['fisher_z_score_img']),
         name='outputspec')
 
-    if map_node == 0:
-        fisher_z_score = pe.Node(
-            util.Function(input_names=['correlation_file',
-                                       'timeseries_one_d',
-                                       'input_name'],
-                          output_names=['out_file'],
-                          function=compute_fisher_z_score),
-            name='fisher_z_score')
-
-    else:
+    if map_node:
         # node to separate out
         fisher_z_score = pe.MapNode(
             util.Function(input_names=['correlation_file',
@@ -286,6 +292,14 @@ def get_fisher_zscore(input_name, wf_name='fisher_z_score'):
                           function=compute_fisher_z_score),
             name='fisher_z_score',
             iterfield=['correlation_file'])
+    else:
+        fisher_z_score = pe.Node(
+            util.Function(input_names=['correlation_file',
+                                       'timeseries_one_d',
+                                       'input_name'],
+                          output_names=['out_file'],
+                          function=compute_fisher_z_score),
+            name='fisher_z_score')
 
     fisher_z_score.inputs.input_name = input_name
 
