@@ -5272,20 +5272,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
 
 # ReHo QA montages
-#            if 1 in c.runReHo:
-#                if 1 in c.runRegisterFuncToMNI:
-#                    QA_montages('reho_to_standard', 15)
-#
-#                    if c.fwhm != None:
-#                        QA_montages('reho_to_standard_smooth', 16)
-#
-#                    if 1 in c.runZScoring:
-#
-#                        if c.fwhm != None:
-#                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
-#
-#                        else:
-#                            QA_montages('reho_to_standard_fisher_zstd', 18)
+            if 1 in c.runReHo:
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('reho_to_standard', 15)
+
+                    if c.fwhm != None:
+                        QA_montages('reho_to_standard_smooth', 16)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
+
+                        else:
+                            QA_montages('reho_to_standard_fisher_zstd', 18)
 
 
 
@@ -5646,9 +5646,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory
                 if 'qc' in key.lower():
-                    ds.inputs.base_directory = c.logDirectory
-                else:
                     ds.inputs.base_directory = c.outputDirectory
+                else:
+                    ds.inputs.base_directory = c.logDirectory
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join(
@@ -5843,7 +5843,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # If QC is enabled
         # TODO - QA pages: re-introduce
-        '''
+        
         if 1 in c.generateQualityControlImages:
             # For each pipeline ID, generate the QC pages
             for pip_id in pip_ids:
@@ -5855,7 +5855,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                 qc_montage_id_s, qc_plot_id, qc_hist_id)
                 # Automatically generate QC index page
                 create_all_qc.run(pipeline_out_base)
-        '''
+        
 
         # pipeline timing code starts here
 
