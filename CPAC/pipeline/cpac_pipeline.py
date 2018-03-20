@@ -161,14 +161,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     debugging_outputs = ['despiked_fieldmap',
                          'fmap_magnitude',
                          'fmap_phase_diff',
-                         'raw_functional',
                          'seg_mixeltype',
                          'seg_partial_volume_files',
-                         'seg_partial_volume_map']
+                         'seg_partial_volume_map',
+                         'seg_probability_maps',
+                         'coordinate_transformation',
+                         'max_displacement',
+                         'power_params',
+                         'movement_parameters']
 
-    outputs_native_nonsmooth = ['alff_img',
-                                'falff_img',
-                                'reho_raw_map']
+    extra_functional_outputs = ['raw_functional',
+                                'mean_functional',
+                                'functional_nuisance_residuals',
+                                'functional_preprocessed_mask',
+                                'mean_functional_in_anat',
+                                'motion_correct_smooth',
+                                'motion_correct_to_standard',
+                                'motion_correct_to_standard_smooth',
+                                'preprocessed',
+                                'slice_time_corrected']
+
+    outputs_native_nonsmooth = ['alff',
+                                'falff',
+                                'reho']
 
     outputs_native_nonsmooth_mult = ['dr_tempreg_maps_files',
                                      'dr_tempreg_maps_zstat_files',
@@ -193,13 +208,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                        'centrality_outputs',
                                        'centrality_outputs_zstd']
 
-    # outputs_native_smooth = ['alff_smooth',
-    #                          'falff_smooth',
-    #                          'reho_smooth',
-    #                          'dr_tempreg_maps_files_smooth',
-    #                          'dr_tempreg_maps_zstat_files_smooth',
-    #                          'sca_roi_files_smooth']
-    #
+    outputs_native_smooth = ['alff_smooth',
+                             'falff_smooth',
+                             'reho_smooth',
+                             'dr_tempreg_maps_files_smooth',
+                             'dr_tempreg_maps_zstat_files_smooth',
+                             'sca_roi_files_smooth']
+
     # outputs_template_smooth = ['alff_to_standard_smooth',
     #                            'alff_to_standard_zstd_smooth',
     #                            'falff_to_standard_smooth',
@@ -225,15 +240,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     outputs_template_raw_mult = ['centrality_outputs',
                                  'centrality_outputs_smooth']
 
-    outputs_average = ['alff_img',
+    outputs_average = ['alff',
                        'alff_to_standard',
-                       'falff_img',
+                       'falff',
                        'falff_to_standard',
                        'reho_to_standard',
                        'alff_smooth',
                        'alff_to_standard_smooth',
                        'falff_smooth',
                        'falff_to_standard_smooth',
+                       'reho',
                        'reho_smooth',
                        'reho_to_standard_smooth']
 
@@ -435,7 +451,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if errInfo:
             logger.info("Error details: {0}\n\n".format(errInfo))
 
-    def logConnectionError(workflow_name, numStrat, resourcePool, errNum):
+    def logConnectionError(workflow_name, numStrat, resourcePool, errNum,
+                           errInfo=None):
 
         logger.info(
             "\n\n" + 'ERROR: Invalid Connection: %s: %s, resource_pool: %s' \
@@ -444,6 +461,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             errNum) + \
             "\n\n" + "This is a pipeline creation error - the workflows "
                      "have not started yet." + "\n\n")
+
+        if errInfo:
+            logger.info(str(errInfo))
 
     def logStandardWarning(sectionName, warnLine):
 
@@ -459,7 +479,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         return nodes
 
     strat_list = []
-    non_outputs = []
 
     workflow_bit_id = {}
     workflow_counter = 0
@@ -2272,8 +2291,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             strat.append_name(alff.name)
 
-            strat.update_resource_pool({'alff_img': (alff, 'outputspec.alff_img')})
-            strat.update_resource_pool({'falff_img': (alff, 'outputspec.falff_img')})
+            strat.update_resource_pool({'alff': (alff, 'outputspec.alff_img')})
+            strat.update_resource_pool({'falff': (alff, 'outputspec.falff_img')})
 
             create_log_node(alff, 'outputspec.falff_img', num_strat)
 
@@ -2915,7 +2934,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 raise
 
             strat.update_resource_pool(
-                {'reho_raw_map': (reho, 'outputspec.raw_reho_map')})
+                {'reho': (reho, 'outputspec.raw_reho_map')})
             strat.append_name(reho.name)
 
             create_log_node(reho, 'outputspec.raw_reho_map', num_strat)
@@ -3702,7 +3721,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     num_strat = 0
 
     """""""""""""""""""""""""""""""""""""""""""""""""""
-     WARP OUTPUTS TO TEMPLATE
+     Apply warps, Z-scoring, Smoothing, Averages
     """""""""""""""""""""""""""""""""""""""""""""""""""
 
     ''''''
@@ -3844,24 +3863,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         return strat
 
-    '''
-    Apply the warps
-    '''
-    if 1 in c.runRegisterFuncToMNI:
-        num_strat = 0
-        for strat in strat_list:
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                if key in outputs_native_nonsmooth:
-                    # smoothing happens at the end, so only the non-smooth
-                    # named output labels for the native-space outputs
-                    strat = output_to_standard(key, strat, num_strat, c)
-            num_strat += 1
-
     ''''''
     ''' Z-SCORING '''
 
-    def z_score_standardize(output_name, strat, num_strat, map_node=False):
+    def z_score_standardize(output_name, mask_name, strat, num_strat,
+                            map_node=False):
 
         # call the z-scoring sub-workflow builder
         z_score_std = get_zscore(output_name, map_node,
@@ -3869,19 +3875,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         try:
             node, out_file = strat.get_node_from_resource_pool(output_name)
-
             workflow.connect(node, out_file, z_score_std,
                              'inputspec.input_file')
 
-            # needs the template-space functional mask because we are z-score
-            # standardizing outputs that have already been warped to template
-            node, out_file = strat.get_node_from_resource_pool('functional_brain_mask_to_standard')
-            workflow.connect(node, out_file,
-                             z_score_std, 'inputspec.mask_file')
+            # get the mask
+            if "/" in mask_name:
+                # mask_name is a direct file path and not the name of a
+                # resource pool key
+                z_score_std.inputs.inputspec.mask_file = mask_name
+            else:
+                node, out_file = strat.get_node_from_resource_pool(mask_name)
+                workflow.connect(node, out_file,
+                                 z_score_std, 'inputspec.mask_file')
 
-        except:
+        except Exception as e:
             logConnectionError('%s z-score standardize' % output_name,
-                               num_strat, strat.get_resource_pool(), '0127')
+                               num_strat, strat.get_resource_pool(),
+                               '0127', e)
             raise
 
         strat.append_name(z_score_std.name)
@@ -3918,28 +3928,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.update_resource_pool({'{0}_fisher_zstd'.format(output_name): (fisher_z_score_std, 'outputspec.fisher_z_score_img')})
 
         return strat
-
-    ''' Run the z-scoring nodes '''
-
-    if 1 in c.runZScoring:
-        num_strat = 0
-        for strat in strat_list:
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                if "sca_roi_files_to_standard" in key:
-                    # correlation files need the r-to-z
-                    strat = fisher_z_score_standardize(key,
-                                                       "roi_timeseries_for_SCA",
-                                                       strat, num_strat,
-                                                       map_node=True)
-                elif key in outputs_template_raw:
-                    # raw score, in template space
-                    strat = z_score_standardize(key, strat, num_strat)
-                elif key in outputs_template_raw_mult:
-                    # same as above but multiple files so mapnode required
-                    strat = z_score_standardize(key, strat, num_strat,
-                                                map_node=True)
-            num_strat += 1
 
     ''''''
     ''' SMOOTHING '''
@@ -3986,39 +3974,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         strat.update_resource_pool({'{0}_smooth'.format(output_name): (output_smooth, 'out_file')})
 
         return strat
-
-    '''
-    Connect the smoothing nodes
-    '''
-
-    if 1 in c.run_smoothing:
-        num_strat = 0
-        for strat in strat_list:
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                if "centrality" in key:
-                    # centrality needs its own mask
-                    strat = output_smooth(key, c.templateSpecificationFile,
-                                          strat, num_strat, map_node=True)
-                elif key in outputs_native_nonsmooth:
-                    # native space
-                    strat = output_smooth(key, "functional_brain_mask",
-                                          strat, num_strat)
-                elif key in outputs_native_nonsmooth_mult:
-                    # native space with multiple files (map nodes)
-                    strat = output_smooth(key, "functional_brain_mask",
-                                          strat, num_strat, map_node=True)
-                elif key in outputs_template_nonsmooth:
-                    # template space
-                    strat = output_smooth(key,
-                                          "functional_brain_mask_to_standard",
-                                          strat, num_strat)
-                elif key in outputs_template_nonsmooth_mult:
-                    # template space with multiple files (map nodes)
-                    strat = output_smooth(key,
-                                          "functional_brain_mask_to_standard",
-                                          strat, num_strat, map_node=True)
-            num_strat += 1
 
     ''''''
     ''' AVERAGING '''
@@ -4072,19 +4027,91 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         return strat
 
     '''
-    Connect the averaging nodes
+    Loop through the resource pool and connect the nodes for:
+        - applying warps to standard
+        - z-score standardization
+        - smoothing
+        - calculating output averages
     '''
 
     num_strat = 0
     for strat in strat_list:
+
+        if 1 in c.runRegisterFuncToMNI:
+            rp = strat.get_resource_pool()
+            for key in sorted(rp.keys()):
+                # connect nodes to apply warps to template
+                if key in outputs_native_nonsmooth:
+                    # smoothing happens at the end, so only the non-smooth
+                    # named output labels for the native-space outputs
+                    strat = output_to_standard(key, strat, num_strat, c)
+
+        if 1 in c.runZScoring:
+            rp = strat.get_resource_pool()
+            for key in sorted(rp.keys()):
+                # connect nodes for z-score standardization
+                if "sca_roi_files_to_standard" in key:
+                    # correlation files need the r-to-z
+                    strat = fisher_z_score_standardize(key,
+                                                       "roi_timeseries_for_SCA",
+                                                       strat, num_strat,
+                                                       map_node=True)
+                elif "centrality" in key:
+                    # specific mask
+                    strat = z_score_standardize(key,
+                                                c.templateSpecificationFile,
+                                                strat, num_strat,
+                                                map_node=True)
+                elif key in outputs_template_raw:
+                    # raw score, in template space
+                    strat = z_score_standardize(key,
+                                                "functional_brain_mask_to_standard",
+                                                strat, num_strat)
+                elif key in outputs_template_raw_mult:
+                    # same as above but multiple files so mapnode required
+                    strat = z_score_standardize(key,
+                                                "functional_brain_mask_to_standard",
+                                                strat, num_strat,
+                                                map_node=True)
+
+        if 1 in c.run_smoothing:
+            rp = strat.get_resource_pool()
+            for key in sorted(rp.keys()):
+                # connect nodes for smoothing
+                if "centrality" in key:
+                    # centrality needs its own mask
+                    strat = output_smooth(key,
+                                          c.templateSpecificationFile,
+                                          strat, num_strat, map_node=True)
+                elif key in outputs_native_nonsmooth:
+                    # native space
+                    strat = output_smooth(key, "functional_brain_mask",
+                                          strat, num_strat)
+                elif key in outputs_native_nonsmooth_mult:
+                    # native space with multiple files (map nodes)
+                    strat = output_smooth(key, "functional_brain_mask",
+                                          strat, num_strat, map_node=True)
+                elif key in outputs_template_nonsmooth:
+                    # template space
+                    strat = output_smooth(key,
+                                          "functional_brain_mask_to_standard",
+                                          strat, num_strat)
+                elif key in outputs_template_nonsmooth_mult:
+                    # template space with multiple files (map nodes)
+                    strat = output_smooth(key,
+                                          "functional_brain_mask_to_standard",
+                                          strat, num_strat, map_node=True)
+
         rp = strat.get_resource_pool()
         for key in sorted(rp.keys()):
+            # connect nodes to calculate averages
             if key in outputs_average:
                 # the outputs we need the averages for
                 strat = calc_avg(key, strat, num_strat)
             elif key in outputs_average_mult:
                 # those outputs, but the ones with multiple files (map nodes)
                 strat = calc_avg(key, strat, num_strat, map_node=True)
+
         num_strat += 1
 
 
@@ -4274,7 +4301,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for name in strat.get_name():
                 import re
-                print (name)
                 extra_string = re.search('_\d+', name).group(0)
 
                 if extra_string:
@@ -4330,16 +4356,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for key in sorted(rp.keys()):
 
-                if key in debugging_outputs:
+                if key in debugging_outputs or \
+                        key in extra_functional_outputs:
                     continue
 
-                if key in non_outputs:
-                    continue
+                if 0 not in c.runRegisterFuncToMNI:
+                    if key in outputs_native_nonsmooth or \
+                        key in outputs_native_nonsmooth_mult or \
+                            key in outputs_native_smooth:
+                        continue
+
+                if 0 not in c.runZScoring:
+                    # write out only the z-scored outputs
+                    if key in outputs_template_raw or \
+                            key in outputs_template_raw_mult:
+                        continue
 
                 if 0 not in c.run_smoothing:
                     # write out only the smoothed outputs
                     if key in outputs_native_nonsmooth or \
-                                    key in outputs_template_nonsmooth:
+                            key in outputs_template_nonsmooth or \
+                                key in outputs_native_nonsmooth_mult or \
+                                    key in outputs_template_nonsmooth_mult:
                         continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)

@@ -52,8 +52,8 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='TR',
                       type=dtype.NUM,
-                      values= "None",
-                      validator = CharValidator("no-alpha"),
+                      values="None",
+                      validator=CharValidator("no-alpha"),
                       comment="Specify the TR (in seconds) at which images "
                               "were acquired."
                               "\n\nDefault is None- TR information is then "
@@ -282,9 +282,15 @@ class FuncToMNIRegistration(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='runRegisterFuncToMNI',
                       type=dtype.LSTR,
-                      comment="Register functional images to a standard MNI152 template.\n\nThis option must be enabled if you wish to calculate any derivatives.",
-                      values=["On","Off"],
-                      wkf_switch = True)
+                      comment="Register functional images to a standard "
+                              "MNI152 template.\n\nThis option must be "
+                              "enabled if you wish to calculate any "
+                              "derivatives. If set to On [1], only the "
+                              "template-space files will be output. If set "
+                              "to On/Off [1,0], both template-space and "
+                              "native-space files will be output.",
+                      values=["On", "On/Off", "Off"],
+                      wkf_switch=True)
 
         self.page.add(label="Functional-to-Template Resolution ", 
                       control=control.CHOICE_BOX,
