@@ -12,6 +12,7 @@ import zlib
 import linecache
 import csv
 import pickle
+import pandas as pd
 import pkg_resources as p
 
 # Nipype packages
@@ -157,112 +158,48 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     # Import packages
     from CPAC.utils.utils import check_config_resources, check_system_deps
 
-    # Settle some things
-    debugging_outputs = ['despiked_fieldmap',
-                         'fmap_magnitude',
-                         'fmap_phase_diff',
-                         'seg_mixeltype',
-                         'seg_partial_volume_files',
-                         'seg_partial_volume_map',
-                         'seg_probability_maps',
-                         'coordinate_transformation',
-                         'max_displacement',
-                         'power_params',
-                         'movement_parameters']
+    # Settle some things about the resource pool keys and the output directory
+    keys_csv = p.resource_filename('CPAC', 'resources/cpac_outputs.csv')
 
-    extra_functional_outputs = ['raw_functional',
-                                'mean_functional',
-                                'functional_nuisance_residuals',
-                                'functional_preprocessed_mask',
-                                'mean_functional_in_anat',
-                                'motion_correct_smooth',
-                                'motion_correct_to_standard',
-                                'motion_correct_to_standard_smooth',
-                                'preprocessed',
-                                'slice_time_corrected']
+    try:
+        keys = pd.read_csv(keys_csv)
+    except Exception as e:
+        err = "\n[!] Could not access or read the cpac_outputs.csv " \
+              "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
+        raise Exception(err)
 
-    outputs_native_nonsmooth = ['alff',
-                                'falff',
-                                'reho']
+    # extra outputs that we don't write to the output directory, unless the
+    # user selects to do so
+    debugging_outputs = list(keys[keys['Optional outputs: Debugging outputs'] == 'yes']['Resource'])
 
-    outputs_native_nonsmooth_mult = ['dr_tempreg_maps_files',
-                                     'dr_tempreg_maps_zstat_files',
-                                     'sca_roi_correlation_files']
+    # outputs to write out if the user selects to write all the functional
+    # resources and files CPAC generates
+    extra_functional_outputs = list(keys[keys['Optional outputs: Extra functionals'] == 'yes']['Resource'])
 
-    outputs_template_nonsmooth = ['alff_to_standard',
-                                  'alff_to_standard_zstd',
-                                  'falff_to_standard',
-                                  'falff_to_standard_zstd',
-                                  'reho_to_standard',
-                                  'reho_to_standard_zstd',
-                                  'vmhc_raw_score',
-                                  'vmhc_fisher_zstd',
-                                  'vmhc_fisher_zstd_zstat_map',]
+    # outputs to send into smoothing, if smoothing is enabled, and
+    # outputs to write out if the user selects to write non-smoothed outputs
+    # "_mult" is for items requiring mapnodes
+    outputs_native_nonsmooth = list(keys[keys['Optional outputs: Native space'] == 'yes'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
+    outputs_native_nonsmooth_mult = list(keys[keys['Optional outputs: Native space'] == 'yes'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
+    outputs_template_nonsmooth = list(keys[keys['Space'] == 'template'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
+    outputs_template_nonsmooth_mult = list(keys[keys['Space'] == 'template'][keys['Optional outputs: Non-smoothed'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
 
-    outputs_template_nonsmooth_mult = ['dr_tempreg_maps_files_to_standard',
-                                       'dr_tempreg_maps_zstat_files_to_standard',
-                                       'sca_roi_files_to_standard',
-                                       'sca_roi_files_to_standard_fisher_zstd',
-                                       'sca_tempreg_maps_files',
-                                       'sca_tempreg_zstat_files',
-                                       'centrality_outputs',
-                                       'centrality_outputs_zstd']
+    # don't write these, unless the user selects to write native-space outputs
+    outputs_native_smooth = list(keys[keys['Space'] != 'template'][keys['Derivative'] == 'yes'][keys['Optional outputs: Non-smoothed'] != 'yes']['Resource'])
 
-    outputs_native_smooth = ['alff_smooth',
-                             'falff_smooth',
-                             'reho_smooth',
-                             'dr_tempreg_maps_files_smooth',
-                             'dr_tempreg_maps_zstat_files_smooth',
-                             'sca_roi_files_smooth']
+    # ever used??? contains template-space, smoothed, both raw and z-scored
+    outputs_template_smooth = list(keys[keys['Space'] == 'template'][keys['Derivative'] == 'yes'][keys['Optional outputs: Non-smoothed'] != 'yes']['Resource'])
 
-    # outputs_template_smooth = ['alff_to_standard_smooth',
-    #                            'alff_to_standard_zstd_smooth',
-    #                            'falff_to_standard_smooth',
-    #                            'falff_to_standard_zstd_smooth',
-    #                            'reho_to_standard_smooth',
-    #                            'reho_to_standard_zstd_smooth',
-    #                            'dr_tempreg_maps_files_to_standard_smooth'
-    #                            'dr_tempreg_maps_zstat_files_to_standard_smooth',
-    #                            'sca_roi_files_to_standard_smooth',
-    #                            'sca_roi_files_to_standard_smooth_fisher_zstd',
-    #                            'sca_tempreg_maps_files_smooth',
-    #                            'sca_tempreg_maps_zstat_files_smooth',
-    #                            'centrality_outputs_smooth',
-    #                            'centrality_outputs_zstd_smooth']
+    # outputs to send into z-scoring, if z-scoring is enabled, and
+    # outputs to write out if user selects to write non-z-scored outputs
+    # "_mult" is for items requiring mapnodes
+    outputs_template_raw = list(keys[keys['Space'] == 'template'][keys['Multiple outputs'] != 'yes'][keys['Optional outputs: Raw scores'] == 'yes']['Resource'])
+    outputs_template_raw_mult = list(keys[keys['Space'] == 'template'][keys['Multiple outputs'] == 'yes'][keys['Optional outputs: Raw scores'] == 'yes']['Resource'])
 
-    outputs_template_raw = ['alff_to_standard',
-                            'alff_to_standard_smooth',
-                            'falff_to_standard',
-                            'falff_to_standard_smooth',
-                            'reho_to_standard',
-                            'reho_to_standard_smooth']
-
-    outputs_template_raw_mult = ['centrality_outputs',
-                                 'centrality_outputs_smooth']
-
-    outputs_average = ['alff',
-                       'alff_to_standard',
-                       'falff',
-                       'falff_to_standard',
-                       'reho_to_standard',
-                       'alff_smooth',
-                       'alff_to_standard_smooth',
-                       'falff_smooth',
-                       'falff_to_standard_smooth',
-                       'reho',
-                       'reho_smooth',
-                       'reho_to_standard_smooth']
-
-    outputs_average_mult = ['dr_tempreg_maps_files',
-                            'dr_tempreg_maps_files_to_standard',
-                            'sca_roi_correlation_files',
-                            'sca_roi_files_to_standard',
-                            'sca_tempreg_maps_files',
-                            'dr_tempreg_maps_files_smooth',
-                            'dr_tempreg_maps_files_to_standard_smooth'
-                            'sca_roi_files_smooth',
-                            'sca_roi_files_to_standard_smooth',
-                            'sca_tempreg_maps_files_smooth']
+    # outputs to send into the average calculation nodes
+    # "_mult" is for items requiring mapnodes
+    outputs_average = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
+    outputs_average_mult = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -3366,7 +3303,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                    strat.get_resource_pool(), '0032')
                 raise
 
-            strat.update_resource_pool({'sca_roi_correlation_files': (sca_roi, 'outputspec.correlation_files')})
+            strat.update_resource_pool({'sca_roi_files': (sca_roi, 'outputspec.correlation_files')})
 
             create_log_node(sca_roi, 'outputspec.correlation_stack',
                             num_strat)
@@ -4400,8 +4337,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 node, out_file = rp[key]
                 workflow.connect(node, out_file, ds, key)
 
-                logger.info('node, out_file, key: '
-                            '%s, %s, %s' % (node, out_file, key))
+                #logger.info('node, out_file, key: '
+                #            '%s, %s, %s' % (node, out_file, key))
 
                 link_node = pe.Node(interface=util.Function(
                                         input_names=['in_file', 'strategies',

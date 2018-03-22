@@ -33,10 +33,12 @@ class AfterWarpingOptions(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='run_smoothing',
                       type=dtype.LSTR,
-                      comment="Smooth the derivative outputs or not, or "
-                              "produce both unsmoothed and smoothed "
-                              "versions, if preferred.",
-                      values=["On", "Off", "On/Off"])
+                      comment="Smooth the derivative outputs.\n\nOn - Run "
+                              "smoothing and output only the smoothed "
+                              "outputs.\nOn/Off - Run smoothing and output "
+                              "both the smoothed and non-smoothed outputs.\n"
+                              "Off - Don't run smoothing.",
+                      values=["On", "On/Off", "Off"])
 
         self.page.add(label="Smoothing Kernel FWHM (in mm) ",
                       control=control.TEXT_BOX,
@@ -53,15 +55,18 @@ class AfterWarpingOptions(wx.ScrolledWindow):
                               "that all derivatives are output both "
                               "smoothed and unsmoothed.")
         
-        self.page.add(label="Z-score Standardize Derivatives ",
+        self.page.add(label="z-score Standardize Derivatives ",
                       control=control.CHOICE_BOX,
                       name='runZScoring',
                       type=dtype.LSTR,
-                      comment="Decides format of outputs. Off will produce "
-                              "non-z-scored outputs, On will produce "
-                              "z-scores of outputs, and On/Off will "
-                              "produce both.",
-                      values=["On", "Off", "On/Off"])
+                      comment="z-score standardize the derivatives. This is "
+                              "required for group-level analysis.\n\n"
+                              "On - Run z-scoring and output only the "
+                              "z-scored outputs.\nOn/Off - Run z-scoring and "
+                              "output both the z-scored and raw score "
+                              "versions of the outputs.\nOff - Don't run "
+                              "z-scoring.",
+                      values=["On", "On/Off", "Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
