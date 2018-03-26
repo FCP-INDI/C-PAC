@@ -168,6 +168,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
               "resource file:\n{0}\n\nError details {1}\n".format(keys_csv, e)
         raise Exception(err)
 
+    # TODO: this way of pulling from the dataframe produces a warning
+    # TODO: also may want to put these into a function of some sort
+
+    # outputs marked as optional in the matrix file, but we want them to be
+    # written out no matter what for a specific reason
+    override_optional = list(keys[keys['Override optional'] == 'yes']['Resource'])
+
     # extra outputs that we don't write to the output directory, unless the
     # user selects to do so
     debugging_outputs = list(keys[keys['Optional outputs: Debugging outputs'] == 'yes']['Resource'])
@@ -691,7 +698,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ants_reg_anat_mni.inputs.inputspec. \
                     sampling_percentage = [0.25, 0.25, None]
                 ants_reg_anat_mni.inputs.inputspec. \
-                    number_of_iterations = [[1000, 500, 250, 100], \
+                    number_of_iterations = [[1000, 500, 250, 100],
                                             [1000, 500, 250, 100],
                                             [100, 100, 70, 20]]
                 ants_reg_anat_mni.inputs.inputspec. \
@@ -3982,6 +3989,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     # smoothing happens at the end, so only the non-smooth
                     # named output labels for the native-space outputs
                     strat = output_to_standard(key, strat, num_strat, c)
+                elif key in outputs_native_nonsmooth_mult:
+                    strat = output_to_standard(key, strat, num_strat, c,
+                                               map_node=True)
 
         if 1 in c.runZScoring:
             rp = strat.get_resource_pool()
@@ -4293,29 +4303,31 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             for key in sorted(rp.keys()):
 
-                if key in debugging_outputs or \
-                        key in extra_functional_outputs:
-                    continue
+                if key not in override_optional:
 
-                if 0 not in c.runRegisterFuncToMNI:
-                    if key in outputs_native_nonsmooth or \
-                        key in outputs_native_nonsmooth_mult or \
-                            key in outputs_native_smooth:
+                    if key in debugging_outputs or \
+                            key in extra_functional_outputs:
                         continue
 
-                if 0 not in c.runZScoring:
-                    # write out only the z-scored outputs
-                    if key in outputs_template_raw or \
-                            key in outputs_template_raw_mult:
-                        continue
+                    if 0 not in c.runRegisterFuncToMNI:
+                        if key in outputs_native_nonsmooth or \
+                            key in outputs_native_nonsmooth_mult or \
+                                key in outputs_native_smooth:
+                            continue
 
-                if 0 not in c.run_smoothing:
-                    # write out only the smoothed outputs
-                    if key in outputs_native_nonsmooth or \
-                            key in outputs_template_nonsmooth or \
-                                key in outputs_native_nonsmooth_mult or \
-                                    key in outputs_template_nonsmooth_mult:
-                        continue
+                    if 0 not in c.runZScoring:
+                        # write out only the z-scored outputs
+                        if key in outputs_template_raw or \
+                                key in outputs_template_raw_mult:
+                            continue
+
+                    if 0 not in c.run_smoothing:
+                        # write out only the smoothed outputs
+                        if key in outputs_native_nonsmooth or \
+                                key in outputs_template_nonsmooth or \
+                                    key in outputs_native_nonsmooth_mult or \
+                                        key in outputs_template_nonsmooth_mult:
+                            continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory

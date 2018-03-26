@@ -108,7 +108,7 @@ files_folders_wf = {
     'roi_timeseries': 'timeseries',
     'roi_timeseries_for_SCA': 'timeseries',
     'roi_timeseries_for_SCA_multreg': 'timeseries',
-    'sca_roi_correlation_files': 'sca_roi',
+    'sca_roi_files': 'sca_roi',
     'sca_roi_files_smooth': 'sca_roi',
     'sca_roi_files_to_standard': 'sca_roi',
     'sca_roi_files_to_standard_smooth': 'sca_roi',
@@ -350,11 +350,6 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
             if '.1D' in timeseries or '.csv' in timeseries:
                 timeseries_file = timeseries
 
-    roi_numbers = []
-
-    with open(timeseries_file, "r") as f:
-        roi_list = f.read().splitlines()[0].replace("#", "").split("\t")
-
     # get the specific roi number
     filename = correlation_file.split("/")[-1]
     filename = filename.replace(".nii", "")
@@ -369,49 +364,12 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
-    dims = corr_data.shape
-
-    out_file = []
-
-    # dims = tuple of dimensions of correlation NIFTI file
-    # roi_numbers = list of label numbers for each ROI; length of this will be
-    #               how many ROIs you have
-
-    # I think the point of this check is to see if there are multiple volumes
-    # in the correlation file (i.e. is a stack), or is a file with ROIs, and
-    # if so, to deal with it appropriately
-    if len(dims) == 5 or len(roi_numbers) > 0:
-
-        if len(dims) == 5:
-            x, y, z, one, roi_number = dims
-
-            corr_data = np.reshape(corr_data, (x * y * z, roi_number),
-                                   order='F')
-
-        sub_data = corr_data
-
-        sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(),
+    z_score_img = nb.Nifti1Image(corr_data, header=hdr,
                                  affine=corr_img.get_affine())
 
-        sub_z_score_file = os.path.join(os.getcwd(),
-                                        (filename + '_fisher_zstd.nii.gz'))
+    out_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
-        sub_img.to_filename(sub_z_score_file)
-
-        out_file.append(sub_z_score_file)
-
-    # if the correlation file is a single volume image
-    else:
-
-        z_score_img = nb.Nifti1Image(corr_data, header=hdr,
-                                     affine=corr_img.get_affine())
-
-        z_score_file = os.path.join(os.getcwd(),
-                                    filename + '_fisher_zstd.nii.gz')
-
-        z_score_img.to_filename(z_score_file)
-
-        out_file.append(z_score_file)
+    z_score_img.to_filename(out_file)
 
     return out_file
 
