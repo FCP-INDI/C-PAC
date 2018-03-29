@@ -5723,12 +5723,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 os.makedirs(d_name)
 
             try:
+                from networkx.drawing.nx_pydot import write_dot
+
                 G = nx.DiGraph()
                 strat_name = strat.get_name()
                 G.add_edges_from([(strat_name[s], strat_name[s + 1]) for s in
                                   range(len(strat_name) - 1)])
                 dotfilename = os.path.join(d_name, 'strategy.dot')
-                nx.write_dot(G, dotfilename)
+                write_dot(G, dotfilename)
                 format_dot(dotfilename, 'png')
             except:
                 logStandardWarning('Datasink',
