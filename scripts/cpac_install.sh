@@ -788,7 +788,7 @@ function install_ants {
                     apt-get -y install ants
                     ;;
                 16.04)
-                    compile_ants
+                    apt-get -y install ants
                     ;;
                 16.10)
                     apt-get -y install ants
