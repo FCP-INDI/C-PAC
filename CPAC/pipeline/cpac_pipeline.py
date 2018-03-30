@@ -5216,7 +5216,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                     drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
                                                          'percent_'],
-                                           output_names=['modified_measure_file'],                                           function=drop_percent_),
+                                           output_names=['modified_measure_file'], function=drop_percent_),
                                            name='dp_%s_%d' % (measure, num_strat), iterfield=['measure_file'])
                     drop_percent.inputs.percent_ = 99.999
 
@@ -5646,9 +5646,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory
                 if 'qc' in key.lower():
-                    ds.inputs.base_directory = c.outputDirectory
-                else:
                     ds.inputs.base_directory = c.logDirectory
+                else:
+                    ds.inputs.base_directory = c.outputDirectory
+                    # For each pipeline ID, generate the QC pages
+                    #  for pip_id in pip_ids:
+                        # Define pipeline-level logging for QC
+                        #    pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                        #qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
+                        #For each subject, create a QC index.html page
+                        #make_QC_html_pages(qc_output_folder)
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
                 ds.inputs.container = os.path.join(
@@ -5840,21 +5847,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
-
+                print i
         # If QC is enabled
         # TODO - QA pages: re-introduce
-        
         if 1 in c.generateQualityControlImages:
-            # For each pipeline ID, generate the QC pages
+            print "NECTAR"
             for pip_id in pip_ids:
-                # Define pipeline-level logging for QC
-                pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
-                qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
-                # Generate the QC pages
-                generateQCPages(qc_output_folder, qc_montage_id_a,
-                                qc_montage_id_s, qc_plot_id, qc_hist_id)
+        
+                f_path = os.path.join(os.path.join(c.logDirectory, 'pipeline_%s' %pip_id))
+            
+                qc_output_folder = os.path.join(f_path, 'qc_files_here')
+            
+                generateQCPages(qc_output_folder)
+                create_all_qc.run(f_path)
+                    
+            # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
+                #two methods can be done here:
+                #i) group all the qc_montage_ids in the resource pool or
+                #add a loop for all the files in the qc output folder, generate the html pages using the same functions, but with different parameters
+                # generateQCPages(qc_output_folder, qc_montage_id_a,
+                #  qc_montage_id_s, qc_plot_id, qc_hist_id)
                 # Automatically generate QC index page
-                create_all_qc.run(pipeline_out_base)
+                #create_all_qc.run(pipeline_out_base)
         
 
         # pipeline timing code starts here
