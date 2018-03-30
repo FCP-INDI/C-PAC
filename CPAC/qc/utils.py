@@ -157,7 +157,6 @@ def first_pass_organizing_files(qc_path):
                 strat_dict[str_] = [file_]
 
 
-
 def second_pass_organizing_files(qc_path):
 
 
@@ -290,8 +289,8 @@ def organize(dict_, all_ids, png_, new_dict):
     """
 
     for id_no, png_type in dict_.items():
-        # Check if folder name is png type
-        if png_type + '/' in png_:
+
+        if png_type in png_:
             if not id_no in new_dict.keys():
                 new_dict[id_no] = [png_]
             else:
@@ -355,25 +354,23 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
         list of png id nos
     """
 
-    # Import packages
     from CPAC.qc.utils import organize
 
-    # Init variables
     dict_a = {}
     dict_s = {}
     dict_hist = {}
     dict_plot = {}
-    all_ids = []
 
-    # For each png, organize the ids into respective dictoinaries
+    all_ids = []
     for png_ in pngs_:
+
+
         all_ids = organize(qc_montage_id_a, all_ids, png_, dict_a)
         all_ids = organize(qc_montage_id_s, all_ids, png_, dict_s)
         all_ids = organize(qc_plot_id, all_ids, png_, dict_plot)
         all_ids = organize(qc_hist_id, all_ids, png_, dict_hist)
 
-    return dict(dict_a), dict(dict_s), dict(dict_hist),\
-           dict(dict_plot), list(all_ids)
+    return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
 def add_head(f_html_, f_html_0, f_html_1):
@@ -433,7 +430,6 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_1, "<a name='reverse'>"
 
 
-
 def add_tail(f_html_, f_html_0, f_html_1):
 
 
@@ -488,7 +484,6 @@ def add_tail(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "</html>"
     print >>f_html_1, "</body>"
     print >>f_html_1, "</html>"
-
 
 
 def feed_line_nav(id_,
@@ -761,15 +756,7 @@ def get_map_and_measure(png_a):
 
     if 'centrality' in png_a:
 
-        try:
-            map_name = get_map_id(str_, 'centrality_')
-        except:
-            pass
-
-        try:
-            map_name = get_map_id(str_, 'lFCD_')
-        except:
-            pass
+        map_name = get_map_id(str_, 'centrality_')
 
 
     return map_name, measure_name
@@ -842,6 +829,7 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
+    #print 'id_ :', id_
     if id_ in dict_a:
 
         dict_a[id_] = sorted(dict_a[id_])
@@ -891,8 +879,10 @@ def feed_lines_html(id_,
                 id_a = '_'.join([id_a, str(idx), 'a'])
                 id_s = '_'.join([id_s, str(idx), 's'])
                 id_h = '_'.join([id_h, str(idx), 'h' ])
+            
 
             if idx == 0:
+
                 # add general user readable link names for QC navigation bar
                 if image_name_a_nav == 'skullstrip_vis':
                     image_readable = 'Visual Result of Skull Strip'
@@ -1034,7 +1024,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
                             feed_lines_html
 
 
-
+    
     f_ = open(file_, 'r')
     pngs_ = [line.rstrip('\r\n') for line in f_.readlines()]
     f_.close()
@@ -1047,47 +1037,39 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     html_f_name_1 = html_f_name + '_1.html'
     html_f_name = html_f_name + '.html'
 
-    
-    try:
-
-        f_html_ = open(html_f_name, 'wb')
-        f_html_0 = open(html_f_name_0, 'wb')
-        f_html_1 = open(html_f_name_1, 'wb')
+    f_html_ = open(html_f_name, 'wb')
+    f_html_0 = open(html_f_name_0, 'wb')
+    f_html_1 = open(html_f_name_1, 'wb')
 
 
-        dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
-                                            qc_montage_id_s, qc_plot_id, qc_hist_id)
+    dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
+                                        qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-        #for k, v in dict_plot.items():
-        #        print '_a~~~> ', k, v
+    #for k, v in dict_plot.items():
+    #        print '_a~~~> ', k, v
 
-        add_head(f_html_, f_html_0, f_html_1)
+    add_head(f_html_, f_html_0, f_html_1)
 
 
-        for id_ in sorted(all_ids):
-            print 'id: ', id_
-            feed_lines_html(id_,
-                              dict_a,
-                              dict_s,
-                              dict_hist,
-                              dict_plot,
-                              qc_montage_id_a,
-                              qc_montage_id_s,
-                              qc_plot_id,
-                              qc_hist_id,
-                              f_html_0,
-                              f_html_1)
+    for id_ in sorted(all_ids):
+        feed_lines_html(id_,
+                          dict_a,
+                          dict_s,
+                          dict_hist,
+                          dict_plot,
+                          qc_montage_id_a,
+                          qc_montage_id_s,
+                          qc_plot_id,
+                          qc_hist_id,
+                          f_html_0,
+                          f_html_1)
 
-        add_tail(f_html_, f_html_0, f_html_1)
 
-        f_html_.close()
-        f_html_0.close()
-        f_html_1.close()
+    add_tail(f_html_, f_html_0, f_html_1)
 
-    except Exception as exc:
-        print '\n\nWarning: QC HTML pages could not be generated. Error: %s' \
-              % exc
-        raise Exception
+    f_html_.close()
+    f_html_0.close()
+    f_html_1.close()
 
     
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
@@ -1127,6 +1109,8 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
     """
     import os
     from CPAC.qc.utils import make_page
+                              
+        
 
     qc_files = os.listdir(qc_path)
 
@@ -1140,7 +1124,7 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 
 
-def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+def generateQCPages(qc_path):
 
     """
     parafile = open('QC_input_para.txt', 'w')
@@ -1208,8 +1192,37 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
     second_pass_organizing_files(qc_path)
 
     #generate pages from qc files
-    make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
-
+    text_file_list = os.listdir(qc_path)
+    print text_file_list
+    image_path_list = []
+    for text_file in text_file_list:
+        if text_file[0] != '.':
+            f = open(os.path.join(path, text_file),'r')
+            eof = 0
+            while (not eof):
+                    temp_line = f.readline()
+                    if temp_line == '':
+                        eof=1 #This is to check if reading the file is complete
+                    else:
+                        if temp_line[-2:] == "\n":
+                            temp_line = temp_line[:-1]
+                        image_path_list.append(temp_line)
+                        f.close()
+    f = open(os.path.join(qc_output_folder, "QC_index.html"),'w')
+    header = """<html>
+    <head> QA Images </head>
+    <body><p>"""
+    footer = """</p></body>
+    </html>"""
+                              
+    f.write(header)
+    for image in image_path_list:
+        image_html = "<img src=\""+image+"\">"
+        f.write(image_html)
+                              
+    f.write(footer)
+    f.close()
+    print f
 
 
 def make_edge(file_):
@@ -1366,6 +1379,9 @@ def cal_snr_val(measure_file):
     f.close()
 
     return avg_snr_file
+
+
+
 
 
 def gen_std_dev(mask_, func_):
@@ -1640,26 +1656,16 @@ def gen_histogram(measure_file, measure):
             if 'centrality' in measure.lower():
 
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-
-                if 'centrality_' in fname:
-                    type_, fname = fname.split('centrality_')
-                    fname = type_ + 'centrality_' + fname.split('_')[0]
-                    measure = fname
-                elif 'lfcd_' in fname.lower():
-                    fname = 'lFCD_' + fname.split('_')[1]
-                    measure = fname
+                type_, fname = fname.split('centrality_')
+                fname = type_ + 'centrality_' + fname.split('_')[0]
+                measure = fname
 
             hist_path.append(make_histogram(file_, measure))
 
     else:
-
-        print "measure_file: ", measure_file
-        print "measure: ", measure
-
         hist_path = make_histogram(measure_file, measure)
 
     return hist_path
-
 
 
 def make_histogram(measure_file, measure):
@@ -1931,7 +1937,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Axial Direction
-    calls make_montage_axial
+	calls make_montage_axial
 
     Parameters
     ----------
@@ -2100,7 +2106,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Sagittal Direction
-    calls make_montage_sagittal
+	calls make_montage_sagittal
 
     Parameters
     ----------
@@ -2589,3 +2595,4 @@ def make_resample_1mm(file_):
     commands.getoutput(cmd)
 
     return new_fname
+
