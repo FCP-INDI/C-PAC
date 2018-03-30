@@ -34,7 +34,7 @@ files_folders_wf = {
     'max_displacement': 'parameters',
     'xform_matrix': 'parameters',
     'output_means': 'parameters',
-    'preprocessed': 'func',
+    'functional_preprocessed': 'func',
     'functional_brain_mask': 'func',
     'motion_correct': 'func',
     'motion_correct_smooth': 'func',
@@ -80,14 +80,14 @@ files_folders_wf = {
     'symmetric_mni_to_anatomical_nonlinear_xfm': 'registration',
     'symmetric_mni_to_anatomical_linear_xfm': 'registration',
     'anat_to_symmetric_mni_ants_composite_xfm': 'registration',
-    'symmetric_mni_normalized_anatomical': 'registration',
+    'symmetric_anatomical_to_standard': 'registration',
     'anatomical_to_symmetric_mni_linear_xfm': 'registration',
-    'mni_normalized_anatomical': 'anat',
+    'anatomical_to_standard': 'anat',
     'vmhc_raw_score': 'vmhc',
     'vmhc_fisher_zstd': 'vmhc',
     'vmhc_fisher_zstd_zstat_map': 'vmhc',
-    'alff_img': 'alff',
-    'falff_img': 'alff',
+    'alff': 'alff',
+    'falff': 'alff',
     'alff_smooth': 'alff',
     'falff_smooth': 'alff',
     'alff_to_standard': 'alff',
@@ -98,7 +98,7 @@ files_folders_wf = {
     'falff_to_standard_zstd': 'alff',
     'alff_to_standard_zstd_smooth': 'alff',
     'falff_to_standard_zstd_smooth': 'alff',
-    'raw_reho_map': 'reho',
+    'reho': 'reho',
     'reho_smooth': 'reho',
     'reho_to_standard': 'reho',
     'reho_to_standard_smooth': 'reho',
@@ -402,8 +402,10 @@ def get_roi_num_list(timeseries_file, prefix=None):
         roi_file_lines = f.read().splitlines()
 
     roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
-              "timeseries, was not in the expected format.\n\nROI output " \
-              "file: %s\n\n" % timeseries_file
+              "timeseries, is either empty, or not in the expected " \
+              "format.\n\nROI output file: {0}\n\nIf there are no rows " \
+              "in the output file, double-check your ROI/mask selection." \
+              "\n\n".format(str(timeseries_file))
 
     for line in roi_file_lines:
         if "Mean_" in line:
@@ -1450,6 +1452,10 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     if isinstance(pipeconfig_tr, str):
         if "None" in pipeconfig_tr or "none" in pipeconfig_tr:
             pipeconfig_tr = None
+
+    if isinstance(pipeconfig_stop_indx, str):
+        if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
+            pipeconfig_stop_indx = None
 
     if data_config_scan_params:
 

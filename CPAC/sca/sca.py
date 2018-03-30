@@ -290,7 +290,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                   check_timeseries, 'in_file')
 
     temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
-
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
@@ -307,8 +306,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
 
-    wflow.connect(temporalReg, 'out_file',
-                  split, 'in_file')
+    wflow.connect(temporalReg, 'out_file', split, 'in_file')
 
     split_zstat = pe.Node(interface=fsl.Split(), name='split_zstat_volumes')
     split_zstat.inputs.dimension = 't'

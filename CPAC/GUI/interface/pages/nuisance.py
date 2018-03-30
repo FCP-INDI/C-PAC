@@ -40,7 +40,7 @@ class NuisanceRegression(wx.ScrolledWindow):
                  name='runNuisance', 
                  type=dtype.LSTR, 
                  comment="Run Nuisance Signal Regression", 
-                 values=["Off","On","On/Off"],
+                 values=["Off", "On", "On/Off"],
                  wkf_switch = True)
         
         self.page.add(label="Lateral Ventricles Mask (Standard Space) ", 
@@ -89,12 +89,17 @@ class NuisanceRegression(wx.ScrolledWindow):
                       values=["On", "Off", "On/Off"])
 
         self.page.add(label="Motion Spike De-Noising ",
-                      control=control.CHOICE_BOX,
+                      control=control.CHECKLIST_BOX,
                       name='runMotionSpike',
                       type=dtype.LSTR,
                       comment="Remove or regress out volumes exhibiting "
-                              "excessive motion.",
-                      values=["Off", "De-Spiking", "Scrubbing"],
+                              "excessive motion.\n\nEach of these options "
+                              "are mutually exclusive, and selecting more "
+                              "than one will create a new pipeline fork "
+                              "for each option. For example, de-spiking and "
+                              "scrubbing will not run within the same "
+                              "pipeline strategy.",
+                      values=["None", "De-Spiking", "Scrubbing"],
                       wkf_switch=True)
 
         self.page.add(label="Framewise Displacement (FD) Calculation ",
@@ -111,7 +116,7 @@ class NuisanceRegression(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='spikeThreshold',
                       type=dtype.LNUM,
-                      values="5%",
+                      values="0.2",
                       validator=CharValidator("no-alpha"),
                       comment="(Motion Spike De-Noising only) Specify the "
                               "maximum acceptable Framewise Displacement "

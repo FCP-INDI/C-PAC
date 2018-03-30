@@ -75,6 +75,14 @@ awsOutputBucketCredentials :
 s3Encryption :  [1]
 
 
+# Include extra versions and intermediate steps of functional preprocessing in the output directory.
+write_func_outputs: [0]
+
+
+# Include extra outputs in the output directory that may be of interest when more information is needed.
+write_debugging_outputs: [0]
+
+
 # Create a user-friendly, well organized version of the output directory.
 # We recommend all users enable this option.
 runSymbolicLinks :  [1]

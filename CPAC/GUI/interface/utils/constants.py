@@ -45,7 +45,6 @@ substitution_map = {'On': 1,
                     'Network Centrality (smoothed)': 'centrality_outputs_smoothed_zstd',
                     'Dual Regression':'dr_tempreg_maps_zstat_files_to_standard',
                     'Dual Regression (smoothed)':'dr_tempreg_maps_zstat_files_to_standard_smooth',
-                    'End': 'None',
                     'ROI Average Time Series Extraction': 'roi_average',
                     'ROI Voxelwise Time Series Extraction': 'roi_voxelwise',
                    }

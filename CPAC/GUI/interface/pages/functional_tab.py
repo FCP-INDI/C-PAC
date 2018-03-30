@@ -96,14 +96,14 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                       control=control.TEXT_BOX, 
                       name='stopIdx', 
                       type=dtype.NUM, 
-                      values="End",
+                      values="None",
                       validator=CharValidator("no-alpha"),
                       comment="Last timepoint to include in analysis.\n\n"
                               "Default is None or End (end of timeseries).\n"
                               "\nLast timepoint selection in the scan "
                               "parameters in the data configuration file, if "
                               "present, will over-ride this selection.\n\n"
-                              "NOte: the selection here applies to all scans "
+                              "Note: the selection here applies to all scans "
                               "of all participants.")
 
         self.page.set_sizer() 

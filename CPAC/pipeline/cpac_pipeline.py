@@ -118,8 +118,21 @@ class strategy:
             if key in self.resource_pool:
                 logger.info('Warning key %s already exists in resource' \
                             ' pool, replacing with %s ' % (key, value))
-
             self.resource_pool[key] = value
+
+
+def create_new_fork(strat):
+    """Create a new strategy fork in the pipeline by producing a copy of the
+    current strategy (with resource pool)."""
+
+    tmp = strategy()
+    tmp.resource_pool = dict(strat.resource_pool)
+    tmp.leaf_node = strat.leaf_node
+    tmp.leaf_out_file = str(strat.leaf_out_file)
+    tmp.name = list(strat.name)
+    strat = tmp
+
+    return strat
 
 
 # Create and prepare C-PAC pipeline workflow
@@ -389,7 +402,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             return log_wf
 
     def logStandardError(sectionName, errLine, errNum, errInfo=None):
-
         logger.info("\n\nERROR: {0} - {1}\n\nError name: cpac_pipeline"
                     "_{2}\n\n".format(sectionName, errLine, errNum))
         if errInfo:
@@ -397,7 +409,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     def logConnectionError(workflow_name, numStrat, resourcePool, errNum,
                            errInfo=None):
-
         logger.info(
             "\n\n" + 'ERROR: Invalid Connection: %s: %s, resource_pool: %s' \
             % (workflow_name, numStrat,
@@ -405,21 +416,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             errNum) + \
             "\n\n" + "This is a pipeline creation error - the workflows "
                      "have not started yet." + "\n\n")
-
         if errInfo:
             logger.info(str(errInfo))
 
     def logStandardWarning(sectionName, warnLine):
-
         logger.info(
             "\n\n" + 'WARNING: %s - %s' % (sectionName, warnLine) + "\n\n")
 
     def getNodeList(strategy):
-
         nodes = []
         for node in strategy.name:
             nodes.append(node[:-2])
-
         return nodes
 
     strat_list = []
@@ -598,7 +605,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'anatomical_to_mni_linear_xfm': (fnirt_reg_anat_mni, 'outputspec.linear_xfm'),
                                         'anatomical_to_mni_nonlinear_xfm': (fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
                                         'mni_to_anatomical_linear_xfm': (fnirt_reg_anat_mni, 'outputspec.invlinear_xfm'),
-                                        'mni_normalized_anatomical': (fnirt_reg_anat_mni, 'outputspec.output_brain')})
+                                        'anatomical_to_standard': (fnirt_reg_anat_mni, 'outputspec.output_brain')})
 
             create_log_node(fnirt_reg_anat_mni, 'outputspec.output_brain',
                             num_strat)
@@ -628,7 +635,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 # reported to be better, but it requires very high
                 # quality skullstripping. If skullstripping is imprecise
                 # registration with skull is preferred
-                if (1 in c.regWithSkull):
+                if 1 in c.regWithSkull:
 
                     if already_skullstripped == 1:
                         err_msg = '\n\n[!] CPAC says: You selected ' \
@@ -732,7 +739,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                         'anatomical_to_mni_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.warp_field'),
                                         'mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_mni, 'outputspec.inverse_warp_field'),
                                         'anat_to_mni_ants_composite_xfm': (ants_reg_anat_mni, 'outputspec.composite_transform'),
-                                        'mni_normalized_anatomical': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')})
+                                        'anatomical_to_standard': (ants_reg_anat_mni, 'outputspec.normalized_output_brain')})
 
             create_log_node(ants_reg_anat_mni,
                             'outputspec.normalized_output_brain', num_strat)
@@ -831,7 +838,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 strat.update_resource_pool({'anatomical_to_symmetric_mni_linear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.linear_xfm'),
                                             'anatomical_to_symmetric_mni_nonlinear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.nonlinear_xfm'),
                                             'symmetric_mni_to_anatomical_linear_xfm': (fnirt_reg_anat_symm_mni, 'outputspec.invlinear_xfm'),
-                                            'symmetric_mni_normalized_anatomical': (fnirt_reg_anat_symm_mni, 'outputspec.output_brain')})
+                                            'symmetric_anatomical_to_standard': (fnirt_reg_anat_symm_mni, 'outputspec.output_brain')})
 
                 create_log_node(fnirt_reg_anat_symm_mni,
                                 'outputspec.output_brain', num_strat)
@@ -970,7 +977,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'anatomical_to_symmetric_mni_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.warp_field'),
                                             'symmetric_mni_to_anatomical_nonlinear_xfm': (ants_reg_anat_symm_mni, 'outputspec.inverse_warp_field'),
                                             'anat_to_symmetric_mni_ants_composite_xfm': (ants_reg_anat_symm_mni, 'outputspec.composite_transform'),
-                                            'symmetric_mni_normalized_anatomical': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')})
+                                            'symmetric_anatomical_to_standard': (ants_reg_anat_symm_mni, 'outputspec.normalized_output_brain')})
 
                 create_log_node(ants_reg_anat_symm_mni,
                                 'outputspec.normalized_output_brain',
@@ -1507,11 +1514,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             " (%s:%d)" % dbg_file_lineno())
                 raise
 
-            node = None
-            out_file = None
             try:
                 node, out_file = strat.get_leaf_properties()
-                logger.info("%s::%s==>%s" % (node, out_file, func_preproc))
                 try:
                     workflow.connect(node, out_file, func_preproc,
                                      'inputspec.func')
@@ -1543,22 +1547,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.set_leaf_properties(func_preproc, 'outputspec.preprocessed')
 
             # add stuff to resource pool if we need it
-            strat.update_resource_pool({'mean_functional': (
-            func_preproc, 'outputspec.example_func')})
-            strat.update_resource_pool({'functional_preprocessed_mask': (
-            func_preproc, 'outputspec.preprocessed_mask')})
-            strat.update_resource_pool({'movement_parameters': (
-            func_preproc, 'outputspec.movement_parameters')})
-            strat.update_resource_pool({'max_displacement': (
-            func_preproc, 'outputspec.max_displacement')})
             strat.update_resource_pool(
-                {'preprocessed': (func_preproc, 'outputspec.preprocessed')})
+                {'mean_functional': (func_preproc, 'outputspec.example_func')})
+            strat.update_resource_pool(
+                {'functional_preprocessed_mask': (func_preproc, 'outputspec.preprocessed_mask')})
+            strat.update_resource_pool(
+                {'movement_parameters': (func_preproc, 'outputspec.movement_parameters')})
+            strat.update_resource_pool(
+                {'max_displacement': (func_preproc, 'outputspec.max_displacement')})
+            strat.update_resource_pool(
+                {'functional_preprocessed': (func_preproc, 'outputspec.preprocessed')})
             strat.update_resource_pool(
                 {'functional_brain_mask': (func_preproc, 'outputspec.mask')})
-            strat.update_resource_pool({'motion_correct': (
-            func_preproc, 'outputspec.motion_correct')})
-            strat.update_resource_pool({'coordinate_transformation': (
-            func_preproc, 'outputspec.oned_matrix_save')})
+            strat.update_resource_pool(
+                {'motion_correct': (func_preproc, 'outputspec.motion_correct')})
+            strat.update_resource_pool(
+                {'coordinate_transformation': (func_preproc, 'outputspec.oned_matrix_save')})
 
             create_log_node(func_preproc, 'outputspec.preprocessed',
                             num_strat)
@@ -1605,7 +1609,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat.update_resource_pool({'max_displacement': (
             func_preproc, 'outputspec.max_displacement')})
             strat.update_resource_pool(
-                {'preprocessed': (func_preproc, 'outputspec.preprocessed')})
+                {'functional_preprocessed': (func_preproc, 'outputspec.preprocessed')})
             strat.update_resource_pool(
                 {'functional_brain_mask': (func_preproc, 'outputspec.mask')})
             strat.update_resource_pool({'motion_correct': (
@@ -1929,7 +1933,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                           "run again.\n\n"
                     raise Exception(err)
 
-
     strat_list += new_strat_list
 
     '''
@@ -2009,11 +2012,34 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             gen_motion_stats, 'outputspec.frames_ex_1D'),
                                         'despiking_frames_included': (
                                             gen_motion_stats, 'outputspec.frames_in_1D')})
-        elif "Scrubbing" in c.runMotionSpike and 1 in c.runNuisance:
+
+            '''
+            if "Scrubbing" in c.runMotionSpike:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+            '''
+
+        if "Scrubbing" in c.runMotionSpike and 1 in c.runNuisance:
             strat.update_resource_pool({'scrubbing_frames_excluded': (
                                             gen_motion_stats, 'outputspec.frames_ex_1D'),
                                         'scrubbing_frames_included': (
                                             gen_motion_stats, 'outputspec.frames_in_1D')})
+
+            '''
+            if "De-Spiking" in c.runMotionSpike:
+                tmp = strategy()
+                tmp.resource_pool = dict(strat.resource_pool)
+                tmp.leaf_node = (strat.leaf_node)
+                tmp.out_file = str(strat.leaf_out_file)
+                tmp.name = list(strat.name)
+                strat = tmp
+                new_strat_list.append(strat)
+            '''
 
         create_log_node(gen_motion_stats, 'outputspec.motion_params',
                         num_strat)
@@ -2044,16 +2070,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # avoiding a crash) on the strat without segmentation
             if 'seg_preproc' in nodes:
 
+                subwf_name = "nuisance"
+                if "De-Spiking" in c.runMotionSpike:
+                    subwf_name = "nuisance_with_despiking"
+
                 if 'anat_mni_fnirt_register' in nodes:
                     nuisance = create_nuisance(False,
-                                               'nuisance_%d' % num_strat)
+                                               '{0}_{1}'.format(subwf_name,
+                                                                num_strat))
                 else:
                     nuisance = create_nuisance(True,
-                                               'nuisance_%d' % num_strat)
+                                               '{0}_{1}'.format(subwf_name,
+                                                                num_strat))
 
                 nuisance.get_node('residuals').iterables = (
-                [('selector', c.Regressors),
-                 ('compcor_ncomponents', c.nComponents)])
+                    [('selector', c.Regressors),
+                     ('compcor_ncomponents', c.nComponents)])
 
                 nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
 
@@ -2082,7 +2114,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(node, out_file,
                                      nuisance, 'inputspec.motion_components')
 
-                    #TODO: DE-SPIKING OPTIONS
                     if "De-Spiking" in c.runMotionSpike:
                         node, out_file = strat.get_node_from_resource_pool(
                             'despiking_frames_excluded')
@@ -2126,20 +2157,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                          nuisance,
                                          'inputspec.anat_to_mni_affine_xfm')
 
-
-                except:
+                except Exception as e:
                     logConnectionError('Nuisance', num_strat,
-                                       strat.get_resource_pool(), '0010')
+                                       strat.get_resource_pool(), '0010', e)
                     raise
 
                 if 0 in c.runNuisance:
-                    tmp = strategy()
-                    tmp.resource_pool = dict(strat.resource_pool)
-                    tmp.leaf_node = (strat.leaf_node)
-                    tmp.leaf_out_file = str(strat.leaf_out_file)
-                    tmp.name = list(strat.name)
-                    strat = tmp
-                    new_strat_list.append(strat)
+                    new_strat_list.append(create_new_fork(strat))
+
+                if 1 in c.runNuisance and "De-Spiking" in c.runMotionSpike and \
+                        "Scrubbing" in c.runMotionSpike:
+                    # create a new fork that will run nuisance like above but
+                    # without the de-spiking
+                    new_strat_list.append(create_new_fork(strat))
+
+                if 1 in c.runNuisance and "De-Spiking" in c.runMotionSpike and \
+                        "None" in c.runMotionSpike:
+                    # create a new fork that will run nuisance like above but
+                    # without the de-spiking
+                    new_strat_list.append(create_new_fork(strat))
 
                 strat.append_name(nuisance.name)
 
@@ -2153,6 +2189,133 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 num_strat += 1
 
     strat_list += new_strat_list
+
+    # set a flag in case we're doing nuisance on/off
+    non_nuisance_strat = False
+
+    for strat in strat_list:
+
+        nodes = getNodeList(strat)
+
+        if 0 in c.runNuisance and \
+                ("nuisance" not in nodes and "nuisance_with_despiking" not in nodes):
+            if not non_nuisance_strat:
+                # save one of the strats so that it won't have any nuisance
+                # at all - this only fires if nuisance is on/off
+                non_nuisance_strat = True
+                continue
+
+        if 1 in c.runNuisance and "De-Spiking" in c.runMotionSpike and \
+                "nuisance_with_despiking" not in nodes and \
+                ("Scrubbing" in c.runMotionSpike or "None" in c.runMotionSpike):
+            # run nuisance in the new fork (if created), without de-spiking,
+            # so that we can have nuisance and then scrubbing, or a nuisance
+            # strat without de-spiking if doing de-spiking on/off
+            #     this only runs if we have ["De-Spiking", "Scrubbing"] or
+            #     ["De-Spiking", "Scrubbing", "Off"] in c.runMotionSpike
+
+            # this is needed here in case tissue segmentation is set on/off
+            # and you have nuisance enabled- this will ensure nuisance will
+            # run for the strat that has segmentation but will not run (thus
+            # avoiding a crash) on the strat without segmentation
+            if 'seg_preproc' in nodes:
+
+                if 'anat_mni_fnirt_register' in nodes:
+                    nuisance = create_nuisance(False,
+                                               'nuisance_no_despiking_%d' % num_strat)
+                else:
+                    nuisance = create_nuisance(True,
+                                               'nuisance_no_despiking_%d' % num_strat)
+
+                nuisance.get_node('residuals').iterables = (
+                    [('selector', c.Regressors),
+                     ('compcor_ncomponents', c.nComponents)])
+
+                nuisance.inputs.inputspec.lat_ventricles_mask = c.lateral_ventricles_mask
+
+                try:
+                    # enforcing no de-spiking here!
+                    # TODO: when condensing these sub-wf builders, pass
+                    # TODO: something so that the check in the nuisance strat
+                    # TODO: above can be modified for this version down here
+                    nuisance.inputs.inputspec.frames_ex = None
+
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file,
+                                     nuisance, 'inputspec.subject')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'anatomical_gm_mask')
+                    workflow.connect(node, out_file,
+                                     nuisance, 'inputspec.gm_mask')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'anatomical_wm_mask')
+                    workflow.connect(node, out_file,
+                                     nuisance, 'inputspec.wm_mask')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'anatomical_csf_mask')
+                    workflow.connect(node, out_file,
+                                     nuisance, 'inputspec.csf_mask')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'movement_parameters')
+                    workflow.connect(node, out_file,
+                                     nuisance, 'inputspec.motion_components')
+
+                    node, out_file = strat.get_node_from_resource_pool(
+                        'functional_to_anat_linear_xfm')
+                    workflow.connect(node, out_file,
+                                     nuisance,
+                                     'inputspec.func_to_anat_linear_xfm')
+
+                    if 'anat_mni_fnirt_register' in nodes:
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'mni_to_anatomical_linear_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance,
+                                         'inputspec.mni_to_anat_linear_xfm')
+                    else:
+                        # pass the ants_affine_xfm to the input for the
+                        # INVERSE transform, but ants_affine_xfm gets inverted
+                        # within the workflow
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'ants_initial_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance,
+                                         'inputspec.anat_to_mni_initial_xfm')
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'ants_rigid_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance,
+                                         'inputspec.anat_to_mni_rigid_xfm')
+
+                        node, out_file = strat.get_node_from_resource_pool(
+                            'ants_affine_xfm')
+                        workflow.connect(node, out_file,
+                                         nuisance,
+                                         'inputspec.anat_to_mni_affine_xfm')
+
+                except Exception as e:
+                    logConnectionError('Nuisance', num_strat,
+                                       strat.get_resource_pool(), '0010b', e)
+                    raise
+
+                strat.append_name(nuisance.name)
+
+                strat.set_leaf_properties(nuisance, 'outputspec.subject')
+
+                strat.update_resource_pool(
+                    {'functional_nuisance_residuals': (nuisance, 'outputspec.subject')})
+                strat.update_resource_pool(
+                    {'functional_nuisance_regressors': (nuisance, 'outputspec.regressors')})
+
+                create_log_node(nuisance, 'outputspec.subject', num_strat)
+
+                num_strat += 1
 
     '''
     Inserting Median Angle Correction Workflow
@@ -2312,17 +2475,32 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         workflow_bit_id['scrubbing'] = workflow_counter
 
+        # set a flag in case we're doing nuisance on/off
+        non_nuisance_strat = False
+
         for strat in strat_list:
 
             nodes = getNodeList(strat)
 
-            if 'gen_motion_stats' in nodes:
+            if 0 in c.runNuisance and \
+                    "nuisance" not in nodes and \
+                        "nuisance_with_despiking" not in nodes and \
+                            "nuisance_no_despiking" not in nodes:
+                if not non_nuisance_strat:
+                    # save one of the strats so that it won't have any
+                    # nuisance at all - this only fires if nuisance is on/off
+                    non_nuisance_strat = True
+                    continue
 
-                scrubbing = create_scrubbing_preproc(
-                    'scrubbing_%d' % num_strat)
+            # skip if this strat had de-spiking (mutually exclusive)
+            if "nuisance_with_despiking" in nodes:
+                continue
+
+            if 'gen_motion_stats' in nodes:
+                scrubbing = \
+                    create_scrubbing_preproc('scrubbing_%d' % num_strat)
 
                 try:
-
                     node, out_file = strat.get_leaf_properties()
                     workflow.connect(node, out_file,
                                      scrubbing, 'inputspec.preprocessed')
@@ -2343,14 +2521,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                        strat.get_resource_pool(), '0014')
                     raise
 
-                if 0 in c.runNuisance:
-                    tmp = strategy()
-                    tmp.resource_pool = dict(strat.resource_pool)
-                    tmp.leaf_node = (strat.leaf_node)
-                    tmp.leaf_out_file = str(strat.leaf_out_file)
-                    tmp.name = list(strat.name)
-                    strat = tmp
-                    new_strat_list.append(strat)
+                if "None" in c.runMotionSpike:
+                    new_strat_list.append(create_new_fork(strat))
 
                 strat.append_name(scrubbing.name)
 
@@ -2481,8 +2653,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             nodes = getNodeList(strat)
 
-            if ('ANTS' in c.regOption) and (
-                'anat_mni_fnirt_register' not in nodes):
+            if 'ANTS' in c.regOption and \
+                    'anat_mni_fnirt_register' not in nodes:
 
                 # ANTS warp application
 
@@ -4166,7 +4338,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     forklabel = 'bbreg'
                 if 'frequency' in fork:
                     forklabel = 'freq-filter'
-                if 'nuisance' in fork:
+                if 'nuisance_with_despiking' in fork:
+                    forklabel = 'nuisance_with_despiking'
+                elif 'nuisance_no_despiking' in fork:
+                    forklabel = 'nuisance_no_despiking'
+                elif 'nuisance' in fork:
                     forklabel = 'nuisance'
                 if 'median' in fork:
                     forklabel = 'median'
@@ -4216,7 +4392,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # build helper dictionary to assist with a clean strategy label
             # for symlinks
-
             strategy_tag_helper_symlinks = {}
 
             if any('scrubbing' in name for name in strat.get_name()):
@@ -4301,13 +4476,33 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             except Exception as exc:
                 encrypt_data = False
 
+            # TODO: remove this once forking for despiking/scrubbing is
+            # TODO: modified at the gen motion params level
+            # ensure X_frames_included/excluded only gets sent to output dir
+            # for appropriate strats
+            nodes = getNodeList(strat)
+            if "nuisance_with_despiking" not in nodes:
+                if "despiking_frames_included" in rp.keys():
+                    del rp["despiking_frames_included"]
+                if "despiking_frames_excluded" in rp.keys():
+                    del rp["despiking_frames_excluded"]
+            if "scrubbing" not in nodes:
+                if "scrubbing_frames_included" in rp.keys():
+                    del rp["scrubbing_frames_included"]
+                if "scrubbing_frames_excluded" in rp.keys():
+                    del rp["scrubbing_frames_excluded"]
+
             for key in sorted(rp.keys()):
 
                 if key not in override_optional:
 
-                    if key in debugging_outputs or \
-                            key in extra_functional_outputs:
-                        continue
+                    if 1 not in c.write_func_outputs:
+                        if key in extra_functional_outputs:
+                            continue
+
+                    if 1 not in c.write_debugging_outputs:
+                        if key in debugging_outputs:
+                            continue
 
                     if 0 not in c.runRegisterFuncToMNI:
                         if key in outputs_native_nonsmooth or \
@@ -4403,7 +4598,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # creates the HTML files used to represent the logging-based status
         create_log_template(pip_ids, wf_names, scan_ids, subject_id, log_dir)
 
-        logger.info('\n\n' + ('Strategy forks: %s' % pipes) + '\n\n')
+        logger.info("\n\nStrategy forks: {0}\n\n".format(str(set(pipes))))
 
         pipeline_start_date = strftime("%Y-%m-%d")
         pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
