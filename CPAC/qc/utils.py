@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib
 import pkg_resources as p
 matplotlib.use('Agg')
-
+import os
 
 def append_to_files_in_dict_way(list_files, file_):
 
@@ -1124,7 +1124,7 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 
 
-def generateQCPages(qc_path):
+def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     """
     parafile = open('QC_input_para.txt', 'w')
@@ -1190,39 +1190,40 @@ def generateQCPages(qc_path):
     first_pass_organizing_files(qc_path)
     #according to bandpass and hp_lp and smoothing iterables combines the files
     second_pass_organizing_files(qc_path)
+    make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
     #generate pages from qc files
-    text_file_list = os.listdir(qc_path)
-    print text_file_list
-    image_path_list = []
-    for text_file in text_file_list:
-        if text_file[0] != '.':
-            f = open(os.path.join(path, text_file),'r')
-            eof = 0
-            while (not eof):
-                    temp_line = f.readline()
-                    if temp_line == '':
-                        eof=1 #This is to check if reading the file is complete
-                    else:
-                        if temp_line[-2:] == "\n":
-                            temp_line = temp_line[:-1]
-                        image_path_list.append(temp_line)
-                        f.close()
-    f = open(os.path.join(qc_output_folder, "QC_index.html"),'w')
-    header = """<html>
-    <head> QA Images </head>
-    <body><p>"""
-    footer = """</p></body>
-    </html>"""
+#   text_file_list = os.listdir(qc_path)
+#    print text_file_list
+#    image_path_list = []
+#    for text_file in text_file_list:
+#        if text_file[0] != '.':
+#            f = open(os.path.join(qc_path, text_file),'r')
+#            eof = 0
+#            while (not eof):
+#                    temp_line = f.readline()
+#                    if temp_line == '':
+#                        eof=1 #This is to check if reading the file is complete
+#                    else:
+#                        if temp_line[-2:] == "\n":
+#                            temp_line = temp_line[:-1]
+#                        image_path_list.append(temp_line)
+#            f.close()
+#    f = open(os.path.join(qc_path, "QC_index.html"),'w')
+#    header = """<html>
+#    <head> QA Images </head>
+#    <body><p>"""
+#    footer = """</p></body>
+#    </html>"""
                               
-    f.write(header)
-    for image in image_path_list:
-        image_html = "<img src=\""+image+"\">"
-        f.write(image_html)
+#    f.write(header)
+#    for image in image_path_list:
+#        image_html = "<img src=\""+image+"\">"
+#        f.write(image_html)
                               
-    f.write(footer)
-    f.close()
-    print f
+#    f.write(footer)
+#    f.close()
+#    print f
 
 
 def make_edge(file_):
