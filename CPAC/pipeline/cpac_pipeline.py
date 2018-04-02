@@ -5793,6 +5793,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
 
+
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
         subject_info_pickle = open(
@@ -5847,20 +5848,21 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
-                print i
-        # If QC is enabled
-        # TODO - QA pages: re-introduce
-        if 1 in c.generateQualityControlImages:
-            print "NECTAR"
-            for pip_id in pip_ids:
-        
-                f_path = os.path.join(os.path.join(c.logDirectory, 'pipeline_%s' %pip_id))
-            
-                qc_output_folder = os.path.join(f_path, 'qc_files_here')
-            
-                generateQCPages(qc_output_folder)
-                create_all_qc.run(f_path)
+        for pip_id in pip_ids:
+            try:
+                pipeline_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
+                generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+            #create_all_qc.run(pipeline_base)
+            except Exception as e:
+                print "Error: this function is not running"
+                print ""
+                print e
+                print type(e)
+                raise Exception
                     
+
+
             # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
                 #two methods can be done here:
                 #i) group all the qc_montage_ids in the resource pool or
