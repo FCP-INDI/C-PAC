@@ -123,7 +123,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
         self.counter = counter 
         fsl = os.environ.get('FSLDIR')
         if fsl == None:
-            fsl = "$FSLDIR"        
+            fsl = "$FSLDIR"
                 
         self.page.add(label="Perform Field Map Distortion Correction ",
                       control=control.CHOICE_BOX,

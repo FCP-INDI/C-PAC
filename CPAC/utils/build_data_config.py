@@ -12,8 +12,6 @@ def gather_file_paths(base_directory, verbose=False):
     #   - proper data directory
     #   - empty directory
 
-    # TODO: this is not being used by the data config builder- do we need?
-
     import os
 
     path_list = []
@@ -30,6 +28,8 @@ def gather_file_paths(base_directory, verbose=False):
 
 
 def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
+    """Return a list of input data file paths that are available on an AWS S3
+    bucket on the cloud."""
 
     import os
     from indi_aws import fetch_creds
@@ -73,6 +73,8 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
 
 def get_file_list(base_directory, creds_path=None, write_txt=None,
                   write_pkl=None, write_info=False):
+    """Return a list of input and data file paths either stored locally or on
+    an AWS S3 bucket on the cloud."""
 
     import os
 
@@ -307,51 +309,20 @@ def extract_scan_params_csv(scan_params_csv):
     return site_dict
 
 
-def extract_scan_params_json(scan_params_json):
-
-    # TODO: this is never used in data config builder- do we/will we need it?
-
-    import json
-
-    with open(scan_params_json, "r") as f:
-        params_dct = json.load(f)
-
-    return params_dct
-
-
-def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
-                         session_incl_list=None, scan_incl_list=None):
+def format_incl_excl_dct(incl_list=None, info_type='participants'):
+    """Create either an inclusion or exclusion dictionary to determine which
+    input files to include or not include in the data configuration file."""
 
     incl_dct = {}
 
-    if isinstance(site_incl_list, str):
-        if '.txt' in site_incl_list:
-            with open(site_incl_list, 'r') as f:
-                incl_dct['sites'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
-    elif isinstance(site_incl_list, list):
-        incl_dct['sites'] = site_incl_list
-
-    if isinstance(participant_incl_list, str):
-        if '.txt' in participant_incl_list:
-            with open(participant_incl_list, 'r') as f:
-                incl_dct['participants'] = \
-                    [x.rstrip('\n').replace(" ", "") for x in f.readlines() if x != '']
-    elif isinstance(participant_incl_list, list):
-        incl_dct['participants'] = participant_incl_list
-
-    if isinstance(session_incl_list, str):
-        if '.txt' in session_incl_list:
-            with open(session_incl_list, 'r') as f:
-                incl_dct['sessions'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
-    elif isinstance(session_incl_list, list):
-        incl_dct['sessions'] = session_incl_list
-
-    if isinstance(scan_incl_list, str):
-        if '.txt' in scan_incl_list:
-            with open(scan_incl_list, 'r') as f:
-                incl_dct['scans'] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
-    elif isinstance(scan_incl_list, list):
-        incl_dct['scans'] = scan_incl_list
+    if isinstance(incl_list, str):
+        if '.txt' in incl_list:
+            with open(incl_list, 'r') as f:
+                incl_dct[info_type] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
+        elif ',' in incl_list:
+            incl_dct[info_type] = [x.replace(" ", "") for x in incl_list.split(",")]
+    elif isinstance(incl_list, list):
+        incl_dct[info_type] = incl_list
 
     return incl_dct
 
@@ -359,6 +330,13 @@ def format_incl_excl_dct(site_incl_list=None, participant_incl_list=None,
 def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                       aws_creds_path=None, inclusion_dct=None,
                       exclusion_dct=None, config_dir=None):
+    """Return a data dictionary mapping input file paths to participant,
+    session, scan, and site IDs (where applicable) for a BIDS-formatted data
+    directory.
+
+    This function prepares a file path template, then uses the
+    already-existing custom template function for producing a data dictionary.
+    """
 
     import os
     import re
@@ -388,7 +366,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}_phase"
+                                   "sub-{participant}_ses-{session}_*_phase"
                                    "diff.nii.gz")
     fmap_phase = os.path.join(bids_base_dir,
                               "sub-{participant}/fmap/sub-{participant}"
@@ -396,11 +374,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_mag_sess = os.path.join(bids_base_dir,
                                  "sub-{participant}/ses-{session}/fmap/"
-                                 "sub-{participant}_ses-{session}_"
-                                 "magnitude1.nii.gz")
+                                 "sub-{participant}_ses-{session}_*_"
+                                 "magnitud*.nii.gz")
     fmap_mag = os.path.join(bids_base_dir,
                             "sub-{participant}/fmap/sub-{participant}"
-                            "_magnitude1.nii.gz")
+                            "_magnitud*.nii.gz")
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
 
@@ -706,22 +684,393 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
     return data_dct
 
 
+def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
+                            scan_id):
+    """Return the scan parameters information stored in the provided scan
+     parameters dictionary for the IDs of a specific functional input scan."""
+
+    scan_params = None
+
+    if site_id not in scan_params_dct.keys():
+        site_id = "All"
+    if sub_id not in scan_params_dct[site_id].keys():
+        sub_id = "All"
+    if ses_id not in scan_params_dct[site_id][sub_id].keys():
+        ses_id = "All"
+    if scan_id not in scan_params_dct[site_id][sub_id][ses_id].keys():
+        for key in scan_params_dct[site_id][sub_id][ses_id].keys():
+            # scan_id (incoming file path) might have run- or acq-, if
+            # this is a BIDS dataset, such as "acq-inv1_run-1_BOLD"
+            #     however, the scan ID keys here in scan_params_dct might
+            #     have something like "run-1_BOLD", meaning this also
+            #     applies to the "acq-inv1_run-1_BOLD" scan!
+            #
+            # "key" will always be the smaller/equal of the scan tags
+            if key in scan_id:
+                scan_id = key
+                break
+        else:
+            scan_id = "All"
+
+    print scan_params_dct.keys()
+    print "{0} {1} {2} {3}".format(site_id, sub_id, ses_id, scan_id)
+
+    try:
+        scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
+    except TypeError:
+        # this ideally should never fire
+        err = "\n[!] The scan parameters dictionary supplied to the data " \
+              "configuration builder is not in the proper format.\n\n The " \
+              "key combination that caused this error:\n{0}, {1}, {2}, {3}" \
+              "\n\n".format(site_id, sub_id, ses_id, scan_id)
+        raise Exception(err)
+    except KeyError:
+        pass
+
+    if not scan_params:
+        warn = "\n[!] No scan parameter information found in your scan " \
+               "parameter configuration for the functional input file:\n" \
+               "site: {0}, participant: {1}, session: {2}, series: {3}\n\n" \
+               "".format(site_id, sub_id, ses_id, scan_id)
+        print warn
+
+    return scan_params
+
+
+def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
+                    anat_scan=None, sites_dct=None, scan_params_dct=None,
+                    inclusion_dct=None, exclusion_dct=None,
+                    aws_creds_path=None, verbose=True):
+    """Return a data dictionary with a new file path parsed and added in,
+    keyed with its appropriate ID labels."""
+
+    import os
+    import glob
+
+    if not data_dct:
+        data_dct = {}
+
+    # NIFTIs only
+    if '.nii' not in file_path:
+        return data_dct
+
+    if data_type == "anat":
+        # pick the right anatomical scan
+        if anat_scan:
+            if anat_scan not in os.path.basename(file_path):
+                return data_dct
+
+    # reduce the template down to only the substrings that do not have
+    # these tags or IDs
+
+    # Example
+    #   file_template =
+    #     /path/to/{site}/sub-{participant}/ses-{session}/func/
+    #         sub-{participant}_ses-{session}_task-{scan}_bold.nii.gz
+    site_parts = file_template.split('{site}')
+
+    # Example, cont.
+    # site_parts =
+    #   ['/path/to/', '/sub-{participant}/ses-{session}/..']
+
+    partic_parts = []
+    for part in site_parts:
+        partic_parts = partic_parts + part.split('{participant}')
+
+    # Example, cont.
+    # partic_parts =
+    #   ['/path/to/', '/sub-', '/ses-{session}/func/sub-', '_ses-{session}..']
+
+    ses_parts = []
+    for part in partic_parts:
+        ses_parts = ses_parts + part.split('{session}')
+
+    # Example, cont.
+    # ses_parts =
+    #   ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
+    #    '_task-{scan}_bold.nii.gz']
+
+    if data_type == "anat":
+        parts = ses_parts
+    else:
+        # if functional, or field map files
+        parts = []
+        for part in ses_parts:
+            parts = parts + part.split('{scan}')
+
+        # Example, cont.
+        #   parts = ['/path/to/', '/sub-', '/ses-', '/func/sub-', '_ses-',
+        #            '_task-', '_bold.nii.gz']
+
+    if "*" in file_template:
+        wild_parts = []
+        for part in parts:
+            wild_parts = wild_parts + part.split('*')
+        parts = wild_parts
+
+    new_template = file_template
+    new_path = file_path
+
+    # go through the non-label/non-ID substrings and parse them out,
+    # going from left to right and chopping out both sides of the whole
+    # string until only the tag, and the ID, are left
+    path_dct = {}
+    for idx in range(0, len(parts)):
+        part1 = parts[idx]
+        try:
+            part2 = parts[idx + 1]
+        except IndexError:
+            break
+
+        label = new_template.split(part1, 1)[1]
+        label = label.split(part2, 1)[0]
+
+        if label == "*":
+            # if current key is a wildcard
+            continue
+
+        id = new_path.split(part1, 1)[1]
+        id = id.split(part2, 1)[0]
+
+        # example, ideally at this point, something like this:
+        #   template: /path/to/sub-{participant}/etc.
+        #   filepath: /path/to/sub-200/etc.
+        #   label = {participant}
+        #   id    = '200'
+
+        if label not in path_dct.keys():
+            path_dct[label] = id
+            skip = False
+        else:
+            if path_dct[label] != id:
+                warn = "\n\n[!] WARNING: While parsing your input data " \
+                       "files, a file path was found with conflicting " \
+                       "IDs for the same data level.\n\n" \
+                       "File path: {0}\n" \
+                       "Level: {1}\n" \
+                       "Conflicting IDs: {2}, {3}\n\n" \
+                       "Thus, we can't tell which {4} it belongs to, and " \
+                       "whether this file should be included or excluded! " \
+                       "Therefore, this file has not been added to the " \
+                       "data configuration.".format(file_path, label,
+                                                    path_dct[label], id,
+                                                    label.replace("{", "").replace("}", ""))
+                print warn
+                skip = True
+                break
+
+        new_template = new_template.replace(part1, '', 1)
+        new_template = new_template.replace(label, '', 1)
+
+        new_path = new_path.replace(part1, '', 1)
+        new_path = new_path.replace(id, '', 1)
+
+    if skip:
+        return data_dct
+
+    sub_id = path_dct['{participant}']
+
+    if '{site}' in path_dct.keys():
+        site_id = path_dct['{site}']
+    elif sites_dct:
+        # mainly if we're pulling site info from a participants.tsv file
+        # for a BIDS data set
+        try:
+            site_id = sites_dct[sub_id]
+        except KeyError:
+            site_id = "site-1"
+    else:
+        site_id = 'site-1'
+
+    if '{session}' in path_dct.keys():
+        ses_id = path_dct['{session}']
+    else:
+        ses_id = 'ses-1'
+
+    if data_type != "anat":
+        if '{scan}' in path_dct.keys():
+            scan_id = path_dct['{scan}']
+        else:
+            if data_type == "func":
+                scan_id = 'func-1'
+            else:
+                # field map files - keep these open as "None" so that they
+                # can be applied to all scans, if there isn't one specified
+                scan_id = None
+
+    if inclusion_dct:
+        if 'sites' in inclusion_dct.keys():
+            if site_id not in inclusion_dct['sites']:
+                return data_dct
+        if 'sessions' in inclusion_dct.keys():
+            if ses_id not in inclusion_dct['sessions']:
+                return data_dct
+        if 'participants' in inclusion_dct.keys():
+            if sub_id not in inclusion_dct['participants']:
+                return data_dct
+        if data_type == "func":
+            if 'scans' in inclusion_dct.keys():
+                if scan_id not in inclusion_dct['scans']:
+                    return data_dct
+
+    if exclusion_dct:
+        if 'sites' in exclusion_dct.keys():
+            if site_id in exclusion_dct['sites']:
+                return data_dct
+        if 'sessions' in exclusion_dct.keys():
+            if ses_id in exclusion_dct['sessions']:
+                return data_dct
+        if 'participants' in exclusion_dct.keys():
+            if sub_id in exclusion_dct['participants']:
+                return data_dct
+        if data_type == "func":
+            if 'scans' in exclusion_dct.keys():
+                if scan_id in exclusion_dct['scans']:
+                    return data_dct
+
+    # start the data dictionary updating
+    if data_type == "anat":
+        if "*" in file_path:
+            if "s3://" in file_path:
+                err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
+                      "(s3://) paths!"
+                raise Exception(err)
+            paths = glob.glob(file_path)
+
+        temp_sub_dct = {'subject_id': sub_id,
+                        'unique_id': ses_id,
+                        'site': site_id,
+                        'anat': file_path,
+                        'creds_path': aws_creds_path}
+
+        if site_id not in data_dct.keys():
+            data_dct[site_id] = {}
+        if sub_id not in data_dct[site_id].keys():
+            data_dct[site_id][sub_id] = {}
+        if ses_id not in data_dct[site_id][sub_id].keys():
+            data_dct[site_id][sub_id][ses_id] = temp_sub_dct
+        else:
+            # doubt this ever happens, but just be safe
+            warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
+                   "entry found in your input data directory!\n\nDuplicate " \
+                   "sets:\n\n{0}\n\n{1}\n\nOnly adding the first one to " \
+                   "the data configuration file." \
+                   "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
+                                 str(temp_sub_dct))
+            print warn
+
+    elif data_type == "func":
+
+        temp_func_dct = {scan_id: {"scan": file_path}}
+
+        # scan parameters time
+        scan_params = None
+        if scan_params_dct:
+            scan_params = find_unique_scan_params(scan_params_dct, site_id,
+                                                  sub_id, ses_id, scan_id)
+        if scan_params:
+            temp_func_dct[scan_id].update(
+                {'scan_parameters': scan_params})
+
+        if site_id not in data_dct.keys():
+            if verbose:
+                print "No anatomical found for functional for site {0}:" \
+                      "\n{1}\n".format(site_id, file_path)
+            return data_dct
+        if sub_id not in data_dct[site_id].keys():
+            if verbose:
+                print "No anatomical found for functional for participant " \
+                      "{0}:\n{1}\n".format(sub_id, file_path)
+            return data_dct
+        if ses_id not in data_dct[site_id][sub_id].keys():
+            if verbose:
+                print "No anatomical found for functional for session {0}:" \
+                      "\n{1}\n".format(ses_id, file_path)
+            return data_dct
+
+        if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
+            data_dct[site_id][sub_id][ses_id]['func'] = temp_func_dct
+        else:
+            data_dct[site_id][sub_id][ses_id]['func'].update(temp_func_dct)
+
+    else:
+        # field map files!
+        if "run-" in file_path or "acq-" in file_path:
+            # check for run- and acq- tags, for BIDS datasets
+            run_id = None
+            acq_id = None
+            tags = file_path.split("/")[-1].split("_")
+            for tag in tags:
+                if "run-" in tag:
+                    run_id = tag
+                if "acq-" in tag:
+                    acq_id = tag
+
+            # TODO: re-visit in the future
+            # this is a little iffy, because we're checking the contents of
+            # the data_dct for already-existing functional entries - this is
+            # assuming that all of the functionals have already been populated
+            # into the data_dct - this is always the case, but only because of
+            # how we use the function in "get_nonBIDS_data" below
+            #     but what if we want to use this manually as part of an API?
+            try:
+                scan_ids = data_dct[site_id][sub_id][ses_id]['func']
+                for func_scan_id in scan_ids:
+                    if run_id and acq_id:
+                        if run_id and acq_id in func_scan_id:
+                            scan_id = func_scan_id
+                    elif run_id:
+                        if run_id in func_scan_id and \
+                                "acq-" not in func_scan_id:
+                            scan_id = func_scan_id
+                    elif acq_id:
+                        if acq_id in func_scan_id and \
+                                "run-" not in func_scan_id:
+                            scan_id = func_scan_id
+            except KeyError:
+                # TODO: error msg
+                pass
+
+        temp_fmap_dct = {data_type: file_path}
+
+        if site_id not in data_dct.keys():
+            if verbose:
+                print "No anatomical found for field map file for site {0}:" \
+                      "\n{1}\n".format(site_id, file_path)
+            return data_dct
+        if sub_id not in data_dct[site_id].keys():
+            if verbose:
+                print "No anatomical found for field map file for " \
+                      "participant {0}:\n{1}\n".format(sub_id, file_path)
+            return data_dct
+        if ses_id not in data_dct[site_id][sub_id].keys():
+            if verbose:
+                print "No anatomical found for field map file for session " \
+                      "{0}:\n{1}\n".format(ses_id, file_path)
+            return data_dct
+
+        if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
+            # if no scan ID specified, nest it under the "func" key in the
+            # dictionary, so that it will apply to all scans that do not have
+            # their own assigned field map files (nested under the scan ID
+            # key in the dictionary)
+            data_dct[site_id][sub_id][ses_id]['func'] = temp_fmap_dct
+        elif scan_id not in data_dct[site_id][sub_id][ses_id]['func'].keys():
+            data_dct[site_id][sub_id][ses_id]['func'][scan_id] = temp_fmap_dct
+        else:
+            data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
+
+    return data_dct
+
+
 def get_nonBIDS_data(anat_template, func_template, file_list=None,
                      anat_scan=None, scan_params_dct=None,
                      fmap_phase_template=None, fmap_mag_template=None,
                      aws_creds_path=None, inclusion_dct=None,
                      exclusion_dct=None, sites_dct=None, verbose=False):
+    """Prepare a data dictionary for the data configuration file when given
+    file path templates describing the input data directories."""
 
-    # go over the file paths, validate for nifti's?
-    # work with the template
-
-    # test cases:
-    #   - no anats, no funcs
-    #   - combination of .nii and .nii.gz?
-    #   - throw error/warning if anat and func templates are identical
-    #   - all permutations of scan parameters json/csv's at different levels
-
-    import os
     import glob
     import fnmatch
 
@@ -758,6 +1107,7 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
               "(anatomical_scan) setting for more information.\n\n"
         raise Exception(err)
 
+    # replace the keywords with wildcards
     for keyword in keywords:
         if keyword in anat_glob:
             anat_glob = anat_glob.replace(keyword, '*')
@@ -782,476 +1132,23 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     anat_local_pool = glob.glob(anat_glob)
     func_local_pool = glob.glob(func_glob)
 
+    # anat_pool and func_pool are now lists with (presumably) all of the file
+    # paths that match the templates entered
     anat_pool = anat_pool + anat_local_pool
     func_pool = func_pool + func_local_pool
 
-    data_dct = {}
-
     # pull out the site/participant/etc. IDs from each path and connect them
+    data_dct = {}
     for anat_path in anat_pool:
+        data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
+                                   anat_scan, sites_dct, None, inclusion_dct,
+                                   exclusion_dct, aws_creds_path)
 
-        # NIFTIs only
-        if '.nii' not in anat_path:
-            continue
-
-        # pick the right anatomical scan
-        if anat_scan:
-            if anat_scan not in os.path.basename(anat_path):
-                continue
-
-        path_dct = {}
-
-        # reduce the template down to only the substrings that do not have
-        # these tags or IDs
-        site_parts = anat_template.split('{site}')
-
-        partic_parts = []
-        for part in site_parts:
-            partic_parts = partic_parts + part.split('{participant}')
-        ses_parts = []
-        for part in partic_parts:
-            ses_parts = ses_parts + part.split('{session}')
-        if "*" in anat_template:
-            wild_parts = []
-            for part in ses_parts:
-                wild_parts = wild_parts + part.split('*')
-            ses_parts = wild_parts
-
-        new_template = anat_template
-        new_path = anat_path
-
-        # go through the non-label/non-ID substrings and parse them out,
-        # going from left to right and chopping out both sides of the whole
-        # string until only the tag, and the ID, are left
-        for idx in range(0, len(ses_parts)):
-            part1 = ses_parts[idx]
-            try:
-                part2 = ses_parts[idx+1]
-            except IndexError:
-                break
-
-            # example: /home/{site}/ses-{session}/..
-            #          part1 = /home/, part2 = /ses-
-            #          first split ->  ['', '{site}/ses-{session}/..']
-            #              (pick second item)
-            #          second split -> ['{site}', '{session}/..']
-            #              (pick first item)
-            label = new_template.split(part1, 1)[1]
-            label = label.split(part2, 1)[0]
-
-            if label == "*":
-                continue
-
-            id = new_path.split(part1, 1)[1]
-            id = id.split(part2, 1)[0]
-
-            if label not in path_dct.keys():
-                path_dct[label] = id
-                skip = False
-            else:
-                warn = None
-                if path_dct[label] != id:
-                    if str(path_dct[label]) in id:
-                        warn = "\n\n[!] WARNING: Multiple anatomical " \
-                               "scans found for a single participant. " \
-                               "One anatomical scan must be selected " \
-                               "for the pipeline run. You can use the " \
-                               "'Which Anatomical Scan?' (anatomical_" \
-                               "scan) setting in the data config" \
-                               "uration builder to select which one to " \
-                               "use. Otherwise, review the completed " \
-                               "data configuration file to ensure the " \
-                               "proper scans are included together.\n\n" \
-                               "Scan not included:\n{0}" \
-                               "\n\n".format(anat_path)
-                    else:
-                        warn = "\n\n[!] WARNING: While parsing your input " \
-                               "data files, a file path was found with " \
-                               "conflicting IDs for the same data level." \
-                               "\n\nFile path: {0}\nLevel: {1}\n" \
-                               "Conflicting IDs: {2}, {3}\n\n" \
-                               "This file has not been added to the data " \
-                               "configuration.".format(anat_path, label,
-                                                       path_dct[label], id)
-                if warn:
-                    print warn
-                    skip = True
-                    break
-                else:
-                    skip = False
-                    pass
-
-            new_template = new_template.replace(part1, '', 1)
-            new_template = new_template.replace(label, '', 1)
-
-            new_path = new_path.replace(part1, '', 1)
-            new_path = new_path.replace(id, '', 1)
-
-        if skip:
-            continue
-
-        sub_id = path_dct['{participant}']
-
-        if '{site}' in path_dct.keys():
-            site_id = path_dct['{site}']
-        elif sites_dct:
-            # mainly if we're pulling site info from a participants.tsv file
-            # for a BIDS data set
-            try:
-                site_id = sites_dct[sub_id]
-            except KeyError:
-                site_id = "site-1"
-        else:
-            site_id = 'site-1'
-
-        if '{session}' in path_dct.keys():
-            ses_id = path_dct['{session}']
-        else:
-            ses_id = 'ses-1'
-            
-        if inclusion_dct:
-            if 'sites' in inclusion_dct.keys():
-                if site_id not in inclusion_dct['sites']:
-                    continue
-            if 'sessions' in inclusion_dct.keys():
-                if ses_id not in inclusion_dct['sessions']:
-                    continue
-            if 'participants' in inclusion_dct.keys():
-                if sub_id not in inclusion_dct['participants']:
-                    continue
-                    
-        if exclusion_dct:
-            if 'sites' in exclusion_dct.keys():
-                if site_id in exclusion_dct['sites']:
-                    continue
-            if 'sessions' in exclusion_dct.keys():
-                if ses_id in exclusion_dct['sessions']:
-                    continue
-            if 'participants' in exclusion_dct.keys():
-                if sub_id in exclusion_dct['participants']:
-                    continue
-
-        if "*" in anat_path:
-            if "s3://" in anat_path:
-                err = "\n\n[!] Cannot use wildcards (*) in AWS S3 bucket " \
-                      "(s3://) paths!"
-            paths = glob.glob(anat_path)
-
-        temp_sub_dct = {'subject_id': sub_id,
-                        'unique_id': ses_id,
-                        'site': site_id,
-                        'anat': anat_path,
-                        'creds_path': aws_creds_path}
-
-        if site_id not in data_dct.keys():
-            data_dct[site_id] = {}
-        if sub_id not in data_dct[site_id].keys():
-            data_dct[site_id][sub_id] = {}
-        if ses_id not in data_dct[site_id][sub_id].keys():
-            data_dct[site_id][sub_id][ses_id] = temp_sub_dct
-        else:
-            # doubt this ever happens, but just be safe
-            warn = "\n\n[!] WARNING: Duplicate site-participant-session " \
-                   "entry found in your input data directory!\n\nDuplicate " \
-                   "sets:\n\n{0}\n\n{1}\n\nOnly adding the first one to " \
-                   "the data configuration file." \
-                   "\n\n".format(str(data_dct[site_id][sub_id][ses_id]),
-                                 str(temp_sub_dct))
-            print warn
-
-    # functional time
     for func_path in func_pool:
-
-        # NIFTIs only
-        if '.nii' not in func_path:
-            continue
-
-        path_dct = {}
-
-        site_parts = func_template.split('{site}')
-
-        partic_parts = []
-        for part in site_parts:
-            partic_parts = partic_parts + part.split('{participant}')
-        ses_parts = []
-        for part in partic_parts:
-            ses_parts = ses_parts + part.split('{session}')
-        scan_parts = []
-        for part in ses_parts:
-            scan_parts = scan_parts + part.split('{scan}')
-        if "*" in func_template:
-            wild_parts = []
-            for part in scan_parts:
-                wild_parts = wild_parts + part.split('*')
-            scan_parts = wild_parts
-
-        new_template = func_template
-        new_path = func_path
-
-        for idx in range(0, len(scan_parts)):
-            part1 = scan_parts[idx]
-            try:
-                part2 = scan_parts[idx+1]
-            except IndexError:
-                break
-
-            label = new_template.split(part1, 1)[1]
-            label = label.split(part2, 1)[0]
-
-            if label == "*":
-                continue
-
-            id = new_path.split(part1, 1)[1]
-            id = id.split(part2, 1)[0]
-
-            if label not in path_dct.keys():
-                path_dct[label] = id
-                skip = False
-            else:
-                if path_dct[label] != id:
-                    warn = "\n\n[!] WARNING: While parsing your input data " \
-                           "files, a file path was found with conflicting " \
-                           "IDs for the same data level.\n\n" \
-                           "File path: {0}\n" \
-                           "Level: {1}\n" \
-                           "Conflicting IDs: {2}, {3}\n\n" \
-                           "This file has not been added to the data " \
-                           "configuration.".format(func_path, label,
-                                                   path_dct[label], id)
-                    print warn
-                    skip = True
-                    break
-
-            new_template = new_template.replace(part1, '', 1)
-            new_template = new_template.replace(label, '', 1)
-
-            new_path = new_path.replace(part1, '', 1)
-            new_path = new_path.replace(id, '', 1)
-
-        if skip:
-            continue
-
-        sub_id = path_dct['{participant}']
-
-        if '{site}' in path_dct.keys():
-            site_id = path_dct['{site}']
-        elif sites_dct:
-            # mainly if we're pulling site info from a participants.tsv file
-            # for a BIDS data set
-            try:
-                site_id = sites_dct[sub_id]
-            except KeyError:
-                site_id = "site-1"
-        else:
-            site_id = 'site-1'
-
-        if '{session}' in path_dct.keys():
-            ses_id = path_dct['{session}']
-        else:
-            ses_id = 'ses-1'
-
-        if '{scan}' in path_dct.keys():
-            scan_id = path_dct['{scan}']
-        else:
-            scan_id = 'func-1'
-
-        if inclusion_dct:
-            if 'sites' in inclusion_dct.keys():
-                if site_id not in inclusion_dct['sites']:
-                    continue
-            if 'sessions' in inclusion_dct.keys():
-                if ses_id not in inclusion_dct['sessions']:
-                    continue
-            if 'participants' in inclusion_dct.keys():
-                if sub_id not in inclusion_dct['participants']:
-                    continue
-            if 'scans' in inclusion_dct.keys():
-                if scan_id not in inclusion_dct['scans']:
-                    continue
-
-        if exclusion_dct:
-            if 'sites' in exclusion_dct.keys():
-                if site_id in exclusion_dct['sites']:
-                    continue
-            if 'sessions' in exclusion_dct.keys():
-                if ses_id in exclusion_dct['sessions']:
-                    continue
-            if 'participants' in exclusion_dct.keys():
-                if sub_id in exclusion_dct['participants']:
-                    continue
-            if 'scans' in exclusion_dct.keys():
-                if scan_id in exclusion_dct['scans']:
-                    continue
-
-        temp_func_dct = {scan_id: {"scan": func_path}}
-
-        # scan parameters time
-        scan_params = None
-
-        if scan_params_dct:
-
-            if site_id in scan_params_dct.keys():
-                # all site-specific
-                if sub_id in scan_params_dct[site_id].keys():
-                    # all site-specific and sub-specific
-                    if ses_id in scan_params_dct[site_id][sub_id].keys():
-                        if scan_id in scan_params_dct[site_id][sub_id][ses_id].keys():
-                            # site, sub, session, scan specific scan params
-                            scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct[site_id][sub_id][ses_id].keys():
-                                scan_params = scan_params_dct[site_id][sub_id][ses_id][run_acq_id]
-                        elif 'All' in scan_params_dct[site_id][sub_id][ses_id].keys():
-                            # site, sub, session specific scan params
-                            scan_params = scan_params_dct[site_id][sub_id][ses_id]['All']
-                    elif 'All' in scan_params_dct[site_id][sub_id].keys():
-                        if scan_id in scan_params_dct[site_id][sub_id]['All'].keys():
-                            # site, sub, scan specific scan params
-                            scan_params = scan_params_dct[site_id][sub_id]['All'][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct[site_id][sub_id]['All'].keys():
-                                scan_params = scan_params_dct[site_id][sub_id]['All'][run_acq_id]
-                        elif 'All' in scan_params_dct[site_id][sub_id]['All'].keys():
-                            # site and sub specific scan params, same across
-                            # all sessions and scans
-                            scan_params = scan_params_dct[site_id][sub_id]['All']['All']
-                elif "All" in scan_params_dct[site_id].keys():
-                    # same across all subs
-                    if ses_id in scan_params_dct[site_id]["All"].keys():
-                        if scan_id in scan_params_dct[site_id]["All"][ses_id].keys():
-                            # site, session, scan specific, same across all
-                            # subs
-                            scan_params = scan_params_dct[site_id]["All"][ses_id][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct[site_id]["All"][ses_id].keys():
-                                scan_params = scan_params_dct[site_id]["All"][ses_id][run_acq_id]
-                        elif "All" in scan_params_dct[site_id]["All"][ses_id].keys():
-                            # site and session specific scan params, same
-                            # across all subs and scans
-                            scan_params = scan_params_dct[site_id]["All"][ses_id]["All"]
-                    elif "All" in scan_params_dct[site_id]["All"].keys():
-                        # TODO: but what about task-rest_acq-1 but for all runs???
-                        # TODO: scan_id would be rest_acq-1_run-1, but scan_params_dct tag would be rest_acq-1
-                        if scan_id in scan_params_dct[site_id]["All"]["All"].keys():
-                            # site and scan specific, same across all subs and
-                            # all sessions
-                            scan_params = scan_params_dct[site_id]["All"]["All"][scan_id]
-                        elif "run-" in scan_id and "acq-" in scan_id:
-                            # not scan specific, but run and acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct[site_id]["All"]["All"].keys():
-                                scan_params = scan_params_dct[site_id]["All"]["All"][run_acq_id]
-                            elif "acq-" in scan_id:
-                                # not scan or run specific, but acquisition
-                                # specific
-                                acq_id = "[All]_{0}".format(scan_id.split("acq-")[1].split("_")[0])
-                                if site_id == "NKI_TRT":
-                                    print acq_id
-                                    print scan_params_dct[site_id]["All"]["All"].keys()
-                                if acq_id in scan_params_dct[site_id]["All"]["All"].keys():
-                                    scan_params = scan_params_dct[site_id]["All"]["All"][acq_id]
-                        elif "All" in scan_params_dct[site_id]["All"]["All"].keys():
-                            # site specific scan params, same across all subs,
-                            # sessions, and scans
-                            scan_params = scan_params_dct[site_id]["All"]["All"]["All"]
-
-            elif "All" in scan_params_dct.keys():
-                # not site specific
-                if sub_id in scan_params_dct["All"].keys():
-                    # sub-specific
-                    if ses_id in scan_params_dct["All"][sub_id].keys():
-                        if scan_id in scan_params_dct["All"][sub_id][ses_id].keys():
-                            # sub, session, scan specific, same across all
-                            # sites (or no site specified)
-                            scan_params = scan_params_dct["All"][sub_id][ses_id][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct["All"][sub_id][ses_id].keys():
-                                scan_params = scan_params_dct["All"][sub_id][ses_id][run_acq_id]
-                        elif "All" in scan_params_dct["All"][sub_id][ses_id].keys():
-                            # sub, session specific, same across all scans and
-                            # sites (or site and scan not specified)
-                            scan_params = scan_params_dct["All"][sub_id][ses_id][scan_id]["All"]
-                    elif "All" in scan_params_dct["All"][sub_id].keys():
-                        if scan_id in scan_params_dct["All"][sub_id]["All"].keys():
-                            # sub and scan specific, same across all sites and
-                            # sessions (or site and session not specified)
-                            scan_params = scan_params_dct["All"][sub_id]["All"][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct["All"][sub_id]["All"].keys():
-                                scan_params = scan_params_dct["All"][sub_id]["All"][run_acq_id]
-                        elif "All" in scan_params_dct["All"][sub_id]["All"].keys():
-                            # sub specific, same across all sites, sessions,
-                            # and scans (or site, session, and scan not
-                            # specified)
-                            scan_params = scan_params_dct["All"][sub_id]["All"]["All"]
-                elif "All" in scan_params_dct["All"].keys():
-                    if ses_id in scan_params_dct["All"]["All"].keys():
-                        if scan_id in scan_params_dct["All"]["All"][ses_id].keys():
-                            # session and scan specific only
-                            scan_params = scan_params_dct["All"]["All"][ses_id][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct["All"]["All"][ses_id].keys():
-                                scan_params = scan_params_dct["All"]["All"][ses_id][run_acq_id]
-                        elif "All" in scan_params_dct["All"]["All"][ses_id].keys():
-                            # session specific only
-                            scan_params = scan_params_dct["All"]["All"][ses_id]["All"]
-                    elif "All" in scan_params_dct["All"]["All"].keys():
-                        if scan_id in scan_params_dct["All"]["All"]["All"].keys():
-                            # scan specific only
-                            scan_params = scan_params_dct["All"]["All"]["All"][scan_id]
-                        elif "run-" in scan_id or "acq-" in scan_id:
-                            # not scan specific, but run and/or acquisition
-                            # specific
-                            run_acq_id = "[All]_{0}".format(scan_id.split("_", 1)[1])
-                            if run_acq_id in scan_params_dct["All"]["All"]["All"].keys():
-                                scan_params = scan_params_dct["All"]["All"]["All"][run_acq_id]
-                        elif "All" in scan_params_dct["All"]["All"]["All"].keys():
-                            # same scan params across all sites, subs,
-                            # sessions, and scans
-                            scan_params = scan_params_dct["All"]["All"]["All"]["All"]
-
-        if scan_params:
-            temp_func_dct[scan_id].update({'scan_parameters': scan_params})
-
-        if site_id not in data_dct.keys():
-            if verbose:
-                print "No anatomical for functional for site:" \
-                      "\n{0}\n{1}\n".format(func_path, site_id)
-            continue
-        if sub_id not in data_dct[site_id].keys():
-            if verbose:
-                print "No anatomical for functional for participant:" \
-                      "\n{0}\n{1}\n".format(func_path, sub_id)
-            continue
-        if ses_id not in data_dct[site_id][sub_id].keys():
-            if verbose:
-                print "No anatomical for functional for session:" \
-                      "\n{0}\n{1}\n".format(func_path, ses_id)
-            continue
-
-        if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
-            data_dct[site_id][sub_id][ses_id]['func'] = temp_func_dct
-        else:
-            data_dct[site_id][sub_id][ses_id]['func'].update(temp_func_dct)
+        data_dct = update_data_dct(func_path, func_template, data_dct, "func",
+                                   None, sites_dct, scan_params_dct,
+                                   inclusion_dct, exclusion_dct,
+                                   aws_creds_path)
 
     if fmap_phase_template and fmap_mag_template:
         # if we're doing the whole field map distortion correction thing
@@ -1291,279 +1188,25 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
             fmap_mag_pool = glob.glob(fmap_mag_glob)
 
         for fmap_phase in fmap_phase_pool:
-
-            path_dct = {}
-
-            site_parts = fmap_phase_template.split('{site}')
-
-            partic_parts = []
-            for part in site_parts:
-                partic_parts = partic_parts + part.split('{participant}')
-            ses_parts = []
-            for part in partic_parts:
-                ses_parts = ses_parts + part.split('{session}')
-            scan_parts = []
-            for part in ses_parts:
-                scan_parts = scan_parts + part.split('{scan}')
-            if "*" in fmap_phase_template:
-                wild_parts = []
-                for part in scan_parts:
-                    wild_parts = wild_parts + part.split('*')
-                scan_parts = wild_parts
-
-            new_template = fmap_phase_template
-            new_path = fmap_phase
-
-            for idx in range(0, len(scan_parts)):
-                part1 = scan_parts[idx]
-                try:
-                    part2 = scan_parts[idx+1]
-                except IndexError:
-                    break
-
-                label = new_template.split(part1, 1)[1]
-                label = label.split(part2, 1)[0]
-
-                if label == "*":
-                    continue
-
-                id = new_path.split(part1, 1)[1]
-                id = id.split(part2, 1)[0]
-
-                if label not in path_dct.keys():
-                    path_dct[label] = id
-                    skip = False
-                else:
-                    warn = None
-                    if path_dct[label] != id:
-                        '''
-                        if str(path_dct[label]) in id and "run-" in id:
-                            # TODO: this is here only because we do not
-                            # TODO: support scan-level nesting yet!!!
-                            warn = "\n\n[!] WARNING: Multiple field map " \
-                                   "phase or magnitude files were found " \
-                                   "for a single session. Multiple-run " \
-                                   "field map files are not supported yet. " \
-                                   "Review the completed data " \
-                                   "configuration file to ensure the " \
-                                   "proper scans are included together.\n\n" \
-                                   "File not included:\n{0}" \
-                                   "\n\n".format(fmap_phase)
-                        else:
-                        '''
-                        warn = "\n\n[!] WARNING: While parsing your input data " \
-                               "files, a file path was found with conflicting " \
-                               "IDs for the same data level.\n\n" \
-                               "File path: {0}\n" \
-                               "Level: {1}\n" \
-                               "Conflicting IDs: {2}, {3}\n\n" \
-                               "This file has not been added to the data " \
-                               "configuration.".format(fmap_phase, label,
-                                                       path_dct[label], id)
-                    if warn:
-                        print warn
-                        skip = True
-                        break
-                    else:
-                        skip = False
-
-                new_template = new_template.replace(part1, '', 1)
-                new_template = new_template.replace(label, '', 1)
-
-                new_path = new_path.replace(part1, '', 1)
-                new_path = new_path.replace(id, '', 1)
-
-            if skip:
-                continue
-
-            sub_id = path_dct['{participant}']
-
-            if '{site}' in path_dct.keys():
-                site_id = path_dct['{site}']
-            elif sites_dct:
-                # mainly if we're pulling site info from a participants.tsv
-                # file for a BIDS data set
-                try:
-                    site_id = sites_dct[sub_id]
-                except KeyError:
-                    site_id = "site-1"
-            else:
-                site_id = 'site-1'
-
-            if '{session}' in path_dct.keys():
-                ses_id = path_dct['{session}']
-            else:
-                ses_id = 'ses-1'
-
-            if '{scan}' in path_dct.keys():
-                scan_id = path_dct['{scan}']
-            else:
-                scan_id = None
-
-            temp_fmap_dct = {"fmap_phase": fmap_phase}
-
-            if site_id not in data_dct.keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "site:\n{0}\n{1}\n".format(fmap_phase, site_id)
-                continue
-            if sub_id not in data_dct[site_id].keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "participant:" \
-                          "\n{0}\n{1}\n".format(fmap_phase, sub_id)
-                continue
-            if ses_id not in data_dct[site_id][sub_id].keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "session:\n{0}\n{1}\n".format(fmap_phase, ses_id)
-                continue
-
-            if scan_id:
-                data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
-            else:
-                for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
-                    data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
+            data_dct = update_data_dct(fmap_phase, fmap_phase_template,
+                                       data_dct, "fmap_phase", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
 
         for fmap_mag in fmap_mag_pool:
-
-            path_dct = {}
-
-            site_parts = fmap_mag_template.split('{site}')
-
-            partic_parts = []
-            for part in site_parts:
-                partic_parts = partic_parts + part.split('{participant}')
-            ses_parts = []
-            for part in partic_parts:
-                ses_parts = ses_parts + part.split('{session}')
-            scan_parts = []
-            for part in ses_parts:
-                scan_parts = scan_parts + part.split('{scan}')
-            if "*" in fmap_mag_template:
-                wild_parts = []
-                for part in scan_parts:
-                    wild_parts = wild_parts + part.split('*')
-                scan_parts = wild_parts
-
-            new_template = fmap_mag_template
-            new_path = fmap_mag
-
-            for idx in range(0, len(scan_parts)):
-                part1 = scan_parts[idx]
-                try:
-                    part2 = scan_parts[idx + 1]
-                except IndexError:
-                    break
-
-                label = new_template.split(part1, 1)[1]
-                label = label.split(part2, 1)[0]
-
-                if label == "*":
-                    continue
-
-                id = new_path.split(part1, 1)[1]
-                id = id.split(part2, 1)[0]
-
-                if label not in path_dct.keys():
-                    path_dct[label] = id
-                    skip = False
-                else:
-                    warn = None
-                    if path_dct[label] != id:
-                        '''
-                        if str(path_dct[label]) in id and "run-" in id:
-                            # TODO: this is here only because we do not
-                            # TODO: support scan-level nesting yet!!!
-                            warn = "\n\n[!] WARNING: Multiple field map " \
-                                   "phase or magnitude files were found " \
-                                   "for a single session. Multiple-run " \
-                                   "field map files are not supported yet. " \
-                                   "Review the completed data " \
-                                   "configuration file to ensure the " \
-                                   "proper scans are included together.\n\n" \
-                                   "File not included:\n{0}" \
-                                   "\n\n".format(fmap_phase)
-                        else:
-                        '''
-                        warn = "\n\n[!] WARNING: While parsing your input data " \
-                               "files, a file path was found with conflicting " \
-                               "IDs for the same data level.\n\n" \
-                               "File path: {0}\n" \
-                               "Level: {1}\n" \
-                               "Conflicting IDs: {2}, {3}\n\n" \
-                               "This file has not been added to the data " \
-                               "configuration.".format(fmap_mag, label,
-                                                       path_dct[label], id)
-                    if warn:
-                        print warn
-                        skip = True
-                        break
-                    else:
-                        skip = False
-
-                new_template = new_template.replace(part1, '', 1)
-                new_template = new_template.replace(label, '', 1)
-
-                new_path = new_path.replace(part1, '', 1)
-                new_path = new_path.replace(id, '', 1)
-
-            if skip:
-                continue
-
-            sub_id = path_dct['{participant}']
-
-            if '{site}' in path_dct.keys():
-                site_id = path_dct['{site}']
-            elif sites_dct:
-                # mainly if we're pulling site info from a participants.tsv
-                # file for a BIDS data set
-                try:
-                    site_id = sites_dct[sub_id]
-                except KeyError:
-                    site_id = "site-1"
-            else:
-                site_id = 'site-1'
-
-            if '{session}' in path_dct.keys():
-                ses_id = path_dct['{session}']
-            else:
-                ses_id = 'ses-1'
-
-            if '{scan}' in path_dct.keys():
-                scan_id = path_dct['{scan}']
-            else:
-                scan_id = None
-
-            temp_fmap_dct = {"fmap_mag": fmap_mag}
-
-            if site_id not in data_dct.keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "site:\n{0}\n{1}\n".format(fmap_mag, site_id)
-                continue
-            if sub_id not in data_dct[site_id].keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "participant:" \
-                          "\n{0}\n{1}\n".format(fmap_mag, sub_id)
-                continue
-            if ses_id not in data_dct[site_id][sub_id].keys():
-                if verbose:
-                    print "Missing inputs (no anat/func) for field map for " \
-                          "session:\n{0}\n{1}\n".format(fmap_mag, ses_id)
-                continue
-
-            if scan_id:
-                data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
-            else:
-                for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
-                    data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
+            data_dct = update_data_dct(fmap_mag, fmap_mag_template,
+                                       data_dct, "fmap_mag", None,
+                                       sites_dct, scan_params_dct,
+                                       inclusion_dct, exclusion_dct,
+                                       aws_creds_path)
 
     return data_dct
 
 
 def run(data_settings_yml):
+    """Generate and write out a CPAC data configuration (participant list)
+    YAML file."""
 
     import os
     import yaml
@@ -1581,15 +1224,23 @@ def run(data_settings_yml):
             "none" in settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
 
-    incl_dct = format_incl_excl_dct(settings_dct['siteList'],
-                                    settings_dct['subjectList'],
-                                    settings_dct['sessionList'],
-                                    settings_dct['scanList'])
+    # inclusion lists
+    incl_dct = format_incl_excl_dct(settings_dct['siteList'], 'sites')
+    incl_dct.update(format_incl_excl_dct(settings_dct['subjectList'],
+                                         'participants'))
+    incl_dct.update(format_incl_excl_dct(settings_dct['sessionList'],
+                                         'sessions'))
+    incl_dct.update(format_incl_excl_dct(settings_dct['scanList'], 'scans'))
 
+    # exclusion lists
     excl_dct = format_incl_excl_dct(settings_dct['exclusionSiteList'],
-                                    settings_dct['exclusionSubjectList'],
-                                    settings_dct['exclusionSessionList'],
-                                    settings_dct['exclusionScanList'])
+                                    'sites')
+    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionSubjectList'],
+                                         'participants'))
+    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionSessionList'],
+                                         'sessions'))
+    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionScanList'],
+                                         'scans'))
 
     if 'BIDS' in settings_dct['dataFormat'] or \
             'bids' in settings_dct['dataFormat']:
