@@ -1357,17 +1357,17 @@ def run(data_settings_yml):
         # TODO: data configs, i.e. for preprocessing only
         anats_only = False
 
-        # get some data
-        num_sites = len(data_dct.keys())
-        num_subs = num_sess = num_scan = 0
-        for site in data_dct.keys():
-            num_subs += len(data_dct[site])
-            for sub in data_dct[site].keys():
-                num_sess += len(data_dct[site][sub])
-                for session in data_dct[site][sub].keys():
-                    if 'func' in data_dct[site][sub][session].keys():
-                        for scan in data_dct[site][sub][session]['func'].keys():
-                            num_scan += 1
+        # # get some data
+        # num_sites = len(data_dct.keys())
+        # num_subs = num_sess = num_scan = 0
+        # for site in data_dct.keys():
+        #     num_subs += len(data_dct[site])
+        #     for sub in data_dct[site].keys():
+        #         num_sess += len(data_dct[site][sub])
+        #         for session in data_dct[site][sub].keys():
+        #             if 'func' in data_dct[site][sub][session].keys():
+        #                 for scan in data_dct[site][sub][session]['func'].keys():
+        #                     num_scan += 1
 
         data_config_outfile = \
             os.path.join(settings_dct['outputSubjectListLocation'],
@@ -1387,12 +1387,18 @@ def run(data_settings_yml):
                         # scan inclusion/exclusion and only some participants
                         # have the scans included)
                         if 'func' in data_dct[site][sub][ses]:
-                            # TODO: put the numbers here instead, using
-                            # TODO: "included"
-                            pass
+                            # get some numbers
+                            included['site'].append(site)
+                            included['sub'].append(sub)
+                            included['ses'].append(ses)
+                            for scan in data_dct[site][sub][ses]['func'].keys():
+                                included['scan'].append(scan)
                         else:
                             continue
                     data_list.append(data_dct[site][sub][ses])
+
+        # calculate numbers
+        # TODO: parse included dct
 
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
