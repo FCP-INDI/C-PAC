@@ -372,7 +372,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_phase_sess = os.path.join(bids_base_dir,
                                    "sub-{participant}/ses-{session}/fmap/"
-                                   "sub-{participant}_ses-{session}_*_phase"
+                                   "sub-{participant}_ses-{session}_*phase"
                                    "diff.nii.gz")
     fmap_phase = os.path.join(bids_base_dir,
                               "sub-{participant}/fmap/sub-{participant}"
@@ -380,13 +380,22 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
 
     fmap_mag_sess = os.path.join(bids_base_dir,
                                  "sub-{participant}/ses-{session}/fmap/"
-                                 "sub-{participant}_ses-{session}_*_"
+                                 "sub-{participant}_ses-{session}_*"
                                  "magnitud*.nii.gz")
+
     fmap_mag = os.path.join(bids_base_dir,
                             "sub-{participant}/fmap/sub-{participant}"
                             "_magnitud*.nii.gz")
 
     sess_glob = os.path.join(bids_base_dir, "sub-*/ses-*/*")
+
+    fmap_phase_scan_glob = os.path.join(bids_base_dir,
+                                        "sub-*fmap/"
+                                        "sub-*_task-*_phasediff.nii.gz")
+
+    fmap_mag_scan_glob = os.path.join(bids_base_dir,
+                                      "sub-*fmap/"
+                                      "sub-*_task-*_magnitud*.nii.gz")
 
     part_tsv_glob = os.path.join(bids_base_dir, "*participants.tsv")
 
@@ -425,12 +434,6 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         for filepath in file_list:
             if fnmatch.fnmatch(filepath, site_dir_glob) and \
                     "derivatives" not in filepath:
-                print filepath
-
-                '''
-                HERE -- why adding site glob to NKI-RS???
-                '''
-
                 # check if there is a directory level encoding site ID, even
                 # though that is not BIDS format
                 site_dir = True
@@ -439,6 +442,26 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
             if fnmatch.fnmatch(filepath, sess_glob):
                 # check if there is a session level
                 ses = True
+
+            if fnmatch.fnmatch(filepath, fmap_phase_scan_glob):
+                # check if there is a scan level for the fmap phase files
+                fmap_phase_sess = os.path.join(bids_base_dir,
+                                               "sub-{participant}/ses-{session}/fmap/"
+                                               "sub-{participant}_ses-{session}_task-{scan}_phase"
+                                               "diff.nii.gz")
+                fmap_phase = os.path.join(bids_base_dir,
+                                          "sub-{participant}/fmap/sub-{participant}"
+                                          "task-{scan}_phasediff.nii.gz")
+
+            if fnmatch.fnmatch(filepath, fmap_mag_scan_glob):
+                # check if there is a scan level for the fmap magnitude files
+                fmap_mag_sess = os.path.join(bids_base_dir,
+                                             "sub-{participant}/ses-{session}/fmap/"
+                                             "sub-{participant}_ses-{session}_task-{scan}_magnitud*.nii.gz")
+                fmap_mag = os.path.join(bids_base_dir,
+                                        "sub-{participant}/fmap/sub-{participant}"
+                                        "task-{scan}_magnitud*.nii.gz")
+
             if fnmatch.fnmatch(filepath, part_tsv_glob):
                 # check if there is a participants.tsv file
                 part_tsv = filepath
@@ -769,8 +792,18 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if anat_scan:
             if anat_scan not in os.path.basename(file_path):
                 return data_dct
+            else:
+                # what if it is in the filename, but there are other things
+                # as well?
+                #     for example, anat_scan = 'run-1', and we have:
+                #         sub-*_run-1_T1w.nii.gz
+                #         sub-*_acq-inv1_run-1_T1w.nii.gz
+                # TODO: HERE
+                # TODO: try hard-coding "and not acq-inv1" or something, and
+                # TODO: see how this influences the behavior!
+                pass
 
-    # reduce the template down to only the substrings that do not have
+    # reduce the template down to only the sub-strings that do not have
     # these tags or IDs
 
     # Example
@@ -1059,12 +1092,15 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             return data_dct
 
         if 'func' not in data_dct[site_id][sub_id][ses_id].keys():
-            # if no scan ID specified, nest it under the "func" key in the
-            # dictionary, so that it will apply to all scans that do not have
-            # their own assigned field map files (nested under the scan ID
-            # key in the dictionary)
+            # would this ever fire? the way we're using this function now
             data_dct[site_id][sub_id][ses_id]['func'] = temp_fmap_dct
+        elif not scan_id:
+            # TODO: re-visit in the future (same reason above)
+            # if no scan ID specified, add it to all scans for that session
+            for scan in data_dct[site_id][sub_id][ses_id]['func'].keys():
+                data_dct[site_id][sub_id][ses_id]['func'][scan].update(temp_fmap_dct)
         elif scan_id not in data_dct[site_id][sub_id][ses_id]['func'].keys():
+            # same- would this ever fire?
             data_dct[site_id][sub_id][ses_id]['func'][scan_id] = temp_fmap_dct
         else:
             data_dct[site_id][sub_id][ses_id]['func'][scan_id].update(temp_fmap_dct)
@@ -1357,18 +1393,6 @@ def run(data_settings_yml):
         # TODO: data configs, i.e. for preprocessing only
         anats_only = False
 
-        # # get some data
-        # num_sites = len(data_dct.keys())
-        # num_subs = num_sess = num_scan = 0
-        # for site in data_dct.keys():
-        #     num_subs += len(data_dct[site])
-        #     for sub in data_dct[site].keys():
-        #         num_sess += len(data_dct[site][sub])
-        #         for session in data_dct[site][sub].keys():
-        #             if 'func' in data_dct[site][sub][session].keys():
-        #                 for scan in data_dct[site][sub][session]['func'].keys():
-        #                     num_scan += 1
-
         data_config_outfile = \
             os.path.join(settings_dct['outputSubjectListLocation'],
                          "data_config_{0}.yml"
@@ -1376,29 +1400,37 @@ def run(data_settings_yml):
 
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
-        included = {'site': [], 'sub': [], 'ses': [], 'scan': []}
+        included = {'site': [], 'sub': []}
+        num_sess = num_scan = 0
 
         for site in sorted(data_dct.keys()):
             for sub in sorted(data_dct[site].keys()):
                 for ses in sorted(data_dct[site][sub].keys()):
                     if not anats_only:
-                        # avoiding including anatomicals if there are no
-                        # functionals associated with it (i.e. if we're using
-                        # scan inclusion/exclusion and only some participants
-                        # have the scans included)
                         if 'func' in data_dct[site][sub][ses]:
-                            # get some numbers
+                            # if there are scans, get some numbers
                             included['site'].append(site)
                             included['sub'].append(sub)
-                            included['ses'].append(ses)
+                            num_sess += 1
                             for scan in data_dct[site][sub][ses]['func'].keys():
-                                included['scan'].append(scan)
+                                num_scan += 1
                         else:
+                            # avoiding including anatomicals if there are no
+                            # functionals associated with it (i.e. if we're
+                            # using scan inclusion/exclusion and only some
+                            # participants have the scans included)
                             continue
+                    else:
+                        # preprocessing for anats only, so count all subs
+                        included['site'].append(site)
+                        included['sub'].append(sub)
+                        num_sess += 1
+
                     data_list.append(data_dct[site][sub][ses])
 
         # calculate numbers
-        # TODO: parse included dct
+        num_sites = len(set(included['site']))
+        num_subs = len(set(included['sub']))
 
         with open(data_config_outfile, "wt") as f:
             # Make sure YAML doesn't dump aliases (so it's more human
