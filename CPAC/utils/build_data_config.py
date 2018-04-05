@@ -309,7 +309,7 @@ def extract_scan_params_csv(scan_params_csv):
     return site_dict
 
 
-def format_incl_excl_dct(incl_list=None, info_type='participants'):
+def format_incl_excl_dct(incl_list, info_type='participants'):
     """Create either an inclusion or exclusion dictionary to determine which
     input files to include or not include in the data configuration file."""
 
@@ -320,7 +320,13 @@ def format_incl_excl_dct(incl_list=None, info_type='participants'):
             with open(incl_list, 'r') as f:
                 incl_dct[info_type] = [x.rstrip("\n").replace(" ", "") for x in f.readlines() if x != '']
         elif ',' in incl_list:
-            incl_dct[info_type] = [x.replace(" ", "") for x in incl_list.split(",")]
+            incl_dct[info_type] = \
+                [x.replace(" ", "") for x in incl_list.split(",")]
+        elif incl_list:
+            # if there's only one item in the box, most common probably
+            if "None" in incl_list or "none" in incl_list:
+                return incl_dct
+            incl_dct[info_type] = incl_list
     elif isinstance(incl_list, list):
         incl_dct[info_type] = incl_list
 
@@ -352,8 +358,8 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                         "sub-{participant}/anat/sub-{participant}_T1w.nii.gz")
 
     if anat_scan:
-        anat_sess = anat_sess.replace("_T1w", "_*_T1w")
-        anat = anat.replace("_T1w", "_*_T1w")
+        anat_sess = anat_sess.replace("_T1w", "_*T1w") #"_*_T1w")
+        anat = anat.replace("_T1w", "_*T1w") #"_*_T1w")
 
     func_sess = os.path.join(bids_base_dir,
                              "sub-{participant}"
@@ -417,9 +423,14 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         import fnmatch
 
         for filepath in file_list:
-
             if fnmatch.fnmatch(filepath, site_dir_glob) and \
                     "derivatives" not in filepath:
+                print filepath
+
+                '''
+                HERE -- why adding site glob to NKI-RS???
+                '''
+
                 # check if there is a directory level encoding site ID, even
                 # though that is not BIDS format
                 site_dir = True
@@ -433,8 +444,8 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
                 part_tsv = filepath
 
             for glob_str in site_json_globs:
-                site_dir = True
                 if fnmatch.fnmatch(filepath, glob_str):
+                    site_dir = True
                     site_jsons.append(filepath)
 
             for glob_str in json_globs:
@@ -663,6 +674,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
     if ses:
         # if there is a session level in the BIDS dataset
         data_dct = get_nonBIDS_data(anat_sess, func_sess, file_list=file_list,
+                                    anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
                                     fmap_phase_template=fmap_phase_sess,
                                     fmap_mag_template=fmap_mag_sess,
@@ -673,6 +685,7 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
     else:
         # no session level
         data_dct = get_nonBIDS_data(anat, func, file_list=file_list,
+                                    anat_scan=anat_scan,
                                     scan_params_dct=scan_params_dct,
                                     fmap_phase_template=fmap_phase,
                                     fmap_mag_template=fmap_mag,
@@ -711,9 +724,6 @@ def find_unique_scan_params(scan_params_dct, site_id, sub_id, ses_id,
                 break
         else:
             scan_id = "All"
-
-    print scan_params_dct.keys()
-    print "{0} {1} {2} {3}".format(site_id, sub_id, ses_id, scan_id)
 
     try:
         scan_params = scan_params_dct[site_id][sub_id][ses_id][scan_id]
@@ -908,7 +918,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if 'participants' in inclusion_dct.keys():
             if sub_id not in inclusion_dct['participants']:
                 return data_dct
-        if data_type == "func":
+        if data_type != "anat":
             if 'scans' in inclusion_dct.keys():
                 if scan_id not in inclusion_dct['scans']:
                     return data_dct
@@ -923,7 +933,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         if 'participants' in exclusion_dct.keys():
             if sub_id in exclusion_dct['participants']:
                 return data_dct
-        if data_type == "func":
+        if data_type != "anat":
             if 'scans' in exclusion_dct.keys():
                 if scan_id in exclusion_dct['scans']:
                     return data_dct
@@ -941,7 +951,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
                         'unique_id': ses_id,
                         'site': site_id,
                         'anat': file_path,
-                        'creds_path': aws_creds_path}
+                        'creds_path': str(aws_creds_path)}
 
         if site_id not in data_dct.keys():
             data_dct[site_id] = {}
@@ -969,8 +979,7 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
             scan_params = find_unique_scan_params(scan_params_dct, site_id,
                                                   sub_id, ses_id, scan_id)
         if scan_params:
-            temp_func_dct[scan_id].update(
-                {'scan_parameters': scan_params})
+            temp_func_dct[scan_id].update({'scan_parameters': str(scan_params)})
 
         if site_id not in data_dct.keys():
             if verbose:
@@ -1137,19 +1146,53 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
     anat_pool = anat_pool + anat_local_pool
     func_pool = func_pool + func_local_pool
 
+    if not anat_pool:
+        err = "\n\n[!] No anatomical input file paths found given the data " \
+              "settings provided.\n\nAnatomical file template being used: " \
+              "{0}\n".format(anat_glob)
+        if anat_scan:
+            err = "{0}Anatomical scan identifier provided: {1}" \
+                  "\n\n".format(err, anat_scan)
+        raise Exception(err)
+
     # pull out the site/participant/etc. IDs from each path and connect them
+    # for the anatomicals
     data_dct = {}
     for anat_path in anat_pool:
         data_dct = update_data_dct(anat_path, anat_template, data_dct, "anat",
                                    anat_scan, sites_dct, None, inclusion_dct,
                                    exclusion_dct, aws_creds_path)
 
+    if not data_dct:
+        # this fires if no anatomicals were found
+        # collect some possible examples of anat files that got missed
+        possible_anats = []
+        for anat_path in anat_pool:
+            if "T1w" in anat_path or "mprage" in anat_path:
+                possible_anats.append(anat_path)
+
+        err = "\n\n[!] No anatomical input files were found given the " \
+              "data settings provided.\n\n"
+        if possible_anats:
+            err = "{0}There are some file paths found in the directories " \
+                  "described in the data settings that may be anatomicals " \
+                  "that were missed. Here are a few examples:\n".format(err)
+            for anat in possible_anats[0:5]:
+                err = "{0}{1}\n".format(err, anat)
+            err = "{0}\nIf you are using the 'anatomical_scan' option in " \
+                  "the data settings, check the setting to make sure " \
+                  "you are properly selecting which anatomical scan to " \
+                  "use for your analysis.\n\n".format(err)
+        raise Exception(err)
+
+    # now gather the functionals
     for func_path in func_pool:
         data_dct = update_data_dct(func_path, func_template, data_dct, "func",
                                    None, sites_dct, scan_params_dct,
                                    inclusion_dct, exclusion_dct,
                                    aws_creds_path)
 
+    # do the same for the fieldmap files, if applicable
     if fmap_phase_template and fmap_mag_template:
         # if we're doing the whole field map distortion correction thing
 
@@ -1310,6 +1353,10 @@ def run(data_settings_yml):
 
     if len(data_dct) > 0:
 
+        # TODO: make this a toggle option later for when we want anat-only
+        # TODO: data configs, i.e. for preprocessing only
+        anats_only = False
+
         # get some data
         num_sites = len(data_dct.keys())
         num_subs = num_sess = num_scan = 0
@@ -1329,10 +1376,22 @@ def run(data_settings_yml):
 
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
+        included = {'site': [], 'sub': [], 'ses': [], 'scan': []}
 
         for site in sorted(data_dct.keys()):
             for sub in sorted(data_dct[site].keys()):
                 for ses in sorted(data_dct[site][sub].keys()):
+                    if not anats_only:
+                        # avoiding including anatomicals if there are no
+                        # functionals associated with it (i.e. if we're using
+                        # scan inclusion/exclusion and only some participants
+                        # have the scans included)
+                        if 'func' in data_dct[site][sub][ses]:
+                            # TODO: put the numbers here instead, using
+                            # TODO: "included"
+                            pass
+                        else:
+                            continue
                     data_list.append(data_dct[site][sub][ses])
 
         with open(data_config_outfile, "wt") as f:
@@ -1363,7 +1422,3 @@ def run(data_settings_yml):
         err = "\n\n[!] No anatomical input files were found given the data " \
               "settings provided.\n\n"
         raise Exception(err)
-
-
-
-

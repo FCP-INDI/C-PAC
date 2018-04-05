@@ -675,9 +675,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     ants_reg_anat_mni.inputs.inputspec.reference_skull = \
                         c.template_skull_for_anat
 
-
                 else:
-
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_brain')
 
