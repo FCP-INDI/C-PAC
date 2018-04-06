@@ -788,20 +788,39 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         return data_dct
 
     if data_type == "anat":
-        # pick the right anatomical scan
+        # pick the right anatomical scan, if "anatomical_scan" has been
+        # provided
         if anat_scan:
-            if anat_scan not in os.path.basename(file_path):
+            file_name = os.path.basename(file_path)
+            if anat_scan not in file_name:
                 return data_dct
             else:
-                # what if it is in the filename, but there are other things
-                # as well?
-                #     for example, anat_scan = 'run-1', and we have:
-                #         sub-*_run-1_T1w.nii.gz
-                #         sub-*_acq-inv1_run-1_T1w.nii.gz
-                # TODO: HERE
-                # TODO: try hard-coding "and not acq-inv1" or something, and
-                # TODO: see how this influences the behavior!
-                pass
+                # if we're dealing with BIDS here
+                if "sub-" in file_name and "T1w." in file_name:
+                    anat_scan_identifier = False
+                    # BIDS tags are delineated with underscores
+                    bids_tags = []
+                    for tag in file_name.split("_"):
+                        if "sub-" not in tag and "ses-" not in tag and \
+                                "T1w" not in tag:
+                            bids_tags.append(tag)
+                        if anat_scan in tag:
+                            # the "anatomical_scan" substring provided was
+                            # found in one of the BIDS tags
+                            anat_scan_identifier = True
+                    if anat_scan_identifier:
+                        if len(bids_tags) > 1:
+                            # if this fires, then there are other tags as well
+                            # in addition to what was defined in the
+                            # "anatomical_scan" field in the data settings,
+                            #     for example, we might be looking for only
+                            #     run-1, but we found acq-inv_run-1 instead
+                            return data_dct
+
+                # if we're dealing with a custom data directory format
+                else:
+                    # TODO: more involved processing here? or not necessary?
+                    pass
 
     # reduce the template down to only the sub-strings that do not have
     # these tags or IDs
