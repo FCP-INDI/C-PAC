@@ -1315,10 +1315,15 @@ def run(data_settings_yml):
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
 
-    if "None" in settings_dct["awsCredentialsFile"]:
+    if not settings_dct["awsCredentialsFile"]:
+        settings_dct["awsCredentialsFile"] = None
+    elif "None" in settings_dct["awsCredentialsFile"] or \
+            "none" in settings_dct["awsCredentialsFile"]:
         settings_dct["awsCredentialsFile"] = None
 
-    if "None" in settings_dct["anatomical_scan"] or \
+    if not settings_dct["anatomical_scan"]:
+        settings_dct["anatomical_scan"] = None
+    elif "None" in settings_dct["anatomical_scan"] or \
             "none" in settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
 

@@ -797,7 +797,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     'anat_symmetric_mni_fnirt_register_%d' % num_strat)
 
                 try:
-
                     node, out_file = strat.get_node_from_resource_pool(
                         'anatomical_brain')
                     workflow.connect(node, out_file,
@@ -858,7 +857,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 ants_reg_anat_symm_mni = \
                     create_wf_calculate_ants_warp(
-                        'anat_symmetric_mni_ants_register_%d' % num_strat, \
+                        'anat_symmetric_mni_ants_register_%d' % num_strat,
                         c.regWithSkull[0],
                         num_threads=num_ants_cores)
 
@@ -908,9 +907,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         ants_reg_anat_symm_mni.inputs.inputspec.reference_skull = \
                             c.template_symmetric_skull
 
-
                     else:
-
                         # get the skullstripped anatomical from resource pool
                         node, out_file = strat.get_node_from_resource_pool(
                             'anatomical_brain')

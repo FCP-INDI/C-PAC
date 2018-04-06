@@ -39,7 +39,6 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
     inputnode.iterables = [('scan', scan_names)]
 
     for scan in scan_names:
-
         scan_resources = rest_dict[scan]
 
         # have this here for now because of the big change in the data
@@ -49,7 +48,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
         except AttributeError:
             err = "\n[!] The data configuration file you provided is " \
                   "missing a level under the 'func:' key. CPAC versions " \
-                  "1.0.4 and later use data configurations with an " \
+                  "1.2 and later use data configurations with an " \
                   "additional level of nesting.\n\nExample\nfunc:\n  " \
                   "rest01:\n    scan: /path/to/rest01_func.nii.gz\n" \
                   "    scan parameters: /path/to/scan_params.json\n\n" \
