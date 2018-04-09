@@ -432,6 +432,123 @@ def preset_unpaired_two_group(group_list, pheno_df, groups, pheno_sub_label,
     return design_df, contrasts_df, group_config
 
 
+def preset_paired_two_group(group_list, conditions, condition_type="session",
+                            output_dir=None,
+                            model_name="two_sample_unpaired_T-test"):
+    """Set up the design matrix and contrasts matrix for running an paired
+    two-group difference (two-sample paired T-test)."""
+
+    # TODO: NEXT!!!!!!!!!!!!!!!!!
+    # if the conditions are delineated by sessions, then the matrix will
+    # have to have both copies of the sub_ses_id in the design matrix
+    #     conversely, if they are delineated by scans, then we have to have a
+    #     design matrix with only one copy of the subs, then let the internal
+    #     (infernal?) machinery do the doubling
+
+    import os
+
+    if not output_dir:
+        output_dir = os.getcwd()
+
+    # TODO: handle conditions (sessons? scans?)
+    # TODO: make sure the 1, -1 vector doesn't get clobbered by Patsy
+    '''
+    we need, to give in a list of sub_ses. and a list of the two sessions.
+        and this needs to spit out a design df that has the sub_ses doubled
+        in appropriate order, with the 1 and -1. and the other columns (avoid
+        letting the cpac thing process it if you can avoid it).
+
+    but what if it's the scans instead? now it gets ugly.
+        here's a list of just sub_ses (with one ses). and a list of the two
+        scans, right? now what?
+            you have to send it in and let cpac handle it, unfortunately.
+                TODO: would it be worth it to quickly enable a custom pheno
+                      input? I don't know if cpac is going to do the subs
+                      columns properly, especially into the custom contrasts..
+    '''
+
+    if len(conditions) != 2:
+        # TODO: msg
+        raise Exception
+
+    design_df = create_design_matrix_df(group_list)
+
+    if condition_type == "session":
+        # make the "condition" EV (the 1's and -1's delineating the two
+        # conditions)
+        condition_ev = []
+        for sub_ses_id in design_df["participant_id"]:
+            if sub_ses_id.split("_")[-1] == conditions[0]:
+                condition_ev.append(1)
+            elif sub_ses_id.split("_")[-1] == conditions[1]:
+                condition_ev.append(-1)
+
+        # let's check to make sure it came out right
+        # first half
+        for val in condition_ev[0:(len(condition_ev)/2)-1]:
+            if val != 1:
+                # TODO: msg
+                raise Exception
+        # second half
+        for val in condition_ev[(len(condition_ev)/2):]:
+            if val != -1:
+                # TODO: msg
+                raise Exception
+
+        design_df["condition"] = condition_ev
+
+        # start the contrasts
+        contrast_one = {"contrasts": "{0} - {1}".format(groups[0], groups[1])}
+        contrast_two = {"contrasts": "{0} - {1}".format(groups[1], groups[0])}
+
+        for col in design_df.columns:
+            if col not in id_cols:
+                if col == groups[0]:
+                    contrast_one.update({col: 1})
+                    contrast_two.update({col: -1})
+                elif col == groups[1]:
+                    contrast_one.update({col: -1})
+                    contrast_two.update({col: 1})
+                else:
+                    contrast_one.update({col: 0})
+                    contrast_two.update({col: 0})
+
+        contrasts = [contrast_one, contrast_two]
+
+        contrasts_df = create_contrasts_template_df(design_df, conditions)
+
+    elif condition_type == "scan":
+
+    else:
+        # TODO: msg
+        raise Exception
+
+    # create design and contrasts matrix file paths
+    design_mat_path = os.path.join(output_dir, model_name,
+                                   "design_matrix_{0}.csv".format(model_name))
+
+    contrasts_mat_path = os.path.join(output_dir, model_name,
+                                      "contrasts_matrix_{0}.csv"
+                                      "".format(model_name))
+
+    # start group config yaml dictionary
+    design_formula = "{0} + {1}".format(groups[0], groups[1])
+
+    group_config = {"pheno_file": design_mat_path,
+                    "ev_selections": {"demean": [],
+                                      "categorical": groups},
+                    "design_formula": design_formula,
+                    "group_sep": "Off",
+                    "grouping_var": None,
+                    "sessions_list": [],
+                    "series_list": [],
+                    "custom_contrasts": contrasts_mat_path,
+                    "model_name": model_name,
+                    "output_dir": os.path.join(output_dir, model_name)}
+
+    return design_df, contrasts_df, group_config
+
+
 def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         preset=None, pheno_file=None, pheno_sub_label=None, output_dir=None,
         model_name=None, covariate=None):
@@ -543,6 +660,21 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
                                       model_name=model_name)
 
         group_config.update(group_config_update)
+
+    elif preset == "paired_two":
+        # run a two-sample paired T-test
+
+        # we need it as repeated measures- either session or scan
+        # and the list of subs. that's it.
+
+        design_df, contrasts_df, group_config_update = \
+            preset_paired_two_group(group_list,
+                                    conditions=covariate,
+                                    output_dir=output_dir,
+                                    model_name=model_name)
+
+        pass
+
 
     else:
         # TODO: not a real preset!
