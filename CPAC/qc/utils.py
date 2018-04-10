@@ -373,6 +373,7 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
+
 def add_head(f_html_, f_html_0, f_html_1):
 
     """
@@ -414,11 +415,12 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
-    print >>f_html_0, "<body>"
+    print >>f_html_0, "<body bgcolor = "#FFFF00">"
     print >>f_html_0, "<div>"
     print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
     print >>f_html_0, "<p class=\"logo\"><a href=\"#\">"
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cpac_logo.jpg"))
+    print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cmi_logo.jpg"))
     print >>f_html_0, "</a></p>"
     print >>f_html_0, "<h3><a href=\"#\">Table Of Contents</a></h3>"
     print >>f_html_0, "<ul>"
@@ -455,28 +457,7 @@ def add_tail(f_html_, f_html_0, f_html_1):
     None
 
     """
-#     print >>f_html_0, "</ul>"
-#     print >>f_html_0, "<br>"
-#     print >>f_html_0, "<br>"
-#     print >>f_html_0, "<form class=\"navbar-form pull-left\" method=\"post\" action=\"\"> \
-# <br> \
-# Recommendation for QC <br>\
-# <input type=\"radio\" name=\"group1\" value=\"1\"> 1<br> \
-# <input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
-# <input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
-# <input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
-# <input type=\"radio\" name=\"group1\" value=\"5\" checked>5<br> \
-#  <br> Notes\
-# <br> \
-# <textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
-# Enter QC Notes here... \
-# </textarea><br> \
-# <br> \
-# <input type=\"submit\" value=\"Submit\" /> \
-# <br> \
-# <br> \
-# <br> \
-# </form>"
+
     print >>f_html_0, "</ul>"
     print >>f_html_0, "</div>"
     print >>f_html_0, "</div>"
@@ -520,8 +501,6 @@ def feed_line_nav(id_,
     None
 
     """
-
-    ### add general user readable link names for QC navigation bar
     image_readable = image_name
     if image_name == 'skullstrip_vis':
         image_readable = 'Visual Result of Skull Strip'
@@ -570,12 +549,10 @@ def feed_line_nav(id_,
     if image_name == 'falff_smooth':
         image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
     if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
     print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name, \
-        anchor, image_readable)   ###
-
-
+                                                             anchor, image_readable)
 
 def feed_line_body(image_name, anchor, image, f_html_1):
     """
@@ -603,8 +580,6 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     None
 
     """
-
-    ### add general user readable link names for QC body
     image_readable = image_name
     if image_name == 'skullstrip_vis':
         image_readable = 'Visual Result of Skull Strip'
@@ -653,14 +628,14 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     if image_name == 'falff_smooth':
         image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
     if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
 
     print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)   ###
 
     ###data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
     ###img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
-    
+
     img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)   ###
     print >>f_html_1, img_tag
 
@@ -882,8 +857,6 @@ def feed_lines_html(id_,
             
 
             if idx == 0:
-
-                # add general user readable link names for QC navigation bar
                 if image_name_a_nav == 'skullstrip_vis':
                     image_readable = 'Visual Result of Skull Strip'
                 if image_name_a_nav == 'csf_gm_wm':
@@ -929,11 +902,9 @@ def feed_lines_html(id_,
                 if image_name_a_nav == 'falff_smooth':
                     image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
                 if image_name_a_nav == 'falff_smooth_hist':
-                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'      
-
+                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
                 feed_line_nav(id_, \
                             image_name_a_nav, \
-                            #image_readable, \
                             id_a, \
                             f_html_0, \
                             f_html_1)
@@ -1121,7 +1092,7 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
         #actually make the html page for the file_
         make_page(os.path.join(qc_path, file_), qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-
+        
 
 
 def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
