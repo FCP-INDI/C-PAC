@@ -5646,9 +5646,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
                 # Write QC outputs to log directory
                 if 'qc' in key.lower():
-                    ds.inputs.base_directory = c.logDirectory
-                else:
                     ds.inputs.base_directory = c.outputDirectory
+                else:
+                    ds.inputs.base_directory = c.logDirectory
                     # For each pipeline ID, generate the QC pages
                     #  for pip_id in pip_ids:
                         # Define pipeline-level logging for QC
@@ -5850,7 +5850,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
         for pip_id in pip_ids:
             try:
-                pipeline_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
                 generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
             #create_all_qc.run(pipeline_base)
