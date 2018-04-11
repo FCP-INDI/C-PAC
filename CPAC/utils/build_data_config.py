@@ -1234,10 +1234,16 @@ def get_nonBIDS_data(anat_template, func_template, file_list=None,
                   "that were missed. Here are a few examples:\n".format(err)
             for anat in possible_anats[0:5]:
                 err = "{0}{1}\n".format(err, anat)
-            err = "{0}\nIf you are using the 'anatomical_scan' option in " \
-                  "the data settings, check the setting to make sure " \
-                  "you are properly selecting which anatomical scan to " \
-                  "use for your analysis.\n\n".format(err)
+            err = "{0}\nCPAC only needs one anatomical scan defined for " \
+                  "each participant-session. If there are multiple " \
+                  "anatomical scans per participant-session, you can use " \
+                  "the 'Which Anatomical Scan?' (anatomical_scan) " \
+                  "parameter to choose which anatomical to " \
+                  "select.\n".format(err)
+            err = "{0}\nIf you are already using the 'anatomical_scan' " \
+                  "option in the data settings, check the setting to make " \
+                  "sure you are properly selecting which anatomical scan " \
+                  "to use for your analysis.\n\n".format(err)
         raise Exception(err)
 
     # now gather the functionals

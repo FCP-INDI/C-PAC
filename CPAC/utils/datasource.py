@@ -85,7 +85,7 @@ def create_func_datasource(rest_dict, wf_name='func_datasource'):
 
                     s3_scan_params.inputs.file_path = \
                         scan_resources["scan_parameters"]
-                    s3_scan_params.inputs.dl_dir = dl_dir
+                    #s3_scan_params.inputs.dl_dir = dl_dir
 
                     wf.connect(inputnode, 'creds_path',
                                s3_scan_params, 'creds_path')
