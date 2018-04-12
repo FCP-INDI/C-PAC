@@ -55,12 +55,19 @@ def main():
     if not args.output_dir:
         output_dir = os.getcwd()
     else:
-        output_dir = args.output_dir
+        output_dir = os.path.abspath(args.output_dir)
+
+    cpac_outputs = os.path.abspath(args.cpac_outputs)
 
     if not args.include:
-        include = [x for x in os.listdir(args.cpac_outputs) if os.path.isdir(x)]
+        include = [x for x in os.listdir(cpac_outputs) if
+                   os.path.isdir(os.path.join(cpac_outputs, x))]
     else:
         include = args.include
+
+    if not include:
+        # TODO: msg
+        raise Exception("no sub_ses IDs found!")
 
     derivatives_list = args.derivatives.split(" ")
 

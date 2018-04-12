@@ -304,7 +304,7 @@ class ModelConfig(wx.Frame):
                             new_grouping_var += "{0},".format(cov)
                         new_grouping_var = new_grouping_var.rstrip(",")
 
-                    ctrl.set_value(new_grouping_var)
+                        ctrl.set_value(new_grouping_var)
 
                 if ("list" in name) and (name != "participant_list"):
 
@@ -956,9 +956,9 @@ class ModelConfig(wx.Frame):
             raise Exception(err)
 
         # enforce the sub ID label to "Participant"
-        pheno_df.rename(columns={self.gpa_settings["participant_id_label"]:"Participant"}, \
+        pheno_df.rename(columns={self.gpa_settings["participant_id_label"]:"participant_id"}, \
                         inplace=True)   
-        pheno_df["Participant"] = pheno_df["Participant"].astype(str)
+        pheno_df["participant_id"] = pheno_df["participant_id"].astype(str)
 
         # let's create dummy columns for MeanFD, Measure_Mean, and
         # Custom_ROI_Mask (if included in the Design Matrix Formula) just so we
@@ -995,8 +995,11 @@ class ModelConfig(wx.Frame):
         if len(list(self.gpa_settings["sessions_list"])) > 0:
             from CPAC.pipeline.cpac_group_runner import pheno_sessions_to_repeated_measures
             pheno_df = pheno_sessions_to_repeated_measures(pheno_df, list(self.gpa_settings["sessions_list"]))
-            self.gpa_settings["ev_selections"]["categorical"].append("Session")
-            formula = formula + " + Session"
+            if "Session" in pheno_df.columns:
+                # if the model builder is automatically creating the Session
+                # and participant columns
+                self.gpa_settings["ev_selections"]["categorical"].append("Session")
+                formula = formula + " + Session"
             repeated_sessions = True
 
         if len(list(self.gpa_settings["series_list"])) > 0:

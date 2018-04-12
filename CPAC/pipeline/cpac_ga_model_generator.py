@@ -391,7 +391,8 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
 
 def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
-
+    print formula
+    print categorical_list
     closer = ")"
     if encoding == "Treatment":
         closer = ")"
@@ -720,19 +721,24 @@ def prep_group_analysis_workflow(model_df, pipeline_config_path, model_name,
 
     # prep design for repeated measures, if applicable
     if len(group_config_obj.sessions_list) > 0:
-        design_formula = design_formula + " + Session"
-        if "Session" not in cat_list:
-            cat_list.append("Session")
+        if "Session" in model_df.columns:
+            # if these columns were added by the model builder automatically
+            design_formula = design_formula + " + Session"
+            if "Session" not in cat_list:
+                cat_list.append("Session")
     if len(group_config_obj.series_list) > 0:
         design_formula = design_formula + " + Series"
         if "Series" not in cat_list:
             cat_list.append("Series")
-    for col in list(model_df.columns):
-        # should only grab the repeated measures-designed participant_{ID}
-        # columns, not the "participant_id" column!
-        if "participant_" in col and "_id" not in col:
-            design_formula = design_formula + " + %s" % col
-            cat_list.append(col)
+
+    if "Session" in model_df.columns:
+        # if these columns were added by the model builder automatically
+        for col in list(model_df.columns):
+            # should only grab the repeated measures-designed participant_{ID}
+            # columns, not the "participant_id" column!
+            if "participant_" in col and "_id" not in col:
+                design_formula = design_formula + " + %s" % col
+                cat_list.append(col)
 
     # parse out the EVs in the design formula at this point in time
     #   this is essentially a list of the EVs that are to be included

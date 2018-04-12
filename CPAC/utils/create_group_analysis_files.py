@@ -45,6 +45,10 @@ def write_group_list_text_file(group_list, out_file=None):
         for part_id in group_list:
             f.write("{0}\n".format(part_id))
 
+    if os.path.exists(out_file):
+        print "Group-level analysis participant list written:" \
+              "\n{0}\n".format(out_file)
+
     return out_file
 
 
@@ -62,6 +66,9 @@ def write_dataframe_to_csv(matrix_df, out_file=None):
             os.makedirs(dir_path)
 
     matrix_df.to_csv(out_file, index=False)
+
+    if os.path.exists(out_file):
+        print "CSV file written:\n{0}\n".format(out_file)
 
 
 def write_config_dct_to_yaml(config_dct, out_file=None):
@@ -98,6 +105,10 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
             val = config_dct[key]
             f.write("{0}: {1}\n\n".format(key, val))
 
+    if os.path.exists(out_file):
+        print "Group-level analysis configuration YAML file written:\n" \
+              "{0}\n".format(out_file)
+
 
 def create_design_matrix_df(group_list, pheno_df=None,
                             ev_selections=None, pheno_sub_label=None,
@@ -132,8 +143,11 @@ def create_design_matrix_df(group_list, pheno_df=None,
     map_df = map_df.rename(
         columns={0: 'participant', 1: 'session', 2: 'participant_id'})
 
-    # sort by sub_id and then ses_id
-    map_df = map_df.sort_values(by=['participant_id'])
+    # sort by ses_id, then sub_id
+    #     need everything grouped by session first, in case of the paired
+    #     analyses where the first condition is all on top and the second is
+    #     all on the bottom
+    map_df = map_df.sort_values(by=['session', 'participant'])
 
     # drop unique_id column (does it ever need to really be included?)
     # was just keeping it in up until here for mental book-keeping if anything
@@ -473,55 +487,108 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
 
     design_df = create_design_matrix_df(group_list)
 
+    # make the "condition" EV (the 1's and -1's delineating the two
+    # conditions, with the "conditions" being the two sessions or two scans)
+    condition_ev = []
+
     if condition_type == "session":
-        # make the "condition" EV (the 1's and -1's delineating the two
-        # conditions)
-        condition_ev = []
+        # note: the participant_id column in design_df should be in order, so
+        #       the condition_ev should come out in order:
+        #           1,1,1,1,-1,-1,-1,-1  (this is checked further down)
         for sub_ses_id in design_df["participant_id"]:
             if sub_ses_id.split("_")[-1] == conditions[0]:
                 condition_ev.append(1)
             elif sub_ses_id.split("_")[-1] == conditions[1]:
                 condition_ev.append(-1)
 
-        # let's check to make sure it came out right
-        # first half
-        for val in condition_ev[0:(len(condition_ev)/2)-1]:
-            if val != 1:
-                # TODO: msg
-                raise Exception
-        # second half
-        for val in condition_ev[(len(condition_ev)/2):]:
-            if val != -1:
-                # TODO: msg
-                raise Exception
-
-        design_df["condition"] = condition_ev
-
-        # start the contrasts
-        contrast_one = {"contrasts": "{0} - {1}".format(groups[0], groups[1])}
-        contrast_two = {"contrasts": "{0} - {1}".format(groups[1], groups[0])}
-
-        for col in design_df.columns:
-            if col not in id_cols:
-                if col == groups[0]:
-                    contrast_one.update({col: 1})
-                    contrast_two.update({col: -1})
-                elif col == groups[1]:
-                    contrast_one.update({col: -1})
-                    contrast_two.update({col: 1})
-                else:
-                    contrast_one.update({col: 0})
-                    contrast_two.update({col: 0})
-
-        contrasts = [contrast_one, contrast_two]
-
-        contrasts_df = create_contrasts_template_df(design_df, conditions)
+        group_config = {"sessions_list": conditions, "series_list": []}
 
     elif condition_type == "scan":
+        # TODO: re-visit later, when session/scan difference in how to run
+        # TODO: group-level analysis repeated measures is streamlined and
+        # TODO: simplified
+        # the information needed in this part is not encoded in the group
+        # sublist! user inputs the two scan names, and we have a list of
+        # sub_ses (which needs to be doubled), with each scan paired to each
+        # half of this list (will need to ensure these scans exist for each
+        # selected derivative in the output directory later on)
+
+        for sub_ses_id in design_df["participant_id"]:
+            condition_ev.append(1)
+        for sub_ses_id in design_df["participant_id"]:
+            condition_ev.append(-1)
+
+        # NOTE: there is only one iteration of the sub_ses list in
+        #       design_df["participant_id"] at this point! so use append to
+        #       double that column:
+        design_df = design_df.append(design_df)
+
+        group_config = {"sessions_list": [], "series_list": conditions}
 
     else:
         # TODO: msg
         raise Exception
+
+    # let's check to make sure it came out right
+    #   first half
+    for val in condition_ev[0:(len(condition_ev) / 2) - 1]:
+        if val != 1:
+            # TODO: msg
+            raise Exception
+    #   second half
+    for val in condition_ev[(len(condition_ev) / 2):]:
+        if val != -1:
+            # TODO: msg
+            raise Exception
+
+    design_df[condition_type] = condition_ev
+
+    # initalize the contrast dct's
+    contrast_one = {}
+    contrast_two = {}
+
+    design_formula = "{0}".format(condition_type)
+
+    # create the participant identity columns
+    for sub_ses_id in design_df["participant_id"]:
+        new_part_col = []
+        sub_id = sub_ses_id.split("_")[0]
+        new_part_label = "participant_{0}".format(sub_id)
+        for moving_sub_ses_id in design_df["participant_id"]:
+            moving_sub_id = moving_sub_ses_id.split("_")[0]
+            if moving_sub_id == sub_id:
+                new_part_col.append(1)
+            else:
+                new_part_col.append(0)
+        design_df[new_part_label] = new_part_col
+        contrast_one.update({new_part_label: 0})
+        contrast_two.update({new_part_label: 0})
+        if new_part_label not in design_formula:
+            design_formula = "{0} + {1}".format(design_formula,
+                                                new_part_label)
+
+    # finish the contrasts
+    #   should be something like
+    #                    ses,sub,sub,sub, etc.
+    #     ses-1 - ses-2:   1,  0,  0,  0, 0...
+    #     ses-2 - ses-1:  -1,  0,  0,  0, etc.
+    contrast_one.update({
+        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+                                                conditions[0],
+                                                condition_type,
+                                                conditions[1])})
+    contrast_two.update({
+        "contrasts": "{0}-{1} - {2}-{3}".format(condition_type,
+                                                conditions[1],
+                                                condition_type,
+                                                conditions[0])})
+
+    contrast_one.update({condition_type: 1})
+    contrast_two.update({condition_type: -1})
+
+    contrasts = [contrast_one, contrast_two]
+
+    contrasts_df = create_contrasts_template_df(design_df, contrasts)
 
     # create design and contrasts matrix file paths
     design_mat_path = os.path.join(output_dir, model_name,
@@ -532,26 +599,22 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
                                       "".format(model_name))
 
     # start group config yaml dictionary
-    design_formula = "{0} + {1}".format(groups[0], groups[1])
-
-    group_config = {"pheno_file": design_mat_path,
-                    "ev_selections": {"demean": [],
-                                      "categorical": groups},
-                    "design_formula": design_formula,
-                    "group_sep": "Off",
-                    "grouping_var": None,
-                    "sessions_list": [],
-                    "series_list": [],
-                    "custom_contrasts": contrasts_mat_path,
-                    "model_name": model_name,
-                    "output_dir": os.path.join(output_dir, model_name)}
+    group_config.update({"pheno_file": design_mat_path,
+                         "ev_selections": {"demean": [],
+                                           "categorical": []},
+                         "design_formula": design_formula,
+                         "group_sep": "Off",
+                         "grouping_var": None,
+                         "custom_contrasts": contrasts_mat_path,
+                         "model_name": model_name,
+                         "output_dir": os.path.join(output_dir, model_name)})
 
     return design_df, contrasts_df, group_config
 
 
 def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         preset=None, pheno_file=None, pheno_sub_label=None, output_dir=None,
-        model_name=None, covariate=None):
+        model_name=None, covariate=None, run=False):
 
     # TODO: set this up to run regular group analysis with no changes to its
     # TODO: original flow- use the generated pheno as the pheno, use the
@@ -582,11 +645,9 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
 
         # write out a group analysis sublist text file so that it can be
         # linked in the group analysis config yaml
-        out_list = os.path.join(output_dir, model_name,
-                                "gpa_participant_list_"
-                                "{0}.txt".format(model_name))
-        group_list_text_file = write_group_list_text_file(group_list,
-                                                          out_list)
+        group_list_text_file = os.path.join(output_dir, model_name,
+                                            "gpa_participant_list_"
+                                            "{0}.txt".format(model_name))
     else:
         group_list = read_group_list_text_file(group_list_text_file)
 
@@ -665,7 +726,19 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         # run a two-sample paired T-test
 
         # we need it as repeated measures- either session or scan
-        # and the list of subs. that's it.
+        # and the list of subs
+        # also: the two session or scan names (in a list together), and
+        # whether they are sessions or scans
+
+        if not covariate:
+            # TODO: message
+            raise Exception("the two conditions were not provided")
+
+        # we're assuming covariate (which in this case, is the two sessions,
+        # or two scans) will be coming in as a string of either one covariate
+        # name, or a string with two covariates separated by a comma
+        #     either way, it needs to be in list form in this case, not string
+        covariate = covariate.split(",")
 
         design_df, contrasts_df, group_config_update = \
             preset_paired_two_group(group_list,
@@ -673,12 +746,15 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
                                     output_dir=output_dir,
                                     model_name=model_name)
 
-        pass
-
+        group_config.update(group_config_update)
 
     else:
         # TODO: not a real preset!
         raise Exception("not one of the valid presets")
+
+    # write participant list text file
+    group_list_text_file = write_group_list_text_file(design_df["participant_id"],
+                                                      group_list_text_file)
 
     # write design matrix CSV
     write_dataframe_to_csv(design_df, group_config["pheno_file"])
@@ -690,3 +766,8 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
     out_config = os.path.join(output_dir, model_name,
                               "gpa_fsl_config_{0}.yml".format(model_name))
     write_config_dct_to_yaml(group_config, out_config)
+
+    if run:
+        # TODO: we need to separate the individual-level pipeline config from
+        # TODO: the group-level one, it's too restrictive
+        pass
