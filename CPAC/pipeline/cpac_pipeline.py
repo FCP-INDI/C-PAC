@@ -1097,6 +1097,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             funcFlow.inputs.inputnode.subject = subject_id
             funcFlow.inputs.inputnode.creds_path = input_creds_path
             funcFlow.inputs.inputnode.dl_dir = c.workingDirectory
+            funcFlow.get_node('inputnode').iterables = \
+                ("scan", func_paths_dict.keys())
         except Exception as xxx:
             logger.info("Error create_func_datasource failed. "
                         "(%s:%d)" % dbg_file_lineno())
