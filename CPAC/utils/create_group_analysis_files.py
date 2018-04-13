@@ -614,7 +614,7 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
 
 def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         preset=None, pheno_file=None, pheno_sub_label=None, output_dir=None,
-        model_name=None, covariate=None, run=False):
+        model_name=None, covariate=None, condition_type=None, run=False):
 
     # TODO: set this up to run regular group analysis with no changes to its
     # TODO: original flow- use the generated pheno as the pheno, use the
@@ -734,6 +734,11 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
             # TODO: message
             raise Exception("the two conditions were not provided")
 
+        if not condition_type:
+            # TODO: message
+            raise Exception("you didn't specify whether the two groups are "
+                            "sessions or series/scans")
+
         # we're assuming covariate (which in this case, is the two sessions,
         # or two scans) will be coming in as a string of either one covariate
         # name, or a string with two covariates separated by a comma
@@ -743,6 +748,7 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         design_df, contrasts_df, group_config_update = \
             preset_paired_two_group(group_list,
                                     conditions=covariate,
+                                    condition_type=condition_type,
                                     output_dir=output_dir,
                                     model_name=model_name)
 
