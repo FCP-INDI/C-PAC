@@ -49,6 +49,9 @@ def main():
     parser.add_argument("--covariate", type=str, default=None,
                         help="the additional covariate for single-group "
                              "average")
+    parser.add_argument("--condition_type", type=str, default=None,
+                        help="if running two-sample T-tests, if the two "
+                             "groups are 'session' or 'scan'")
 
     args = parser.parse_args()
 
@@ -75,7 +78,7 @@ def main():
                                     args.p_thresh, args.analysis_preset,
                                     args.pheno_file, args.pheno_sub_label,
                                     output_dir, args.model_name,
-                                    args.covariate)
+                                    args.covariate, args.condition_type)
 
 
 if __name__ == "__main__":

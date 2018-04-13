@@ -437,8 +437,8 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     return pheno_df
 
 
-def pheno_series_to_repeated_measures(pheno_df, series_list, \
-    repeated_sessions=False):
+def pheno_series_to_repeated_measures(pheno_df, series_list,
+                                      repeated_sessions=False):
 
     # take in the selected series/scans, and create all of the permutations
     # of unique participant IDs (participant_site_session) and series/scans
@@ -448,7 +448,23 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
     #   enter the regular one
 
     import pandas as pd
-   
+
+    # first, check to see if this design matrix setup has already been done
+    # in the pheno CSV file
+    num_partic_cols = 0
+    for col_names in pheno_df.columns:
+        if "participant" in col_names:
+            num_partic_cols += 1
+    if num_partic_cols > 1 and "scan" in pheno_df.columns:
+        for part_ses_id in pheno_df["participant_id"]:
+            if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
+                continue
+            break
+        else:
+            # if it's already set up properly, then just send the pheno_df
+            # back and bypass all the machinery below
+            return pheno_df
+
     new_rows = []
     for series in series_list:
         sub_pheno_df = pheno_df.copy()
@@ -456,8 +472,7 @@ def pheno_series_to_repeated_measures(pheno_df, series_list, \
         new_rows.append(sub_pheno_df)
     pheno_df = pd.concat(new_rows)
 
-    if repeated_sessions == False:
-
+    if not repeated_sessions:
         # participant IDs new columns
         participant_id_cols = {}
         i = 0
@@ -533,14 +548,14 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                    'falff_to_standard_zstd',
                    'falff_to_standard_zstd_smooth',
                    'reho_to_standard_zstd',
-                   'reho_to_standard_smooth_zstd',
+                   'reho_to_standard_zstd_smooth',
                    'sca_roi_files_to_standard_fisher_zstd',
-                   'sca_roi_files_to_standard_smooth_fisher_zstd',
+                   'sca_roi_files_to_standard_fisher_zstd_smooth',
                    'sca_tempreg_maps_zstat_files',
                    'sca_tempreg_maps_zstat_files_smooth',
                    'vmhc_fisher_zstd_zstat_map',
                    'centrality_outputs_zstd',
-                   'centrality_outputs_smoothed_zstd',
+                   'centrality_outputs_zstd_smooth',
                    'dr_tempreg_maps_zstat_files_to_standard',
                    'dr_tempreg_maps_zstat_files_to_standard_smooth']
 
@@ -700,20 +715,23 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
             if repeated_sessions or repeated_series:
                 repeated_measures = True
 
-            if repeated_measures == True:
-
+            if repeated_measures:
                 if repeated_sessions:
-                    new_pheno_df = pheno_sessions_to_repeated_measures( \
-                                       new_pheno_df,
-                                       group_model.sessions_list)
+                    # IF USING FSL PRESETS: new_pheno_df will get passed
+                    #                       through unchanged
+                    new_pheno_df = \
+                        pheno_sessions_to_repeated_measures(new_pheno_df,
+                                                            group_model.sessions_list)
 
                 # create new rows for all of the series, if applicable
                 #   ex. if 10 subjects and two sessions, 10 rows -> 20 rows
                 if repeated_series:
-                    new_pheno_df = pheno_series_to_repeated_measures( \
-                                       new_pheno_df,
-                                       group_model.series_list,
-                                       repeated_sessions)
+                    # IF USING FSL PRESETS: new_pheno_df will get passed
+                    #                       through unchanged
+                    new_pheno_df = \
+                        pheno_series_to_repeated_measures(new_pheno_df,
+                                                          group_model.series_list,
+                                                          repeated_sessions)
 
                 # drop the pheno rows - if there are participants missing in
                 # the output files (ex. if ReHo did not complete for 2 of the
@@ -732,10 +750,46 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                 join_columns = ["participant_id"]
 
-                # if Series is one of the categorically-encoded covariates,
-                # make sure we only are including the series the user has
-                # selected to include in the repeated measures analysis
-                if "Series" in new_pheno_df:
+                if "scan" in new_pheno_df:
+                    # TODO: maybe come up with something more unique than
+                    # TODO: "session" or "scan" for covariate names to signal
+                    # TODO: when presets are being used?
+                    # if we're using one of the FSL presets!
+                    # IMPT: we need to match the rows with the actual scans
+
+                    # ALSO IMPT: we're going to rely on the series_list from
+                    #            the group model config to match, so always
+                    #            make sure the order remains the same
+                    #            example: the 1,1,1,-1,-1,-1 condition vector
+                    #                     in the preset should be the first
+                    #                     scan in the list for 1,1,1 and the
+                    #                     second for -1,-1,-1
+                    scan_label_col = []
+                    for val in new_pheno_df["scan"]:
+                        if len(group_model.series_list) == 2:
+                            if val == 1:
+                                scan_label_col.append(
+                                    group_model.series_list[0])
+                            elif val == -1:
+                                scan_label_col.append(
+                                    group_model.series_list[1])
+                    new_pheno_df["Series"] = scan_label_col
+
+                    # now make sure the 1,1,1,-1,-1,-1,...etc. matches
+                    # properly with the actual scans by merging
+                    join_columns.append("Series")
+                    new_pheno_df = pd.merge(new_pheno_df, output_df,
+                                            how="inner", on=join_columns)
+                    run_label = "repeated_measures_multiple_series"
+
+                    analysis_dict[(model_name, group_config_file, resource_id, strat_info, run_label)] = \
+                        new_pheno_df
+
+                elif "Series" in new_pheno_df:
+                    # if Series is one of the categorically-encoded covariates
+                    # make sure we only are including the series the user has
+                    # selected to include in the repeated measures analysis
+
                     # check in case the pheno has series IDs that doesn't
                     # exist in the output directory, first
                     new_pheno_df = \

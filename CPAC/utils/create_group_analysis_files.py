@@ -32,6 +32,14 @@ def write_group_list_text_file(group_list, out_file=None):
 
     import os
 
+    # prevent duplicates - depending on how the design matrix is set up, we
+    # might have multiples of the sub_ses_ID's, like if we're doing repeated
+    # measures with series/scans
+    new_group_list = []
+    for sub_ses_id in group_list:
+        if sub_ses_id not in new_group_list:
+            new_group_list.append(sub_ses_id)
+
     if not out_file:
         out_file = os.path.join(os.getcwd(), "group_analysis_participant_"
                                              "list.txt")
@@ -42,7 +50,7 @@ def write_group_list_text_file(group_list, out_file=None):
             os.makedirs(dir_path)
 
     with open(out_file, "wt") as f:
-        for part_id in group_list:
+        for part_id in new_group_list:
             f.write("{0}\n".format(part_id))
 
     if os.path.exists(out_file):
@@ -759,8 +767,8 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
         raise Exception("not one of the valid presets")
 
     # write participant list text file
-    group_list_text_file = write_group_list_text_file(design_df["participant_id"],
-                                                      group_list_text_file)
+    write_group_list_text_file(design_df["participant_id"],
+                               group_list_text_file)
 
     # write design matrix CSV
     write_dataframe_to_csv(design_df, group_config["pheno_file"])
