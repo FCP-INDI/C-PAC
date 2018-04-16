@@ -1,5 +1,5 @@
 # CPAC Data Settings File
-# Version 1.0.3
+# Version 1.0.4
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -7,15 +7,15 @@
 
 
 # Select if data is organized using BIDS standard or a custom format.
-# Options: ['BIDS'] or ['Custom']
-dataFormat: ['']
+# Options: 'BIDS' or 'Custom'
+dataFormat: BIDS
 
 
 # Base directory of BIDS-organized data.
 # BIDS Data Format only.
 #
 # This should be the path to the overarching directory containing the entire dataset.
-bidsBaseDir:
+bidsBaseDir: None
 
 
 # File Path Template for Anatomical Files
@@ -28,7 +28,7 @@ bidsBaseDir:
 # /data/{site}/{participant}/anat.nii.gz
 # 
 # See the User Guide for more detailed instructions.
-anatomicalTemplate:
+anatomicalTemplate: None
 
 
 # File Path Template for Functional Files
@@ -41,7 +41,7 @@ anatomicalTemplate:
 # /data/{site}/{participant}/{series}/func.nii.gz
 # 
 # See the User Guide for more detailed instructions.
-functionalTemplate:
+functionalTemplate: None
 
 
 # Required if downloading data from a non-public S3 bucket on Amazon Web Services instead of using local files.
@@ -54,6 +54,26 @@ outputSubjectListLocation:
 
 # A label to be appended to the generated participant list files.
 subjectListName:
+
+
+# Scan/Run ID for the Anatomical Scan
+#
+# Sometimes, there are multiple anatomical scans for each participant in a dataset.
+#
+# If this is the case, you can choose which anatomical scan to use for this participant by entering the identifier that makes the scan unique.
+#
+# Examples:
+#
+# BIDS dataset
+# ../anat/sub-001_run-1_T1w.nii.gz
+# ../anat/sub-001_run-2_T1w.nii.gz
+# Pick the second with 'run-2'.
+#
+# Custom dataset
+# Example use case: let's say most anatomicals in your dataset are '../mprage.nii.gz', but some participants only have '../anat1.nii.gz' and '../anat2.nii.gz'. You want the mprage.nii.gz files included, but only the anat2.nii.gz in the others.
+#
+# Place a wildcard (*) in the anatomical filepath template above (../*.nii.gz), then enter 'anat2' in this field to 'break the tie' for participants that have the 'anat1' and 'anat2' scans.
+anatomical_scan: None
 
 
 # For Slice Timing Correction.
@@ -93,7 +113,7 @@ fieldMapMagnitude: None
 
 # Include only a sub-set of the participants present in the folders defined above.
 # 
-# List participants in this box (ex: ['sub101', 'sub102']) or provide the path to a text file with one participant ID on each line.
+# List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
 # 
 # If 'None' is specified, CPAC will include all participants.
 subjectList: None
@@ -101,7 +121,7 @@ subjectList: None
 
 # Exclude a sub-set of the participants present in the folders defined above.
 # 
-# List participants in this box (ex: ['sub101', 'sub102']) or provide the path to a text file with one participant ID on each line.
+# List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
 # 
 # If 'None' is specified, CPAC will not exclude any participants.
 exclusionSubjectList: None
@@ -109,7 +129,7 @@ exclusionSubjectList: None
 
 # Include only a sub-set of the sites present in the folders defined above.
 # 
-# List sites in this box (ex: ['NYU', 'UCLA']) or provide the path to a text file with one site name on each line.
+# List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
 # 
 # If 'None' is specified, CPAC will include all sites.
 siteList: None
@@ -117,7 +137,7 @@ siteList: None
 
 # Exclude a sub-set of the sites present in the folders defined above.
 # 
-# List sites in this box (ex: ['NYU', 'UCLA']) or provide the path to a text file with one site name on each line.
+# List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
 # 
 # If 'None' is specified, CPAC will include all sites.
 exclusionSiteList: None
@@ -125,7 +145,7 @@ exclusionSiteList: None
 
 # Include only a sub-set of the sessions present in the folders defined above.
 # 
-# List sessions in this box (ex: ['session-1', 'session-2']) or provide the path to a text file with one session name on each line.
+# List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
 # 
 # If 'None' is specified, CPAC will include all sessions.
 sessionList: None
@@ -133,7 +153,7 @@ sessionList: None
 
 # Exclude a sub-set of the sessions present in the folders defined above.
 # 
-# List sessions in this box (ex: ['session-1', 'session-2']) or provide the path to a text file with one session name on each line.
+# List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
 # 
 # If 'None' is specified, CPAC will include all sessions.
 exclusionSessionList: None
@@ -141,7 +161,7 @@ exclusionSessionList: None
 
 # Include only a sub-set of the series present in the folders defined above.
 # 
-# List series in this box (ex: ['func-1', 'func-2']) or provide the path to a text file with one series name on each line.
+# List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
 # 
 # If 'None' is specified, CPAC will include all series.
 scanList: None
@@ -149,7 +169,7 @@ scanList: None
 
 # Exclude a sub-set of the series present in the folders defined above.
 # 
-# List series in this box (ex: ['func-1', 'func-2']) or provide the path to a text file with one series name on each line.
+# List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
 # 
 # If 'None' is specified, CPAC will include all series.
 exclusionScanList: None

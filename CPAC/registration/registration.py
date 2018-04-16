@@ -144,7 +144,6 @@ def create_nonlinear_register(name='nonlinear_register'):
                                outputspec, 'linear_xfm')
     
     return nonlinear_register
-    
 
 
 def create_register_func_to_mni(name='register_func_to_mni'):
@@ -836,7 +835,8 @@ def create_wf_calculate_ants_warp(name='create_wf_calculate_ants_warp', mult_inp
     return calc_ants_warp_wf
 
 
-def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp',
+def create_wf_apply_ants_warp(map_node=False,
+                              name='create_wf_apply_ants_warp',
                               ants_threads=1):
 
     """
@@ -895,55 +895,55 @@ def create_wf_apply_ants_warp(map_node, name='create_wf_apply_ants_warp',
     apply_ants_warp_wf = pe.Workflow(name=name)
 
     inputspec = pe.Node(util.IdentityInterface(fields=['input_image', 
-            'reference_image', 'transforms', 'dimension', 'input_image_type', 
-            'interpolation']), name='inputspec')
+                                                       'reference_image',
+                                                       'transforms',
+                                                       'dimension',
+                                                       'input_image_type',
+                                                       'interpolation']),
+                        name='inputspec')
 
-    if map_node == 0:
-        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
-                name='apply_ants_warp')
-
-    elif map_node == 1:
+    if map_node:
         apply_ants_warp = pe.MapNode(interface=ants.ApplyTransforms(),
-                name='apply_ants_warp_mapnode', iterfield=['input_image', \
-                'transforms'])
+                                     name='apply_ants_warp_mapnode',
+                                     iterfield=['input_image', 'transforms'])
+    else:
+        apply_ants_warp = pe.Node(interface=ants.ApplyTransforms(),
+                                  name='apply_ants_warp')
 
     apply_ants_warp.inputs.out_postfix = '_antswarp'
     apply_ants_warp.interface.num_threads = ants_threads
     apply_ants_warp.interface.estimated_memory_gb = 1.5
 
     outputspec = pe.Node(util.IdentityInterface(fields=['output_image']),
-            name='outputspec')
-
+                         name='outputspec')
 
     # connections from inputspec
-
     apply_ants_warp_wf.connect(inputspec, 'input_image', apply_ants_warp, 
-            'input_image')
+                               'input_image')
 
     apply_ants_warp_wf.connect(inputspec, 'reference_image', apply_ants_warp, 
-            'reference_image')
+                               'reference_image')
 
     apply_ants_warp_wf.connect(inputspec, 'transforms', apply_ants_warp, 
-            'transforms')
+                               'transforms')
 
     apply_ants_warp_wf.connect(inputspec, 'dimension', apply_ants_warp, 
-            'dimension')
+                               'dimension')
 
     apply_ants_warp_wf.connect(inputspec, 'input_image_type', apply_ants_warp, 
-            'input_image_type')
+                               'input_image_type')
 
     apply_ants_warp_wf.connect(inputspec, 'interpolation', apply_ants_warp, 
-            'interpolation')
+                               'interpolation')
 
     # connections to outputspec
-
     apply_ants_warp_wf.connect(apply_ants_warp, 'output_image',
-            outputspec, 'output_image')
+                               outputspec, 'output_image')
 
     return apply_ants_warp_wf
 
 
-def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0,
+def create_wf_c3d_fsl_to_itk(input_image_type=0, map_node=False,
                              name='create_wf_c3d_fsl_to_itk'):
 
     """
@@ -988,42 +988,43 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0,
 
     fsl_to_itk_conversion = pe.Workflow(name=name)
 
+    itk_imports = ['import os']
+
     inputspec = pe.Node(util.IdentityInterface(fields=['affine_file',
-            'reference_file', 'source_file']), name='inputspec')
+                                                       'reference_file',
+                                                       'source_file']),
+                        name='inputspec')
 
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
 
-    if map_node == 0:
+    if map_node:
+        fsl_reg_2_itk = pe.MapNode(c3.C3dAffineTool(),
+                                   name='fsl_reg_2_itk_mapnode',
+                                   iterfield=['source_file'])
+
+        change_transform = pe.MapNode(util.Function(
+                input_names=['input_affine_file'],
+                output_names=['updated_affine_file'],
+                function=change_itk_transform_type,
+                imports=itk_imports),
+                name='change_transform_type',
+                iterfield=['input_affine_file'])
+    else:
         fsl_reg_2_itk = pe.Node(c3.C3dAffineTool(), name='fsl_reg_2_itk')
 
-    elif map_node == 1:
-        fsl_reg_2_itk = pe.MapNode(c3.C3dAffineTool(),
-                name='fsl_reg_2_itk_mapnode', iterfield=['source_file'])
-        
-    fsl_reg_2_itk.inputs.itk_transform = True
-    fsl_reg_2_itk.inputs.fsl2ras = True
-
-    itk_imports = ['import os']
-
-    if map_node == 0:
         change_transform = pe.Node(util.Function(
                 input_names=['input_affine_file'],
-                output_names=['updated_affine_file'], 
+                output_names=['updated_affine_file'],
                 function=change_itk_transform_type,
                 imports=itk_imports),
                 name='change_transform_type')
 
-    elif map_node == 1:
-        change_transform = pe.MapNode(util.Function(
-                input_names=['input_affine_file'],
-                output_names=['updated_affine_file'], 
-                function=change_itk_transform_type,
-                imports=itk_imports),
-                name='change_transform_type', iterfield=['input_affine_file'])
+    fsl_reg_2_itk.inputs.itk_transform = True
+    fsl_reg_2_itk.inputs.fsl2ras = True
 
     outputspec = pe.Node(util.IdentityInterface(fields=['itk_transform']),
-            name='outputspec')
+                                                name='outputspec')
 
     fsl_to_itk_conversion.connect(inputspec, 'affine_file', fsl_reg_2_itk,
             'transform_file')
@@ -1066,7 +1067,8 @@ def create_wf_c3d_fsl_to_itk(map_node, input_image_type=0,
     return fsl_to_itk_conversion
 
 
-def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
+def create_wf_collect_transforms(map_node=False,
+                                 name='create_wf_collect_transforms'):
 
     """
     DOCSTRINGS
@@ -1082,12 +1084,11 @@ def create_wf_collect_transforms(map_node, name='create_wf_collect_transforms'):
     # converts FSL-format .mat affine xfm into ANTS-format .txt
     # .mat affine comes from Func->Anat registration
 
-    if map_node == 0:
-        collect_transforms = pe.Node(util.Merge(5), name='collect_transforms')
-
-    elif map_node == 1:
+    if map_node:
         collect_transforms = pe.MapNode(util.Merge(5),
                 name='collect_transforms_mapnode', iterfield=['in5'])
+    else:
+        collect_transforms = pe.Node(util.Merge(5), name='collect_transforms')
 
     outputspec = pe.Node(util.IdentityInterface(
             fields=['transformation_series']), name='outputspec')

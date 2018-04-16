@@ -2,24 +2,84 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-def get_rest(scan, rest_dict):
-    return rest_dict[scan]
+def get_rest(scan, rest_dict, resource="scan"):
+    """Return the file path of the chosen resource stored in the functional
+    file dictionary, if it exists.
+
+    scan: the scan/series name or label
+    rest_dict: the dictionary read in from the data configuration YAML file
+               (sublist) nested under 'func:'
+    resource: the dictionary key
+                  scan - the functional timeseries
+                  scan_parameters - path to the scan parameters JSON file, or
+                                    a dictionary containing scan parameters
+                                    information (to be phased out in the
+                                    future)
+    """
+    try:
+        file_path = rest_dict[scan][resource]
+    except KeyError:
+        file_path = None
+    return file_path
 
 
 def extract_scan_params_dct(scan_params_dct):
     return scan_params_dct
 
 
-def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
-                           wf_name='func_datasource'):
+def get_map(map, map_dct):
+    # return the spatial map required
+    return map_dct[map]
 
+
+def check_func_scan(func_scan_dct, scan):
+    """Run some checks on the functional timeseries-related files for a given
+    series/scan name or label."""
+
+    scan_resources = func_scan_dct[scan]
+
+    try:
+        keys = scan_resources.keys()
+    except AttributeError:
+        err = "\n[!] The data configuration file you provided is " \
+              "missing a level under the 'func:' key. CPAC versions " \
+              "1.2 and later use data configurations with an " \
+              "additional level of nesting.\n\nExample\nfunc:\n  " \
+              "rest01:\n    scan: /path/to/rest01_func.nii.gz\n" \
+              "    scan parameters: /path/to/scan_params.json\n\n" \
+              "See the User Guide for more information.\n\n"
+        raise Exception(err)
+
+    # actual 4D time series file
+    if "scan" not in scan_resources.keys():
+        err = "\n\n[!] The {0} scan is missing its actual time-series " \
+              "scan file, which should be a filepath labeled with the " \
+              "'scan' key.\n\n".format(scan)
+        raise Exception(err)
+
+    # Nipype restriction (may have changed)
+    if '.' in scan or '+' in scan or '*' in scan:
+        raise Exception('\n\n[!] Scan names cannot contain any special '
+                        'characters (., +, *, etc.). Please update this '
+                        'and try again.\n\nScan: {0}'
+                        '\n\n'.format(scan))
+
+
+def create_func_datasource(rest_dict, wf_name='func_datasource'):
+    """Return the functional timeseries-related file paths for each
+    series/scan, from the dictionary of functional files described in the data
+    configuration (sublist) YAML file.
+
+    Scan input (from inputnode) is an iterable.
+    """
     import nipype.pipeline.engine as pe
     import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'scan', 'creds_path'],
+                                fields=['subject', 'scan', 'creds_path',
+                                        'dl_dir'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
@@ -29,99 +89,119 @@ def create_func_datasource(rest_dict, fmap_phase=None, fmap_mag=None,
                                                         'magnitude']),
                          name='outputspec')
 
-    # if the input data is taken from a BIDS directory
-    scan_names = rest_dict.keys()
+    # have this here for now because of the big change in the data
+    # configuration format
+    check_scan = pe.Node(util.Function(input_names=['func_scan_dct',
+                                                    'scan'],
+                                       output_names=[],
+                                       function=check_func_scan),
+                         name='check_func_scan')
 
-    # TODO: this will need to be changed once scan-level nesting is
-    # TODO: implemented- the file name (for BIDS scan params JSON files) will
-    # TODO: have to be processed for the particular scan (task, and run) and
-    # TODO: then linked with the scan below (check the iterable inputnode
-    # TODO: parameter)
-    if "scan_parameters" in scan_names:
-        scan_names.remove("scan_parameters")
+    check_scan.inputs.func_scan_dct = rest_dict
+    wf.connect(inputnode, 'scan', check_scan, 'scan')
 
-        if isinstance(rest_dict["scan_parameters"], str):
-            if "s3://" in rest_dict["scan_parameters"]:
-                # if the scan parameters file is on AWS S3, download it
-                s3_scan_params = \
-                    pe.Node(util.Function(input_names=['file_path',
-                                                       'creds_path',
-                                                       'img_type'],
-                                          output_names=['local_path'],
-                                          function=check_for_s3),
-                            name='s3_scan_params')
-
-                s3_scan_params.inputs.file_path = rest_dict["scan_parameters"]
-
-                wf.connect(inputnode, 'creds_path',
-                           s3_scan_params, 'creds_path')
-                wf.connect(s3_scan_params, 'local_path',
-                           outputnode, 'scan_params')
-
-        elif isinstance(rest_dict["scan_parameters"], dict):
-            get_scan_params_dct = \
-                    pe.Node(util.Function(input_names=['scan_params_dct'],
-                                          output_names=['scan_params_dct'],
-                                          function=extract_scan_params_dct),
-                            name='get_scan_params_dct')
-            get_scan_params_dct.inputs.scan_params_dct = \
-                rest_dict["scan_parameters"]
-            wf.connect(get_scan_params_dct, 'scan_params_dct',
-                       outputnode, 'scan_params')
-
-    for scan in scan_names:
-        if '.' in scan or '+' in scan or '*' in scan:
-            raise Exception('\n[!] Scan names cannot contain any special '
-                            'characters. Please update this and try again.')
-
-    inputnode.iterables = [('scan', scan_names)]
-
-    selectrest = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
-                                       output_names=['rest'],
+    # get the functional scan itself
+    selectrest = pe.Node(util.Function(input_names=['scan',
+                                                    'rest_dict',
+                                                    'resource'],
+                                       output_names=['file_path'],
                                        function=get_rest),
                          name='selectrest')
     selectrest.inputs.rest_dict = rest_dict
+    selectrest.inputs.resource = "scan"
+    wf.connect(inputnode, 'scan', selectrest, 'scan')
 
+    # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
+    # is - otherwise, just return the local file path
     check_s3_node = pe.Node(util.Function(input_names=['file_path',
                                                        'creds_path',
+                                                       'dl_dir',
                                                        'img_type'],
                                           output_names=['local_path'],
                                           function=check_for_s3),
                             name='check_for_s3')
 
-    wf.connect(selectrest, 'rest', check_s3_node, 'file_path')
+    wf.connect(selectrest, 'file_path', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
     check_s3_node.inputs.img_type = 'func'
-
-    wf.connect(inputnode, 'scan', selectrest, 'scan')
 
     wf.connect(inputnode, 'subject', outputnode, 'subject')
     wf.connect(check_s3_node, 'local_path', outputnode, 'rest')
     wf.connect(inputnode, 'scan', outputnode, 'scan')
 
-    if fmap_phase and fmap_mag:
-        s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
-                                                           'creds_path',
-                                                           'img_type'],
-                                              output_names=['local_path'],
-                                              function=check_for_s3),
-                                name='s3_fmap_phase')
-        s3_fmap_phase.inputs.file_path = fmap_phase
-        s3_fmap_phase.inputs.img_type = "other"
-        wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
+    # scan parameters CSV
+    select_scan_params = pe.Node(util.Function(input_names=['scan',
+                                                            'rest_dict',
+                                                            'resource'],
+                                               output_names=['file_path'],
+                                               function=get_rest),
+                                 name='select_scan_params')
+    select_scan_params.inputs.rest_dict = rest_dict
+    select_scan_params.inputs.resource = "scan_parameters"
+    wf.connect(inputnode, 'scan', select_scan_params, 'scan')
 
-        s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
-                                                         'creds_path',
-                                                         'img_type'],
-                                            output_names=['local_path'],
-                                            function=check_for_s3),
-                              name='s3_fmap_mag')
-        s3_fmap_mag.inputs.file_path = fmap_mag
-        s3_fmap_mag.inputs.img_type = "other"
-        wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
+    # if the scan parameters file is on AWS S3, download it
+    s3_scan_params = pe.Node(util.Function(input_names=['file_path',
+                                                        'creds_path',
+                                                        'dl_dir',
+                                                        'img_type'],
+                                           output_names=['local_path'],
+                                           function=check_for_s3),
+                             name='s3_scan_params')
 
-        wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
-        wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
+    wf.connect(select_scan_params, 'file_path', s3_scan_params, 'file_path')
+    wf.connect(inputnode, 'creds_path', s3_scan_params, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', s3_scan_params, 'dl_dir')
+    wf.connect(s3_scan_params, 'local_path', outputnode, 'scan_params')
+
+    # field map phase file, for field map distortion correction
+    select_fmap_phase = pe.Node(util.Function(input_names=['scan',
+                                                           'rest_dict',
+                                                           'resource'],
+                                              output_names=['file_path'],
+                                              function=get_rest),
+                                name='select_fmap_phase')
+    select_fmap_phase.inputs.rest_dict = rest_dict
+    select_fmap_phase.inputs.resource = "fmap_phase"
+    wf.connect(inputnode, 'scan', select_fmap_phase, 'scan')
+
+    s3_fmap_phase = pe.Node(util.Function(input_names=['file_path',
+                                                       'creds_path',
+                                                       'dl_dir',
+                                                       'img_type'],
+                                          output_names=['local_path'],
+                                          function=check_for_s3),
+                            name='s3_fmap_phase')
+    s3_fmap_phase.inputs.img_type = "other"
+    wf.connect(select_fmap_phase, 'file_path', s3_fmap_phase, 'file_path')
+    wf.connect(inputnode, 'creds_path', s3_fmap_phase, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', s3_fmap_phase, 'dl_dir')
+    wf.connect(s3_fmap_phase, 'local_path', outputnode, 'phase_diff')
+
+    # field map magnitude file, for field map distortion correction
+    select_fmap_mag = pe.Node(util.Function(input_names=['scan',
+                                                         'rest_dict',
+                                                         'resource'],
+                                            output_names=['file_path'],
+                                            function=get_rest),
+                              name='select_fmap_mag')
+    select_fmap_mag.inputs.rest_dict = rest_dict
+    select_fmap_mag.inputs.resource = "fmap_mag"
+    wf.connect(inputnode, 'scan', select_fmap_mag, 'scan')
+
+    s3_fmap_mag = pe.Node(util.Function(input_names=['file_path',
+                                                     'creds_path',
+                                                     'dl_dir',
+                                                     'img_type'],
+                                        output_names=['local_path'],
+                                        function=check_for_s3),
+                          name='s3_fmap_mag')
+    s3_fmap_mag.inputs.img_type = "other"
+    wf.connect(select_fmap_mag, 'file_path', s3_fmap_mag, 'file_path')
+    wf.connect(inputnode, 'creds_path', s3_fmap_mag, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', s3_fmap_mag, 'dl_dir')
+    wf.connect(s3_fmap_mag, 'local_path', outputnode, 'magnitude')
 
     return wf
 
@@ -141,6 +221,18 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
     if dl_dir is None:
         dl_dir = os.getcwd()
 
+    if file_path is None:
+        # in case it's something like scan parameters or field map files, but
+        # we don't have any
+        local_path = file_path
+        return local_path
+
+    # TODO: remove this once scan parameter input as dictionary is phased out
+    if isinstance(file_path, dict):
+        # if this is a dictionary, just skip altogether
+        local_path = file_path
+        return local_path
+
     # Explicitly lower-case the "s3"
     if file_path.lower().startswith(s3_str):
         file_path_sp = file_path.split('/')
@@ -156,7 +248,7 @@ def check_for_s3(file_path, creds_path, dl_dir=None, img_type='anat'):
         # Extract relative key path from bucket and local path
         s3_prefix = os.path.join(s3_str, bucket_name)
         s3_key = file_path.replace(s3_prefix, '').lstrip('/')
-        local_path = os.path.join(dl_dir, os.path.basename(s3_key))
+        local_path = os.path.join(dl_dir, s3_key)
 
         # Get local directory and create folders if they dont exist
         local_dir = os.path.dirname(local_path)
@@ -225,12 +317,14 @@ def create_anat_datasource(wf_name='anat_datasource'):
     wf = pe.Workflow(name=wf_name)
 
     inputnode = pe.Node(util.IdentityInterface(
-                                fields=['subject', 'anat', 'creds_path'],
+                                fields=['subject', 'anat', 'creds_path',
+                                        'dl_dir'],
                                 mandatory_inputs=True),
                         name='inputnode')
 
     check_s3_node = pe.Node(util.Function(input_names=['file_path',
                                                        'creds_path',
+                                                       'dl_dir',
                                                        'img_type'],
                                           output_names=['local_path'],
                                           function=check_for_s3),
@@ -238,6 +332,7 @@ def create_anat_datasource(wf_name='anat_datasource'):
 
     wf.connect(inputnode, 'anat', check_s3_node, 'file_path')
     wf.connect(inputnode, 'creds_path', check_s3_node, 'creds_path')
+    wf.connect(inputnode, 'dl_dir', check_s3_node, 'dl_dir')
     check_s3_node.inputs.img_type = 'anat'
 
     outputnode = pe.Node(util.IdentityInterface(fields=['subject',
@@ -302,20 +397,17 @@ def create_roi_mask_dataflow(masks, wf_name='datasource_roi_mask'):
 
     inputnode.iterables = [('mask', mask_dict.keys())]
 
-    selectmask = pe.Node(util.Function(input_names=['scan', 'rest_dict'],
+    selectmask = pe.Node(util.Function(input_names=['map', 'map_dct'],
                                        output_names=['out_file'],
-                                       function=get_rest),
+                                       function=get_map),
                          name='select_mask')
-    selectmask.inputs.rest_dict = mask_dict
+    selectmask.inputs.map_dct = mask_dict
 
     outputnode = pe.Node(util.IdentityInterface(fields=['out_file']),
                          name='outputspec')
 
-    wf.connect(inputnode, 'mask',
-               selectmask, 'scan')
-
-    wf.connect(selectmask, 'out_file',
-               outputnode, 'out_file')
+    wf.connect(inputnode, 'mask', selectmask, 'map')
+    wf.connect(selectmask, 'out_file', outputnode, 'out_file')
 
     return wf
 
@@ -368,15 +460,14 @@ def create_spatial_map_dataflow(spatial_maps, wf_name='datasource_maps'):
 
     inputnode.iterables = [('spatial_map', spatial_map_dict.keys())]
 
-    select_spatial_map = pe.Node(util.Function(input_names=['scan',
-                                                            'rest_dict'],
+    select_spatial_map = pe.Node(util.Function(input_names=['map',
+                                                            'map_dct'],
                                                output_names=['out_file'],
-                                               function=get_rest),
+                                               function=get_map),
                                  name='select_spatial_map')
-    select_spatial_map.inputs.rest_dict = spatial_map_dict
+    select_spatial_map.inputs.map_dct = spatial_map_dict
 
-    wf.connect(inputnode, 'spatial_map',
-               select_spatial_map, 'scan')
+    wf.connect(inputnode, 'spatial_map', select_spatial_map, 'map')
 
     return wf
 
