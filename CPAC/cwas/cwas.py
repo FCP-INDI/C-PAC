@@ -30,10 +30,11 @@ def joint_mask(subjects_file_list, mask_file):
     mask = nii.get_data().astype('bool')
     for subject_file in subjects_file_list:
         sdata = nb.load(subject_file).get_data().astype(np.float64).sum(-1)
-        if not safe_shape(sdata, mask): raise ValueError('Subject %s with volume shape %s conflicts \
-                                                          with mask shape %s' % ( subject_file,
-                                                                                  str(sdata.shape),
-                                                                                  str(mask.shape) ) )
+        if not safe_shape(sdata, mask):
+            raise ValueError('Subject %s with volume shape %s conflicts \
+                              with mask shape %s' % ( subject_file,
+                                                      str(sdata.shape),
+                                                      str(mask.shape) ) )
         mask *= sdata.astype('bool')
 
     print '... joint subject/roi mask loaded'
@@ -95,12 +96,13 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     #Load the data to produce the joint mask
     mask = nb.load(mask_file).get_data().astype('bool')
     mask_indices = np.where(mask)
-    #batch_indices = tuple([mask_index[voxel_range[0]:voxel_range[1]] for mask_index in mask_indices])
     
     #Reload the data again to actually get the values, sacrificing CPU for smaller memory footprint
-    subjects_data = [ nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
-                        for subject_file in subjects_file_list ]
-    #subjects_data = np.array(subjects_data)
+    subjects_data = [
+        nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
+        for subject_file in subjects_file_list
+    ]
+
     print '... subject data loaded', len(subjects_data), 'batch voxel range', voxel_range
     
     F_set, p_set = calc_cwas(subjects_data, regressor, cols, f_samples, voxel_range, strata)

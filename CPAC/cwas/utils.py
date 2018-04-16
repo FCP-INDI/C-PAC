@@ -1,5 +1,5 @@
 import numpy as np
-from mdmr import *
+from CPAC.cwas.mdmr import *
 from subdist import *
 
 def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):

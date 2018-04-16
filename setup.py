@@ -16,10 +16,8 @@ URL = 'http://fcp-indi.github.io/'
 LICENSE = 'BSD License'
 DOWNLOAD_URL = 'https://github.com/FCP-INDI/C-PAC/tarball/master'
 
-# Import packages
 import os, sys
 
-# Import build helpers
 try:
     from nisext.sexts import package_check, get_comrec_build
 except ImportError:
@@ -46,6 +44,10 @@ def configuration(parent_package='', top_path=None):
                          sources=['CPAC/network_centrality/thresh_and_sum.pyx'], 
                          include_dirs=[get_numpy_include_dirs()])
 
+    config.add_extension('CPAC.cwas.mdmr', 
+                         sources=['CPAC/cwas/mdmr.pyx'], 
+                         include_dirs=[get_numpy_include_dirs()])
+
     return config
 
 
@@ -65,12 +67,6 @@ if len(set(('develop', 'bdist_egg', 'bdist_rpm', 'bdist', 'bdist_dumb',
 # setup_egg.py.
 if not 'extra_setuptools_args' in globals():
     extra_setuptools_args = dict()
-
-# Hard and soft dependency checking
-#package_check('matplotlib', INFO_VARS['MATPLOTLIB_MIN_VERSION'])
-#package_check('jinja2', INFO_VARS['JINJA_MIN_VERSION'])
-#package_check('lockfile', INFO_VARS['PYLOCKFILE_MIN_VERSION']) # checking doesn't really work
-#package_check('yaml', INFO_VARS['PYYAML_MIN_VERSION'])
 
 ################################################################################
 
@@ -103,25 +99,15 @@ def main(**extra_args):
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
           requires = INFO_VARS['REQUIRES'],
-          install_requires = INFO_VARS['INSTALL_REQUIRES'],
           configuration = configuration,
           cmdclass = cmdclass,
           scripts = glob('scripts/*'),
-          entry_points={
-            'console_scripts': [
-                'cpac_extract_parameters=CPAC.utils.extract_parameters:main'
-                ]
-            },
           package_data = {'CPAC': ['test_data/*']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
 # Run main by default
 if __name__ == "__main__":
-
-    # Import packages
-    import site, shutil
-    from shutil import rmtree, copytree
 
     # Get in the right directory
     old_path = os.getcwd()
