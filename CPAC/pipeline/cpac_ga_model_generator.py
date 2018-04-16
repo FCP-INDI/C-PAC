@@ -304,7 +304,7 @@ def calculate_custom_roi_mean_in_df(model_df, roi_mask):
 
 def parse_out_covariates(design_formula):
 
-    patsy_ops = ["~","+","-","*","/",":","**",")","("]
+    patsy_ops = ["~", "+", "-", "*", "/", ":", "**", ")", "("]
 
     for op in patsy_ops:
         if op in design_formula:
@@ -391,8 +391,7 @@ def split_groups(pheno_df, group_ev, ev_list, cat_list):
 
 
 def patsify_design_formula(formula, categorical_list, encoding="Treatment"):
-    print formula
-    print categorical_list
+
     closer = ")"
     if encoding == "Treatment":
         closer = ")"

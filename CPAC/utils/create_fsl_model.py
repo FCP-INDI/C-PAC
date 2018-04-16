@@ -1080,6 +1080,9 @@ def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
 
     import os
 
+    print "col names: "
+    print col_names
+
     with open(os.path.join(out_dir, file_name) + ".con",'w+') as f:
 
         # write header
@@ -1171,7 +1174,6 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output,
 
 def create_con_ftst_file(con_file, model_name, current_output, output_dir,
                          column_names, coding_scheme, group_sep):
-
     """
     Create the contrasts and fts file
     """
@@ -1179,7 +1181,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     import os
     import numpy as np
 
-    with open(con_file,"r") as f:
+    with open(con_file, "r") as f:
         evs = f.readline()
 
     evs = evs.rstrip('\r\n').split(',')
@@ -1194,7 +1196,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir,
     #evs[0] = "Intercept"
 
     fTest = False
-
+    print "evs: "
+    print evs
     for ev in evs:
         if "f_test" in ev:
             count_ftests += 1
