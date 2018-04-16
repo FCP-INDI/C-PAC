@@ -14,6 +14,8 @@ logDirectory,Log Directory,Output Settings
 outputDirectory,Output Directory,Output Settings
 awsOutputBucketCredentials,AWS Output Bucket Credentials,Output Settings
 s3Encryption,S3 Encryption,Output Settings
+write_func_outputs,Write Extra Functional Outputs,Output Settings
+write_debugging_outputs,Write Debugging Outputs,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
 run_logging,Run Logging,Output Settings

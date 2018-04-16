@@ -396,26 +396,20 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
                                  'demean']),
                         name='inputspec')
 
-    outputNode = pe.Node(util.IdentityInterface
-                         (fields=['subject_timeseries']),
-                          name='outputspec')
+    outputNode = pe.Node(util.IdentityInterface(
+        fields=['subject_timeseries']),
+                         name='outputspec')
 
     spatialReg = pe.Node(interface=fsl.GLM(),
                          name='spatial_regression')
 
     spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
 
-    wflow.connect(inputNode, 'subject_rest',
-                spatialReg, 'in_file')
-    wflow.connect(inputNode, 'subject_mask',
-                spatialReg, 'mask')
-    wflow.connect(inputNode, 'spatial_map',
-                spatialReg, 'design')
-    wflow.connect(inputNode, 'demean',
-                spatialReg, 'demean')
-
-    wflow.connect(spatialReg, 'out_file',
-                  outputNode, 'subject_timeseries')
+    wflow.connect(inputNode, 'subject_rest', spatialReg, 'in_file')
+    wflow.connect(inputNode, 'subject_mask', spatialReg, 'mask')
+    wflow.connect(inputNode, 'spatial_map', spatialReg, 'design')
+    wflow.connect(inputNode, 'demean', spatialReg, 'demean')
+    wflow.connect(spatialReg, 'out_file', outputNode, 'subject_timeseries')
 
     return wflow
 

@@ -216,12 +216,30 @@ class DirectorySettings(wx.ScrolledWindow):
                               "to the S3 bucket",
                       values=["On", "Off"])
 
+        self.page.add(label="Write Extra Functional Outputs ",
+                      control=control.CHOICE_BOX,
+                      name='write_func_outputs',
+                      type=dtype.LSTR,
+                      comment="Include extra versions and intermediate steps "
+                              "of functional preprocessing in the output "
+                              "directory.",
+                      values=["Off", "On"])
+
+        self.page.add(label="Write Debugging Outputs ",
+                      control=control.CHOICE_BOX,
+                      name='write_debugging_outputs',
+                      type=dtype.LSTR,
+                      comment="Include extra outputs in the output "
+                              "directory that may be of interest when more "
+                              "information is needed.",
+                      values=["Off", "On"])
+
         self.page.add(label="Create Symbolic Links ",
                       control=control.CHOICE_BOX,
                       name='runSymbolicLinks',
                       type=dtype.LSTR,
-                      comment="Create a user-friendly, well organized version of the output directory.\n\n"
-                      "We recommend all users enable this option.",
+                      comment="Create a user-friendly, well organized "
+                              "version of the output directory.",
                       values=["On", "Off"])
 
         #self.page.add(label="Enable Quality Control Interface ",
@@ -236,7 +254,10 @@ class DirectorySettings(wx.ScrolledWindow):
                       name='removeWorkingDir',
                       type=dtype.BOOL,
                       values=["False", "True"],
-                      comment="Deletes the contents of the Working Directory after running.\n\nThis saves disk space, but any additional preprocessing or analysis will have to be completely re-run.")
+                      comment="Deletes the contents of the Working "
+                              "Directory after running.\n\nThis saves disk "
+                              "space, but any additional preprocessing or "
+                              "analysis will have to be completely re-run.")
 
         self.page.add(label="Run Logging ",
                       control=control.CHOICE_BOX,
@@ -251,7 +272,10 @@ class DirectorySettings(wx.ScrolledWindow):
                       name='reGenerateOutputs',
                       type=dtype.BOOL,
                       values=["False", "True"],
-                      comment="Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.\n\nRequires an intact Working Directory from a previous CPAC run.")
+                      comment="Uses the contents of the Working Directory "
+                              "to regenerate all outputs and their "
+                              "symbolic links.\n\nRequires an intact "
+                              "Working Directory from a previous CPAC run.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
