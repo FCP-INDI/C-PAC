@@ -197,7 +197,173 @@ def download_single_s3_path(s3_path, download_dir=None, creds_path=None,
 
     return local_dl
 
+  
+def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True):
 
+    import os
+    from indi_aws import fetch_creds
+
+    if creds_path:
+        creds_path = os.path.abspath(creds_path)
+
+    s3_path = data_folder.split("s3://")[1]
+    bucket_name = s3_path.split("/")[0]
+    bucket_prefix = s3_path.split(bucket_name + "/")[1]
+
+    print "Pulling from {0} ...".format(data_folder)
+
+    s3_list = []
+    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+
+    # ensure slash at end of bucket_prefix, so that if the final
+    # directory name is a substring in other directory names, these
+    # other directories will not be pulled into the file list
+    if "/" not in bucket_prefix[-1]:
+        bucket_prefix += "/"
+
+    # Build S3-subjects to download
+    for bk in bucket.objects.filter(Prefix=bucket_prefix):
+        if keep_prefix:
+            fullpath = os.path.join("s3://", bucket_name, str(bk.key))
+            s3_list.append(fullpath)
+        else:
+            s3_list.append(str(bk.key).replace(bucket_prefix, ""))
+
+    print "Finished pulling from S3. " \
+          "{0} file paths found.".format(len(s3_list))
+
+    if not s3_list:
+        err = "\n\n[!] No input data found matching your data settings in " \
+              "the AWS S3 bucket provided:\n{0}\n\n".format(data_folder)
+        raise Exception(err)
+
+    return s3_list
+
+
+def generate_group_analysis_files(data_config_outdir, data_config_name):
+    """Create the group-level analysis inclusion list.
+    """
+
+    import os
+    from sets import Set
+    import csv
+    import yaml
+
+    data_config_path = os.path.join(data_config_outdir, data_config_name)
+
+    try:
+        with open(data_config_path, 'r') as f:
+            subjects_list = yaml.load(f)
+    except:
+        err = "\n\n[!] Data configuration file couldn't be read!\nFile " \
+              "path: {0}\n".format(data_config_path)
+
+    subject_scan_set = Set()
+    subID_set = Set()
+    session_set = Set()
+    subject_set = Set()
+    scan_set = Set()
+    data_list = []
+
+    try:
+        for sub in subjects_list:
+            if sub['unique_id']:
+                subject_id = sub['subject_id'] + "_" + sub['unique_id']
+            else:
+                subject_id = sub['subject_id']
+
+            try:
+                for scan in sub['func'].keys():
+                    subject_scan_set.add((subject_id, scan))
+                    subID_set.add(sub['subject_id'])
+                    session_set.add(sub['unique_id'])
+                    subject_set.add(subject_id)
+                    scan_set.add(scan)
+            except KeyError:
+                try:
+                    for scan in sub['rest'].keys():
+                        subject_scan_set.add((subject_id, scan))
+                        subID_set.add(sub['subject_id'])
+                        session_set.add(sub['unique_id'])
+                        subject_set.add(subject_id)
+                        scan_set.add(scan)
+                except KeyError:
+                    # one of the participants in the subject list has no
+                    # functional scans
+                    subID_set.add(sub['subject_id'])
+                    session_set.add(sub['unique_id'])
+                    subject_set.add(subject_id)
+
+    except TypeError as e:
+        print 'Subject list could not be populated!'
+        print 'This is most likely due to a mis-formatting in your ' \
+              'inclusion and/or exclusion subjects txt file or your ' \
+              'anatomical and/or functional path templates.'
+        print 'Error: %s' % e
+        err_str = 'Check formatting of your anatomical/functional path ' \
+                  'templates and inclusion/exclusion subjects text files'
+        raise TypeError(err_str)
+
+    for item in subject_scan_set:
+        list1 = []
+        list1.append(item[0] + "/" + item[1])
+        for val in subject_set:
+            if val in item:
+                list1.append(1)
+            else:
+                list1.append(0)
+
+        for val in scan_set:
+            if val in item:
+                list1.append(1)
+            else:
+                list1.append(0)
+
+        data_list.append(list1)
+
+    # generate the phenotypic file templates for group analysis
+    file_name = os.path.join(data_config_outdir, 'phenotypic_template_%s.csv'
+                             % data_config_name)
+
+    try:
+        f = open(file_name, 'wb')
+    except:
+        print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+        print file_name, '\n\n'
+        print 'Make sure you have write access? Then come back. Don\'t ' \
+              'worry.. I\'ll wait.\n\n'
+        raise IOError
+
+    writer = csv.writer(f)
+
+    writer.writerow(['participant', 'EV1', '..'])
+    for sub in sorted(subID_set):
+        writer.writerow([sub, ''])
+
+    f.close()
+
+    print "Template Phenotypic file for group analysis - %s" % file_name
+
+    # generate the group analysis subject lists
+    file_name = os.path.join(data_config_outdir,
+                             'participant_list_group_analysis_%s.txt'
+                             % data_config_name)
+
+    try:
+        with open(file_name, 'w') as f:
+            for sub in sorted(subID_set):
+                print >> f, sub
+    except:
+        print '\n\nCPAC says: I couldn\'t save this file to your drive:\n'
+        print file_name, '\n\n'
+        print 'Make sure you have write access? Then come back. Don\'t ' \
+              'worry.. I\'ll wait.\n\n'
+        raise IOError
+
+    print "Participant list required later for group analysis - %s\n\n" \
+          % file_name
+
+      
 def extract_scan_params_csv(scan_params_csv):
     """
     Function to extract the site-based scan parameters from a csv file
@@ -1428,8 +1594,14 @@ def run(data_settings_yml):
                          "data_config_{0}.yml"
                          "".format(settings_dct['subjectListName']))
 
+        group_list_outfile = \
+            os.path.join(settings_dct['outputSubjectListLocation'],
+                         "group_analysis_participants_{0}.txt"
+                         "".format(settings_dct['subjectListName']))
+
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
+
         included = {'site': [], 'sub': []}
         num_sess = num_scan = 0
 
@@ -1457,6 +1629,7 @@ def run(data_settings_yml):
                         num_sess += 1
 
                     data_list.append(data_dct[site][sub][ses])
+                    group_list.append("{0}_{1}".format(sub, ses))
 
         # calculate numbers
         num_sites = len(set(included['site']))
@@ -1475,16 +1648,29 @@ def run(data_settings_yml):
             f.write(yaml.dump(data_list, default_flow_style=False,
                               Dumper=noalias_dumper))
 
+        with open(group_list_outfile, "wt") as f:
+            # write the inclusion list (mainly the group analysis sublist)
+            # text file
+            for id in sorted(group_list):
+                f.write("{0}\n".format(id))
+
         if os.path.exists(data_config_outfile):
-            print "\nCPAC DATA SETTINGS file entered:" \
-                  "\n{0}".format(data_settings_yml)
-            print "\nCPAC DATA CONFIGURATION file created:" \
-                  "\n{0}\n".format(data_config_outfile)
+            print "\nCPAC DATA SETTINGS file entered (use this preset file " \
+                  "to modify/regenerate the data configuration file):" \
+                  "\n{0}\n".format(data_settings_yml)
             print "Number of:"
             print "...sites: {0}".format(num_sites)
             print "...participants: {0}".format(num_subs)
             print "...participant-sessions: {0}".format(num_sess)
-            print "...functional scans: {0}\n".format(num_scan)
+            print "...functional scans: {0}".format(num_scan)
+            print "\nCPAC DATA CONFIGURATION file created (use this for " \
+                  "individual-level analysis):" \
+                  "\n{0}\n".format(data_config_outfile)
+
+        if os.path.exists(group_list_outfile):
+            print "Group-level analysis participant-session list text " \
+                  "file created (use this for group-level analysis):\n{0}" \
+                  "\n".format(group_list_outfile)
 
     else:
         err = "\n\n[!] No anatomical input files were found given the data " \

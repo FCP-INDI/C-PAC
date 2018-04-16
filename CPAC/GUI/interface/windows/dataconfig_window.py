@@ -387,12 +387,6 @@ class DataConfig(wx.Frame):
             # Build the subject list from the data config
             CPAC.utils.build_data_config.run(config)
 
-            # Generate group analysis files and such
-            CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
-
-            # will be changed at some point
-            sublist_name = "data_config_{0}.yml".format(sublist_name)
-
             # check GUI's data config list dialog box for duplicate names
             while True:
                 parent = self.Parent

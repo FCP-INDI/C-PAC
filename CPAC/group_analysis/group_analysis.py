@@ -235,9 +235,25 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          name='fsl_flameo')
     fsl_flameo.inputs.run_mode = 'ols'
 
-    ### create analysis specific mask
+    # rename the FLAME zstat outputs after the contrast string labels for
+    # easier interpretation
+    label_zstat_imports = ["import os"]
+    label_zstat = pe.Node(util.Function(input_names=['zstat_list',
+                                                     'con_file'],
+                                        output_names=['new_zstat_list'],
+                                        function=label_zstat_files,
+                                        imports=label_zstat_imports),
+                          name='label_zstat')
+
+    rename_zstats = pe.MapNode(interface=util.Rename(),
+                               name='rename_zstats',
+                               iterfield=['in_file',
+                                          'format_string'])
+    rename_zstats.inputs.keep_ext = True
+
+    # create analysis specific mask
     # fslmaths merged.nii.gz -abs -bin -Tmean -mul volume out.nii.gz
-    #-Tmean: mean across time
+    # -Tmean: mean across time
     # create group_reg file
     # this file can provide an idea of how well the subjects 
     # in our analysis overlay with each other and the MNI brain.
@@ -246,13 +262,13 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     merge_mean_mask = pe.Node(interface=fsl.ImageMaths(),
                               name='merge_mean_mask')
 
-    #function node to get the operation string for fslmaths command
+    # function node to get the operation string for fslmaths command
     get_opstring = pe.Node(util.Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                          function=get_operation),
                        name='get_opstring')
 
-    #connections
+    # connections
     '''
     grp_analysis.connect(inputnode, 'zmap_files',
                          merge_to_4d, 'in_files')
@@ -270,11 +286,17 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
     grp_analysis.connect(inputnode, 'grp_file',
                          fsl_flameo, 'cov_split_file')
 
-    if ftest:
+    grp_analysis.connect(fsl_flameo, 'zstats', label_zstat, 'zstat_list')
+    grp_analysis.connect(inputnode, 'con_file', label_zstat, 'con_file')
 
-        #calling easythresh for zfstats file
-        grp_analysis.connect(inputnode, 'fts_file',
-                             fsl_flameo, 'f_con_file')
+    grp_analysis.connect(fsl_flameo, 'zstats', rename_zstats, 'in_file')
+
+    grp_analysis.connect(label_zstat, 'new_zstat_list',
+                         rename_zstats, 'format_string')
+
+    if ftest:
+        # calling easythresh for zfstats file
+        grp_analysis.connect(inputnode, 'fts_file', fsl_flameo, 'f_con_file')
 
         easy_thresh_zf = easy_thresh('easy_thresh_zf')
 
@@ -299,9 +321,9 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
         grp_analysis.connect(easy_thresh_zf, 'outputspec.rendered_image',
                              outputnode, 'rendered_image_zf')
 
-    #calling easythresh for zstats files
+    # calling easythresh for zstats files
     easy_thresh_z = easy_thresh('easy_thresh_z')
-    grp_analysis.connect(fsl_flameo, 'zstats',
+    grp_analysis.connect(rename_zstats, 'out_file',
                          easy_thresh_z, 'inputspec.z_stats')
     grp_analysis.connect(inputnode, 'merge_mask',
                          easy_thresh_z, 'inputspec.merge_mask')
@@ -325,10 +347,8 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          outputnode, 'fstats')
     grp_analysis.connect(inputnode, 'merged_file',
                          outputnode, 'merged')
-    grp_analysis.connect(fsl_flameo, 'zstats',
-                         outputnode, 'zstats')
 
-
+    grp_analysis.connect(rename_zstats, 'out_file', outputnode, 'zstats')
 
     grp_analysis.connect(easy_thresh_z, 'outputspec.cluster_threshold',
                          outputnode, 'cluster_threshold')
@@ -342,7 +362,6 @@ def create_group_analysis(ftest=False, wf_name='groupAnalysis'):
                          outputnode, 'rendered_image')
 
     return grp_analysis
-
 
 
 def get_operation(in_file):
@@ -375,3 +394,28 @@ def get_operation(in_file):
         return op_string
     except:
         raise IOError("Unable to load the input nifti image")
+
+
+def label_zstat_files(zstat_list, con_file):
+    """Take in the z-stat file outputs of FSL FLAME and rename them after the
+    contrast labels of the contrasts provided."""
+
+    cons = []
+    new_zstat_list = []
+
+    with open(con_file, "r") as f:
+        con_file_lines = f.readlines()
+
+    for line in con_file_lines:
+        if "ContrastName" in line:
+            con_label = line.split(" ", 1)[1].replace(" ", "")
+            con_label = con_label.replace("\t", "").replace("\n", "")
+            cons.append(con_label)
+
+    for zstat_file, con_name in zip(zstat_list, cons):
+        #filename = os.path.basename(zstat_file)
+        new_name = "zstat_{0}".format(con_name)
+        #new_zstat_list.append(zstat_file.replace(filename, new_name))
+        new_zstat_list.append(new_name)
+
+    return new_zstat_list

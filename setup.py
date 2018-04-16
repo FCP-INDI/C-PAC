@@ -28,6 +28,7 @@ except ImportError:
 
 from build_helpers import INFO_VARS
 
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration, \
                                           get_numpy_include_dirs
@@ -102,11 +103,11 @@ def main(**extra_args):
           author_email=INFO_VARS['AUTHOR_EMAIL'],
           platforms=INFO_VARS['PLATFORMS'],
           version=INFO_VARS['VERSION'],
-          requires = INFO_VARS['REQUIRES'],
-          install_requires = INFO_VARS['INSTALL_REQUIRES'],
-          configuration = configuration,
-          cmdclass = cmdclass,
-          scripts = glob('scripts/*'),
+          requires=INFO_VARS['REQUIRES'],
+          install_requires=INFO_VARS['INSTALL_REQUIRES'],
+          configuration=configuration,
+          cmdclass=cmdclass,
+          scripts=glob('scripts/*'),
           entry_points={
             'console_scripts': [
                 'cpac_extract_parameters=CPAC.utils.extract_parameters:main'

@@ -7,7 +7,6 @@ def create_dummy_string(length):
     return ppstring
 
 
-
 def write_mat_file(design_matrix, output_dir, model_name, \
                        depatsified_EV_names, current_output=None):
 
@@ -23,7 +22,6 @@ def write_mat_file(design_matrix, output_dir, model_name, \
     else:
         dimx, dimy = design_matrix.shape
 
-
     ppstring = '/PPheights'
 
     for i in range(0, dimy):
@@ -32,13 +30,11 @@ def write_mat_file(design_matrix, output_dir, model_name, \
 
     ppstring += '\n'
 
-
     filename = model_name + ".mat"
 
     out_file = os.path.join(output_dir, filename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
 
     with open(out_file, 'wt') as f:
 
@@ -59,7 +55,6 @@ def write_mat_file(design_matrix, output_dir, model_name, \
         np.savetxt(f, design_matrix, fmt='%1.5e', delimiter='\t')
 
     return out_file
-
 
 
 def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
@@ -88,7 +83,6 @@ def create_grp_file(design_matrix, grp_file_vector, output_dir, model_name):
         np.savetxt(f, grp_file_vector, fmt='%d', delimiter='\t')
 
     return out_file
-
 
 
 def create_con_file(con_vecs, con_names, col_names, model_name,
@@ -131,7 +125,6 @@ def create_con_file(con_vecs, con_names, col_names, model_name,
     return out_file
 
 
-
 def create_fts_file(ftest_list, con_names, model_name,
                     current_output, out_dir):
 
@@ -169,7 +162,6 @@ def create_fts_file(ftest_list, con_names, model_name,
         
             fts_n = np.array(ftst)
 
-
             # print labels for the columns - mainly for double-checking your
             # model
             col_string = '\n'
@@ -181,7 +173,6 @@ def create_fts_file(ftest_list, con_names, model_name,
 
             for i in range(fts_n.shape[0]):
                 print >>f, ' '.join(fts_n[i].astype('str'))
-
 
     except Exception as e:
 
@@ -197,9 +188,8 @@ def create_fts_file(ftest_list, con_names, model_name,
     return out_file
 
 
-
-def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
-                             column_names, coding_scheme, group_sep):
+def create_con_ftst_file(con_file, model_name, current_output, output_dir,
+                         column_names, coding_scheme, group_sep):
 
     """
     Create the contrasts and fts file
@@ -208,37 +198,41 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     import os
     import numpy as np
 
-    # Read the header of the contrasts file, which should contain the columns of the design matrix and f-tests (if any)
-    with open(con_file,"r") as f:
+    # Read the header of the contrasts file, which should contain the columns
+    # of the design matrix and f-tests (if any)
+    with open(con_file, "r") as f:
         evs = f.readline()
 
     evs = evs.rstrip('\r\n').split(',')
 
-
-    if evs[0].strip().lower()!="contrasts":
-        print "Error: first cell in contrasts file should contain 'Contrasts' "
+    if evs[0].strip().lower() != "contrasts":
+        print "Error: first cell in contrasts file should contain " \
+              "'Contrasts' "
         raise Exception
+
     # remove "Contrasts" label and replace it with "Intercept"
-    evs[0] = "Intercept"
+    #evs[0] = "Intercept"
 
     # Count the number of f tests defined
-    count_ftests = len([ ev for ev in evs if "f_test" in ev ])
+    count_ftests = len([ev for ev in evs if "f_test" in ev ])
 
     # Whether any f tests are defined
-    fTest = count_ftests >0
+    fTest = count_ftests > 0
 
     # Now read the actual contrasts
     try:
-        contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
+        contrasts_data = np.genfromtxt(con_file, names=True, delimiter=',',
+                                       dtype=None)
     except:
         print "Error: Could not successfully read in contrast file: ",con_file
         raise Exception
 
-
     lst = contrasts_data.tolist()
-    # lst = list of rows of the contrast matrix (each row represents a contrast,
-    # i.e. a name of the contrast, and then coefficients for each of the design matrix columns, and finally
-    # coefficients for each of the f tests specifying whether this contrast is part of that particular f test).
+    # lst = list of rows of the contrast matrix (each row represents a
+    # contrast, i.e. a name of the contrast, and then coefficients for each of
+    # the design matrix columns, and finally coefficients for each of the
+    # f tests specifying whether this contrast is part of that particular
+    # f test).
 
     ftst = []
     fts_columns = []
@@ -263,12 +257,12 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
         fts_columns.append(fts_vector)
 
         # add Intercept column
-        if group_sep == False:
-
+        if not group_sep:
             if False:
-                # The following insertion gives an error further down the line, because this
-                # suggests that there will be an intercept column in the design matrix
-                # but such an intercept is never actually added.
+                # The following insertion gives an error further down the
+                # line, because this suggests that there will be an intercept
+                # column in the design matrix but such an intercept is never
+                # actually added.
                 if coding_scheme == "Treatment":
                     con_vector.insert(0, 0)
                 elif coding_scheme == "Sum":
@@ -284,11 +278,9 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     contrasts = np.array(contrasts, dtype=np.float16)
 
     fts_columns = np.array(fts_columns)
-    
 
     # if there are f-tests, create the array for them
     if fTest:
-
         ## TODO: Probably it would be more accurate to check that each
         ## f test itself contains enough contrasts, rather than whether
         ## there are in principle enough contrasts to form f tests.
@@ -301,8 +293,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
             raise Exception(errmsg)
 
         fts_n = fts_columns.T
-
-
 
     if len(column_names) != (num_EVs_in_con_file):
 
@@ -320,7 +310,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
         raise Exception(err_string)
 
-
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
 
         ## TODO: Possible source for errors: the script seems to suggest it checks
@@ -337,8 +326,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
                      % (column_names, evs[1:])
 
             raise Exception(errmsg)        
-
-
 
     out_file = os.path.join(output_dir, model_name + '.con')
 
@@ -362,9 +349,9 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
         # print labels for the columns - mainly for double-checking your model
         col_string = '\n'
         for ev in evs:
-            col_string = col_string + ev + '\t'
+            if "contrast" not in ev and "Contrast" not in ev:
+                col_string = col_string + ev + '\t'
         print >>f, col_string, '\n'
-
 
         print >>f, '/Matrix'
    
