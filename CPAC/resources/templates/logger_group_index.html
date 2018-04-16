@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Log File for {{ subject_id }}</title>
+    <title>Log File for (( subject_id ))</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
 
     <!-- Le styles -->
-    <link href="{{ resources }}/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="(( resources ))/bootstrap/css/bootstrap.css" rel="stylesheet">
     <style type="text/css">
       body {
         padding-top: 60px;
@@ -31,7 +31,7 @@
         }
       }
     </style>
-    <link href="{{ resources }}/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="(( resources ))/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -60,14 +60,14 @@
 							</tr>
 						<thead>
 					  <tbody>
-							{% for subject_id in subject_ids %}
-								<tr id="{{ subject_id }}" class="muted">
+							(% for subject_id in subject_ids %)
+								<tr id="(( subject_id ))" class="muted">
 									<td>
-										<a href="file://localhost/{{ log_dir }}/{{ subject_id }}/reports/index.html">{{ subject_id }}</a>
+										<a href="file://localhost/(( log_dir ))/(( subject_id ))/reports/index.html">(( subject_id ))</a>
 									</td>
 									<td><span id="status" class="label">WAITING</span></td>
 								</tr>							
-							{% endfor %}							
+							(% endfor %)							
 					  </tbody>
 				  </table>				
         </div><!--/span-->
@@ -76,7 +76,7 @@
       <hr>
 
       <footer>
-				<img src="{{ gui_resources }}/images/cpac_new_logo.png">
+				<img src="(( gui_resources ))/images/cpac_new_logo.png">
         <p>&copy; CPAC 2013</p>
       </footer>
 
@@ -86,9 +86,9 @@
 	    ================================================== -->
 	    <!-- Placed at the end of the document so the pages load faster -->
 		<!-- Replace with min files eventually -->
-	  <script src="{{ resources }}/bootstrap/js/jquery.js"></script>
-	  <script src="{{ resources }}/bootstrap/js/bootstrap.js"></script>
-	  <script src="{{ resources }}/bootstrap/js/kul-substitute.js"></script>
+	  <script src="(( resources ))/bootstrap/js/jquery.js"></script>
+	  <script src="(( resources ))/bootstrap/js/bootstrap.js"></script>
+	  <script src="(( resources ))/bootstrap/js/kul-substitute.js"></script>
 		
 		<script type="text/javascript" charset="utf-8">
 		  window.onload = setupRefresh;
@@ -139,11 +139,11 @@
 			
 		
 		<!-- Load all the js files -->
-		{% for subject_id in subject_ids %}			
-			{% for scan_id in scan_ids[subject_id] %}
-				<script type="text/javascript" src="file://localhost/{{ log_dir }}/{{ subject_id }}/reports/{{ scan_id }}.js"></script>				
-			{% endfor %}
-		{% endfor %}
+		(% for subject_id in subject_ids %)			
+			(% for scan_id in scan_ids[subject_id] %)
+				<script type="text/javascript" src="file://localhost/(( log_dir ))/(( subject_id ))/reports/(( scan_id )).js"></script>				
+			(% endfor %)
+		(% endfor %)
 		
 		<!-- Parse the js files -->
 		<script type="text/javascript" charset="utf-8">

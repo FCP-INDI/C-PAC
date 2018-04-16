@@ -2,13 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Log File for {{ subject_id }}</title>
+    <title>Log File for ( subject_id )</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
 
     <!-- Le styles -->
-    <link href="{{ resources }}/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="(( resources ))/bootstrap/css/bootstrap.css" rel="stylesheet">
     <style type="text/css">
       body {
         padding-top: 60px;
@@ -56,7 +56,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="brand" href="index.html">{{ subject_id }}</a>
+          <a class="brand" href="index.html">(( subject_id ))</a>
           <div class="nav-collapse collapse">
 			<!--
 			<p class="navbar-text pull-right">
@@ -64,11 +64,11 @@
             </p>
 			-->
             <ul class="nav">
-							{% for scan in scans %}
+							( for scan in scans )
 								<li{% if scan is sameas cur_scan %} class="active"{% endif %}>
-									<a href="{{ scan }}.html">{{ scan }}</a>
+									<a href="( scan ).html">( scan )</a>
 								</li>
-							{% endfor %}
+							( endfor )
             </ul>
           </div><!--/.nav-collapse -->
         </div><!--/.container-fluid -->
@@ -81,9 +81,9 @@
 					<div data-spy="affix" data-offset-top="200">
 	          <div id="sidenav" class="well sidebar-nav">
 	            <ul class="nav nav-list">              
-								{% for pipeline in pipelines %}
-									<li><a href="#{{ pipeline }}">Pipeline {{ pipeline }}</a></li>
-								{% endfor %}
+								( for pipeline in pipelines )
+									<li><a href="#( pipeline })">Pipeline ( pipeline )</a></li>
+								( endfor )
 	            </ul>
 	          </div><!--/.well -->
 					</div>
@@ -91,13 +91,13 @@
         <div class="span9">
 					<div id="global_status" class="alert alert-info">
 					  <button type="button" class="close" data-dismiss="alert">&times;</button>
-					  <strong>Running!</strong> CPAC started running at {{ timestamp }}.
+					  <strong>Running!</strong> CPAC started running at ( timestamp ).
 					</div>
-					{% for pipeline in pipelines %}
-						<div id="{{ pipeline }}" class="row-fluid pipeline" data-offset-top="200">
-							<a name="{{ pipeline }}"></a>
+					( for pipeline in pipelines )
+						<div id="( pipeline )" class="row-fluid pipeline" data-offset-top="200">
+							<a name="( pipeline )"></a>
 							<h1>
-								Pipeline {{ pipeline }} 
+								Pipeline ( pipeline ) 
 								<a href="#" class="pull-right btn btn-info disabled">RUNNING</a>
 							</h1>
 					
@@ -124,17 +124,17 @@
 							  </tbody>
 						  </table>							
 						</div><!--/pipeline-->
-						{% if loop.index is not sameas loop.length %}
+						( if loop.index is not sameas loop.length )
 							<hr>
-						{% endif %}
-					{% endfor %}
+						( endif )
+					( endfor )
         </div><!--/span-->
       </div><!--/row-->
 
       <hr>
 
       <footer>
-				<img src="{{ gui_resources }}/images/cpac_new_logo.png">
+				<img src="( gui_resources )/images/cpac_new_logo.png">
         <p>&copy; CPAC 2013</p>
       </footer>
 
@@ -144,11 +144,11 @@
 			var wf_info = [];
 			var pipe_names = [];
 			var pipe_inds  = [];
-			{% for pindex in pipeline_indices %}
-				pipe_inds.push({{ pindex }})
-				pipe_names[{{ pindex }}] = "{{ pipelines[pindex] }}";
-				wf_info[{{ pindex }}] = [];
-			{% endfor %}
+			( for pindex in pipeline_indices )
+				pipe_inds.push(( pindex ))
+				pipe_names[( pindex )] = "( pipelines[pindex] )";
+				wf_info[( pindex )] = [];
+			( endfor )
 			
 			var wf_list = {{ wf_list }};			
 			var wf_keys = {{ wf_keys }};

@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib
 import pkg_resources as p
 matplotlib.use('Agg')
-
+import os
 
 def append_to_files_in_dict_way(list_files, file_):
 
@@ -157,7 +157,6 @@ def first_pass_organizing_files(qc_path):
                 strat_dict[str_] = [file_]
 
 
-
 def second_pass_organizing_files(qc_path):
 
 
@@ -290,8 +289,8 @@ def organize(dict_, all_ids, png_, new_dict):
     """
 
     for id_no, png_type in dict_.items():
-        # Check if folder name is png type
-        if png_type + '/' in png_:
+
+        if png_type in png_:
             if not id_no in new_dict.keys():
                 new_dict[id_no] = [png_]
             else:
@@ -355,25 +354,24 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
         list of png id nos
     """
 
-    # Import packages
     from CPAC.qc.utils import organize
 
-    # Init variables
     dict_a = {}
     dict_s = {}
     dict_hist = {}
     dict_plot = {}
-    all_ids = []
 
-    # For each png, organize the ids into respective dictoinaries
+    all_ids = []
     for png_ in pngs_:
+
+
         all_ids = organize(qc_montage_id_a, all_ids, png_, dict_a)
         all_ids = organize(qc_montage_id_s, all_ids, png_, dict_s)
         all_ids = organize(qc_plot_id, all_ids, png_, dict_plot)
         all_ids = organize(qc_hist_id, all_ids, png_, dict_hist)
 
-    return dict(dict_a), dict(dict_s), dict(dict_hist),\
-           dict(dict_plot), list(all_ids)
+    return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
+
 
 
 def add_head(f_html_, f_html_0, f_html_1):
@@ -417,11 +415,12 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
-    print >>f_html_0, "<body>"
+    print >>f_html_0, "<body bgcolor = "#FFFF00">"
     print >>f_html_0, "<div>"
     print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
     print >>f_html_0, "<p class=\"logo\"><a href=\"#\">"
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cpac_logo.jpg"))
+    print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cmi_logo.jpg"))
     print >>f_html_0, "</a></p>"
     print >>f_html_0, "<h3><a href=\"#\">Table Of Contents</a></h3>"
     print >>f_html_0, "<ul>"
@@ -431,7 +430,6 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_1, "</style>"
     print >>f_html_1, "<body>"
     print >>f_html_1, "<a name='reverse'>"
-
 
 
 def add_tail(f_html_, f_html_0, f_html_1):
@@ -459,28 +457,7 @@ def add_tail(f_html_, f_html_0, f_html_1):
     None
 
     """
-#     print >>f_html_0, "</ul>"
-#     print >>f_html_0, "<br>"
-#     print >>f_html_0, "<br>"
-#     print >>f_html_0, "<form class=\"navbar-form pull-left\" method=\"post\" action=\"\"> \
-# <br> \
-# Recommendation for QC <br>\
-# <input type=\"radio\" name=\"group1\" value=\"1\"> 1<br> \
-# <input type=\"radio\" name=\"group1\" value=\"2\"> 2<br> \
-# <input type=\"radio\" name=\"group1\" value=\"3\"> 3<br> \
-# <input type=\"radio\" name=\"group1\" value=\"4\"> 4<br> \
-# <input type=\"radio\" name=\"group1\" value=\"5\" checked>5<br> \
-#  <br> Notes\
-# <br> \
-# <textarea name=\"comments\" cols=\"25\" rows=\"5\"> \
-# Enter QC Notes here... \
-# </textarea><br> \
-# <br> \
-# <input type=\"submit\" value=\"Submit\" /> \
-# <br> \
-# <br> \
-# <br> \
-# </form>"
+
     print >>f_html_0, "</ul>"
     print >>f_html_0, "</div>"
     print >>f_html_0, "</div>"
@@ -488,7 +465,6 @@ def add_tail(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "</html>"
     print >>f_html_1, "</body>"
     print >>f_html_1, "</html>"
-
 
 
 def feed_line_nav(id_,
@@ -525,8 +501,6 @@ def feed_line_nav(id_,
     None
 
     """
-
-    ### add general user readable link names for QC navigation bar
     image_readable = image_name
     if image_name == 'skullstrip_vis':
         image_readable = 'Visual Result of Skull Strip'
@@ -575,12 +549,10 @@ def feed_line_nav(id_,
     if image_name == 'falff_smooth':
         image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
     if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
     print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name, \
-        anchor, image_readable)   ###
-
-
+                                                             anchor, image_readable)
 
 def feed_line_body(image_name, anchor, image, f_html_1):
     """
@@ -608,8 +580,6 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     None
 
     """
-
-    ### add general user readable link names for QC body
     image_readable = image_name
     if image_name == 'skullstrip_vis':
         image_readable = 'Visual Result of Skull Strip'
@@ -658,14 +628,14 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     if image_name == 'falff_smooth':
         image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
     if image_name == 'falff_smooth_hist':
-        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation' 
+        image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
 
     print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)   ###
 
     ###data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
     ###img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
-    
+
     img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)   ###
     print >>f_html_1, img_tag
 
@@ -761,15 +731,7 @@ def get_map_and_measure(png_a):
 
     if 'centrality' in png_a:
 
-        try:
-            map_name = get_map_id(str_, 'centrality_')
-        except:
-            pass
-
-        try:
-            map_name = get_map_id(str_, 'lFCD_')
-        except:
-            pass
+        map_name = get_map_id(str_, 'centrality_')
 
 
     return map_name, measure_name
@@ -842,6 +804,7 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
+    #print 'id_ :', id_
     if id_ in dict_a:
 
         dict_a[id_] = sorted(dict_a[id_])
@@ -891,9 +854,9 @@ def feed_lines_html(id_,
                 id_a = '_'.join([id_a, str(idx), 'a'])
                 id_s = '_'.join([id_s, str(idx), 's'])
                 id_h = '_'.join([id_h, str(idx), 'h' ])
+            
 
             if idx == 0:
-                # add general user readable link names for QC navigation bar
                 if image_name_a_nav == 'skullstrip_vis':
                     image_readable = 'Visual Result of Skull Strip'
                 if image_name_a_nav == 'csf_gm_wm':
@@ -939,11 +902,9 @@ def feed_lines_html(id_,
                 if image_name_a_nav == 'falff_smooth':
                     image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
                 if image_name_a_nav == 'falff_smooth_hist':
-                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'      
-
+                    image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
                 feed_line_nav(id_, \
                             image_name_a_nav, \
-                            #image_readable, \
                             id_a, \
                             f_html_0, \
                             f_html_1)
@@ -1034,7 +995,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
                             feed_lines_html
 
 
-
+    
     f_ = open(file_, 'r')
     pngs_ = [line.rstrip('\r\n') for line in f_.readlines()]
     f_.close()
@@ -1047,47 +1008,39 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     html_f_name_1 = html_f_name + '_1.html'
     html_f_name = html_f_name + '.html'
 
-    
-    try:
-
-        f_html_ = open(html_f_name, 'wb')
-        f_html_0 = open(html_f_name_0, 'wb')
-        f_html_1 = open(html_f_name_1, 'wb')
+    f_html_ = open(html_f_name, 'wb')
+    f_html_0 = open(html_f_name_0, 'wb')
+    f_html_1 = open(html_f_name_1, 'wb')
 
 
-        dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
-                                            qc_montage_id_s, qc_plot_id, qc_hist_id)
+    dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
+                                        qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-        #for k, v in dict_plot.items():
-        #        print '_a~~~> ', k, v
+    #for k, v in dict_plot.items():
+    #        print '_a~~~> ', k, v
 
-        add_head(f_html_, f_html_0, f_html_1)
+    add_head(f_html_, f_html_0, f_html_1)
 
 
-        for id_ in sorted(all_ids):
-            print 'id: ', id_
-            feed_lines_html(id_,
-                              dict_a,
-                              dict_s,
-                              dict_hist,
-                              dict_plot,
-                              qc_montage_id_a,
-                              qc_montage_id_s,
-                              qc_plot_id,
-                              qc_hist_id,
-                              f_html_0,
-                              f_html_1)
+    for id_ in sorted(all_ids):
+        feed_lines_html(id_,
+                          dict_a,
+                          dict_s,
+                          dict_hist,
+                          dict_plot,
+                          qc_montage_id_a,
+                          qc_montage_id_s,
+                          qc_plot_id,
+                          qc_hist_id,
+                          f_html_0,
+                          f_html_1)
 
-        add_tail(f_html_, f_html_0, f_html_1)
 
-        f_html_.close()
-        f_html_0.close()
-        f_html_1.close()
+    add_tail(f_html_, f_html_0, f_html_1)
 
-    except Exception as exc:
-        print '\n\nWarning: QC HTML pages could not be generated. Error: %s' \
-              % exc
-        raise Exception
+    f_html_.close()
+    f_html_0.close()
+    f_html_1.close()
 
     
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
@@ -1127,6 +1080,8 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
     """
     import os
     from CPAC.qc.utils import make_page
+                              
+        
 
     qc_files = os.listdir(qc_path)
 
@@ -1137,10 +1092,10 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
         #actually make the html page for the file_
         make_page(os.path.join(qc_path, file_), qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
+        
 
 
-
-def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     """
     parafile = open('QC_input_para.txt', 'w')
@@ -1206,10 +1161,40 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hi
     first_pass_organizing_files(qc_path)
     #according to bandpass and hp_lp and smoothing iterables combines the files
     second_pass_organizing_files(qc_path)
-
-    #generate pages from qc files
     make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
+    #generate pages from qc files
+#   text_file_list = os.listdir(qc_path)
+#    print text_file_list
+#    image_path_list = []
+#    for text_file in text_file_list:
+#        if text_file[0] != '.':
+#            f = open(os.path.join(qc_path, text_file),'r')
+#            eof = 0
+#            while (not eof):
+#                    temp_line = f.readline()
+#                    if temp_line == '':
+#                        eof=1 #This is to check if reading the file is complete
+#                    else:
+#                        if temp_line[-2:] == "\n":
+#                            temp_line = temp_line[:-1]
+#                        image_path_list.append(temp_line)
+#            f.close()
+#    f = open(os.path.join(qc_path, "QC_index.html"),'w')
+#    header = """<html>
+#    <head> QA Images </head>
+#    <body><p>"""
+#    footer = """</p></body>
+#    </html>"""
+                              
+#    f.write(header)
+#    for image in image_path_list:
+#        image_html = "<img src=\""+image+"\">"
+#        f.write(image_html)
+                              
+#    f.write(footer)
+#    f.close()
+#    print f
 
 
 def make_edge(file_):
@@ -1366,6 +1351,9 @@ def cal_snr_val(measure_file):
     f.close()
 
     return avg_snr_file
+
+
+
 
 
 def gen_std_dev(mask_, func_):
@@ -1640,26 +1628,16 @@ def gen_histogram(measure_file, measure):
             if 'centrality' in measure.lower():
 
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-
-                if 'centrality_' in fname:
-                    type_, fname = fname.split('centrality_')
-                    fname = type_ + 'centrality_' + fname.split('_')[0]
-                    measure = fname
-                elif 'lfcd_' in fname.lower():
-                    fname = 'lFCD_' + fname.split('_')[1]
-                    measure = fname
+                type_, fname = fname.split('centrality_')
+                fname = type_ + 'centrality_' + fname.split('_')[0]
+                measure = fname
 
             hist_path.append(make_histogram(file_, measure))
 
     else:
-
-        print "measure_file: ", measure_file
-        print "measure: ", measure
-
         hist_path = make_histogram(measure_file, measure)
 
     return hist_path
-
 
 
 def make_histogram(measure_file, measure):
@@ -1931,7 +1909,7 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Axial Direction
-    calls make_montage_axial
+	calls make_montage_axial
 
     Parameters
     ----------
@@ -2019,8 +1997,8 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
-    X = X.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     if  'skull_vis' in png_name:
         X[X < 20.0] = 0.0
@@ -2100,7 +2078,7 @@ def montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     """
     Draws Montage using overlay on Anatomical brain in Sagittal Direction
-    calls make_montage_sagittal
+	calls make_montage_sagittal
 
     Parameters
     ----------
@@ -2186,8 +2164,8 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     Y = nb.load(underlay).get_data()
     X = nb.load(overlay).get_data()
-    X = X.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
 
 
     if  'skull_vis' in png_name:
@@ -2309,10 +2287,10 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     X_csf = nb.load(overlay_csf).get_data()
     X_wm = nb.load(overlay_wm).get_data()
     X_gm = nb.load(overlay_gm).get_data()
-    X_csf = X_csf.astype(np.float16)
-    X_wm = X_wm.astype(np.float16)
-    X_gm = X_gm.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X_csf = X_csf.astype(np.float32)
+    X_wm = X_wm.astype(np.float32)
+    X_gm = X_gm.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     max_csf = np.nanmax(np.abs(X_csf.flatten()))
     X_csf[X_csf != 0.0] = max_csf
@@ -2420,10 +2398,10 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
     X_csf = nb.load(overlay_csf).get_data()
     X_wm = nb.load(overlay_wm).get_data()
     X_gm = nb.load(overlay_gm).get_data()
-    X_csf = X_csf.astype(np.float16)
-    X_wm = X_wm.astype(np.float16)
-    X_gm = X_gm.astype(np.float16)
-    Y = Y.astype(np.float16)
+    X_csf = X_csf.astype(np.float32)
+    X_wm = X_wm.astype(np.float32)
+    X_gm = X_gm.astype(np.float32)
+    Y = Y.astype(np.float32)
 
     max_csf = np.nanmax(np.abs(X_csf.flatten()))
     X_csf[X_csf != 0.0] = max_csf
@@ -2589,3 +2567,4 @@ def make_resample_1mm(file_):
     commands.getoutput(cmd)
 
     return new_fname
+
