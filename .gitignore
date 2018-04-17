@@ -21,15 +21,19 @@ pip-log.txt
 .coverage
 .tox
 
-#Translations
+# Translations
 *.mo
 
-#Mr Developer
+# Mr Developer
 .mr.developer.cfg
 
-#CPAC Specific
+# CPAC Specific
 /doc/_build
 
-#Eclipse project files
+# Eclipse project files
 .project
 .pydevproject
+
+# Transpiling and compiling
+*.c
+*.so
