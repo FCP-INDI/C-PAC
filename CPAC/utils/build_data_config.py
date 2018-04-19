@@ -1601,7 +1601,7 @@ def run(data_settings_yml):
 
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
-
+        group_list = []
         included = {'site': [], 'sub': []}
         num_sess = num_scan = 0
 

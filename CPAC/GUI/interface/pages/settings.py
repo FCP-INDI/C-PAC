@@ -242,12 +242,12 @@ class DirectorySettings(wx.ScrolledWindow):
                               "version of the output directory.",
                       values=["On", "Off"])
 
-        #self.page.add(label="Enable Quality Control Interface ",
-        #              control=control.CHOICE_BOX,
-        #              name='generateQualityControlImages',
-        #              type=dtype.LSTR,
-        #              comment="Generate quality control pages containing preprocessing and derivative outputs.",
-        #              values=["On", "Off"])
+        self.page.add(label="Enable Quality Control Interface ",
+                      control=control.CHOICE_BOX,
+                      name='generateQualityControlImages',
+                      type=dtype.LSTR,
+                      comment="Generate quality control pages containing preprocessing and derivative outputs.",
+                      values=["On", "Off"])
 
         self.page.add(label="Remove Working Directory ",
                       control=control.CHOICE_BOX,
