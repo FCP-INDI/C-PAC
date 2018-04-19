@@ -662,7 +662,6 @@ def run(data_config):
               "in CPAC configuration\n")
         s_param_map = None
 
-    CPAC.utils.build_sublist.build_sublist(data_config)
     generate_supplementary_files(c.outputSubjectListLocation, c.subjectListName)
 
 
