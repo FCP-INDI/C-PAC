@@ -4237,14 +4237,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     """""""""""""""""""""""""""""""""""""""""""""""""""
    
     if 1 in c.generateQualityControlImages:
-
-        preproc, out_file = strat.get_node_from_resource_pool('preprocessed')
-        brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-        func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-        anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-        mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
-
-
+        
         #register color palettes
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'red.py')), 'red')
@@ -4258,17 +4251,18 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
                 
         hist = pe.Node(util.Function(input_names=['measure_file','measure'],output_names = ['hist_path'],function = gen_histogram),name = 'histogram')
-    
-        
 
         for strat in strat_list:
 
             nodes = getNodeList(strat)
-
             #make SNR plot
  
             try:
-
+                preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
+                brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
+                mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
                 hist_.inputs.measure = 'snr'
 
@@ -4439,7 +4433,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make QC montages for mni normalized anatomical image
             try:
-                mni_anat_underlay, out_file = strat.get_node_from_resource_pool('mni_normalized_anatomical')
+                mni_anat_underlay, out_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
 
                 montage_mni_anat = create_montage('montage_mni_anat_%d' % num_strat,
                                     'red', 'mni_anat')
@@ -5154,6 +5148,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                       'nipype repo at https:/github.com/fcp-indi/nipype.\n' \
                       'Error: %s' % (os.path.dirname(nipype.__file__), exc)
             logger.error(err_msg)
+            if nipype.__version__ != '0.13.1':
+                print "This version of nipype may not be compatible with CPAC v1.2, please install version 0.13.1"
             # raise Exception(err_msg)
 
         # Actually run the pipeline now, for the current subject

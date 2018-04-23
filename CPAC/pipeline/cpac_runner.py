@@ -411,7 +411,7 @@ def run(config_file, subject_list_file, p_name=None, plugin=None,
     validate(c)
 
     # Get the pipeline name
-    p_name = c.pipelineName
+    p_name = p_name or c.pipelineName
 
     # Load in subject list
     try:
