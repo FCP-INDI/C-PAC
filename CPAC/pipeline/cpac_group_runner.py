@@ -387,11 +387,12 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
 
     # first, check to see if this design matrix setup has already been done
     # in the pheno CSV file
+    #     NOTE: this is mainly for PRESET GROUP ANALYSIS MODELS!!!
     num_partic_cols = 0
     for col_names in pheno_df.columns:
         if "participant" in col_names:
             num_partic_cols += 1
-    if num_partic_cols > 1 and "session" in pheno_df.columns:
+    if num_partic_cols > 1 and ("session" in pheno_df.columns or "session_column_one" in pheno_df.columns):
         for part_ses_id in pheno_df["participant_id"]:
             if "participant_{0}".format(part_ses_id.split("_")[0]) in pheno_df.columns:
                 continue
@@ -412,10 +413,9 @@ def pheno_sessions_to_repeated_measures(pheno_df, sessions_list):
     for participant_unique_id in list(pheno_df["participant_id"]):
         part_col = [0] * len(pheno_df["participant_id"])
         for session in sessions_list:
-            if session in participant_unique_id:
+            if session in participant_unique_id.split("_")[1]:
                 # generate/update sessions categorical column
-                part_id = participant_unique_id.replace(session, "")
-                part_id = part_id.replace("_","")
+                part_id = participant_unique_id.split("_")[0]
                 part_ids_col.append(part_id)
                 sessions_col.append(session)
                 header_title = "participant_%s" % part_id
@@ -838,6 +838,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
                         # this can be removed/modified once sessions are no
                         # longer integrated in the full unique participant IDs
+                        print newer_pheno_df
                         if "Session" in newer_pheno_df.columns:
                             # TODO: re-visit why there is a "participant_ID"
                             # TODO: column? will this still work without
