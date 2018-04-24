@@ -5210,18 +5210,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
-        for pip_id in pip_ids:
-            try:
-                pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
-                qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
-                generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+        if 1 in c.generateQualityControlImages:
+            for pip_id in pip_ids:
+                try:
+                    pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
+                    qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
+                    generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
             #create_all_qc.run(pipeline_base)
-            except Exception as e:
-                print "Error: this function is not running"
-                print ""
-                print e
-                print type(e)
-                raise Exception
+                except Exception as e:
+                    print "Error: The QC function page generation is not running"
+                    print ""
+                    print e
+                    print type(e)
+                    raise Exception
                     
 
 
