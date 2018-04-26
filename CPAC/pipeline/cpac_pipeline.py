@@ -4237,6 +4237,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     """""""""""""""""""""""""""""""""""""""""""""""""""
    
     if 1 in c.generateQualityControlImages:
+
+        preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
+        brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
+        func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+        anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
+        mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
+        
         
         #register color palettes
         register_pallete(os.path.realpath(
@@ -4258,11 +4265,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             #make SNR plot
  
             try:
-                preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
-                brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-                mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
+                #preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
+                #brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
+                #func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
+                #anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
+                #mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
                 hist_.inputs.measure = 'snr'
 
@@ -4618,8 +4625,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 1 in c.runZScoring:
 
                         if c.fwhm != None:
-                            QA_montages('alff_to_standard_smooth_zstd', 11)
-                            QA_montages('falff_to_standard_smooth_zstd', 12)
+                            QA_montages('alff_to_standard_zstd_smooth', 11)
+                            QA_montages('falff_to_standard_zstd_smooth', 12)
 
                         else:
                             QA_montages('alff_to_standard_zstd', 13)
@@ -4636,7 +4643,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 1 in c.runZScoring:
 
                         if c.fwhm != None:
-                            QA_montages('reho_to_standard_smooth_fisher_zstd', 17)
+                            QA_montages('reho_to_standard_zstd_fisher_smooth', 17)
 
                         else:
                             QA_montages('reho_to_standard_fisher_zstd', 18)
@@ -4652,7 +4659,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 1 in c.runZScoring:
 
                         if c.fwhm != None:
-                            QA_montages('sca_roi_to_standard_smooth_fisher_zstd', 22)
+                            QA_montages('sca_roi_to_standard_zstd_fisher_smooth', 22)
 
                         else:
                             QA_montages('sca_roi_to_standard_fisher_zstd', 21)
@@ -4669,7 +4676,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 1 in c.runZScoring:
 
                         if c.fwhm != None:
-                            QA_montages('sca_seed_to_standard_smooth_fisher_zstd', 26)
+                            QA_montages('sca_seed_to_standard_zstd_fisher_smooth', 26)
 
                         else:
                             QA_montages('sca_seed_to_standard_fisher_zstd', 25)
