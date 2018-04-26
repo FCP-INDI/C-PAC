@@ -4643,7 +4643,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     if 1 in c.runZScoring:
 
                         if c.fwhm != None:
-                            QA_montages('reho_to_standard_zstd_fisher_smooth', 17)
+                            QA_montages('reho_to_standard_zstd_smooth', 17)
 
                         else:
                             QA_montages('reho_to_standard_fisher_zstd', 18)
