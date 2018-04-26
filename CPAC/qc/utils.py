@@ -1229,8 +1229,8 @@ def make_edge(file_):
     new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
 
     cmd = "3dedge3 -input %s -prefix %s" % (file_, new_fname)
-    print cmd
-    print commands.getoutput(cmd)
+    #print cmd
+    #print commands.getoutput(cmd)
 
     return new_fname
 
