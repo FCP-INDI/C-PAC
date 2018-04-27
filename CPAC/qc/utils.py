@@ -4,6 +4,10 @@ import matplotlib
 import pkg_resources as p
 matplotlib.use('Agg')
 import os
+import nipype.pipeline.engine as pe
+from nipype.interfaces import afni,fsl
+import nipype.interfaces.utility as util
+
 
 def append_to_files_in_dict_way(list_files, file_):
 
@@ -1197,43 +1201,51 @@ def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_his
 #    print f
 
 
-def make_edge(file_):
-
+def make_edge(wf_name ='create_edge'):
+    
     """
-    Make edge file from a scan image
-
-    Parameters
-    ----------
-
-    file_ :    string
+        Make edge file from a scan image
+        
+        Parameters
+        ----------
+        
+        file_ :    string
         path to the scan
-
-    Returns
-    -------
-
-    new_fname : string
+        
+        Returns
+        -------
+        
+        new_fname : string
         path to edge file
-
-    """
-
+        
+        """
+    
     import commands
     import os
-
-    remainder, ext_ = os.path.splitext(file_)
-
-    remainder, ext1_ = os.path.splitext(remainder)
-
-    ext = ''.join([ext1_, ext_])
-
-    new_fname = ''.join([remainder, '_edge', ext])
-    new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
-
-    cmd = "3dedge3 -input %s -prefix %s" % (file_, new_fname)
-    print cmd
-    print commands.getoutput(cmd)
-
-    return new_fname
-
+    
+    wf_name = pe.Workflow(name = wf_name)
+    
+    inputNode = pe.Node(util.IdentityInterface(fields=['file_']),name = 'inputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['new_fname']),name = 'outputspec')
+    
+    prepare = pe.Node(interface=afni.Edge3(),name ='prepare')
+    wf_name.connect(inputNode,'file_',prepare,'in_file')
+    wf_name.connect(prepare,'out_file',outputNode,'new_fname')
+    
+    #remainder, ext_ = os.path.splitext(file_)
+    
+    #remainder, ext1_ = os.path.splitext(remainder)
+    
+    #ext = ''.join([ext1_, ext_])
+    
+    #   new_fname = ''.join([remainder, '_edge', ext])
+    #    new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
+    
+    #cmd = "3dedge3 -input %s -prefix %s" % (file_, new_fname)
+    #print cmd
+    #print commands.getoutput(cmd)
+    
+    return wf_name
 
 def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
