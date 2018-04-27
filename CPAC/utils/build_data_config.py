@@ -654,7 +654,9 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
             ses = True
 
         # check if there is a participants.tsv file
-        part_tsv = glob.glob(part_tsv_glob)
+        part_tsv_finds = glob.glob(part_tsv_glob)
+        if part_tsv_finds:
+            part_tsv = part_tsv_finds[0]
 
         for glob_str in site_json_globs:
             site_jsons = site_jsons + glob.glob(glob_str)
@@ -670,15 +672,11 @@ def get_BIDS_data_dct(bids_base_dir, file_list=None, anat_scan=None,
         # this would contain site information if the dataset is multi-site
         import csv
 
-        if file_list:
+        if part_tsv.startswith("s3://"):
             print "\n\nFound a participants.tsv file in your BIDS data " \
                   "set on the S3 bucket. Downloading..\n"
             part_tsv = download_single_s3_path(part_tsv, config_dir,
                                                aws_creds_path, overwrite=True)
-        else:
-            # then participants.tsv is local, and we need to pull it out of
-            # the glob return list
-            part_tsv = part_tsv[0]
 
         print "Checking participants.tsv file for site information:" \
               "\n{0}".format(part_tsv)
@@ -1168,8 +1166,10 @@ def update_data_dct(file_path, file_template, data_dct=None, data_type="anat",
         temp_sub_dct = {'subject_id': sub_id,
                         'unique_id': ses_id,
                         'site': site_id,
-                        'anat': file_path,
-                        'creds_path': str(aws_creds_path)}
+                        'anat': file_path }
+
+        if aws_creds_path:
+            temp_sub_dct.update({ 'creds_path': str(aws_creds_path) })
 
         if site_id not in data_dct.keys():
             data_dct[site_id] = {}
@@ -1487,34 +1487,36 @@ def run(data_settings_yml):
     with open(data_settings_yml, "r") as f:
         settings_dct = yaml.load(f)
 
-    if not settings_dct["awsCredentialsFile"]:
+    if "awsCredentialsFile" not in settings_dct or \
+            not settings_dct["awsCredentialsFile"]:
         settings_dct["awsCredentialsFile"] = None
     elif "None" in settings_dct["awsCredentialsFile"] or \
             "none" in settings_dct["awsCredentialsFile"]:
         settings_dct["awsCredentialsFile"] = None
 
-    if not settings_dct["anatomical_scan"]:
+    if "anatomical_scan" not in settings_dct or \
+        not settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
     elif "None" in settings_dct["anatomical_scan"] or \
             "none" in settings_dct["anatomical_scan"]:
         settings_dct["anatomical_scan"] = None
 
     # inclusion lists
-    incl_dct = format_incl_excl_dct(settings_dct['siteList'], 'sites')
-    incl_dct.update(format_incl_excl_dct(settings_dct['subjectList'],
+    incl_dct = format_incl_excl_dct(settings_dct.get('siteList', None), 'sites')
+    incl_dct.update(format_incl_excl_dct(settings_dct.get('subjectList', None),
                                          'participants'))
-    incl_dct.update(format_incl_excl_dct(settings_dct['sessionList'],
+    incl_dct.update(format_incl_excl_dct(settings_dct.get('sessionList', None),
                                          'sessions'))
-    incl_dct.update(format_incl_excl_dct(settings_dct['scanList'], 'scans'))
+    incl_dct.update(format_incl_excl_dct(settings_dct.get('scanList', None), 'scans'))
 
     # exclusion lists
-    excl_dct = format_incl_excl_dct(settings_dct['exclusionSiteList'],
+    excl_dct = format_incl_excl_dct(settings_dct.get('exclusionSiteList', None),
                                     'sites')
-    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionSubjectList'],
+    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionSubjectList', None),
                                          'participants'))
-    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionSessionList'],
+    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionSessionList', None),
                                          'sessions'))
-    excl_dct.update(format_incl_excl_dct(settings_dct['exclusionScanList'],
+    excl_dct.update(format_incl_excl_dct(settings_dct.get('exclusionScanList', None),
                                          'scans'))
 
     if 'BIDS' in settings_dct['dataFormat'] or \
@@ -1602,6 +1604,7 @@ def run(data_settings_yml):
         # put data_dct contents in an ordered list for the YAML dump
         data_list = []
         group_list = []
+
         included = {'site': [], 'sub': []}
         num_sess = num_scan = 0
 
