@@ -16,6 +16,7 @@ import pandas as pd
 import pkg_resources as p
 
 # Nipype packages
+import nipype
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.io as nio
@@ -5159,20 +5160,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         cb_logger.addHandler(handler)
 
         # Add status callback function that writes in callback log
-        try:
-            from nipype.pipeline.plugins.callback_log import log_nodes_cb
-            plugin_args['status_callback'] = log_nodes_cb
-        except ImportError as exc:
-            import nipype
-            err_msg = 'Version of nipype found in %s does not contain the ' \
-                      'MultiProc plugin. Please check installation is the ' \
-                      'most up-to-date or download and install the FCP-INDI ' \
-                      'nipype repo at https:/github.com/fcp-indi/nipype.\n' \
-                      'Error: %s' % (os.path.dirname(nipype.__file__), exc)
+        if nipype.__version__ not in ('0.13.1', '0.14.0'):
+            err_msg = "This version of nipype may not be compatible with CPAC v%s, please install version 0.14.0\n" \
+                       % (CPAC.__version__)
             logger.error(err_msg)
-            if nipype.__version__ != '0.13.1':
-                print "This version of nipype may not be compatible with CPAC v1.2, please install version 0.13.1"
-            # raise Exception(err_msg)
+        else:
+            if nipype.__version__ == '0.13.1':
+                plugin_args['status_callback'] = nipype.pipeline.plugins.callback_log.log_nodes_cb
+            else:
+                plugin_args['status_callback'] = nipype.utils.profiler.log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)

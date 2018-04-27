@@ -258,11 +258,9 @@ class ListBox(wx.Frame):
             print "Error importing CPAC"
             print e
 
-        from nipype.pipeline.plugins.callback_log import log_nodes_cb
         c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
         plugin_args = {'n_procs': c.maxCoresPerParticipant,
-                       'memory_gb': c.maximumMemoryPerParticipant,
-                       'callback_log': log_nodes_cb}
+                       'memory_gb': c.maximumMemoryPerParticipant}
 
         # TODO: make this work
         if self.pids:
