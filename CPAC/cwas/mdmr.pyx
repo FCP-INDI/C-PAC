@@ -64,37 +64,62 @@ cdef class DiagonalMatrix(object):
         else:
             return self.others
 
+cdef class FullDistanceMatrix(DistanceMatrix):
+
+    cdef public int n
+    cdef np.ndarray X
+
+    def __init__(self, n=None, np.ndarray[DTYPE_t, ndim=2] X=None):
+        if X is not None:
+            self.n = X.shape[0]
+            self.X = X
+        else:
+            self.n = n
+            self.X = np.zeros([n, n], dtype=np.float64)
+
+    def __getitem__(self, tuple key):
+        return self.X[key[0], key[1]]
+
+    def __setitem__(self, tuple key, value):
+        self.X[key[0], key[1]] = float(value)
+
 cdef class SymmetricDistanceMatrix(DistanceMatrix):
 
     cdef public int n
     cdef public int size
-    cdef float diagonal_value
     cdef float * values
+    cdef float * diagonal
 
-    def __cinit__(self, n, diagonal_value):
+    def __cinit__(self, n):
         self.n = n
         self.size = ((n - 1) * n) / 2
-        self.diagonal_value = diagonal_value
+        self.diagonal = <float *> PyMem_Malloc(self.n * sizeof(float))
 
         self.values = <float *> PyMem_Malloc(self.size * sizeof(float))
         if not self.values:
             raise MemoryError()
 
+        for i in range(self.n):
+            self.diagonal[i] = 0.0
         for i in range(self.size):
             self.values[i] = 0.0
 
-    # def __dealloc__(self):
-    #     PyMem_Free(self.values)
+    def __dealloc__(self):
+        PyMem_Free(self.values)
+        PyMem_Free(self.diagonal)
 
     def __getitem__(self, tuple key):
         if key[0] == key[1]:
-            return self.diagonal_value
+            return self.diagonal[key[0]]
         else:
             return self.values[key[0] + key[1] - 1]
 
     def __setitem__(self, tuple key, value):
         if key[0] != key[1]:
             self.values[key[0] + key[1] - 1] = float(value)
+        else:
+            self.diagonal[key[0]] = float(value)
+
 
 cdef class DistanceMetric(object):
     cdef dist_params params
@@ -109,16 +134,6 @@ cdef class DistanceMetric(object):
 
         else:
             raise ValueError('unrecognized metric %s' % metric)
-
-    def _check_input(self, X):
-        X = np.asarray(X, dtype=DTYPE, order='C')
-        assert X.ndim == 2
-        m1 = m2 = X.shape[0]
-        n = X.shape[1]
-
-        Y = SymmetricDistanceMatrix(X.shape[0], 0.0)
-
-        return X, Y
                         
     def pdist(self, X):
         X = np.asarray(X, dtype=DTYPE, order='C')
@@ -126,7 +141,7 @@ cdef class DistanceMetric(object):
         m1 = m2 = X.shape[0]
         n = X.shape[1]
 
-        Y = SymmetricDistanceMatrix(X.shape[0], 0.0)
+        Y = SymmetricDistanceMatrix(X.shape[0])
         self._pdist_c(X, Y)
         return Y
 
@@ -156,36 +171,29 @@ def distance(np.ndarray[DTYPE_t, ndim=2] x, metric="euclidean", **kwargs):
 cdef gower(DistanceMatrix D):
     n = D.n
     norm = 1.0 / n
-    print norm
 
-    for i in range(1, n):
-        for j in range(i):
-            D[i, j] = -0.5 * (D[i, j] ** 2)
-    
     C = DiagonalMatrix(diagonal=1.0-norm, others=0.0-norm)
 
-    res = SymmetricDistanceMatrix(n, 0.0)
-
-    for i in range(1, n):
-        for j in range(i):
-            res[i, j] = 0.0
-            for k in range(n):
-                res[i, j] += C[i, k] * D[k, j]
-
+    CD = FullDistanceMatrix(n)
     for i in range(n):
-        print
         for j in range(n):
-            print C[i, j],
-    
-    res2 = SymmetricDistanceMatrix(n, 0.0)
-    
-    for i in range(1, n):
-        for j in range(i):
-            res2[i, j] = 0.0
+            CD[i, j] = 0.0
             for k in range(n):
-                res2[i, j] += res[i, k] * C[k, j]
+                CD[i, j] += C[i, k] * (-0.5 * (D[k, j] ** 2))
+
+    CDC = SymmetricDistanceMatrix(n)
+    for i in range(n):
+        for j in range(n):
+            sum = 0.0
+            for k in range(n):
+                sum += CD[i, k] * C[k, j]
+            CDC[i, j] = sum
                 
-    return res2
+    return CDC
+
+def gower_python(np.ndarray[DTYPE_t, ndim=2] X):
+    ds = FullDistanceMatrix(X.shape[0], X)
+    return gower(ds)
     
 
 def hat(np.ndarray[DTYPE_t, ndim=2] X):
@@ -200,27 +208,121 @@ def pseudo_f(n, m, H, G, I):
     return explained_variance / unexplained_variance
 
 
-def mdmr(np.ndarray[DTYPE_t, ndim=2] cmat, int permutations, distance_metric="euclidean"):
-    D = distance(cmat, metric=distance_metric)
+def mdmr(np.ndarray[DTYPE_t, ndim=2] data,
+         np.ndarray[DTYPE_t, ndim=2] design_matrix,
+         int permutations, distance_metric="euclidean"):
+         
+    D = distance(data, metric=distance_metric)
     G = gower(D)
-    H = hat(cmat)
+    H = hat(design_matrix)
 
-    p = cmat.shape[1]
-    n = cmat.shape[0]
+    p = data.shape[1]
+    n = data.shape[0]
 
     perms = np.array([
         np.random.permutation(n)
-        for n in np.arange(permutations)
+        for _ in np.arange(permutations)
     ])
 
     perms = np.vstack((np.arange(n), perms))
     permutations += 1
 
-    numer = np.matmul(H, G.T)
-    trG = np.sum(np.diag(G))
-    denom = trG - numer
+    HG = SymmetricDistanceMatrix(n)
+    for i in range(1, n):
+        for j in range(i):
+            HG[i, j] = 0.02
+            for k in range(n):
+                HG[i, j] += H[i, k] * G[i, k]
 
-    omni_pr2 = numer / trG
-    omni_f = numer / denom
+    trG = 0.0
+    for i in range(n):
+        trG += G[i, i]
 
-    return D, G, hat(cmat)
+    denom = SymmetricDistanceMatrix(n)
+    for i in range(1, n):
+        for j in range(i):
+            denom[i, j] = trG - HG[i, j]
+
+    omni_pr2 = SymmetricDistanceMatrix(n)
+    for i in range(1, n):
+        for j in range(i):
+            omni_pr2[i, j] = HG[i, j] / trG
+
+    omni_f = SymmetricDistanceMatrix(n)
+    for i in range(1, n):
+        for j in range(i):
+            omni_f[i, j] = HG[i, j] / denom[i, j]
+
+    Hs = []
+    for col in range(design_matrix.shape[1]):
+        selector = [True] * design_matrix.shape[1]
+        selector[col] = False
+        sub_design_matrix = design_matrix[:, selector]
+        Hs += [H - hat(sub_design_matrix)]
+
+    # Compute SSD due to conditional effect
+    numer_x = [np.cross(vhs, G) for vhs in Hs]
+
+    # Rescale to get either test statistic or pseudo r-square
+    f_x = numer_x / denom
+    pr2_x = numer_x / trG
+
+    # Combine test statistics and pseudo R-squares
+    #stat = data.frame("stat" = c(f.omni, f.x),
+    #                    row.names = c("(Omnibus)", unique.xnames))
+    #df = data.frame("df" = c(p, df),
+    #                row.names = c("(Omnibus)", unique.xnames))
+    #pr2 = data.frame("pseudo.Rsq" = c(pr2.omni, pr2.x),
+    #                    row.names = c("(Omnibus)", unique.xnames))
+
+
+
+
+
+    chunks = np.ceil(n * permutations / 1e6)
+    chunk_size = np.ceil(permutations / chunks)
+    permutations = chunks * chunk_size
+
+    # observations = [omni + n of covariates]
+    # for each chunk
+    #     for each range(chunk_size)
+    #         perm result[] = mdmr_permutation_stats
+    #     sum columns of perm result into observations
+
+    # divide all columns by permutations
+
+    # omni_hold = max(omni, 1/nperm)
+    # covariates_hold = pmax(covariates, 1/nperm)
+
+    # omni_acc = sqrt((omni_hold * (1-omni_hold)) / nperm)
+    # covariates_acc = sqrt((covariates_hold * (1-covariates_hold)) / nperm)
+
+    #out <- list("stat" = stat, "pr.sq" = pr2, "pv" = pv, "p.prec" = pv.acc,
+    #            "df" = df, lambda = NULL, nperm = nperm)
+
+    return D, G, hat(data)
+
+# .mdmr.permstats <- function(X, n, vg = gower, trG, px = number of covariates) {
+def mdmr_permutation_stats(np.ndarray[DTYPE_t, ndim=2] data,
+                           np.ndarray[DTYPE_t, ndim=2] design_matrix,
+                           int permutations, distance_metric="euclidean"):
+
+    # sample rows from X
+    # compute hat from samples
+    # crossprod hat * gower
+    # denom = trG - cross
+    # omni = cross / denom
+
+    # for each covariate
+    #     remove covariate from samples
+    #     compute hat
+    #     perm hat[] = global hat - local hat
+
+    # for each perm hat
+    #     crossprod perm hat and gower
+    #     numer[] = cross prod
+
+    # stats = numer / denom
+
+    # return [omni] + stats
+    pass
