@@ -17,7 +17,7 @@ class ModelConfig(wx.Frame):
         wx.Frame.__init__(
             self, parent=parent, title="CPAC - Create New FSL Model", size=(900, 650))
 
-        if gpa_settings == None:
+        if not gpa_settings:
             self.gpa_settings = {}
             self.gpa_settings['participant_list'] = ''
             self.gpa_settings['pheno_file'] = ''
@@ -47,7 +47,8 @@ class ModelConfig(wx.Frame):
         self.window = wx.ScrolledWindow(self.panel, size=(-1,300))
 
         self.page = generic_class.GenericClass(self.window,
-                                               " FSL Model Setup")
+                                               " FSL FLAME Group-Level "
+                                               "Analysis - Model Builder")
 
         self.page.add(label="Participant List ",
                       control=control.COMBO_BOX,
@@ -393,8 +394,8 @@ class ModelConfig(wx.Frame):
                                         self.gpa_settings['pheno_file']))
                     raise Exception(err)
 
-                # update the 'Model Setup' box and populate it with the EVs and
-                # their associated checkboxes for categorical and demean
+                # update the 'Model Setup' box and populate it with the EVs
+                # and their associated checkboxes for categorical and demean
                 for ctrl in self.page.get_ctrl_list():
 
                     if ctrl.get_name() == 'model_setup':

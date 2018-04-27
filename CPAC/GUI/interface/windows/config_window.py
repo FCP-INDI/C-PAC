@@ -157,8 +157,8 @@ class Mybook(wx.Treebook):
         self.AddPage(page39, "After Warping", wx.ID_ANY)
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
-        self.AddPage(page45, "Group Analysis", wx.ID_ANY)
-        self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
+        self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
+        self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)

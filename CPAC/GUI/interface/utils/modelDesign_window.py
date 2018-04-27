@@ -28,7 +28,6 @@ def check_contrast_equation(frame, dmatrix_obj, contrast_equation):
     return 0
 
 
-
 class ModelDesign(wx.Frame):
 
     def __init__(self, parent, gpa_settings, dmatrix_obj, varlist):
