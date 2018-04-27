@@ -4419,16 +4419,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
                     
                     montage_skull = create_montage('montage_skull_%d' % num_strat,'red', 'skull_vis')   ###
-                    
-                    skull_edge = pe.Node(util.Function(input_names=['file_'],output_names=['new_fname'],function=make_edge),name='skull_edge_%d' % num_strat)
-                    
-                    workflow.connect(skull, out_file_s,skull_edge, 'file_')
-                    
+                   
+
+                    skull_edge = make_edge(wf_name= 'skull_edge_%d' % num_strat)
+                    workflow.connect(skull, out_file_s, skull_edge, 'inputspec.file_')
+                    workflow.connect(skull_edge, 'outputspec.new_fname', montage_skull, 'inputspec.overlay')
                     workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
-                    
-                    workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
-                    
                     strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
+                    #skull_edge = #pe.Node(util.Function(input_names=['file_'],output_names=['new_fname#'],function=make_edge),name='skull_edge_%d' % num_strat)
+                    
+                    #workflow.connect(skull, out_file_s,skull_edge, 'file_')
+                    
+                    #workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
+                    
+                    # workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
+                    
+                    # strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, #'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, #'outputspec.sagittal_png')})
                     
                     if not 1 in qc_montage_id_a:
                         qc_montage_id_a[1] = 'skullstrip_vis_a'
@@ -4507,25 +4513,34 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 m_f_a, out_file_mfa = strat.get_node_from_resource_pool('mean_functional_in_anat')
 
                 montage_anat = create_montage('montage_anat_%d' % num_strat,
-                                    'red', 't1_edge_on_mean_func_in_t1')   ###
-
-                anat_edge = pe.Node(util.Function(input_names=['file_'],
-                                                   output_names=['new_fname'],
-                                                   function=make_edge),
-                                     name='anat_edge_%d' % num_strat)
-
-                workflow.connect(anat, out_file,
-                                 anat_edge, 'file_')
-
-
+                                    'red', 't1_edge_on_mean_func_in_t1')###
+                anat_edge = make_edge(wf_name= 'anat_edge_%d' % num_strat)
+                workflow.connect(anat, out_file, anat_edge, 'inputspec.file_' )
+                workflow.connect(anat_edge,'outputspec.new_fname',montage_anat,'inputspec.overlay')
                 workflow.connect(m_f_a, out_file_mfa,
-                                 montage_anat, 'inputspec.underlay')
+                montage_anat, 'inputspec.underlay')
+                #workflow.connect(anat_edge, 'new_fname',
+                #            montage_anat, 'inputspec.overlay')
+                                    
+                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
+                                    
+#anat_edge = pe.Node(util.Function(input_names=['file_'],
+#                                                   output_names=['new_fname'],
+#                                                  function=make_edge),
+#                                     name='anat_edge_%d' % num_strat)
 
-                workflow.connect(anat_edge, 'new_fname',
-                                 montage_anat, 'inputspec.overlay')
+#                workflow.connect(anat, out_file,
+#                                 anat_edge, 'file_')
 
-                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),
-                                            'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
+#
+#                workflow.connect(m_f_a, out_file_mfa,
+#                                 montage_anat, 'inputspec.underlay')
+#
+#                workflow.connect(anat_edge, 'new_fname',
+#                                 montage_anat, 'inputspec.overlay')
+#
+#                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, #'outputspec.axial_png'),
+#                                        'qc___mean_func_with_t1_edge_s': (montage_anat, #'outputspec.sagittal_png')})
 
                 if not 4 in qc_montage_id_a:
                         qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
