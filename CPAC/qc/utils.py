@@ -5,7 +5,7 @@ import pkg_resources as p
 matplotlib.use('Agg')
 import os
 import nipype.pipeline.engine as pe
-from nipype.interfaces import afni,fsl
+from nipype.interfaces import afni
 import nipype.interfaces.utility as util
 
 
@@ -1201,7 +1201,27 @@ def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_his
 #    print f
 
 
-def make_edge(wf_name ='create_edge'):
+def afni_edge(in_file):
+    """Run AFNI 3dedge3 on the input file - temporary function until the
+    interface issue in Nipype is sorted out."""
+
+    out_file = os.path.join(os.getcwd(),
+                            "{0}_edge.nii.gz".format(os.path.basename(in_file)))
+
+    cmd_string = ["3dedge3", "-input", in_file, "-prefix", out_file]
+
+    try:
+        retcode = subprocess.check_output(cmd_string)
+    except Exception as e:
+        err = "\n\n[!] Something went wrong with AFNI 3dedge3 while " \
+              "creating the an overlay for the QA pages.\n\nError details: " \
+              "{0}\n\n".format(e)
+        raise Exception(err)
+
+    return out_file
+
+
+def make_edge(wf_name='create_edge'):
     
     """
         Make edge file from a scan image
@@ -1220,32 +1240,38 @@ def make_edge(wf_name ='create_edge'):
         
         """
     
-    import commands
-    import os
+    wf_name = pe.Workflow(name=wf_name)
     
-    wf_name = pe.Workflow(name = wf_name)
-    
-    inputNode = pe.Node(util.IdentityInterface(fields=['file_']),name = 'inputspec')
-    outputNode = pe.Node(util.IdentityInterface(fields=['new_fname']),name = 'outputspec')
-    
-    prepare = pe.Node(interface=afni.Edge3(),name ='prepare')
-    wf_name.connect(inputNode,'file_',prepare,'in_file')
-    wf_name.connect(prepare,'out_file',outputNode,'new_fname')
-    
-    #remainder, ext_ = os.path.splitext(file_)
-    
-    #remainder, ext1_ = os.path.splitext(remainder)
-    
-    #ext = ''.join([ext1_, ext_])
-    
-    #   new_fname = ''.join([remainder, '_edge', ext])
-    #    new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
-    
-    #cmd = "3dedge3 -input %s -prefix %s" % (file_, new_fname)
-    #print cmd
-    #print commands.getoutput(cmd)
+    inputNode = pe.Node(util.IdentityInterface(fields=['file_']),
+                        name='inputspec')
+    outputNode = pe.Node(util.IdentityInterface(fields=['new_fname']),
+                         name='outputspec')
+
+    '''
+    try:
+        prepare = pe.Node(interface=afni.Edge3(), name='afni_3dedge3')
+        prepare.inputs.outputtype = "NIFTI_GZ"
+        prepare.inputs.out_file = "{0}_edge.nii.gz".format(wf_name)
+        prepare.inputs.terminal_output = "file"
+    except AttributeError:
+        raise Exception("\n\n[!] Could not find the 'Edge3' AFNI interface "
+                        "in your Nipype install - double-check that you are "
+                        "using the correct version.\n\n")
+    '''
+
+    run_afni_edge_imports = ["import os", "import subprocess"]
+
+    run_afni_edge = pe.Node(util.Function(input_names=['in_file'],
+                                          output_names=['out_file'],
+                                          function=afni_edge,
+                                          imports=run_afni_edge_imports),
+                            name='afni_3dedge3')
+
+    wf_name.connect(inputNode, 'file_', run_afni_edge, 'in_file')
+    wf_name.connect(run_afni_edge, 'out_file', outputNode, 'new_fname')
     
     return wf_name
+
 
 def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
@@ -1279,7 +1305,8 @@ def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
     new_fname = os.path.join(os.getcwd(), 'std_dev_anat.nii.gz')
 
-    cmd = 'applywarp --ref=%s --in=%s --out=%s --premat=%s --interp=%s' % (ref_, func_, new_fname, xfm_, interp_)
+    cmd = 'applywarp --ref=%s --in=%s --out=%s --premat=%s ' \
+          '--interp=%s' % (ref_, func_, new_fname, xfm_, interp_)
     print cmd
 
     print commands.getoutput(cmd)
@@ -1435,7 +1462,7 @@ def drange(min_, max_):
     return range_
 
 
-def gen_plot_png(arr, ex_vol, measure):
+def gen_plot_png(arr, measure, ex_vol=None):
 
     """
     Generate Motion FD Plot. Shows which volumes were dropped.
@@ -1446,12 +1473,11 @@ def gen_plot_png(arr, ex_vol, measure):
     arr : list
         Frame wise Displacements
 
-    ex_vol : list
-        Volumes excluded
-
     measure : string
         Label of the Measure
 
+    ex_vol : list
+        Volumes excluded
 
     Returns
     -------
@@ -1460,38 +1486,40 @@ def gen_plot_png(arr, ex_vol, measure):
             path to the generated plot png
     """
 
-
     import matplotlib
-    import commands
-#    matplotlib.use('Agg')
     from matplotlib import pyplot
-    matplotlib.rcParams.update({'font.size': 8})
     import matplotlib.cm as cm
-    import numpy as np
     import os
 
+    matplotlib.rcParams.update({'font.size': 8})
 
     arr = np.loadtxt(arr)
-    try:
-        ex_vol = np.genfromtxt(ex_vol, delimiter=',', dtype=int)
-        ex_vol = ex_vol[ex_vol > 0]
-    except:
+
+    if ex_vol:
+        try:
+            ex_vol = np.genfromtxt(ex_vol, delimiter=',', dtype=int)
+            ex_vol = ex_vol[ex_vol > 0]
+        except:
+            ex_vol = []
+    else:
         ex_vol = []
+
     arr = arr[1:]
     del_el = [x for x in ex_vol if x < len(arr)]
 
     ex_vol = np.array(del_el)
 
-
     fig = pyplot.figure(figsize=(10, 6))
     pyplot.plot([i for i in xrange(len(arr))], arr, '-')
-    fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure, arr.mean()))
+    fig.suptitle('%s plot with Mean %s = %0.4f' % (measure, measure,
+                                                   arr.mean()))
     if measure == 'FD' and len(ex_vol) > 0:
 
         pyplot.scatter(ex_vol, arr[ex_vol], c="red", zorder=2)
 
         for x in ex_vol:
-            pyplot.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]), arrowprops=dict(facecolor='black', shrink=0.0))
+            pyplot.annotate('( %d , %0.3f)' % (x, arr[x]), xy=(x, arr[x]),
+                            arrowprops=dict(facecolor='black', shrink=0.0))
 
     pyplot.xlabel('Volumes')
     pyplot.ylabel('%s' % measure)
@@ -2082,8 +2110,6 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     matplotlib.rcdefaults()
 
     return png_name
-
-
 
 
 def montage_sagittal(overlay, underlay, png_name, cbar_name):

@@ -97,10 +97,7 @@ def make_entries(paths, path_iterables):
             sub_entries.append(path_iterables[indx] + '_' + value)
             indx += 1
 
-        ### remove single quote in the paths
         sub_entries = map(lambda x: x.replace("'", ""), sub_entries)
-        print "sub entries: "
-        print sub_entries
       
         entries.append(sub_entries)
 
