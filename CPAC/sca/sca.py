@@ -106,7 +106,7 @@ def create_sca(name_sca='sca'):
                                                     ]),
                         name='outputspec')
 
-    # # 2. Compute voxel-wise correlation with Seed Timeseries
+    # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
                       name='3dTCorr1D')
     corr.inputs.pearson = True
@@ -139,8 +139,7 @@ def create_sca(name_sca='sca'):
     get_roi_num_list.inputs.prefix = "sca"
 
     rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                      iterfield=['in_file','format_string'])
-
+                             iterfield=['in_file', 'format_string'])
     rename_rois.inputs.keep_ext = True
 
     sca.connect(corr, 'out_file', concat, 'in_files')

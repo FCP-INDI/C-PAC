@@ -5032,7 +5032,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                
+
                 # Write QC outputs to log directory
                 if 'qc' in key.lower():
                     ds.inputs.base_directory = c.logDirectory
@@ -5162,7 +5162,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # Add status callback function that writes in callback log
         if nipype.__version__ not in ('0.13.1', '0.14.0'):
-            err_msg = "This version of nipype may not be compatible with CPAC v%s, please install version 0.14.0\n" \
+            err_msg = "This version of nipype may not be compatible with " \
+                      "CPAC v%s, please install version 0.14.0\n" \
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
@@ -5173,7 +5174,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
-
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
