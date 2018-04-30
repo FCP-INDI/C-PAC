@@ -4163,61 +4163,121 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     strat = output_to_standard(key, strat, num_strat, c,
                                                map_node=True)
 
-        if 1 in c.runZScoring:
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                # connect nodes for z-score standardization
-                if "sca_roi_files_to_standard" in key:
-                    # correlation files need the r-to-z
-                    strat = fisher_z_score_standardize(key,
-                                                       "roi_timeseries_for_SCA",
-                                                       strat, num_strat,
-                                                       map_node=True)
-                elif "centrality" in key:
-                    # specific mask
-                    strat = z_score_standardize(key,
-                                                c.templateSpecificationFile,
-                                                strat, num_strat,
-                                                map_node=True)
-                elif key in outputs_template_raw:
-                    # raw score, in template space
-                    strat = z_score_standardize(key,
-                                                "functional_brain_mask_to_standard",
-                                                strat, num_strat)
-                elif key in outputs_template_raw_mult:
-                    # same as above but multiple files so mapnode required
-                    strat = z_score_standardize(key,
-                                                "functional_brain_mask_to_standard",
-                                                strat, num_strat,
-                                                map_node=True)
+        if "Before" in c.smoothing_order:
+            # run smoothing before Z-scoring
+            if 1 in c.run_smoothing:
+                rp = strat.get_resource_pool()
+                for key in sorted(rp.keys()):
+                    # connect nodes for smoothing
+                    if "centrality" in key:
+                        # centrality needs its own mask
+                        strat = output_smooth(key,
+                                              c.templateSpecificationFile,
+                                              strat, num_strat, map_node=True)
+                    elif key in outputs_native_nonsmooth:
+                        # native space
+                        strat = output_smooth(key, "functional_brain_mask",
+                                              strat, num_strat)
+                    elif key in outputs_native_nonsmooth_mult:
+                        # native space with multiple files (map nodes)
+                        strat = output_smooth(key, "functional_brain_mask",
+                                              strat, num_strat, map_node=True)
+                    elif key in outputs_template_nonsmooth:
+                        # template space
+                        strat = output_smooth(key,
+                                              "functional_brain_mask_to_standard",
+                                              strat, num_strat)
+                    elif key in outputs_template_nonsmooth_mult:
+                        # template space with multiple files (map nodes)
+                        strat = output_smooth(key,
+                                              "functional_brain_mask_to_standard",
+                                              strat, num_strat, map_node=True)
 
-        if 1 in c.run_smoothing:
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                # connect nodes for smoothing
-                if "centrality" in key:
-                    # centrality needs its own mask
-                    strat = output_smooth(key,
-                                          c.templateSpecificationFile,
-                                          strat, num_strat, map_node=True)
-                elif key in outputs_native_nonsmooth:
-                    # native space
-                    strat = output_smooth(key, "functional_brain_mask",
-                                          strat, num_strat)
-                elif key in outputs_native_nonsmooth_mult:
-                    # native space with multiple files (map nodes)
-                    strat = output_smooth(key, "functional_brain_mask",
-                                          strat, num_strat, map_node=True)
-                elif key in outputs_template_nonsmooth:
-                    # template space
-                    strat = output_smooth(key,
-                                          "functional_brain_mask_to_standard",
-                                          strat, num_strat)
-                elif key in outputs_template_nonsmooth_mult:
-                    # template space with multiple files (map nodes)
-                    strat = output_smooth(key,
-                                          "functional_brain_mask_to_standard",
-                                          strat, num_strat, map_node=True)
+            if 1 in c.runZScoring:
+                rp = strat.get_resource_pool()
+                for key in sorted(rp.keys()):
+                    # connect nodes for z-score standardization
+                    if "sca_roi_files_to_standard" in key:
+                        # correlation files need the r-to-z
+                        strat = fisher_z_score_standardize(key,
+                                                           "roi_timeseries_for_SCA",
+                                                           strat, num_strat,
+                                                           map_node=True)
+                    elif "centrality" in key:
+                        # specific mask
+                        strat = z_score_standardize(key,
+                                                    c.templateSpecificationFile,
+                                                    strat, num_strat,
+                                                    map_node=True)
+                    elif key in outputs_template_raw:
+                        # raw score, in template space
+                        strat = z_score_standardize(key,
+                                                    "functional_brain_mask_to_standard",
+                                                    strat, num_strat)
+                    elif key in outputs_template_raw_mult:
+                        # same as above but multiple files so mapnode required
+                        strat = z_score_standardize(key,
+                                                    "functional_brain_mask_to_standard",
+                                                    strat, num_strat,
+                                                    map_node=True)
+
+        elif "After" in c.smoothing_order:
+            # run smoothing after Z-scoring
+            if 1 in c.runZScoring:
+                rp = strat.get_resource_pool()
+                for key in sorted(rp.keys()):
+                    # connect nodes for z-score standardization
+                    if "sca_roi_files_to_standard" in key:
+                        # correlation files need the r-to-z
+                        strat = fisher_z_score_standardize(key,
+                                                           "roi_timeseries_for_SCA",
+                                                           strat, num_strat,
+                                                           map_node=True)
+                    elif "centrality" in key:
+                        # specific mask
+                        strat = z_score_standardize(key,
+                                                    c.templateSpecificationFile,
+                                                    strat, num_strat,
+                                                    map_node=True)
+                    elif key in outputs_template_raw:
+                        # raw score, in template space
+                        strat = z_score_standardize(key,
+                                                    "functional_brain_mask_to_standard",
+                                                    strat, num_strat)
+                    elif key in outputs_template_raw_mult:
+                        # same as above but multiple files so mapnode required
+                        strat = z_score_standardize(key,
+                                                    "functional_brain_mask_to_standard",
+                                                    strat, num_strat,
+                                                    map_node=True)
+
+            if 1 in c.run_smoothing:
+                rp = strat.get_resource_pool()
+                for key in sorted(rp.keys()):
+                    # connect nodes for smoothing
+                    if "centrality" in key:
+                        # centrality needs its own mask
+                        strat = output_smooth(key,
+                                              c.templateSpecificationFile,
+                                              strat, num_strat, map_node=True)
+                    elif key in outputs_native_nonsmooth:
+                        # native space
+                        strat = output_smooth(key, "functional_brain_mask",
+                                              strat, num_strat)
+                    elif key in outputs_native_nonsmooth_mult:
+                        # native space with multiple files (map nodes)
+                        strat = output_smooth(key, "functional_brain_mask",
+                                              strat, num_strat, map_node=True)
+                    elif key in outputs_template_nonsmooth:
+                        # template space
+                        strat = output_smooth(key,
+                                              "functional_brain_mask_to_standard",
+                                              strat, num_strat)
+                    elif key in outputs_template_nonsmooth_mult:
+                        # template space with multiple files (map nodes)
+                        strat = output_smooth(key,
+                                              "functional_brain_mask_to_standard",
+                                              strat, num_strat, map_node=True)
 
         rp = strat.get_resource_pool()
         for key in sorted(rp.keys()):

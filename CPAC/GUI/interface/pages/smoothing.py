@@ -54,7 +54,15 @@ class AfterWarpingOptions(wx.ScrolledWindow):
                               "individual-level analysis pipeline, such "
                               "that all derivatives are output both "
                               "smoothed and unsmoothed.")
-        
+
+        self.page.add(label="Smooth Before/After z-Scoring ",
+                      control=control.CHOICE_BOX,
+                      name='smoothing_order',
+                      type=dtype.LSTR,
+                      comment="Choose whether to smooth outputs before or "
+                              "after z-scoring.",
+                      values=["Before", "After"])
+
         self.page.add(label="z-score Standardize Derivatives ",
                       control=control.CHOICE_BOX,
                       name='runZScoring',

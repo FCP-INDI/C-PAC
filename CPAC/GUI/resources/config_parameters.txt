@@ -17,6 +17,7 @@ s3Encryption,S3 Encryption,Output Settings
 write_func_outputs,Write Extra Functional Outputs,Output Settings
 write_debugging_outputs,Write Debugging Outputs,Output Settings
 runSymbolicLinks,Create Symbolic Links,Output Settings
+generateQualityControlImages,Enable Quality Control Interface,Output Settings
 removeWorkingDir,Remove Working Directory,Output Settings
 run_logging,Run Logging,Output Settings
 reGenerateOutputs,Regenerate Outputs,Output Settings
@@ -98,6 +99,8 @@ lfcdWeightOptions,Local Functional Connectivity Density Weight Options,Network C
 lfcdCorrelationThresholdOption,Local Functional Connectivity Density Threshold Type,Network Centrality Options
 lfcdCorrelationThreshold,Local Functional Connectivity Density Threshold Value,Network Centrality Options
 memoryAllocatedForDegreeCentrality,Maximum RAM Use (GB),Network Centrality Options
+run_smoothing,Run Smoothing,After Warping Options
+smoothing_order,Smoothing Before/After z-Scoring,After Warping Options
 fwhm,Kernel FWHM (in mm),After Warping Options
 runZScoring,Z-score Standardize Derivatives,After Warping Options
 numGPAModelsAtOnce,Number of Models to Run Simultaneously,Group Analysis Settings

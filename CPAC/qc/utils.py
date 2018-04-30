@@ -1486,10 +1486,11 @@ def gen_plot_png(arr, measure, ex_vol=None):
             path to the generated plot png
     """
 
+    import os
+    import numpy as np
     import matplotlib
     from matplotlib import pyplot
     import matplotlib.cm as cm
-    import os
 
     matplotlib.rcParams.update({'font.size': 8})
 
