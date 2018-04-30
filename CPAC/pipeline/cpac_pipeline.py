@@ -5168,9 +5168,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             logger.error(err_msg)
         else:
             if nipype.__version__ == '0.13.1':
-                plugin_args['status_callback'] = nipype.pipeline.plugins.callback_log.log_nodes_cb
+                from nipype.pipeline.plugins.callback_log import log_nodes_cb
+                plugin_args['status_callback'] = log_nodes_cb
             else:
-                plugin_args['status_callback'] = nipype.utils.profiler.log_nodes_cb
+                from nipype.utils.profiler import log_nodes_cb
+                plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
         workflow.run(plugin=plugin, plugin_args=plugin_args)
