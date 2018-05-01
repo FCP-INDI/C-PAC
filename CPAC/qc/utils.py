@@ -2268,7 +2268,6 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
 
 
 def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, png_name):
-
     """
     Draws Montage using GM WM and CSF overlays on Anatomical brain in Sagittal Direction
 
