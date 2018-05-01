@@ -1310,7 +1310,7 @@ def gen_snr(std_dev, mean_func_anat):
     new_fname = os.path.join(os.getcwd(), 'snr.nii.gz')
 
     cmd = ['3dcalc', '-a', '{0}'.format(std_dev), '-b',
-           '{0}'.format(mean_func_anat), '-expr', '"b/a"', '-prefix',
+           '{0}'.format(mean_func_anat), '-expr', 'b/a', '-prefix',
            '{0}'.format(new_fname)]
 
     retcode = subprocess.check_output(cmd)
