@@ -4325,74 +4325,83 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make SNR plot
             try:
-                #preproc, out_file = strat.get_node_from_resource_pool('functional_preprocessed')
-                #brain_mask, mask_file = strat.get_node_from_resource_pool('functional_brain_mask')
-                #func_to_anat_xfm, xfm_file = strat.get_node_from_resource_pool('functional_to_anat_linear_xfm')
-                #anat_ref, ref_file = strat.get_node_from_resource_pool('anatomical_brain')
-                #mfa, mfa_file = strat.get_node_from_resource_pool('mean_functional_in_anat')
-                hist_ = hist.clone('hist_snr_%d' % num_strat)
-                hist_.inputs.measure = 'snr'
-
-                drop_percent = pe.Node(util.Function(input_names=['measure_file',
-                                                   'percent_'],
-                                    output_names=['modified_measure_file'],
-                                    function=drop_percent_),
-                                    name='dp_snr_%d' % num_strat)
-                drop_percent.inputs.percent_ = 99
-                
-                montage_snr = create_montage('montage_snr_%d' % num_strat,
-                                             'red_to_blue', 'snr')
-                
-                std_dev = pe.Node(util.Function(input_names=['mask_', 'func_'],
+                std_dev_imports = ['import os', 'import subprocess']
+                std_dev = pe.Node(util.Function(input_names=['mask_',
+                                                             'func_'],
                                                 output_names=['new_fname'],
-                                                function=gen_std_dev),
+                                                function=gen_std_dev,
+                                                imports=std_dev_imports),
                                   name='std_dev_%d' % num_strat)
-                    
+
+                workflow.connect(preproc, out_file,
+                                 std_dev, 'func_')
+
+                workflow.connect(brain_mask, mask_file,
+                                 std_dev, 'mask_')
+
+                std_dev_anat_imports = ['import os',
+                                        'import subprocess']
                 std_dev_anat = pe.Node(util.Function(input_names=['func_',
                                                                   'ref_',
                                                                   'xfm_',
                                                                   'interp_'],
-                                                         output_names=['new_fname'],
-                                                         function=gen_func_anat_xfm),
-                                           name='std_dev_anat_%d' % num_strat)
-                        
-                snr = pe.Node(util.Function(input_names=['std_dev', 'mean_func_anat'],output_names=['new_fname'],function=gen_snr),name='snr_%d' % num_strat)
-                snr_val = pe.Node(util.Function(input_names=['measure_file'],
-                                                output_names=['snr_storefl'],
-                                                function=cal_snr_val),name='snr_val%d' % num_strat)
+                                                     output_names=['new_fname'],
+                                                     function=gen_func_anat_xfm,
+                                                     imports=std_dev_anat_imports),
+                                       name='std_dev_anat_%d' % num_strat)
 
-                std_dev_anat.inputs.interp_ = 'trilinear'
-                                                        
-                                                        
-                workflow.connect(preproc, out_file,
-                                std_dev, 'func_')
-                                                        
-                workflow.connect(brain_mask, mask_file,
-                                 std_dev, 'mask_')
-                                                        
                 workflow.connect(std_dev, 'new_fname',
                                  std_dev_anat, 'func_')
-                                                        
+
                 workflow.connect(func_to_anat_xfm, xfm_file,
                                  std_dev_anat, 'xfm_')
-                                                        
+
                 workflow.connect(anat_ref, ref_file,
                                  std_dev_anat, 'ref_')
-                                                        
-                workflow.connect(std_dev_anat, 'new_fname',
-                                snr,'std_dev')
-                                                        
-                workflow.connect(mfa, mfa_file,
-                                snr, 'mean_func_anat')
-                                                        
+
+                snr_imports = ['import os', 'import subprocess']
+                snr = pe.Node(util.Function(input_names=['std_dev',
+                                                         'mean_func_anat'],
+                                            output_names=['new_fname'],
+                                            function=gen_snr,
+                                            imports=snr_imports),
+                              name='snr_%d' % num_strat)
+
+                workflow.connect(std_dev_anat, 'new_fname', snr, 'std_dev')
+                workflow.connect(mfa, mfa_file, snr, 'mean_func_anat')
+
+                snr_val_imports = ['import os',
+                                   'import nibabel as nb',
+                                   'import numpy.ma as ma']
+                snr_val = pe.Node(util.Function(input_names=['measure_file'],
+                                                output_names=['snr_storefl'],
+                                                function=cal_snr_val,
+                                                imports=snr_val_imports),
+                                  name='snr_val%d' % num_strat)
+                std_dev_anat.inputs.interp_ = 'trilinear'
+
                 workflow.connect(snr, 'new_fname',
-                                hist_, 'measure_file')
-                                                        
+                                 snr_val, 'measure_file')
+
+                hist_ = hist.clone('hist_snr_%d' % num_strat)
+                hist_.inputs.measure = 'snr'
+
                 workflow.connect(snr, 'new_fname',
-                                drop_percent, 'measure_file')
-                                                        
+                                 hist_, 'measure_file')
+
+                drop_percent = pe.Node(
+                    util.Function(input_names=['measure_file',
+                                               'percent_'],
+                                  output_names=['modified_measure_file'],
+                                  function=drop_percent_),
+                    name='dp_snr_%d' % num_strat)
+                drop_percent.inputs.percent_ = 99
+
                 workflow.connect(snr, 'new_fname',
-                                snr_val, 'measure_file')
+                                 drop_percent, 'measure_file')
+
+                montage_snr = create_montage('montage_snr_%d' % num_strat,
+                                             'red_to_blue', 'snr')
 
                 workflow.connect(drop_percent, 'modified_measure_file',
                                  montage_snr, 'inputspec.overlay')
@@ -4415,14 +4424,20 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make motion parameters plot
             try:
-            
                 mov_param, out_file = strat.get_node_from_resource_pool('movement_parameters')
+
+                mov_plot_imports = ['import os', 'import math',
+                                    'import numpy as np',
+                                    'from matplotlib import pyplot as plt']
                 mov_plot = pe.Node(util.Function(input_names=['motion_parameters'],
                                                  output_names=['translation_plot',
                                                                'rotation_plot'],
-                                                 function=gen_motion_plt),
-                                                 name='motion_plt_%d' % num_strat)
+                                                 function=gen_motion_plt,
+                                                 imports=mov_plot_imports),
+                                   name='motion_plt_%d' % num_strat)
+
                 workflow.connect(mov_param, out_file, mov_plot, 'motion_parameters')
+
                 strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
             
                 if not 6 in qc_plot_id:
@@ -4438,19 +4453,23 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # make FD plot and volumes removed
             if 'gen_motion_stats' in nodes:
                 if 1 in c.runNuisance:
-    
                     try:
                         if c.fdCalc == 'Power':
                             fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_power')
                         else:
                             fd, out_file = strat.get_node_from_resource_pool('frame_wise_displacement_jenkinson')
 
+                        fd_plot_imports = ['import os', 'import numpy as np',
+                                           'import matplotlib',
+                                           'from matplotlib import pyplot']
+
                         fd_plot = \
                             pe.Node(util.Function(input_names=['arr',
                                                                'measure',
                                                                'ex_vol'],
                                                   output_names=['hist_path'],
-                                                  function=gen_plot_png),
+                                                  function=gen_plot_png,
+                                                  imports=fd_plot_imports),
                                                   name='fd_plot_%d' % num_strat)
                         fd_plot.inputs.measure = 'FD'
 
@@ -4479,12 +4498,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 anat_underlay, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 skull, out_file_s = strat.get_node_from_resource_pool('anatomical_reorient')
 
-                montage_skull = create_montage('montage_skull_%d' % num_strat,
-                                               'red', 'skull_vis')
                 skull_edge = make_edge(wf_name='skull_edge_%d' % num_strat)
 
                 workflow.connect(skull, out_file_s,
                                  skull_edge, 'inputspec.file_')
+
+                montage_skull = create_montage('montage_skull_%d' % num_strat,
+                                               'red', 'skull_vis')
+
                 workflow.connect(skull_edge, 'outputspec.new_fname',
                                  montage_skull, 'inputspec.overlay')
                 workflow.connect(anat_underlay, out_file,
@@ -4572,12 +4593,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 anat, out_file = strat.get_node_from_resource_pool('anatomical_brain')
                 m_f_a, out_file_mfa = strat.get_node_from_resource_pool('mean_functional_in_anat')
 
-                montage_anat = create_montage('montage_anat_%d' % num_strat,
-                                              'red', 't1_edge_on_mean_func_in_t1')
-
                 anat_edge = make_edge(wf_name='anat_edge_%d' % num_strat)
 
                 workflow.connect(anat, out_file, anat_edge, 'inputspec.file_')
+
+                montage_anat = create_montage('montage_anat_%d' % num_strat,
+                                              'red', 't1_edge_on_mean_func_in_t1')
 
                 workflow.connect(anat_edge, 'outputspec.new_fname',
                                  montage_anat, 'inputspec.overlay')
@@ -4651,28 +4672,28 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # QA pages function
             def QA_montages(measure, idx):
-
                 try:
-
-                    histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
-                    histogram.inputs.measure = measure
-
-                    drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
-                                                         'percent_'],
-                                           output_names=['modified_measure_file'], function=drop_percent_),
-                                           name='dp_%s_%d' % (measure, num_strat), iterfield=['measure_file'])
-                    drop_percent.inputs.percent_ = 99.999
-
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
-                    montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+                    drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
+                                                                         'percent_'],
+                                                            output_names=['modified_measure_file'],
+                                                            function=drop_percent_),
+                                              name='dp_%s_%d' % (measure, num_strat),
+                                              iterfield=['measure_file'])
+                    drop_percent.inputs.percent_ = 99.999
 
                     workflow.connect(overlay, out_file,
                                      drop_percent, 'measure_file')
 
+                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
+                    montage.inputs.inputspec.underlay = c.template_brain_only_for_func
+
                     workflow.connect(drop_percent, 'modified_measure_file',
                                      montage, 'inputspec.overlay')
+
+                    histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
+                    histogram.inputs.measure = measure
 
                     workflow.connect(overlay, out_file,
                                      histogram, 'measure_file')
@@ -4687,7 +4708,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         qc_hist_id[idx] = '%s_hist' % measure
 
                 except Exception as e:
-                    print "[!] Creation of QA montages for %s has failed.\n" % measure
+                    print "[!] Connection of QA montages workflow for %s " \
+                          "has failed.\n" % measure
                     print "Error: %s" % e
                     pass
 

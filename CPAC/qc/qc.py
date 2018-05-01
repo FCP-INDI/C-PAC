@@ -21,33 +21,44 @@ def create_montage(wf_name, cbar_name, png_name):
                                                         'sagittal_png',
                                                         'resampled_underlay',
                                                         'resampled_overlay']),
-                          name='outputspec')
+                         name='outputspec')
+
+    resample_u_imports = ['from CPAC.qc.utils import make_resample_1mm']
 
     resample_u = pe.Node(util.Function(input_names=['file_'],
                                        output_names=['new_fname'],
-                                       function=resample_1mm),
+                                       function=resample_1mm,
+                                       imports=resample_u_imports),
                          name='resample_u')
     wf.connect(inputNode, 'underlay', resample_u, 'file_')
 
     resample_o = resample_u.clone('resample_o')
     wf.connect(inputNode, 'overlay', resample_o, 'file_')
 
+    montage_a_imports = ['import os',
+                         'from CPAC.qc.utils import make_montage_axial']
+
     montage_a = pe.Node(util.Function(input_names=['overlay',
                                                    'underlay',
                                                    'png_name',
                                                    'cbar_name'],
                                       output_names=['png_name'],
-                                      function=montage_axial),
+                                      function=montage_axial,
+                                      imports=montage_a_imports),
                         name='montage_a')
     montage_a.inputs.cbar_name = cbar_name
     montage_a.inputs.png_name = png_name + '_a.png'
+
+    montage_s_imports = ['import os',
+                         'from CPAC.qc.utils import make_montage_sagittal']
 
     montage_s = pe.Node(util.Function(input_names=['overlay',
                                                    'underlay',
                                                    'png_name',
                                                    'cbar_name'],
                                       output_names=['png_name'],
-                                      function=montage_sagittal),
+                                      function=montage_sagittal,
+                                      imports=montage_s_imports),
                         name='montage_s')
     montage_s.inputs.cbar_name = cbar_name
     montage_s.inputs.png_name = png_name + '_s.png'
@@ -97,14 +108,26 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                                         'resampled_overlay_gm']),
                           name='outputspec')
 
+    resample_u_imports = ['from CPAC.qc.utils import make_resample_1mm']
+
     resample_u = pe.Node(util.Function(input_names=['file_'],
                                        output_names=['new_fname'],
-                                       function=resample_1mm),
-                           name='resample_u')
+                                       function=resample_1mm,
+                                       imports=resample_u_imports),
+                         name='resample_u')
 
     resample_o_csf = resample_u.clone('resample_o_csf')
     resample_o_wm = resample_u.clone('resample_o_wm')
     resample_o_gm = resample_u.clone('resample_o_gm')
+
+    montage_a_imports = ['import os',
+                         'from CPAC.qc.utils import determine_start_and_end, get_spacing',
+                         'import numpy as np',
+                         'from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid1',
+                         'from mpl_toolkits.axes_grid import ImageGrid as ImageGrid',
+                         'import matplotlib.pyplot as plt',
+                         'import nibabel as nb',
+                         'import matplotlib.cm as cm']
 
     montage_a = pe.Node(util.Function(input_names=['overlay_csf',
                                                    'overlay_wm',
@@ -112,9 +135,19 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                                   'underlay',
                                                   'png_name'],
                                       output_names=['png_name'],
-                                      function=montage_gm_wm_csf_axial),
-                         name='montage_a')
+                                      function=montage_gm_wm_csf_axial,
+                                      imports=montage_a_imports),
+                        name='montage_a')
     montage_a.inputs.png_name = png_name + '_a.png'
+
+    montage_s_imports = ['import os',
+                         'from CPAC.qc.utils import determine_start_and_end, get_spacing',
+                         'import numpy as np',
+                         'from mpl_toolkits.axes_grid1 import ImageGrid as ImageGrid1',
+                         'from mpl_toolkits.axes_grid import ImageGrid as ImageGrid',
+                         'import matplotlib.pyplot as plt',
+                         'import matplotlib.cm as cm',
+                         'import nibabel as nb']
 
     montage_s = pe.Node(util.Function(input_names=['overlay_csf',
                                                    'overlay_wm',
@@ -122,8 +155,9 @@ def create_montage_gm_wm_csf(wf_name, png_name):
                                                    'underlay',
                                                    'png_name'],
                                       output_names=['png_name'],
-                                      function=montage_gm_wm_csf_sagittal),
-                                   name='montage_s')
+                                      function=montage_gm_wm_csf_sagittal,
+                                      imports=montage_s_imports),
+                        name='montage_s')
     montage_s.inputs.png_name = png_name + '_s.png'
 
     wf.connect(inputNode, 'underlay',
