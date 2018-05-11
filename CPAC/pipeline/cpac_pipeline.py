@@ -4514,15 +4514,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  montage_skull, 'inputspec.underlay')
 
                 strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
-                #skull_edge = #pe.Node(util.Function(input_names=['file_'],output_names=['new_fname#'],function=make_edge),name='skull_edge_%d' % num_strat)
-
-                #workflow.connect(skull, out_file_s,skull_edge, 'file_')
-
-                #workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
-
-                # workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
-
-                # strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, #'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, #'outputspec.sagittal_png')})
 
                 if not 1 in qc_montage_id_a:
                     qc_montage_id_a[1] = 'skullstrip_vis_a'
@@ -4607,29 +4598,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 workflow.connect(m_f_a, out_file_mfa,
                                  montage_anat, 'inputspec.underlay')
-
-                # workflow.connect(anat_edge, 'new_fname', montage_anat,
-                #                  'inputspec.overlay')
                                     
                 strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
-                                    
-                #anat_edge = pe.Node(util.Function(input_names=['file_'],
-                #                                                   output_names=['new_fname'],
-                #                                                  function=make_edge),
-                #                                     name='anat_edge_%d' % num_strat)
-
-                #                workflow.connect(anat, out_file,
-                #                                 anat_edge, 'file_')
-
-                #
-                #                workflow.connect(m_f_a, out_file_mfa,
-                #                                 montage_anat, 'inputspec.underlay')
-                #
-                #                workflow.connect(anat_edge, 'new_fname',
-                #                                 montage_anat, 'inputspec.overlay')
-                #
-                #                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, #'outputspec.axial_png'),
-                #                                        'qc___mean_func_with_t1_edge_s': (montage_anat, #'outputspec.sagittal_png')})
 
                 if not 4 in qc_montage_id_a:
                         qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
@@ -4644,15 +4614,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_to_standard')
 
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
-                                    'red', 'MNI_edge_on_mean_func_mni')   ###
-
-                #   MNI_edge = pe.Node(util.Function(input_names=['file_'],
-                #                                      output_names=['new_fname'],
-                #                                      function=make_edge),
-                #                        name='MNI_edge_%d' % num_strat)
-                #   #MNI_edge.inputs.file_ = c.template_brain_only_for_func
-                #  workflow.connect(MNI_edge, 'new_fname',
-                #                   montage_mfi, 'inputspec.overlay')
+                                    'red', 'MNI_edge_on_mean_func_mni')
 
                 workflow.connect(m_f_i, out_file,
                                  montage_mfi, 'inputspec.underlay')
@@ -4726,10 +4688,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         QA_montages('falff_to_standard_smooth', 10)
 
                     if 1 in c.runZScoring:
-
                         if c.fwhm != None:
-                            QA_montages('alff_to_standard_zstd_smooth', 11)
-                            QA_montages('falff_to_standard_zstd_smooth', 12)
+                            if "Before" in c.smoothing_order:
+                                QA_montages('alff_to_standard_smooth_zstd', 11)
+                                QA_montages('falff_to_standard_smooth_zstd', 12)
+                            if "After" in c.smoothing_order:
+                                QA_montages('alff_to_standard_zstd_smooth', 11)
+                                QA_montages('falff_to_standard_zstd_smooth', 12)
 
                         else:
                             QA_montages('alff_to_standard_zstd', 13)
@@ -4739,15 +4704,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             if 1 in c.runReHo:
                 if 1 in c.runRegisterFuncToMNI:
                     QA_montages('reho_to_standard', 15)
-
                     if c.fwhm != None:
                         QA_montages('reho_to_standard_smooth', 16)
 
                     if 1 in c.runZScoring:
-
                         if c.fwhm != None:
-                            QA_montages('reho_to_standard_zstd_smooth', 17)
-
+                            if "Before" in c.smoothing_order:
+                                QA_montages('reho_to_standard_smooth_zstd', 17)
+                            if "After" in c.smoothing_order:
+                                QA_montages('reho_to_standard_zstd_smooth', 17)
                         else:
                             QA_montages('reho_to_standard_fisher_zstd', 18)
 
@@ -4760,10 +4725,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         QA_montages('sca_roi_to_standard_smooth', 20)
 
                     if 1 in c.runZScoring:
-
                         if c.fwhm != None:
-                            QA_montages('sca_roi_to_standard_zstd_fisher_smooth', 22)
-
+                            if "Before" in c.smoothing_order:
+                                QA_montages('sca_roi_to_standard_smooth_fisher_zstd', 22)
+                            if "After" in c.smoothing_order:
+                                QA_montages('sca_roi_to_standard_fisher_zstd_smooth', 22)
                         else:
                             QA_montages('sca_roi_to_standard_fisher_zstd', 21)
 
@@ -4777,10 +4743,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                         QA_montages('sca_seed_to_standard_smooth', 24)
 
                     if 1 in c.runZScoring:
-
                         if c.fwhm != None:
                             QA_montages('sca_seed_to_standard_zstd_fisher_smooth', 26)
-
                         else:
                             QA_montages('sca_seed_to_standard_fisher_zstd', 25)
                             
@@ -5118,17 +5082,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
 
                 # Write QC outputs to log directory
-                if 'qc' in key.lower():
-                    ds.inputs.base_directory = c.logDirectory
-                else:
-                    ds.inputs.base_directory = c.outputDirectory
-                    # For each pipeline ID, generate the QC pages
-                    #  for pip_id in pip_ids:
-                        # Define pipeline-level logging for QC
-                        #    pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
-                        #qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
-                        #For each subject, create a QC index.html page
-                        #make_QC_html_pages(qc_output_folder)
+                #if 'qc' in key.lower():
+                #    ds.inputs.base_directory = c.logDirectory
+                #else:
+                ds.inputs.base_directory = c.outputDirectory
 
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -5214,14 +5171,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
         subject_info['status'] = 'Running'
 
-        '''
-        subject_info_pickle = open(os.getcwd() + '/subject_info.p', 'wb')
-
-        pickle.dump(subject_info, subject_info_pickle)
-
-        subject_info_pickle.close()
-        '''
-
         # TODO:set memory and num_threads of critical nodes if running
         # MultiProcPlugin
 
@@ -5259,7 +5208,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
-        workflow.run(plugin=plugin, plugin_args=plugin_args)
+        try:
+            workflow.run(plugin=plugin, plugin_args=plugin_args)
+        except Exception as e:
+            logger.error(e)
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
@@ -5282,11 +5234,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     generateQCPages(qc_output_folder, qc_montage_id_a,
                                     qc_montage_id_s, qc_plot_id, qc_hist_id)
                 except Exception as e:
-                    print "Error: The QC function page generation is not " \
-                          "running\n\n"
-                    print e
-                    print type(e)
-                    raise Exception
+                    logger.error("[!] Error: The QC interface page "
+                                 "generator ran into a problem.\nDetails: "
+                                 "{0}".format(e))
 
         # pipeline timing code starts here
 

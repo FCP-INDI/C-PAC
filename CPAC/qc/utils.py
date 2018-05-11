@@ -76,8 +76,6 @@ def append_to_files_in_dict_way(list_files, file_):
 
 
 def first_pass_organizing_files(qc_path):
-
-
     """
     First Pass at organizing qc txt files
 
@@ -103,6 +101,9 @@ def first_pass_organizing_files(qc_path):
     import os
     from CPAC.qc.utils import append_to_files_in_dict_way
 
+    if not os.path.exists(qc_path):
+        os.makedirs(qc_path)
+
     qc_files = os.listdir(qc_path)
     strat_dict = {}
 
@@ -115,13 +116,8 @@ def first_pass_organizing_files(qc_path):
         str_ = os.path.basename(file_)
 
         str_ = str_.replace('qc_', '')
-
         str_ = str_.replace('scan_', '')
-
-#        str_ = str_.replace('_', '')
         str_ = str_.replace('.txt', '')
-
-
         str_ = str_.replace('____', '_')
         str_ = str_.replace('___', '_')
         str_ = str_.replace('__', '_')
@@ -138,11 +134,8 @@ def first_pass_organizing_files(qc_path):
             str_ = str_ + fwhm_val + hp_lp_
 
         if strat_dict.keys() == []:
-
             strat_dict[str_] = [file_]
-
         else:
-
             flag_ = 0
             for key_ in strat_dict.keys():
                 if str_ in key_:
@@ -156,8 +149,6 @@ def first_pass_organizing_files(qc_path):
 
 
 def second_pass_organizing_files(qc_path):
-
-
     """
     Second Pass at organizing qc txt files
 
@@ -350,8 +341,6 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
     all_ids = []
     for png_ in pngs_:
-
-
         all_ids = organize(qc_montage_id_a, all_ids, png_, dict_a)
         all_ids = organize(qc_montage_id_s, all_ids, png_, dict_s)
         all_ids = organize(qc_plot_id, all_ids, png_, dict_plot)
@@ -361,7 +350,6 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
 
 def add_head(f_html_, f_html_0, f_html_1):
-
     """
     Write HTML Headers to various html files
 
@@ -384,6 +372,7 @@ def add_head(f_html_, f_html_0, f_html_1):
     None
 
     """
+
     print >>f_html_, "<html>"
     print >>f_html_, "<head>"
     print >>f_html_, "<title>QC</title>"
@@ -406,7 +395,7 @@ def add_head(f_html_, f_html_0, f_html_1):
     print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
     print >>f_html_0, "<p class=\"logo\"><a href=\"#\">"
     print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC',"GUI/resources/html/_static/cmi_logo.jpg"))
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC', "GUI/resources/html/_static/cmi_logo.jpg"))
     print >>f_html_0, "</a></p>"
     print >>f_html_0, "<h3><a href=\"#\">Table Of Contents</a></h3>"
     print >>f_html_0, "<ul>"
@@ -419,8 +408,6 @@ def add_head(f_html_, f_html_0, f_html_1):
 
 
 def add_tail(f_html_, f_html_0, f_html_1):
-
-
     """
     Write HTML Tail Tags to various html files
 
@@ -617,13 +604,9 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     if image_name == 'falff_smooth_hist':
         image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
+    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)
 
-    print >>f_html_1, "<h3><a name='%s'>%s</a> <a href='#reverse'>TOP</a></h3>" %(anchor, image_readable)   ###
-
-    ###data_uri = open(image, 'rb').read().encode('base64').replace('\n', '')
-    ###img_tag = '<br><img src="data:image/png;base64,{0}">'.format(data_uri)
-
-    img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)   ###
+    img_tag = "<br><img src='%s', alt='%s'>" %(image, image_readable)
     print >>f_html_1, img_tag
 
 
@@ -693,9 +676,7 @@ def get_map_and_measure(png_a):
     measure_name = None
     map_name = None
     if '_fwhm_' in png_a:
-
         measure_name = os.path.basename(os.path.dirname(os.path.dirname(png_a)))
-
     else:
         measure_name = os.path.basename(os.path.dirname((png_a)))
 
@@ -705,21 +686,16 @@ def get_map_and_measure(png_a):
         map_name = 'seed'
 
     if 'sca_roi' in png_a:
-
         map_name = get_map_id(str_, 'ROI_number_')
 
     if 'temporal_regression_sca' in png_a:
-
         map_name = get_map_id(str_, 'roi_')
 
     if 'temporal_dual_regression' in png_a:
-
         map_name = get_map_id(str_, 'map_z_')
 
     if 'centrality' in png_a:
-
         map_name = get_map_id(str_, 'centrality_')
-
 
     return map_name, measure_name
 
@@ -791,7 +767,6 @@ def feed_lines_html(id_,
     from CPAC.qc.utils import feed_line_body
     from CPAC.qc.utils import get_map_and_measure
 
-    #print 'id_ :', id_
     if id_ in dict_a:
 
         dict_a[id_] = sorted(dict_a[id_])
@@ -816,7 +791,6 @@ def feed_lines_html(id_,
 
             if idxs > 1:
                 map_name, measure_name =get_map_and_measure(png_a)
-
 
             id_a = str(id_)
             id_s = str(id_) + '_s'
@@ -895,7 +869,6 @@ def feed_lines_html(id_,
                             f_html_0, \
                             f_html_1)
 
-
             feed_line_body(
                         image_name_a, \
                         id_a, \
@@ -907,7 +880,6 @@ def feed_lines_html(id_,
                         id_s, \
                         png_s, \
                         f_html_1)
-
 
             if id_ in dict_hist.keys():
 
@@ -980,17 +952,21 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
         feed_lines_html
 
-    f_ = open(file_, 'r')
-    pngs_ = [line.rstrip('\r\n') for line in f_.readlines()]
-    f_.close()
+    with open(file_, 'r') as f:
+        pngs_ = [line.rstrip('\r\n') for line in f.readlines()]
 
     html_f_name = file_.replace('.txt', '')
- 
-    html_f_name = html_f_name.replace("'", "")   ###fixed in front, don't have to now
+    html_f_name = html_f_name.replace("'", "")
 
-    html_f_name_0 = html_f_name + '_0.html'
-    html_f_name_1 = html_f_name + '_1.html'
-    html_f_name = html_f_name + '.html'
+    html_f_name_0 = html_f_name + '_navbar.html'
+    html_f_name_1 = html_f_name + '_page.html'
+
+    # TODO: this is a temporary patch until the completed QC interface is
+    # TODO: implemented
+    # pop the combined (navbar + content) page back into the output directory
+    # and give it a more obvious name
+    html_f_name = "{0}.html".format(html_f_name.replace("qc_scan", "QC-interface_scan"))
+    html_f_name = html_f_name.replace("/qc_files_here", "")
 
     f_html_ = open(html_f_name, 'wb')
     f_html_0 = open(html_f_name_0, 'wb')
@@ -1068,29 +1044,6 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
                     qc_hist_id):
-
-    """
-    parafile = open('QC_input_para.txt', 'w')
-    parafile.write(qc_path)
-    parafile.write('qc_montage_id_a: ')
-    for key, value in qc_montage_id_a.iteritems()
-        parafile.write(key)
-        parafile.write(value)
-    parafile.write('qc_montage_id_s: ')
-    for key, value in qc_montage_id_s.iteritems()
-        parafile.write(key)
-        parafile.write(value)
-    parafile.write('qc_plot_id: ')
-    for key, value in qc_plot_id.iteritems()
-        parafile.write(key)
-        parafile.write(value)
-    parafile.write('qc_hist_id: ')
-    for key, value in qc_hist_id.iteritems()
-        parafile.write(key)
-        parafile.write(value)
-    parafile.close()
-    """
-
     """
     Calls make_qc_page and organizes qc path files
 
@@ -1123,58 +1076,31 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     None
 
     """
+
     import os
-    from CPAC.qc.utils import first_pass_organizing_files, second_pass_organizing_files
+    from CPAC.qc.utils import first_pass_organizing_files, \
+        second_pass_organizing_files
     from CPAC.qc.utils import make_qc_pages
 
-    #os.system('rm -rf %s/*.html')
-
-    #according to preprocessing strategy combines the files
+    # according to preprocessing strategy combines the files
     first_pass_organizing_files(qc_path)
-    #according to bandpass and hp_lp and smoothing iterables combines the files
-    second_pass_organizing_files(qc_path)
-    make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
-    #generate pages from qc files
-#   text_file_list = os.listdir(qc_path)
-#    print text_file_list
-#    image_path_list = []
-#    for text_file in text_file_list:
-#        if text_file[0] != '.':
-#            f = open(os.path.join(qc_path, text_file),'r')
-#            eof = 0
-#            while (not eof):
-#                    temp_line = f.readline()
-#                    if temp_line == '':
-#                        eof=1 #This is to check if reading the file is complete
-#                    else:
-#                        if temp_line[-2:] == "\n":
-#                            temp_line = temp_line[:-1]
-#                        image_path_list.append(temp_line)
-#            f.close()
-#    f = open(os.path.join(qc_path, "QC_index.html"),'w')
-#    header = """<html>
-#    <head> QA Images </head>
-#    <body><p>"""
-#    footer = """</p></body>
-#    </html>"""
-                              
-#    f.write(header)
-#    for image in image_path_list:
-#        image_html = "<img src=\""+image+"\">"
-#        f.write(image_html)
-                              
-#    f.write(footer)
-#    f.close()
-#    print f
+    # according to bandpass and hp_lp and smoothing iterables combines the
+    # files
+    second_pass_organizing_files(qc_path)
+
+    make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                  qc_hist_id)
 
 
 def afni_edge(in_file):
     """Run AFNI 3dedge3 on the input file - temporary function until the
     interface issue in Nipype is sorted out."""
 
+    in_file = os.path.abspath(in_file)
+
     out_file = os.path.join(os.getcwd(),
-                            "{0}_edge.nii.gz".format(os.path.basename(in_file)))
+                            "{0}".format(os.path.basename(in_file).replace(".nii", "_edge.nii")))
 
     cmd_string = ["3dedge3", "-input", in_file, "-prefix", out_file]
 
@@ -1215,18 +1141,6 @@ def make_edge(wf_name='create_edge'):
                         name='inputspec')
     outputNode = pe.Node(util.IdentityInterface(fields=['new_fname']),
                          name='outputspec')
-
-    '''
-    try:
-        prepare = pe.Node(interface=afni.Edge3(), name='afni_3dedge3')
-        prepare.inputs.outputtype = "NIFTI_GZ"
-        prepare.inputs.out_file = "{0}_edge.nii.gz".format(wf_name)
-        prepare.inputs.terminal_output = "file"
-    except AttributeError:
-        raise Exception("\n\n[!] Could not find the 'Edge3' AFNI interface "
-                        "in your Nipype install - double-check that you are "
-                        "using the correct version.\n\n")
-    '''
 
     run_afni_edge_imports = ["import os", "import subprocess"]
 
