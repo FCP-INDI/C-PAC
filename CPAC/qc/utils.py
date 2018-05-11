@@ -978,7 +978,7 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     """
     import os
     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
-                            feed_lines_html
+        feed_lines_html
 
     f_ = open(file_, 'r')
     pngs_ = [line.rstrip('\r\n') for line in f_.readlines()]
@@ -998,9 +998,6 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
                                         qc_montage_id_s, qc_plot_id, qc_hist_id)
-
-    #for k, v in dict_plot.items():
-    #        print '_a~~~> ', k, v
 
     add_head(f_html_, f_html_0, f_html_1)
 
@@ -1025,8 +1022,6 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
-
-
     """
     Calls make page
 
@@ -1061,20 +1056,18 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
     """
     import os
     from CPAC.qc.utils import make_page
-                              
-        
 
     qc_files = os.listdir(qc_path)
 
     for file_ in qc_files:
-
         if not (file_.endswith('.txt')):
             continue
-        #actually make the html page for the file_
-        make_page(os.path.join(qc_path, file_), qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+        make_page(os.path.join(qc_path, file_), qc_montage_id_a,
+                  qc_montage_id_s, qc_plot_id, qc_hist_id)
 
 
-def generateQCPages(qc_path,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                    qc_hist_id):
 
     """
     parafile = open('QC_input_para.txt', 'w')
@@ -1190,7 +1183,8 @@ def afni_edge(in_file):
     except Exception as e:
         err = "\n\n[!] Something went wrong with AFNI 3dedge3 while " \
               "creating the an overlay for the QA pages.\n\nError details: " \
-              "{0}\n\n".format(e)
+              "{0}\n\nAttempted command: {1}" \
+              "\n\n".format(e, " ".join(cmd_string))
         raise Exception(err)
 
     return out_file

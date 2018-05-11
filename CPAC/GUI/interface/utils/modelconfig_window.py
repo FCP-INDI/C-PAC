@@ -468,7 +468,8 @@ class ModelConfig(wx.Frame):
 
         # Read in the phenotypic CSV file into a dictionary named pheno_dict
         # while preserving the header fields as they correspond to the data
-        p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'), skipinitialspace=True)
+        p_reader = csv.DictReader(open(os.path.abspath(ph), 'rU'),
+                                  skipinitialspace=True)
         
         # dictionary to store the data in a format Patsy can use
         # i.e. a dictionary where each header is a key, and the value is a

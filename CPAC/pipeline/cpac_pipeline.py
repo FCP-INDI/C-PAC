@@ -60,8 +60,6 @@ from CPAC.network_centrality import create_resting_state_graphs, \
     get_cent_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
-
-# TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
@@ -1333,17 +1331,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
 
             try:
-                node,out_file = strat.get_leaf_properties()
-                workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
+                node, out_file = strat.get_leaf_properties()
+                workflow.connect(node, out_file, epi_distcorr,'inputspec.func_file')
 
-                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
-                workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
+                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node, out_file, epi_distcorr,'inputspec.anat_file')
 
                 node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
 
-                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
-                workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
+                node, out_file = strat.get_node_from_resource_pool('fmap_magnitude')
+                workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_mag')
 
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
@@ -4317,7 +4315,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
                 
-        hist = pe.Node(util.Function(input_names=['measure_file','measure'],output_names = ['hist_path'],function = gen_histogram),name = 'histogram')
+        hist = pe.Node(util.Function(input_names=['measure_file',
+                                                  'measure'],
+                                     output_names=['hist_path'],
+                                     function=gen_histogram),
+                       name='histogram')
 
         for strat in strat_list:
 
@@ -4473,7 +4475,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                   name='fd_plot_%d' % num_strat)
                         fd_plot.inputs.measure = 'FD'
 
-                        workflow.connect(fd, out_file,fd_plot, 'arr')
+                        workflow.connect(fd, out_file, fd_plot, 'arr')
 
                         if "De-Spiking" in c.runMotionSpike:
                             excluded, out_file_ex = strat.get_node_from_resource_pool('despiking_frames_excluded')
@@ -5245,7 +5247,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # Add status callback function that writes in callback log
         if nipype.__version__ not in ('0.13.1', '0.14.0'):
             err_msg = "This version of nipype may not be compatible with " \
-                      "CPAC v%s, please install version 0.14.0\n" \
+                      "CPAC v%s, please install version 0.13.1\n" \
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
@@ -5266,78 +5268,25 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         pickle.dump(subject_info, subject_info_pickle)
         subject_info_pickle.close()
 
-        '''
-        # Actually run the pipeline now
-        try:
-
-            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
-
-        except:
-
-            crashString = "\n\n" + "ERROR: CPAC run stopped prematurely with an error - see above.\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
-            ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time before crash (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
-            ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
-            ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of crash: %s" % strftime("%Y-%m-%d %H:%M:%S")) + "\n\n"
-
-            logger.info(crashString)
-
-            print >>timing, "ERROR: CPAC run stopped prematurely with an error."
-            print >>timing, "Pipeline configuration: %s" % c.pipelineName
-            print >>timing, "Subject workflow: %s" % wfname
-            print >>timing, "\n" + "Elapsed run time before crash (minutes): ", ((time.time() - pipeline_start_time)/60)
-            print >>timing, "System time of crash: ", strftime("%Y-%m-%d %H:%M:%S")
-            print >>timing, "\n\n"
-
-            timing.close()
-
-            raise Exception
-        '''
-
-        '''
-        try:
-
-            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
-
-        except Exception as e:
-
-            print "Error: CPAC Pipeline has failed."
-            print ""
-            print e
-            print type(e)
-            ###raise Exception
-        '''
-
-        # subject_dir = os.path.join(c.outputDirectory, 'pipeline_' + pipeline_id, subject_id)
-        # create_output_mean_csv(subject_dir)
-
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
+
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
                 try:
-                    pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
-                    generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
-            #create_all_qc.run(pipeline_base)
+                    pipeline_base = os.path.join(c.outputDirectory,
+                                                 'pipeline_%s' % pip_id)
+                    qc_output_folder = os.path.join(pipeline_base, subject_id,
+                                                    'qc_files_here')
+                    generateQCPages(qc_output_folder, qc_montage_id_a,
+                                    qc_montage_id_s, qc_plot_id, qc_hist_id)
                 except Exception as e:
-                    print "Error: The QC function page generation is not running"
-                    print ""
+                    print "Error: The QC function page generation is not " \
+                          "running\n\n"
                     print e
                     print type(e)
                     raise Exception
-                    
-
-
-            # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
-                #two methods can be done here:
-                #i) group all the qc_montage_ids in the resource pool or
-                #add a loop for all the files in the qc output folder, generate the html pages using the same functions, but with different parameters
-                # generateQCPages(qc_output_folder, qc_montage_id_a,
-                #  qc_montage_id_s, qc_plot_id, qc_hist_id)
-                # Automatically generate QC index page
-                #create_all_qc.run(pipeline_out_base)
-        
 
         # pipeline timing code starts here
 

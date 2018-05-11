@@ -46,7 +46,7 @@ class TimeSeriesOptions(wx.ScrolledWindow):
                       comment="Interpolate voxel time courses so they are "
                               "sampled at the same time points.",
                       values=["On", "Off", "On/Off"],
-                      wkf_switch = True)
+                      wkf_switch=True)
 
         self.page.add(label="TR (in seconds) ",
                       control=control.TEXT_BOX,
