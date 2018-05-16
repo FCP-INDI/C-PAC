@@ -10,25 +10,19 @@ import nipype.interfaces.utility as util
 
 
 def append_to_files_in_dict_way(list_files, file_):
-
-    """
-    Combine files so at each resource in file appears exactly once
+    """Combine files so at each resource in file appears exactly once.
 
     Parameters
     ----------
-
     list_files : list
-
     file_ : string
 
     Returns
     -------
-
     None
 
     Notes
     -----
-
     Writes contents of file_ into list_files, ensuring list_files finally has
     each resource appearing exactly once
 
@@ -37,30 +31,24 @@ def append_to_files_in_dict_way(list_files, file_):
     f_1 = open(file_, 'r')
 
     lines = f_1.readlines()
-
     lines = [line.rstrip('\r\n') for line in lines]
-
     one_dict = {}
 
     for line in lines:
-
         if not line in one_dict:
             one_dict[line] = 1
-
-
 
     f_1.close()
 
     for f_ in list_files:
-
         two_dict = {}
         f_2 = open(f_, 'r')
         lines = f_2.readlines()
         f_2.close()
         f_2 = open(f_, 'w')
         lines = [line.rstrip('\r\n') for line in lines]
-        for line in lines:
 
+        for line in lines:
             if not line in one_dict:
                 two_dict[line] = 1
 
@@ -69,30 +57,25 @@ def append_to_files_in_dict_way(list_files, file_):
                     two_dict[key] = 1
 
         for key in two_dict:
-
             print >> f_2, key
 
         f_2.close
 
 
 def first_pass_organizing_files(qc_path):
-    """
-    First Pass at organizing qc txt files
+    """First Pass at organizing qc txt files.
 
     Parameters
     ----------
-
     qc_path : string
         existing path of qc_files_here directory
 
     Returns
     -------
-
     None
 
     Notes
     -----
-
     Combines files with same strategy. First pass combines file names,
     where one file name is substring of the other.
 
@@ -108,7 +91,6 @@ def first_pass_organizing_files(qc_path):
     strat_dict = {}
 
     for file_ in sorted(qc_files, reverse=True):
-
         if not ('.txt' in file_):
             continue
 
@@ -122,14 +104,14 @@ def first_pass_organizing_files(qc_path):
         str_ = str_.replace('___', '_')
         str_ = str_.replace('__', '_')
 
-        if '_hp_' in str_ and '_fwhm_' in str_ and not ('_bandpass_freqs_' in str_):
-
+        if '_hp_' in str_ and '_fwhm_' in str_ and \
+                not ('_bandpass_freqs_' in str_):
             str_, fwhm_val = str_.split('_fwhm_')
 
             fwhm_val = '_fwhm_' + fwhm_val
 
             str_, hp_lp_ = str_.split('_hp_')
-            hp_lp_ = '_hp_'  + hp_lp_
+            hp_lp_ = '_hp_' + hp_lp_
 
             str_ = str_ + fwhm_val + hp_lp_
 
@@ -149,23 +131,19 @@ def first_pass_organizing_files(qc_path):
 
 
 def second_pass_organizing_files(qc_path):
-    """
-    Second Pass at organizing qc txt files
+    """Second Pass at organizing qc txt files.
 
     Parameters
     ----------
-
     qc_path : string
         existing path of qc_files_here directory
 
     Returns
     -------
-
     None
 
     Notes
     -----
-
     Combines files with same strategy. combines files for derivative 
     falff , alff with others
 
@@ -198,10 +176,10 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org pass: %s %s' % (strat_dict[str_], file_)
+                print 'Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_)
                 raise
 
-            print strat_dict
         # organize alff falff
         elif ('_hp_' in str_) and ('_lp_' in str_):
             key_ = ''
@@ -234,18 +212,16 @@ def second_pass_organizing_files(qc_path):
             if not str_ in strat_dict:
                 strat_dict[str_] = [file_]
             else:
-                print 'Error: duplicate keys for files in QC 2nd file_org pass: %s %s' % (strat_dict[str_], file_)
+                print 'Error: duplicate keys for files in QC 2nd file_org ' \
+                      'pass: %s %s' % (strat_dict[str_], file_)
                 raise
 
 
 def organize(dict_, all_ids, png_, new_dict):
-
-    """
-    Organizes pngs according to their IDS in new_dict dictionary
+    """Organizes pngs according to their IDS in new_dict dictionary
 
     Parameters
     ----------
-
     dict_ : dictionary
         dict containing png id no and png type(montage/plot/hist)
 
@@ -258,12 +234,11 @@ def organize(dict_, all_ids, png_, new_dict):
     new_dict : dictionary
         dictionary containg ids and png lists
 
-
     Returns
     -------
-
     all_ids : list
         list of png id nos
+
     """
 
     for id_no, png_type in dict_.items():
@@ -279,17 +254,14 @@ def organize(dict_, all_ids, png_, new_dict):
             if not id_no in all_ids:
                 all_ids.append(id_no)
 
-    return  all_ids
+    return all_ids
 
 
 def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
-
-    """
-    Groups pngs by their ids
+    """Groups pngs by their ids.
 
     Parameters
     ----------
-
     pngs_ : list
         list of all pngs
 
@@ -308,7 +280,6 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     qc_hist_id : dictionary
           dictionary of histogram pngs key : id no
           value is list of png types
-
 
     Returns
     -------
@@ -330,6 +301,7 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
 
     all_ids : list
         list of png id nos
+
     """
 
     from CPAC.qc.utils import organize
@@ -349,13 +321,11 @@ def grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_
     return dict(dict_a), dict(dict_s), dict(dict_hist), dict(dict_plot), list(all_ids)
 
 
-def add_head(f_html_, f_html_0, f_html_1):
-    """
-    Write HTML Headers to various html files
+def add_head(f_html_, f_html_0, f_html_1, name=None):
+    """Write HTML Headers to various html files.
 
     Parameters
     ----------
-
     f_html_ : string
         path to main html file
 
@@ -365,55 +335,73 @@ def add_head(f_html_, f_html_0, f_html_1):
     f_html_1 : string
         path to html file contaning pngs and plots
 
-
     Returns
     -------
-
     None
 
     """
 
     print >>f_html_, "<html>"
     print >>f_html_, "<head>"
-    print >>f_html_, "<title>QC</title>"
+    print >>f_html_, "<title>C-PAC QC</title>"
     print >>f_html_, "</head>"
     print >>f_html_, ""
     print >>f_html_, "<frameset cols=\"20%,80%\">"
     print >>f_html_, ""
-    print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s\" name=\"content\"></frameset>" %(f_html_0.name, f_html_1.name)
+    print >>f_html_, "    <frame src=\"%s\" name=\"menu\"><frame src=\"%s" \
+                     "\" name=\"content\">" \
+                     "</frameset>" %(f_html_0.name, f_html_1.name)
     print >>f_html_, ""
     print >>f_html_, "</html>"
 
     print >>f_html_0, "<html>"
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"))
-    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"))
+    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
+                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/nature.css"))
+    print >>f_html_0, "<link href=\"%s\" rel=\"stylesheet\" " \
+                      "media=\"screen\">"%(p.resource_filename('CPAC',"GUI/resources/html/_static/pygments.css"))
     print >>f_html_0, "<head>"
     print >>f_html_0, "<base target=\"content\">"
     print >>f_html_0, "</head>"
-    print >>f_html_0, "<body bgcolor = "#FFFF00">"
+    print >>f_html_0, "<body bgcolor = \"#FFFF00\">"
     print >>f_html_0, "<div>"
     print >>f_html_0, "<div class=\"sphinxsidebarwrapper\">"
-    print >>f_html_0, "<p class=\"logo\"><a href=\"#\">"
+    print >>f_html_0, "<p class=\"logo\"><a href=\"" \
+                      "https://fcp-indi.github.io\" target=\"website\">"
     print >>f_html_0, "<p style = \"font-family: 'Times-New-Roman'\">"
-    print >>f_html_0, "<img class=\"logo\" src=\"%s\" alt=\"Logo\"/>"%(p.resource_filename('CPAC', "GUI/resources/html/_static/cmi_logo.jpg"))
+    print >>f_html_0, "<img class=\"logo\" src=\"%s\" " \
+                      "alt=\"Logo\"/>"%(p.resource_filename('CPAC', "GUI/resources/html/_static/cpac_logo.jpg"))
     print >>f_html_0, "</a></p>"
-    print >>f_html_0, "<h3><a href=\"#\">Table Of Contents</a></h3>"
+    print >>f_html_0, "<h3>Table Of Contents</h3>"
     print >>f_html_0, "<ul>"
 
-    print >>f_html_1, '<link href="default.css" rel="stylesheet" type="text/css" />'
+    print >>f_html_1, '<link href="default.css" rel="stylesheet" ' \
+                      'type="text/css" />'
     print >>f_html_1, "<html>"
     print >>f_html_1, "</style>"
     print >>f_html_1, "<body>"
     print >>f_html_1, "<a name='reverse'>"
+    if name:
+        print >>f_html_1, "<br><h1>C-PAC Visual Data Quality Control " \
+                          "Interface</h1>"
+        print >>f_html_1, "<h3>C-PAC Website: <a href=\"" \
+                          "https://fcp-indi.github.io/\" target=" \
+                          "\"website\">https://fcp-indi.github.io</a>" \
+                          "<br><br>"
+        print >>f_html_1, "C-PAC Support Forum: <a href=\"" \
+                          "https://groups.google.com/forum/#!forum" \
+                          "/cpax_forum\" target=\"forum\">" \
+                          "https://groups.google.com/forum/#!forum/" \
+                          "cpax_forum</a>"
+        print >>f_html_1, "<hr><br>Scan and strategy identifiers:" \
+                          "<br>{0}".format(name)
+        print >>f_html_1, "</h3><br>"
 
 
 def add_tail(f_html_, f_html_0, f_html_1):
-    """
-    Write HTML Tail Tags to various html files
+    """Write HTML Tail Tags to various html files.
 
     Parameters
     ----------
-
     f_html_ : string
         path to main html file
 
@@ -426,7 +414,6 @@ def add_tail(f_html_, f_html_0, f_html_1):
 
     Returns
     -------
-
     None
 
     """
@@ -440,18 +427,11 @@ def add_tail(f_html_, f_html_0, f_html_1):
     print >>f_html_1, "</html>"
 
 
-def feed_line_nav(id_,
-               image_name,
-               anchor,
-               f_html_0,
-               f_html_1):
-
-    """
-    Write to navigation bar html file
+def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
+    """Write to navigation bar html file.
 
     Parameters
     ----------
-
     id_ : string
         id of the image
 
@@ -467,10 +447,8 @@ def feed_line_nav(id_,
     f_html_1 : string
         path to html file contaning pngs and plots
 
-
     Returns
     -------
-
     None
 
     """
@@ -529,12 +507,10 @@ def feed_line_nav(id_,
 
 
 def feed_line_body(image_name, anchor, image, f_html_1):
-    """
-    Write to html file that has to contain images
+    """Write to html file that has to contain images.
 
     Parameters
     ----------
-
     image_name : string
         name of image
 
@@ -547,10 +523,8 @@ def feed_line_body(image_name, anchor, image, f_html_1):
     f_html_1 : string
         path to html file contaning pngs and plots
 
-
     Returns
     -------
-
     None
 
     """
@@ -611,13 +585,10 @@ def feed_line_body(image_name, anchor, image, f_html_1):
 
 
 def get_map_id(str_, id_):
-
-    """
-    Returns the proper map name given identifier for it
+    """Returns the proper map name given identifier for it.
 
     Parameters
     ----------
-
     str_ : string
         string containing text for identifier
 
@@ -626,42 +597,62 @@ def get_map_id(str_, id_):
 
     Returns
     -------
-
     map_id : string
         proper name for a map
+
     """
+
     map_id = None
 
-    if 'centrality' in id_:
-        str_ = str_.split('_centrality_a.png')[0]
-        type_, str_ = str_.split(id_)
-        str_ = str_.split('_')[0]
+    '''
+    id_:  centrality_
+    str_:  degree_centrality_binarize_99_1mm_centrality_outputs_a.png
+    str_ post-split:  degree_centrality_binarize_99_1mm_centrality_outputs
+    180515-20:46:14,382 workflow ERROR:
+    [!] Error: The QC interface page generator ran into a problem.
+    Details: too many values to unpack
+    '''
 
+    # so whatever goes into "type_" and then "map_id" becomes the "Map: "
+    # Mask: should be the ROI nifti, but right now it's the nuisance strat...
+    # Measure: should be eigenvector binarize etc., but it's just "centrality_outputs"
+
+    if 'centrality' in id_ or 'lfcd' in id_:
+        # TODO: way too reliant on a very specific string format
+        # TODO: needs re-factoring
+        str_ = str_.split('_a.png')[0]
+        type_, str_ = str_.rsplit(id_, 1)
+
+        if "_99_1mm_" in type_:
+            type_ = type_.replace("_99_1mm_", "")
+        map_id = type_
+
+        '''
+        str_ = str_.split('_')[0]
         type_ = type_.replace('_', '')
         map_id = '_'.join([type_, id_, str_])
+        '''
+
         return map_id
 
     else:
         str_ = str_.split(id_)[1]
         str_ = str_.split('_')[0]
         map_id = '_'.join([id_, str_])
+
         return map_id
 
 
 def get_map_and_measure(png_a):
-
-    """
-    Extract Map name and Measure name from png
+    """Extract Map name and Measure name from png.
 
     Parameters
     ----------
-
     png_a : string
         name of png
 
     Returns
     -------
-
     map_name : string
         proper name for map
 
@@ -675,6 +666,7 @@ def get_map_and_measure(png_a):
 
     measure_name = None
     map_name = None
+
     if '_fwhm_' in png_a:
         measure_name = os.path.basename(os.path.dirname(os.path.dirname(png_a)))
     else:
@@ -682,17 +674,14 @@ def get_map_and_measure(png_a):
 
     str_ = os.path.basename(png_a)
 
-    if 'sca_seeds' in png_a:
-        map_name = 'seed'
+    if 'sca_tempreg' in png_a:
+        map_name = get_map_id(str_, 'maps_roi_')
 
     if 'sca_roi' in png_a:
-        map_name = get_map_id(str_, 'ROI_number_')
+        map_name = get_map_id(str_, 'ROI_')
 
-    if 'temporal_regression_sca' in png_a:
-        map_name = get_map_id(str_, 'roi_')
-
-    if 'temporal_dual_regression' in png_a:
-        map_name = get_map_id(str_, 'map_z_')
+    if 'dr_tempreg' in png_a:
+        map_name = get_map_id(str_, 'temp_reg_map_')
 
     if 'centrality' in png_a:
         map_name = get_map_id(str_, 'centrality_')
@@ -700,24 +689,13 @@ def get_map_and_measure(png_a):
     return map_name, measure_name
 
 
-def feed_lines_html(id_,
-                        dict_a,
-                        dict_s,
-                        dict_hist,
-                        dict_plot,
-                        qc_montage_id_a,
-                        qc_montage_id_s,
-                        qc_plot_id,
-                        qc_hist_id,
-                        f_html_0,
-                        f_html_1):
-
-    """
-    Write HTML Tags to various html files and embeds images
+def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+                    qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id,
+                    f_html_0, f_html_1):
+    """Write HTML Tags to various html files and embeds images.
 
     Parameters
     ----------
-
     dict_a : dictionary
         dictionary of axial montages key : id no
         value is list of paths to axial montages
@@ -756,10 +734,8 @@ def feed_lines_html(id_,
     f_html_1 : string
         path to html file contaning pngs and plots
 
-
     Returns
     -------
-
     None
 
     """
@@ -773,12 +749,11 @@ def feed_lines_html(id_,
         dict_s[id_] = sorted(dict_s[id_])
 
         if id_ in dict_hist:
-
             dict_hist[id_] = sorted(dict_hist[id_])
 
         idxs = len(dict_a[id_])
-        for idx in range(0, idxs):
 
+        for idx in range(0, idxs):
             png_a = dict_a[id_][idx]
             png_s = dict_s[id_][idx]
             png_h = None
@@ -790,7 +765,7 @@ def feed_lines_html(id_,
             map_name = None
 
             if idxs > 1:
-                map_name, measure_name =get_map_and_measure(png_a)
+                map_name, measure_name = get_map_and_measure(png_a)
 
             id_a = str(id_)
             id_s = str(id_) + '_s'
@@ -803,9 +778,9 @@ def feed_lines_html(id_,
             if id_ in qc_hist_id:
                 image_name_h_nav = qc_hist_id[id_]
             if map_name is not None:
-                image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: '+ measure_name + '   Map: ' + map_name
+                image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: ' + measure_name + '   Map: ' + map_name
                 if id_ in qc_hist_id:
-                    image_name_h = 'Measure: ' + qc_hist_id[id_]  + '    Mask:'+ measure_name + '    Map: ' + map_name
+                    image_name_h = 'Measure: ' + qc_hist_id[id_] + '    Mask:'+ measure_name + '    Map: ' + map_name
             else:
                 image_name_a = qc_montage_id_a[id_].replace('_a', '')
                 if id_ in qc_hist_id:
@@ -863,65 +838,33 @@ def feed_lines_html(id_,
                     image_readable = 'fractional Amplitude of Low-Frequency Fluctuation'
                 if image_name_a_nav == 'falff_smooth_hist':
                     image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
-                feed_line_nav(id_, \
-                            image_name_a_nav, \
-                            id_a, \
-                            f_html_0, \
-                            f_html_1)
+                feed_line_nav(id_, image_name_a_nav, id_a, f_html_0, f_html_1)
 
-            feed_line_body(
-                        image_name_a, \
-                        id_a, \
-                        png_a, \
-                        f_html_1)
-
-            feed_line_body(
-                        '', \
-                        id_s, \
-                        png_s, \
-                        f_html_1)
+            feed_line_body(image_name_a, id_a, png_a, f_html_1)
+            feed_line_body('', id_s, png_s, f_html_1)
 
             if id_ in dict_hist.keys():
-
                 if idx == 0:
-                    feed_line_nav(id_, \
-                              image_name_h_nav, \
-                              id_h, \
-                              f_html_0, \
-                              f_html_1)
+                    feed_line_nav(id_, image_name_h_nav, id_h, f_html_0,
+                                  f_html_1)
 
-                feed_line_body(
-                        image_name_h, \
-                        id_h, \
-                        png_h, \
-                        f_html_1)
+                feed_line_body(image_name_h, id_h, png_h, f_html_1)
 
     if id_ in dict_plot:
         id_a = str(id_)
         image_name = qc_plot_id[id_]
         png_a = dict_plot[id_][0]
-        print 'png_: ', png_a
-        feed_line_nav(id_, \
-                    image_name, \
-                    id_a, \
-                    f_html_0, \
-                    f_html_1)
-
-        feed_line_body(
-                    image_name, \
-                    id_a, \
-                    png_a, \
-                    f_html_1)
+        feed_line_nav(id_, image_name, id_a, f_html_0, f_html_1)
+        feed_line_body(image_name, id_a, png_a, f_html_1)
 
 
-def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
-
-    """
-    Make Page
+def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+              qc_hist_id):
+    """Convert a 'qc_files_here' text file in the CPAC output directory into
+    a QC HTML page.
 
     Parameters
     ----------
-
     file_ : string
         path to qc path file
 
@@ -941,13 +884,12 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
           dictionary of histogram pngs key : id no
           value is list of png types
 
-
     Returns
     -------
-
     None
 
     """
+
     import os
     from CPAC.qc.utils import grp_pngs_by_id, add_head, add_tail, \
         feed_lines_html
@@ -965,30 +907,26 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
     # TODO: implemented
     # pop the combined (navbar + content) page back into the output directory
     # and give it a more obvious name
-    html_f_name = "{0}.html".format(html_f_name.replace("qc_scan", "QC-interface_scan"))
+    html_f_name = "{0}.html".format(html_f_name.replace("qc_scan",
+                                                        "QC-interface_scan"))
     html_f_name = html_f_name.replace("/qc_files_here", "")
 
     f_html_ = open(html_f_name, 'wb')
     f_html_0 = open(html_f_name_0, 'wb')
     f_html_1 = open(html_f_name_1, 'wb')
 
-    dict_a, dict_s, dict_hist, dict_plot, all_ids = grp_pngs_by_id(pngs_, qc_montage_id_a, \
-                                        qc_montage_id_s, qc_plot_id, qc_hist_id)
+    dict_a, dict_s, dict_hist, dict_plot, all_ids = \
+        grp_pngs_by_id(pngs_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                       qc_hist_id)
 
-    add_head(f_html_, f_html_0, f_html_1)
+    qc_path_file_id = os.path.basename(html_f_name).replace(".html", "")
+
+    add_head(f_html_, f_html_0, f_html_1, qc_path_file_id)
 
     for id_ in sorted(all_ids):
-        feed_lines_html(id_,
-                          dict_a,
-                          dict_s,
-                          dict_hist,
-                          dict_plot,
-                          qc_montage_id_a,
-                          qc_montage_id_s,
-                          qc_plot_id,
-                          qc_hist_id,
-                          f_html_0,
-                          f_html_1)
+        feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
+                        qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                        qc_hist_id, f_html_0, f_html_1)
 
     add_tail(f_html_, f_html_0, f_html_1)
 
@@ -998,12 +936,11 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
 
     
 def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
-    """
-    Calls make page
+    """Generates a QC HTML file for each text file in the 'qc_files_here'
+    folder in the CPAC output directory.
 
     Parameters
     ----------
-
     qc_path : string
         path to qc_files_here directory
 
@@ -1026,7 +963,6 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
     Returns
     -------
-
     None
 
     """
@@ -1044,12 +980,13 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
 
 def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
                     qc_hist_id):
-    """
-    Calls make_qc_page and organizes qc path files
+    """Generates the QC HTML files populated with the QC images that were
+    created during the CPAC pipeline run.
+
+    This function runs after the pipeline is over.
 
     Parameters
     ----------
-
     qc_path : string
         path to qc_files_here directory
 
@@ -1069,15 +1006,12 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
           dictionary of histogram pngs key : id no
           value is list of png types
 
-
     Returns
     -------
-
     None
 
     """
 
-    import os
     from CPAC.qc.utils import first_pass_organizing_files, \
         second_pass_organizing_files
     from CPAC.qc.utils import make_qc_pages
@@ -1117,9 +1051,7 @@ def afni_edge(in_file):
 
 
 def make_edge(wf_name='create_edge'):
-    
-    """
-        Make edge file from a scan image
+    """Make edge file from a scan image
         
         Parameters
         ----------
@@ -1133,7 +1065,7 @@ def make_edge(wf_name='create_edge'):
         new_fname : string
         path to edge file
         
-        """
+    """
     
     wf_name = pe.Workflow(name=wf_name)
     
@@ -1157,13 +1089,10 @@ def make_edge(wf_name='create_edge'):
 
 
 def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
-
-    """
-    Transform functional file (std dev) into anatomical space
+    """Transform functional file (std dev) into anatomical space.
 
     Parameters
     ----------
-
     func_ : string
         functional scan
 
@@ -1178,9 +1107,9 @@ def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
     Returns
     -------
-
     new_fname : string
         path to the transformed scan
+
     """
 
     new_fname = os.path.join(os.getcwd(), 'std_dev_anat.nii.gz')
@@ -1195,24 +1124,21 @@ def gen_func_anat_xfm(func_, ref_, xfm_, interp_):
 
 
 def gen_snr(std_dev, mean_func_anat):
-    """
-    Generate SNR file
+    """Generate SNR file.
 
     Parameters
     ----------
-
     std_dev : string
         path to std dev file in anat space
 
     mean_func_anat : string
         path to mean functional scan in anatomical space
 
-
     Returns
     -------
-
     new_fname : string
         path to the snr file
+
     """
 
     new_fname = os.path.join(os.getcwd(), 'snr.nii.gz')
@@ -1227,23 +1153,16 @@ def gen_snr(std_dev, mean_func_anat):
 
 
 def cal_snr_val(measure_file):
-
-    """
-    Calculate average snr value for snr image.
+    """Calculate average snr value for snr image.
 
     Parameters
     ----------
-
     measure_file : string
-
         path to input nifti file
-
 
     Returns
     -------
-
     avg_snr_file : string
-
         a text file store average snr value
 
     """
@@ -1262,13 +1181,10 @@ def cal_snr_val(measure_file):
 
 
 def gen_std_dev(mask_, func_):
-
-    """
-    Generate std dev file
+    """Generate std dev file.
 
     Parameters
     ----------
-    
     mask_ : string
         path to whole brain mask file
 
@@ -1277,9 +1193,9 @@ def gen_std_dev(mask_, func_):
 
     Returns
     -------
-
     new_fname : string
         path to standard deviation file
+
     """
 
     new_fname = os.path.join(os.getcwd(), 'std_dev.nii.gz')
@@ -1293,23 +1209,18 @@ def gen_std_dev(mask_, func_):
 
 
 def drange(min_, max_):
-
-    """
-    Generate list of float values in a specified range.
+    """Generate list of float values in a specified range.
 
     Parameters
     ----------
-
     min_ : float
         Min value
 
     max_ : float
         Max value
 
-
     Returns
     -------
-
     range_ : list
         list of float values in the min_ max_ range
     
@@ -1326,13 +1237,10 @@ def drange(min_, max_):
 
 
 def gen_plot_png(arr, measure, ex_vol=None):
-
-    """
-    Generate Motion FD Plot. Shows which volumes were dropped.
+    """Generate Motion FD Plot. Shows which volumes were dropped.
 
     Parameters
     ----------
-
     arr : list
         Frame wise Displacements
 
@@ -1344,7 +1252,6 @@ def gen_plot_png(arr, measure, ex_vol=None):
 
     Returns
     -------
-
     png_name : string
             path to the generated plot png
     """
@@ -1458,28 +1365,19 @@ def gen_motion_plt(motion_parameters):
 
 
 def gen_histogram(measure_file, measure):
-
-    """
-    Generates Histogram Image of intensities for a given input
-    nifti file.
+    """Generates Histogram Image of intensities for a given input nifti file.
 
     Parameters
     ----------
-
     measure_file : string
-
-                path to input nifti file
+        path to input nifti file
 
     measure : string
-
         Name of the measure label in the plot
-
 
     Returns
     -------
-
     hist_path : string
-
         Path to the generated histogram png
 
     """
@@ -1494,25 +1392,20 @@ def gen_histogram(measure_file, measure):
             measure = m_
             if 'sca_roi' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('ROI_number_')[1]
-                fname = 'SCA_ROI_Number_' + fname.split('_')[0]
+                fname = fname.split('ROI_')[1]
+                fname = 'sca_ROI_' + fname.split('_')[0]
                 measure = fname
-            if 'temporal_regression_sca' in measure.lower():
-
+            if 'sca_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 fname = fname.split('z_maps_roi_')[1]
-                fname = 'z_maps_roi_' + fname.split('_')[0]
+                fname = 'sca_mult_regression_maps_ROI_' + fname.split('_')[0]
                 measure = fname
-
-            if 'temporal_dual_regression' in measure.lower():
-
+            if 'dr_tempreg' in measure.lower():
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
-                fname = fname.split('map_z_')[1]
-                fname = 'map_z_'+ fname.split('_')[0]
+                fname = fname.split('temp_reg_map_')[1]
+                fname = 'dual_regression_map_'+ fname.split('_')[0]
                 measure = fname
-
             if 'centrality' in measure.lower():
-
                 fname = os.path.basename(os.path.splitext(os.path.splitext(file_)[0])[0])
                 type_, fname = fname.split('centrality_')
                 fname = type_ + 'centrality_' + fname.split('_')[0]
@@ -1553,11 +1446,7 @@ def make_histogram(measure_file, measure):
 
     """
 
-    import matplotlib
-    import commands
-#    matplotlib.use('Agg')
     from matplotlib import pyplot
-    import matplotlib.cm as cm
     import numpy as np
     import nibabel as nb
     import os
@@ -1593,10 +1482,9 @@ def make_histogram(measure_file, measure):
 
 
 def drop_percent_(measure_file, percent_):
-
     """
-    Zeros out voxels in measure filewhose intensity doesnt fall
-    in percent_ of voxel intensities
+    Zeros out voxels in measure files whose intensity doesnt fall in percent_
+    of voxel intensities
 
     Parameters
     ----------
@@ -1611,9 +1499,7 @@ def drop_percent_(measure_file, percent_):
     -------
 
     modified_measure_file : string
-                    measure_file with 1 - percent_ voxels zeroed out 
-    
-
+                    measure_file with 1 - percent_ voxels zeroed out
     """
 
     import nibabel as nb
@@ -1626,7 +1512,6 @@ def drop_percent_(measure_file, percent_):
     data = img.get_data()
 
     x, y, z = data.shape
-
 
     max_val= float(commands.getoutput('fslstats %s -P %f' %(measure_file, percent_)))
 
@@ -1658,7 +1543,9 @@ def drop_percent_(measure_file, percent_):
 
     commands.getoutput("3dcalc -a %s -expr 'a' -prefix %s" % (saved_name, saved_name_correct_header))
 
-    modified_measure_file = os.path.join(os.getcwd(), saved_name_correct_header)
+    modified_measure_file = os.path.join(os.getcwd(),
+                                         saved_name_correct_header)
+
     return modified_measure_file
 
 
@@ -1786,10 +1673,8 @@ def determine_start_and_end(data, direction, percent):
 
 
 def montage_axial(overlay, underlay, png_name, cbar_name):
-
-    """
-    Draws Montage using overlay on Anatomical brain in Axial Direction
-	calls make_montage_axial
+    """Draws Montage using overlay on Anatomical brain in Axial Direction,
+    calls make_montage_axial.
 
     Parameters
     ----------
@@ -1816,12 +1701,11 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
     pngs = None
     if isinstance(overlay, list):
         pngs = []
-
         for ov in overlay:
             fname = os.path.basename(os.path.splitext(os.path.splitext(ov)[0])[0])
-            pngs.append(make_montage_axial(ov, underlay, fname + '_' + png_name, cbar_name))
+            pngs.append(make_montage_axial(ov, underlay,
+                                           fname + '_' + png_name, cbar_name))
     else:
-
         pngs = make_montage_axial(overlay, underlay, png_name, cbar_name)
 
     png_name = pngs
@@ -1830,7 +1714,6 @@ def montage_axial(overlay, underlay, png_name, cbar_name):
 
 
 def make_montage_axial(overlay, underlay, png_name, cbar_name):
-
     """
     Draws Montage using overlay on Anatomical brain in Axial Direction
 
@@ -1855,19 +1738,15 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     png_name : Path to generated PNG
 
     """
-    import matplotlib
-    import commands
-#    matplotlib.use('Agg')
     import os
+    import matplotlib
     matplotlib.rcParams.update({'font.size': 5})
     import matplotlib.cm as cm
-    ###
     try:
         from mpl_toolkits.axes_grid1 import ImageGrid   
     except:
         from mpl_toolkits.axes_grid import ImageGrid
     import matplotlib.pyplot as plt
-    import matplotlib.colors as col
     import nibabel as nb
     import numpy as np
     from CPAC.qc.utils import determine_start_and_end, get_spacing
@@ -1877,28 +1756,43 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     X = X.astype(np.float32)
     Y = Y.astype(np.float32)
 
-    if  'skull_vis' in png_name:
+    if 'skull_vis' in png_name:
         X[X < 20.0] = 0.0
-    if 'skull_vis' in png_name or 't1_edge_on_mean_func_in_t1' in png_name or 'MNI_edge_on_mean_func_mni' in png_name:
+    if 'skull_vis' in png_name or \
+            't1_edge_on_mean_func_in_t1' in png_name or \
+                'MNI_edge_on_mean_func_mni' in png_name:
         max_ = np.nanmax(np.abs(X.flatten()))
         X[X != 0.0] = max_
-        print '^^', np.unique(X)
+
     z1, z2 = determine_start_and_end(Y, 'axial', 0.0001)
     spacing = get_spacing(6, 3, z2 - z1)
     x, y, z = Y.shape
     fig = plt.figure(1)
     max_ = np.max(np.abs(Y))
 
-    if ('snr' in png_name) or  ('reho' in png_name) or ('vmhc' in png_name) or ('sca_' in png_name) or ('alff' in png_name) or ('centrality' in png_name) or ('temporal_regression_sca' in png_name)  or ('temporal_dual_regression' in png_name):
-        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True, aspect=True, cbar_mode="single", cbar_pad=0.2, direction="row")
+    if ('snr' in png_name) or ('reho' in png_name) or \
+            ('vmhc' in png_name) or ('sca_' in png_name) or \
+            ('alff' in png_name) or ('centrality' in png_name) or \
+            ('dr_tempreg' in png_name):
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
+                         aspect=True, cbar_mode="single", cbar_pad=0.2,
+                         direction="row")
     else:
-        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True, aspect=True, direction="row")
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
+                         aspect=True, direction="row")
 
     zz = z1
     for i in range(6*3):
         if zz >= z2:
             break
-        im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
+        try:
+            im = grid[i].imshow(np.rot90(Y[:, :, zz]), cmap=cm.Greys_r)
+        except IndexError as e:
+            # TODO: send this to the logger instead
+            print("\n[!] QC Interface: Had a problem with creating the "
+                  "axial montage for {0}\n\nDetails:{1}"
+                  "\n".format(png_name, e))
+            pass
         zz += spacing
 
     x, y, z = X.shape
@@ -1910,12 +1804,26 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     for i in range(6*3):
         if zz >= z2:
             break
-        if cbar_name is 'red_to_blue':
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
-        elif cbar_name is 'green':
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
-        else:
-            im = grid[i].imshow(np.rot90(X[:, :, zz]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=- max_, vmax=max_)   
+
+        try:
+            if cbar_name is 'red_to_blue':
+                im = grid[i].imshow(np.rot90(X[:, :, zz]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=0, vmax=max_)
+            elif cbar_name is 'green':
+                im = grid[i].imshow(np.rot90(X[:, :, zz]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=0, vmax=max_)
+            else:
+                im = grid[i].imshow(np.rot90(X[:, :, zz]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=- max_, vmax=max_)
+        except IndexError as e:
+            # TODO: send this to the logger instead
+            print("\n[!] QC Interface: Had a problem with creating the "
+                  "axial montage for {0}\n\nDetails:{1}"
+                  "\n".format(png_name, e))
+            pass
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -1926,7 +1834,9 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
     if 'snr' in png_name:
         cbar.ax.set_yticks(drange(0, max_))
 
-    elif ('reho' in png_name) or ('vmhc' in png_name) or ('sca_' in png_name) or ('alff' in png_name) or ('centrality' in png_name) or ('temporal_regression_sca' in png_name) or ('temporal_dual_regression' in png_name):
+    elif ('reho' in png_name) or ('vmhc' in png_name) or \
+            ('sca_' in png_name) or ('alff' in png_name) or \
+            ('centrality' in png_name) or ('dr_tempreg' in png_name):
         cbar.ax.set_yticks(drange(-max_, max_))
 
     plt.axis("off")
@@ -2025,10 +1935,11 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
 
     if 'skull_vis' in png_name:
         X[X < 20.0] = 0.0
-    if 'skull_vis' in png_name or 't1_edge_on_mean_func_in_t1' in png_name or 'MNI_edge_on_mean_func_mni' in png_name:
+    if 'skull_vis' in png_name or \
+            't1_edge_on_mean_func_in_t1' in png_name or \
+                'MNI_edge_on_mean_func_mni' in png_name:
         max_ = np.nanmax(np.abs(X.flatten()))
         X[X != 0.0] = max_
-        print '^^', np.unique(X)
 
     x1, x2 = determine_start_and_end(Y, 'sagittal', 0.0001)
     spacing = get_spacing(6, 3, x2 - x1)
@@ -2036,16 +1947,31 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
     fig = plt.figure(1)
     max_ = np.max(np.abs(Y))
 
-    if ('snr' in png_name) or  ('reho' in png_name) or ('vmhc' in png_name) or ('sca_' in png_name) or ('alff' in png_name) or ('centrality' in png_name) or ('temporal_regression_sca' in png_name)  or ('temporal_dual_regression' in png_name):
-        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True, aspect=True, cbar_mode="single", cbar_pad=0.5, direction="row")
+    if ('snr' in png_name) or ('reho' in png_name) or \
+            ('vmhc' in png_name) or ('sca_' in png_name) or \
+            ('alff' in png_name) or ('centrality' in png_name) or \
+            ('dr_tempreg' in png_name):
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
+                         aspect=True, cbar_mode="single", cbar_pad=0.5,
+                         direction="row")
     else:
-        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True, aspect=True, cbar_mode="None", direction="row")
+        grid = ImageGrid(fig, 111, nrows_ncols=(3, 6), share_all=True,
+                         aspect=True, cbar_mode="None", direction="row")
 
     xx = x1
     for i in range(6*3):
         if xx >= x2:
             break
-        im = grid[i].imshow(np.rot90(Y[xx, :, :]), cmap=cm.Greys_r)
+
+        try:
+            im = grid[i].imshow(np.rot90(Y[xx, :, :]), cmap=cm.Greys_r)
+        except IndexError as e:
+            # TODO: send this to the logger instead
+            print("\n[!] QC Interface: Had a problem with creating the "
+                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "\n".format(png_name, e))
+            pass
+
         grid[i].get_xaxis().set_visible(False)
         grid[i].get_yaxis().set_visible(False)
         xx += spacing
@@ -2058,19 +1984,36 @@ def make_montage_sagittal(overlay, underlay, png_name, cbar_name):
         if xx >= x2:
             break
         im = None
-        if cbar_name is 'red_to_blue':
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
-        elif cbar_name is 'green':
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=0, vmax=max_)
-        else:
-            im = grid[i].imshow(np.rot90(X[xx, :, :]), cmap=cm.get_cmap(cbar_name), alpha=0.82, vmin=- max_, vmax=max_)   
+
+        try:
+            if cbar_name is 'red_to_blue':
+                im = grid[i].imshow(np.rot90(X[xx, :, :]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=0, vmax=max_)
+            elif cbar_name is 'green':
+                im = grid[i].imshow(np.rot90(X[xx, :, :]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=0, vmax=max_)
+            else:
+                im = grid[i].imshow(np.rot90(X[xx, :, :]),
+                                    cmap=cm.get_cmap(cbar_name), alpha=0.82,
+                                    vmin=- max_, vmax=max_)
+        except IndexError as e:
+            # TODO: send this to the logger instead
+            print("\n[!] QC Interface: Had a problem with creating the "
+                  "sagittal montage for {0}\n\nDetails:{1}"
+                  "\n".format(png_name, e))
+            pass
+
         xx += spacing
+
     cbar = grid.cbar_axes[0].colorbar(im)
 
     if 'snr' in png_name:
         cbar.ax.set_yticks(drange(0, max_))
-
-    elif ('reho' in png_name) or ('vmhc' in png_name) or ('sca_' in png_name) or ('alff' in png_name) or ('centrality' in png_name) or ('temporal_regression_sca' in png_name)  or ('temporal_dual_regression' in png_name):
+    elif ('reho' in png_name) or ('vmhc' in png_name) or \
+            ('sca_' in png_name) or ('alff' in png_name) or \
+            ('centrality' in png_name) or ('dr_tempreg' in png_name):
         cbar.ax.set_yticks(drange(-max_, max_))
 
     plt.axis("off")
@@ -2157,7 +2100,7 @@ def montage_gm_wm_csf_axial(overlay_csf, overlay_wm, overlay_gm, underlay, png_n
     for i in range(6*3):
         if zz >= z2:
             break
-        im = grid[i].imshow(np.rot90(X_csf[:, :, zz]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)   ###
+        im = grid[i].imshow(np.rot90(X_csf[:, :, zz]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)
         im = grid[i].imshow(np.rot90(X_wm[:, :, zz]), cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0, vmax=max_wm)
         im = grid[i].imshow(np.rot90(X_gm[:, :, zz]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)   
 
@@ -2250,9 +2193,15 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
         if zz >= x2:
             break
 
-        im = grid[i].imshow(np.rot90(X_csf[zz, :, :]), cmap=cm.get_cmap('green'), alpha=0.82, vmin=0, vmax=max_csf)   ###
-        im = grid[i].imshow(np.rot90(X_wm[zz, :, :]), cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0, vmax=max_wm)
-        im = grid[i].imshow(np.rot90(X_gm[zz, :, :]), cmap=cm.get_cmap('red'), alpha=0.82, vmin=0, vmax=max_gm)   
+        im = grid[i].imshow(np.rot90(X_csf[zz, :, :]),
+                            cmap=cm.get_cmap('green'), alpha=0.82, vmin=0,
+                            vmax=max_csf)
+        im = grid[i].imshow(np.rot90(X_wm[zz, :, :]),
+                            cmap=cm.get_cmap('blue'), alpha=0.82, vmin=0,
+                            vmax=max_wm)
+        im = grid[i].imshow(np.rot90(X_gm[zz, :, :]),
+                            cmap=cm.get_cmap('red'), alpha=0.82, vmin=0,
+                            vmax=max_gm)
 
         grid[i].axes.get_xaxis().set_visible(False)
         grid[i].axes.get_yaxis().set_visible(False)
@@ -2366,8 +2315,8 @@ def make_resample_1mm(file_):
 
     new_fname = ''.join([remainder, '_1mm', ext])
     new_fname = os.path.join(os.getcwd(), os.path.basename(new_fname))
-    cmd = " 3dresample -dxyz 1.0 1.0 1.0 -prefix %s -inset %s " % (new_fname, file_)
-    print cmd
+    cmd = " 3dresample -dxyz 1.0 1.0 1.0 -prefix %s " \
+          "-inset %s " % (new_fname, file_)
     commands.getoutput(cmd)
 
     return new_fname

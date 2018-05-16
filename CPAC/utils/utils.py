@@ -845,17 +845,17 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
                                     get_hplpfwhmseed_('/_sca_roi_',
                                                       remainder_path))
 
-        hp_str = ''
+        hp_str = None
         if '_hp_' in remainder_path:
             hp_str = get_hplpfwhmseed_('/_hp_', remainder_path)
             new_path = os.path.join(new_path, hp_str)
 
-        lp_str = ''
+        lp_str = None
         if '_lp_' in remainder_path:
             lp_str = get_hplpfwhmseed_('/_lp_', remainder_path)
             new_path = os.path.join(new_path, lp_str)
 
-        bp_freq = ''
+        bp_freq = None
         if '_bandpass_freqs_' in remainder_path:
             bp_freq = get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path)
             new_path = os.path.join(new_path, bp_freq)
@@ -882,7 +882,6 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
 
         # prepare paths and filenames for QC text files and output paths_file
         # text files that are written to the output directory
-
         try:
             if wf == 'qc':
                 # if the output file is QC related, send it over to
@@ -911,11 +910,23 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
             # output paths_file text files descriptively
 
             if wf == 'qc':
-                f_n = os.path.join(new_f_path, 'qc_%s.txt') % (
-                scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+                qc_fn_string = "qc_{0}_{1}".format(scan_info, strategy_identifier)
+                if bp_freq:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, bp_freq)
+                if hp_str:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, hp_str)
+                if lp_str:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, lp_str)
+                f_n = os.path.join(new_f_path, '{0}.txt'.format(qc_fn_string))
             else:
-                f_n = os.path.join(new_f_path, 'paths_file_%s.txt') % (
-                scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+                paths_file_fn_string = "paths_file_{0}_{1}".format(scan_info, strategy_identifier)
+                if bp_freq:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, bp_freq)
+                if hp_str:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, hp_str)
+                if lp_str:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, lp_str)
+                f_n = os.path.join(new_f_path, '{0}.txt'.format(paths_file_fn_string))
 
             f = open(f_n, 'a')
             print >> f, path
@@ -929,7 +940,6 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
             raise
 
         if create_sym_links is True:
-
             # create the actual sym-links now
 
             # fname is the filename of the current individual level output

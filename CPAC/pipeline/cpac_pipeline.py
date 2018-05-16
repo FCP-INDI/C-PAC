@@ -270,10 +270,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     logger.info(cores_msg)
 
-    qc_montage_id_a = {}
-    qc_montage_id_s = {}
-    qc_plot_id = {}
-    qc_hist_id = {}
     if sub_dict['unique_id']:
         subject_id = sub_dict['subject_id'] + "_" + sub_dict['unique_id']
     else:
@@ -4314,7 +4310,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
-                
+
+        qc_montage_id_a = {}
+        qc_montage_id_s = {}
+        qc_plot_id = {}
+        qc_hist_id = {}
+
         hist = pe.Node(util.Function(input_names=['measure_file',
                                                   'measure'],
                                      output_names=['hist_path'],
@@ -4327,6 +4328,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make SNR plot
             try:
+                # standard deviation of preprocessed functional
                 std_dev_imports = ['import os', 'import subprocess']
                 std_dev = pe.Node(util.Function(input_names=['mask_',
                                                              'func_'],
@@ -4335,12 +4337,13 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 imports=std_dev_imports),
                                   name='std_dev_%d' % num_strat)
 
-                workflow.connect(preproc, out_file,
-                                 std_dev, 'func_')
+                # functional preprocessed, and functional brain mask, into
+                # std_dev node
+                workflow.connect(preproc, out_file, std_dev, 'func_')
+                workflow.connect(brain_mask, mask_file, std_dev, 'mask_')
 
-                workflow.connect(brain_mask, mask_file,
-                                 std_dev, 'mask_')
-
+                # warp the preprocessed functional standard deviation map to
+                # anatomical space
                 std_dev_anat_imports = ['import os',
                                         'import subprocess']
                 std_dev_anat = pe.Node(util.Function(input_names=['func_',
@@ -4352,15 +4355,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                      imports=std_dev_anat_imports),
                                        name='std_dev_anat_%d' % num_strat)
 
-                workflow.connect(std_dev, 'new_fname',
-                                 std_dev_anat, 'func_')
-
+                # std dev of preprocessed func into std dev anat
+                workflow.connect(std_dev, 'new_fname', std_dev_anat, 'func_')
+                # func->anat transform
                 workflow.connect(func_to_anat_xfm, xfm_file,
                                  std_dev_anat, 'xfm_')
+                # anatomical brain
+                workflow.connect(anat_ref, ref_file, std_dev_anat, 'ref_')
 
-                workflow.connect(anat_ref, ref_file,
-                                 std_dev_anat, 'ref_')
-
+                # calculate SNR of functional in anatomical space
                 snr_imports = ['import os', 'import subprocess']
                 snr = pe.Node(util.Function(input_names=['std_dev',
                                                          'mean_func_anat'],
@@ -4369,9 +4372,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             imports=snr_imports),
                               name='snr_%d' % num_strat)
 
+                # std dev of functional, in anatomical space
                 workflow.connect(std_dev_anat, 'new_fname', snr, 'std_dev')
+                # mean functional, in anatomical space
                 workflow.connect(mfa, mfa_file, snr, 'mean_func_anat')
 
+                # calculate the average SNR (one value) written to a text file
                 snr_val_imports = ['import os',
                                    'import nibabel as nb',
                                    'import numpy.ma as ma']
@@ -4382,15 +4388,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                   name='snr_val%d' % num_strat)
                 std_dev_anat.inputs.interp_ = 'trilinear'
 
-                workflow.connect(snr, 'new_fname',
-                                 snr_val, 'measure_file')
+                # snr map into node
+                workflow.connect(snr, 'new_fname', snr_val, 'measure_file')
 
+                # histogram of the SNR
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
                 hist_.inputs.measure = 'snr'
+                workflow.connect(snr, 'new_fname', hist_, 'measure_file')
 
-                workflow.connect(snr, 'new_fname',
-                                 hist_, 'measure_file')
-
+                # zero out outlier voxels in measure files for the QC pages
                 drop_percent = pe.Node(
                     util.Function(input_names=['measure_file',
                                                'percent_'],
@@ -4398,16 +4404,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                   function=drop_percent_),
                     name='dp_snr_%d' % num_strat)
                 drop_percent.inputs.percent_ = 99
-
                 workflow.connect(snr, 'new_fname',
                                  drop_percent, 'measure_file')
 
+                # create the SNR montage
                 montage_snr = create_montage('montage_snr_%d' % num_strat,
                                              'red_to_blue', 'snr')
-
+                # modified SNR measure file
                 workflow.connect(drop_percent, 'modified_measure_file',
                                  montage_snr, 'inputspec.overlay')
-                                                        
+                # anatomical brain for the underlay of the SNR image
                 workflow.connect(anat_ref, ref_file,
                                  montage_snr, 'inputspec.underlay')
 
@@ -4442,11 +4448,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
             
-                if not 6 in qc_plot_id:
-                    qc_plot_id[6] = 'movement_trans_plot'
-            
                 if not 7 in qc_plot_id:
-                    qc_plot_id[7] = 'movement_rot_plot'
+                    qc_plot_id[7] = 'movement_trans_plot'
+            
+                if not 8 in qc_plot_id:
+                    qc_plot_id[8] = 'movement_rot_plot'
 
             except:
                 logStandardError('QC', 'unable to get resources for Motion Parameters plot', '0052')
@@ -4488,8 +4494,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                         strat.update_resource_pool({'qc___fd_plot': (fd_plot, 'hist_path')})
 
-                        if not 8 in qc_plot_id:
-                            qc_plot_id[8] = 'fd_plot'
+                        if not 9 in qc_plot_id:
+                            qc_plot_id[9] = 'fd_plot'
 
                     except:
                         logStandardError('QC', 'unable to get resources for FD plot', '0053')
@@ -4539,8 +4545,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'qc___mni_normalized_anatomical_s': (montage_mni_anat, 'outputspec.sagittal_png')})
 
                 if not 6 in qc_montage_id_a:
-                        qc_montage_id_a[6] = 'mni_normalized_anatomical_a'
-                        qc_montage_id_s[6] = 'mni_normalized_anatomical_s'
+                    qc_montage_id_a[6] = 'mni_normalized_anatomical_a'
+                    qc_montage_id_s[6] = 'mni_normalized_anatomical_s'
 
             except:
                 logStandardError('QC', 'Cannot generate QC montages for MNI normalized anatomical: Resources Not Found', '0054')
@@ -4637,8 +4643,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # QA pages function
             def QA_montages(measure, idx):
                 try:
+                    # get whatever "measure" is from resource pool
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
+                    # zero out outlier voxels in measure files for the QC
+                    # pages
                     drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
                                                                          'percent_'],
                                                             output_names=['modified_measure_file'],
@@ -4650,12 +4659,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(overlay, out_file,
                                      drop_percent, 'measure_file')
 
-                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
+                    # connect the montage generation sub-workflow for each
+                    # measure
+                    montage = create_montage(wf_name='montage_%s_%d' % (measure, num_strat),
+                                             cbar_name='cyan_to_yellow',
+                                             png_name=measure)
                     montage.inputs.inputspec.underlay = c.template_brain_only_for_func
 
                     workflow.connect(drop_percent, 'modified_measure_file',
                                      montage, 'inputspec.overlay')
 
+                    # node for the histogram for the measure
                     histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
                     histogram.inputs.measure = measure
 
@@ -4666,6 +4680,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
                                                 'qc___%s_hist' % measure: (histogram, 'hist_path')})
 
+                    # update the dictionaries of the images keyed with numbers
+                    # in order as they'll appear on the QC pages
                     if not idx in qc_montage_id_a:
                         qc_montage_id_a[idx] = '%s_a' % measure
                         qc_montage_id_s[idx] = '%s_s' % measure
@@ -4680,115 +4696,114 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # ALFF and f/ALFF QA montages
             if 1 in c.runALFF:
                 if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('alff_to_standard', 7)
-                    QA_montages('falff_to_standard', 8)
 
-                    if c.fwhm != None:
-                        QA_montages('alff_to_standard_smooth', 9)
-                        QA_montages('falff_to_standard_smooth', 10)
+                    if 0 in c.runZScoring:
+                        if 0 in c.run_smoothing:
+                            QA_montages('alff_to_standard', 10)
+                            QA_montages('falff_to_standard', 11)
+                        if 1 in c.run_smoothing:
+                            QA_montages('alff_to_standard_smooth', 12)
+                            QA_montages('falff_to_standard_smooth', 13)
 
                     if 1 in c.runZScoring:
-                        if c.fwhm != None:
+                        if 0 in c.run_smoothing:
+                            QA_montages('alff_to_standard_zstd', 14)
+                            QA_montages('falff_to_standard_zstd', 15)
+                        if 1 in c.run_smoothing:
                             if "Before" in c.smoothing_order:
-                                QA_montages('alff_to_standard_smooth_zstd', 11)
-                                QA_montages('falff_to_standard_smooth_zstd', 12)
+                                QA_montages('alff_to_standard_smooth_zstd', 16)
+                                QA_montages('falff_to_standard_smooth_zstd', 17)
                             if "After" in c.smoothing_order:
-                                QA_montages('alff_to_standard_zstd_smooth', 11)
-                                QA_montages('falff_to_standard_zstd_smooth', 12)
-
-                        else:
-                            QA_montages('alff_to_standard_zstd', 13)
-                            QA_montages('falff_to_standard_zstd', 14)
+                                QA_montages('alff_to_standard_zstd_smooth', 18)
+                                QA_montages('falff_to_standard_zstd_smooth', 19)
 
             # ReHo QA montages
             if 1 in c.runReHo:
                 if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('reho_to_standard', 15)
-                    if c.fwhm != None:
-                        QA_montages('reho_to_standard_smooth', 16)
-
+                    if 0 in c.runZScoring:
+                        if 0 in c.run_smoothing:
+                            QA_montages('reho_to_standard', 20)
+                        if 1 in c.run_smoothing:
+                            QA_montages('reho_to_standard_smooth', 21)
                     if 1 in c.runZScoring:
-                        if c.fwhm != None:
+                        if 0 in c.run_smoothing:
+                            QA_montages('reho_to_standard_fisher_zstd', 22)
+                        if 1 in c.run_smoothing:
                             if "Before" in c.smoothing_order:
-                                QA_montages('reho_to_standard_smooth_zstd', 17)
+                                QA_montages('reho_to_standard_smooth_zstd', 23)
                             if "After" in c.smoothing_order:
-                                QA_montages('reho_to_standard_zstd_smooth', 17)
-                        else:
-                            QA_montages('reho_to_standard_fisher_zstd', 18)
+                                QA_montages('reho_to_standard_zstd_smooth', 24)
 
             # SCA ROI QA montages
-            if (1 in c.runSCA) and (1 in c.runROITimeseries):
+            if 1 in c.runSCA:
                 if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('sca_roi_to_standard', 19)
+                    QA_montages('sca_roi_files_to_standard', 25)
 
                     if c.fwhm != None:
-                        QA_montages('sca_roi_to_standard_smooth', 20)
+                        QA_montages('sca_roi_files_to_standard_smooth', 26)
 
                     if 1 in c.runZScoring:
                         if c.fwhm != None:
                             if "Before" in c.smoothing_order:
-                                QA_montages('sca_roi_to_standard_smooth_fisher_zstd', 22)
+                                QA_montages('sca_roi_files_to_standard_smooth_fisher_zstd', 27)
                             if "After" in c.smoothing_order:
-                                QA_montages('sca_roi_to_standard_fisher_zstd_smooth', 22)
+                                QA_montages('sca_roi_files_to_standard_fisher_zstd_smooth', 28)
                         else:
-                            QA_montages('sca_roi_to_standard_fisher_zstd', 21)
-
-            # SCA Seed QA montages
-            if (1 in c.runSCA) and ("Voxel" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
-
-                if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('sca_seed_to_standard', 23)
-
-                    if c.fwhm != None:
-                        QA_montages('sca_seed_to_standard_smooth', 24)
-
-                    if 1 in c.runZScoring:
-                        if c.fwhm != None:
-                            QA_montages('sca_seed_to_standard_zstd_fisher_smooth', 26)
-                        else:
-                            QA_montages('sca_seed_to_standard_fisher_zstd', 25)
+                            QA_montages('sca_roi_files_to_standard_fisher_zstd', 29)
                             
             # SCA Multiple Regression
-            if "MultReg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
-
+            if "MultReg" in sca_analysis_dict.keys():
                 if 1 in c.runRegisterFuncToMNI:
-                   QA_montages('sca_tempreg_maps_files', 27)
-                   QA_montages('sca_tempreg_maps_zstat_files', 28)
+                   QA_montages('sca_tempreg_maps_files', 30)
+                   QA_montages('sca_tempreg_maps_zstat_files', 31)
 
                    if c.fwhm != None:
-                        QA_montages('sca_tempreg_maps_files_smooth', 29)
-                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
+                        QA_montages('sca_tempreg_maps_files_smooth', 32)
+                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 33)
 
             # Dual Regression QA montages
-            if ("DualReg" in sca_analysis_dict.keys()) and ("SpatialReg" in ts_analysis_dict.keys()):
-
-                QA_montages('dr_tempreg_maps_files', 31)
-                QA_montages('dr_tempreg_maps_zstat_files', 32)
+            if "DualReg" in sca_analysis_dict.keys():
+                if 0 in c.run_smoothing:
+                    QA_montages('dr_tempreg_maps_files', 34)
+                if 1 in c.write_debugging_outputs:
+                    QA_montages('dr_tempreg_maps_zstat_files', 35)
 
                 if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('dr_tempreg_maps_files_to_standard', 33)
-                    QA_montages('dr_tempreg_maps_zstat_files_to_standard', 34)
-
-                    if c.fwhm != None:
-                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 35)
-                        QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 36)
+                    if 0 in c.run_smoothing:
+                        QA_montages('dr_tempreg_maps_files_to_standard', 36)
+                    if 1 in c.write_debugging_outputs:
+                        QA_montages('dr_tempreg_maps_zstat_files_to_standard', 37)
+                    if 1 in c.run_smoothing:
+                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 38)
+                        if 1 in c.write_debugging_outputs:
+                            QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 39)
 
             # VMHC QA montages
             if 1 in c.runVMHC:
+                if 1 in c.write_debugging_outputs:
+                    QA_montages('vmhc_raw_score', 40)
+                    QA_montages('vmhc_fisher_zstd', 41)
+                QA_montages('vmhc_fisher_zstd_zstat_map', 42)
 
-                QA_montages('vmhc_raw_score', 37)
-                QA_montages('vmhc_fisher_zstd', 38)
-                QA_montages('vmhc_fisher_zstd_zstat_map', 39)
-
+            # TODO: got it, the .png name before the png actually gets created
+            # TODO: is taken from the centrality RP key name which has zero info
+            # TODO: on the ROI/mask that was used.
             # Network Centrality QA montages
             if 1 in c.runNetworkCentrality:
+                if 0 in c.run_smoothing:
+                    if 0 in c.runZScoring:
+                        QA_montages('centrality_outputs', 43)
+                    if 1 in c.runZScoring:
+                        QA_montages('centrality_outputs_zstd', 44)
 
-                QA_montages('centrality_outputs', 40)
-                QA_montages('centrality_outputs_zstd', 41)
-
-                if c.fwhm != None:
-                    QA_montages('centrality_outputs_smoothed', 42)
-                    QA_montages('centrality_outputs_smoothed_zstd', 43)
+                if 1 in c.run_smoothing:
+                    if 0 in c.runZScoring:
+                        QA_montages('centrality_outputs_smooth', 45)
+                    if 1 in c.runZScoring:
+                        if "Before" in c.smoothing_order:
+                            QA_montages('centrality_outputs_smooth_zstd', 46)
+                        if "After" in c.smoothing_order:
+                            QA_montages('centrality_outputs_zstd_smooth', 47)
 
             num_strat += 1
 
@@ -5080,11 +5095,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-
-                # Write QC outputs to log directory
-                #if 'qc' in key.lower():
-                #    ds.inputs.base_directory = c.logDirectory
-                #else:
                 ds.inputs.base_directory = c.outputDirectory
 
                 ds.inputs.creds_path = creds_path
@@ -5160,7 +5170,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                                       '-')
 
         strat_no = 0
-
         subject_info['resource_pool'] = []
 
         for strat in strat_list:
