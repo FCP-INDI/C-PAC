@@ -83,9 +83,8 @@ write_func_outputs: [0]
 write_debugging_outputs: [0]
 
 
-# Create a user-friendly, well organized version of the output directory.
-# We recommend all users enable this option.
-runSymbolicLinks :  [1]
+# Generate quality control pages containing preprocessing and derivative outputs.
+generateQualityControlImages: [1]
 
 
 # Deletes the contents of the Working Directory after running.
@@ -100,6 +99,11 @@ run_logging :  True
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
 # Requires an intact Working Directory from a previous CPAC run.
 reGenerateOutputs :  False
+
+
+# Create a user-friendly, well organized version of the output directory.
+# We recommend all users enable this option.
+runSymbolicLinks :  [1]
 
 
 # The resolution to which anatomical images should be transformed during registration.

@@ -234,19 +234,12 @@ class DirectorySettings(wx.ScrolledWindow):
                               "information is needed.",
                       values=["Off", "On"])
 
-        self.page.add(label="Create Symbolic Links ",
-                      control=control.CHOICE_BOX,
-                      name='runSymbolicLinks',
-                      type=dtype.LSTR,
-                      comment="Create a user-friendly, well organized "
-                              "version of the output directory.",
-                      values=["On", "Off"])
-
         self.page.add(label="Enable Quality Control Interface ",
                       control=control.CHOICE_BOX,
                       name='generateQualityControlImages',
                       type=dtype.LSTR,
-                      comment="Generate quality control pages containing preprocessing and derivative outputs.",
+                      comment="Generate quality control pages containing "
+                              "preprocessing and derivative outputs.",
                       values=["On", "Off"])
 
         self.page.add(label="Remove Working Directory ",
@@ -276,6 +269,14 @@ class DirectorySettings(wx.ScrolledWindow):
                               "to regenerate all outputs and their "
                               "symbolic links.\n\nRequires an intact "
                               "Working Directory from a previous CPAC run.")
+
+        self.page.add(label="Create Symbolic Links ",
+                      control=control.CHOICE_BOX,
+                      name='runSymbolicLinks',
+                      type=dtype.LSTR,
+                      comment="Create a user-friendly, well organized "
+                              "version of the output directory.",
+                      values=["On", "Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

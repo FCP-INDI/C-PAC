@@ -502,8 +502,9 @@ def feed_line_nav(id_, image_name, anchor, f_html_0, f_html_1):
     if image_name == 'falff_smooth_hist':
         image_readable = 'Histogram of fractional Amplitude of Low-Frequency Fluctuation'
 
-    print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name, \
-                                                             anchor, image_readable)
+    print >>f_html_0, "<li><a href='%s#%s'> %s </a></li>" % (f_html_1.name,
+                                                             anchor,
+                                                             image_readable)
 
 
 def feed_line_body(image_name, anchor, image, f_html_1):

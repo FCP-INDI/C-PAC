@@ -47,7 +47,13 @@ class FlamePresetsOne(wx.Frame):
                       control=control.CHOICE_BOX,
                       name="flame_preset",
                       type=dtype.LSTR,
-                      comment="",
+                      comment="Select the type of preset you'd like to "
+                              "generate. The preset generator will prompt "
+                              "you for more information relevant to the "
+                              "type of preset you selected on the next "
+                              "window (except for the Single Group Average "
+                              "(One-Sample T-Test), which needs no "
+                              "additional information).",
                       values=["Single Group Average (One-Sample T-Test)",
                               "Single Group Average with Additional Covariate",
                               "Unpaired Two-Group Difference (Two-Sample Unpaired T-Test)",
