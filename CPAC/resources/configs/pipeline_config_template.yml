@@ -1,5 +1,5 @@
 # CPAC Pipeline Configuration YAML file
-# Version 1.0.3
+# Version 1.0.4
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -75,9 +75,16 @@ awsOutputBucketCredentials :
 s3Encryption :  [1]
 
 
-# Create a user-friendly, well organized version of the output directory.
-# We recommend all users enable this option.
-runSymbolicLinks :  [1]
+# Include extra versions and intermediate steps of functional preprocessing in the output directory.
+write_func_outputs: [0]
+
+
+# Include extra outputs in the output directory that may be of interest when more information is needed.
+write_debugging_outputs: [0]
+
+
+# Generate quality control pages containing preprocessing and derivative outputs.
+generateQualityControlImages: [1]
 
 
 # Deletes the contents of the Working Directory after running.
@@ -92,6 +99,11 @@ run_logging :  True
 # Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.
 # Requires an intact Working Directory from a previous CPAC run.
 reGenerateOutputs :  False
+
+
+# Create a user-friendly, well organized version of the output directory.
+# We recommend all users enable this option.
+runSymbolicLinks :  [1]
 
 
 # The resolution to which anatomical images should be transformed during registration.
@@ -206,7 +218,6 @@ fmap_distcorr_frac: [0.5]
 
 
 # Set the Delta-TE value, used for preparing the field map, the time delay between the first and second echo images.
-# Note, TE can be specified in the data configuration YAML file via scan parameters setup. If it is not specified there, this value will be used instead.
 fmap_distcorr_deltaTE : 2.46
 
 
@@ -249,7 +260,8 @@ functionalMasking :  ['3dAutoMask']
 
 
 # Register functional images to a standard MNI152 template.
-# This option must be enabled if you wish to calculate any derivatives.
+# This option must be enabled if you wish to calculate any derivatives. If set to On [1], only the template-space files will be output. If set to On/Off [1,0], both template-space and native-space files will be output.
+# Options: [1], [0], or [1,0]
 runRegisterFuncToMNI :  [1]
 
 
@@ -493,14 +505,20 @@ lfcdCorrelationThreshold :  0.001
 memoryAllocatedForDegreeCentrality :  3.0
 
 
+# Smooth the derivative outputs or not, or produce both unsmoothed and smoothed versions, if preferred.
+# Options: [1], [0], or [1,0]
+run_smoothing: [1]
+
+
 # Full Width at Half Maximum of the Gaussian kernel used during spatial smoothing.
 # Can be a single value or multiple values separated by commas.
 # Note that spatial smoothing is run as the last step in the individual-level analysis pipeline, such that all derivatives are output both smoothed and unsmoothed.
 fwhm : [4]
 
 
-# Decides format of outputs. Off will produce non-z-scored outputs, On will produce z-scores of outputs and non-z-scored outputs.
-runZScoring :  [1]
+# Decides format of outputs. Off will produce non-z-scored outputs, On will produce z-scores of outputs, and On/Off will produce both.
+# Options: [1]
+runZScoring : [1], [0], or [1,0]
 
 
 # This number depends on computing resources.

@@ -437,7 +437,14 @@ class Control(wx.Control):
                     val = val.replace("'", "")
                     val = val.split(", ")
 
-                self.ctrl.SetCheckedStrings(val)
+                try:
+                    self.ctrl.SetCheckedStrings(val)
+                except AssertionError:
+                    err = "\n[!] The derivative name you provided in the " \
+                          "derivative_list field in the group analysis " \
+                          "configuration file does not match any of CPAC's " \
+                          "outputs.\n\nName provided: {0}\n".format(val)
+                    raise Exception(err)
                 strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()
                 for s in strings:

@@ -34,13 +34,11 @@ files_folders_wf = {
     'max_displacement': 'parameters',
     'xform_matrix': 'parameters',
     'output_means': 'parameters',
-    'preprocessed': 'func',
+    'functional_preprocessed': 'func',
     'functional_brain_mask': 'func',
     'motion_correct': 'func',
     'motion_correct_smooth': 'func',
     'motion_correct_to_standard': 'func',
-    'motion_correct_to_standard_other_resolutions': 'func',
-    'motion_correct_to_standard_other_resolutions_smooth': 'func',
     'motion_correct_to_standard_smooth': 'func',
     'mean_functional_in_anat': 'func',
     'coordinate_transformation': 'func',
@@ -80,14 +78,14 @@ files_folders_wf = {
     'symmetric_mni_to_anatomical_nonlinear_xfm': 'registration',
     'symmetric_mni_to_anatomical_linear_xfm': 'registration',
     'anat_to_symmetric_mni_ants_composite_xfm': 'registration',
-    'symmetric_mni_normalized_anatomical': 'registration',
+    'symmetric_anatomical_to_standard': 'registration',
     'anatomical_to_symmetric_mni_linear_xfm': 'registration',
-    'mni_normalized_anatomical': 'anat',
+    'anatomical_to_standard': 'anat',
     'vmhc_raw_score': 'vmhc',
     'vmhc_fisher_zstd': 'vmhc',
     'vmhc_fisher_zstd_zstat_map': 'vmhc',
-    'alff_img': 'alff',
-    'falff_img': 'alff',
+    'alff': 'alff',
+    'falff': 'alff',
     'alff_smooth': 'alff',
     'falff_smooth': 'alff',
     'alff_to_standard': 'alff',
@@ -98,36 +96,35 @@ files_folders_wf = {
     'falff_to_standard_zstd': 'alff',
     'alff_to_standard_smooth_zstd': 'alff',
     'falff_to_standard_smooth_zstd': 'alff',
-    'raw_reho_map': 'reho',
+    'alff_to_standard_zstd_smooth': 'alff',
+    'falff_to_standard_zstd_smooth': 'alff',
+    'reho': 'reho',
     'reho_smooth': 'reho',
     'reho_to_standard': 'reho',
     'reho_to_standard_smooth': 'reho',
     'reho_to_standard_zstd': 'reho',
     'reho_to_standard_smooth_zstd': 'reho',
+    'reho_to_standard_zstd_smooth': 'reho',
     'voxel_timeseries': 'timeseries',
     'roi_timeseries': 'timeseries',
     'roi_timeseries_for_SCA': 'timeseries',
     'roi_timeseries_for_SCA_multreg': 'timeseries',
-    'sca_roi_correlation_stack': 'sca_roi',
-    'sca_roi_correlation_files': 'sca_roi',
-    'sca_roi_stack_smooth': 'sca_roi',
+    'sca_roi_files': 'sca_roi',
     'sca_roi_files_smooth': 'sca_roi',
-    'sca_roi_stack_to_standard': 'sca_roi',
     'sca_roi_files_to_standard': 'sca_roi',
-    'sca_roi_stack_to_standard_smooth': 'sca_roi',
     'sca_roi_files_to_standard_smooth': 'sca_roi',
-    'sca_roi_stack_to_standard_fisher_zstd': 'sca_roi',
-    'sca_roi_stack_to_standard_smooth_fisher_zstd': 'sca_roi',
     'sca_roi_files_to_standard_fisher_zstd': 'sca_roi',
     'sca_roi_files_to_standard_smooth_fisher_zstd': 'sca_roi',
+    'sca_roi_files_to_standard_fisher_zstd_smooth': 'sca_roi',
     'bbregister_registration': 'surface_registration',
     'left_hemisphere_surface': 'surface_registration',
     'right_hemisphere_surface': 'surface_registration',
     'vertices_timeseries': 'timeseries',
     'centrality_outputs': 'centrality',
-    'centrality_outputs_smoothed': 'centrality',
+    'centrality_outputs_smooth': 'centrality',
     'centrality_outputs_zstd': 'centrality',
-    'centrality_outputs_smoothed_zstd': 'centrality',
+    'centrality_outputs_smooth_zstd': 'centrality',
+    'centrality_outputs_zstd_smooth': 'centrality',
     'centrality_graphs': 'centrality',
     'seg_probability_maps': 'anat',
     'seg_mixeltype': 'anat',
@@ -135,30 +132,22 @@ files_folders_wf = {
     'seg_partial_volume_files': 'anat',
     'spatial_map_timeseries': 'timeseries',
     'spatial_map_timeseries_for_DR': 'timeseries',
-    'dr_tempreg_maps_stack': 'spatial_regression',
     'dr_tempreg_maps_files': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack': 'spatial_regression',
+    'dr_tempreg_maps_files_smooth': 'spatial_regression',
     'dr_tempreg_maps_zstat_files': 'spatial_regression',
-    'dr_tempreg_maps_stack_to_standard': 'spatial_regression',
+    'dr_tempreg_maps_zstat_files_smooth': 'spatial_regression',
     'dr_tempreg_maps_files_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack_to_standard': 'spatial_regression',
     'dr_tempreg_maps_zstat_files_to_standard': 'spatial_regression',
-    'dr_tempreg_maps_stack_to_standard_smooth': 'spatial_regression',
     'dr_tempreg_maps_files_to_standard_smooth': 'spatial_regression',
-    'dr_tempreg_maps_zstat_stack_to_standard_smooth': 'spatial_regression',
     'dr_tempreg_maps_zstat_files_to_standard_smooth': 'spatial_regression',
-    'sca_tempreg_maps_stack': 'sca_roi',
     'sca_tempreg_maps_files': 'sca_roi',
     'sca_tempreg_maps_files_smooth': 'sca_roi',
-    'sca_tempreg_maps_zstat_stack': 'sca_roi',
     'sca_tempreg_maps_zstat_files': 'sca_roi',
-    'sca_tempreg_maps_stack_smooth': 'sca_roi',
-    'sca_tempreg_maps_zstat_stack_smooth': 'sca_roi',
     'sca_tempreg_maps_zstat_files_smooth': 'sca_roi',
 }
 
 
-def get_zscore(input_name, wf_name='z_score'):
+def get_zscore(input_name, map_node=False, wf_name='z_score'):
     """
     Workflow to calculate z-scores
 
@@ -222,105 +211,64 @@ def get_zscore(input_name, wf_name='z_score'):
     outputNode = pe.Node(util.IdentityInterface(fields=['z_score_img']),
                          name='outputspec')
 
-    mean = pe.Node(interface=fsl.ImageStats(),
-                   name='mean')
+    if map_node:
+        mean = pe.MapNode(interface=fsl.ImageStats(),
+                          name='mean',
+                          iterfield=['in_file'])
+
+        standard_deviation = pe.MapNode(interface=fsl.ImageStats(),
+                                        name='standard_deviation',
+                                        iterfield=['in_file'])
+
+        op_string = pe.MapNode(util.Function(input_names=['mean', 'std_dev'],
+                                             output_names=['op_string'],
+                                             function=get_operand_string),
+                               name='op_string',
+                               iterfield=['mean', 'std_dev'])
+
+        z_score = pe.MapNode(interface=fsl.MultiImageMaths(),
+                             name='z_score',
+                             iterfield=['in_file', 'op_string'])
+
+    else:
+        mean = pe.Node(interface=fsl.ImageStats(), name='mean')
+
+        standard_deviation = pe.Node(interface=fsl.ImageStats(),
+                                     name='standard_deviation')
+
+        op_string = pe.Node(util.Function(input_names=['mean', 'std_dev'],
+                                          output_names=['op_string'],
+                                          function=get_operand_string),
+                            name='op_string')
+
+        z_score = pe.Node(interface=fsl.MultiImageMaths(), name='z_score')
+
+    # calculate the mean
     mean.inputs.op_string = '-k %s -m'
-    wflow.connect(inputNode, 'input_file',
-                  mean, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  mean, 'mask_file')
+    wflow.connect(inputNode, 'input_file', mean, 'in_file')
+    wflow.connect(inputNode, 'mask_file', mean, 'mask_file')
 
-    standard_deviation = pe.Node(interface=fsl.ImageStats(),
-                                 name='standard_deviation')
+    # calculate the standard deviation
     standard_deviation.inputs.op_string = '-k %s -s'
-    wflow.connect(inputNode, 'input_file',
-                  standard_deviation, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  standard_deviation, 'mask_file')
+    wflow.connect(inputNode, 'input_file', standard_deviation, 'in_file')
+    wflow.connect(inputNode, 'mask_file', standard_deviation, 'mask_file')
 
-    op_string = pe.Node(util.Function(input_names=['mean', 'std_dev'],
-                                      output_names=['op_string'],
-                                      function=get_operand_string),
-                        name='op_string')
-    wflow.connect(mean, 'out_stat',
-                  op_string, 'mean')
-    wflow.connect(standard_deviation, 'out_stat',
-                  op_string, 'std_dev')
-
-    z_score = pe.Node(interface=fsl.MultiImageMaths(),
-                      name='z_score')
+    # calculate the z-score
+    wflow.connect(mean, 'out_stat', op_string, 'mean')
+    wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
     z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
-    wflow.connect(op_string, 'op_string',
-                  z_score, 'op_string')
-    wflow.connect(inputNode, 'input_file',
-                  z_score, 'in_file')
-    wflow.connect(inputNode, 'mask_file',
-                  z_score, 'operand_files')
+    wflow.connect(op_string, 'op_string', z_score, 'op_string')
+    wflow.connect(inputNode, 'input_file', z_score, 'in_file')
+    wflow.connect(inputNode, 'mask_file', z_score, 'operand_files')
 
     wflow.connect(z_score, 'out_file', outputNode, 'z_score_img')
 
     return wflow
 
 
-def get_operand_string(mean, std_dev):
-    """
-    Method to get operand string for Fsl Maths
-
-    Parameters
-    ----------
-    mean : string
-        path to img containing mean
-    std_dev : string
-        path to img containing standard deviation
-
-    Returns
-    ------
-    op_string : string
-        operand string
-    """
-
-    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
-    op_string = str1 + " -mas %s"
-    return op_string
-
-
-def get_roi_num_list(timeseries_file, prefix=None):
-    # extracts the ROI labels from the 3dROIstats output CSV file
-    with open(timeseries_file, "r") as f:
-        roi_file_lines = f.read().splitlines()
-
-    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
-              "timeseries, was not in the expected format.\n\nROI output " \
-              "file: %s\n\n" % timeseries_file
-
-    for line in roi_file_lines:
-        if "Mean_" in line:
-            try:
-                roi_list = line.split("\t")
-                # clear out any blank strings/non ROI labels in the list
-                roi_list = [x for x in roi_list if "Mean" in x]
-                # rename labels
-                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
-                            for x in roi_list]
-            except:
-                raise Exception(roi_err)
-            break
-    else:
-        raise Exception(roi_err)
-
-    if prefix:
-        temp_rois = []
-        for roi in roi_list:
-            roi = prefix + "_" + str(roi)
-            temp_rois.append(roi)
-        roi_list = temp_rois
-
-    return roi_list
-
-
-def get_fisher_zscore(input_name, map_node, wf_name='fisher_z_score'):
+def get_fisher_zscore(input_name, map_node=False, wf_name='fisher_z_score'):
     """
     Runs the compute_fisher_z_score function as part of a one-node workflow.
     """
@@ -339,16 +287,7 @@ def get_fisher_zscore(input_name, map_node, wf_name='fisher_z_score'):
         util.IdentityInterface(fields=['fisher_z_score_img']),
         name='outputspec')
 
-    if map_node == 0:
-        fisher_z_score = pe.Node(
-            util.Function(input_names=['correlation_file',
-                                       'timeseries_one_d',
-                                       'input_name'],
-                          output_names=['out_file'],
-                          function=compute_fisher_z_score),
-            name='fisher_z_score')
-
-    else:
+    if map_node:
         # node to separate out
         fisher_z_score = pe.MapNode(
             util.Function(input_names=['correlation_file',
@@ -358,6 +297,14 @@ def get_fisher_zscore(input_name, map_node, wf_name='fisher_z_score'):
                           function=compute_fisher_z_score),
             name='fisher_z_score',
             iterfield=['correlation_file'])
+    else:
+        fisher_z_score = pe.Node(
+            util.Function(input_names=['correlation_file',
+                                       'timeseries_one_d',
+                                       'input_name'],
+                          output_names=['out_file'],
+                          function=compute_fisher_z_score),
+            name='fisher_z_score')
 
     fisher_z_score.inputs.input_name = input_name
 
@@ -406,11 +353,6 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
             if '.1D' in timeseries or '.csv' in timeseries:
                 timeseries_file = timeseries
 
-    roi_numbers = []
-
-    with open(timeseries_file, "r") as f:
-        roi_list = f.read().splitlines()[0].replace("#", "").split("\t")
-
     # get the specific roi number
     filename = correlation_file.split("/")[-1]
     filename = filename.replace(".nii", "")
@@ -425,51 +367,72 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     # calculate the Fisher r-to-z transformation
     corr_data = np.log((1 + corr_data) / (1 - corr_data)) / 2.0
 
-    dims = corr_data.shape
-
-    out_file = []
-
-    # dims = tuple of dimensions of correlation NIFTI file
-    # roi_numbers = list of label numbers for each ROI; length of this will be
-    #               how many ROIs you have
-
-    # I think the point of this check is to see if there are multiple volumes
-    # in the correlation file (i.e. is a stack), or is a file with ROIs, and
-    # if so, to deal with it appropriately
-    if len(dims) == 5 or len(roi_numbers) > 0:
-
-        if len(dims) == 5:
-            x, y, z, one, roi_number = dims
-
-            corr_data = np.reshape(corr_data, (x * y * z, roi_number),
-                                   order='F')
-
-        sub_data = corr_data
-
-        sub_img = nb.Nifti1Image(sub_data, header=corr_img.get_header(),
+    z_score_img = nb.Nifti1Image(corr_data, header=hdr,
                                  affine=corr_img.get_affine())
 
-        sub_z_score_file = os.path.join(os.getcwd(),
-                                        (filename + '_fisher_zstd.nii.gz'))
+    out_file = os.path.join(os.getcwd(), filename + '_fisher_zstd.nii.gz')
 
-        sub_img.to_filename(sub_z_score_file)
-
-        out_file.append(sub_z_score_file)
-
-    # if the correlation file is a single volume image
-    else:
-
-        z_score_img = nb.Nifti1Image(corr_data, header=hdr,
-                                     affine=corr_img.get_affine())
-
-        z_score_file = os.path.join(os.getcwd(),
-                                    filename + '_fisher_zstd.nii.gz')
-
-        z_score_img.to_filename(z_score_file)
-
-        out_file.append(z_score_file)
+    z_score_img.to_filename(out_file)
 
     return out_file
+
+
+def get_operand_string(mean, std_dev):
+    """
+    Method to get operand string for Fsl Maths
+
+    Parameters
+    ----------
+    mean : string
+        path to img containing mean
+    std_dev : string
+        path to img containing standard deviation
+
+    Returns
+    ------
+    op_string : string
+        operand string
+    """
+
+    str1 = "-sub %f -div %f" % (float(mean), float(std_dev))
+    op_string = str1 + " -mas %s"
+    return op_string
+
+
+def get_roi_num_list(timeseries_file, prefix=None):
+    # extracts the ROI labels from the 3dROIstats output CSV file
+    with open(timeseries_file, "r") as f:
+        roi_file_lines = f.read().splitlines()
+
+    roi_err = "\n\n[!] The output of 3dROIstats, used in extracting the " \
+              "timeseries, is either empty, or not in the expected " \
+              "format.\n\nROI output file: {0}\n\nIf there are no rows " \
+              "in the output file, double-check your ROI/mask selection." \
+              "\n\n".format(str(timeseries_file))
+
+    for line in roi_file_lines:
+        if "Mean_" in line:
+            try:
+                roi_list = line.split("\t")
+                # clear out any blank strings/non ROI labels in the list
+                roi_list = [x for x in roi_list if "Mean" in x]
+                # rename labels
+                roi_list = [x.replace("Mean", "ROI").replace(" ", "") \
+                            for x in roi_list]
+            except:
+                raise Exception(roi_err)
+            break
+    else:
+        raise Exception(roi_err)
+
+    if prefix:
+        temp_rois = []
+        for roi in roi_list:
+            roi = prefix + "_" + str(roi)
+            temp_rois.append(roi)
+        roi_list = temp_rois
+
+    return roi_list
 
 
 def safe_shape(*vol_data):
@@ -882,17 +845,17 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
                                     get_hplpfwhmseed_('/_sca_roi_',
                                                       remainder_path))
 
-        hp_str = ''
+        hp_str = None
         if '_hp_' in remainder_path:
             hp_str = get_hplpfwhmseed_('/_hp_', remainder_path)
             new_path = os.path.join(new_path, hp_str)
 
-        lp_str = ''
+        lp_str = None
         if '_lp_' in remainder_path:
             lp_str = get_hplpfwhmseed_('/_lp_', remainder_path)
             new_path = os.path.join(new_path, lp_str)
 
-        bp_freq = ''
+        bp_freq = None
         if '_bandpass_freqs_' in remainder_path:
             bp_freq = get_hplpfwhmseed_('/_bandpass_freqs_', remainder_path)
             new_path = os.path.join(new_path, bp_freq)
@@ -919,7 +882,6 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
 
         # prepare paths and filenames for QC text files and output paths_file
         # text files that are written to the output directory
-
         try:
             if wf == 'qc':
                 # if the output file is QC related, send it over to
@@ -948,11 +910,23 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
             # output paths_file text files descriptively
 
             if wf == 'qc':
-                f_n = os.path.join(new_f_path, 'qc_%s.txt') % (
-                scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+                qc_fn_string = "qc_{0}_{1}".format(scan_info, strategy_identifier)
+                if bp_freq:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, bp_freq)
+                if hp_str:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, hp_str)
+                if lp_str:
+                    qc_fn_string = "{0}_{1}".format(qc_fn_string, lp_str)
+                f_n = os.path.join(new_f_path, '{0}.txt'.format(qc_fn_string))
             else:
-                f_n = os.path.join(new_f_path, 'paths_file_%s.txt') % (
-                scan_info + '_' + strategy_identifier + '_' + bp_freq + '_' + hp_str + '_' + lp_str + '_' + fwhm_str)
+                paths_file_fn_string = "paths_file_{0}_{1}".format(scan_info, strategy_identifier)
+                if bp_freq:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, bp_freq)
+                if hp_str:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, hp_str)
+                if lp_str:
+                    paths_file_fn_string = "{0}_{1}".format(paths_file_fn_string, lp_str)
+                f_n = os.path.join(new_f_path, '{0}.txt'.format(paths_file_fn_string))
 
             f = open(f_n, 'a')
             print >> f, path
@@ -966,7 +940,6 @@ def create_paths_and_links(pipeline_id, relevant_strategies, path, subject_id,
             raise
 
         if create_sym_links is True:
-
             # create the actual sym-links now
 
             # fname is the filename of the current individual level output
@@ -1492,6 +1465,10 @@ def get_scan_params(subject_id, scan, pipeconfig_tr, pipeconfig_tpattern,
     if isinstance(pipeconfig_tr, str):
         if "None" in pipeconfig_tr or "none" in pipeconfig_tr:
             pipeconfig_tr = None
+
+    if isinstance(pipeconfig_stop_indx, str):
+        if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
+            pipeconfig_stop_indx = None
 
     if data_config_scan_params:
 

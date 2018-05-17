@@ -19,7 +19,6 @@ def load_pheno_file(pheno_file):
     return pheno_dataframe
 
 
-
 def load_group_participant_list(group_participant_list_file):
 
     import os
@@ -45,7 +44,6 @@ def load_group_participant_list(group_participant_list_file):
 
 
     return group_subs_dataframe
-
 
 
 def process_pheno_file(pheno_file_dataframe, group_subs_dataframe, \
@@ -188,7 +186,6 @@ def process_pheno_file(pheno_file_dataframe, group_subs_dataframe, \
     return pheno_file_rows
 
 
-
 def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
 
     # creates the phenotype data dictionary in a format Patsy requires,
@@ -257,7 +254,6 @@ def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
                 else:
                     pheno_data_dict[key].append(float(line[key]))
 
-
     # this needs to run after each list in each key has been fully
     # populated above
     for key in pheno_data_dict.keys():
@@ -287,7 +283,6 @@ def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
                 # replace
                 pheno_data_dict[key] = new_demeaned_evs
 
-
         # converts non-categorical EV lists into NumPy arrays
         # so that Patsy may read them in properly
         if 'categorical' in ev_selections.keys():
@@ -297,7 +292,6 @@ def create_pheno_dict(pheno_file_rows, ev_selections, participant_id_label):
 
 
     return pheno_data_dict
-
 
 
 def get_measure_dict(param_file):
@@ -358,7 +352,6 @@ def get_measure_dict(param_file):
     return measure_dict
 
 
-
 def get_custom_roi_info(roi_means_dict):
 
     # check
@@ -391,7 +384,6 @@ def get_custom_roi_info(roi_means_dict):
 
 
     return roi_dict_dict
-
 
 
 def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
@@ -449,8 +441,7 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
             grouping_var_id_dict[cat_ev_level] = [idx]
                 
         idx += 1
-            
-            
+
     split_EVs = {}
             
     for key in pheno_data_dict.keys():
@@ -501,8 +492,7 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
                 
     # put split EVs into pheno data dict
     pheno_data_dict.update(split_EVs)
-        
-        
+
     # parse through ev_selections, find the categorical names within the
     # design formula and insert C(<name>, Sum) into the design formula
     #     this is required for Patsy to process the categorical EVs
@@ -520,13 +510,10 @@ def model_group_var_separately(grouping_var, formula, pheno_data_dict, \
                     formula = formula.replace(EV_name, 'C(' + EV_name + \
                                                   ', Sum)')
 
-
     # remove intercept when modeling group variances separately
     formula = formula + " - 1"
 
-
     return pheno_data_dict, formula, grouping_var_id_dict
-
 
 
 def check_multicollinearity(matrix):
@@ -561,7 +548,6 @@ def check_multicollinearity(matrix):
                       'check your model design.\n\n'
 
 
-
 def write_mat_file(design_matrix, output_dir, model_name, \
                        depatsified_EV_names, current_output=None):
 
@@ -593,7 +579,6 @@ def write_mat_file(design_matrix, output_dir, model_name, \
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-
     with open(out_file, 'wt') as f:
 
         print >>f, '/NumWaves\t%d' %dimy
@@ -611,7 +596,6 @@ def write_mat_file(design_matrix, output_dir, model_name, \
         print >>f, '/Matrix'
 
         np.savetxt(f, design_matrix, fmt='%1.5e', delimiter='\t')
-
 
 
 def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
@@ -640,13 +624,11 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
 
             i += 1
 
-
     filename = model_name + ".grp"
 
     out_file = os.path.join(output_dir, filename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
 
     with open(out_file, "wt") as f:
 
@@ -654,7 +636,6 @@ def create_grp_file(design_matrix, grouping_var_id_dict, output_dir, \
         print >>f, '/NumPoints\t%d\n' %dimx
         print >>f, '/Matrix'
         np.savetxt(f, design_matrix_ones, fmt='%d', delimiter='\t')
-
 
 
 def create_design_matrix(pheno_file, ev_selections, formula, \
@@ -1052,7 +1033,6 @@ def positive(dmat, a, coding, group_sep, grouping_var):
                     if ev.startswith(term):
                         con[evs[ev]]= -1
 
-
     # else not modeling group variances separately
     else:
 
@@ -1077,18 +1057,15 @@ def positive(dmat, a, coding, group_sep, grouping_var):
     return con
 
 
-
 def greater_than(dmat, a, b, coding, group_sep, grouping_var):
     c1 = positive(dmat, a, coding, group_sep, grouping_var)
     c2 = positive(dmat, b, coding, group_sep, grouping_var)
     return c1-c2
 
 
-
 def negative(dmat, a, coding, group_sep, grouping_var):
     con = 0-positive(dmat, a, coding, group_sep, grouping_var)
     return con
-
 
 
 def create_dummy_string(length):
@@ -1099,10 +1076,12 @@ def create_dummy_string(length):
     return ppstring
 
 
-
 def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
 
     import os
+
+    print "col names: "
+    print col_names
 
     with open(os.path.join(out_dir, file_name) + ".con",'w+') as f:
 
@@ -1135,15 +1114,13 @@ def create_con_file(con_dict, col_names, file_name, current_output, out_dir):
             f.write("\n")
 
 
-
-def create_fts_file(ftest_list, con_dict, model_name, current_output, \
-                        out_dir):
+def create_fts_file(ftest_list, con_dict, model_name, current_output,
+                    out_dir):
 
     import os
     import numpy as np
 
     try:
-
         print "\nFound f-tests in your model, writing f-tests file " \
               "(.fts)..\n"
 
@@ -1171,7 +1148,6 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
         
             fts_n = np.array(ftst)
 
-
             # print labels for the columns - mainly for double-checking your
             # model
             col_string = '\n'
@@ -1183,7 +1159,6 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
 
             for i in range(fts_n.shape[0]):
                 print >>f, ' '.join(fts_n[i].astype('str'))
-
 
     except Exception as e:
 
@@ -1197,10 +1172,8 @@ def create_fts_file(ftest_list, con_dict, model_name, current_output, \
         raise Exception(errmsg)
 
 
-
-def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
-                             column_names, coding_scheme, group_sep):
-
+def create_con_ftst_file(con_file, model_name, current_output, output_dir,
+                         column_names, coding_scheme, group_sep):
     """
     Create the contrasts and fts file
     """
@@ -1208,17 +1181,23 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     import os
     import numpy as np
 
-    with open(con_file,"r") as f:
+    with open(con_file, "r") as f:
         evs = f.readline()
 
     evs = evs.rstrip('\r\n').split(',')
     count_ftests = 0
 
+    # TODO: this needs to be re-visited, but I think this was originally added
+    # TODO: to counteract the fact that if someone was making a custom
+    # TODO: contrasts matrix CSV, they wouldn't know that the design matrix
+    # TODO: would have the Intercept added to it? but what if it wasn't?
+    # TODO:     comment out for now... but test
     # remove "Contrasts" label and replace it with "Intercept"
-    evs[0] = "Intercept"
+    #evs[0] = "Intercept"
 
     fTest = False
-
+    print "evs: "
+    print evs
     for ev in evs:
         if "f_test" in ev:
             count_ftests += 1
@@ -1226,16 +1205,12 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     if count_ftests > 0:
         fTest = True
 
-
     try:
-
         data = np.genfromtxt(con_file, names=True, delimiter=',', dtype=None)
 
     except:
-
         print "Error: Could not successfully read in contrast file: ",con_file
         raise Exception
-
 
     lst = data.tolist()
 
@@ -1247,13 +1222,11 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
     length = None
     length = len(list(lst[0]))
 
-
     # lst = list of tuples, "tp"
     # tp = tuple in the format (contrast_name, 0, 0, 0, 0, ...)
     #      with the zeroes being the vector of contrasts for that contrast
 
     for tp in lst:
-
         contrast_names.append(tp[0])
 
         # create a list of integers that is the vector for the contrast
@@ -1263,28 +1236,26 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
         fts_vector = list(tp)[(length-count_ftests):length]
         fts_columns.append(fts_vector)
 
+        # TODO: see note about Intercept above
         # add Intercept column
-        if group_sep == False:
-            if coding_scheme == "Treatment":
-                con_vector.insert(0, 0)
-            elif coding_scheme == "Sum":
-                con_vector.insert(0, 1)
+        # if not group_sep:
+        #     if coding_scheme == "Treatment":
+        #         con_vector.insert(0, 0)
+        #     elif coding_scheme == "Sum":
+        #         con_vector.insert(0, 1)
 
         contrasts.append(con_vector)
 
     # contrast_names = list of the names of the contrasts (not regressors)
     # contrasts = list of lists with the contrast vectors
-
     num_EVs_in_con_file = len(contrasts[0])
 
     contrasts = np.array(contrasts, dtype=np.float16)
 
     fts_columns = np.array(fts_columns)
-       
 
     # if there are f-tests, create the array for them
     if fTest:
-
         if len(contrast_names) < 2:
             errmsg = "\n\n[!] CPAC says: Not enough contrasts for running " \
                   "f-tests.\nTip: Do you have only one contrast in your " \
@@ -1295,10 +1266,7 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
         fts_n = fts_columns.T
 
-
-
     if len(column_names) != (num_EVs_in_con_file):
-
         err_string = "\n\n[!] CPAC says: The number of EVs in your model " \
                      "design matrix (found in the %s.mat file) does not " \
                      "match the number of EVs (columns) in your custom " \
@@ -1313,11 +1281,8 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
         raise Exception(err_string)
 
-
     for design_mat_col, con_csv_col in zip(column_names, evs[1:]):
-
         if con_csv_col not in design_mat_col:
-
             errmsg = "\n\n[!] CPAC says: The names of the EVs in your " \
                      "custom contrasts .csv file do not match the names or " \
                      "order of the EVs in the design matrix. Please make " \
@@ -1325,14 +1290,11 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
                      "%s\nYour contrasts matrix columns: %s\n\n" \
                      % (column_names, evs[1:])
 
-            raise Exception(errmsg)        
-
-
+            raise Exception(errmsg)
 
     out_dir = os.path.join(output_dir, model_name + '.con')
 
     with open(out_dir,"wt") as f:
-
         idx = 1
         pp_str = '/PPheights'
         re_str = '/RequiredEffect'
@@ -1354,20 +1316,15 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
             col_string = col_string + ev + '\t'
         print >>f, col_string, '\n'
 
-
         print >>f, '/Matrix'
-   
         np.savetxt(f, contrasts, fmt='%1.5e', delimiter='\t')
 
-
     if fTest:
-
         print "\nFound f-tests in your model, writing f-tests file (.fts)..\n"
 
         ftest_out_dir = os.path.join(output_dir, model_name + '.fts')
 
         with open(ftest_out_dir,"wt") as f:
-
             print >>f, '/NumWaves\t', (contrasts.shape)[0]
             print >>f, '/NumContrasts\t', count_ftests
 
@@ -1382,7 +1339,6 @@ def create_con_ftst_file(con_file, model_name, current_output, output_dir, \
 
             for i in range(fts_n.shape[0]):
                 print >>f, ' '.join(fts_n[i].astype('str'))
-
 
 
 def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
@@ -1460,9 +1416,7 @@ def process_contrast(parsed_contrast, operator, ev_selections, group_sep, \
                                       parsed_EVs_in_contrast[1] + ":" + \
                                       parsed_EVs_in_contrast[2]]
 
-
     return parsed_EVs_in_contrast
-
 
 
 def run(group_config, current_output, param_file=None, \
@@ -1484,7 +1438,6 @@ def run(group_config, current_output, param_file=None, \
         except:
             raise Exception("Error in reading %s configuration file" \
                                 % group_config)
-
 
     # pull in the gpa settings!
     ph = c.pheno_file
@@ -1513,7 +1466,6 @@ def run(group_config, current_output, param_file=None, \
 
     output_dir = c.output_dir
 
-
     # make sure the group analysis output directory exists
     try:
         if not os.path.exists(output_dir):
@@ -1524,20 +1476,16 @@ def run(group_config, current_output, param_file=None, \
               'you have write access in this file structure.\n\n\n'
         raise Exception
 
-
-
     measure_dict = {}
 
     # extract motion measures from CPAC-generated power params file
     if param_file != None:
         measure_dict = get_measure_dict(param_file)        
 
-
     # combine the motion measures dictionary with the measure_mean
     # dictionary (if it exists)
     if derivative_means_dict:
         measure_dict["Measure_Mean"] = derivative_means_dict
-
 
     # create the .mat and .grp files for FLAME
     design_matrix, regressor_names = create_design_matrix(ph, sublist, \
@@ -1546,7 +1494,6 @@ def run(group_config, current_output, param_file=None, \
                                          grouping_var, measure_dict, \
                                          roi_means_dict, model_out_dir, \
                                          model_name, current_output)
-           
 
     # Create contrasts_dict dictionary for the .con file generation later
     contrasts_list = contrasts
@@ -1558,7 +1505,6 @@ def run(group_config, current_output, param_file=None, \
 
         # remove all spaces
         parsed_contrast = contrast.replace(' ', '')
-
 
         EVs_in_contrast = []
         parsed_EVs_in_contrast = []
@@ -1615,7 +1561,6 @@ def run(group_config, current_output, param_file=None, \
                 contrasts_dict[parsed_contrast] = \
                     negative(design_matrix, parsed_EVs_in_contrast[0], \
                              coding_scheme, group_sep, grouping_var)
-
 
             if len(contrast_items) > 2:
 
@@ -1679,7 +1624,6 @@ def run(group_config, current_output, param_file=None, \
 
                     idx += 1        
 
-
     # finally write out the .con file and .fts file (if f-tests)
     if (custom_contrasts == None) or (custom_contrasts == '') or \
         ("None" in custom_contrasts):
@@ -1693,7 +1637,6 @@ def run(group_config, current_output, param_file=None, \
         if f_tests:
             create_fts_file(f_tests, contrasts_dict, model_name, \
                                 current_output, model_out_dir)
-    
 
     else:
 

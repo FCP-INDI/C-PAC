@@ -258,11 +258,9 @@ class ListBox(wx.Frame):
             print "Error importing CPAC"
             print e
 
-        from nipype.pipeline.plugins.callback_log import log_nodes_cb
         c = Configuration(yaml.load(open(os.path.realpath(pipeline), 'r')))
         plugin_args = {'n_procs': c.maxCoresPerParticipant,
-                       'memory_gb': c.maximumMemoryPerParticipant,
-                       'callback_log': log_nodes_cb}
+                       'memory_gb': c.maximumMemoryPerParticipant}
 
         # TODO: make this work
         if self.pids:
@@ -624,7 +622,7 @@ class ListBox(wx.Frame):
         # If any missing parameters, notify user
         if missingParams:
             message = 'The following parameters are missing from your pipeline configuration file:\n\n'
-            print missingParams
+
             for param in missingParams:
                 message = message + "\"" + str(param[1]) + "\"" + "\n" + "which can be found in tab:" + "\n" +  "\"" + str(param[2]) + "\"\n\n"
 

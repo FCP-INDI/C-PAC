@@ -78,9 +78,9 @@ ubuntu1604_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11prot
 # configuration options that are specific to Ubuntu 16.10
 ubuntu1610_packages=("libmotif-dev" "xutils-dev" "libtool" "libx11-dev" "x11proto-xext-dev" "x11proto-print-dev" "dh-autoreconf" "libxext-dev" "libgsl-dev")
 
-conda_packages=("pandas" "cython" "numpy==1.11" "scipy" "matplotlib" "networkx==1.11" "traits" "pyyaml" "jinja2==2.7.2" "nose" "ipython" "pip" "wxpython")
+conda_packages=("pandas" "cython" "numpy==1.11" "scipy" "matplotlib" "networkx==1.11" "traits" "pyyaml" "jinja2==2.7.2" "nose" "ipython" "pip" "wxpython==3.0.0.0")
 
-pip_packages=("future==0.15.2" "prov" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype" "patsy" "memory_profiler" "psutil" "configparser" "INDI-Tools" "fs==0.5.4" "boto3")
+pip_packages=("future==0.16.0" "python-dateutil==2.2" "prov==1.5.0" "simplejson" "lockfile" "pygraphviz" "nibabel" "nipype==0.13.1" "patsy" "memory_profiler" "psutil" "configparser" "INDI-Tools" "fs==0.5.4" "boto3")
 
 ##### Helper functions for installing system dependencies.
 
@@ -788,7 +788,7 @@ function install_ants {
                     apt-get -y install ants
                     ;;
                 16.04)
-                    compile_ants
+                    apt-get -y install ants
                     ;;
                 16.10)
                     apt-get -y install ants

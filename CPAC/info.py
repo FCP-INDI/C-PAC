@@ -9,9 +9,10 @@ This script was borrowed from and inspired by nipype's info.py file.
 # full release.  '.dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
-_version_minor = 0
-_version_micro = 3
+_version_minor = 1
+_version_micro = 0
 _version_extra = ''
+
 
 def get_cpac_gitversion():
     """CPAC version as reported by the last commit in git
@@ -138,7 +139,7 @@ REQUIRES            = ["matplotlib (>=1.2)", "lockfile (>=0.9)",
                        "pyyaml (>=3.0)", "pygraphviz (>=1.3)",
                        "nibabel (>=2.0.1)", "nipype (==0.13.1)",
                        "patsy (>=0.3)", "psutil (>=2.1)", "boto3 (>=1.2)",
-                       "future (==0.15.2)", "prov (>=1.4.0)",
+                       "future (==0.16.0)", "prov (>=1.4.0)",
                        "simplejson (>=3.8.0)", "cython (>=0.12.1)",
                        "Jinja2 (>=2.6)", "pandas (>=0.15)",
                        "INDI_Tools (>=0.0.6)", "memory_profiler (>=0.41)",
@@ -146,7 +147,7 @@ REQUIRES            = ["matplotlib (>=1.2)", "lockfile (>=0.9)",
 INSTALL_REQUIRES    = ["matplotlib >=1.2", "lockfile >=0.9", "pyyaml >=3.0",
                        "pygraphviz >=1.3", "nibabel >=2.0.1",
                        "nipype ==0.13.1", "patsy >=0.3", "psutil >=2.1",
-                       "boto3 >=1.2", "future ==0.15.2", "prov >=1.4.0",
+                       "boto3 >=1.2", "future ==0.16.0", "prov >=1.4.0",
                        "simplejson >=3.8.0", "cython >=0.12.1",
                        "Jinja2 >=2.6", "pandas >=0.15", "INDI-Tools >=0.0.6",
                        "memory_profiler >=0.41", "ipython >=5.1"]

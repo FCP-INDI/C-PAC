@@ -303,7 +303,7 @@ def create_func_preproc(use_bet=False, wf_name='func_preproc'):
       For each volume in RPI-oriented T2 image, the command, aligns the image with the base mean image and calculates the motion, displacement
       and movement parameters. It also outputs the aligned 4D volume and movement and displacement parameters for each volume.
 
-    - Create a  brain-only mask. For details see `3dautomask <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dAutomask.html>`_::
+    - Create a brain-only mask. For details see `3dautomask <http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dAutomask.html>`_::
 
         3dAutomask
                    -prefix rest_3dc_RPI_3dv_automask.nii.gz

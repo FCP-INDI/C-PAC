@@ -106,7 +106,7 @@ def create_sca(name_sca='sca'):
                                                     ]),
                         name='outputspec')
 
-    # # 2. Compute voxel-wise correlation with Seed Timeseries
+    # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
                       name='3dTCorr1D')
     corr.inputs.pearson = True
@@ -139,8 +139,7 @@ def create_sca(name_sca='sca'):
     get_roi_num_list.inputs.prefix = "sca"
 
     rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                      iterfield=['in_file','format_string'])
-
+                             iterfield=['in_file', 'format_string'])
     rename_rois.inputs.keep_ext = True
 
     sca.connect(corr, 'out_file', concat, 'in_files')
@@ -290,7 +289,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                   check_timeseries, 'in_file')
 
     temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
-
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
@@ -307,8 +305,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
 
-    wflow.connect(temporalReg, 'out_file',
-                  split, 'in_file')
+    wflow.connect(temporalReg, 'out_file', split, 'in_file')
 
     split_zstat = pe.Node(interface=fsl.Split(), name='split_zstat_volumes')
     split_zstat.inputs.dimension = 't'

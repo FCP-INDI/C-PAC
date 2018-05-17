@@ -12,6 +12,7 @@ from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
 import os
 import yaml
+import CPAC
 import pkg_resources as p
 import sys
 
@@ -19,7 +20,7 @@ import sys
 ID_RUN_EXT = 11
 ID_RUN_MEXT = 12
 
-# DataConfig wx.Frame class
+
 class DataConfig(wx.Frame):
 
     # Init method
@@ -27,7 +28,7 @@ class DataConfig(wx.Frame):
 
         wx.Frame.__init__(self, parent, title="CPAC - Data Configuration "
                                               "Setup",
-                          size=(940, 620))
+                          size=(1040, 620))
         
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -46,7 +47,7 @@ class DataConfig(wx.Frame):
                       values=["BIDS", "Custom"],
                       wkf_switch=True)
 
-        self.page.add(label="BIDS Base Directory ",
+        self.page.add(label="[BIDS only] BIDS Base Directory ",
                       control=control.DIR_COMBO_BOX,
                       name="bidsBaseDir",
                       type=dtype.STR,
@@ -56,7 +57,7 @@ class DataConfig(wx.Frame):
                               "the entire dataset.",
                       values="")
 
-        self.page.add(label="Anatomical File Path Template ",
+        self.page.add(label="[Custom only] Anatomical File Path Template ",
                       control=control.TEXT_BOX,
                       name="anatomicalTemplate",
                       type=dtype.STR,
@@ -75,7 +76,7 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532,-1))
         
-        self.page.add(label="Functional File Path Template ",
+        self.page.add(label="[Custom only] Functional File Path Template ",
                  control=control.TEXT_BOX,
                  name="functionalTemplate",
                  type=dtype.STR,
@@ -113,6 +114,36 @@ class DataConfig(wx.Frame):
                       style= wx.EXPAND | wx.ALL,
                       size = (300,-1))
 
+        self.page.add(label="(Optional) Which Anatomical Scan? ",
+                      control=control.TEXT_BOX,
+                      name="anatomical_scan",
+                      type=dtype.STR,
+                      comment="Scan/Run ID for the Anatomical Scan\n\n"
+                              "Sometimes, there are multiple anatomical "
+                              "scans for each participant in a dataset.\n\n"
+                              "If this is the case, you can choose which "
+                              "anatomical scan to use for this participant "
+                              "by entering the identifier that makes the "
+                              "scan unique.\n\nExamples:\n\nBIDS dataset\n"
+                              "../anat/sub-001_run-1_T1w.nii.gz\n"
+                              "../anat/sub-001_run-2_T1w.nii.gz\n"
+                              "Pick the second with 'run-2'.\n\n"
+                              "Custom dataset\n"
+                              "Example use case: let's say most anatomicals "
+                              "in your dataset are '../mprage.nii.gz', but "
+                              "some participants only have '../anat1.nii.gz' "
+                              "and '../anat2.nii.gz'. You want the "
+                              "mprage.nii.gz files included, but only the "
+                              "anat2.nii.gz in the others.\n\nPlace a "
+                              "wildcard (*) in the anatomical filepath "
+                              "template above (../*.nii.gz), then enter "
+                              "'anat2' in this field to 'break the tie' for "
+                              "participants that have the 'anat1' and "
+                              "'anat2' scans.",
+                      values="None",
+                      style=wx.EXPAND | wx.ALL,
+                      size=(532,-1))
+
         # Add AWS credentials path
         self.page.add(label="(Optional) AWS credentials file ",
                  control=control.COMBO_BOX,
@@ -123,7 +154,7 @@ class DataConfig(wx.Frame):
                          'local files.',
                  values='None')
 
-        self.page.add(label="(Optional) Scan Parameters File ",
+        self.page.add(label="(Optional) [Custom only] Scan Parameters File ",
                  control=control.COMBO_BOX,
                  name="scanParametersCSV",
                  type=dtype.COMBO,
@@ -138,7 +169,8 @@ class DataConfig(wx.Frame):
                          "configuration file.",
                  values="None")
 
-        self.page.add(label="(Optional) Field Map Phase File Path Template ",
+        self.page.add(label="(Optional) [Custom only] Field Map Phase File "
+                            "Path Template ",
                       control=control.TEXT_BOX,
                       name="fieldMapPhase",
                       type=dtype.STR,
@@ -157,7 +189,8 @@ class DataConfig(wx.Frame):
                       style=wx.EXPAND | wx.ALL,
                       size=(532,-1))
 
-        self.page.add(label="(Optional) Field Map Magnitude File Path Template ",
+        self.page.add(label="(Optional) [Custom only] Field Map Magnitude "
+                            "File Path Template ",
                       control=control.TEXT_BOX,
                       name="fieldMapMagnitude",
                       type=dtype.STR,
@@ -354,12 +387,6 @@ class DataConfig(wx.Frame):
             # Build the subject list from the data config
             CPAC.utils.build_data_config.run(config)
 
-            # Generate group analysis files and such
-            CPAC.utils.extract_data.generate_supplementary_files(sublist_outdir, sublist_name)
-
-            # will be changed at some point
-            sublist_name = "data_config_{0}.yml".format(sublist_name)
-
             # check GUI's data config list dialog box for duplicate names
             while True:
                 parent = self.Parent
@@ -414,9 +441,9 @@ class DataConfig(wx.Frame):
 
         key_order = ['dataFormat', 'bidsBaseDir', 'anatomicalTemplate',
                      'functionalTemplate', 'outputSubjectListLocation',
-                     'subjectListName', 'awsCredentialsFile',
-                     'scanParametersCSV', 'fieldMapPhase',
-                     'fieldMapMagnitude', 'subjectList',
+                     'subjectListName', 'anatomical_scan',
+                     'awsCredentialsFile', 'scanParametersCSV',
+                     'fieldMapPhase', 'fieldMapMagnitude', 'subjectList',
                      'exclusionSubjectList', 'siteList', 'exclusionSiteList',
                      'sessionList', 'exclusionSessionList', 'scanList',
                      'exclusionScanList']
@@ -487,7 +514,7 @@ class DataConfig(wx.Frame):
                     return
 
             elif "Custom" in config_dict["dataFormat"][0]:
-                if len(config_dict["bidsBaseDir"][0]) > 0:
+                if "/" in str(config_dict["bidsBaseDir"]):
                     err = wx.MessageDialog(self, "BIDS base directory "
                                                  "provided, but data format "
                                                  "is set to Custom instead "
@@ -534,7 +561,7 @@ class DataConfig(wx.Frame):
         else:
             dlg = wx.FileDialog(
                 self, message="Save file as ...", 
-                defaultDir=os.getcwd(), 
+                defaultDir=str(config_dict["outputSubjectListLocation"]),
                 defaultFile="data_settings_{0}.yaml".format(subject_list_name),
                 wildcard="YAML files(*.yaml, *.yml)|*.yaml;*.yml", 
                 style=wx.SAVE)
@@ -545,7 +572,8 @@ class DataConfig(wx.Frame):
 
                 with open(path, "wt") as f:
                     f.write(
-                        "# CPAC Data Settings File\n# Version 1.0.3\n")
+                        "# CPAC Data Settings File\n# Version {0}"
+                        "\n".format(CPAC.__version__))
                     f.write(
                         "#\n# http://fcp-indi.github.io for more info.\n#\n"
                         "# Use this file to generate the data configuration "
@@ -556,14 +584,14 @@ class DataConfig(wx.Frame):
                         "--data_settings_file input flag.\n\n\n")
 
                     for key in key_order:
-                        val = config_dict[key][0]
+                        value = config_dict[key][0]
                         help = config_dict[key][2]
 
-                        if "/" in val or "%s" in val or 'None' in val or \
-                                key == 'subjectListName':
-                            value = val
-                        else:
-                            value =[item.strip() for item in val.split(',')]
+                        # if "/" in val or "%s" in val or 'None' in val or \
+                        #         key == 'subjectListName':
+                        #     value = val
+                        # else:
+                        #     value =[item.strip() for item in val.split(',')]
 
                         help = help.replace("\n", "\n# ")
 
