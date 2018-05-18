@@ -60,6 +60,8 @@ from CPAC.network_centrality import create_resting_state_graphs, \
     get_cent_zscore
 from CPAC.utils.datasource import *
 from CPAC.utils import Configuration, create_all_qc
+
+# TODO - QA pages - re-introduce these
 from CPAC.qc.qc import create_montage, create_montage_gm_wm_csf
 from CPAC.qc.utils import register_pallete, make_edge, drop_percent_, \
     gen_histogram, gen_plot_png, gen_motion_plt, \
@@ -270,6 +272,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     logger.info(cores_msg)
 
+    qc_montage_id_a = {}
+    qc_montage_id_s = {}
+    qc_plot_id = {}
+    qc_hist_id = {}
     if sub_dict['unique_id']:
         subject_id = sub_dict['subject_id'] + "_" + sub_dict['unique_id']
     else:
@@ -483,9 +489,82 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
     for strat in strat_list:
         # create a new node, Remember to change its name!
-        anat_preproc = create_anat_preproc(already_skullstripped).clone(
-            'anat_preproc_%d' % num_strat)
-
+        # anat_preproc = create_anat_preproc(use_AFNI, already_skullstripped).clone(
+        #    'anat_preproc_%d' % num_strat)
+        if "AFNI" in c.skullstrip_option:
+            anat_preproc = create_anat_preproc(True,already_skullstripped).clone('anat_preproc_%d' % num_strat)
+        elif "BET" in c.skullstrip_option:
+            anat_preproc = create_anat_preproc(False,already_skullstripped).clone('anat_preproc_%d' % num_strat)
+            
+            anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
+            anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
+            anat_preproc.inputs.AFNI_options.shrink_factor_bottom_lim = c.shrink_factor_bottom_lim
+            anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
+            anat_preproc.inputs.AFNI_options.niter = c.n_iterations
+            anat_preproc.inputs.AFNI_options.pushout = c.pushout
+            anat_preproc.inputs.AFNI_options.touchup = c.touchup
+            anat_preproc.inputs.AFNI_options.fill_hole = c.fill_hole
+            anat_preproc.inputs.AFNI_options.avoid_eyes = c.avoid_eyes
+            anat_preproc.inputs.AFNI_options.use_edge = c.use_edge
+            anat_preproc.inputs.AFNI_options.exp_frac = c.exp_frac
+            anat_preproc.inputs.AFNI_options.smooth_final = c.smooth_final
+            anat_preproc.inputs.AFNI_options.push_to_edge = c.push_to_edge
+            anat_preproc.inputs.AFNI_options.use_skull = c.use_skull
+            anat_preproc.inputs.AFNI_options.perc_init = c.perc_init
+            anat_preproc.inputs.AFNI_options.max_inter_init = c.max_inter_init
+            anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
+            anat_preproc.inputs.AFNI_options.fac = c.fac
+            
+            
+            anat_preproc.get_node('shrink_factor').iterables = ('shrink_factor',c.shrink_factor)
+            anat_preproc.get_node('var_shrink_fac').iterables = ('var_shrink_fac',c.var_shrink_fac)
+            anat_preproc.get_node('shrink_factor_bottom_lim').iterables = ('shrink_factor_bottom_lim',c.shrink_factor_bottom_lim)
+            anat_preproc.get_node('avoid_vent').iterables = ('avoid_vent',c.avoid_vent)
+            anat_preproc.get_node('niter').iterables = ('niter',c.n_iterations)
+            anat_preproc.get_node('pushout').iterables = ('pushout',c.pushout)
+            anat_preproc.cget_node('touchup').iterables = ('touchup',c.touchup)
+            anat_preproc.get_node('fill_hole').iterables = ('fill_hole',c.fill_hole)
+            anat_preproc.get_node('avoid_eyes').iterables = ('avoid_eyes',c.avoid_eyes)
+            anat_preproc.get_node('use_edge').iterables = ('use_edge',c.use_edge)
+            anat_preproc.get_node('exp_frac').iterables = ('exp_frac',c.exp_frac)
+            anat_preproc.get_node('smooth_final').iterables = ('smooth_final',c.smooth_final)
+            anat_preproc.get_node('push_to_edge').iterables = ('push_to_edge',c.push_to_edge)
+            anat_preproc.get_node('use_skull').iterables = ('use_skull',c.use_skull)
+            anat_preproc.get_node('PercInit').iterables = ('perc_init',c.perc_init)
+            anat_preproc.get_node('max_iter_init').iterables = ('max_iter_init',c.max_iter_init)
+            anat_preproc.get_node('blurFWHM').iterables = ('blurFWHM',c.blurFWHM)
+            anat_preproc.get_node('fac').iterables = ('fac',c.fac)
+            
+            
+            anat_preproc.inputs.BET_options.center = c.center
+            anat_preproc.inputs.BET_options.mask_boolean = c.mask_boolean
+            anat_preproc.inputs.BET_options.mesh_boolean = c.mesh_boolean
+            anat_preproc.inputs.BET_options.outline = c.outline
+            anat_preproc.inputs.BET_optios.padding = c.padding
+            anat_preproc.inputs.BET_options.radius = c.radius
+            anat_preproc.inputs.BET_options.reduce_bias = c.reduce_bias
+            anat_preproc.inputs.BET_options.remove_eyes = c.remove_eyes
+            anat_preproc.inputs.BET_options.robust = c.robust
+            anat_preproc.inputs.BET_options.skull = c.skull
+            anat_preproc.inputs.BET_options.surfaces = c.surfaces
+            anat_preproc.inputs.BET_options.threshold = c.threshold
+            anat_preproc.inputs.BET_options.vertical_gradient = c.vertical_gradient
+            
+            
+            anat_preproc.get_node('center').iterables = ('center',c.center)
+            anat_preproc.get_node('mask_boolean').iterables = ('mask_boolean',c.mask_boolean)
+            anat_preproc.get_node('mesh_boolean').iterables = ('mesh_boolean',c.mesh_boolean)
+            anat_preproc.get_node('outline').iterables = ('outline',c.outline)
+            anat_preproc.get_node('padding').iterables = ('padding',c.padding)
+            anat_preproc.get_node('radius').iterables = ('radius',c.radius)
+            anat_preproc.get_node('reduce_bias').iterables = ('reduce_bias',c.reduce_bias)
+            anat_preproc.get_node('remove_eyes').iterables = ('remove_eyes',c.remove_eyes)
+            anat_preproc.get_node('robust').iterables = ('robust',c.robust)
+            anat_preproc.get_node('skull').iterables = ('skull',c.skull)
+            anat_preproc.get_node('surfaces').iterables = ('surfaces',c.surfaces)
+            anat_preproc.get_node('threshold').iterables = ('threshold',c.threshold)
+            anat_preproc.get_node('vertical_gradient').iterables = ('vertical_gradient',c.vertical_gradient)
+        
         try:
             # connect the new node to the previous leaf
             node, out_file = strat.get_leaf_properties()
@@ -1327,17 +1406,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             epi_distcorr.get_node('dwell_asym_ratio_input').iterables = ('dwell_asym_ratio',c.fmap_distcorr_dwell_asym_ratio)
 
             try:
-                node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, epi_distcorr,'inputspec.func_file')
+                node,out_file = strat.get_leaf_properties()
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.func_file')
 
-                node, out_file = strat.get_node_from_resource_pool('anatomical_reorient')
-                workflow.connect(node, out_file, epi_distcorr,'inputspec.anat_file')
+                node,out_file = strat.get_node_from_resource_pool('anatomical_reorient')
+                workflow.connect(node,out_file,epi_distcorr,'inputspec.anat_file')
 
                 node, out_file = strat.get_node_from_resource_pool('fmap_phase_diff')
                 workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_pha')
 
-                node, out_file = strat.get_node_from_resource_pool('fmap_magnitude')
-                workflow.connect(node, out_file, epi_distcorr, 'inputspec.fmap_mag')
+                node,out_file = strat.get_node_from_resource_pool('fmap_magnitude')
+                workflow.connect(node,out_file,epi_distcorr, 'inputspec.fmap_mag')
 
             except:
                 logConnectionError('EPI_DistCorr Workflow', num_strat,strat.get_resource_pool(), '0004')
@@ -4310,17 +4389,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 os.path.join(CPAC.__path__[0], 'qc', 'red_to_blue.py')), 'red_to_blue')
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
-
-        qc_montage_id_a = {}
-        qc_montage_id_s = {}
-        qc_plot_id = {}
-        qc_hist_id = {}
-
-        hist = pe.Node(util.Function(input_names=['measure_file',
-                                                  'measure'],
-                                     output_names=['hist_path'],
-                                     function=gen_histogram),
-                       name='histogram')
+                
+        hist = pe.Node(util.Function(input_names=['measure_file','measure'],output_names = ['hist_path'],function = gen_histogram),name = 'histogram')
 
         for strat in strat_list:
 
@@ -4328,7 +4398,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             # make SNR plot
             try:
-                # standard deviation of preprocessed functional
                 std_dev_imports = ['import os', 'import subprocess']
                 std_dev = pe.Node(util.Function(input_names=['mask_',
                                                              'func_'],
@@ -4337,13 +4406,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 imports=std_dev_imports),
                                   name='std_dev_%d' % num_strat)
 
-                # functional preprocessed, and functional brain mask, into
-                # std_dev node
-                workflow.connect(preproc, out_file, std_dev, 'func_')
-                workflow.connect(brain_mask, mask_file, std_dev, 'mask_')
+                workflow.connect(preproc, out_file,
+                                 std_dev, 'func_')
 
-                # warp the preprocessed functional standard deviation map to
-                # anatomical space
+                workflow.connect(brain_mask, mask_file,
+                                 std_dev, 'mask_')
+
                 std_dev_anat_imports = ['import os',
                                         'import subprocess']
                 std_dev_anat = pe.Node(util.Function(input_names=['func_',
@@ -4355,15 +4423,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                      imports=std_dev_anat_imports),
                                        name='std_dev_anat_%d' % num_strat)
 
-                # std dev of preprocessed func into std dev anat
-                workflow.connect(std_dev, 'new_fname', std_dev_anat, 'func_')
-                # func->anat transform
+                workflow.connect(std_dev, 'new_fname',
+                                 std_dev_anat, 'func_')
+
                 workflow.connect(func_to_anat_xfm, xfm_file,
                                  std_dev_anat, 'xfm_')
-                # anatomical brain
-                workflow.connect(anat_ref, ref_file, std_dev_anat, 'ref_')
 
-                # calculate SNR of functional in anatomical space
+                workflow.connect(anat_ref, ref_file,
+                                 std_dev_anat, 'ref_')
+
                 snr_imports = ['import os', 'import subprocess']
                 snr = pe.Node(util.Function(input_names=['std_dev',
                                                          'mean_func_anat'],
@@ -4372,12 +4440,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             imports=snr_imports),
                               name='snr_%d' % num_strat)
 
-                # std dev of functional, in anatomical space
                 workflow.connect(std_dev_anat, 'new_fname', snr, 'std_dev')
-                # mean functional, in anatomical space
                 workflow.connect(mfa, mfa_file, snr, 'mean_func_anat')
 
-                # calculate the average SNR (one value) written to a text file
                 snr_val_imports = ['import os',
                                    'import nibabel as nb',
                                    'import numpy.ma as ma']
@@ -4388,15 +4453,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                   name='snr_val%d' % num_strat)
                 std_dev_anat.inputs.interp_ = 'trilinear'
 
-                # snr map into node
-                workflow.connect(snr, 'new_fname', snr_val, 'measure_file')
+                workflow.connect(snr, 'new_fname',
+                                 snr_val, 'measure_file')
 
-                # histogram of the SNR
                 hist_ = hist.clone('hist_snr_%d' % num_strat)
                 hist_.inputs.measure = 'snr'
-                workflow.connect(snr, 'new_fname', hist_, 'measure_file')
 
-                # zero out outlier voxels in measure files for the QC pages
+                workflow.connect(snr, 'new_fname',
+                                 hist_, 'measure_file')
+
                 drop_percent = pe.Node(
                     util.Function(input_names=['measure_file',
                                                'percent_'],
@@ -4404,16 +4469,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                   function=drop_percent_),
                     name='dp_snr_%d' % num_strat)
                 drop_percent.inputs.percent_ = 99
+
                 workflow.connect(snr, 'new_fname',
                                  drop_percent, 'measure_file')
 
-                # create the SNR montage
                 montage_snr = create_montage('montage_snr_%d' % num_strat,
                                              'red_to_blue', 'snr')
-                # modified SNR measure file
+
                 workflow.connect(drop_percent, 'modified_measure_file',
                                  montage_snr, 'inputspec.overlay')
-                # anatomical brain for the underlay of the SNR image
+                                                        
                 workflow.connect(anat_ref, ref_file,
                                  montage_snr, 'inputspec.underlay')
 
@@ -4448,11 +4513,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 strat.update_resource_pool({'qc___movement_trans_plot': (mov_plot, 'translation_plot'),'qc___movement_rot_plot': (mov_plot, 'rotation_plot')})
             
-                if not 7 in qc_plot_id:
-                    qc_plot_id[7] = 'movement_trans_plot'
+                if not 6 in qc_plot_id:
+                    qc_plot_id[6] = 'movement_trans_plot'
             
-                if not 8 in qc_plot_id:
-                    qc_plot_id[8] = 'movement_rot_plot'
+                if not 7 in qc_plot_id:
+                    qc_plot_id[7] = 'movement_rot_plot'
 
             except:
                 logStandardError('QC', 'unable to get resources for Motion Parameters plot', '0052')
@@ -4481,7 +4546,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                   name='fd_plot_%d' % num_strat)
                         fd_plot.inputs.measure = 'FD'
 
-                        workflow.connect(fd, out_file, fd_plot, 'arr')
+                        workflow.connect(fd, out_file,fd_plot, 'arr')
 
                         if "De-Spiking" in c.runMotionSpike:
                             excluded, out_file_ex = strat.get_node_from_resource_pool('despiking_frames_excluded')
@@ -4494,8 +4559,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                         strat.update_resource_pool({'qc___fd_plot': (fd_plot, 'hist_path')})
 
-                        if not 9 in qc_plot_id:
-                            qc_plot_id[9] = 'fd_plot'
+                        if not 8 in qc_plot_id:
+                            qc_plot_id[8] = 'fd_plot'
 
                     except:
                         logStandardError('QC', 'unable to get resources for FD plot', '0053')
@@ -4520,6 +4585,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                  montage_skull, 'inputspec.underlay')
 
                 strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, 'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, 'outputspec.sagittal_png')})
+                #skull_edge = #pe.Node(util.Function(input_names=['file_'],output_names=['new_fname#'],function=make_edge),name='skull_edge_%d' % num_strat)
+
+                #workflow.connect(skull, out_file_s,skull_edge, 'file_')
+
+                #workflow.connect(anat_underlay, out_file,montage_skull,'inputspec.underlay')
+
+                # workflow.connect(skull_edge, 'new_fname',montage_skull,'inputspec.overlay')
+
+                # strat.update_resource_pool({'qc___skullstrip_vis_a': (montage_skull, #'outputspec.axial_png'),'qc___skullstrip_vis_s': (montage_skull, #'outputspec.sagittal_png')})
 
                 if not 1 in qc_montage_id_a:
                     qc_montage_id_a[1] = 'skullstrip_vis_a'
@@ -4545,8 +4619,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                             'qc___mni_normalized_anatomical_s': (montage_mni_anat, 'outputspec.sagittal_png')})
 
                 if not 6 in qc_montage_id_a:
-                    qc_montage_id_a[6] = 'mni_normalized_anatomical_a'
-                    qc_montage_id_s[6] = 'mni_normalized_anatomical_s'
+                        qc_montage_id_a[6] = 'mni_normalized_anatomical_a'
+                        qc_montage_id_s[6] = 'mni_normalized_anatomical_s'
 
             except:
                 logStandardError('QC', 'Cannot generate QC montages for MNI normalized anatomical: Resources Not Found', '0054')
@@ -4604,8 +4678,29 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
                 workflow.connect(m_f_a, out_file_mfa,
                                  montage_anat, 'inputspec.underlay')
+
+                # workflow.connect(anat_edge, 'new_fname', montage_anat,
+                #                  'inputspec.overlay')
                                     
                 strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, 'outputspec.axial_png'),'qc___mean_func_with_t1_edge_s': (montage_anat, 'outputspec.sagittal_png')})
+                                    
+                #anat_edge = pe.Node(util.Function(input_names=['file_'],
+                #                                                   output_names=['new_fname'],
+                #                                                  function=make_edge),
+                #                                     name='anat_edge_%d' % num_strat)
+
+                #                workflow.connect(anat, out_file,
+                #                                 anat_edge, 'file_')
+
+                #
+                #                workflow.connect(m_f_a, out_file_mfa,
+                #                                 montage_anat, 'inputspec.underlay')
+                #
+                #                workflow.connect(anat_edge, 'new_fname',
+                #                                 montage_anat, 'inputspec.overlay')
+                #
+                #                strat.update_resource_pool({'qc___mean_func_with_t1_edge_a': (montage_anat, #'outputspec.axial_png'),
+                #                                        'qc___mean_func_with_t1_edge_s': (montage_anat, #'outputspec.sagittal_png')})
 
                 if not 4 in qc_montage_id_a:
                         qc_montage_id_a[4] = 'mean_func_with_t1_edge_a'
@@ -4620,7 +4715,15 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 m_f_i, out_file = strat.get_node_from_resource_pool('mean_functional_to_standard')
 
                 montage_mfi = create_montage('montage_mfi_%d' % num_strat,
-                                    'red', 'MNI_edge_on_mean_func_mni')
+                                    'red', 'MNI_edge_on_mean_func_mni')   ###
+
+                #   MNI_edge = pe.Node(util.Function(input_names=['file_'],
+                #                                      output_names=['new_fname'],
+                #                                      function=make_edge),
+                #                        name='MNI_edge_%d' % num_strat)
+                #   #MNI_edge.inputs.file_ = c.template_brain_only_for_func
+                #  workflow.connect(MNI_edge, 'new_fname',
+                #                   montage_mfi, 'inputspec.overlay')
 
                 workflow.connect(m_f_i, out_file,
                                  montage_mfi, 'inputspec.underlay')
@@ -4643,11 +4746,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # QA pages function
             def QA_montages(measure, idx):
                 try:
-                    # get whatever "measure" is from resource pool
                     overlay, out_file = strat.get_node_from_resource_pool(measure)
 
-                    # zero out outlier voxels in measure files for the QC
-                    # pages
                     drop_percent = pe.MapNode(util.Function(input_names=['measure_file',
                                                                          'percent_'],
                                                             output_names=['modified_measure_file'],
@@ -4659,17 +4759,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(overlay, out_file,
                                      drop_percent, 'measure_file')
 
-                    # connect the montage generation sub-workflow for each
-                    # measure
-                    montage = create_montage(wf_name='montage_%s_%d' % (measure, num_strat),
-                                             cbar_name='cyan_to_yellow',
-                                             png_name=measure)
+                    montage = create_montage('montage_%s_%d' % (measure, num_strat),'cyan_to_yellow', measure)
                     montage.inputs.inputspec.underlay = c.template_brain_only_for_func
 
                     workflow.connect(drop_percent, 'modified_measure_file',
                                      montage, 'inputspec.overlay')
 
-                    # node for the histogram for the measure
                     histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
                     histogram.inputs.measure = measure
 
@@ -4680,8 +4775,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                 'qc___%s_s' % measure: (montage, 'outputspec.sagittal_png'),
                                                 'qc___%s_hist' % measure: (histogram, 'hist_path')})
 
-                    # update the dictionaries of the images keyed with numbers
-                    # in order as they'll appear on the QC pages
                     if not idx in qc_montage_id_a:
                         qc_montage_id_a[idx] = '%s_a' % measure
                         qc_montage_id_s[idx] = '%s_s' % measure
@@ -4696,114 +4789,113 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # ALFF and f/ALFF QA montages
             if 1 in c.runALFF:
                 if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('alff_to_standard', 7)
+                    QA_montages('falff_to_standard', 8)
 
-                    if 0 in c.runZScoring:
-                        if 0 in c.run_smoothing:
-                            QA_montages('alff_to_standard', 10)
-                            QA_montages('falff_to_standard', 11)
-                        if 1 in c.run_smoothing:
-                            QA_montages('alff_to_standard_smooth', 12)
-                            QA_montages('falff_to_standard_smooth', 13)
+                    if c.fwhm != None:
+                        QA_montages('alff_to_standard_smooth', 9)
+                        QA_montages('falff_to_standard_smooth', 10)
 
                     if 1 in c.runZScoring:
-                        if 0 in c.run_smoothing:
-                            QA_montages('alff_to_standard_zstd', 14)
-                            QA_montages('falff_to_standard_zstd', 15)
-                        if 1 in c.run_smoothing:
-                            if "Before" in c.smoothing_order:
-                                QA_montages('alff_to_standard_smooth_zstd', 16)
-                                QA_montages('falff_to_standard_smooth_zstd', 17)
-                            if "After" in c.smoothing_order:
-                                QA_montages('alff_to_standard_zstd_smooth', 18)
-                                QA_montages('falff_to_standard_zstd_smooth', 19)
+
+                        if c.fwhm != None:
+                            QA_montages('alff_to_standard_zstd_smooth', 11)
+                            QA_montages('falff_to_standard_zstd_smooth', 12)
+
+                        else:
+                            QA_montages('alff_to_standard_zstd', 13)
+                            QA_montages('falff_to_standard_zstd', 14)
 
             # ReHo QA montages
             if 1 in c.runReHo:
                 if 1 in c.runRegisterFuncToMNI:
-                    if 0 in c.runZScoring:
-                        if 0 in c.run_smoothing:
-                            QA_montages('reho_to_standard', 20)
-                        if 1 in c.run_smoothing:
-                            QA_montages('reho_to_standard_smooth', 21)
-                    if 1 in c.runZScoring:
-                        if 0 in c.run_smoothing:
-                            QA_montages('reho_to_standard_fisher_zstd', 22)
-                        if 1 in c.run_smoothing:
-                            if "Before" in c.smoothing_order:
-                                QA_montages('reho_to_standard_smooth_zstd', 23)
-                            if "After" in c.smoothing_order:
-                                QA_montages('reho_to_standard_zstd_smooth', 24)
-
-            # SCA ROI QA montages
-            if 1 in c.runSCA:
-                if 1 in c.runRegisterFuncToMNI:
-                    QA_montages('sca_roi_files_to_standard', 25)
+                    QA_montages('reho_to_standard', 15)
 
                     if c.fwhm != None:
-                        QA_montages('sca_roi_files_to_standard_smooth', 26)
+                        QA_montages('reho_to_standard_smooth', 16)
 
                     if 1 in c.runZScoring:
+
                         if c.fwhm != None:
-                            if "Before" in c.smoothing_order:
-                                QA_montages('sca_roi_files_to_standard_smooth_fisher_zstd', 27)
-                            if "After" in c.smoothing_order:
-                                QA_montages('sca_roi_files_to_standard_fisher_zstd_smooth', 28)
+                            QA_montages('reho_to_standard_zstd_smooth', 17)
+
                         else:
-                            QA_montages('sca_roi_files_to_standard_fisher_zstd', 29)
+                            QA_montages('reho_to_standard_fisher_zstd', 18)
+
+            # SCA ROI QA montages
+            if (1 in c.runSCA) and (1 in c.runROITimeseries):
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_roi_to_standard', 19)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_roi_to_standard_smooth', 20)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_roi_to_standard_zstd_fisher_smooth', 22)
+
+                        else:
+                            QA_montages('sca_roi_to_standard_fisher_zstd', 21)
+
+            # SCA Seed QA montages
+            if (1 in c.runSCA) and ("Voxel" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_seed_to_standard', 23)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_seed_to_standard_smooth', 24)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_seed_to_standard_zstd_fisher_smooth', 26)
+
+                        else:
+                            QA_montages('sca_seed_to_standard_fisher_zstd', 25)
                             
             # SCA Multiple Regression
-            if "MultReg" in sca_analysis_dict.keys():
+            if "MultReg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+
                 if 1 in c.runRegisterFuncToMNI:
-                   QA_montages('sca_tempreg_maps_files', 30)
-                   QA_montages('sca_tempreg_maps_zstat_files', 31)
+                   QA_montages('sca_tempreg_maps_files', 27)
+                   QA_montages('sca_tempreg_maps_zstat_files', 28)
 
                    if c.fwhm != None:
-                        QA_montages('sca_tempreg_maps_files_smooth', 32)
-                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 33)
+                        QA_montages('sca_tempreg_maps_files_smooth', 29)
+                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
 
             # Dual Regression QA montages
-            if "DualReg" in sca_analysis_dict.keys():
-                if 0 in c.run_smoothing:
-                    QA_montages('dr_tempreg_maps_files', 34)
-                if 1 in c.write_debugging_outputs:
-                    QA_montages('dr_tempreg_maps_zstat_files', 35)
+            if ("DualReg" in sca_analysis_dict.keys()) and ("SpatialReg" in ts_analysis_dict.keys()):
+
+                QA_montages('dr_tempreg_maps_files', 31)
+                QA_montages('dr_tempreg_maps_zstat_files', 32)
 
                 if 1 in c.runRegisterFuncToMNI:
-                    if 0 in c.run_smoothing:
-                        QA_montages('dr_tempreg_maps_files_to_standard', 36)
-                    if 1 in c.write_debugging_outputs:
-                        QA_montages('dr_tempreg_maps_zstat_files_to_standard', 37)
-                    if 1 in c.run_smoothing:
-                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 38)
-                        if 1 in c.write_debugging_outputs:
-                            QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 39)
+                    QA_montages('dr_tempreg_maps_files_to_standard', 33)
+                    QA_montages('dr_tempreg_maps_zstat_files_to_standard', 34)
+
+                    if c.fwhm != None:
+                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 35)
+                        QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 36)
 
             # VMHC QA montages
             if 1 in c.runVMHC:
-                if 1 in c.write_debugging_outputs:
-                    QA_montages('vmhc_raw_score', 40)
-                    QA_montages('vmhc_fisher_zstd', 41)
-                QA_montages('vmhc_fisher_zstd_zstat_map', 42)
 
-            # TODO: got it, the .png name before the png actually gets created
-            # TODO: is taken from the centrality RP key name which has zero info
-            # TODO: on the ROI/mask that was used.
+                QA_montages('vmhc_raw_score', 37)
+                QA_montages('vmhc_fisher_zstd', 38)
+                QA_montages('vmhc_fisher_zstd_zstat_map', 39)
+
             # Network Centrality QA montages
             if 1 in c.runNetworkCentrality:
-                if 0 in c.run_smoothing:
-                    if 0 in c.runZScoring:
-                        QA_montages('centrality_outputs', 43)
-                    if 1 in c.runZScoring:
-                        QA_montages('centrality_outputs_zstd', 44)
 
-                if 1 in c.run_smoothing:
-                    if 0 in c.runZScoring:
-                        QA_montages('centrality_outputs_smooth', 45)
-                    if 1 in c.runZScoring:
-                        if "Before" in c.smoothing_order:
-                            QA_montages('centrality_outputs_smooth_zstd', 46)
-                        if "After" in c.smoothing_order:
-                            QA_montages('centrality_outputs_zstd_smooth', 47)
+                QA_montages('centrality_outputs', 40)
+                QA_montages('centrality_outputs_zstd', 41)
+
+                if c.fwhm != None:
+                    QA_montages('centrality_outputs_smoothed', 42)
+                    QA_montages('centrality_outputs_smoothed_zstd', 43)
 
             num_strat += 1
 
@@ -5095,7 +5187,19 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                             continue
 
                 ds = pe.Node(nio.DataSink(), name='sinker_%d' % sink_idx)
-                ds.inputs.base_directory = c.outputDirectory
+
+                # Write QC outputs to log directory
+                if 'qc' in key.lower():
+                    ds.inputs.base_directory = c.logDirectory
+                else:
+                    ds.inputs.base_directory = c.outputDirectory
+                    # For each pipeline ID, generate the QC pages
+                    #  for pip_id in pip_ids:
+                        # Define pipeline-level logging for QC
+                        #    pipeline_out_base = os.path.join(c.logDirectory, 'pipeline_%s' % pip_id)
+                        #qc_output_folder = os.path.join(pipeline_out_base, subject_id, 'qc_files_here')
+                        #For each subject, create a QC index.html page
+                        #make_QC_html_pages(qc_output_folder)
 
                 ds.inputs.creds_path = creds_path
                 ds.inputs.encrypt_bucket_keys = encrypt_data
@@ -5170,6 +5274,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                                                       '-')
 
         strat_no = 0
+
         subject_info['resource_pool'] = []
 
         for strat in strat_list:
@@ -5179,6 +5284,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             strat_no += 1
 
         subject_info['status'] = 'Running'
+
+        '''
+        subject_info_pickle = open(os.getcwd() + '/subject_info.p', 'wb')
+
+        pickle.dump(subject_info, subject_info_pickle)
+
+        subject_info_pickle.close()
+        '''
 
         # TODO:set memory and num_threads of critical nodes if running
         # MultiProcPlugin
@@ -5205,7 +5318,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # Add status callback function that writes in callback log
         if nipype.__version__ not in ('0.13.1', '0.14.0'):
             err_msg = "This version of nipype may not be compatible with " \
-                      "CPAC v%s, please install version 0.13.1\n" \
+                      "CPAC v%s, please install version 0.14.0\n" \
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
@@ -5217,10 +5330,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 plugin_args['status_callback'] = log_nodes_cb
 
         # Actually run the pipeline now, for the current subject
-        try:
-            workflow.run(plugin=plugin, plugin_args=plugin_args)
-        except Exception as e:
-            logger.error(e)
+        workflow.run(plugin=plugin, plugin_args=plugin_args)
 
         # Dump subject info pickle file to subject log dir
         subject_info['status'] = 'Completed'
@@ -5229,23 +5339,78 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         pickle.dump(subject_info, subject_info_pickle)
         subject_info_pickle.close()
 
+        '''
+        # Actually run the pipeline now
+        try:
+
+            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+
+        except:
+
+            crashString = "\n\n" + "ERROR: CPAC run stopped prematurely with an error - see above.\n" + ("pipeline configuration- %s \n" % c.pipelineName) + \
+            ("subject workflow- %s \n\n" % wfname) + ("Elapsed run time before crash (minutes): %s \n\n" % ((time.time() - pipeline_start_time)/60)) + \
+            ("Timing information saved in %s/cpac_timing_%s_%s.txt \n" % (c.outputDirectory, c.pipelineName, pipeline_starttime_string)) + \
+            ("System time of start:      %s \n" % pipeline_start_datetime) + ("System time of crash: %s" % strftime("%Y-%m-%d %H:%M:%S")) + "\n\n"
+
+            logger.info(crashString)
+
+            print >>timing, "ERROR: CPAC run stopped prematurely with an error."
+            print >>timing, "Pipeline configuration: %s" % c.pipelineName
+            print >>timing, "Subject workflow: %s" % wfname
+            print >>timing, "\n" + "Elapsed run time before crash (minutes): ", ((time.time() - pipeline_start_time)/60)
+            print >>timing, "System time of crash: ", strftime("%Y-%m-%d %H:%M:%S")
+            print >>timing, "\n\n"
+
+            timing.close()
+
+            raise Exception
+        '''
+
+        '''
+        try:
+
+            workflow.run(plugin='MultiProc', plugin_args={'n_procs': c.numCoresPerSubject})
+
+        except Exception as e:
+
+            print "Error: CPAC Pipeline has failed."
+            print ""
+            print e
+            print type(e)
+            ###raise Exception
+        '''
+
+        # subject_dir = os.path.join(c.outputDirectory, 'pipeline_' + pipeline_id, subject_id)
+        # create_output_mean_csv(subject_dir)
+
         for count, scanID in enumerate(pip_ids):
             for scan in scan_ids:
                 create_log_node(None, None, count, scan).run()
-
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
                 try:
-                    pipeline_base = os.path.join(c.outputDirectory,
-                                                 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_base, subject_id,
-                                                    'qc_files_here')
-                    generateQCPages(qc_output_folder, qc_montage_id_a,
-                                    qc_montage_id_s, qc_plot_id, qc_hist_id)
+                    pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
+                    qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
+                    generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
+            #create_all_qc.run(pipeline_base)
                 except Exception as e:
-                    logger.error("[!] Error: The QC interface page "
-                                 "generator ran into a problem.\nDetails: "
-                                 "{0}".format(e))
+                    print "Error: The QC function page generation is not running"
+                    print ""
+                    print e
+                    print type(e)
+                    raise Exception
+                    
+
+
+            # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
+                #two methods can be done here:
+                #i) group all the qc_montage_ids in the resource pool or
+                #add a loop for all the files in the qc output folder, generate the html pages using the same functions, but with different parameters
+                # generateQCPages(qc_output_folder, qc_montage_id_a,
+                #  qc_montage_id_s, qc_plot_id, qc_hist_id)
+                # Automatically generate QC index page
+                #create_all_qc.run(pipeline_out_base)
+        
 
         # pipeline timing code starts here
 
