@@ -9,197 +9,159 @@ ctypedef np.float64_t DTYPE_t
 ITYPE = np.int32
 ctypedef np.int32_t ITYPE_t
 
-cdef struct seuclidean_info:
-    ITYPE_t n   # size of array
-    DTYPE_t* V  # pointer to buffer of size n
+# cimport data
+# from data cimport (
+#     DTYPE, DTYPE_t,
+#     ITYPE, ITYPE_t,
+#     DistanceMatrix, DiagonalMatrix, FullDistanceMatrix,
+#     SymmetricDistanceMatrix, DistanceMetric,
+#     distance, gower
+# )
 
-cdef union dist_params:
-    seuclidean_info seuclidean
+# def distance(np.ndarray[DTYPE_t, ndim=2] x, metric="euclidean", **kwargs):
+#     dist_metric = DistanceMetric(metric, **kwargs)
+#     return dist_metric.pdist(x)
 
-ctypedef DTYPE_t (*dist_func)(DTYPE_t*, DTYPE_t*, ITYPE_t,
-                              ITYPE_t, ITYPE_t, dist_params*)
 
-cdef DTYPE_t euclidean_distance(DTYPE_t* x1, DTYPE_t* x2,
-                                ITYPE_t inc1, ITYPE_t inc2,
-                                ITYPE_t n, dist_params* params):
-    cdef ITYPE_t i1 = 0, i2 = 0, i1max = inc1 * n
-    cdef DTYPE_t d, res = 0
+# def gower_python(np.ndarray[DTYPE_t, ndim=2] X):
+#     ds = FullDistanceMatrix(X.shape[0], X)
+#     return gower(ds)
+
+
+# def hat(np.ndarray[DTYPE_t, ndim=2] X):
+#     cr = np.matmul(X.T, X)
+#     inverse = np.linalg.inv(cr)
+#     return np.matmul(np.matmul(X, inverse.T), X.T)
+
+
+def permuted_index(n, strata=None):
+    if strata is None:
+        perms = np.random.permutation(n)
+    else:
+        perms = np.array(range(n))
+        elems = np.unique(strata)
+        for elem in elems:
+            inds = perms[strata == elem]
+            if len(inds) > 1:
+                perms[strata == elem] = np.random.permutation(inds)
+    return perms
+
+def gen_perms(nperms, nobs, strata=None):
+    perms = np.zeros((nperms, nobs), dtype=np.int)
+    for i in range(nperms):
+        perms[i,:] = permuted_index(nobs, strata)
+    return perms
+
+def add_original_index(perms):
+    nobs = perms.shape[1]
+    perms = np.vstack((range(nobs), perms))
+    return perms
+
+def gower_center(yDis):
+    n = yDis.shape[0]
+    I = np.eye(n,n)
+    uno = np.ones((n,1))
     
-    while i1 < i1max:
-        d = x1[i1] - x2[i2]
-        res += d * d
-        i1 += inc1
-        i2 += inc2
+    A = -0.5 * (yDis ** 2)
+    C = I - (1.0/n)*uno.dot(uno.T)
+    G = C.dot(A).dot(C)
     
-    return res ** 0.5
+    return G
 
-cdef DTYPE_t manhattan_distance(DTYPE_t* x1, DTYPE_t* x2,
-                                ITYPE_t inc1, ITYPE_t inc2,
-                                ITYPE_t n, dist_params* params):
-    cdef ITYPE_t i1 = 0, i2 = 0, i1max = inc1 * n
-    cdef DTYPE_t res = 0
+def gower_center_many(dmats):
+    nobs    = np.sqrt(dmats.shape[0])
+    ntests  = dmats.shape[1]
+    Gs      = np.zeros_like(dmats)
     
-    while i1 < i1max:
-        res += abs(x1[i1] - x2[i2])
-        i1 += inc1
-        i2 += inc2
+    for i in range(ntests):
+        Dmat    = dmats[:,i].reshape(nobs, nobs)
+        Gs[:,i] = gower_center(Dmat).flatten()
+    
+    return Gs
 
-    return res
+def gen_h2_perms(x, cols, perms):
+    nperms  = perms.shape[0]
+    nobs    = perms.shape[1]
+    
+    H2perms = np.zeros((nobs**2, nperms))
+    for i in range(nperms):
+        H2 = gen_h2(x, cols, perms[i,:])
+        H2perms[:,i] = H2.flatten()
+    
+    return H2perms
 
+def gen_ih_perms(x, cols, perms):
+    nperms  = perms.shape[0]
+    nobs    = perms.shape[1]
+    I       = np.eye(nobs,nobs)
+    
+    IHperms = np.zeros((nobs**2, nperms))
+    for i in range(nperms):
+        IH = I - gen_h(x, cols, perms[i,:])
+        IHperms[:,i] = IH.flatten()
+    
+    return IHperms
 
-cdef class DistanceMatrix(object):
-    pass
+def calc_ssq_fast(Hs, Gs, transpose=True):
+    if transpose:
+        ssq = Hs.T.dot(Gs)
+    else:
+        ssq = Hs.dot(Gs)
+    return ssq
 
-cdef class DiagonalMatrix(object):
-    cdef public float diagonal
-    cdef public float others
-
-    def __init__(self, diagonal=1.0, others=0.0):
-        self.diagonal = diagonal
-        self.others = others
-
-    def __getitem__(self, tuple key):
-        if key[0] == key[1]:
-            return self.diagonal
-        else:
-            return self.others
-
-cdef class FullDistanceMatrix(DistanceMatrix):
-
-    cdef public int n
-    cdef np.ndarray X
-
-    def __init__(self, n=None, np.ndarray[DTYPE_t, ndim=2] X=None):
-        if X is not None:
-            self.n = X.shape[0]
-            self.X = X
-        else:
-            self.n = n
-            self.X = np.zeros([n, n], dtype=np.float64)
-
-    def __getitem__(self, tuple key):
-        return self.X[key[0], key[1]]
-
-    def __setitem__(self, tuple key, value):
-        self.X[key[0], key[1]] = float(value)
-
-cdef class SymmetricDistanceMatrix(DistanceMatrix):
-
-    cdef public int n
-    cdef public int size
-    cdef float * values
-    cdef float * diagonal
-
-    def __cinit__(self, n):
-        self.n = n
-        self.size = ((n - 1) * n) / 2
-        self.diagonal = <float *> PyMem_Malloc(self.n * sizeof(float))
-
-        self.values = <float *> PyMem_Malloc(self.size * sizeof(float))
-        if not self.values:
-            raise MemoryError()
-
-        for i in range(self.n):
-            self.diagonal[i] = 0.0
-        for i in range(self.size):
-            self.values[i] = 0.0
-
-    def __dealloc__(self):
-        PyMem_Free(self.values)
-        PyMem_Free(self.diagonal)
-
-    def __getitem__(self, tuple key):
-        if key[0] == key[1]:
-            return self.diagonal[key[0]]
-        else:
-            return self.values[key[0] + key[1] - 1]
-
-    def __setitem__(self, tuple key, value):
-        if key[0] != key[1]:
-            self.values[key[0] + key[1] - 1] = float(value)
-        else:
-            self.diagonal[key[0]] = float(value)
+def ftest_fast(Hs, IHs, Gs, df_among, df_resid, **ssq_kwrds):
+    SS_among = calc_ssq_fast(Hs, Gs, **ssq_kwrds)
+    SS_resid = calc_ssq_fast(IHs, Gs, **ssq_kwrds)
+    F = (SS_among/df_among)/(SS_resid/df_resid)
+    return F
 
 
-cdef class DistanceMetric(object):
-    cdef dist_params params
-    cdef dist_func dfunc
+def check_rank(x):
+    k    = x.shape[1]
+    rank = np.linalg.matrix_rank(x)
+    if rank < k:
+        raise Exception("matrix is rank deficient (rank %i vs cols %i)" % (rank, k))
 
-    def __init__(self, metric="euclidean"):
-        if metric in ("euclidean", "l2"):
-            self.dfunc = &euclidean_distance
+def add_intercept(x):
+    uno = np.ones((x.shape[0],1))   # intercept
+    xx  = np.hstack((uno,x))        # design matrix
+    return xx
 
-        elif metric in ("manhattan", "cityblock", "l1"):
-            self.dfunc = &manhattan_distance
+def hatify(x):
+    Q1, R1 = np.linalg.qr(x)
+    H = Q1.dot(Q1.T)
+    return H
 
-        else:
-            raise ValueError('unrecognized metric %s' % metric)
-                        
-    def pdist(self, X):
-        X = np.asarray(X, dtype=DTYPE, order='C')
-        assert X.ndim == 2
-        m1 = m2 = X.shape[0]
-        n = X.shape[1]
-
-        Y = SymmetricDistanceMatrix(X.shape[0])
-        self._pdist_c(X, Y)
-        return Y
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void _pdist_c(self,
-                       np.ndarray[DTYPE_t, ndim=2, mode='c'] X,
-                       DistanceMatrix Y):
-        cdef unsigned int i1, i2, m, n
-        m = X.shape[0]
-        n = X.shape[1]
-
-        cdef DTYPE_t* pX = <DTYPE_t*> X.data
-
-        for i1 from 0 <= i1 < m:
-            for i2 from i1 < i2 < m:
-                Y[i1, i2] = self.dfunc(pX + i1 * n,
-                                       pX + i2 * n,
-                                       1, 1, n, &self.params)
+def permute_design(x, cols, indexperm):
+    """docstring for permute_design"""
+    Xj          = x.copy()
+    Xp          = np.take(Xj[:,cols], indexperm, axis=0)    
+    Xj[:,cols]  = Xp    
+    return Xj
 
 
-def distance(np.ndarray[DTYPE_t, ndim=2] x, metric="euclidean", **kwargs):
-    dist_metric = DistanceMetric(metric, **kwargs)
-    return dist_metric.pdist(x)
-
-
-cdef gower(DistanceMatrix D):
-    n = D.n
-    norm = 1.0 / n
-
-    C = DiagonalMatrix(diagonal=1.0-norm, others=0.0-norm)
-
-    CD = FullDistanceMatrix(n)
-    for i in range(n):
-        for j in range(n):
-            CD[i, j] = 0.0
-            for k in range(n):
-                CD[i, j] += C[i, k] * (-0.5 * (D[k, j] ** 2))
-
-    CDC = SymmetricDistanceMatrix(n)
-    for i in range(n):
-        for j in range(n):
-            sum = 0.0
-            for k in range(n):
-                sum += CD[i, k] * C[k, j]
-            CDC[i, j] = sum
-                
-    return CDC
-
-def gower_python(np.ndarray[DTYPE_t, ndim=2] X):
-    ds = FullDistanceMatrix(X.shape[0], X)
-    return gower(ds)
+def gen_h(x, cols=None, indexperm=None):
+    if indexperm is not None:
+        x = permute_design(x, cols, indexperm)
+    H = hatify(x)
+    return H
     
 
-def hat(np.ndarray[DTYPE_t, ndim=2] X):
-    cr = np.matmul(X.T, X)
-    inverse = np.linalg.inv(cr)
-    return np.matmul(np.matmul(X, inverse.T), X.T)
+def gen_h2(x, cols, indexperm=None):
+    H = gen_h(x, cols, indexperm)
+    other_cols = [i for i in range(x.shape[1]) if i not in cols]
+    Xj = x[:,other_cols]
+    H2 = H - hatify(Xj)
+    return H2
+
+
+def fperms_to_pvals(fstats, F_perms):
+    nperms,ntests = F_perms.shape
+    pvals = np.zeros(ntests)
+    for i in range(ntests):
+        j        = (F_perms[:,i] >= fstats[i]).sum().astype('float')
+        pvals[i] = j/nperms
+    return pvals
 
 
 def pseudo_f(n, m, H, G, I):
@@ -208,99 +170,126 @@ def pseudo_f(n, m, H, G, I):
     return explained_variance / unexplained_variance
 
 
-def mdmr(np.ndarray[DTYPE_t, ndim=2] data,
-         np.ndarray[DTYPE_t, ndim=2] design_matrix,
+def mdmr(np.ndarray[DTYPE_t, ndim=2] ys,
+         np.ndarray[DTYPE_t, ndim=2] x,
+         cols,
          int permutations, distance_metric="euclidean"):
+
+    check_rank(x)
+    
+    ntests  = ys.shape[1]
+    nobs    = x.shape[0]
+    if nobs != np.sqrt(ys.shape[0]):
+        raise Exception("# of observations incompatible between x and ys")
+    
+    Gs = gower_center_many(ys)
+    
+    df_among = len(cols)
+    df_resid = nobs - x.shape[1]
+    df_total = nobs - 1
+    
+    permutation_indexes = gen_perms(permutations, nobs)
+    permutation_indexes  = add_original_index(permutation_indexes)
+    
+    H2perms = gen_h2_perms(x, cols, permutation_indexes)
+    IHperms = gen_ih_perms(x, cols, permutation_indexes)
+
+    F_perms = ftest_fast(H2perms, IHperms, Gs,
+                         df_among, df_resid)
+    Fs = F_perms[0,:]
+
+    ps = fperms_to_pvals(Fs, F_perms)
+    # return (ps, Fs, F_perms, perms)
+    return ps, Fs
+
          
-    D = distance(data, metric=distance_metric)
-    G = gower(D)
-    H = hat(design_matrix)
+    # D = distance(data, metric=distance_metric)
+    # G = gower(D).to_numpy()
+    # H = hat(design_matrix)
 
-    p = data.shape[1]
-    n = data.shape[0]
+    # p = data.shape[1]
+    # n = data.shape[0]
 
-    perms = np.array([
-        np.random.permutation(n)
-        for _ in np.arange(permutations)
-    ])
+    # perms = np.array([
+    #     np.random.permutation(n)
+    #     for _ in np.arange(permutations)
+    # ])
 
-    perms = np.vstack((np.arange(n), perms))
-    permutations += 1
+    # perms = np.vstack((np.arange(n), perms))
+    # permutations += 1
 
-    HG = SymmetricDistanceMatrix(n)
-    for i in range(1, n):
-        for j in range(i):
-            HG[i, j] = 0.02
-            for k in range(n):
-                HG[i, j] += H[i, k] * G[i, k]
+    # HG = SymmetricDistanceMatrix(n)
+    # for i in range(1, n):
+    #     for j in range(i):
+    #         HG[i, j] = 0.02
+    #         for k in range(n):
+    #             HG[i, j] += H[i, k] * G[i, k]
 
-    trG = 0.0
-    for i in range(n):
-        trG += G[i, i]
+    # trG = 0.0
+    # for i in range(n):
+    #     trG += G[i, i]
 
-    denom = SymmetricDistanceMatrix(n)
-    for i in range(1, n):
-        for j in range(i):
-            denom[i, j] = trG - HG[i, j]
+    # denom = SymmetricDistanceMatrix(n)
+    # for i in range(1, n):
+    #     for j in range(i):
+    #         denom[i, j] = trG - HG[i, j]
 
-    omni_pr2 = SymmetricDistanceMatrix(n)
-    for i in range(1, n):
-        for j in range(i):
-            omni_pr2[i, j] = HG[i, j] / trG
+    # omni_pr2 = SymmetricDistanceMatrix(n)
+    # for i in range(1, n):
+    #     for j in range(i):
+    #         omni_pr2[i, j] = HG[i, j] / trG
 
-    omni_f = SymmetricDistanceMatrix(n)
-    for i in range(1, n):
-        for j in range(i):
-            omni_f[i, j] = HG[i, j] / denom[i, j]
+    # omni_f = SymmetricDistanceMatrix(n)
+    # for i in range(1, n):
+    #     for j in range(i):
+    #         omni_f[i, j] = HG[i, j] / denom[i, j]
 
-    Hs = []
-    for col in range(design_matrix.shape[1]):
-        selector = [True] * design_matrix.shape[1]
-        selector[col] = False
-        sub_design_matrix = design_matrix[:, selector]
-        Hs += [H - hat(sub_design_matrix)]
+    # Hs = []
+    # for col in range(design_matrix.shape[1]):
+    #     selector = [True] * design_matrix.shape[1]
+    #     selector[col] = False
+    #     sub_design_matrix = design_matrix[:, selector]
+    #     Hs += [H - hat(sub_design_matrix)]
 
-    # Compute SSD due to conditional effect
-    numer_x = [np.cross(vhs, G) for vhs in Hs]
+    # # Compute SSD due to conditional effect
+    # numer_x = []
+    # for vhs in Hs:
+    #     numer_x += [np.matmul(vhs.T, G)]
 
-    # Rescale to get either test statistic or pseudo r-square
-    f_x = numer_x / denom
-    pr2_x = numer_x / trG
+    # # Rescale to get either test statistic or pseudo r-square
+    # # f_x = numer_x / denom
+    # # pr2_x = numer_x / trG
 
-    # Combine test statistics and pseudo R-squares
-    #stat = data.frame("stat" = c(f.omni, f.x),
-    #                    row.names = c("(Omnibus)", unique.xnames))
-    #df = data.frame("df" = c(p, df),
-    #                row.names = c("(Omnibus)", unique.xnames))
-    #pr2 = data.frame("pseudo.Rsq" = c(pr2.omni, pr2.x),
-    #                    row.names = c("(Omnibus)", unique.xnames))
+    # # Combine test statistics and pseudo R-squares
+    # #stat = data.frame("stat" = c(f.omni, f.x),
+    # #                    row.names = c("(Omnibus)", unique.xnames))
+    # #df = data.frame("df" = c(p, df),
+    # #                row.names = c("(Omnibus)", unique.xnames))
+    # #pr2 = data.frame("pseudo.Rsq" = c(pr2.omni, pr2.x),
+    # #                    row.names = c("(Omnibus)", unique.xnames))
 
+    # chunks = np.ceil(n * permutations / 1e6)
+    # chunk_size = np.ceil(permutations / chunks)
+    # permutations = chunks * chunk_size
 
+    # # observations = [omni + n of covariates]
+    # # for each chunk
+    # #     for each range(chunk_size)
+    # #         perm result[] = mdmr_permutation_stats
+    # #     sum columns of perm result into observations
 
+    # # divide all columns by permutations
 
+    # # omni_hold = max(omni, 1/nperm)
+    # # covariates_hold = pmax(covariates, 1/nperm)
 
-    chunks = np.ceil(n * permutations / 1e6)
-    chunk_size = np.ceil(permutations / chunks)
-    permutations = chunks * chunk_size
+    # # omni_acc = sqrt((omni_hold * (1-omni_hold)) / nperm)
+    # # covariates_acc = sqrt((covariates_hold * (1-covariates_hold)) / nperm)
 
-    # observations = [omni + n of covariates]
-    # for each chunk
-    #     for each range(chunk_size)
-    #         perm result[] = mdmr_permutation_stats
-    #     sum columns of perm result into observations
+    # #out <- list("stat" = stat, "pr.sq" = pr2, "pv" = pv, "p.prec" = pv.acc,
+    # #            "df" = df, lambda = NULL, nperm = nperm)
 
-    # divide all columns by permutations
-
-    # omni_hold = max(omni, 1/nperm)
-    # covariates_hold = pmax(covariates, 1/nperm)
-
-    # omni_acc = sqrt((omni_hold * (1-omni_hold)) / nperm)
-    # covariates_acc = sqrt((covariates_hold * (1-covariates_hold)) / nperm)
-
-    #out <- list("stat" = stat, "pr.sq" = pr2, "pv" = pv, "p.prec" = pv.acc,
-    #            "df" = df, lambda = NULL, nperm = nperm)
-
-    return D, G, hat(data)
+    # return D, G, hat(data)
 
 # .mdmr.permstats <- function(X, n, vg = gower, trG, px = number of covariates) {
 def mdmr_permutation_stats(np.ndarray[DTYPE_t, ndim=2] data,
