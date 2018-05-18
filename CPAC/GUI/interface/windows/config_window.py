@@ -3,6 +3,7 @@ from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
 from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
+    SkullStripPreprocessing,SkullStripOptions,AFNI_options,BET_options,\
     Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
     SCA, SCASettings, \
@@ -76,26 +77,31 @@ class Mybook(wx.Treebook):
         page3 = DirectorySettings(self)
 
         page5 = AnatomicalPreprocessing(self)
-        page6 = Registration(self, 1)
-        page7 = Segmentation(self, 2)
+        page7 = Registration(self, 1)
+        page8 = Segmentation(self, 2)
 
-        page8 = FunctionalPreProcessing(self)
-        page9 = TimeSeriesOptions(self)
-        page10 = EPI_DistCorr(self)                     
-        page11 = AnatToFuncRegistration(self, 5)
-        page12 = FuncToMNIRegistration(self, 6)
+        page9 = FunctionalPreProcessing(self)
+        page10 = TimeSeriesOptions(self)
+        page11 = EPI_DistCorr(self)
+        page12 = AnatToFuncRegistration(self, 5)
+        page13 = FuncToMNIRegistration(self, 6)
 
-        page13= Nuisance(self)
-        page14= NuisanceRegression(self, 7)
-        page15= MedianAngleCorrection(self, 8)
+        page14= Nuisance(self)
+        page15= NuisanceRegression(self, 7)
+        page16= MedianAngleCorrection(self, 8)
 
-        page16 = FilteringSettings(self, 9)
+        page17 = FilteringSettings(self, 9)
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
-
-        page26 = SCA(self)
-        page27 = SCASettings(self)
+        
+        page23 = SkullStripPreprocessing(self)
+        page24 = SkullStripOptions(self)
+        page25 = AFNI_options(self)
+        page26 = BET_options(self)
+        
+        page27 = SCA(self)
+        page28 = SCASettings(self)
 
         page31 = VMHC(self)
         page32 = VMHCSettings(self)
@@ -121,26 +127,33 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page6, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page7, "Tissue Segmentation", wx.ID_ANY)
+        self.AddSubPage(page7, "Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page8, "Tissue Segmentation", wx.ID_ANY)
+        
+        
+        
+        self.AddPage(page9, "Functional Preprocessing", wx.ID_ANY)
+        self.AddSubPage(page10, "Time Series Options", wx.ID_ANY)
+        self.AddSubPage(page11, "Distortion Correction", wx.ID_ANY)
+        self.AddSubPage(page12,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page13,"Functional to MNI Registration", wx.ID_ANY)
 
-        self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page10, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
+        self.AddPage(page14,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(page15,"Nuisance Regression", wx.ID_ANY)
+        self.AddSubPage(page16,"Median Angle Correction", wx.ID_ANY)
 
-        self.AddPage(page13,"Nuisance", wx.ID_ANY)
-        self.AddSubPage(page14,"Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page15,"Median Angle Correction", wx.ID_ANY)
-
-        self.AddSubPage(page16, "Temporal Filtering Options", wx.ID_ANY)
+        self.AddSubPage(page17, "Temporal Filtering Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
-
-        self.AddPage(page26, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
-        self.AddSubPage(page27, "SCA Options", wx.ID_ANY)
+        
+        self.AddPage(page23,"Skull-Strip", wx.ID_ANY)
+        self.AddSubPage(page24,"SkullStripOptions", wx.ID_ANY)
+        self.AddSubPage(page25, "AFNI options", wx.ID_ANY)
+        self.AddSubPage(page26,"BET options", wx.ID_ANY)
+        
+        self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
+        self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
 
         self.AddPage(page31, "Voxel-mirrored Homotopic Connectivity", wx.ID_ANY)
         self.AddSubPage(page32, "VMHC Settings", wx.ID_ANY)
