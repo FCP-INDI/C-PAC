@@ -14,7 +14,7 @@ from ..utils.validator import CharValidator
 import os
 import pkg_resources as p
 
-class SkullStripPreprocessing(wx.html.HtmlWindow):
+class SkullStripProcessing(wx.html.HtmlWindow):
     
     def __init__(self,parent,counter = 0):
         from urllib2 import urlopen
@@ -31,6 +31,7 @@ class SkullStripOptions(wx.html.HtmlWindow):
 
     def __init__(self,parent,counter = 0):
         wx.ScrolledWindow.__init__(self,parent)
+        import os
 
         self.counter = counter
         self.page = GenericClass(self, "Skull-Strip options")
@@ -165,13 +166,16 @@ class AFNI_options(wx.ScrolledWindow):
                       validator=CharValidator("no-alpha"),
                       values = "0")
                       
-        self.page.add(label = "Max_inter_init",
+        self.page.add(label = "Max_inter_iter",
                       control = control.TEXT_BOX,
-                      name = 'max_inter_init',
+                      name = 'max_inter_iter',
                       type = dtype.LNUM,
-                      comment = "blur dset after spatial normalization. Recommended values are between 2 and 4",
+                      comment = "Number of iteration to remove intersection \
+                      problems. With each iteration, the program \
+                      automatically increases the amount of smoothing \
+                      to get rid of intersections. Default is 4",
                       validator=CharValidator("no-alpha"),
-                      values = "2")
+                      values = "4")
                       
         self.page.add(label = "Fac",
                       control = control.TEXT_BOX,
@@ -180,6 +184,14 @@ class AFNI_options(wx.ScrolledWindow):
                       comment = "Multiply input dataset by FAC if range of values is too small",
                       validator=CharValidator("no-alpha"),
                       values = "1")
+        self.page.add(label = "blur_fwhm",
+                      control = control.TEXT_BOX,
+                      name = 'blur_fwhm',
+                      type = dtype.LNUM,
+                      comment = "Blur dataset after spatial normalization.",
+                      validator=CharValidator("no-alpha"),
+                      values = "2")
+
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
