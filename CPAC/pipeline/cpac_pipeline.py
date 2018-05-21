@@ -498,7 +498,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             
             anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
             anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
-            anat_preproc.inputs.AFNI_options.shrink_factor_bottom_lim = c.shrink_factor_bottom_lim
+            anat_preproc.inputs.AFNI_options.shrink_factor_bot_lim = c.shrink_factor_bot_lim
             anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
             anat_preproc.inputs.AFNI_options.niter = c.n_iterations
             anat_preproc.inputs.AFNI_options.pushout = c.pushout
@@ -511,14 +511,14 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             anat_preproc.inputs.AFNI_options.push_to_edge = c.push_to_edge
             anat_preproc.inputs.AFNI_options.use_skull = c.use_skull
             anat_preproc.inputs.AFNI_options.perc_init = c.perc_init
-            anat_preproc.inputs.AFNI_options.max_inter_init = c.max_inter_init
+            anat_preproc.inputs.AFNI_options.max_inter_iter = c.max_inter_iter
             anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
             anat_preproc.inputs.AFNI_options.fac = c.fac
             
             
             anat_preproc.get_node('shrink_factor').iterables = ('shrink_factor',c.shrink_factor)
             anat_preproc.get_node('var_shrink_fac').iterables = ('var_shrink_fac',c.var_shrink_fac)
-            anat_preproc.get_node('shrink_factor_bottom_lim').iterables = ('shrink_factor_bottom_lim',c.shrink_factor_bottom_lim)
+            anat_preproc.get_node('shrink_factor_bot_lim').iterables = ('shrink_factor_bot_lim',c.shrink_factor_bottom_lim)
             anat_preproc.get_node('avoid_vent').iterables = ('avoid_vent',c.avoid_vent)
             anat_preproc.get_node('niter').iterables = ('niter',c.n_iterations)
             anat_preproc.get_node('pushout').iterables = ('pushout',c.pushout)
@@ -531,8 +531,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             anat_preproc.get_node('push_to_edge').iterables = ('push_to_edge',c.push_to_edge)
             anat_preproc.get_node('use_skull').iterables = ('use_skull',c.use_skull)
             anat_preproc.get_node('PercInit').iterables = ('perc_init',c.perc_init)
-            anat_preproc.get_node('max_iter_init').iterables = ('max_iter_init',c.max_iter_init)
-            anat_preproc.get_node('blurFWHM').iterables = ('blurFWHM',c.blurFWHM)
+            anat_preproc.get_node('max_inter_iter').iterables = ('max_inter_iter',c.max_inter_iter)
+            anat_preproc.get_node('blur_FWHM').iterables = ('blur_FWHM',c.blurFWHM)
             anat_preproc.get_node('fac').iterables = ('fac',c.fac)
             
             
