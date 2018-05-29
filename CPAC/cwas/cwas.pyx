@@ -85,7 +85,7 @@ def compute_distances(S0):
     return dmat
 
 
-def calc_mdmrs(D, regressor, cols, iter, strata=None):
+def calc_mdmrs(D, regressor, cols, permutations):
     from CPAC.cwas.mdmr import mdmr
 
     voxels = D.shape[0]
@@ -95,15 +95,15 @@ def calc_mdmrs(D, regressor, cols, iter, strata=None):
     p_set = np.zeros(voxels)
     
     for i in range(voxels):
-        p_set[i], F_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, iter, strata)
+        p_set[i], F_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, permutations)
     
     return F_set, p_set
 
 
 def calc_subdists(subjects_data, voxel_range):
-    subjects  = len(subjects_data)
+    subjects      = len(subjects_data)
     voxel_indexes = range(*voxel_range)
-    voxels  = len(voxel_indexes)
+    voxels        = len(voxel_indexes)
 
     subjects_normed_data = np.apply_along_axis(norm_cols, axis=0, arr=subjects_data)
     D = np.zeros((voxels, subjects, subjects))
@@ -117,14 +117,14 @@ def calc_subdists(subjects_data, voxel_range):
     return D
 
 
-def calc_cwas(subjects_data, regressor, cols, iter, voxel_range, strata=None):
+def calc_cwas(subjects_data, regressor, cols, permutations, voxel_range):
     D            = calc_subdists(subjects_data, voxel_range)
-    F_set, p_set = calc_mdmrs(D, regressor, cols, iter, strata)
+    F_set, p_set = calc_mdmrs(D, regressor, cols, permutations)
     return F_set, p_set
 
 
 def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples, 
-               voxel_range, strata=None):
+               voxel_range):
     """
     Performs CWAS for a group of subjects
     
@@ -143,8 +143,6 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     voxel_range : tuple
         (start, end) tuple specify the range of voxels (inside the mask) to perform cwas on.
         Index ordering is based on the np.where(mask) command
-    strata : ndarray (optional)
-        todo
     
     Returns
     -------
@@ -181,7 +179,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     ]
     
     F_set, p_set = calc_cwas(subjects_data, regressor, cols, \
-                             f_samples, voxel_range, strata)
+                             f_samples, voxel_range)
     
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
