@@ -1,7 +1,7 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
-from cwas import (
+from .cwas import (
     joint_mask,
     create_cwas_batches,
     merge_cwas_batches,
@@ -32,7 +32,7 @@ def create_cwas(name='cwas'):
     
         inputspec.roi : string (nifti file)
             Mask of region(s) of interest
-        inputpsec.subjects : list (nifti files)
+        inputspec.subjects : list (nifti files)
             4-D timeseries of a group of subjects normalized to MNI space
         inputspec.regressor : list (float)
             Corresponding list of the regressor variable of shape (`N`) or (`N`,`1`), `N` subjects
@@ -40,8 +40,6 @@ def create_cwas(name='cwas'):
             todo
         inputspec.f_samples : int
             Number of permutation samples to draw from the pseudo F distribution
-        inputspec.strata : None or ndarray
-            todo
         inputspec.parallel_nodes : integer
             Number of nodes to create and potentially parallelize over
         
@@ -81,7 +79,6 @@ def create_cwas(name='cwas'):
                                                        'regressor', 
                                                        'cols', 
                                                        'f_samples', 
-                                                       'strata', 
                                                        'parallel_nodes']),
                         name='inputspec')
                         
@@ -93,7 +90,7 @@ def create_cwas(name='cwas'):
     
     ccb = pe.Node(util.Function(input_names=['mask_file',
                                              'batches'],
-                                output_names=['batch_list'],
+                                output_names='batch_list',
                                 function=create_cwas_batches),
                   name='cwas_batches')
     
@@ -102,12 +99,11 @@ def create_cwas(name='cwas'):
                                                   'regressor', 
                                                   'cols', 
                                                   'f_samples',
-                                                  'voxel_range', 
-                                                  'strata'],
+                                                  'voxel_range'],
                                      output_names=['result_batch'],
                                      function=nifti_cwas),
                        name='cwas_batch',
-                       iterfield=['voxel_range'])
+                       iterfield='voxel_range')
     
     jmask = pe.Node(util.Function(input_names=['subjects_file_list', 
                                                'mask_file'],
@@ -145,10 +141,9 @@ def create_cwas(name='cwas'):
                  ncwas, 'f_samples')
     cwas.connect(inputspec, 'cols',
                  ncwas, 'cols')
+                 
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
-    cwas.connect(inputspec, 'strata',
-                 ncwas, 'strata')
     
     #Merge the computed CWAS data
     cwas.connect(ncwas, 'result_batch',
