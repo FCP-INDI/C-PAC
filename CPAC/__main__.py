@@ -19,8 +19,8 @@ def utils():
     pass
 
 
-@utils.command(name="data_config_setup")
-def utils_data_config_setup():
+@utils.command(name="data_config")
+def utils_data_config():
     CPAC.GUI.run()
 
 
