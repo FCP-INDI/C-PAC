@@ -3,7 +3,7 @@ from CPAC.GUI.interface.utils.constants import substitution_map
 import pkg_resources as p
 from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     Segmentation, Registration, FunctionalPreProcessing,\
-    SkullStripPreprocessing,SkullStripOptions,AFNI_options,BET_options,\
+    SkullStripProcessing,SkullStripOptions,AFNI_options,BET_options,\
     Scrubbing, AnatToFuncRegistration, FuncToMNIRegistration,\
     VMHC, VMHCSettings, ReHo, ReHoSettings, \
     SCA, SCASettings, \
@@ -95,7 +95,7 @@ class Mybook(wx.Treebook):
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
         
-        page23 = SkullStripPreprocessing(self)
+        page23 = SkullStripProcessing(self)
         page24 = SkullStripOptions(self)
         page25 = AFNI_options(self)
         page26 = BET_options(self)
