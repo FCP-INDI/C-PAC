@@ -13,7 +13,8 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
     TimeSeries, EPI_DistCorr, ROITimeseries, \
-    GroupAnalysis, GPASettings, TimeSeriesOptions
+    GroupAnalysis, GPASettings, TimeSeriesOptions, \
+    BASCSettings
 
 
 ID_SUBMIT = 6
@@ -114,6 +115,7 @@ class Mybook(wx.Treebook):
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
+        page47 = BASCSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -127,7 +129,8 @@ class Mybook(wx.Treebook):
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
         self.AddSubPage(page10, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page11,"Functional to Anatomical Registration",
+                        wx.ID_ANY)
         self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page13,"Nuisance", wx.ID_ANY)
@@ -159,6 +162,8 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
         self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
+        self.AddSubPage(page47, "Bootstrap Analysis of Stable Clusters ",
+                        wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)

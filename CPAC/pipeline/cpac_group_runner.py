@@ -114,7 +114,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
 
     for resource_name in resource_list:
 
-        glob_string = os.path.join(pipeline_output_folder, "*", \
+        glob_string = os.path.join(pipeline_output_folder, "*",
                                        resource_name, "*", "*")
 
         # get all glob strings that result in a list of paths where every path
@@ -346,13 +346,13 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     return output_df_dict
 
 
-def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
+def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                        get_motion, get_raw_score):
 
     # probably won't have a session list due to subject ID format!
 
     nifti_globs = gather_nifti_globs(pipeline_folder, resource_list)
-    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder, \
+    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder,
                            get_motion, get_raw_score)
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
@@ -881,6 +881,105 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
                                    strat_info, series)] = newer_pheno_df
 
     return analysis_dict
+
+
+def run_basc_group(pipeline_dir, roi_file, num_ts_bootstraps,
+                   num_ds_bootstraps, num_clusters, affinity_thresh, proc,
+                   memory, inclusion=None):
+
+    import os
+    from CPAC.basc.basc import create_basc
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    inclusion_list = None
+    if inclusion:
+        inclusion_list = load_text_file(inclusion, "BASC participant "
+                                                   "inclusion list")
+
+    # create encompassing output dataframe dictionary
+    #     note, it is still limited to the lowest common denominator of all
+    #     group model choices- it does not pull in the entire output directory
+    # - there will be a dataframe for each combination of output measure
+    #   type and preprocessing strategy
+    # - each dataframe will contain output filepaths and their associated
+    #   information, and each dataframe will include ALL SERIES/SCANS
+    output_df_dct = gather_outputs(pipeline_dir,
+                                   ["functional_to_standard",
+                                    "functional_mni"],
+                                   inclusion_list, False, False)
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        for df_scan in df_dct.keys():
+            func_paths = list(df_dct[df_scan]["Filepath"])
+
+            # TODO: nuisance strategy delineation!!!
+            basc_wf = create_basc([proc, memory],
+                                  name="BASC_{0}".format(df_scan))
+            basc_wf.inputs.inputspec.subjects = func_paths
+            basc_wf.inputs.inputspec.roi = roi_file
+            basc_wf.inputs.inputspec.timeseries_bootstraps = num_ts_bootstraps
+            basc_wf.inputs.inputspec.dataset_bootstraps = num_ds_bootstraps
+            basc_wf.inputs.inputspec.n_clusters = num_clusters
+            basc_wf.inputs.inputspec.affinity_threshold = affinity_thresh
+
+            basc_wf.run()
+
+
+def run_basc(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    basc_roi = pipeconfig_dct["basc_roi_file"]
+    num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
+    num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
+    num_clusters = pipeconfig_dct["basc_clusters"]
+    affinity_thresh = pipeconfig_dct["basc_affinity_threshold"]
+    basc_proc = pipeconfig_dct["basc_proc"]
+    basc_memory = pipeconfig_dct["basc_memory"]
+    basc_inclusion = pipeconfig_dct["basc_inclusion"]
+    basc_pipeline = pipeconfig_dct["basc_pipeline"]
+
+    if "None" in basc_inclusion or "none" in basc_inclusion:
+        basc_inclusion = None
+
+    if "None" in basc_pipeline or "none" in basc_pipeline:
+        basc_pipeline = None
+
+    pipeline_dirs = []
+    if not basc_pipeline:
+        for dirname in os.listdir(output_dir):
+            if "pipeline_" in dirname:
+                pipeline_dirs.append(os.path.join(output_dir, dirname))
+    else:
+        for pipeline_name in basc_pipeline:
+            pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
+
+    for pipeline in pipeline_dirs:
+        run_basc_group(pipeline, basc_roi, num_ts_bootstraps,
+                       num_ds_bootstraps, num_clusters, affinity_thresh,
+                       basc_proc, basc_memory, basc_inclusion)
 
 
 def run(config_file, pipeline_output_folder):

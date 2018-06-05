@@ -5,33 +5,23 @@ from ..utils.constants import control, dtype
 from ..utils.validator import CharValidator
 import pkg_resources as p
 
+
 class GroupAnalysis(wx.html.HtmlWindow):
-    def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
-        wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
+    def __init__(self, parent, counter=0):
+        wx.html.HtmlWindow.__init__(self, parent,
+                                    style=wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
-        
         self.counter = counter
-        
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/group_analysis.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/group_analysis.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/group_analysis.html')
-#            else:
-#                self.LoadFile('html/group_analysis.html')
-#        except:
-#            self.LoadFile('html/group_analysis.html')
-#            
-            
+        self.LoadFile(p.resource_filename('CPAC',
+                                          'GUI/resources/html/group_analysis.html'))
+
     def get_counter(self):
         return self.counter
     
     
 class GPASettings(wx.ScrolledWindow):
     
-    def __init__(self, parent, counter = 0):
+    def __init__(self, parent, counter=0):
         wx.ScrolledWindow.__init__(self, parent)
                 
         self.counter = counter
@@ -50,7 +40,8 @@ class GPASettings(wx.ScrolledWindow):
                       name = 'modelConfigs',
                       type = dtype.LSTR,
                       values = "",
-                      comment="Use the + to add FSL model configuration to be run.",
+                      comment="Use the + to add FSL model configuration to "
+                              "be run.",
                       size = (400,100),
                       combo_type = 3)
                         
@@ -62,90 +53,144 @@ class GPASettings(wx.ScrolledWindow):
         
         
 class BASC(wx.html.HtmlWindow):
-    def __init__(self, parent, counter  = 0):
-        from urllib2 import urlopen
+    def __init__(self, parent, counter=0):
+
         wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         
         self.counter = counter
         
         self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/basc.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/basc.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/basc.html')
-#            else:
-#                self.LoadFile('html/basc.html')
-#        except:
-#            self.LoadFile('html/basc.html')
-            
-            
+
     def get_counter(self):
         return self.counter
     
-    
-    
+
 class BASCSettings(wx.ScrolledWindow):
     
-    def __init__(self, parent, counter = 0):
+    def __init__(self, parent, counter=0):
         wx.ScrolledWindow.__init__(self, parent)
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "Bootstrap Analysis of Stable Clusters (BASC)")
+        self.page = GenericClass(self, "Bootstrap Analysis of Stable "
+                                       "Clusters (BASC)")
         
         self.page.add(label="Run BASC ", 
                       control=control.CHOICE_BOX, 
-                      name='runBASC', 
+                      name='run_basc',
                       type=dtype.LSTR, 
                       comment="Run Bootstrap Analysis of Stable Clusters", 
-                      values=["Off","On"],
-                      wkf_switch = True)
-        
-        self.page.add(label="Mask File ", 
-                     control=control.COMBO_BOX, 
-                     name='bascROIFile', 
-                     type=dtype.STR, 
-                     values = "None",
-                     comment="Full path to a mask file to be used when running BASC. Voxels outside this mask will be excluded from analysis.\n\nIf you do not wish to use a mask, set this field to None.\n\nNote: BASC is very computationally intensive, we strongly recommend you limit your analysis to specific brain areas of interest.")
+                      values=["Off", "On"],
+                      wkf_switch=True)
 
-        self.page.add(label= "Number of Time Series Bootstraps ",
-                 control=control.INT_CTRL, 
-                 name='bascTimeseriesBootstraps', 
-                 type=dtype.NUM, 
-                 comment="Number of bootstraps to apply to individual time series.", 
-                 values=100)
+        self.page.add(label="Maximum RAM Use (GB) ",
+                      control=control.FLOAT_CTRL,
+                      name='basc_memproc',
+                      type=dtype.NUM,
+                      comment="Maximum amount of RAM (in GB) to be used when "
+                              "running BASC.",
+                      values=4)
+
+        self.page.add(label="Participant Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="Full path to a text file listing which "
+                              "participant IDs you want included in the "
+                              "analysis, with one ID on each line.\n\nTip: "
+                              "A sample group-level participant inclusion "
+                              "text file is generated when you first create "
+                              "your data configuration.")
+
+        self.page.add(label="Pipeline Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple pipeline output "
+                              "directories, and you only want to run BASC on "
+                              "one or some of them, you can list them here - "
+                              "pipeline names separated by commas (check "
+                              "the output directory of your individual-level "
+                              "analysis run to see which pipeline "
+                              "directories are available).\n\nIf nothing is "
+                              "listed, all available pipelines will be run.")
+
+        self.page.add(label="Analysis to run ",
+                      control=control.CHOICE_BOX,
+                      name='basc_type',
+                      type=dtype.LSTR,
+                      comment="Run Bootstrap Analysis of Stable Clusters",
+                      values=["Group-Level Stability",
+                              "Individualized Group Level",
+                              "Timeseries Clustering",
+                              "Cross-Clustering"])
+
+        self.page.add(label="ROI File ",
+                      control=control.COMBO_BOX,
+                      name='basc_roi_file',
+                      type=dtype.STR,
+                      values="None",
+                      comment="Full path to a mask file to be used when "
+                              "running BASC. Voxels outside this mask will "
+                              "be excluded from analysis.\n\nIf you do not "
+                              "wish to use a mask, set this field to None."
+                              "\n\nNote: BASC is very computationally "
+                              "intensive, we strongly recommend you limit "
+                              "your analysis to specific brain areas of "
+                              "interest.")
+
+        self.page.add(label="Number of Time Series Bootstraps ",
+                      control=control.INT_CTRL,
+                      name='basc_timeseries_boostraps',
+                      type=dtype.NUM,
+                      comment="Number of bootstraps to apply to individual "
+                              "time series.",
+                      values=100)
             
-        self.page.add(label= "Number of Dataset Bootstraps ",
-                 control=control.INT_CTRL, 
-                 name='bascDatasetBootstraps', 
-                 type=dtype.NUM, 
-                 comment="Number of bootstraps to apply to the original dataset.", 
-                 values=100)
+        self.page.add(label="Number of Dataset Bootstraps ",
+                      control=control.INT_CTRL,
+                      name='basc_dataset_bootstraps',
+                      type=dtype.NUM,
+                      comment="Number of bootstraps to apply to the original "
+                              "dataset.",
+                      values=100)
         
         self.page.add(label="Correlation Threshold File ", 
-                     control=control.COMBO_BOX, 
-                     name='bascAffinityThresholdFile', 
-                     type=dtype.STR, 
-                     values = "",
-                     comment="Path to a text file containing correlation threshold for each subject. These thresholds will be applied to the correlation matrix before clustering.\n\nThis file should contain one value per line, with each line corresponding to the subject on the same line in the group analysis subject list file.\n\nIn most cases, the same threshold can be used for all subjects. Different thresholds are useful when subjects have time series of different lengths.")
+                      control=control.COMBO_BOX,
+                      name='basc_affinity_threshold',
+                      type=dtype.STR,
+                      values="",
+                      comment="Path to a text file containing correlation "
+                              "threshold for each subject. These thresholds "
+                              "will be applied to the correlation matrix "
+                              "before clustering.\n\nThis file should "
+                              "contain one value per line, with each line "
+                              "corresponding to the subject on the same line "
+                              "in the group analysis subject list file.\n\n"
+                              "In most cases, the same threshold can be used "
+                              "for all subjects. Different thresholds are "
+                              "useful when subjects have time series of "
+                              "different lengths.")
         
-        self.page.add(label= "Number of Clusters ",
-                 control=control.INT_CTRL, 
-                 name='bascClusters', 
-                 type=dtype.NUM, 
-                 comment="Number of clusters to create during clustering at both the individual and group levels.", 
-                 values=6)
-        
-        
-        
+        self.page.add(label="Number of Clusters ",
+                      control=control.INT_CTRL,
+                      name='basc_clusters',
+                      type=dtype.NUM,
+                      comment="Number of clusters to create during "
+                              "clustering at both the individual and group "
+                              "levels.",
+                      values=6)
+
         self.page.set_sizer()
         parent.get_page_list().append(self)
         
     def get_counter(self):
             return self.counter
-        
+
+
 class CWAS(wx.html.HtmlWindow):
     def __init__(self, parent, counter  = 0):
         from urllib2 import urlopen
