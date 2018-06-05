@@ -112,7 +112,24 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False):
     
             anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),name='anat_skullstrip')
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
-            anat_skullstrip.inputs.args = '%(shrink_fac)s %(var_shrink_fac)s %(shrink_fac_bot_lim)s %(avoid_vent)s %(niter)s %(pushout)s %(touchup)s %(fill_hole)s %(NN_smooth)s %(avoid_eyes)s %(use_edge)s %(exp_frac)s %(smooth_final)s %(push_to_edge)s %(use_skull)s %(perc_init)s %(max_inter_iter)s %(blur_fwhm)s %(fac)s' % ({'shrink_fac': "inputNode_AFNI[shrink_factor]", 'var_shrink_fac': "inputNode_AFNI[var_shrink_fac]", 'shrink_fac_bot_lim': "inputNode_AFNI[shrink_factor_bot_lim]", 'avoid_vent' : "inputNode_AFNI[avoid_vent]", 'niter' : "inputNode_AFNI[niter]",'pushout': "inputNode_AFNI[pushout]", 'touchup': "inputNode_AFNI[touchup]", 'fill_hole' : "inputNode_AFNI[fill_hole]", 'avoid_eyes' : "inputNode_AFNI[avoid_eyes]", 'use_edge': "inputNode_AFNI[use_edges]", 'NN_smooth': "inputNode_AFNI[NN_smooth]",'exp_frac': "inputNode_AFNI[exp_frac]", 'smooth_final':"inputNode_AFNI[smooth_final]", 'push_to_edge' : "inputNode_AFNI[push_to_edge]",'use_skull':"inputNode_AFNI[use_skull]", 'perc_init':"inputNode_AFNI[perc_init]", 'max_inter_iter': "inputNode_AFNI[max_inter_init]", 'blur_fwhm': "inputNode_AFNI[blur_fwhm]", 'fac' : "inputNode_AFNI[fac]"})
+            anat_skullstrip.inputs.args.shrink_fac= 'shrink_factor'
+            anat_skullstrip.inputs.args.var_shrink_fac= 'var_shrink_fac'
+            anat_skullstrip.inputs.args.shrink_factor_bot_lim='shrink_fac_bot_lim'
+            anat_skullstrip.inputs.args.avoid_vent='avoid_vent'
+            anat_skullstrip.inputs.args.niter='niter'
+            anat_skullstrip.inputs.args.pushout='pushout'
+            anat_skullstrip.inputs.args.touchup='touchup'
+            anat_skullstrip.inputs.args.fill_hole = 'fill_hole'
+            anat_skullstrip.inputs.args.avoid_eyes='avoid_eyes'
+            anat_skullstrip.inputs.args.use_edge = 'use_edges'
+            anat_skullstrip.inputs.args.exp_frac='exp_frac'
+            anat_skullstrip.inputs.args.smooth_final = 'smooth_final'
+            anat_skullstrip.inputs.args.push_to_edge = 'push_to_edge'
+            anat_skullstrip.inputs.args.use_skull='use_skull'
+            anat_skullstrip.inputs.args.perc_init='perc_init'
+            anat_skullstrip.inputs.args.max_inter_init = 'max_inter_iter'
+            anat_skullstrip.inputs.args.blur_fwhm = 'blur_fwhm'
+            anat_skullstrip.inputs.args.fac = 'fac'
         else:
             anat_skullstrip = pe.Node(interface=fsl.BET(),name = 'anat_skullstrip')
 
@@ -130,11 +147,8 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False):
     preproc.connect(anat_deoblique,'out_file',anat_reorient,'in_file')
     if not already_skullstripped:
         if use_AFNI == True:
-            
-            preproc.connect(anat_reorient, 'out_file',anat_skullstrip, 'in_file')
-            preproc.connect(anat_skullstrip, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
-        
-        
+          preproc.connect(anat_reorient, 'out_file',anat_skullstrip, 'in_file')
+          preproc.connect(anat_skullstrip, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
         else:
             preproc.connect(anat_reorient,'out_file',anat_skullstrip,'in_file')
             preproc.connect(inputNode_BET,'center',anat_skullstrip,'center')
