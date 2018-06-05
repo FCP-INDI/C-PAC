@@ -30,7 +30,8 @@ def individual():
 
 
 @main.group()
-def participant():
+@click.pass_context
+def participant(ctx):
     ctx.forward(individual)
 
 
