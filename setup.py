@@ -109,10 +109,10 @@ def main(**extra_args):
           cmdclass=cmdclass,
           scripts=glob('scripts/*'),
           entry_points={
-            'console_scripts': [
-                'cpac_extract_parameters=CPAC.utils.extract_parameters:main'
-                ]
-            },
+              'console_scripts': [
+                  'cpac = CPAC.__main__:main'
+              ]
+          },
           package_data = {'CPAC': ['test_data/*']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
