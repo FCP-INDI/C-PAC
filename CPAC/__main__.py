@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import CPAC
 import click
 
 
@@ -11,6 +10,7 @@ def main():
 
 @main.command()
 def gui():
+    import CPAC.GUI
     CPAC.GUI.run()
 
 
@@ -21,8 +21,8 @@ def utils():
 
 @utils.command(name="data_config")
 def utils_data_config():
-    CPAC.GUI.run()
-
+    pass
+    
 
 @main.group()
 def individual():
