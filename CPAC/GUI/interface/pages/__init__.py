@@ -26,5 +26,5 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'SkullStripProcessing','SkullStripOptions','AFNI_options','BET_optins',\
+           'SkullStripProcessing','SkullStripOptions','AFNI_options','BET_options',\
            'GroupAnalysis', 'GPASettings', 'EPI_DistCorr']
