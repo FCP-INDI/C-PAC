@@ -310,6 +310,8 @@ class MainFrame(wx.Frame):
 
                             if '3dAutoMask' in val and 'BET' in val:
                                 val = [12]
+                            if 'AFNI' in val and 'BET' in val:
+                                val = [12]
                             
                             value = [s_map.get(item)
                                          for item in val if s_map.get(item) != None]
