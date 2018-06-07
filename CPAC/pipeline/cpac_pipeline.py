@@ -5027,8 +5027,11 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             s3_str = 's3://'
             try:
                 # Get path to creds file
-                creds_path = str(c.awsOutputBucketCredentials)
-                creds_path = os.path.abspath(creds_path)
+                creds_path = None
+                if c.awsOutputBucketCredentials:
+                    creds_path = str(c.awsOutputBucketCredentials)
+                    creds_path = os.path.abspath(creds_path)
+                    
                 # Test for s3 write access
                 s3_write_access = \
                     aws_utils.test_bucket_access(creds_path,
