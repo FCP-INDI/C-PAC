@@ -40,7 +40,7 @@ def run_basc_workflow(subject_file_list, roi_mask_file, dataset_bootstraps, time
 
     import os
     import glob
-    import utils
+    import CPAC.basc.utils as utils
 
     import nipype.interfaces.io as nio
     import nipype.pipeline.engine as pe

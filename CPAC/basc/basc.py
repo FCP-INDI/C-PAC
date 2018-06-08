@@ -38,7 +38,7 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
     import os
     import numpy as np
     import nibabel as nb
-    import utils
+    import CPAC.basc.utils as utils
     import pandas as pd
     import sklearn as sk
     from sklearn import preprocessing
@@ -46,8 +46,8 @@ def nifti_individual_stability(subject_file, roi_mask_file, n_bootstraps, n_clus
 
     print( 'Calculating individual stability matrix of:', subject_file)
 
-
     data = nb.load(subject_file).get_data().astype('float32')
+
     #print( 'Data Loaded')
     roi_mask_file_nb = nb.load(roi_mask_file)
     roi_mask_nparray = nb.load(roi_mask_file).get_data().astype('float32').astype('bool')
@@ -201,7 +201,7 @@ def map_group_stability(indiv_stability_list, n_clusters, bootstrap_list, roi_ma
     import os
     import numpy as np
     import nibabel as nb
-    import utils
+    import CPAC.basc.utils as utils
     
  
     print( 'Calculating group stability matrix for', len(indiv_stability_list), 'subjects.' )
@@ -264,7 +264,7 @@ def join_group_stability(indiv_stability_list, group_stability_list, n_bootstrap
     import os
     import numpy as np
     import nibabel as nb
-    import utils
+    import CPAC.basc.utils as utils
     
     print("starting join group stability")
     group_stability_set = np.asarray([np.load(G_file) for G_file in group_stability_list])
@@ -336,7 +336,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
     ##*ACTION - CLEAN UP COMMENTED OUT CODE
     import os
     import numpy as np
-    import utils
+    import CPAC.basc.utils as utils
     import basc
     print('starting igcm')
     #import pdb; pdb.set_trace()
@@ -538,7 +538,7 @@ def create_group_cluster_maps(gsm_file,clusters_G_file,roi_mask_file):
     
     import numpy as np
     import basc
-    import utils
+    import CPAC.basc.utils as utils
     
     group_stability_mat = np.asarray([np.load(gsm_file)])
     group_stability_set = group_stability_mat[0]
@@ -587,7 +587,7 @@ def ism_nifti(roi_mask_file, n_clusters, out_dir):
     Creates NIFTI files for all the ism cluster stability maps
     
     """
-    import utils
+    import CPAC.basc.utils as utils
     import basc
     import numpy as np
     import os
@@ -686,10 +686,8 @@ def gsm_nifti(roi_mask_file, n_clusters, out_dir):
     Creates NIFTI files for all the gsm cluster stability maps
     
     """
-    
-    
-    
-    import utils
+
+    import CPAC.basc.utils as utils
     import basc
     import numpy as np
     import os

@@ -883,14 +883,129 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
-def run_basc_group(pipeline_dir, roi_file, num_ts_bootstraps,
-                   num_ds_bootstraps, num_clusters, affinity_thresh, proc,
-                   memory, inclusion=None):
+def find_other_res_template(template_path, new_resolution):
+    """Find the same template/standard file in another resolution, if it
+    exists.
+
+    template_path: file path to the template NIfTI file
+    new_resolution: (int) the resolution of the template file you need
+
+    NOTE: Makes an assumption regarding the filename format of the files.
+    """
+
+    # TODO: this is assuming there is a mm resolution in the file path - not
+    # TODO: robust to varying templates - look into alternatives
+
+    ref_file = None
+
+    if "mm" in template_path:
+        template_parts = template_path.rsplit('mm', 1)
+
+        print template_parts
+
+        if len(template_parts) < 2:
+            # TODO: better message
+            raise Exception('no resolution in the file path!')
+
+        template_parts[0] = str(new_resolution).join(template_parts[0].rsplit(template_parts[0][-1], 1))
+
+        print template_parts
+
+        ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
+
+    elif "${resolution_for_func_preproc}" in template_path:
+        ref_file = template_path.replace("${resolution_for_func_preproc}",
+                                         "{0}mm".format(new_resolution))
+
+    if ref_file:
+        print("\n{0}mm version of the template found:\n{1}"
+              "\n\n".format(new_resolution, ref_file))
+
+    return ref_file
+
+
+def check_cpac_output_image(image_path, reference_path, out_dir=None,
+                            roi_file=False):
 
     import os
-    from CPAC.basc.basc import create_basc
+    import nibabel as nb
+
+    if not out_dir:
+        out_dir = os.getcwd()
+
+    # we want to preserve the original directory structure of the input image,
+    # but place that sub-tree into the BASC working directory (in this case,
+    # 'out_dir')
+    try:
+        orig_dir = "pipeline_{0}".format(image_path.split('pipeline_')[1])
+    except IndexError:
+        if roi_file:
+            orig_dir = os.path.join("ROI_files", os.path.basename(image_path))
+        else:
+            raise IndexError(image_path)
+    out_path = os.path.join(out_dir, 'resampled_input_images', orig_dir)
+
+    # if this was already done
+    if os.path.isfile(out_path):
+        image_path = out_path
+
+    if not os.path.isdir(out_path.replace(os.path.basename(out_path), "")):
+        try:
+            os.makedirs(out_path.replace(os.path.basename(out_path), ""))
+        except:
+            # TODO: better message
+            raise Exception("couldn't make the dirs!")
+
+    resample = False
+
+    image_nb = nb.load(image_path)
+    ref_nb = nb.load(reference_path)
+
+    # check: do we even need to resample?
+    if int(image_nb.header.get_zooms()[0]) != int(ref_nb.header.get_zooms()[0]):
+        print("Input image resolution is {0}mm\nTemplate image resolution "
+              "is {1}mm\n".format(image_nb.header.get_zooms()[0],
+                                  ref_nb.header.get_zooms()[0]))
+        resample = True
+    if image_nb.shape != ref_nb.shape:
+        print("Input image shape is {0}\nTemplate image shape is "
+              "{1}\n".format(image_nb.shape, ref_nb.shape))
+        resample = True
+
+    if resample:
+        print("Resampling input image:\n{0}\n\n..to this reference:\n{1}"
+              "\n\n..and writing this file here:\n{2}"
+              "\n".format(image_path, reference_path, out_path))
+        cmd = ['flirt', '-in', image_path, '-ref', reference_path, '-out',
+               out_path]
+        return cmd
+    else:
+        return resample
+
+
+def resample_cpac_output_image(cmd_args):
+
+    import subprocess
+
+    print("Running:\n{0}\n\n".format(" ".join(cmd_args)))
+    retcode = subprocess.check_output(cmd_args)
+
+    return cmd_args[-1]
+
+
+def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, proc, memory, inclusion=None,
+                   verbose=False):
+
+    import os
+    import numpy as np
+    from multiprocessing import pool
+    from CPAC.basc.basc_workflow_runner import run_basc_workflow
 
     pipeline_dir = os.path.abspath(pipeline_dir)
+    working_dir = os.path.join(working_dir, 'group_analysis', 'BASC',
+                               os.path.basename(pipeline_dir))
 
     inclusion_list = None
     if inclusion:
@@ -927,17 +1042,78 @@ def run_basc_group(pipeline_dir, roi_file, num_ts_bootstraps,
         for df_scan in df_dct.keys():
             func_paths = list(df_dct[df_scan]["Filepath"])
 
+            # affinity threshold is an iterable, and must match the number of
+            # functional file paths for the MapNodes
+            affinity_thresh = [affinity_thresh] * len(func_paths)
+
+            # resampling if necessary
+            #     each run should take the file, resample it and write it
+            #     into the BASC sub-dir of the working directory
+            #         should end up with a new "func_paths" list with all of
+            #         these file paths in it
+            ref_file_iterable = [ref_file] * len(func_paths)
+            working_dir_iterable = [working_dir] * len(func_paths)
+            func_cmd_args_list = map(check_cpac_output_image, func_paths,
+                                     ref_file_iterable, working_dir_iterable)
+            roi_cmd_args = check_cpac_output_image(roi_file, ref_file,
+                                                   out_dir=working_dir,
+                                                   roi_file=True)
+
+            # resample them now
+            if func_cmd_args_list[0]:
+                p = pool.Pool(int(proc))
+                func_paths = p.map(resample_cpac_output_image,
+                                   func_cmd_args_list)
+
+            # and the ROI file, too
+            if roi_cmd_args:
+                roi_file = resample_cpac_output_image(roi_cmd_args)
+
+            if verbose:
+                info = "Pipeline directory: {0}\n" \
+                       "BASC workflow name: {1}\n" \
+                       "Number of functional paths: {2}\n" \
+                       "ROI file: {3}\n" \
+                       "Number of timeseries bootstraps: {4}\n" \
+                       "Number of dataset bootstraps: {5}\n" \
+                       "Number of clusters: {6}\n" \
+                       "Affinity threshold: {7}\n" \
+                       "\n".format(pipeline_dir, df_scan, len(func_paths),
+                                   roi_file, num_ts_bootstraps,
+                                   num_ds_bootstraps, num_clusters,
+                                   affinity_thresh)
+                print(info)
+
             # TODO: nuisance strategy delineation!!!
+            '''
             basc_wf = create_basc([proc, memory],
                                   name="BASC_{0}".format(df_scan))
-            basc_wf.inputs.inputspec.subjects = func_paths
-            basc_wf.inputs.inputspec.roi = roi_file
+            basc_wf.inputs.inputspec.subject_file_list = func_paths
+            basc_wf.inputs.inputspec.roi_mask_file = roi_file
             basc_wf.inputs.inputspec.timeseries_bootstraps = num_ts_bootstraps
             basc_wf.inputs.inputspec.dataset_bootstraps = num_ds_bootstraps
             basc_wf.inputs.inputspec.n_clusters = num_clusters
+            basc_wf.inputs.inputspec.similarity_metric = "correlation"
             basc_wf.inputs.inputspec.affinity_threshold = affinity_thresh
 
             basc_wf.run()
+            '''
+
+            run_basc_workflow(func_paths,
+                              roi_file,
+                              num_ds_bootstraps,
+                              num_ts_bootstraps,
+                              num_clusters,
+                              output_size=800,
+                              bootstrap_list=list(np.ones(num_ds_bootstraps, dtype=int)*num_ds_bootstraps),
+                              proc_mem=[proc, memory],
+                              similarity_metric="correlation",
+                              cross_cluster=False,
+                              roi2_mask_file=None,
+                              blocklength=1,
+                              affinity_threshold=affinity_thresh,
+                              out_dir=pipeline_dir,
+                              run=True)
 
 
 def run_basc(pipeline_config):
@@ -951,11 +1127,14 @@ def run_basc(pipeline_config):
         pipeconfig_dct = yaml.load(f)
 
     output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+    func_template = pipeconfig_dct["template_brain_only_for_func"]
     basc_roi = pipeconfig_dct["basc_roi_file"]
     num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
     num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
     num_clusters = pipeconfig_dct["basc_clusters"]
     affinity_thresh = pipeconfig_dct["basc_affinity_threshold"]
+    basc_resolution = pipeconfig_dct["basc_resolution"]
     basc_proc = pipeconfig_dct["basc_proc"]
     basc_memory = pipeconfig_dct["basc_memory"]
     basc_inclusion = pipeconfig_dct["basc_inclusion"]
@@ -967,6 +1146,20 @@ def run_basc(pipeline_config):
     if "None" in basc_pipeline or "none" in basc_pipeline:
         basc_pipeline = None
 
+    # we have the functional template only for potential resampling - to make
+    # sure everything is the same resolution and shape (as what the user has
+    # selected)
+    if "mm" in basc_resolution:
+        basc_resolution = basc_resolution.replace('mm', '')
+
+    # get the functional template, but in the specified resolution for BASC
+    ref_file = find_other_res_template(func_template, basc_resolution)
+
+    # did that actually work?
+    if not os.path.isfile(ref_file):
+        # TODO: better message
+        raise Exception('not a thing')
+
     pipeline_dirs = []
     if not basc_pipeline:
         for dirname in os.listdir(output_dir):
@@ -977,9 +1170,10 @@ def run_basc(pipeline_config):
             pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
     for pipeline in pipeline_dirs:
-        run_basc_group(pipeline, basc_roi, num_ts_bootstraps,
-                       num_ds_bootstraps, num_clusters, affinity_thresh,
-                       basc_proc, basc_memory, basc_inclusion)
+        run_basc_group(pipeline, working_dir, basc_roi, ref_file,
+                       num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                       affinity_thresh, basc_proc, basc_memory,
+                       inclusion=basc_inclusion)
 
 
 def run(config_file, pipeline_output_folder):
@@ -1039,7 +1233,7 @@ def run(config_file, pipeline_output_folder):
         """
         for p in procss:
             p.start()
-            print >>pid,p.pid
+            print >>pid, p.pid
                 
     else:
         """
@@ -1054,7 +1248,7 @@ def run(config_file, pipeline_output_folder):
                 idc = idx
                 for p in procss[idc: idc + c.numGPAModelsAtOnce]:
                     p.start()
-                    print >>pid,p.pid
+                    print >>pid, p.pid
                     jobQueue.append(p)
                     idx += 1
             else:

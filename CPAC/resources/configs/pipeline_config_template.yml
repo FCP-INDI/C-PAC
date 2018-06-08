@@ -558,6 +558,9 @@ basc_clusters: 6
 basc_affinity_threshold: 0.5
 
 
+basc_resolution: 4mm
+
+
 basc_inclusion: None
 
 

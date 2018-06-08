@@ -19,7 +19,7 @@ Created on Fri Oct 27 18:12:07 2017
 
 
 def ism_nifti(roi_mask_file, n_clusters, out_dir):
-    import utils
+    import CPAC.basc.utils as utils
     import basc
     import numpy as np
     import os
