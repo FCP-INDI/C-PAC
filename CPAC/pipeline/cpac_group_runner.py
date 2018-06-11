@@ -821,10 +821,9 @@ def run_mdmr(pipeline_config):
     if "None" in mdmr_inclusion or "none" in mdmr_inclusion:
         mdmr_inclusion = None
 
-
     run_mdmr_group(pipeline_dir, working_dir, roi_file,
                    regressor_file, columns, permutations,
-                   parallel_nodes, inclusion=mdmr_inclusion):
+                   parallel_nodes, inclusion=mdmr_inclusion)
 
 
 def run(config_file, pipeline_output_folder):
