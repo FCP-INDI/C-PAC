@@ -93,6 +93,8 @@ def calc_mdmrs(D, regressor, cols, permutations):
     
     F_set = np.zeros(voxels)
     p_set = np.zeros(voxels)
+
+    cols = np.array(cols, dtype=np.int32)
     
     for i in range(voxels):
         p_set[i], F_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, permutations)
@@ -116,14 +118,14 @@ def calc_subdists(subjects_data, voxel_range):
     return D
 
 
-def calc_cwas(subjects_data, regressor, cols, permutations, voxel_range):
+def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, voxel_range):
     D            = calc_subdists(subjects_data, voxel_range)
-    F_set, p_set = calc_mdmrs(D, regressor, cols, permutations)
+    F_set, p_set = calc_mdmrs(D, regressor, regressor_selected_cols, permutations)
     return F_set, p_set
 
 
-def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples, 
-               voxel_range):
+def nifti_cwas(subjects_file_list, mask_file, regressor,
+               columns, permutations, voxel_range):
     """
     Performs CWAS for a group of subjects
     
@@ -135,12 +137,12 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
         Path to a mask file in nifti format
     regressor : ndarray
         Vector of shape (`S`) or (`S`, `1`), `S` subjects
-    cols : list
+    columns : list
         todo
-    f_samples : integer
+    permutations : integer
         Number of pseudo f values to sample using a random permutation test
-    voxel_range : tuple
-        (start, end) tuple specify the range of voxels (inside the mask) to perform cwas on.
+    voxel_range : ndarray
+        Indexes from range of voxels (inside the mask) to perform cwas on.
         Index ordering is based on the np.where(mask) command
     
     Returns
@@ -163,7 +165,10 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     regressor_data = pd.read_table(regressor, sep=None, engine="python")
 
     regressor_cols = list(regressor_data.columns)
-    regressor_selected_cols = np.array([i for i, c in enumerate(regressor_cols) if c in cols])
+    regressor_selected_cols = [i for i, c in enumerate(regressor_cols) if c in columns]
+    if len(regressor_selected_cols) == 0:
+        regressor_selected_cols = [i for i, c in enumerate(regressor_cols)]
+    regressor_selected_cols = np.array(regressor_selected_cols)
     regressor = regressor_data.as_matrix().astype(np.float64)
 
     if len(regressor.shape) == 1:
@@ -183,7 +188,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor, cols, f_samples,
     ]
     
     F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols, \
-                             f_samples, voxel_range)
+                             permutations, voxel_range)
     
     cwd = os.getcwd()
     F_file = os.path.join(cwd, 'pseudo_F.npy')
@@ -216,18 +221,16 @@ def merge_cwas_batches(cwas_batches, mask_file):
         return volume
     
     F_files, p_files, voxel_range = zip(*cwas_batches)
-    end_voxel = np.array(voxel_range).max()
-    
+    voxels = np.array(np.concatenate(voxel_range))
+
     nii = nb.load(mask_file)
     mask = nii.get_data().astype('bool')
     
-    F_set = np.zeros(end_voxel)
-    p_set = np.zeros(end_voxel)
+    F_set = np.zeros_like(voxels)
+    p_set = np.zeros_like(voxels)
     for F_file, p_file, voxel_range in cwas_batches:
-        F_batch = np.load(F_file)
-        p_batch = np.load(p_file)
-        F_set[voxel_range[0]:voxel_range[1]] = F_batch
-        p_set[voxel_range[0]:voxel_range[1]] = p_batch
+        F_set[voxel_range] = np.load(F_file)
+        p_set[voxel_range] = np.load(p_file)
     
     F_vol = volumize(mask, F_set)
     p_vol = volumize(mask, p_set)
