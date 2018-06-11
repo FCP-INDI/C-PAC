@@ -113,7 +113,8 @@ def main(**extra_args):
                   'cpac = CPAC.__main__:main'
               ]
           },
-          package_data = {'CPAC': ['test_data/*']},
+          package_data={'CPAC': ['test_data/*',
+                                 'test/templates/*']},
           #script_args = ['build_ext', '--inplace'], 
           **extra_args)
 
