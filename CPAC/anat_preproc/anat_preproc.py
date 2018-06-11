@@ -110,7 +110,6 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
     if not already_skullstripped:
         if use_AFNI == True:
             anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),name='anat_skullstrip')
-            
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
             anat_skullstrip.inputs.args.shrink_fac= 'shrink_factor'
             anat_skullstrip.inputs.args.var_shrink_fac= 'var_shrink_fac'
@@ -153,6 +152,12 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
             preproc.connect(anat_skullstrip, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
             
         else:
+           # def mergexyz(x,y,z):
+           #     center = []
+           #     center.append(x)
+           #     center.append(y)
+           #     center.append(z)
+           #     return center
             preproc.connect(anat_reorient,'out_file',anat_skullstrip,'in_file')
             preproc.connect(inputNode_BET,'center',anat_skullstrip,'center')
             preproc.connect(inputNode_AFNI,'shrink_factor', anat_skullstrip, 'frac')
