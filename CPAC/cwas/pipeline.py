@@ -78,7 +78,7 @@ def create_cwas(name='cwas'):
                                                        'subjects',
                                                        'regressor', 
                                                        'cols', 
-                                                       'f_samples', 
+                                                       'permutations', 
                                                        'parallel_nodes']),
                         name='inputspec')
                         
@@ -98,7 +98,7 @@ def create_cwas(name='cwas'):
                                                   'mask_file',
                                                   'regressor', 
                                                   'cols', 
-                                                  'f_samples',
+                                                  'permutations',
                                                   'voxel_range'],
                                      output_names=['result_batch'],
                                      function=nifti_cwas),
@@ -137,8 +137,8 @@ def create_cwas(name='cwas'):
                  ncwas, 'subjects_file_list')
     cwas.connect(inputspec, 'regressor',
                  ncwas, 'regressor')
-    cwas.connect(inputspec, 'f_samples',
-                 ncwas, 'f_samples')
+    cwas.connect(inputspec, 'permutations',
+                 ncwas, 'permutations')
     cwas.connect(inputspec, 'cols',
                  ncwas, 'cols')
                  

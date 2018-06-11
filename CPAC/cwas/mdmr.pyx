@@ -70,7 +70,7 @@ def gen_H2_perms(X, columns, permutation_indexes):
     H2_permutations = np.zeros((observations ** 2, permutations))
     for i in range(permutations):
         perm_X = X[permutation_indexes[i, :]]
-        cols_X = perm_X[:, np.array(columns)]
+        cols_X = perm_X[:, columns]
         H = hatify(cols_X)
         other_columns = [i for i in range(variables) if i not in columns]
         H2 = H - hatify(X[:, other_columns])
@@ -126,6 +126,7 @@ def mdmr(np.ndarray[DTYPE_t, ndim=2] D,
         raise Exception("# of subjects incompatible between X and D")
     
     X = np.hstack((np.ones((X.shape[0], 1)), X))
+    columns = columns.copy()
     columns += 1
 
     Gs = gower_center_many(D)
