@@ -97,7 +97,7 @@ def calc_mdmrs(D, regressor, cols, permutations):
     cols = np.array(cols, dtype=np.int32)
     
     for i in range(voxels):
-        p_set[i], F_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, permutations)
+        F_set[i], p_set[i] = mdmr(D[i].reshape(subjects ** 2, 1), regressor, cols, permutations)
     
     return F_set, p_set
 

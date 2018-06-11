@@ -77,7 +77,7 @@ def create_cwas(name='cwas'):
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
                                                        'regressor', 
-                                                       'cols', 
+                                                       'columns', 
                                                        'permutations', 
                                                        'parallel_nodes']),
                         name='inputspec')
@@ -97,7 +97,7 @@ def create_cwas(name='cwas'):
     ncwas = pe.MapNode(util.Function(input_names=['subjects_file_list',
                                                   'mask_file',
                                                   'regressor', 
-                                                  'cols', 
+                                                  'columns', 
                                                   'permutations',
                                                   'voxel_range'],
                                      output_names=['result_batch'],
@@ -139,8 +139,8 @@ def create_cwas(name='cwas'):
                  ncwas, 'regressor')
     cwas.connect(inputspec, 'permutations',
                  ncwas, 'permutations')
-    cwas.connect(inputspec, 'cols',
-                 ncwas, 'cols')
+    cwas.connect(inputspec, 'columns',
+                 ncwas, 'columns')
                  
     cwas.connect(ccb, 'batch_list',
                  ncwas, 'voxel_range')
