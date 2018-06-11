@@ -2,6 +2,14 @@
 
 import click
 
+# main
+#     main gui
+# main individual
+# main group
+# main utils
+#     main utils data_config
+
+
 
 @click.group()
 def main():
