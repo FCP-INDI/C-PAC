@@ -747,6 +747,86 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
+def run_mdmr_group(pipeline_dir, working_dir, roi_file,
+                   regressor_file, columns, permutations,
+                   parallel_nodes, inclusion=None, verbose=False):
+
+    import os
+    import numpy as np
+    from multiprocessing import pool
+    from CPAC.cwas.pipeline import create_cwas
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+    working_dir = os.path.join(working_dir, 'group_analysis', 'MDMR',
+                               os.path.basename(pipeline_dir))
+
+    inclusion_list = None
+    if inclusion:
+        inclusion_list = load_text_file(inclusion, "MDMR participant "
+                                                   "inclusion list")
+
+    output_df_dct = gather_outputs(pipeline_dir,
+                                   ["functional_to_standard",
+                                    "functional_mni"],
+                                   inclusion_list, False, False)
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        for df_scan in df_dct.keys():
+            func_paths = list(df_dct[df_scan]["Filepath"])
+
+            mdmr_wf = create_cwas(name="MDMR_{0}".format(df_scan))
+            mdmr_wf.inputs.inputspec.subjects = func_paths
+            mdmr_wf.inputs.inputspec.roi = roi_file
+            mdmr_wf.inputs.inputspec.regressor = regressor_file
+            mdmr_wf.inputs.inputspec.columns = columns
+            mdmr_wf.inputs.inputspec.permutations = permutations
+            mdmr_wf.inputs.inputspec.parallel_nodes = parallel_nodes
+            mdmr_wf.run()
+
+
+def run_mdmr(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+
+    mdmr_roi = pipeconfig_dct["mdmr_roi_file"]
+    regressor_file = pipeconfig_dct["mdmr_regressor_file"]
+    columns = pipeconfig_dct["mdmr_columns"]
+    permutations = pipeconfig_dct["mdmr_permutations"]
+    parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
+    mdmr_inclusion = pipeconfig_dct["mdmr_inclusion"]
+
+    if "None" in mdmr_inclusion or "none" in mdmr_inclusion:
+        mdmr_inclusion = None
+
+
+    run_mdmr_group(pipeline_dir, working_dir, roi_file,
+                   regressor_file, columns, permutations,
+                   parallel_nodes, inclusion=mdmr_inclusion):
+
+
 def run(config_file, pipeline_output_folder):
 
     import os
