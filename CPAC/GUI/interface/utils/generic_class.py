@@ -426,7 +426,8 @@ class Control(wx.Control):
                     if v:                       
                         listbox.Insert(v,0)
                         listbox.Check(0)
-                        self.set_selection(v)  
+                        self.set_selection(v)
+
             elif self.get_type()==6:
 
                 # if the control is a checkbox, handle appropriately
@@ -437,14 +438,8 @@ class Control(wx.Control):
                     val = val.replace("'", "")
                     val = val.split(", ")
 
-                try:
                     self.ctrl.SetCheckedStrings(val)
-                except AssertionError:
-                    err = "\n[!] The derivative name you provided in the " \
-                          "derivative_list field in the group analysis " \
-                          "configuration file does not match any of CPAC's " \
-                          "outputs.\n\nName provided: {0}\n".format(val)
-                    raise Exception(err)
+
                 strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()
                 for s in strings:

@@ -1099,6 +1099,8 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
             basc_wf.run()
             '''
 
+            print('Starting the PyBASC workflow...\n')
+
             run_basc_workflow(func_paths,
                               roi_file,
                               num_ds_bootstraps,
@@ -1145,6 +1147,10 @@ def run_basc(pipeline_config):
 
     if "None" in basc_pipeline or "none" in basc_pipeline:
         basc_pipeline = None
+    else:
+        # turn this into a list, even if there's only one pipeline folder
+        # given
+        basc_pipeline = basc_pipeline.split(",")
 
     # we have the functional template only for potential resampling - to make
     # sure everything is the same resolution and shape (as what the user has
@@ -1176,65 +1182,24 @@ def run_basc(pipeline_config):
                        inclusion=basc_inclusion)
 
 
-def run(config_file, pipeline_output_folder):
+def manage_processes(procss, output_dir, num_parallel=1):
 
     import os
-    from multiprocessing import Process
 
-    # create the analysis DF dictionary
-    analysis_dict = prep_analysis_df_dict(config_file, pipeline_output_folder)
-
-    # get MAIN pipeline config loaded
-    c = load_config_yml(config_file)
-
-    # let's get the show on the road   
-    procss = []
-    
-    for unique_resource_id in analysis_dict.keys():
-        # unique_resource_id is a 5-long tuple:
-        #    ( model name, group model config file, output measure name,
-        #          preprocessing strategy string,
-        #          series_id or "repeated_measures" )
-        
-        model_name = unique_resource_id[0]
-        group_config_file = unique_resource_id[1]
-        resource_id = unique_resource_id[2]
-        preproc_strat = unique_resource_id[3]
-        series_or_repeated = unique_resource_id[4]
-
-        model_df = analysis_dict[unique_resource_id]
-
-        if not c.runOnGrid:
-            from CPAC.pipeline.cpac_ga_model_generator import \
-                prep_group_analysis_workflow
-
-            procss.append(Process(target=prep_group_analysis_workflow,
-                                  args=(model_df, config_file, model_name,
-                                        group_config_file, resource_id,
-                                        preproc_strat, series_or_repeated)))
-        else:
-            print "\n\n[!] CPAC says: Group-level analysis has not yet been "\
-                  "implemented to handle runs on a cluster or grid.\n\n" \
-                  "Please turn off 'Run CPAC On A Cluster/Grid' in order to "\
-                  "continue with group-level analysis. This will submit " \
-                  "the job to only one node, however.\n\nWe will update " \
-                  "users on when this feature will be available through " \
-                  "release note announcements.\n\n"
-          
     # start kicking it off
-    pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
-                        
+    pid = open(os.path.join(output_dir, 'pid_group.txt'), 'w')
+
     jobQueue = []
-    if len(procss) <= c.numGPAModelsAtOnce:
+    if len(procss) <= num_parallel:
         """
         Stream all the subjects as sublist is
-        less than or equal to the number of 
+        less than or equal to the number of
         subjects that need to run
         """
         for p in procss:
             p.start()
-            print >>pid, p.pid
-                
+            print >> pid, p.pid
+
     else:
         """
         Stream the subject workflows for preprocessing.
@@ -1246,9 +1211,9 @@ def run(config_file, pipeline_output_folder):
         while idx < len(procss):
             if len(jobQueue) == 0 and idx == 0:
                 idc = idx
-                for p in procss[idc: idc + c.numGPAModelsAtOnce]:
+                for p in procss[idc: idc + num_parallel]:
                     p.start()
-                    print >>pid, p.pid
+                    print >> pid, p.pid
                     jobQueue.append(p)
                     idx += 1
             else:
@@ -1260,5 +1225,61 @@ def run(config_file, pipeline_output_folder):
                         procss[idx].start()
                         jobQueue.append(procss[idx])
                         idx += 1
-                
+
     pid.close()
+
+
+def run(config_file, pipeline_output_folder):
+
+    from multiprocessing import Process
+
+    # get MAIN pipeline config loaded
+    c = load_config_yml(config_file)
+
+    # let's get the show on the road   
+    procss = []
+
+    # Run PyBASC, if selected
+    if 1 in c.run_basc:
+        run_basc(config_file)
+
+    # Run FSL FEAT group analysis, if selected
+    if 1 in c.run_fsl_feat:
+        # create the analysis DF dictionary
+        analysis_dict = prep_analysis_df_dict(config_file,
+                                              pipeline_output_folder)
+
+        for unique_resource_id in analysis_dict.keys():
+            # unique_resource_id is a 5-long tuple:
+            #    ( model name, group model config file, output measure name,
+            #          preprocessing strategy string,
+            #          series_id or "repeated_measures" )
+
+            model_name = unique_resource_id[0]
+            group_config_file = unique_resource_id[1]
+            resource_id = unique_resource_id[2]
+            preproc_strat = unique_resource_id[3]
+            series_or_repeated = unique_resource_id[4]
+
+            model_df = analysis_dict[unique_resource_id]
+
+            if not c.runOnGrid:
+                from CPAC.pipeline.cpac_ga_model_generator import \
+                    prep_group_analysis_workflow
+
+                procss.append(Process(target=prep_group_analysis_workflow,
+                                      args=(model_df, config_file, model_name,
+                                            group_config_file, resource_id,
+                                            preproc_strat,
+                                            series_or_repeated)))
+            else:
+                print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                      "been implemented to handle runs on a cluster or " \
+                      "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
+                      "Grid' in order to continue with group-level " \
+                      "analysis. This will submit the job to only one " \
+                      "node, however.\n\nWe will update users on when this " \
+                      "feature will be available through release note " \
+                      "announcements.\n\n"
+
+        manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)

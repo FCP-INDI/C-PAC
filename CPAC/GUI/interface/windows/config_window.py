@@ -162,7 +162,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
         self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
-        self.AddSubPage(page47, "Bootstrap Analysis of Stable Clusters ",
+        self.AddSubPage(page47, "Bootstrapped Analysis of Stable Clusters ",
                         wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)

@@ -537,6 +537,9 @@ modelConfigs :  ['/path/to/configs/gpa_fsl_config_group1.yml']
 run_basc: [1]
 
 
+basc_resolution: 4mm
+
+
 basc_proc: 2
 
 
@@ -556,9 +559,6 @@ basc_clusters: 6
 
 
 basc_affinity_threshold: 0.5
-
-
-basc_resolution: 4mm
 
 
 basc_inclusion: None

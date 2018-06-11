@@ -26,8 +26,16 @@ class GPASettings(wx.ScrolledWindow):
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "FSL/FEAT Group Analysis Options")
-               
+        self.page = GenericClass(self, " FSL/FEAT Group Analysis Options")
+
+        self.page.add(label="Run FSL FEAT ",
+                      control=control.CHOICE_BOX,
+                      name='run_fsl_feat',
+                      type=dtype.LSTR,
+                      comment="Run FSL FEAT group-level analysis.",
+                      values=["Off", "On"],
+                      wkf_switch=True)
+
         self.page.add(label="Number of Models to Run Simultaneously ",
                       control=control.INT_CTRL,
                       name='numGPAModelsAtOnce',
@@ -35,15 +43,15 @@ class GPASettings(wx.ScrolledWindow):
                       comment="This number depends on computing resources.",
                       values=1)
 
-        self.page.add(label = "Models to Run ",
-                      control = control.LISTBOX_COMBO,
-                      name = 'modelConfigs',
-                      type = dtype.LSTR,
-                      values = "",
+        self.page.add(label="Models to Run ",
+                      control=control.LISTBOX_COMBO,
+                      name='modelConfigs',
+                      type=dtype.LSTR,
+                      values="",
                       comment="Use the + to add FSL model configuration to "
                               "be run.",
-                      size = (400,100),
-                      combo_type = 3)
+                      size=(400,100),
+                      combo_type=3)
                         
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -55,12 +63,14 @@ class GPASettings(wx.ScrolledWindow):
 class BASC(wx.html.HtmlWindow):
     def __init__(self, parent, counter=0):
 
-        wx.html.HtmlWindow.__init__(self, parent, style= wx.html.HW_SCROLLBAR_AUTO)
+        wx.html.HtmlWindow.__init__(self, parent,
+                                    style=wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
         
         self.counter = counter
         
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/basc.html'))
+        self.LoadFile(p.resource_filename('CPAC',
+                                          'GUI/resources/html/basc.html'))
 
     def get_counter(self):
         return self.counter
@@ -73,8 +83,8 @@ class BASCSettings(wx.ScrolledWindow):
                 
         self.counter = counter
         
-        self.page = GenericClass(self, "Bootstrap Analysis of Stable "
-                                       "Clusters (BASC)")
+        self.page = GenericClass(self, " PyBASC - Bootstrapped Analysis of "
+                                       "Stable Clusters (BASC)")
         
         self.page.add(label="Run BASC ", 
                       control=control.CHOICE_BOX, 
@@ -84,49 +94,28 @@ class BASCSettings(wx.ScrolledWindow):
                       values=["Off", "On"],
                       wkf_switch=True)
 
+        self.page.add(label="Output File Resolution ",
+                      control=control.CHOICE_BOX,
+                      name='basc_resolution',
+                      type=dtype.STR,
+                      values=["4mm", "3mm", "2mm", "1mm"],
+                      comment="")
+
+        self.page.add(label="Maximum Processor Use ",
+                      control=control.INT_CTRL,
+                      name='basc_proc',
+                      type=dtype.NUM,
+                      comment="Maximum amount of processors to use while "
+                              "performing BASC.",
+                      values=2)
+
         self.page.add(label="Maximum RAM Use (GB) ",
-                      control=control.FLOAT_CTRL,
-                      name='basc_memproc',
+                      control=control.INT_CTRL,
+                      name='basc_memory',
                       type=dtype.NUM,
                       comment="Maximum amount of RAM (in GB) to be used when "
                               "running BASC.",
                       values=4)
-
-        self.page.add(label="Participant Inclusion (Optional) ",
-                      control=control.COMBO_BOX,
-                      name='basc_inclusion',
-                      type=dtype.STR,
-                      values="None",
-                      comment="Full path to a text file listing which "
-                              "participant IDs you want included in the "
-                              "analysis, with one ID on each line.\n\nTip: "
-                              "A sample group-level participant inclusion "
-                              "text file is generated when you first create "
-                              "your data configuration.")
-
-        self.page.add(label="Pipeline Inclusion (Optional) ",
-                      control=control.COMBO_BOX,
-                      name='basc_inclusion',
-                      type=dtype.STR,
-                      values="None",
-                      comment="If there are multiple pipeline output "
-                              "directories, and you only want to run BASC on "
-                              "one or some of them, you can list them here - "
-                              "pipeline names separated by commas (check "
-                              "the output directory of your individual-level "
-                              "analysis run to see which pipeline "
-                              "directories are available).\n\nIf nothing is "
-                              "listed, all available pipelines will be run.")
-
-        self.page.add(label="Analysis to run ",
-                      control=control.CHOICE_BOX,
-                      name='basc_type',
-                      type=dtype.LSTR,
-                      comment="Run Bootstrap Analysis of Stable Clusters",
-                      values=["Group-Level Stability",
-                              "Individualized Group Level",
-                              "Timeseries Clustering",
-                              "Cross-Clustering"])
 
         self.page.add(label="ROI File ",
                       control=control.COMBO_BOX,
@@ -144,7 +133,7 @@ class BASCSettings(wx.ScrolledWindow):
 
         self.page.add(label="Number of Time Series Bootstraps ",
                       control=control.INT_CTRL,
-                      name='basc_timeseries_boostraps',
+                      name='basc_timeseries_bootstraps',
                       type=dtype.NUM,
                       comment="Number of bootstraps to apply to individual "
                               "time series.",
@@ -158,23 +147,6 @@ class BASCSettings(wx.ScrolledWindow):
                               "dataset.",
                       values=100)
         
-        self.page.add(label="Correlation Threshold File ", 
-                      control=control.COMBO_BOX,
-                      name='basc_affinity_threshold',
-                      type=dtype.STR,
-                      values="",
-                      comment="Path to a text file containing correlation "
-                              "threshold for each subject. These thresholds "
-                              "will be applied to the correlation matrix "
-                              "before clustering.\n\nThis file should "
-                              "contain one value per line, with each line "
-                              "corresponding to the subject on the same line "
-                              "in the group analysis subject list file.\n\n"
-                              "In most cases, the same threshold can be used "
-                              "for all subjects. Different thresholds are "
-                              "useful when subjects have time series of "
-                              "different lengths.")
-        
         self.page.add(label="Number of Clusters ",
                       control=control.INT_CTRL,
                       name='basc_clusters',
@@ -182,7 +154,42 @@ class BASCSettings(wx.ScrolledWindow):
                       comment="Number of clusters to create during "
                               "clustering at both the individual and group "
                               "levels.",
-                      values=6)
+                      values=10)
+
+        self.page.add(label="Affinity Threshold ",
+                      control=control.TEXT_BOX,
+                      name='basc_affinity_threshold',
+                      type=dtype.LNUM,
+                      values="0.0",
+                      validator=CharValidator("no-alpha"),
+                      comment="",
+                      size=(100, -1))
+
+        self.page.add(label="Participant Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="Full path to a text file listing which "
+                              "participant IDs you want included in the "
+                              "analysis, with one ID on each line.\n\nTip: "
+                              "A sample group-level participant inclusion "
+                              "text file is generated when you first create "
+                              "your data configuration.")
+
+        self.page.add(label="Pipeline Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_pipeline',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple pipeline output "
+                              "directories, and you only want to run BASC on "
+                              "one or some of them, you can list them here - "
+                              "pipeline names separated by commas (check "
+                              "the output directory of your individual-level "
+                              "analysis run to see which pipeline "
+                              "directories are available).\n\nIf nothing is "
+                              "listed, all available pipelines will be run.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -199,21 +206,10 @@ class CWAS(wx.html.HtmlWindow):
         
         self.counter = counter
         self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/cwas.html'))
-        
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/cwas.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/cwas.html')
-#            else:
-#                self.LoadFile('html/cwas.html')
-#        except:
-#            self.LoadFile('html/cwas.html')
-            
             
     def get_counter(self):
         return self.counter
-    
-    
+
     
 class CWASSettings(wx.ScrolledWindow):
     
