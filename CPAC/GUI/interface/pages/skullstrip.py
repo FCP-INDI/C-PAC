@@ -41,7 +41,7 @@ class SkullStripOptions(wx.html.HtmlWindow):
                       name='skullstrip_option',
                       type=dtype.LSTR,
                       comment = "Choice of using AFNI or FSL-BET to perform SkullStripping",
-                      values = ["AFNI","BET"],
+                      values = ["AFNI","BET","AFNI & BET"],
                       wkf_switch = True)
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -207,43 +207,63 @@ class BET_options(wx.ScrolledWindow):
         self.counter = counter
         self.page = GenericClass(self,"BET_options")
         
-        self.page.add(label="center",
-                      control=control.TEXT_BOX,
-                      name='center',
-                      comment="identify center of gravity for the image",
-                      type=dtype.LNUM,
-                      validator=CharValidator("no-alpha"),
-                      values="[0,0,0]")
+        self.page.add(label = "center of gravity ",
+                      control = control.LISTBOX_COMBO,
+                      name = "center",
+                      type = dtype.LOFL,
+                      values = [0.00, 0.00, 0.00],
+                      comment = "Define one or more coordinates by clicking the + button.",
+                      size = (200,100),
+                      combo_type = 2)
+        #self.page.add(label= "center of gravity, y-axis",
+         #        control=control.FLOAT_CTRL, 
+          #       name='center_y', 
+           #      type=dtype.NUM,
+            #     values= 0,
+             #    comment="Identify the y-coordinate of the center of gravity in voxels.")
+
+
+       # self.page.add(label= "center of gravity, z-axis",
+        #         control=control.FLOAT_CTRL, 
+         #        name='center_z', 
+         
+         #        type=dtype.NUM,
+          #       values= 0,
+           #      comment="Identify the z-coordinate of the center of gravity in voxels.")
         
-        self.page.add(label="Mask_boolean",
+        self.page.add(label="Mask",
                       control=control.CHOICE_BOX,
                       name='mask_boolean',
                       comment="mask created along with skull stripping",
                       type=dtype.LSTR,
-                      values=["On","Off"])
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
-        self.page.add(label="Mesh_boolean",
+        self.page.add(label="Mesh",
                       control=control.CHOICE_BOX,
                       name='mesh_boolean',
                       comment="mesh created along with skull stripping",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Outline",
                       control=control.CHOICE_BOX,
                       name='outline',
                       comment="create a surface outline image",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Padding",
                       control=control.CHOICE_BOX,
                       name='padding',
-                      comment="add padding to the end of the image, improving BET",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      comment="add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Radius",
@@ -258,54 +278,59 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Reduce_bias",
                       control=control.CHOICE_BOX,
                       name='reduce_bias',
-                      comment="reduce bias and cleanup neck",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
-                      
+                      comment="Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
         self.page.add(label="Remove_eyes",
                       control=control.CHOICE_BOX,
                       name='remove_eyes',
-                      comment="eyes and optic nerve cleanup",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      comment="eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Robust",
                       control=control.CHOICE_BOX,
                       name='robust',
-                      comment="robust brain center estimation",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      comment="Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Skull",
                       control=control.CHOICE_BOX,
                       name='skull',
                       comment="create a skull image",
-                      type=dtype.LSTR,
-                      values=["On","Off"])
+                      type=dtype.STR,
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Surfaces",
                       control=control.CHOICE_BOX,
                       name='surfaces',
-                      type=dtype.LSTR,
-                      comment="gets additional skull and scalp surfaces by running bet2 and betsurf",
-                      values=["On","Off"])
+                      type=dtype.STR,
+                      comment="Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes",
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
                       
         self.page.add(label="Threshold",
                       control=control.CHOICE_BOX,
                       name='threshold',
                       type=dtype.LSTR,
-                      comment="apply thresholding to segmented brain image and mask",
-                      values=["On","Off"])
+                      comment="Apply thresholding to segmented brain image and mask",
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
         self.page.add(label="Vertical_gradient",
                       control=control.TEXT_BOX,
                       name='vertical_gradient',
-                      comment="vertical gradient in fractional intensity threshold (-1,1)",
+                      comment="Vertical gradient in fractional intensity threshold (-1,1)",
                       type=dtype.LNUM,
                       validator=CharValidator("no-alpha"),
                       values="0.000")
