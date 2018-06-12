@@ -747,7 +747,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
-def run_mdmr_group(pipeline_dir, working_dir, roi_file,
+def run_mdmr_group(output_dir, working_dir, roi_file,
                    regressor_file, columns, permutations,
                    parallel_nodes, inclusion=None, verbose=False):
 
@@ -756,18 +756,17 @@ def run_mdmr_group(pipeline_dir, working_dir, roi_file,
     from multiprocessing import pool
     from CPAC.cwas.pipeline import create_cwas
 
-    pipeline_dir = os.path.abspath(pipeline_dir)
+    output_dir = os.path.abspath(output_dir)
     working_dir = os.path.join(working_dir, 'group_analysis', 'MDMR',
-                               os.path.basename(pipeline_dir))
+                               os.path.basename(output_dir))
 
     inclusion_list = None
     if inclusion:
         inclusion_list = load_text_file(inclusion, "MDMR participant "
                                                    "inclusion list")
 
-    output_df_dct = gather_outputs(pipeline_dir,
-                                   ["functional_to_standard",
-                                    "functional_mni"],
+    output_df_dct = gather_outputs(output_dir,
+                                   ["functional_to_standard"],
                                    inclusion_list, False, False)
 
     for preproc_strat in output_df_dct.keys():
@@ -775,6 +774,7 @@ def run_mdmr_group(pipeline_dir, working_dir, roi_file,
 
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
+
 
         if len(set(strat_df["Series"])) > 1:
             # more than one scan/series ID
@@ -811,19 +811,19 @@ def run_mdmr(pipeline_config):
     output_dir = pipeconfig_dct["outputDirectory"]
     working_dir = pipeconfig_dct["workingDirectory"]
 
-    mdmr_roi = pipeconfig_dct["mdmr_roi_file"]
+    roi_file = pipeconfig_dct["mdmr_roi_file"]
     regressor_file = pipeconfig_dct["mdmr_regressor_file"]
     columns = pipeconfig_dct["mdmr_columns"]
     permutations = pipeconfig_dct["mdmr_permutations"]
     parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
-    mdmr_inclusion = pipeconfig_dct["mdmr_inclusion"]
+    inclusion = pipeconfig_dct["mdmr_inclusion"]
 
-    if "None" in mdmr_inclusion or "none" in mdmr_inclusion:
-        mdmr_inclusion = None
+    if not inclusion or "None" in inclusion or "none" in inclusion:
+        inclusion = None
 
-    run_mdmr_group(pipeline_dir, working_dir, roi_file,
+    run_mdmr_group(output_dir, working_dir, roi_file,
                    regressor_file, columns, permutations,
-                   parallel_nodes, inclusion=mdmr_inclusion)
+                   parallel_nodes, inclusion=inclusion)
 
 
 def run(config_file, pipeline_output_folder):

@@ -147,4 +147,4 @@ def mdmr(np.ndarray[DTYPE_t, ndim=2] D,
 
     p_vals = fperms_to_pvals(F_perms)
     
-    return p_vals, F_perms[0, :]
+    return F_perms[0, :], p_vals 

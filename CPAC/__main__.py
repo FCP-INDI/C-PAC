@@ -42,17 +42,21 @@ def group():
 def validate_mdmr(ctx, param, value):
     if param.name == "parallel":
         if value < 1:
-            raise click.BadParameter("need to be greater than zero.")
+            raise click.BadParameter("Need to be greater than zero.")
+        return value
+
+    if param.name == "permutations":
+        if value < 1:
+            raise click.BadParameter("Need to be greater than zero.")
+        return value
 
 
 @group.command(name="mdmr")
-@click.argument("data_config", type=click.Path(exists=True))
-@click.argument("regressors", type=click.Path(exists=True))
-@click.option("--permutations", "-p", type=int, default=2000)
-@click.option("--column", "-c", type=str, multiple=True)
-@click.option("--parallel", callback=validate_mdmr, type=int, default=1)
-def group_mdmr(data_config, regressors, permutations, column, parallel):
-    print( data_config, permutations)
+@click.argument("pipeline_config", type=click.Path(exists=True))
+def group_mdmr(pipeline_config):
+    from CPAC.pipeline.cpac_group_runner import run_mdmr
+    
+    run_mdmr(pipeline_config)
 
 
 if __name__ == "__main__":
