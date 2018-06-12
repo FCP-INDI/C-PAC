@@ -1037,6 +1037,9 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
         df_dct = {}
         strat_df = output_df_dct[preproc_strat]
 
+        nuisance_string = \
+            preproc_strat[1].replace(os.path.basename(preproc_strat[1]), '')
+
         if len(set(strat_df["Series"])) > 1:
             # more than one scan/series ID
             for strat_scan in list(set(strat_df["Series"])):
@@ -1052,6 +1055,10 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
             if scan_inclusion:
                 if df_scan not in scan_inclusion:
                     continue
+
+            # add scan label and nuisance regression strategy label to the
+            # output directory path
+            output_dir = os.path.join(output_dir, df_scan, nuisance_string)
 
             func_paths = list(df_dct[df_scan]["Filepath"])
 
@@ -1086,8 +1093,6 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
                 roi_file = resample_cpac_output_image(roi_cmd_args)
             if roi_two_cmd_args:
                 roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
-
-            # TODO: nuisance strategy delineation!!!
 
             print('Starting the PyBASC workflow...\n')
 

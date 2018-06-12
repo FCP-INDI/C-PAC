@@ -107,11 +107,11 @@ def run(pipe_config):
 @click.option('--basc_memory', default=4)
 @click.option('--scan', default=None)
 def quickrun(pipeline_dir, roi_file, roi_file_two=None, ref_file=None,
-             output_dir=None, basc_proc=2, basc_memory=4,
+             output_size=800, output_dir=None, basc_proc=2, basc_memory=4,
              scan=None):
     import CPAC.pipeline.cpac_group_runner as cpac_group_runner
     cpac_group_runner.run_basc_quickrun(pipeline_dir, roi_file, roi_file_two,
-                                        ref_file, output_dir, output_size,
+                                        ref_file, output_size, output_dir,
                                         basc_proc, basc_memory, scan=scan)
 
 
