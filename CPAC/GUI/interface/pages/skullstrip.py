@@ -63,7 +63,7 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
                       name = 'shrink_factor',
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       comment="Set the threshold value controling the brain vs non-brain voxels\
                               default is 0.6",
                       validator=CharValidator("no-alpha"),
@@ -72,14 +72,15 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Vary Shrink Factor?",
                       control=control.CHOICE_BOX,
                       name='var_shrink_fac',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
-                      values=["On","Off"])
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
                       name='shrink_factor_bottom_lim',
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.65",
                       validator = CharValidator("no-alpha"),
                       values="0.65")
@@ -87,14 +88,15 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Avoid ventricles",
                       control=control.CHOICE_BOX,
                       name='avoid_vent',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["On","Off"])
+                      values=["On","Off"],
+                      wkf_switch = True)
                       
         self.page.add(label="n-iterations",
                       control = control.TEXT_BOX,
                       name = 'n_iterations',
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       comment="Set the number of iterations, default is 250 and the number of iterations will depend upon the density of your mesh",
                       validator=CharValidator("no-alpha"),
                       values="250")
@@ -102,21 +104,23 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Pushout",
                       control=control.CHOICE_BOX,
                       name = 'pushout',
-                      type = dtype.LSTR,
+                      type = dtype.STR,
                       comment="While expanding, consider the voxels above and not only the voxels below",
-                      values=["On","Off"])
+                      values=["On","Off"],
+                      wkf_switch=True)
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name = 'touchup',
                       type=dtype.LSTR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
-                      values=["On","Off"])
+                      values=["On","Off"],
+                      wkf_switch=True)
                       
         self.page.add(label = "Fill_hole",
                       control=control.TEXT_BOX,
                       name = 'fill_hole',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment="Give the maximum number of pixels on either side of the hole that can be filled",
                       validator = CharValidator("no-alpha"),
                       values = "0")
@@ -124,7 +128,7 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="NN_smooth",
                       control=control.TEXT_BOX,
                       name = 'NN_smooth',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Perform nearest neighbor coordinate interpolation every few iterations.Default is 72",
                       validator = CharValidator("no-alpha"),
                       values = "72")
@@ -132,7 +136,7 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Smooth_final",
                       control=control.TEXT_BOX,
                       name = 'smooth_final',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Perform final surface smoothing after all iterations. Default is 20",
                       validator=CharValidator("no-alpha"),
                       values = "20")
@@ -140,28 +144,31 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Avoid_eyes",
                       control = control.CHOICE_BOX,
                       name = 'avoid_eyes',
-                      type = dtype.LSTR,
+                      type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
-                      values = ["On","Off"])
+                      values = ["On","Off"]
+                      wkf_switch=True)
                       
         self.page.add(label="Use_edge",
                       control = control.CHOICE_BOX,
                       name = 'use_edge',
-                      type = dtype.LSTR,
+                      type = dtype.STR,
                       comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
-                      values = ["On","Off"])
+                      values = ["On","Off"],
+                      wkf_switch=True)
                       
         self.page.add(label = "Push_to_edge",
                       control = control.CHOICE_BOX,
                       name = 'push_to_edge',
-                      type = dtype.LSTR,
+                      type = dtype.STR,
                       comment = "Perform aggressive push to edge, this might cause leakage",
-                      values = ["On","Off"])
+                      values = ["On","Off"],
+                      wkf_switch=True)
                       
         self.page.add(label = "Perc_init",
                       control = control.TEXT_BOX,
                       name = 'perc_init',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection",
                       validator=CharValidator("no-alpha"),
                       values = "0")
@@ -169,7 +176,7 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label = "Max_inter_iter",
                       control = control.TEXT_BOX,
                       name = 'max_inter_iter',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Number of iteration to remove intersection \
                       problems. With each iteration, the program \
                       automatically increases the amount of smoothing \
@@ -180,14 +187,14 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label = "Fac",
                       control = control.TEXT_BOX,
                       name = 'fac',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Multiply input dataset by FAC if range of values is too small",
                       validator=CharValidator("no-alpha"),
                       values = "1")
         self.page.add(label = "blur_fwhm",
                       control = control.TEXT_BOX,
                       name = 'blur_fwhm',
-                      type = dtype.LNUM,
+                      type = dtype.NUM,
                       comment = "Blur dataset after spatial normalization.",
                       validator=CharValidator("no-alpha"),
                       values = "2")
@@ -206,6 +213,14 @@ class BET_options(wx.ScrolledWindow):
         
         self.counter = counter
         self.page = GenericClass(self,"BET_options")
+        
+        self.page.add(label="frac",
+                      control=control.TEXT_BOX,
+                      name = 'frac',
+                      type=dtype.NUM,
+                      comment="Set the fractional intensity threshold value default is 0.5",
+                      validator=CharValidator("no-alpha"),
+                      values="0.5")
         
         self.page.add(label = "center of gravity ",
                       control = control.LISTBOX_COMBO,
