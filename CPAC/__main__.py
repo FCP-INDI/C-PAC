@@ -99,17 +99,21 @@ def run(pipe_config):
 @basc.command()
 @click.argument('pipeline_dir')
 @click.argument('roi_file')
+@click.option('--roi_file_two', default=None)
 @click.option('--ref_file', default=None)
 @click.option('--output_dir', default=None)
-@click.option('--working_dir', default='/tmp')
+@click.option('--working_dir', default=None)
 @click.option('--basc_proc', default=2)
 @click.option('--basc_memory', default=4)
-def quickrun(pipeline_dir, roi_file, ref_file=None, output_dir=None,
-             working_dir='/tmp', basc_proc=2, basc_memory=4):
+@click.option('--scan', default=None)
+def quickrun(pipeline_dir, roi_file, roi_file_two=None, ref_file=None,
+             output_dir=None, working_dir=None, basc_proc=2, basc_memory=4,
+             scan=None):
     import CPAC.pipeline.cpac_group_runner as cpac_group_runner
-    cpac_group_runner.run_basc_quickrun(pipeline_dir, roi_file, ref_file,
-                                        output_dir, working_dir, basc_proc,
-                                        basc_memory)
+    cpac_group_runner.run_basc_quickrun(pipeline_dir, roi_file, roi_file_two,
+                                        ref_file, output_dir, working_dir,
+                                        basc_proc, basc_memory,
+                                        scan_inclusion=scan)
 
 
 # Utilities

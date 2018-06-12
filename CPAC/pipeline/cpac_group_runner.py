@@ -993,10 +993,10 @@ def resample_cpac_output_image(cmd_args):
     return cmd_args[-1]
 
 
-def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
-                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, proc, memory, out_dir, inclusion=None,
-                   verbose=False):
+def run_basc_group(pipeline_dir, working_dir, roi_file, roi_file_two,
+                   ref_file, num_ts_bootstraps, num_ds_bootstraps,
+                   num_clusters, affinity_thresh, proc, memory, out_dir,
+                   inclusion=None, scan_inclusion=None, verbose=False):
 
     import os
     import numpy as np
@@ -1004,8 +1004,12 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
     from CPAC.basc.basc_workflow_runner import run_basc_workflow
 
     pipeline_dir = os.path.abspath(pipeline_dir)
-    working_dir = os.path.join(working_dir, 'group_analysis', 'BASC',
-                               os.path.basename(pipeline_dir))
+
+    # TODO: this must change once PyBASC is modified (if it is) to have a
+    # TODO: separate working and output directory
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'BASC',
+                           os.path.basename(pipeline_dir))
+    working_dir = out_dir
 
     inclusion_list = None
     if inclusion:
@@ -1040,6 +1044,12 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
 
         for df_scan in df_dct.keys():
+
+            # do only the selected scans
+            if scan_inclusion:
+                if df_scan not in scan_inclusion:
+                    continue
+
             func_paths = list(df_dct[df_scan]["Filepath"])
 
             # affinity threshold is an iterable, and must match the number of
@@ -1058,6 +1068,9 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
             roi_cmd_args = check_cpac_output_image(roi_file, ref_file,
                                                    out_dir=working_dir,
                                                    roi_file=True)
+            roi_two_cmd_args = check_cpac_output_image(roi_file_two, ref_file,
+                                                       out_dir=working_dir,
+                                                       roi_file=True)
 
             # resample them now
             if func_cmd_args_list[0]:
@@ -1068,6 +1081,8 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
             # and the ROI file, too
             if roi_cmd_args:
                 roi_file = resample_cpac_output_image(roi_cmd_args)
+            if roi_two_cmd_args:
+                roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
 
             if verbose:
                 info = "Pipeline directory: {0}\n" \
@@ -1085,19 +1100,6 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
                 print(info)
 
             # TODO: nuisance strategy delineation!!!
-            '''
-            basc_wf = create_basc([proc, memory],
-                                  name="BASC_{0}".format(df_scan))
-            basc_wf.inputs.inputspec.subject_file_list = func_paths
-            basc_wf.inputs.inputspec.roi_mask_file = roi_file
-            basc_wf.inputs.inputspec.timeseries_bootstraps = num_ts_bootstraps
-            basc_wf.inputs.inputspec.dataset_bootstraps = num_ds_bootstraps
-            basc_wf.inputs.inputspec.n_clusters = num_clusters
-            basc_wf.inputs.inputspec.similarity_metric = "correlation"
-            basc_wf.inputs.inputspec.affinity_threshold = affinity_thresh
-
-            basc_wf.run()
-            '''
 
             print('Starting the PyBASC workflow...\n')
 
@@ -1111,7 +1113,7 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
                               proc_mem=[proc, memory],
                               similarity_metric="correlation",
                               cross_cluster=False,
-                              roi2_mask_file=None,
+                              roi2_mask_file=roi_file_two,
                               blocklength=1,
                               affinity_threshold=affinity_thresh,
                               out_dir=out_dir,
@@ -1132,6 +1134,7 @@ def run_basc(pipeline_config):
     working_dir = pipeconfig_dct["workingDirectory"]
     func_template = pipeconfig_dct["template_brain_only_for_func"]
     basc_roi = pipeconfig_dct["basc_roi_file"]
+    basc_roi_two = pipeconfig_dct["basc_roi_file_two"]
     num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
     num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
     num_clusters = pipeconfig_dct["basc_clusters"]
@@ -1141,6 +1144,7 @@ def run_basc(pipeline_config):
     basc_memory = pipeconfig_dct["basc_memory"]
     basc_inclusion = pipeconfig_dct["basc_inclusion"]
     basc_pipeline = pipeconfig_dct["basc_pipeline"]
+    basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
 
     if "None" in basc_inclusion or "none" in basc_inclusion:
         basc_inclusion = None
@@ -1176,14 +1180,16 @@ def run_basc(pipeline_config):
             pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
     for pipeline in pipeline_dirs:
-        run_basc_group(pipeline, working_dir, basc_roi, ref_file,
-                       num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                       affinity_thresh, basc_proc, basc_memory, output_dir,
-                       inclusion=basc_inclusion)
+        run_basc_group(pipeline, working_dir, basc_roi, basc_roi_two,
+                       ref_file, num_ts_bootstraps, num_ds_bootstraps,
+                       num_clusters, affinity_thresh, basc_proc, basc_memory,
+                       output_dir, inclusion=basc_inclusion,
+                       scan_inclusion=basc_scan_inclusion)
 
 
-def run_basc_quickrun(pipeline_dir, roi_file, ref_file=None, output_dir=None,
-                      working_dir='/tmp', basc_proc=2, basc_memory=4):
+def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
+                      ref_file=None, output_dir=None, working_dir=None,
+                      basc_proc=2, basc_memory=4, scan=None):
     """Start a quick-run of PyBASC using default values for most
     parameters."""
 
@@ -1197,17 +1203,21 @@ def run_basc_quickrun(pipeline_dir, roi_file, ref_file=None, output_dir=None,
         try:
             fsldir = os.environ['FSLDIR']
             ref_file = os.path.join(fsldir, 'data/standard',
-                                    'MNI152_T1_2mm_brain.nii.gz')
+                                    'MNI152_T1_3mm_brain.nii.gz')
         except KeyError:
             pass
 
     if not output_dir:
         import os
-        output_dir = os.path.join(os.getcwd(), 'BASC_output')
+        output_dir = os.getcwd()
 
-    run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
-                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, basc_proc, basc_memory, output_dir)
+    if not working_dir:
+        working_dir = output_dir
+
+    run_basc_group(pipeline_dir, working_dir, roi_file, roi_file_two,
+                   ref_file, num_ts_bootstraps, num_ds_bootstraps,
+                   num_clusters,  affinity_thresh, basc_proc, basc_memory,
+                   output_dir, scan_inclusion=scan)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

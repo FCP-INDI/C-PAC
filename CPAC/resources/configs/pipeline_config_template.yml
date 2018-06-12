@@ -549,6 +549,9 @@ basc_memory: 4
 basc_roi_file: /path/to/roi.nii.gz
 
 
+basc_roi_file_two: /path/to/other_roi.nii.gz
+
+
 basc_timeseries_bootstraps: 100
 
 
@@ -565,4 +568,7 @@ basc_inclusion: None
 
 
 basc_pipeline: None
+
+
+basc_scan_inclusion: None
 
