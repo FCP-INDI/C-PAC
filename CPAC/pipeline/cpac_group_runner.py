@@ -995,7 +995,7 @@ def resample_cpac_output_image(cmd_args):
 
 def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
                    num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                   affinity_thresh, proc, memory, inclusion=None,
+                   affinity_thresh, proc, memory, out_dir, inclusion=None,
                    verbose=False):
 
     import os
@@ -1114,7 +1114,7 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
                               roi2_mask_file=None,
                               blocklength=1,
                               affinity_threshold=affinity_thresh,
-                              out_dir=pipeline_dir,
+                              out_dir=out_dir,
                               run=True)
 
 
@@ -1178,8 +1178,36 @@ def run_basc(pipeline_config):
     for pipeline in pipeline_dirs:
         run_basc_group(pipeline, working_dir, basc_roi, ref_file,
                        num_ts_bootstraps, num_ds_bootstraps, num_clusters,
-                       affinity_thresh, basc_proc, basc_memory,
+                       affinity_thresh, basc_proc, basc_memory, output_dir,
                        inclusion=basc_inclusion)
+
+
+def run_basc_quickrun(pipeline_dir, roi_file, ref_file=None, output_dir=None,
+                      working_dir='/tmp', basc_proc=2, basc_memory=4):
+    """Start a quick-run of PyBASC using default values for most
+    parameters."""
+
+    num_ts_bootstraps = 100
+    num_ds_bootstraps = 100
+    num_clusters = 10
+    affinity_thresh = 0.0
+
+    if not ref_file:
+        import os
+        try:
+            fsldir = os.environ['FSLDIR']
+            ref_file = os.path.join(fsldir, 'data/standard',
+                                    'MNI152_T1_2mm_brain.nii.gz')
+        except KeyError:
+            pass
+
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'BASC_output')
+
+    run_basc_group(pipeline_dir, working_dir, roi_file, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, basc_proc, basc_memory, output_dir)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):
