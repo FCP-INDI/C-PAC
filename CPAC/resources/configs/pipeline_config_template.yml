@@ -564,6 +564,12 @@ basc_clusters: 6
 basc_affinity_threshold: 0.5
 
 
+basc_output_size: 800
+
+
+basc_cross_clustering: True
+
+
 basc_inclusion: None
 
 

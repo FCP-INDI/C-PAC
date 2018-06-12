@@ -172,6 +172,20 @@ class BASCSettings(wx.ScrolledWindow):
                       comment="",
                       size=(100, -1))
 
+        self.page.add(label="Output Size ",
+                      control=control.INT_CTRL,
+                      name='basc_output_size',
+                      type=dtype.NUM,
+                      comment="",
+                      values=800)
+
+        self.page.add(label="Run Cross-Clustering ",
+                      control=control.CHOICE_BOX,
+                      name='basc_cross_clustering',
+                      type=dtype.BOOL,
+                      values=["True", "False"],
+                      comment="")
+
         self.page.add(label="Participant Inclusion (Optional) ",
                       control=control.COMBO_BOX,
                       name='basc_inclusion',
