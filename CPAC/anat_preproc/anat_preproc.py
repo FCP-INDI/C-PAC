@@ -78,7 +78,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
     preproc = pe.Workflow(name=wf_name)
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),name='inputspec')
     inputNode_AFNI = pe.Node(util.IdentityInterface(fields =['shrink_factor','var_shrink_fac','shrink_factor_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edges','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_init','blur_fwhm','fac']),name ='AFNI_options')
-    inputNode_BET = pe.Node(util.IdentityInterface(fields=['center','mask_boolean','mesh_boolean','outline','padding','radius','reduce_bias','remove_eyes','robust','skull','surfaces','threshold','vertical_gradient']),name = 'BET_options')
+    inputNode_BET = pe.Node(util.IdentityInterface(fields=['frac','center','mask_boolean','mesh_boolean','outline','padding','radius','reduce_bias','remove_eyes','robust','skull','surfaces','threshold','vertical_gradient']),name = 'BET_options')
     
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
                                                         'reorient',
@@ -160,7 +160,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
            #     return center
             preproc.connect(anat_reorient,'out_file',anat_skullstrip,'in_file')
             preproc.connect(inputNode_BET,'center',anat_skullstrip,'center')
-            preproc.connect(inputNode_AFNI,'shrink_factor', anat_skullstrip, 'frac')
+            preproc.connect(inputNode_BET,'frac', anat_skullstrip, 'frac')
             preproc.connect(inputNode_BET, 'mask_boolean',anat_skullstrip,'mask')
             preproc.connect(inputNode_BET,'mesh_boolean',anat_skullstrip,'mesh')
             preproc.connect(inputNode_BET,'outline',anat_skullstrip,'outline')
