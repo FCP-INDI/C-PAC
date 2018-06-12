@@ -334,6 +334,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
     ##*ACTION - CLEAN UP COMMENTED OUT CODE
     import os
     import numpy as np
+    from CPAC.basc.basc import ndarray_to_vol
     import CPAC.basc.utils as utils
     print('starting igcm')
     #import pdb; pdb.set_trace()
@@ -493,9 +494,10 @@ def save_igcm_nifti(cluster_voxel_scores_file,clusters_G_file,roi_mask_file):
     -------
     Creates NIFTI files for all the igcm files for each participant across all clusters 
     """
-    
-    
+
     import numpy as np
+    from CPAC.basc.basc import ndarray_to_vol
+
     cluster_voxel_scores=np.load(cluster_voxel_scores_file)
     clusters_G=np.load(clusters_G_file)
     cluster_ids = np.unique(clusters_G)
@@ -533,6 +535,7 @@ def create_group_cluster_maps(gsm_file,clusters_G_file,roi_mask_file):
     """
     
     import numpy as np
+    from CPAC.basc.basc import ndarray_to_vol
     import CPAC.basc.utils as utils
     
     group_stability_mat = np.asarray([np.load(gsm_file)])
@@ -582,6 +585,8 @@ def ism_nifti(roi_mask_file, n_clusters, out_dir):
     Creates NIFTI files for all the ism cluster stability maps
     
     """
+
+    from CPAC.basc.basc import ndarray_to_vol
     import CPAC.basc.utils as utils
     import numpy as np
     import os
@@ -681,6 +686,7 @@ def gsm_nifti(roi_mask_file, n_clusters, out_dir):
     
     """
 
+    from CPAC.basc.basc import ndarray_to_vol
     import CPAC.basc.utils as utils
     import numpy as np
     import os
@@ -823,6 +829,7 @@ def create_basc(proc_mem, name='basc'):
     """
     
     import nipype.pipeline.engine as pe
+    from CPAC.basc.basc import ndarray_to_vol
 
     inputspec = pe.Node(util.IdentityInterface(fields=['subject_file_list',
                                                        'roi_mask_file',

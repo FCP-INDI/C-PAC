@@ -111,8 +111,8 @@ def quickrun(pipeline_dir, roi_file, roi_file_two=None, ref_file=None,
              scan=None):
     import CPAC.pipeline.cpac_group_runner as cpac_group_runner
     cpac_group_runner.run_basc_quickrun(pipeline_dir, roi_file, roi_file_two,
-                                        ref_file, output_dir, working_dir,
-                                        basc_proc, basc_memory, scan=scan)
+                                        ref_file, output_dir, basc_proc,
+                                        basc_memory, scan=scan)
 
 
 # Utilities
