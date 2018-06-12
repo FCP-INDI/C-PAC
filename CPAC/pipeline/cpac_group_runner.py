@@ -993,10 +993,10 @@ def resample_cpac_output_image(cmd_args):
     return cmd_args[-1]
 
 
-def run_basc_group(pipeline_dir, working_dir, roi_file, roi_file_two,
-                   ref_file, num_ts_bootstraps, num_ds_bootstraps,
-                   num_clusters, affinity_thresh, proc, memory, out_dir,
-                   inclusion=None, scan_inclusion=None, verbose=False):
+def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, proc, memory, out_dir, inclusion=None,
+                   scan_inclusion=None, verbose=False):
 
     import os
     import numpy as np
@@ -1015,6 +1015,9 @@ def run_basc_group(pipeline_dir, working_dir, roi_file, roi_file_two,
     if inclusion:
         inclusion_list = load_text_file(inclusion, "BASC participant "
                                                    "inclusion list")
+
+    if scan_inclusion:
+        scan_inclusion = scan_inclusion.split(',')
 
     # create encompassing output dataframe dictionary
     #     note, it is still limited to the lowest common denominator of all
@@ -1131,7 +1134,6 @@ def run_basc(pipeline_config):
         pipeconfig_dct = yaml.load(f)
 
     output_dir = pipeconfig_dct["outputDirectory"]
-    working_dir = pipeconfig_dct["workingDirectory"]
     func_template = pipeconfig_dct["template_brain_only_for_func"]
     basc_roi = pipeconfig_dct["basc_roi_file"]
     basc_roi_two = pipeconfig_dct["basc_roi_file_two"]
@@ -1180,16 +1182,16 @@ def run_basc(pipeline_config):
             pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
 
     for pipeline in pipeline_dirs:
-        run_basc_group(pipeline, working_dir, basc_roi, basc_roi_two,
-                       ref_file, num_ts_bootstraps, num_ds_bootstraps,
+        run_basc_group(pipeline, basc_roi, basc_roi_two, ref_file,
+                       num_ts_bootstraps, num_ds_bootstraps,
                        num_clusters, affinity_thresh, basc_proc, basc_memory,
                        output_dir, inclusion=basc_inclusion,
                        scan_inclusion=basc_scan_inclusion)
 
 
 def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
-                      ref_file=None, output_dir=None, working_dir=None,
-                      basc_proc=2, basc_memory=4, scan=None):
+                      ref_file=None, output_dir=None, basc_proc=2,
+                      basc_memory=4, scan=None):
     """Start a quick-run of PyBASC using default values for most
     parameters."""
 
@@ -1211,13 +1213,10 @@ def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
         import os
         output_dir = os.getcwd()
 
-    if not working_dir:
-        working_dir = output_dir
-
-    run_basc_group(pipeline_dir, working_dir, roi_file, roi_file_two,
-                   ref_file, num_ts_bootstraps, num_ds_bootstraps,
-                   num_clusters,  affinity_thresh, basc_proc, basc_memory,
-                   output_dir, scan_inclusion=scan)
+    run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, basc_proc, basc_memory, output_dir,
+                   scan_inclusion=scan)
 
 
 def manage_processes(procss, output_dir, num_parallel=1):

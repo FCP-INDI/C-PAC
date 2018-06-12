@@ -131,6 +131,13 @@ class BASCSettings(wx.ScrolledWindow):
                               "your analysis to specific brain areas of "
                               "interest.")
 
+        self.page.add(label="Second ROI File ",
+                      control=control.COMBO_BOX,
+                      name='basc_roi_file_two',
+                      type=dtype.STR,
+                      values="None",
+                      comment="")
+
         self.page.add(label="Number of Time Series Bootstraps ",
                       control=control.INT_CTRL,
                       name='basc_timeseries_bootstraps',
@@ -190,6 +197,19 @@ class BASCSettings(wx.ScrolledWindow):
                               "analysis run to see which pipeline "
                               "directories are available).\n\nIf nothing is "
                               "listed, all available pipelines will be run.")
+
+        self.page.add(label="Series/Scan Inclusion (Optional) ",
+                      control=control.COMBO_BOX,
+                      name='basc_scan_inclusion',
+                      type=dtype.STR,
+                      values="None",
+                      comment="If there are multiple series or scans in any "
+                              "of the pipeline outputs for which PyBASC is "
+                              "being run, and you only want to run for some "
+                              "of them, you can list them here - scan labels "
+                              "separated by commas (ex. 'rest_run-1, "
+                              "rest_run-3').\n\nIf nothing is listed, all "
+                              "available pipelines will be run.")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

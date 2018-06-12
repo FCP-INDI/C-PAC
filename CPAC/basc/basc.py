@@ -313,8 +313,6 @@ def join_group_stability(indiv_stability_list, group_stability_list, n_bootstrap
     return G, clusters_G, ism_gsm_corr, gsm_file, clusters_G_file, ism_gsm_corr_file
 
 
-
-
 def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_file):
     """
     Calculate the individual stability maps of each subject based on the group stability clustering solution.
@@ -337,7 +335,6 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
     import os
     import numpy as np
     import CPAC.basc.utils as utils
-    import basc
     print('starting igcm')
     #import pdb; pdb.set_trace()
     print("igcm debug 1")
@@ -411,7 +408,7 @@ def individual_group_clustered_maps(indiv_stability_list, clusters_G, roi_mask_f
 
     #import pdb; pdb.set_trace()
     Individualized_Group_Cluster= np.argmax(cluster_voxel_scores, axis=0) +1
-    individualized_group_clusters_img_file, img = basc.ndarray_to_vol(Individualized_Group_Cluster, roi_mask_file, roi_mask_file, os.path.join(os.getcwd(), 'IndividualizedGroupClusters.nii.gz'))
+    individualized_group_clusters_img_file, img = ndarray_to_vol(Individualized_Group_Cluster, roi_mask_file, roi_mask_file, os.path.join(os.getcwd(), 'IndividualizedGroupClusters.nii.gz'))
     img.to_filename(individualized_group_clusters_img_file)
     
     return  icvs_file, cluster_voxel_scores_file, k_mask_file, ind_group_cluster_stability_file, individualized_group_clusters_img_file #icvs, cluster_voxel_scores, k_mask
@@ -499,7 +496,6 @@ def save_igcm_nifti(cluster_voxel_scores_file,clusters_G_file,roi_mask_file):
     
     
     import numpy as np
-    import basc
     cluster_voxel_scores=np.load(cluster_voxel_scores_file)
     clusters_G=np.load(clusters_G_file)
     cluster_ids = np.unique(clusters_G)
@@ -511,7 +507,7 @@ def save_igcm_nifti(cluster_voxel_scores_file,clusters_G_file,roi_mask_file):
     for k in cluster_ids:
         print('k equals \n\n', k, '\n\n') #Loops through every row of cluster_voxel_scores and creates nifti files
         print('clustervoxelscores equals \n\n', cluster_voxel_scores[k-1,:], '\n\n')
-        A, B = basc.ndarray_to_vol(cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'individual_group_cluster%i_stability.nii.gz' % k)
+        A, B = ndarray_to_vol(cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'individual_group_cluster%i_stability.nii.gz' % k)
         print('Output A equals', A, '\n\n')
         #print(B)
 #        icvs.append(basc.ndarray_to_vol(cluster_voxel_scores[icvs_idx,:], roi_mask_file, roi_mask_file, 'individual_group_cluster%i_stability.nii.gz' % k))
@@ -537,7 +533,6 @@ def create_group_cluster_maps(gsm_file,clusters_G_file,roi_mask_file):
     """
     
     import numpy as np
-    import basc
     import CPAC.basc.utils as utils
     
     group_stability_mat = np.asarray([np.load(gsm_file)])
@@ -565,7 +560,7 @@ def create_group_cluster_maps(gsm_file,clusters_G_file,roi_mask_file):
     for k in cluster_ids:
         print('k equals \n\n', k, '\n\n') #Loops through every row of cluster_voxel_scores and creates nifti files
         print('clustervoxelscores equals \n\n', group_cluster_voxel_scores[k-1,:], '\n\n')
-        A, B = basc.ndarray_to_vol(group_cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'group_level_cluster%i_stability.nii.gz' % k)
+        A, B = ndarray_to_vol(group_cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'group_level_cluster%i_stability.nii.gz' % k)
         print('Output A equals', A, '\n\n')
     return
 
@@ -588,7 +583,6 @@ def ism_nifti(roi_mask_file, n_clusters, out_dir):
     
     """
     import CPAC.basc.utils as utils
-    import basc
     import numpy as np
     import os
     from pathlib import Path
@@ -688,7 +682,6 @@ def gsm_nifti(roi_mask_file, n_clusters, out_dir):
     """
 
     import CPAC.basc.utils as utils
-    import basc
     import numpy as np
     import os
     #*ACTION - FIGURE OUT IF CAN BE ADDED TO BASC WORKFLOW, OR DIFFERENT WORKFLOW?
@@ -734,7 +727,7 @@ def gsm_nifti(roi_mask_file, n_clusters, out_dir):
     for k in cluster_ids:
         grp_cluster_stability.append(gsm_cluster_voxel_scores[(k-1),clusters_gsm==k].mean())
         grp_cluster_INSTABILITY.append(gsm_cluster_voxel_scores[(k-1),clusters_gsm!=k].mean())
-        A, B = basc.ndarray_to_vol(gsm_cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'gsm_single_cluster%i_stability.nii.gz' % k)
+        A, B = ndarray_to_vol(gsm_cluster_voxel_scores[k-1,:], roi_mask_file, roi_mask_file, 'gsm_single_cluster%i_stability.nii.gz' % k)
     grp_cluster_stability=np.asarray(grp_cluster_stability)
     grp_cluster_INSTABILITY=np.asarray(grp_cluster_INSTABILITY)
     grp_cluster_stability_Diff=grp_cluster_stability-grp_cluster_INSTABILITY
