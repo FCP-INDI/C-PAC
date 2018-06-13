@@ -10,14 +10,14 @@ import numpy as np
 # ctypedef np.int32_t ITYPE_t
 
 
-def joint_mask(subjects_file_list, mask_file):
+def joint_mask(subjects, mask_file):
     """
     Creates a joint mask (intersection) common to all the subjects in a provided list
     and a provided mask
     
     Parameters
     ----------
-    subjects_file_list : list of strings
+    subjects : dict of strings
         A length `N` list of file paths of the nifti files of subjects
     mask_file : string
         Path to a mask file in nifti format
@@ -124,15 +124,15 @@ def calc_cwas(subjects_data, regressor, regressor_selected_cols, permutations, v
     return F_set, p_set
 
 
-def nifti_cwas(subjects_file_list, mask_file, regressor,
+def nifti_cwas(subjects, mask_file, regressor, participant_column,
                columns, permutations, voxel_range):
     """
     Performs CWAS for a group of subjects
     
     Parameters
     ----------
-    subjects_file_list : list of strings
-        A length `N` list of file paths of the nifti files of subjects
+    subjects : dict of strings:strings
+        A length `N` dict of id and file paths of the nifti files of subjects
     mask_file : string
         Path to a mask file in nifti format
     regressor : ndarray
@@ -162,21 +162,42 @@ def nifti_cwas(subjects_file_list, mask_file, regressor,
     import os
     from CPAC.cwas.cwas import calc_cwas
 
-    regressor_data = pd.read_table(regressor, sep=None, engine="python")
+    regressor_data = pd.read_table(regressor, sep=None, engine="python",
+                                   dtype={ participant_column: str })
 
     regressor_cols = list(regressor_data.columns)
+    if not participant_column in regressor_cols:
+        raise ValueError('Participant column was not found on regressor file.')
+
+    if participant_column in columns:
+        raise ValueError('Participant column can not be a regressor.')
+
+    regressor_data.index = regressor_data[participant_column]
+
+    subject_ids = list(subjects.keys())
+    subject_files = list(subjects.values())
+
+    # Keep only data from specific subjects
+    ordered_regressor_data = regressor_data.loc[subject_ids]
+
     regressor_selected_cols = [i for i, c in enumerate(regressor_cols) if c in columns]
     if len(regressor_selected_cols) == 0:
         regressor_selected_cols = [i for i, c in enumerate(regressor_cols)]
     regressor_selected_cols = np.array(regressor_selected_cols)
-    regressor = regressor_data.as_matrix().astype(np.float64)
+
+    # Remove participant id column from the dataframe and convert it to a numpy matrix
+    regressor = ordered_regressor_data \
+                    .drop(columns=[participant_column]) \
+                    .reset_index(drop=True) \
+                    .as_matrix() \
+                    .astype(np.float64)
 
     if len(regressor.shape) == 1:
         regressor = regressor[:, np.newaxis]
     elif len(regressor.shape) != 2:
         raise ValueError('Bad regressor shape: %s' % str(regressor.shape))
     
-    if len(subjects_file_list) != regressor.shape[0]:
+    if len(subject_files) != regressor.shape[0]:
         raise ValueError('Number of subjects does not match regressor size')
     
     mask = nb.load(mask_file).get_data().astype('bool')
@@ -184,7 +205,7 @@ def nifti_cwas(subjects_file_list, mask_file, regressor,
 
     subjects_data = [
         nb.load(subject_file).get_data().astype('float64')[mask_indices].T 
-        for subject_file in subjects_file_list
+        for subject_file in subject_files
     ]
     
     F_set, p_set = calc_cwas(subjects_data, regressor, regressor_selected_cols, \

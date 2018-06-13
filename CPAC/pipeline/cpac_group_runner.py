@@ -748,8 +748,8 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
 
 
 def run_mdmr_group(output_dir, working_dir, roi_file,
-                   regressor_file, columns, permutations,
-                   parallel_nodes, inclusion=None, verbose=False):
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes, inclusion=None):
 
     import os
     import numpy as np
@@ -786,12 +786,20 @@ def run_mdmr_group(output_dir, working_dir, roi_file,
             df_dct[list(set(strat_df["Series"]))[0]] = strat_df
 
         for df_scan in df_dct.keys():
-            func_paths = list(df_dct[df_scan]["Filepath"])
+            func_paths = {
+                p.split("_")[0]: f
+                for p, f in
+                zip(
+                    df_dct[df_scan].Participant,
+                    df_dct[df_scan].Filepath
+                )
+            }
 
             mdmr_wf = create_cwas(name="MDMR_{0}".format(df_scan))
             mdmr_wf.inputs.inputspec.subjects = func_paths
             mdmr_wf.inputs.inputspec.roi = roi_file
             mdmr_wf.inputs.inputspec.regressor = regressor_file
+            mdmr_wf.inputs.inputspec.participant_column = participant_column
             mdmr_wf.inputs.inputspec.columns = columns
             mdmr_wf.inputs.inputspec.permutations = permutations
             mdmr_wf.inputs.inputspec.parallel_nodes = parallel_nodes
@@ -813,7 +821,8 @@ def run_mdmr(pipeline_config):
 
     roi_file = pipeconfig_dct["mdmr_roi_file"]
     regressor_file = pipeconfig_dct["mdmr_regressor_file"]
-    columns = pipeconfig_dct["mdmr_columns"]
+    participant_column = pipeconfig_dct["mdmr_regressor_participant_column"]
+    columns = pipeconfig_dct["mdmr_regressor_columns"]
     permutations = pipeconfig_dct["mdmr_permutations"]
     parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
     inclusion = pipeconfig_dct["mdmr_inclusion"]
@@ -822,8 +831,9 @@ def run_mdmr(pipeline_config):
         inclusion = None
 
     run_mdmr_group(output_dir, working_dir, roi_file,
-                   regressor_file, columns, permutations,
-                   parallel_nodes, inclusion=inclusion)
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes,
+                   inclusion=inclusion)
 
 
 def run(config_file, pipeline_output_folder):

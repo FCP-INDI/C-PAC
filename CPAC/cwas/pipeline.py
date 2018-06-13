@@ -30,10 +30,10 @@ def create_cwas(name='cwas'):
     
     Workflow Inputs::
     
+        inputspec.subjects : dict (subject id: nifti files)
+            4-D timeseries of a group of subjects normalized to MNI space
         inputspec.roi : string (nifti file)
             Mask of region(s) of interest
-        inputspec.subjects : list (nifti files)
-            4-D timeseries of a group of subjects normalized to MNI space
         inputspec.regressor : list (float)
             Corresponding list of the regressor variable of shape (`N`) or (`N`,`1`), `N` subjects
         inputspec.cols : list (int)
@@ -76,7 +76,8 @@ def create_cwas(name='cwas'):
     
     inputspec = pe.Node(util.IdentityInterface(fields=['roi',
                                                        'subjects',
-                                                       'regressor', 
+                                                       'regressor',
+                                                       'participant_column',
                                                        'columns', 
                                                        'permutations', 
                                                        'parallel_nodes']),
@@ -94,9 +95,10 @@ def create_cwas(name='cwas'):
                                 function=create_cwas_batches),
                   name='cwas_batches')
     
-    ncwas = pe.MapNode(util.Function(input_names=['subjects_file_list',
+    ncwas = pe.MapNode(util.Function(input_names=['subjects',
                                                   'mask_file',
                                                   'regressor', 
+                                                  'participant_column',
                                                   'columns', 
                                                   'permutations',
                                                   'voxel_range'],
@@ -105,7 +107,7 @@ def create_cwas(name='cwas'):
                        name='cwas_batch',
                        iterfield='voxel_range')
     
-    jmask = pe.Node(util.Function(input_names=['subjects_file_list', 
+    jmask = pe.Node(util.Function(input_names=['subjects', 
                                                'mask_file'],
                                   output_names=['joint_mask'],
                                   function=joint_mask),
@@ -120,7 +122,7 @@ def create_cwas(name='cwas'):
     
     #Compute the joint mask
     cwas.connect(inputspec, 'subjects',
-                 jmask, 'subjects_file_list')
+                 jmask, 'subjects')
     cwas.connect(inputspec, 'roi',
                  jmask, 'mask_file')
 
@@ -134,11 +136,13 @@ def create_cwas(name='cwas'):
     cwas.connect(jmask, 'joint_mask',
                  ncwas, 'mask_file')
     cwas.connect(inputspec, 'subjects',
-                 ncwas, 'subjects_file_list')
+                 ncwas, 'subjects')
     cwas.connect(inputspec, 'regressor',
                  ncwas, 'regressor')
     cwas.connect(inputspec, 'permutations',
                  ncwas, 'permutations')
+    cwas.connect(inputspec, 'participant_column',
+                 ncwas, 'participant_column')
     cwas.connect(inputspec, 'columns',
                  ncwas, 'columns')
                  

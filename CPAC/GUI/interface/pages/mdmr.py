@@ -23,24 +23,35 @@ class MDMRSettings(wx.ScrolledWindow):
 
         self.page.add(label="Mask ROI", 
                      control=control.COMBO_BOX,
-                     name='mdmr_roi', 
+                     name='mdmr_roi_file', 
                      type=dtype.STR, 
                      values=str(""),
                      comment="Path to a mask file in NIFTI format.")
                
         self.page.add(label="Regressors file", 
                      control=control.COMBO_BOX,
-                     name="mdmr_regressors", 
+                     name="mdmr_regressor_file", 
                      type=dtype.STR, 
                      values="",
-                     comment="CSV file containing the variables to regress. It may have one line per subject.")
+                     comment="CSV file containing the variables to regress. "
+                             "It may have one line per subject.")
+        
+        self.page.add(label="Regressors Participant Column Name",
+                      control=control.TEXT_BOX,
+                      name="mdmr_regressor_participant_column",
+                      type=dtype.STR,
+                      comment="Name of the participants column in your Regressors "
+                              "file.",
+                      values="")
 
-        self.page.add(label="Regressor Columns", 
+        self.page.add(label="Regressors columns", 
                      control=control.TEXT_BOX, 
-                     name="mdmr_regressors_cols", 
-                     type=dtype.STR, 
+                     name="mdmr_regressor_columns", 
+                     type=dtype.STR,
                      values="",
-                     comment="Columns from the CSV file indicating factor variables. Other columns will be handled as covariates.")
+                     comment="Columns from the CSV file indicating factor "
+                             "variables. Other columns will be handled as covariates. "
+                             "Separated by commas.")
 
         self.page.add(label="Permutations",
                       control=control.INT_CTRL,
@@ -61,4 +72,3 @@ class MDMRSettings(wx.ScrolledWindow):
         
     def get_counter(self):
         return self.counter
-                
