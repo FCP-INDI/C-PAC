@@ -747,7 +747,7 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
-def run_mdmr_group(output_dir, working_dir, roi_file,
+def run_cwas_group(output_dir, working_dir, roi_file,
                    regressor_file, participant_column, columns,
                    permutations, parallel_nodes, inclusion=None):
 
@@ -757,12 +757,12 @@ def run_mdmr_group(output_dir, working_dir, roi_file,
     from CPAC.cwas.pipeline import create_cwas
 
     output_dir = os.path.abspath(output_dir)
-    working_dir = os.path.join(working_dir, 'group_analysis', 'MDMR',
+    working_dir = os.path.join(working_dir, 'group_analysis', 'CWAS',
                                os.path.basename(output_dir))
 
     inclusion_list = None
     if inclusion:
-        inclusion_list = load_text_file(inclusion, "MDMR participant "
+        inclusion_list = load_text_file(inclusion, "CWAS participant "
                                                    "inclusion list")
 
     output_df_dct = gather_outputs(output_dir,
@@ -795,18 +795,18 @@ def run_mdmr_group(output_dir, working_dir, roi_file,
                 )
             }
 
-            mdmr_wf = create_cwas(name="MDMR_{0}".format(df_scan))
-            mdmr_wf.inputs.inputspec.subjects = func_paths
-            mdmr_wf.inputs.inputspec.roi = roi_file
-            mdmr_wf.inputs.inputspec.regressor = regressor_file
-            mdmr_wf.inputs.inputspec.participant_column = participant_column
-            mdmr_wf.inputs.inputspec.columns = columns
-            mdmr_wf.inputs.inputspec.permutations = permutations
-            mdmr_wf.inputs.inputspec.parallel_nodes = parallel_nodes
-            mdmr_wf.run()
+            cwas_wf = create_cwas(name="CWAS_{0}".format(df_scan))
+            cwas_wf.inputs.inputspec.subjects = func_paths
+            cwas_wf.inputs.inputspec.roi = roi_file
+            cwas_wf.inputs.inputspec.regressor = regressor_file
+            cwas_wf.inputs.inputspec.participant_column = participant_column
+            cwas_wf.inputs.inputspec.columns = columns
+            cwas_wf.inputs.inputspec.permutations = permutations
+            cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
+            cwas_wf.run()
 
 
-def run_mdmr(pipeline_config):
+def run_cwas(pipeline_config):
 
     import os
     import yaml
@@ -819,18 +819,18 @@ def run_mdmr(pipeline_config):
     output_dir = pipeconfig_dct["outputDirectory"]
     working_dir = pipeconfig_dct["workingDirectory"]
 
-    roi_file = pipeconfig_dct["mdmr_roi_file"]
-    regressor_file = pipeconfig_dct["mdmr_regressor_file"]
-    participant_column = pipeconfig_dct["mdmr_regressor_participant_column"]
-    columns = pipeconfig_dct["mdmr_regressor_columns"]
-    permutations = pipeconfig_dct["mdmr_permutations"]
-    parallel_nodes = pipeconfig_dct["mdmr_parallel_nodes"]
-    inclusion = pipeconfig_dct["mdmr_inclusion"]
+    roi_file = pipeconfig_dct["cwas_roi_file"]
+    regressor_file = pipeconfig_dct["cwas_regressor_file"]
+    participant_column = pipeconfig_dct["cwas_regressor_participant_column"]
+    columns = pipeconfig_dct["cwas_regressor_columns"]
+    permutations = pipeconfig_dct["cwas_permutations"]
+    parallel_nodes = pipeconfig_dct["cwas_parallel_nodes"]
+    inclusion = pipeconfig_dct["cwas_inclusion"]
 
     if not inclusion or "None" in inclusion or "none" in inclusion:
         inclusion = None
 
-    run_mdmr_group(output_dir, working_dir, roi_file,
+    run_cwas_group(output_dir, working_dir, roi_file,
                    regressor_file, participant_column, columns,
                    permutations, parallel_nodes,
                    inclusion=inclusion)

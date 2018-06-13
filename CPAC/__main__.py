@@ -39,24 +39,12 @@ def group():
     pass
 
 
-def validate_mdmr(ctx, param, value):
-    if param.name == "parallel":
-        if value < 1:
-            raise click.BadParameter("Need to be greater than zero.")
-        return value
-
-    if param.name == "permutations":
-        if value < 1:
-            raise click.BadParameter("Need to be greater than zero.")
-        return value
-
-
-@group.command(name="mdmr")
+@group.command(name="cwas")
 @click.argument("pipeline_config", type=click.Path(exists=True))
-def group_mdmr(pipeline_config):
-    from CPAC.pipeline.cpac_group_runner import run_mdmr
+def group_cwas(pipeline_config):
+    from CPAC.pipeline.cpac_group_runner import run_cwas
     
-    run_mdmr(pipeline_config)
+    run_cwas(pipeline_config)
 
 
 if __name__ == "__main__":

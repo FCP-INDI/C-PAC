@@ -11,7 +11,7 @@ from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GPASettings
-from .mdmr import MDMRSettings
+from .cwas import CWASSettings
 
 
 __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
@@ -26,4 +26,4 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'GroupAnalysis', 'GPASettings', 'MDMRSettings', 'EPI_DistCorr']
+           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr']
