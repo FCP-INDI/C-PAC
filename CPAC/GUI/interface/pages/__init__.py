@@ -1,5 +1,6 @@
 from .anatomical import AnatomicalPreprocessing, Segmentation,  Registration
 from .functional_tab import FunctionalPreProcessing, TimeSeriesOptions, AnatToFuncRegistration, EPI_DistCorr, FuncToMNIRegistration
+from .skullstrip import SkullStripProcessing,SkullStripOptions,AFNI_options,BET_options
 from .vmhc import VMHC, VMHCSettings
 from .reho import ReHo, ReHoSettings
 from .sca import SCA, SCASettings
@@ -25,4 +26,5 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
+           'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
