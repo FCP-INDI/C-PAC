@@ -1,13 +1,4 @@
 import numpy as np
-# cimport numpy as np
-# cimport cython
-# from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
-
-# DTYPE = np.float64
-# ctypedef np.float64_t DTYPE_t
-
-# ITYPE = np.int32
-# ctypedef np.int32_t ITYPE_t
 
 
 def joint_mask(subjects, mask_file):
@@ -31,25 +22,17 @@ def joint_mask(subjects, mask_file):
     import nibabel as nb
     import numpy as np
     import os
+    from CPAC.pipeline.new_cpac_ga_model_generator import (
+        create_merged_copefile, create_merged_mask)
     
-    from CPAC.utils import safe_shape
-    
-    nii = nb.load(mask_file)
-    
-    mask = nii.get_data().astype('bool')
-    # for subject_file in subjects_file_list:
-    #     sdata = nb.load(subject_file).get_data().astype(np.float64).sum(-1)
-    #     if not safe_shape(sdata, mask): raise ValueError('Subject %s with volume shape %s conflicts \
-    #                                                       with mask shape %s' % ( subject_file,
-    #                                                                               str(sdata.shape),
-    #                                                                               str(mask.shape) ) )
-    #     mask *= sdata.astype('bool')
+    if not mask_file:
+        files = list(subjects.values())
+        cope_file = os.path.join(os.getcwd(), 'joint_cope.nii.gz')
+        mask_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
+        create_merged_copefile(files, cope_file)
+        create_merged_mask(cope_file, mask_file)
 
-    img = nb.Nifti1Image(mask, header=nii.get_header(), affine=nii.get_affine())
-    img_file = os.path.join(os.getcwd(), 'joint_mask.nii.gz')
-    img.to_filename(img_file)
-    
-    return img_file
+    return mask_file
 
 
 def norm_cols(X):
