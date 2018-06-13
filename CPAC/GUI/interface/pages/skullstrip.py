@@ -112,7 +112,7 @@ class AFNI_options(wx.ScrolledWindow):
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name = 'touchup',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
                       values=["On","Off"],
                       wkf_switch=True)
@@ -250,7 +250,7 @@ class BET_options(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='mask_boolean',
                       comment="mask created along with skull stripping",
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
                       
@@ -285,7 +285,7 @@ class BET_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='radius',
                       comment="integer value of head radius",
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0")
                       
@@ -337,7 +337,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Threshold",
                       control=control.CHOICE_BOX,
                       name='threshold',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment="Apply thresholding to segmented brain image and mask",
                       values=["On","Off"],
                       wkf_switch = True)
@@ -346,7 +346,7 @@ class BET_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='vertical_gradient',
                       comment="Vertical gradient in fractional intensity threshold (-1,1)",
-                      type=dtype.LNUM,
+                      type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0.000")
         self.page.set_sizer()
