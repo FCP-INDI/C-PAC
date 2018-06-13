@@ -146,7 +146,7 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'avoid_eyes',
                       type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
-                      values = ["On","Off"]
+                      values = ["On","Off"],
                       wkf_switch=True)
                       
         self.page.add(label="Use_edge",
@@ -191,6 +191,7 @@ class AFNI_options(wx.ScrolledWindow):
                       comment = "Multiply input dataset by FAC if range of values is too small",
                       validator=CharValidator("no-alpha"),
                       values = "1")
+
         self.page.add(label = "blur_fwhm",
                       control = control.TEXT_BOX,
                       name = 'blur_fwhm',
