@@ -1007,7 +1007,7 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
 
     # TODO: this must change once PyBASC is modified (if it is) to have a
     # TODO: separate working and output directory
-    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'BASC',
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'PyBASC',
                            os.path.basename(pipeline_dir))
     working_dir = out_dir
 
@@ -1056,10 +1056,6 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
                 if df_scan not in scan_inclusion:
                     continue
 
-            # add scan label and nuisance regression strategy label to the
-            # output directory path
-            output_dir = os.path.join(output_dir, df_scan, nuisance_string)
-
             func_paths = list(df_dct[df_scan]["Filepath"])
 
             # affinity threshold is an iterable, and must match the number of
@@ -1093,6 +1089,13 @@ def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
                 roi_file = resample_cpac_output_image(roi_cmd_args)
             if roi_two_cmd_args:
                 roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
+
+            # add scan label and nuisance regression strategy label to the
+            # output directory path
+            out_dir = os.path.join(out_dir, df_scan,
+                                   nuisance_string.lstrip('/'))
+            # TODO: change once PyBASC delineates output/working
+            working_dir = out_dir
 
             print('Starting the PyBASC workflow...\n')
 
