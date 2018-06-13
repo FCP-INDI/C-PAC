@@ -1,5 +1,5 @@
 # CPAC Data Configuration File
-# Version 1.0.3
+# Version 1.0.4
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -10,21 +10,23 @@
 - anat: /path/to/site01/sub01/ses01/anatomical.nii.gz
   creds_path: null
   func:
-    scan_1: /path/to/site01/sub01/ses01/scan_1_func.nii.gz
-    scan_parameters:
-      acquisition: seq+z
-      firsttr (start volume index): ''
-      lasttr (final volume index): ''
-      reference: 27
-      tr: 3.0
+    scan_1:
+      scan: /path/to/site01/sub01/ses01/scan_1_func.nii.gz
+      scan_parameters:
+        acquisition: seq+z
+        firsttr (start volume index): ''
+        lasttr (final volume index): ''
+        reference: 27
+        tr: 3.0
   site: site01
   subject_id: sub01
   unique_id: ses01
 - anat: /path/to/site01/sub02/ses02/anatomical.nii.gz
   creds_path: null
   func:
-    scan_1: /path/to/site01/sub02/ses02/scan_1_func.nii.gz
-    scan_parameters: None
+    scan_1:
+      scan: /path/to/site01/sub02/ses02/scan_1_func.nii.gz
+      scan_parameters: None
   site: site01
   subject_id: sub02
   unique_id: ses02
@@ -34,8 +36,22 @@
 - anat: s3://s3_bucket/path/to/site_A/sub200/anatomical.nii.gz
   creds_path: null (or) /path/to/AWS_credentials.csv
   func:
-    scan_name_REST: s3://s3_bucket/path/to/site_A/sub200/scan_name_REST_func.nii.gz
-    scan_parameters: s3://s3_bucket/path/to/site_A/scan_name_REST_func.json
+    scan_name_REST:
+      scan: s3://s3_bucket/path/to/site_A/sub200/scan_name_REST_func.nii.gz
+      scan_parameters: s3://s3_bucket/path/to/site_A/scan_name_REST_func.json
   site: site_A
   subject_id: sub200
   unique_id: ses-1
+
+
+# with field map files for distortion correction
+- anat: /path/to/site01/sub01/ses01/anatomical.nii.gz
+  creds_path: null
+  func:
+    scan_1:
+      scan: /path/to/site01/sub01/ses01/scan_1_func.nii.gz
+      fmap_phase: /path/to/site01/sub01/ses01/scan_1_phase-diff.nii.gz
+      fmap_mag: /path/to/site01/sub01/ses01/scan_1_magnitude.nii.gz
+  site: site01
+  subject_id: sub01
+  unique_id: ses01

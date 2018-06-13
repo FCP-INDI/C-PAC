@@ -371,8 +371,8 @@ def create_vmhc(use_ants, name='vmhc_workflow', ants_threads=1):
         vmhc.connect(inputNode, 'standard_for_func',
                      apply_ants_xfm_vmhc, 'inputspec.reference_image')
 
-        vmhc.connect(collect_transforms_vmhc, \
-                     'outputspec.transformation_series', \
+        vmhc.connect(collect_transforms_vmhc,
+                     'outputspec.transformation_series',
                      apply_ants_xfm_vmhc, 'inputspec.transforms')
 
         vmhc.connect(apply_ants_xfm_vmhc, 'outputspec.output_image',

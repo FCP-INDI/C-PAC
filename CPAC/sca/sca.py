@@ -19,44 +19,33 @@ def create_sca(name_sca='sca'):
 
     Parameters
     ----------
-
     name_sca : a string
         Name of the SCA workflow
 
     Returns
     -------
-
     sca_workflow : workflow
-
         Seed Based Correlation Analysis Workflow
-
-
 
     Notes
     -----
-
     `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_ 
 
     Workflow Inputs::
- 
-
         inputspec.rest_res_filt : string (existing nifti file)
-            Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
+            Band passed Image with Global Signal , white matter, csf and
+            motion regression. Recommended bandpass filter (0.001,0.1) )
 
         inputspec.timeseries_one_d : string (existing nifti file)
-            1D 3dTcorr1D compatible timeseries file. 1D file can be timeseries from a mask or from a parcellation containing ROIs
+            1D 3dTcorr1D compatible timeseries file. 1D file can be timeseries
+            from a mask or from a parcellation containing ROIs
 
-
-
-        
     Workflow Outputs::
-
         outputspec.correlation_file : string (nifti file)
             Correlations of the functional file and the input time series 
 
         outputspec.Z_score : string (nifti file)
             Fisher Z transformed correlations of the seed 
-
 
     SCA Workflow Procedure:
 
@@ -67,9 +56,7 @@ def create_sca(name_sca='sca'):
     2. Compute Fisher Z score of the correlation computed in step above. If a mask is provided then a 
        a single Z score file is returned, otherwise z-scores for all ROIs are returned as a list of 
        nifti files 
-    
-    
-    
+
     Workflow:
     
     .. image:: ../images/sca_graph.dot.png
@@ -78,8 +65,7 @@ def create_sca(name_sca='sca'):
     Detailed Workflow:
     
     .. image:: ../images/sca_detailed_graph.dot.png
-        :width: 500 
-
+        :width: 500
 
     Examples
     --------
@@ -106,7 +92,7 @@ def create_sca(name_sca='sca'):
                                                     ]),
                         name='outputspec')
 
-    # # 2. Compute voxel-wise correlation with Seed Timeseries
+    # 2. Compute voxel-wise correlation with Seed Timeseries
     corr = pe.Node(interface=preprocess.TCorr1D(),
                       name='3dTCorr1D')
     corr.inputs.pearson = True
@@ -139,8 +125,7 @@ def create_sca(name_sca='sca'):
     get_roi_num_list.inputs.prefix = "sca"
 
     rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-                      iterfield=['in_file','format_string'])
-
+                             iterfield=['in_file', 'format_string'])
     rename_rois.inputs.keep_ext = True
 
     sca.connect(corr, 'out_file', concat, 'in_files')
@@ -203,7 +188,8 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     Workflow Inputs::
 
         inputspec.subject_rest : string (existing nifti file)
-            Band passed Image with Global Signal , white matter, csf and motion regression. Recommended bandpass filter (0.001,0.1) )
+            Band passed Image with Global Signal , white matter, csf and
+            motion regression. Recommended bandpass filter (0.001,0.1) )
 
         inputspec.subject_timeseries : string (existing txt file)
             text file containing the timeseries to be regressed on the subjects
@@ -290,7 +276,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
                   check_timeseries, 'in_file')
 
     temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression')
-
     temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
     temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
 
@@ -307,8 +292,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
 
-    wflow.connect(temporalReg, 'out_file',
-                  split, 'in_file')
+    wflow.connect(temporalReg, 'out_file', split, 'in_file')
 
     split_zstat = pe.Node(interface=fsl.Split(), name='split_zstat_volumes')
     split_zstat.inputs.dimension = 't'

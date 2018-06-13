@@ -2,7 +2,7 @@ import wx
 import wx.combo
 import os
 from wx.lib.masked import NumCtrl
-import modelconfig_window, modelDesign_window
+import modelconfig_window, modelDesign_window, fsl_flame_presets_window
 import wx.lib.agw.balloontip as BT
 import pkg_resources as p
 
@@ -125,7 +125,6 @@ class CheckBox(wx.Frame):
             self.Close()
 
 
-
 class StringBoxFrame(wx.Frame):
 
     def __init__(self, parent, values, title, label):
@@ -160,7 +159,6 @@ class StringBoxFrame(wx.Frame):
         if self.box1.GetValue():
             parent.listbox.Append(self.box1.GetValue())
             self.Close()
-
 
 
 class TextBoxFrame(wx.Frame):
@@ -219,7 +217,6 @@ class TextBoxFrame(wx.Frame):
                 self.Close()
 
 
-
 class ResampleNumBoxFrame(wx.Frame):
 
     def __init__(self, parent, values):
@@ -264,7 +261,6 @@ class ResampleNumBoxFrame(wx.Frame):
             val = self.box1.GetValue()
             parent.listbox.Append(str(val))
             self.Close()
-
 
 
 class FilepathBoxFrame(wx.Frame):
@@ -317,36 +313,42 @@ class FilepathBoxFrame(wx.Frame):
             else:
                 parent.add_checkbox_grid_value(val)
                 self.Close()
-                  
 
     
 class ConfigFslFrame(wx.Frame):
     
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, \
-                              title="Specify FSL Model and Subject List", \
-                              size = (680,200))
-        sizer = wx.BoxSizer(wx.VERTICAL)
+        wx.Frame.__init__(self, parent,
+                          title="Specify FSL FLAME Model",
+                          size = (680,200))
+        sizer_vert = wx.BoxSizer(wx.VERTICAL)
+        sizer_horz = wx.BoxSizer(wx.HORIZONTAL)
         panel = wx.Panel(self)
-        
-        button1 = wx.Button(panel, -1, 'Create or Load FSL Model', \
-                                size= (210,50))
+
+        button0 = wx.Button(panel, -1, 'Choose FLAME Model Preset',
+                            size=(210, 50))
+        button0.Bind(wx.EVT_BUTTON, self.onPresetClick)
+        sizer_horz.Add(button0, 0, wx.ALIGN_CENTER | wx.TOP, border=15)
+
+        button1 = wx.Button(panel, -1, 'FLAME Model Builder/Editor',
+                                size= (210, 50))
         button1.Bind(wx.EVT_BUTTON, self.onButtonClick)
-        sizer.Add(button1, 0, wx.ALIGN_CENTER|wx.TOP, border = 15)
+        sizer_horz.Add(button1, 1, wx.ALIGN_CENTER | wx.TOP, border=15)
+
+        sizer_vert.Add(sizer_horz, 0, wx.ALIGN_CENTER, border=15)
         
         flexsizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
-        img = wx.Image(p.resource_filename('CPAC', \
-                                           'GUI/resources/images/help.png'),\
+        img = wx.Image(p.resource_filename('CPAC',
+                                           'GUI/resources/images/help.png'),
                                          wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 
-        
-        label2 = wx.StaticText(panel, -1, label = 'FSL Model Config')
-        self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY, \
+        label2 = wx.StaticText(panel, -1, label='FSL FLAME Model Config')
+        self.box2 = FSLModelSelectorCombo(panel, id = wx.ID_ANY,
                                           size = (500, -1))
         
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         help2 = wx.BitmapButton(panel, id=-1, bitmap=img,
-                                pos=(10, 20), size = (img.GetWidth()+5, \
+                                pos=(10, 20), size = (img.GetWidth()+5,
                                 img.GetHeight()+5))
         help2.Bind(wx.EVT_BUTTON, lambda event: \
                          self.OnShowDoc(event, 2))
@@ -366,16 +368,19 @@ class ConfigFslFrame(wx.Frame):
         hbox.Add(button3, 1, wx.EXPAND, border =5)
         hbox.Add(button2, 1, wx.EXPAND, border =5)
         
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(hbox,0, wx.ALIGN_CENTER, 5)
-        panel.SetSizer(sizer)
+        sizer_vert.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer_vert.Add(hbox,0, wx.ALIGN_CENTER, 5)
+        panel.SetSizer(sizer_vert)
         
         self.Show()
         
     def onCancel(self, event):
         self.Close()
-        
-    def onButtonClick(self,event):
+
+    def onPresetClick(self, event):
+        fsl_flame_presets_window.FlamePresetsOne(self)
+
+    def onButtonClick(self, event):
         modelconfig_window.ModelConfig(self)
 
     def onOK(self, event):
@@ -385,28 +390,30 @@ class ConfigFslFrame(wx.Frame):
             parent.listbox.Append(val)
             self.Close()
         else:
-             wx.MessageBox("Please provide the path to the fsl model " \
-                               "config file.")
+             wx.MessageBox("Please provide the path to the fsl model "
+                           "config file.")
 
     def OnShowDoc(self, event, flag):
         if flag == 1:
-            wx.TipWindow(self, "Full path to a directory containing files " \
-                               "for a single FSL model. All models must " \
-                               "include .con, .mat, and .grp files. Models " \
-                               "in which an F-Test is specified must also " \
+            wx.TipWindow(self, "Full path to a directory containing files "
+                               "for a single FSL model. All models must "
+                               "include .con, .mat, and .grp files. Models "
+                               "in which an F-Test is specified must also "
                                "include a .fts file.", 500)
         elif flag == 2:
-            wx.TipWindow(self, "Full path to a CPAC FSL model configuration "\
-                               "file to be used.\n\nFor more information, " \
+            wx.TipWindow(self, "Full path to a CPAC FSL FLAME group analysis "
+                               "model configuration YAML file. You can "
+                               "either create one using one of the presets, "
+                               "or by using the model builder to build one "
+                               "from scratch.\n\nFor more information, "
                                "please refer to the user guide.", 500)
-
 
 
 class ContrastsFrame(wx.Frame):
 
     def __init__(self, parent, values, dmatrix_obj):
 
-        wx.Frame.__init__(self, parent, title="Add Contrast Description", \
+        wx.Frame.__init__(self, parent, title="Add Contrast Description",
                 size = (300,80))
         
         self.dmatrix_obj = dmatrix_obj
@@ -431,7 +438,6 @@ class ContrastsFrame(wx.Frame):
         panel.SetSizer(sizer)
         
         self.Show()
-    
 
     def onButtonClick(self, event):
 
@@ -459,7 +465,7 @@ class ContrastsFrame(wx.Frame):
 class f_test_frame(wx.Frame):
     
     def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, title="Select Contrasts for f-Test", \
+        wx.Frame.__init__(self, parent, title="Select Contrasts for f-Test",
                               size = (280,200))
         sizer = wx.BoxSizer(wx.VERTICAL)
         

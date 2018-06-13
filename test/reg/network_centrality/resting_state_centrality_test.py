@@ -239,7 +239,10 @@ class RestingStateCentralityTestCase(unittest.TestCase):
 
         # Import packages
         import os
-        from nipype.pipeline.plugins.callback_log import log_nodes_cb
+        try:
+            from nipype.pipeline.plugins.callback_log import log_nodes_cb
+        except:
+            from nipype.utils.profiler impor log_nodes_cb
 
         # Init workflow
         centrality_wf = self._init_centrality_wf(method, thresh_option, thresh)

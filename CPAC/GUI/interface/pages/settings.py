@@ -10,23 +10,14 @@ import pkg_resources as p
 class Settings(wx.html.HtmlWindow):
 
     def __init__(self, parent, counter=0):
-        from urllib2 import urlopen
         wx.html.HtmlWindow.__init__(
             self, parent, style=wx.html.HW_SCROLLBAR_AUTO)
         self.SetStandardFonts()
 
         self.counter = counter
 
-        self.LoadFile(p.resource_filename('CPAC', 'GUI/resources/html/compute_config.html'))
-
-#        try:
-#            code = urlopen("http://fcp-indi.github.io/docs/user/compute_config.html").code
-#            if (code / 100 < 4):
-#                self.LoadPage('http://fcp-indi.github.io/docs/user/compute_config.html')
-#            else:
-#                self.LoadFile('html/settings.html')
-#        except:
-#            self.LoadFile('html/settings.html')
+        self.LoadFile(p.resource_filename('CPAC',
+                                          'GUI/resources/html/compute_config.html'))
 
     def get_counter(self):
         return self.counter
@@ -41,14 +32,16 @@ class ComputerSettings(wx.ScrolledWindow):
         fsl = ""
         if os.environ.get('FSLDIR'):
             fsl = os.environ['FSLDIR']
-            
 
         self.page = GenericClass(self, "Computer Settings")
         self.page.add(label="Run CPAC on a Cluster/Grid ",
                       control=control.CHOICE_BOX,
                       name='runOnGrid',
                       type=dtype.BOOL,
-                      comment="Select False if you intend to run CPAC on a single machine.\n\nIf set to True, CPAC will attempt to submit jobs through the job scheduler / resource manager selected below.",
+                      comment="Select False if you intend to run CPAC on a "
+                              "single machine.\n\nIf set to True, CPAC will "
+                              "attempt to submit jobs through the job "
+                              "scheduler / resource manager selected below.",
                       values=["False", "True"],
                       wkf_switch=True)
 
@@ -196,47 +189,62 @@ class DirectorySettings(wx.ScrolledWindow):
                       control=control.DIR_COMBO_BOX,
                       name='outputDirectory',
                       type=dtype.STR,
-                      comment="Directory where CPAC should place processed data.",
+                      comment="Directory where CPAC should place processed "
+                              "data.",
                       validation_req=False)
 
         self.page.add(label="AWS Output Bucket Credentials (optional) ",
                       control=control.COMBO_BOX,
                       name='awsOutputBucketCredentials',
                       type=dtype.STR,
-                      comment="If setting the \'Output Directory\' to an S3 "\
-                              "bucket, insert the path to your AWS credentials "\
-                              "file here.",
+                      comment="If setting the \'Output Directory\' to an S3 "
+                              "bucket, insert the path to your AWS "
+                              "credentials file here.",
                       validation_req=False)
 
         self.page.add(label="S3 Encryption ",
                       control=control.CHOICE_BOX,
                       name='s3Encryption',
                       type=dtype.LSTR,
-                      comment="Enable server-side 256-AES encryption on data "\
+                      comment="Enable server-side 256-AES encryption on data "
                               "to the S3 bucket",
                       values=["On", "Off"])
 
-        self.page.add(label="Create Symbolic Links ",
+        self.page.add(label="Write Extra Functional Outputs ",
                       control=control.CHOICE_BOX,
-                      name='runSymbolicLinks',
+                      name='write_func_outputs',
                       type=dtype.LSTR,
-                      comment="Create a user-friendly, well organized version of the output directory.\n\n"
-                      "We recommend all users enable this option.",
-                      values=["On", "Off"])
+                      comment="Include extra versions and intermediate steps "
+                              "of functional preprocessing in the output "
+                              "directory.",
+                      values=["Off", "On"])
 
-        #self.page.add(label="Enable Quality Control Interface ",
-        #              control=control.CHOICE_BOX,
-        #              name='generateQualityControlImages',
-        #              type=dtype.LSTR,
-        #              comment="Generate quality control pages containing preprocessing and derivative outputs.",
-        #              values=["On", "Off"])
+        self.page.add(label="Write Debugging Outputs ",
+                      control=control.CHOICE_BOX,
+                      name='write_debugging_outputs',
+                      type=dtype.LSTR,
+                      comment="Include extra outputs in the output "
+                              "directory that may be of interest when more "
+                              "information is needed.",
+                      values=["Off", "On"])
+
+        self.page.add(label="Enable Quality Control Interface ",
+                      control=control.CHOICE_BOX,
+                      name='generateQualityControlImages',
+                      type=dtype.LSTR,
+                      comment="Generate quality control pages containing "
+                              "preprocessing and derivative outputs.",
+                      values=["On", "Off"])
 
         self.page.add(label="Remove Working Directory ",
                       control=control.CHOICE_BOX,
                       name='removeWorkingDir',
                       type=dtype.BOOL,
                       values=["False", "True"],
-                      comment="Deletes the contents of the Working Directory after running.\n\nThis saves disk space, but any additional preprocessing or analysis will have to be completely re-run.")
+                      comment="Deletes the contents of the Working "
+                              "Directory after running.\n\nThis saves disk "
+                              "space, but any additional preprocessing or "
+                              "analysis will have to be completely re-run.")
 
         self.page.add(label="Run Logging ",
                       control=control.CHOICE_BOX,
@@ -251,7 +259,18 @@ class DirectorySettings(wx.ScrolledWindow):
                       name='reGenerateOutputs',
                       type=dtype.BOOL,
                       values=["False", "True"],
-                      comment="Uses the contents of the Working Directory to regenerate all outputs and their symbolic links.\n\nRequires an intact Working Directory from a previous CPAC run.")
+                      comment="Uses the contents of the Working Directory "
+                              "to regenerate all outputs and their "
+                              "symbolic links.\n\nRequires an intact "
+                              "Working Directory from a previous CPAC run.")
+
+        self.page.add(label="Create Symbolic Links ",
+                      control=control.CHOICE_BOX,
+                      name='runSymbolicLinks',
+                      type=dtype.LSTR,
+                      comment="Create a user-friendly, well organized "
+                              "version of the output directory.",
+                      values=["On", "Off"])
 
         self.page.set_sizer()
         parent.get_page_list().append(self)

@@ -43,24 +43,15 @@ import anat_preproc, \
        cwas, \
        GUI
 
-__all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr', 'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance', 'alff', 'vmhc', 'median_angle', 'generate_motion_statistics', 'timeseries', 'network_centrality', 'scrubbing', 'utils', 'group_analysis', 'easy_thresh', 'qc', 'cwas']
-
-from subprocess import Popen, PIPE
-import re
-#__version__ = '0.1-git'
+__all__ = ['GUI', 'pipeline', 'anat_preproc', 'func_preproc', 'epi_distcorr',
+           'registration', 'seg_preproc', 'reho', 'sca', 'basc', 'nuisance',
+           'alff', 'vmhc', 'median_angle', 'generate_motion_statistics',
+           'timeseries', 'network_centrality', 'scrubbing', 'utils',
+           'group_analysis', 'easy_thresh', 'qc']
 
 try:
-    version = '1.0.4'
-
-#    gitproc = Popen(['git', 'log', '--oneline'], stdout = PIPE)
-#    (stdout, stderr) = gitproc.communicate()
-#    rows = stdout.split("\n")
-#    v_num = re.search( r'(?<=(version_|release_))(.)*', rows[0])
-#    if v_num:
-#        version = v_num.group(0).strip("'")
-#    else:
-#        version = 'unknown_version'
+    version = '1.2.0'
 except OSError:
     version = 'unknown_version'
 
-__version__ =  str(version)
+__version__ = str(version)

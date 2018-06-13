@@ -426,7 +426,8 @@ class Control(wx.Control):
                     if v:                       
                         listbox.Insert(v,0)
                         listbox.Check(0)
-                        self.set_selection(v)  
+                        self.set_selection(v)
+
             elif self.get_type()==6:
 
                 # if the control is a checkbox, handle appropriately
@@ -437,7 +438,8 @@ class Control(wx.Control):
                     val = val.replace("'", "")
                     val = val.split(", ")
 
-                self.ctrl.SetCheckedStrings(val)
+                    self.ctrl.SetCheckedStrings(val)
+
                 strings = self.ctrl.GetCheckedStrings()
                 sample_list = self.get_values()
                 for s in strings:

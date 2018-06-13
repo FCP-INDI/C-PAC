@@ -5,9 +5,6 @@ import string
 import logging
 import yaml
 
-#logging.basicConfig(filename=os.path.join(os.getcwd(), 'extract_data_logs.log'), filemode='w', level=logging.DEBUG,\
-#                    format="%(levelname)s %(asctime)s %(lineno)d %(message)s")
-
 
 def extract_data(c, param_map):
     """
@@ -568,12 +565,12 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
     print "Template Phenotypic file for group analysis with repeated " \
           "measures (multiple scans) - %s" % file_name
+    """
 
     # generate the group analysis subject lists
     file_name = os.path.join(data_config_outdir,
                              'participant_list_group_analysis_%s.txt'
                              % data_config_name)
-    """
 
     try:
         with open(file_name, 'w') as f:
@@ -665,7 +662,6 @@ def run(data_config):
               "in CPAC configuration\n")
         s_param_map = None
 
-    CPAC.utils.build_sublist.build_sublist(data_config)
     generate_supplementary_files(c.outputSubjectListLocation, c.subjectListName)
 
 

@@ -13,8 +13,8 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
     TimeSeries, EPI_DistCorr, ROITimeseries, \
-    GroupAnalysis, GPASettings, CWASSettings, TimeSeriesOptions
-
+    GroupAnalysis, GPASettings, CWASSettings, TimeSeriesOptions, \
+    BASCSettings
 
 ID_SUBMIT = 6
 
@@ -114,7 +114,8 @@ class Mybook(wx.Treebook):
 
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
-        page47 = CWASSettings(self)
+        page47 = BASCSettings(self)
+        page48 = CWASSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -128,7 +129,8 @@ class Mybook(wx.Treebook):
         self.AddPage(page8, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page9, "Time Series Options", wx.ID_ANY)
         self.AddSubPage(page10, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page11,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page11,"Functional to Anatomical Registration",
+                        wx.ID_ANY)
         self.AddSubPage(page12,"Functional to MNI Registration", wx.ID_ANY)
 
         self.AddPage(page13,"Nuisance", wx.ID_ANY)
@@ -158,9 +160,11 @@ class Mybook(wx.Treebook):
         self.AddPage(page39, "After Warping", wx.ID_ANY)
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
-        self.AddPage(page45, "Group Analysis", wx.ID_ANY)
-        self.AddSubPage(page46, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page47, "CWAS Settings", wx.ID_ANY)
+        self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
+        self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
+        self.AddSubPage(page47, "Bootstrapped Analysis of Stable Clusters ",
+                        wx.ID_ANY)
+        self.AddSubPage(page48, "CWAS Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -304,8 +308,7 @@ class MainFrame(wx.Frame):
                                          for item in val if s_map.get(item) != None]
                             if not value:
                                 value = [ str(item) for item in val]
-                            
-                                
+
                         elif ctrl.get_datatype() == 5 and \
                             ctrl.get_type() == 6:
                                 value = [sample_list[v] for v in val]
@@ -697,11 +700,9 @@ class MainFrame(wx.Frame):
             raise Exception            
 
         paramInfo = params_file.read().split('\n')
-        
         paramList = []
 
         for param in paramInfo:
-
             if param != '':
                 paramList.append(param.split(','))
 
@@ -712,7 +713,6 @@ class MainFrame(wx.Frame):
                     fileTest = open(filepath)
                     fileTest.close()
             except:
-                    
                 testDlg1.Destroy()
                 
                 for param in paramList:
@@ -797,7 +797,6 @@ class MainFrame(wx.Frame):
             prep_workflow(sublist[0], c, strategies, 0)
 
         except Exception as xxx:
-
             print xxx
             print "an exception occurred"
             
@@ -815,7 +814,6 @@ class MainFrame(wx.Frame):
             errDlg1.Destroy()
             
         else:
-            
             testDlg1.Destroy()
             
             okDlg1 = wx.MessageDialog(
@@ -1073,7 +1071,12 @@ class MainFrame(wx.Frame):
                         if substitution_map.get(value) != None:
                             value = substitution_map.get(value)
                         elif value != 'None':
-                            value = ast.literal_eval(str(value))
+                            try:
+                                value = ast.literal_eval(str(value))
+                            except Exception as e:
+                                raise Exception("could not parse value: "
+                                                "{0}\n\n{1}"
+                                                "\n".format(str(value), e))
                     
                     print >>f, label, ": ", value
                     print >>f,"\n"
@@ -1118,12 +1121,13 @@ class MainFrame(wx.Frame):
                         values = ['3dAutoMask','BET']
 
                     print>>f, label, ": ", values
-                    print>>f,"\n"
+                    print>>f, "\n"
 
                 # parameters that are bracketed numbers (int or float)
                 elif dtype == 5:
 
-                    ### parse user input   ### can't use internal function type() here???
+                    ### parse user input   ### can't use internal function
+                    # type() here???
                     if value.find(',') != -1:
                         lvalue = value.split(',')
                     elif value.find(';') != -1:
@@ -1145,7 +1149,6 @@ class MainFrame(wx.Frame):
                         lvalue = new_lvalue
                     else:
                         lvalue = 0
-
                     
                     print>>f, label, ":", lvalue   ###
                     print>>f, "\n"
