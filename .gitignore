@@ -4,6 +4,8 @@
 *.egg
 *.egg-info
 *.pyc
+*.so
+*.c
 dist
 build
 eggs

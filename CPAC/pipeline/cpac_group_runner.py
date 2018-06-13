@@ -114,7 +114,7 @@ def gather_nifti_globs(pipeline_output_folder, resource_list):
 
     for resource_name in resource_list:
 
-        glob_string = os.path.join(pipeline_output_folder, "*", \
+        glob_string = os.path.join(pipeline_output_folder, "*",
                                        resource_name, "*", "*")
 
         # get all glob strings that result in a list of paths where every path
@@ -346,13 +346,13 @@ def create_output_df_dict(output_dict_list, inclusion_list=None):
     return output_df_dict
 
 
-def gather_outputs(pipeline_folder, resource_list, inclusion_list, \
+def gather_outputs(pipeline_folder, resource_list, inclusion_list,
                        get_motion, get_raw_score):
 
     # probably won't have a session list due to subject ID format!
 
     nifti_globs = gather_nifti_globs(pipeline_folder, resource_list)
-    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder, \
+    output_dict_list = create_output_dict_list(nifti_globs, pipeline_folder,
                            get_motion, get_raw_score)
     output_df_dict = create_output_df_dict(output_dict_list, inclusion_list)
 
@@ -883,26 +883,494 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
-def run(config_file, pipeline_output_folder):
+def run_cwas_group(output_dir, working_dir, roi_file,
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes, inclusion=None):
 
     import os
+    import numpy as np
+    from multiprocessing import pool
+    from CPAC.cwas.pipeline import create_cwas
+
+    output_dir = os.path.abspath(output_dir)
+    working_dir = os.path.join(working_dir, 'group_analysis', 'CWAS',
+                               os.path.basename(output_dir))
+
+    inclusion_list = None
+    if inclusion:
+        inclusion_list = load_text_file(inclusion, "CWAS participant "
+                                                   "inclusion list")
+
+    output_df_dct = gather_outputs(output_dir,
+                                   ["functional_to_standard"],
+                                   inclusion_list, False, False)
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        for df_scan in df_dct.keys():
+            func_paths = {
+                p.split("_")[0]: f
+                for p, f in
+                zip(
+                    df_dct[df_scan].Participant,
+                    df_dct[df_scan].Filepath
+                )
+            }
+
+            cwas_wf = create_cwas(name="CWAS_{0}".format(df_scan))
+            cwas_wf.inputs.inputspec.subjects = func_paths
+            cwas_wf.inputs.inputspec.roi = roi_file
+            cwas_wf.inputs.inputspec.regressor = regressor_file
+            cwas_wf.inputs.inputspec.participant_column = participant_column
+            cwas_wf.inputs.inputspec.columns = columns
+            cwas_wf.inputs.inputspec.permutations = permutations
+            cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
+            cwas_wf.run()
+
+
+def run_cwas(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+
+    roi_file = pipeconfig_dct["cwas_roi_file"]
+    regressor_file = pipeconfig_dct["cwas_regressor_file"]
+    participant_column = pipeconfig_dct["cwas_regressor_participant_column"]
+    columns = pipeconfig_dct["cwas_regressor_columns"]
+    permutations = pipeconfig_dct["cwas_permutations"]
+    parallel_nodes = pipeconfig_dct["cwas_parallel_nodes"]
+    inclusion = pipeconfig_dct["cwas_inclusion"]
+
+    if not inclusion or "None" in inclusion or "none" in inclusion:
+        inclusion = None
+
+    run_cwas_group(output_dir, working_dir, roi_file,
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes,
+                   inclusion=inclusion)
+
+
+def find_other_res_template(template_path, new_resolution):
+    """Find the same template/standard file in another resolution, if it
+    exists.
+
+    template_path: file path to the template NIfTI file
+    new_resolution: (int) the resolution of the template file you need
+
+    NOTE: Makes an assumption regarding the filename format of the files.
+    """
+
+    # TODO: this is assuming there is a mm resolution in the file path - not
+    # TODO: robust to varying templates - look into alternatives
+
+    ref_file = None
+
+    if "mm" in template_path:
+        template_parts = template_path.rsplit('mm', 1)
+
+        print template_parts
+
+        if len(template_parts) < 2:
+            # TODO: better message
+            raise Exception('no resolution in the file path!')
+
+        template_parts[0] = str(new_resolution).join(template_parts[0].rsplit(template_parts[0][-1], 1))
+
+        print template_parts
+
+        ref_file = "{0}{1}".format(template_parts[0], template_parts[1])
+
+    elif "${resolution_for_func_preproc}" in template_path:
+        ref_file = template_path.replace("${resolution_for_func_preproc}",
+                                         "{0}mm".format(new_resolution))
+
+    if ref_file:
+        print("\n{0}mm version of the template found:\n{1}"
+              "\n\n".format(new_resolution, ref_file))
+
+    return ref_file
+
+
+def check_cpac_output_image(image_path, reference_path, out_dir=None,
+                            roi_file=False):
+
+    import os
+    import nibabel as nb
+
+    if not out_dir:
+        out_dir = os.getcwd()
+
+    # we want to preserve the original directory structure of the input image,
+    # but place that sub-tree into the BASC working directory (in this case,
+    # 'out_dir')
+    try:
+        orig_dir = "pipeline_{0}".format(image_path.split('pipeline_')[1])
+    except IndexError:
+        if roi_file:
+            orig_dir = os.path.join("ROI_files", os.path.basename(image_path))
+        else:
+            raise IndexError(image_path)
+    out_path = os.path.join(out_dir, 'resampled_input_images', orig_dir)
+
+    # if this was already done
+    if os.path.isfile(out_path):
+        image_path = out_path
+
+    if not os.path.isdir(out_path.replace(os.path.basename(out_path), "")):
+        try:
+            os.makedirs(out_path.replace(os.path.basename(out_path), ""))
+        except:
+            # TODO: better message
+            raise Exception("couldn't make the dirs!")
+
+    resample = False
+
+    image_nb = nb.load(image_path)
+    ref_nb = nb.load(reference_path)
+
+    # check: do we even need to resample?
+    if int(image_nb.header.get_zooms()[0]) != int(ref_nb.header.get_zooms()[0]):
+        print("Input image resolution is {0}mm\nTemplate image resolution "
+              "is {1}mm\n".format(image_nb.header.get_zooms()[0],
+                                  ref_nb.header.get_zooms()[0]))
+        resample = True
+    if image_nb.shape != ref_nb.shape:
+        print("Input image shape is {0}\nTemplate image shape is "
+              "{1}\n".format(image_nb.shape, ref_nb.shape))
+        resample = True
+
+    if resample:
+        print("Resampling input image:\n{0}\n\n..to this reference:\n{1}"
+              "\n\n..and writing this file here:\n{2}"
+              "\n".format(image_path, reference_path, out_path))
+        cmd = ['flirt', '-in', image_path, '-ref', reference_path, '-out',
+               out_path]
+        return cmd
+    else:
+        return resample
+
+
+def resample_cpac_output_image(cmd_args):
+
+    import subprocess
+
+    print("Running:\n{0}\n\n".format(" ".join(cmd_args)))
+    retcode = subprocess.check_output(cmd_args)
+
+    return cmd_args[-1]
+
+
+def run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, cross_cluster, proc, memory, out_dir,
+                   output_size=800, inclusion=None, scan_inclusion=None):
+
+    import os
+    import numpy as np
+    from multiprocessing import pool
+    from CPAC.basc.basc_workflow_runner import run_basc_workflow
+
+    pipeline_dir = os.path.abspath(pipeline_dir)
+
+    # TODO: this must change once PyBASC is modified (if it is) to have a
+    # TODO: separate working and output directory
+    out_dir = os.path.join(out_dir, 'cpac_group_analysis', 'PyBASC',
+                           os.path.basename(pipeline_dir))
+    working_dir = out_dir
+
+    inclusion_list = None
+    if inclusion:
+        inclusion_list = load_text_file(inclusion, "BASC participant "
+                                                   "inclusion list")
+
+    if scan_inclusion:
+        scan_inclusion = scan_inclusion.split(',')
+
+    # create encompassing output dataframe dictionary
+    #     note, it is still limited to the lowest common denominator of all
+    #     group model choices- it does not pull in the entire output directory
+    # - there will be a dataframe for each combination of output measure
+    #   type and preprocessing strategy
+    # - each dataframe will contain output filepaths and their associated
+    #   information, and each dataframe will include ALL SERIES/SCANS
+    output_df_dct = gather_outputs(pipeline_dir,
+                                   ["functional_to_standard",
+                                    "functional_mni"],
+                                   inclusion_list, False, False)
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+        nuisance_string = \
+            preproc_strat[1].replace(os.path.basename(preproc_strat[1]), '')
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        for df_scan in df_dct.keys():
+
+            # do only the selected scans
+            if scan_inclusion:
+                if df_scan not in scan_inclusion:
+                    continue
+
+            func_paths = list(df_dct[df_scan]["Filepath"])
+
+            # affinity threshold is an iterable, and must match the number of
+            # functional file paths for the MapNodes
+            affinity_thresh = [affinity_thresh] * len(func_paths)
+
+            # resampling if necessary
+            #     each run should take the file, resample it and write it
+            #     into the BASC sub-dir of the working directory
+            #         should end up with a new "func_paths" list with all of
+            #         these file paths in it
+            ref_file_iterable = [ref_file] * len(func_paths)
+            working_dir_iterable = [working_dir] * len(func_paths)
+            func_cmd_args_list = map(check_cpac_output_image, func_paths,
+                                     ref_file_iterable, working_dir_iterable)
+            roi_cmd_args = check_cpac_output_image(roi_file, ref_file,
+                                                   out_dir=working_dir,
+                                                   roi_file=True)
+            roi_two_cmd_args = check_cpac_output_image(roi_file_two, ref_file,
+                                                       out_dir=working_dir,
+                                                       roi_file=True)
+
+            # resample them now
+            if func_cmd_args_list[0]:
+                p = pool.Pool(int(proc))
+                func_paths = p.map(resample_cpac_output_image,
+                                   func_cmd_args_list)
+
+            # and the ROI file, too
+            if roi_cmd_args:
+                roi_file = resample_cpac_output_image(roi_cmd_args)
+            if roi_two_cmd_args:
+                roi_file_two = resample_cpac_output_image(roi_two_cmd_args)
+
+            # add scan label and nuisance regression strategy label to the
+            # output directory path
+            out_dir = os.path.join(out_dir, df_scan,
+                                   nuisance_string.lstrip('/'))
+            # TODO: change once PyBASC delineates output/working
+            working_dir = out_dir
+
+            print('Starting the PyBASC workflow...\n')
+
+            run_basc_workflow(func_paths,
+                              roi_file,
+                              num_ds_bootstraps,
+                              num_ts_bootstraps,
+                              num_clusters,
+                              output_size=output_size,
+                              bootstrap_list=list(np.ones(num_ds_bootstraps,
+                                                          dtype=int)*num_ds_bootstraps),
+                              proc_mem=[proc, memory],
+                              similarity_metric="correlation",
+                              cross_cluster=cross_cluster,
+                              roi2_mask_file=roi_file_two,
+                              blocklength=1,
+                              affinity_threshold=affinity_thresh,
+                              out_dir=out_dir,
+                              run=True)
+
+
+def run_basc(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    func_template = pipeconfig_dct["template_brain_only_for_func"]
+    basc_roi = pipeconfig_dct["basc_roi_file"]
+    basc_roi_two = pipeconfig_dct["basc_roi_file_two"]
+    num_ts_bootstraps = pipeconfig_dct["basc_timeseries_bootstraps"]
+    num_ds_bootstraps = pipeconfig_dct["basc_dataset_bootstraps"]
+    num_clusters = pipeconfig_dct["basc_clusters"]
+    affinity_thresh = pipeconfig_dct["basc_affinity_threshold"]
+    output_size = pipeconfig_dct["basc_output_size"]
+    cross_cluster = pipeconfig_dct["basc_cross_clustering"]
+    basc_resolution = pipeconfig_dct["basc_resolution"]
+    basc_proc = pipeconfig_dct["basc_proc"]
+    basc_memory = pipeconfig_dct["basc_memory"]
+    basc_inclusion = pipeconfig_dct["basc_inclusion"]
+    basc_pipeline = pipeconfig_dct["basc_pipeline"]
+    basc_scan_inclusion = pipeconfig_dct["basc_scan_inclusion"]
+
+    if "None" in basc_inclusion or "none" in basc_inclusion:
+        basc_inclusion = None
+
+    if "None" in basc_pipeline or "none" in basc_pipeline:
+        basc_pipeline = None
+    else:
+        # turn this into a list, even if there's only one pipeline folder
+        # given
+        basc_pipeline = basc_pipeline.split(",")
+
+    # we have the functional template only for potential resampling - to make
+    # sure everything is the same resolution and shape (as what the user has
+    # selected)
+    if "mm" in basc_resolution:
+        basc_resolution = basc_resolution.replace('mm', '')
+
+    # get the functional template, but in the specified resolution for BASC
+    ref_file = find_other_res_template(func_template, basc_resolution)
+
+    # did that actually work?
+    if not os.path.isfile(ref_file):
+        # TODO: better message
+        raise Exception('not a thing')
+
+    pipeline_dirs = []
+    if not basc_pipeline:
+        for dirname in os.listdir(output_dir):
+            if "pipeline_" in dirname:
+                pipeline_dirs.append(os.path.join(output_dir, dirname))
+    else:
+        for pipeline_name in basc_pipeline:
+            pipeline_dirs.append(os.path.join(output_dir, pipeline_name))
+
+    for pipeline in pipeline_dirs:
+        run_basc_group(pipeline, basc_roi, basc_roi_two, ref_file,
+                       num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                       affinity_thresh, cross_cluster, basc_proc, basc_memory,
+                       output_dir, output_size, inclusion=basc_inclusion,
+                       scan_inclusion=basc_scan_inclusion)
+
+
+def run_basc_quickrun(pipeline_dir, roi_file, roi_file_two=None,
+                      ref_file=None, output_size=800, output_dir=None,
+                      basc_proc=2, basc_memory=4, scan=None):
+    """Start a quick-run of PyBASC using default values for most
+    parameters."""
+
+    num_ts_bootstraps = 100
+    num_ds_bootstraps = 100
+    num_clusters = 10
+    affinity_thresh = 0.0
+
+    if not ref_file:
+        import os
+        try:
+            fsldir = os.environ['FSLDIR']
+            ref_file = os.path.join(fsldir, 'data/standard',
+                                    'MNI152_T1_3mm_brain.nii.gz')
+        except KeyError:
+            pass
+
+    if not output_dir:
+        import os
+        output_dir = os.getcwd()
+
+    run_basc_group(pipeline_dir, roi_file, roi_file_two, ref_file,
+                   num_ts_bootstraps, num_ds_bootstraps, num_clusters,
+                   affinity_thresh, True, basc_proc, basc_memory, output_dir,
+                   output_size, scan_inclusion=scan)
+
+
+def manage_processes(procss, output_dir, num_parallel=1):
+
+    import os
+
+    # start kicking it off
+    pid = open(os.path.join(output_dir, 'pid_group.txt'), 'w')
+
+    jobQueue = []
+    if len(procss) <= num_parallel:
+        """
+        Stream all the subjects as sublist is
+        less than or equal to the number of
+        subjects that need to run
+        """
+        for p in procss:
+            p.start()
+            print >> pid, p.pid
+
+    else:
+        """
+        Stream the subject workflows for preprocessing.
+        At Any time in the pipeline c.numSubjectsAtOnce
+        will run, unless the number remaining is less than
+        the value of the parameter stated above
+        """
+        idx = 0
+        while idx < len(procss):
+            if len(jobQueue) == 0 and idx == 0:
+                idc = idx
+                for p in procss[idc: idc + num_parallel]:
+                    p.start()
+                    print >> pid, p.pid
+                    jobQueue.append(p)
+                    idx += 1
+            else:
+                for job in jobQueue:
+                    if not job.is_alive():
+                        print 'found dead job ', job
+                        loc = jobQueue.index(job)
+                        del jobQueue[loc]
+                        procss[idx].start()
+                        jobQueue.append(procss[idx])
+                        idx += 1
+
+    pid.close()
+
+
+def run_feat(config_file, pipeline_output_folder):
+
     from multiprocessing import Process
 
-    # create the analysis DF dictionary
-    analysis_dict = prep_analysis_df_dict(config_file, pipeline_output_folder)
+    # let's get the show on the road
+    procss = []
 
     # get MAIN pipeline config loaded
     c = load_config_yml(config_file)
 
-    # let's get the show on the road   
-    procss = []
-    
+    # create the analysis DF dictionary
+    analysis_dict = prep_analysis_df_dict(config_file,
+                                          pipeline_output_folder)
+
     for unique_resource_id in analysis_dict.keys():
         # unique_resource_id is a 5-long tuple:
         #    ( model name, group model config file, output measure name,
         #          preprocessing strategy string,
         #          series_id or "repeated_measures" )
-        
+
         model_name = unique_resource_id[0]
         group_config_file = unique_resource_id[1]
         resource_id = unique_resource_id[2]
@@ -918,54 +1386,33 @@ def run(config_file, pipeline_output_folder):
             procss.append(Process(target=prep_group_analysis_workflow,
                                   args=(model_df, config_file, model_name,
                                         group_config_file, resource_id,
-                                        preproc_strat, series_or_repeated)))
+                                        preproc_strat,
+                                        series_or_repeated)))
         else:
-            print "\n\n[!] CPAC says: Group-level analysis has not yet been "\
-                  "implemented to handle runs on a cluster or grid.\n\n" \
-                  "Please turn off 'Run CPAC On A Cluster/Grid' in order to "\
-                  "continue with group-level analysis. This will submit " \
-                  "the job to only one node, however.\n\nWe will update " \
-                  "users on when this feature will be available through " \
-                  "release note announcements.\n\n"
-          
-    # start kicking it off
-    pid = open(os.path.join(c.outputDirectory, 'pid_group.txt'), 'w')
-                        
-    jobQueue = []
-    if len(procss) <= c.numGPAModelsAtOnce:
-        """
-        Stream all the subjects as sublist is
-        less than or equal to the number of 
-        subjects that need to run
-        """
-        for p in procss:
-            p.start()
-            print >>pid,p.pid
-                
-    else:
-        """
-        Stream the subject workflows for preprocessing.
-        At Any time in the pipeline c.numSubjectsAtOnce
-        will run, unless the number remaining is less than
-        the value of the parameter stated above
-        """
-        idx = 0
-        while idx < len(procss):
-            if len(jobQueue) == 0 and idx == 0:
-                idc = idx
-                for p in procss[idc: idc + c.numGPAModelsAtOnce]:
-                    p.start()
-                    print >>pid,p.pid
-                    jobQueue.append(p)
-                    idx += 1
-            else:
-                for job in jobQueue:
-                    if not job.is_alive():
-                        print 'found dead job ', job
-                        loc = jobQueue.index(job)
-                        del jobQueue[loc]
-                        procss[idx].start()
-                        jobQueue.append(procss[idx])
-                        idx += 1
-                
-    pid.close()
+            print "\n\n[!] CPAC says: Group-level analysis has not yet " \
+                  "been implemented to handle runs on a cluster or " \
+                  "grid.\n\nPlease turn off 'Run CPAC On A Cluster/" \
+                  "Grid' in order to continue with group-level " \
+                  "analysis. This will submit the job to only one " \
+                  "node, however.\n\nWe will update users on when this " \
+                  "feature will be available through release note " \
+                  "announcements.\n\n"
+
+    manage_processes(procss, c.outputDirectory, c.numGPAModelsAtOnce)
+
+
+def run(config_file, pipeline_output_folder):
+
+    # this runs all group analyses, and this function only really exists for
+    # the "Run Group-Level Analysis" command on the GUI
+
+    # get MAIN pipeline config loaded
+    c = load_config_yml(config_file)
+
+    # Run PyBASC, if selected
+    if 1 in c.run_basc:
+        run_basc(config_file)
+
+    # Run FSL FEAT group analysis, if selected
+    if 1 in c.run_fsl_feat:
+        run_feat(config_file, pipeline_output_folder)

@@ -11,8 +11,8 @@ from .centrality import CentralitySettings, Centrality
 from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
-from .group_analysis import GroupAnalysis, GPASettings
-
+from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
+from .cwas import CWASSettings
 
 __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'Registration', 'FunctionalPreProcessing',\
@@ -26,5 +26,5 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'SkullStripProcessing','SkullStripOptions','AFNI_options','BET_options',\
-           'GroupAnalysis', 'GPASettings', 'EPI_DistCorr']
+           'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
+           'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
