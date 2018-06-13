@@ -883,6 +883,95 @@ def prep_analysis_df_dict(config_file, pipeline_output_folder):
     return analysis_dict
 
 
+def run_cwas_group(output_dir, working_dir, roi_file,
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes, inclusion=None):
+
+    import os
+    import numpy as np
+    from multiprocessing import pool
+    from CPAC.cwas.pipeline import create_cwas
+
+    output_dir = os.path.abspath(output_dir)
+    working_dir = os.path.join(working_dir, 'group_analysis', 'CWAS',
+                               os.path.basename(output_dir))
+
+    inclusion_list = None
+    if inclusion:
+        inclusion_list = load_text_file(inclusion, "CWAS participant "
+                                                   "inclusion list")
+
+    output_df_dct = gather_outputs(output_dir,
+                                   ["functional_to_standard"],
+                                   inclusion_list, False, False)
+
+    for preproc_strat in output_df_dct.keys():
+        # go over each preprocessing strategy
+
+        df_dct = {}
+        strat_df = output_df_dct[preproc_strat]
+
+
+        if len(set(strat_df["Series"])) > 1:
+            # more than one scan/series ID
+            for strat_scan in list(set(strat_df["Series"])):
+                # make a list of sub-dataframes, each one with only file paths
+                # from one scan ID each
+                df_dct[strat_scan] = strat_df[strat_df["Series"] == strat_scan]
+        else:
+            df_dct[list(set(strat_df["Series"]))[0]] = strat_df
+
+        for df_scan in df_dct.keys():
+            func_paths = {
+                p.split("_")[0]: f
+                for p, f in
+                zip(
+                    df_dct[df_scan].Participant,
+                    df_dct[df_scan].Filepath
+                )
+            }
+
+            cwas_wf = create_cwas(name="CWAS_{0}".format(df_scan))
+            cwas_wf.inputs.inputspec.subjects = func_paths
+            cwas_wf.inputs.inputspec.roi = roi_file
+            cwas_wf.inputs.inputspec.regressor = regressor_file
+            cwas_wf.inputs.inputspec.participant_column = participant_column
+            cwas_wf.inputs.inputspec.columns = columns
+            cwas_wf.inputs.inputspec.permutations = permutations
+            cwas_wf.inputs.inputspec.parallel_nodes = parallel_nodes
+            cwas_wf.run()
+
+
+def run_cwas(pipeline_config):
+
+    import os
+    import yaml
+
+    pipeline_config = os.path.abspath(pipeline_config)
+
+    with open(pipeline_config, "r") as f:
+        pipeconfig_dct = yaml.load(f)
+
+    output_dir = pipeconfig_dct["outputDirectory"]
+    working_dir = pipeconfig_dct["workingDirectory"]
+
+    roi_file = pipeconfig_dct["cwas_roi_file"]
+    regressor_file = pipeconfig_dct["cwas_regressor_file"]
+    participant_column = pipeconfig_dct["cwas_regressor_participant_column"]
+    columns = pipeconfig_dct["cwas_regressor_columns"]
+    permutations = pipeconfig_dct["cwas_permutations"]
+    parallel_nodes = pipeconfig_dct["cwas_parallel_nodes"]
+    inclusion = pipeconfig_dct["cwas_inclusion"]
+
+    if not inclusion or "None" in inclusion or "none" in inclusion:
+        inclusion = None
+
+    run_cwas_group(output_dir, working_dir, roi_file,
+                   regressor_file, participant_column, columns,
+                   permutations, parallel_nodes,
+                   inclusion=inclusion)
+
+
 def find_other_res_template(template_path, new_resolution):
     """Find the same template/standard file in another resolution, if it
     exists.

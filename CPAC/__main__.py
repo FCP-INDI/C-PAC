@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import CPAC
 import click
 
 # CLI tree
@@ -114,6 +115,14 @@ def quickrun(pipeline_dir, roi_file, roi_file_two=None, ref_file=None,
                                         ref_file, output_size, output_dir,
                                         basc_proc, basc_memory, scan=scan)
 
+    
+@group.command(name="cwas")
+@click.argument("pipeline_config", type=click.Path(exists=True))
+def group_cwas(pipeline_config):
+    from CPAC.pipeline.cpac_group_runner import run_cwas
+    
+    run_cwas(pipeline_config)
+    
 
 # Utilities
 @main.group()
