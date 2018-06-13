@@ -130,7 +130,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
         self.AddSubPage(page7, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page8, "Tissue Segmentation", wx.ID_A)
+        self.AddSubPage(page8, "Tissue Segmentation", wx.ID_ANY)
         self.AddPage(page9, "Functional Preprocessing", wx.ID_ANY)
         self.AddSubPage(page10, "Time Series Options", wx.ID_ANY)
         self.AddSubPage(page11, "Distortion Correction", wx.ID_ANY)
