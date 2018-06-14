@@ -487,6 +487,6 @@ class Control(wx.Control):
         if type(self.pretty_name) == str:
             control_name = self.pretty_name
 
-        return self.name \
+        return control_name \
             if not page_title \
             else "%s: %s" % (page_title, control_name)
