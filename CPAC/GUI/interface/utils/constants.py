@@ -16,14 +16,14 @@ control = enum(CHOICE_BOX = 0,
                SPIN_BOX_FLOAT = 11)
 
 dtype = enum(BOOL = 0,
-             STR= 1,
-             NUM= 2,
+             STR = 1,
+             NUM = 2,
              LBOOL = 3,
              LSTR = 4,
              LNUM = 5,
              LOFL = 6,
              COMBO = 7,
-             LDICT= 8 ) 
+             LDICT = 8 ) 
 
 substitution_map = {'On': 1,
                     'Off': 0,

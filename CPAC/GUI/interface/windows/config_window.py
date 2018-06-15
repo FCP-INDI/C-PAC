@@ -566,7 +566,7 @@ class MainFrame(wx.Frame):
         from CPAC.pipeline.cpac_runner import build_strategies
 
         def display(win, msg, changeBg=True):
-            wx.MessageBox(msg, "Error")
+            wx.MessageBox(msg, "Error", style=wx.OK | wx.ICON_ERROR)
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
@@ -638,8 +638,8 @@ class MainFrame(wx.Frame):
                         value = ctrl.get_selection()
                         if not value:
                             display(
-                                win, "%s field is empty or the items are " \
-                                     "not checked!" % ctrl.get_name(), False)
+                                win, "\"%s\" field is empty or the items are " \
+                                     "not checked!" % ctrl.get_pretty_name(), False)
                             return
 
                     elif (option_name == "tsa_roi_paths") or \
@@ -656,7 +656,7 @@ class MainFrame(wx.Frame):
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
-                        display(win, "%s field is empty!" % ctrl.get_name())
+                        display(win, "\"%s\" field is empty!" % ctrl.get_pretty_name())
                         return
                         
                     if '/' in value and '$' not in value and not \
@@ -665,8 +665,8 @@ class MainFrame(wx.Frame):
                         if not os.path.exists(ctrl.get_selection()) and \
                                         value != 'On/Off':
                             display(
-                                win, "%s field contains incorrect path. " \
-                                "Please update the path!" % ctrl.get_name())
+                                win, "\"%s\" field contains incorrect path. " \
+                                "Please update the path!" % ctrl.get_pretty_name())
                             return
                     
                 config_list.append(ctrl)
@@ -836,12 +836,11 @@ class MainFrame(wx.Frame):
             okDlg1.Destroy()
 
     def submit_item(self, event):
-
         import os
         import linecache
 
         def display(win, msg, changeBg=True):
-            wx.MessageBox(msg, "Error")
+            wx.MessageBox(msg, "Error", style=wx.OK | wx.ICON_ERROR)
             if changeBg:
                 win.SetBackgroundColour("pink")
             win.SetFocus()
@@ -875,8 +874,7 @@ class MainFrame(wx.Frame):
 
                 # validating
                 if (switch == None or validate) and ctrl.get_validation() \
-                    and (option_name != 'derivativeList') and \
-                        (option_name != 'modelConfigs'):
+                    and option_name not in ['derivativeList', 'modelConfigs']:
                 
                     win = ctrl.get_ctrl()
                     
@@ -889,7 +887,7 @@ class MainFrame(wx.Frame):
 
                         if not value:
                             display(
-                                win, "%s field is empty or the items are " \
+                                win, "\"%s\" field is empty or the items are " \
                                      "not checked!" % ctrl.get_name(), False)
                             return
 
@@ -910,8 +908,8 @@ class MainFrame(wx.Frame):
                                 not ctrl.get_selection().endswith(".nii.gz"):
                             display(
                                 win, "The Mask Specification File field "
-                                    "must contain a NIFTI file (ending in "
-                                    ".nii or .nii.gz).", False)
+                                     "must contain a NIFTI file (ending in "
+                                     ".nii or .nii.gz).", False)
                             return
 
                     else:
@@ -919,7 +917,7 @@ class MainFrame(wx.Frame):
                         value = str(ctrl.get_selection())
 
                     if len(value) == 0:
-                        display(win, "%s field is empty!" % ctrl.get_name())
+                        display(win, "\"%s\" field is empty!" % ctrl.get_pretty_name())
                         return
 
                     if '/' in value and '$' not in value and \
@@ -928,9 +926,9 @@ class MainFrame(wx.Frame):
                         if not os.path.exists(ctrl.get_selection()) and \
                                         value != 'On/Off':
                             display(
-                                win, "%s field contains incorrect path. "
+                                win, "\"%s\" field contains incorrect path. "
                                      "Please update the path!"
-                                     % ctrl.get_name())
+                                     % ctrl.get_pretty_name())
                             return
 
                 config_list.append(ctrl)

@@ -20,11 +20,12 @@ class FileSelectorCombo(wx.combo.ComboCtrl):
         name = ""
         wildcard = "CPAC files (*.gz,*.nii,*.txt,*.mat.*.cnf,*.sch,*.csv)|" \
                    "*gz;*.nii;*.txt;*.cnf;*.sch;*.mat;*.csv"
+                   
         if self.GetValue():
             path, name = os.path.split(self.GetValue())
         
         dlg = wx.FileDialog(self, "Choose File", path, name,
-                           wildcard= wildcard, style=wx.FD_OPEN|wx.CHANGE_DIR)
+                            wildcard= wildcard, style=wx.FD_OPEN|wx.CHANGE_DIR)
         try:
             if dlg.ShowModal() == wx.ID_OK:
                 self.SetValue(dlg.GetPath())
@@ -199,49 +200,49 @@ class TextBoxFrame(wx.Frame):
         
         self.Show()
 
-    def __init__(self, parent, values):
-        wx.Frame.__init__(self, parent, \
-                              title="Enter Center of gravity coordinates", \
-                              size = (450,150))
+    # def __init__(self, parent, values):
+    #     wx.Frame.__init__(self, parent, \
+    #                           title="Enter Center of gravity coordinates", \
+    #                           size = (450,150))
         
-        panel = wx.Panel(self)
+    #     panel = wx.Panel(self)
         
-        sizer = wx.BoxSizer(wx.VERTICAL)
+    #     sizer = wx.BoxSizer(wx.VERTICAL)
         
-        flexsizer = wx.FlexGridSizer(cols=3, hgap=10, vgap=15) 
+    #     flexsizer = wx.FlexGridSizer(cols=3, hgap=10, vgap=15) 
         
-        label1 = wx.StaticText(panel, -1, label = 'x-coordinate')
-        self.box1 = NumCtrl(panel, id = wx.ID_ANY, value= values[0],
-                            integerWidth=2, fractionWidth = 3, 
-                            allowNegative=True, allowNone = True)
+    #     label1 = wx.StaticText(panel, -1, label = 'x-coordinate')
+    #     self.box1 = NumCtrl(panel, id = wx.ID_ANY, value= values[0],
+    #                         integerWidth=2, fractionWidth = 3, 
+    #                         allowNegative=True, allowNone = True)
         
     
-        flexsizer.Add(label1)
-        flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
+    #     flexsizer.Add(label1)
+    #     flexsizer.Add(self.box1,0,wx.ALIGN_RIGHT, 5)
         
-        label2 = wx.StaticText(panel, -1, label = 'y-coordinate')
-        self.box2 = NumCtrl(panel, id = wx.ID_ANY, value= values[1],
-                            integerWidth=2, fractionWidth = 3, 
-                            allowNegative=True, allowNone = True)
+    #     label2 = wx.StaticText(panel, -1, label = 'y-coordinate')
+    #     self.box2 = NumCtrl(panel, id = wx.ID_ANY, value= values[1],
+    #                         integerWidth=2, fractionWidth = 3, 
+    #                         allowNegative=True, allowNone = True)
 
-        flexsizer.Add(label2, 0, wx.EXPAND, 2)
-        flexsizer.Add(self.box2,0, wx.ALIGN_LEFT, 5)
+    #     flexsizer.Add(label2, 0, wx.EXPAND, 2)
+    #     flexsizer.Add(self.box2,0, wx.ALIGN_LEFT, 5)
 
-        label3 = wx.StaticText(panel, -1, label = 'z-coordinate')
-        self.box2 = NumCtrl(panel, id = wx.ID_ANY, value= values[2],
-                            integerWidth=2, fractionWidth = 3, 
-                            allowNegative=True, allowNone = True)
+    #     label3 = wx.StaticText(panel, -1, label = 'z-coordinate')
+    #     self.box3 = NumCtrl(panel, id = wx.ID_ANY, value= values[2],
+    #                         integerWidth=2, fractionWidth = 3, 
+    #                         allowNegative=True, allowNone = True)
         
-        flexsizer.Add(label3, 0, wx.EXPAND, 3)
-        flexsizer.Add(self.box2,0, wx.ALIGN_LEFT, 5)
+    #     flexsizer.Add(label3, 0, wx.EXPAND, 3)
+    #     flexsizer.Add(self.box3,0, wx.ALIGN_LEFT, 5)
         
-        button = wx.Button(panel, -1, 'OK', size= (90,30))
-        button.Bind(wx.EVT_BUTTON, self.onButtonClick)
-        sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(button,0, wx.ALIGN_CENTER)
-        panel.SetSizer(sizer)
+    #     button = wx.Button(panel, -1, 'OK', size= (90,30))
+    #     button.Bind(wx.EVT_BUTTON, self.onButtonClick)
+    #     sizer.Add(flexsizer, 1, wx.EXPAND | wx.ALL, 10)
+    #     sizer.Add(button,0, wx.ALIGN_CENTER)
+    #     panel.SetSizer(sizer)
         
-        self.Show()
+    #     self.Show()
     
     def onButtonClick(self,event):
         parent = self.Parent

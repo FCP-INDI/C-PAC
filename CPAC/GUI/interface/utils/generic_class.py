@@ -1,5 +1,6 @@
 from .custom_control import FileSelectorCombo, DirSelectorCombo, ListBoxCombo, TextBoxCombo, CheckBoxGrid, GPAModelCheckBoxGrid
 from ..utils.constants import control as control_types
+from ..utils.constants import dtype as data_types
 from wx.lib import masked
 from wx.lib.masked import NumCtrl
 from wx.lib.intctrl import IntCtrl
@@ -9,7 +10,7 @@ import pkg_resources as p
 
 class GenericClass(wx.ScrolledWindow):
     
-    def __init__(self,parent,title="",no_static=False):
+    def __init__(self, parent, title="", static=True):
         self.parent = parent
         self.title = title
         self.flexSizer = wx.FlexGridSizer(cols=2, hgap=15, vgap=15)
@@ -17,7 +18,7 @@ class GenericClass(wx.ScrolledWindow):
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.ctrl_list = []
 
-        if no_static==False:
+        if static:
             self.__add_static()
 
         self.__set_scroll()
@@ -31,7 +32,7 @@ class GenericClass(wx.ScrolledWindow):
         self.parent.SetScrollRate(20,20)
         
     def add_static(self):
-        hbox= wx.BoxSizer(wx.HORIZONTAL)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
         t = wx.StaticText(self.parent, -1, self.title)
         t.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
         img_path = p.resource_filename('CPAC', 'GUI/resources/images/cpac_logo_2.jpg')
@@ -53,12 +54,14 @@ class GenericClass(wx.ScrolledWindow):
         self.flexSizer.Add(buffer)
         self.flexSizer.Add(sizer)
 
-    def add(self, label, control, name, type = 0, 
+    def add(self, label, control, name, type=0, 
             comment="", values="", style=0, size= wx.DefaultSize, 
-            validator=wx.DefaultValidator, wkf_switch= False,
-            validation_req = True, combo_type = None, selections=None):
+            validator=wx.DefaultValidator, wkf_switch=False,
+            validation_req=True, combo_type=None, selections=None):
+
+        label = label.strip()
             
-        label = wx.StaticText(self.parent, -1, label.strip())
+        label_text = wx.StaticText(self.parent, -1, label)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         help_img_path = p.resource_filename('CPAC', 'GUI/resources/images/help.png')
         help_img = wx.Image(help_img_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -68,20 +71,20 @@ class GenericClass(wx.ScrolledWindow):
 
         button.Bind(wx.EVT_BUTTON, lambda event: \
                          self.OnShowDoc(event, comment))
-        hbox.Add(label, flag=wx.CENTER | wx.ALL)
+        hbox.Add(label_text, flag=wx.CENTER | wx.ALL)
         hbox.AddSpacer(5)
         hbox.Add(button, flag=wx.CENTER | wx.ALL)
         self.flexSizer.Add(hbox)
         
         ctrl = Control(self.parent, name=name, 
-                      type=control, datatype=type, 
-                      values=values, size=size, 
-                      validator=validator,
-                      wkf_switch = wkf_switch,
-                      help = comment, 
-                      validation_req = validation_req,
-                      combo_type = combo_type,
-                      selections = selections)
+                       type=control, datatype=type, 
+                       values=values, size=size, 
+                       validator=validator,
+                       wkf_switch=wkf_switch,
+                       help=comment, pretty_name=label,
+                       validation_req=validation_req,
+                       combo_type=combo_type,
+                       selections=selections)
         
         self.ctrl_list.append(ctrl)
         
@@ -180,79 +183,80 @@ class GenericClass(wx.ScrolledWindow):
 
     def get_switch(self):    
         return self.switch
-
         
 
 class Control(wx.Control):
+
     def __init__(self, parent, name, type, datatype, values,
-                 style=0, size= wx.DefaultSize, 
-                 validator=wx.DefaultValidator, 
-                 wkf_switch=False, help="", validation_req = True, 
-                 combo_type = None, selections=None):
+                 style=0, size=wx.DefaultSize, 
+                 validator=wx.DefaultValidator, wkf_switch=False,
+                 help="", pretty_name=None,
+                 validation_req=True, combo_type=None, selections=None):
         
-        self.name=name
+        self.name = name
         self.default_values = values
-        self.type= type
+        self.type = type
         self.datatype = datatype
         self.wfk_switch = wkf_switch
         self.help = help
         self.id = None
         self.validation = validation_req
-       
-        if type ==0:
-            self.ctrl= wx.Choice(parent, wx.ID_ANY,
-                               style=style, size= wx.DefaultSize, 
-                               validator=wx.DefaultValidator,
-                               choices=values)
+        self.pretty_name = pretty_name
+
+        if type == control_types.CHOICE_BOX:
+            self.ctrl = wx.Choice(parent, wx.ID_ANY,
+                                  style=style, size=wx.DefaultSize, 
+                                  validator=wx.DefaultValidator,
+                                  choices=values)
             self.selection = values[0]
         
-        elif type ==1:
-            self.ctrl= wx.TextCtrl(parent, id = wx.ID_ANY, 
-                               value = values, style= style,
-                               validator = validator, 
-                               size = size)
+        elif type == control_types.TEXT_BOX:
+            self.ctrl = wx.TextCtrl(parent, id=wx.ID_ANY, 
+                                    value=values, style=style,
+                                    validator=validator, 
+                                    size=size)
             self.selection = self.ctrl.GetValue()
         
-        elif type ==2:
-            self.ctrl= FileSelectorCombo(parent, id= wx.ID_ANY, 
-                                         size=size, style=style,
-                                         validator = validator,
-                                         value = values)
+        elif type == control_types.COMBO_BOX:
+            self.ctrl = FileSelectorCombo(parent, id=wx.ID_ANY, 
+                                          size=size, style=style,
+                                          validator=validator,
+                                          value=values)
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
         
-        elif type ==3:
-            self.ctrl= IntCtrl(parent, id = wx.ID_ANY,
-                               size = size, validator = validator,
-                               style = style, value = values,
-                               max = 10000)
+        elif type == control_types.INT_CTRL:
+            self.ctrl = IntCtrl(parent, id=wx.ID_ANY,
+                                size=size, validator=validator,
+                                style=style, value=values,
+                                max=10000)
             
             self.selection = self.ctrl.GetValue()
             
-        elif type ==4:
-            self.ctrl = NumCtrl(parent, id = wx.ID_ANY,
-                                size = size, validator = validator,
-                                style= style, value= values,
-                                integerWidth=2, fractionWidth = 3, 
+        elif type == control_types.FLOAT_CTRL:
+            self.ctrl = NumCtrl(parent, id=wx.ID_ANY,
+                                size=size, validator=validator,
+                                style=style, value=values,
+                                integerWidth=2, fractionWidth=3, 
                                 allowNegative=False)
             
             self.selection = self.ctrl.GetValue()
             
-        elif type ==5:
-            self.ctrl= DirSelectorCombo(parent, 
-                                        id= wx.ID_ANY, 
-                                        size=size, 
-                                        validator = validator,
-                                        value = values)  
+        elif type == control_types.DIR_COMBO_BOX:
+            self.ctrl = DirSelectorCombo(parent, 
+                                         id=wx.ID_ANY, 
+                                         size=size, 
+                                         validator=validator,
+                                         value=values)  
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
             
-        elif type ==6:
-            self.ctrl = wx.CheckListBox(parent, id = wx.ID_ANY,
-                                        size = size, validator = validator,
-                                        style= style, choices = values)
-            if datatype ==3:
+        elif type == control_types.CHECKLIST_BOX:
+            self.ctrl = wx.CheckListBox(parent, id=wx.ID_ANY,
+                                        size=size, validator=validator,
+                                        style=style, choices=values)
+            if datatype == data_types.LBOOL:
                 self.selection = {}
                 for val in values:
                     self.set_selection(val, values.index(val), True)
@@ -260,10 +264,10 @@ class Control(wx.Control):
             else:
                 self.selection = []
                 
-        elif type ==7:
-            self.ctrl = ListBoxCombo(parent, size = size, 
-                                     validator = validator,style= style, 
-                                     values = values, combo_type= combo_type)
+        elif type == control_types.LISTBOX_COMBO:
+            self.ctrl = ListBoxCombo(parent, size=size, 
+                                     validator=validator,style=style, 
+                                     values=values, combo_type=combo_type)
             self.listbox_ctrl = self.ctrl.GetListBoxCtrl()
             self.id = self.listbox_ctrl.GetId()
             self.selection = []
@@ -286,21 +290,21 @@ class Control(wx.Control):
             self.options = self.ctrl.get_listbox_options()
 
             
-        elif type == 8:
-            self.ctrl= TextBoxCombo(parent, id= wx.ID_ANY, 
-                                         size=size, style=style,
-                                         validator = validator,
-                                         value = values)
+        elif type == control_types.TEXTBOX_COMBO:
+            self.ctrl = TextBoxCombo(parent, id=wx.ID_ANY, 
+                                     size=size, style=style,
+                                     validator=validator,
+                                     value=values)
             
             self.text_ctrl = self.ctrl.GetTextCtrl()
             self.selection = self.text_ctrl.GetValue()
 
          
-        elif type == 9:
-            self.ctrl = CheckBoxGrid(parent, idx= wx.ID_ANY,
-                                     selections = selections,
-                                     values = values,
-                                     size= wx.DefaultSize)
+        elif type == control_types.CHECKBOX_GRID:
+            self.ctrl = CheckBoxGrid(parent, idx=wx.ID_ANY,
+                                     selections=selections,
+                                     values=values,
+                                     size=wx.DefaultSize)
             
             self.default_values = selections
             self.selection = self.ctrl.GetGridSelection()
@@ -315,39 +319,37 @@ class Control(wx.Control):
             self.help = self.help + add_string
 
 
-        elif type == 10:
-            self.ctrl = GPAModelCheckBoxGrid(parent, idx= wx.ID_ANY,
-                                             values = values,
-                                             size= wx.DefaultSize)
+        elif type == control_types.GPA_CHECKBOX_GRID:
+            self.ctrl = GPAModelCheckBoxGrid(parent, idx=wx.ID_ANY,
+                                             values=values,
+                                             size=wx.DefaultSize)
             
             self.selection = self.ctrl.GetGridSelection()
-            
                 
         self.set_id()
 
 
-
     def get_listbox_options(self):
-        if self.get_type() == 7:
+        if self.get_type() == control_types.LISTBOX_COMBO:
             return self.options
 
     # this takes the list of available contrast names from modelDesign_window
     # and sends it to the 'Add Contrast' dialog box, so that it may do
     # validation immediately when the user enters contrast strings
     def set_available_contrasts(self, avail_cons):
-        if self.get_type() == 7:
+        if self.get_type() == control_types.LISTBOX_COMBO:
             self.ctrl.set_available_contrasts(avail_cons)
 
     def set_design_matrix(self, design_matrix):
-        if self.get_type() == 7:
+        if self.get_type() == control_types.LISTBOX_COMBO:
             self.ctrl.set_design_matrix(design_matrix)
         
         
     def set_id(self):
-        if self.id==None:
+        if not self.id:
             self.id = self.ctrl.GetId()
     
-    def get_id (self):
+    def get_id(self):
         return self.id
         
     def get_ctrl(self):
@@ -371,7 +373,7 @@ class Control(wx.Control):
     def get_validation(self):
         return self.validation
     
-    def set_selection(self, value, index = 0, remove=False, convert_to_string = True):
+    def set_selection(self, value, index=0, remove=False, convert_to_string=True):
         
         if isinstance(self.selection, list):
             if convert_to_string:
@@ -386,10 +388,10 @@ class Control(wx.Control):
             else:
                 self.selection.append(value)
 
-        elif self.get_type() == 9:
+        elif self.get_type() == control_types.CHECKBOX_GRID:
             self.ctrl.onReload_set_selections(value)
 
-        elif self.get_type() == 10:
+        elif self.get_type() == control_types.GPA_CHECKBOX_GRID:
             self.ctrl.onReload_set_selections(value)    
 
         elif isinstance(self.selection, dict):
@@ -401,7 +403,7 @@ class Control(wx.Control):
         else:
             self.selection = value
 
-        if self.get_type()==7:
+        if self.get_type() == control_types.LISTBOX_COMBO:
             self.listbox_selections = self.selection
 
     def get_selection(self):
@@ -417,18 +419,18 @@ class Control(wx.Control):
     
         import ast
 
-        if (val == None) or (val =="") or (val == "None") or (val == "none"):
+        if val in [None, "", "None", "none"]:
             val = self.get_values()
         else:
-            if self.get_type()==7:
+            if self.get_type() == control_types.LISTBOX_COMBO:
                 listbox = self.ctrl.GetListBoxCtrl()
                 for v in val:
                     if v:                       
-                        listbox.Insert(v,0)
+                        listbox.Insert(v, 0)
                         listbox.Check(0)
                         self.set_selection(v)
 
-            elif self.get_type()==6:
+            elif self.get_type() == control_types.CHECKLIST_BOX:
 
                 # if the control is a checkbox, handle appropriately
                 # this is for the derivative list in the group analysis GUI
@@ -445,23 +447,26 @@ class Control(wx.Control):
                 for s in strings:
                     self.set_selection(s, sample_list.index(s))
 
-            elif self.get_type() == 9:
+            elif self.get_type() == control_types.CHECKBOX_GRID:
                 if "None" not in val:
                     self.ctrl.onReload_set_selections(val)
 
-            elif self.get_type() == 10:
+            elif self.get_type() == control_types.GPA_CHECKBOX_GRID:
                 self.ctrl.set_checkbox_grid_values(val)
 
             else:
-                if self.get_type() == 0:
+                if self.get_type() == control_types.CHOICE_BOX:
                     if isinstance(val, list):
                         val = val[0]
                     self.ctrl.SetStringSelection(val)
-                elif self.get_type() ==3 or self.get_type()==4:
+                elif self.get_type() in [control_types.INT_CTRL,
+                                         control_types.FLOAT_CTRL]:
                     if str(val) != 'None':
                         val = ast.literal_eval(val)
                     self.ctrl.SetValue(val)
-                elif self.get_type() ==2 or self.get_type()==5 or self.get_type()==8:
+                elif self.get_type() in [control_types.COMBO_BOX,
+                                         control_types.DIR_COMBO_BOX,
+                                         control_types.TEXTBOX_COMBO]:
                     self.text_ctrl.SetValue(val)
                 else:
                     self.ctrl.SetValue(val)
@@ -470,3 +475,17 @@ class Control(wx.Control):
     
     def get_help(self):
         return self.help
+
+    def get_pretty_name(self):
+        try:
+            page_title = self.get_ctrl().GetParent().page.title
+        except:
+            page_title = None
+            
+        control_name = self.name
+        if type(self.pretty_name) == str:
+            control_name = self.pretty_name
+
+        return control_name \
+            if not page_title \
+            else "%s: %s" % (page_title, control_name)
