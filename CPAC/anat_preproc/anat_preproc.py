@@ -3,7 +3,35 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 from nipype.interfaces import fsl
 
-def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_preproc'):
+
+def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
+                                   shrink_fac_bot_lim, avoid_vent, niter):
+
+    if var_shrink_fac:
+        var_shrink_str = '-var_shrink_fac'
+    else:
+        var_shrink_str = '-no_var_shrink_fac'
+
+    if avoid_vent:
+        avoid_vent_str = '-avoid_vent'
+    else:
+        avoid_vent_str = '-no_avoid_vent'
+
+    expr = '-shrink_fac {0} ' \
+           '{1} ' \
+           '-shrink_fac_bot_lim {2} ' \
+           '{3} ' \
+           '-max_inter_iter {4}'.format(shrink_fac,
+                                        var_shrink_str,
+                                        shrink_fac_bot_lim,
+                                        avoid_vent_str,
+                                        niter)
+
+    return expr
+
+
+def create_anat_preproc(use_AFNI, already_skullstripped=False,
+                        wf_name='anat_preproc'):
     """ 
 
     The main purpose of this workflow is to process T1 scans. Raw mprage file is deobliqued, reoriented
@@ -109,8 +137,34 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
 
     if not already_skullstripped:
         if use_AFNI == True:
-            anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),name='anat_skullstrip')
+
+            skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac',
+                                                                 'var_shrink_fac',
+                                                                 'shrink_fac_bot_lim',
+                                                                 'avoid_vent',
+                                                                 'niter'],
+                                                    output_names=['expr'],
+                                                    function=create_3dskullstrip_arg_string),
+                                      name='anat_skullstrip_args')
+
+            preproc.connect(inputNode_AFNI, 'shrink_factor',
+                            skullstrip_args, 'shrink_fac')
+            preproc.connect(inputNode_AFNI, 'var_shrink_fac',
+                            skullstrip_args, 'var_shrink_fac')
+            preproc.connect(inputNode_AFNI, 'shrink_fac_bottom_lim',
+                            skullstrip_args, 'shrink_fac_bot_lim')
+            preproc.connect(inputNode_AFNI, 'avoid_vent',
+                            skullstrip_args, 'avoid_vent')
+            preproc.connect(inputNode_AFNI, 'niter',
+                            skullstrip_args, 'niter')
+
+            anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
+                                      name='anat_skullstrip')
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+
+            preproc.connect(skullstrip_args, 'expr', anat_skullstrip, 'args')
+
+            '''
             anat_skullstrip.inputs.args.shrink_fac= 'shrink_factor'
             anat_skullstrip.inputs.args.var_shrink_fac= 'var_shrink_fac'
             anat_skullstrip.inputs.args.shrink_factor_bot_lim='shrink_fac_bot_lim'
@@ -129,10 +183,11 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
             anat_skullstrip.inputs.args.max_inter_init = 'max_inter_iter'
             anat_skullstrip.inputs.args.blur_fwhm = 'blur_fwhm'
             anat_skullstrip.inputs.args.fac = 'fac'
-            
+            '''
+
         else:
-            anat_skullstrip = pe.Node(interface=fsl.BET(),name = 'anat_skullstrip')
-            
+            anat_skullstrip = pe.Node(interface=fsl.BET(),
+                                      name='anat_skullstrip')
 
     try:
         anat_skullstrip_orig_vol = pe.Node(interface=afni_utils.Calc(),
@@ -144,12 +199,15 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
     anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
     anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
 
-    preproc.connect(inputNode, 'anat',anat_deoblique, 'in_file')
-    preproc.connect(anat_deoblique,'out_file',anat_reorient,'in_file')
+    preproc.connect(inputNode, 'anat', anat_deoblique, 'in_file')
+    preproc.connect(anat_deoblique, 'out_file', anat_reorient, 'in_file')
+
     if not already_skullstripped:
         if use_AFNI == True:
-            preproc.connect(anat_reorient, 'out_file',anat_skullstrip, 'in_file')
-            preproc.connect(anat_skullstrip, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
+            preproc.connect(anat_reorient, 'out_file',
+                            anat_skullstrip, 'in_file')
+            preproc.connect(anat_skullstrip, 'out_file',
+                            anat_skullstrip_orig_vol, 'in_file_b')
             
         else:
            # def mergexyz(x,y,z):
@@ -186,9 +244,11 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False, wf_name= 'anat_pr
                     outputNode, 'refit')
     preproc.connect(anat_reorient, 'out_file',
                     outputNode, 'reorient')
+
     if not already_skullstripped:
         preproc.connect(anat_skullstrip, 'out_file',
                         outputNode, 'skullstrip')
+
     preproc.connect(anat_skullstrip_orig_vol, 'out_file',
                     outputNode, 'brain')
 

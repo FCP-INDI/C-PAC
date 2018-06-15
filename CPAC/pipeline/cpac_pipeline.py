@@ -491,79 +491,84 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         # create a new node, Remember to change its name!
         # anat_preproc = create_anat_preproc(use_AFNI, already_skullstripped).clone(
         #    'anat_preproc_%d' % num_strat)
-      if already_skullstripped == 0:
-        if "AFNI" in c.skullstrip_option:
-            anat_preproc = create_anat_preproc(True,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
+        if already_skullstripped == 0:
+            if "AFNI" in c.skullstrip_option:
+                anat_preproc = create_anat_preproc(True, already_skullstripped,
+                                                   wf_name='anat_preproc_%d' % num_strat)
             
-            try:
-               node, out_file = strat.get_leaf_properties()
-               workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
-               anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
-               anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
-               anat_preproc.inputs.AFNI_options.shrink_factor_bot_lim = c.shrink_factor_bot_lim
-               anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
-               anat_preproc.inputs.AFNI_options.niter = c.n_iterations
-               anat_preproc.inputs.AFNI_options.pushout = c.pushout
-               anat_preproc.inputs.AFNI_options.touchup = c.touchup
-               anat_preproc.inputs.AFNI_options.fill_hole = c.fill_hole
-               anat_preproc.inputs.AFNI_options.avoid_eyes = c.avoid_eyes
-               anat_preproc.inputs.AFNI_options.use_edge = c.use_edge
-               anat_preproc.inputs.AFNI_options.exp_frac = c.exp_frac
-               anat_preproc.inputs.AFNI_options.smooth_final = c.smooth_final
-               anat_preproc.inputs.AFNI_options.push_to_edge = c.push_to_edge
-               anat_preproc.inputs.AFNI_options.use_skull = c.use_skull
-               anat_preproc.inputs.AFNI_options.perc_init = c.perc_init
-               anat_preproc.inputs.AFNI_options.max_inter_iter = c.max_inter_iter
-               anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
-               anat_preproc.inputs.AFNI_options.fac = c.fac
-            
-            
-               anat_preproc.get_node('AFNI_options.shrink_factor').iterables = ('shrink_factor',c.shrink_factor)
-               anat_preproc.get_node('AFNI_options.var_shrink_fac').iterables = ('var_shrink_fac',c.var_shrink_fac)
-               anat_preproc.get_node('AFNI_options.shrink_factor_bot_lim').iterables = ('shrink_factor_bot_lim',c.shrink_factor_bottom_lim)
-               anat_preproc.get_node('AFNI_options.avoid_vent').iterables = ('avoid_vent',c.avoid_vent)
-               anat_preproc.get_node('AFNI_options.niter').iterables = ('niter',c.n_iterations)
-               anat_preproc.get_node('AFNI_options.pushout').iterables = ('pushout',c.pushout)
-               anat_preproc.get_node('AFNI_options.touchup').iterables = ('touchup',c.touchup)
-               anat_preproc.get_node('AFNI_options.fill_hole').iterables = ('fill_hole',c.fill_hole)
-               anat_preproc.get_node('AFNI_options.avoid_eyes').iterables = ('avoid_eyes',c.avoid_eyes)
-               anat_preproc.get_node('AFNI_options.use_edge').iterables = ('use_edge',c.use_edge)
-               anat_preproc.get_node('AFNI_options.exp_frac').iterables = ('exp_frac',c.exp_frac)
-               anat_preproc.get_node('AFNI_options.smooth_final').iterables = ('smooth_final',c.smooth_final)
-               anat_preproc.get_node('AFNI_options.push_to_edge').iterables = ('push_to_edge',c.push_to_edge)
-               anat_preproc.get_node('AFNI_options.use_skull').iterables = ('use_skull',c.use_skull)
-               anat_preproc.get_node('AFNI_options.PercInit').iterables = ('perc_init',c.perc_init)
-               anat_preproc.get_node('AFNI_options.max_inter_iter').iterables = ('max_inter_iter',c.max_inter_iter)
-               anat_preproc.get_node('AFNI_options.blur_FWHM').iterables = ('blur_FWHM',c.blurFWHM)
-               anat_preproc.get_node('AFNI_options.fac').iterables = ('fac',c.fac)
-            except:
-                logConnectionError('Anatomical Preprocessing No valid Previous for strat',
-                num_strat, strat.get_resource_pool(), '0001')
-                continue
-             
-           
-            
-       
-            if "BET" in c.skullstrip_option:
-                tmp = strategy()
-                tmp.resource_pool = dict(strat.resource_pool)
-                tmp.leaf_node = strat.leaf_node
-                tmp.leaf_out_file = (strat.leaf_out_file)
-                tmp.name=list(strat.name)
-                strat=tmp
-                new_strat_list.append(strat)
-            
-            strat.append_name(anat_preproc.name)    
-            strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-            # add stuff to resource pool if we need it
+                try:
+                    node, out_file = strat.get_leaf_properties()
+                    workflow.connect(node, out_file, anat_preproc,
+                                     'inputspec.anat')
 
-            strat.update_resource_pool(
-            {'anatomical_brain': (anat_preproc, 'outputspec.brain')})
-            strat.update_resource_pool(
-            {'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
-         # write to log
-            create_log_node(anat_preproc, 'outputspec.brain', num_strat)  
-            num_strat += 1 
+                    anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
+                    anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
+                    anat_preproc.inputs.AFNI_options.shrink_factor_bot_lim = c.shrink_factor_bottom_lim
+                    anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
+                    anat_preproc.inputs.AFNI_options.niter = c.n_iterations
+
+                    '''
+                    anat_preproc.inputs.AFNI_options.pushout = c.pushout
+                    anat_preproc.inputs.AFNI_options.touchup = c.touchup
+                    anat_preproc.inputs.AFNI_options.fill_hole = c.fill_hole
+                    anat_preproc.inputs.AFNI_options.avoid_eyes = c.avoid_eyes
+                    anat_preproc.inputs.AFNI_options.use_edge = c.use_edge
+                    anat_preproc.inputs.AFNI_options.exp_frac = c.exp_frac
+                    anat_preproc.inputs.AFNI_options.smooth_final = c.smooth_final
+                    anat_preproc.inputs.AFNI_options.push_to_edge = c.push_to_edge
+                    anat_preproc.inputs.AFNI_options.use_skull = c.use_skull
+                    anat_preproc.inputs.AFNI_options.perc_init = c.perc_init
+                    anat_preproc.inputs.AFNI_options.max_inter_iter = c.max_inter_iter
+                    anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
+                    anat_preproc.inputs.AFNI_options.fac = c.fac
+                    '''
+
+                    '''
+                    anat_preproc.get_node('AFNI_options.shrink_factor').iterables = ('shrink_factor',c.shrink_factor)
+                    anat_preproc.get_node('AFNI_options.var_shrink_fac').iterables = ('var_shrink_fac',c.var_shrink_fac)
+                    anat_preproc.get_node('AFNI_options.shrink_factor_bot_lim').iterables = ('shrink_factor_bot_lim',c.shrink_factor_bottom_lim)
+                    anat_preproc.get_node('AFNI_options.avoid_vent').iterables = ('avoid_vent',c.avoid_vent)
+                    anat_preproc.get_node('AFNI_options.niter').iterables = ('niter',c.n_iterations)
+                    anat_preproc.get_node('AFNI_options.pushout').iterables = ('pushout',c.pushout)
+                    anat_preproc.get_node('AFNI_options.touchup').iterables = ('touchup',c.touchup)
+                    anat_preproc.get_node('AFNI_options.fill_hole').iterables = ('fill_hole',c.fill_hole)
+                    anat_preproc.get_node('AFNI_options.avoid_eyes').iterables = ('avoid_eyes',c.avoid_eyes)
+                    anat_preproc.get_node('AFNI_options.use_edge').iterables = ('use_edge',c.use_edge)
+                    anat_preproc.get_node('AFNI_options.exp_frac').iterables = ('exp_frac',c.exp_frac)
+                    anat_preproc.get_node('AFNI_options.smooth_final').iterables = ('smooth_final',c.smooth_final)
+                    anat_preproc.get_node('AFNI_options.push_to_edge').iterables = ('push_to_edge',c.push_to_edge)
+                    anat_preproc.get_node('AFNI_options.use_skull').iterables = ('use_skull',c.use_skull)
+                    anat_preproc.get_node('AFNI_options.PercInit').iterables = ('perc_init',c.perc_init)
+                    anat_preproc.get_node('AFNI_options.max_inter_iter').iterables = ('max_inter_iter',c.max_inter_iter)
+                    anat_preproc.get_node('AFNI_options.blur_FWHM').iterables = ('blur_FWHM',c.blurFWHM)
+                    anat_preproc.get_node('AFNI_options.fac').iterables = ('fac',c.fac)
+                    '''
+
+                except:
+                    logConnectionError('Anatomical Preprocessing No valid Previous for strat',
+                    num_strat, strat.get_resource_pool(), '0001')
+                    continue
+
+                if "BET" in c.skullstrip_option:
+                    tmp = strategy()
+                    tmp.resource_pool = dict(strat.resource_pool)
+                    tmp.leaf_node = strat.leaf_node
+                    tmp.leaf_out_file = (strat.leaf_out_file)
+                    tmp.name=list(strat.name)
+                    strat=tmp
+                    new_strat_list.append(strat)
+
+                strat.append_name(anat_preproc.name)
+                strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
+
+                # add stuff to resource pool if we need it
+                strat.update_resource_pool({'anatomical_brain': (anat_preproc, 'outputspec.brain')})
+                strat.update_resource_pool({'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
+
+                # write to log
+                create_log_node(anat_preproc, 'outputspec.brain', num_strat)
+
+                num_strat += 1
     
     strat_list += new_strat_list
     
