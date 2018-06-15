@@ -122,7 +122,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
     preproc = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),name='inputspec')
-    inputNode_AFNI = pe.Node(util.IdentityInterface(fields =['shrink_factor','var_shrink_fac','shrink_factor_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_iter','blur_fwhm','fac']),name ='AFNI_options')
+    inputNode_AFNI = pe.Node(util.IdentityInterface(fields =['shrink_factor','var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_iter','blur_fwhm','fac']),name ='AFNI_options')
     inputNode_BET = pe.Node(util.IdentityInterface(fields=['frac','mask_boolean','mesh_boolean','outline','padding','radius','reduce_bias','remove_eyes','robust','skull','surfaces','threshold','vertical_gradient']),name = 'BET_options')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
