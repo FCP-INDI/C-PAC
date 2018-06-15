@@ -183,7 +183,6 @@ class GenericClass(wx.ScrolledWindow):
 
     def get_switch(self):    
         return self.switch
-
         
 
 class Control(wx.Control):
