@@ -6,7 +6,10 @@ import nipype.interfaces.utility as util
 
 
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
-                                   shrink_fac_bot_lim, avoid_vent, niter,pushout,touchup,fill_hole,avoid_eyes,use_edge,exp_frac,smooth_final,push_to_edge,use_skull,perc_init,max_inter_iter,blur_fwhm,fac):
+                                   shrink_fac_bot_lim, avoid_vent, niter,
+                                   pushout, touchup, fill_hole, avoid_eyes,
+                                   use_edge,exp_frac, smooth_final, push_to_edge,
+                                   use_skull, perc_int, max_inter_iter, blur_fwhm, fac):
 
     if var_shrink_fac:
         var_shrink_str = '-var_shrink_fac'
@@ -47,26 +50,27 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     else:
         push_to_edge_str = '-no_push_to_edge'
 
-
-
     expr = '-shrink_fac {0} ' \
            '{1} ' \
            '-shrink_fac_bot_lim {2} ' \
            '{3} ' \
-           '-niter {4}' \
-            '{5}' \
-            '{6}' \
-            '-fill_hole {7} ' \
-            '{8}' \
-            '{9}' \
-            '-exp_frac {10}' \
-            '-smooth_final {11}' \
-            '{12}' \
-            '{13}' \
-            '-perc_init{14}' \
-            '-max_inter_iter{15}' \
-            '-blur_fwhm{16}' \
-            '-fac{17}'.format(shrink_fac,var_shrink_str,shrink_fac_bot_lim,avoid_vent_str,niter,pushout_str,touchup_str,fill_hole,avoid_eyes_str,use_edge_str,exp_frac,smooth_final,push_to_edge_str,use_skull_str,perc_init,max_inter_iter,blur_fwhm,fac)
+           '-niter {4} ' \
+           '{5} ' \
+           '{6} ' \
+           '-fill_hole {7} ' \
+           '{8} ' \
+           '{9} ' \
+           '-exp_frac {10} ' \
+           '-smooth_final {11} ' \
+           '{12} ' \
+           '{13} ' \
+           '-perc_int {14} ' \
+           '-max_inter_iter {15} ' \
+           '-blur_fwhm {16} ' \
+           '-fac {17} '.format(shrink_fac, var_shrink_str, shrink_fac_bot_lim, avoid_vent_str,
+                               niter, pushout_str, touchup_str, fill_hole, avoid_eyes_str, use_edge_str,
+                               exp_frac, smooth_final, push_to_edge_str, use_skull_str, perc_int,
+                               max_inter_iter, blur_fwhm, fac)
 
     return expr
 
@@ -122,7 +126,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
     preproc = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(util.IdentityInterface(fields=['anat']),name='inputspec')
-    inputNode_AFNI = pe.Node(util.IdentityInterface(fields =['shrink_factor','var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_iter','blur_fwhm','fac']),name ='AFNI_options')
+    inputNode_AFNI = pe.Node(util.IdentityInterface(fields =['shrink_factor','var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_int','max_inter_iter','blur_fwhm','fac']),name ='AFNI_options')
     inputNode_BET = pe.Node(util.IdentityInterface(fields=['frac','mask_boolean','mesh_boolean','outline','padding','radius','reduce_bias','remove_eyes','robust','skull','surfaces','threshold','vertical_gradient']),name = 'BET_options')
 
     outputNode = pe.Node(util.IdentityInterface(fields=['refit',
@@ -161,7 +165,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
     if not already_skullstripped:
         if use_AFNI == True:
 
-            skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac', 'var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_iter','blur_fwhm','fac'],
+            skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac', 'var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_int','max_inter_iter','blur_fwhm','fac'],
                                                     output_names=['expr'],
                                                     function=create_3dskullstrip_arg_string),
                                       name='anat_skullstrip_args')
@@ -180,7 +184,7 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
             preproc.connect(inputNode_AFNI,'smooth_final',skullstrip_args,'smooth_final')
             preproc.connect(inputNode_AFNI,'push_to_edge',skullstrip_args,'push_to_edge')
             preproc.connect(inputNode_AFNI,'use_skull',skullstrip_args,'use_skull')
-            preproc.connect(inputNode_AFNI,'perc_init',skullstrip_args,'perc_init')
+            preproc.connect(inputNode_AFNI,'perc_int',skullstrip_args,'perc_int')
             preproc.connect(inputNode_AFNI,'max_inter_iter',skullstrip_args,'max_inter_iter')
             preproc.connect(inputNode_AFNI,'blur_fwhm',skullstrip_args,'blur_fwhm')
             preproc.connect(inputNode_AFNI,'fac',skullstrip_args,'fac')

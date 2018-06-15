@@ -173,9 +173,9 @@ class AFNI_options(wx.ScrolledWindow):
                       comment = "Use outer skull to limit expansion of surface into the skull due to very strong shading artifact. This is buggy, use it only if you have leakage into the skull",
                       values = ["On","Off"])
                       
-        self.page.add(label = "Perc_init",
+        self.page.add(label = "Segments allowed to intersect surface (%)",
                       control = control.TEXT_BOX,
-                      name = 'perc_init',
+                      name = 'perc_int',
                       type = dtype.NUM,
                       comment = "Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection",
                       validator=CharValidator("no-alpha"),
