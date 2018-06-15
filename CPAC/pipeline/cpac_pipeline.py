@@ -497,7 +497,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             #try:
             anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
             anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
-            anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.shrink_factor_bottom_lim
+            anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.shrink_factor_bot_lim
             anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
             anat_preproc.inputs.AFNI_options.niter = c.n_iterations
             anat_preproc.inputs.AFNI_options.pushout = c.pushout
