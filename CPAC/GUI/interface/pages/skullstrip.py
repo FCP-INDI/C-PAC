@@ -74,7 +74,7 @@ class AFNI_options(wx.ScrolledWindow):
                       name='var_shrink_fac',
                       type=dtype.STR,
                       comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
-                      values=["On","Off"])
+                      values=["Off","On"])
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
@@ -89,7 +89,7 @@ class AFNI_options(wx.ScrolledWindow):
                       name='avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["On","Off"])
+                      values=["Off","On"])
                       
         self.page.add(label="n-iterations",
                       control = control.TEXT_BOX,
@@ -104,20 +104,20 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'pushout',
                       type = dtype.STR,
                       comment="While expanding, consider the voxels above and not only the voxels below",
-                      values=["On","Off"])
+                      values=["Off","On"])
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name = 'touchup',
                       type=dtype.STR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
-                      values=["On","Off"])
+                      values=["Off","On"])
                       
         self.page.add(label = "Fill_hole",
                       control=control.TEXT_BOX,
                       name = 'fill_hole',
                       type = dtype.NUM,
-                      comment="Give the maximum number of pixels on either side of the hole that can be filled",
+                      comment="Give the maximum number of pixels on either side of the hole that can be filled. Please note that the default is 10 ONLY if touchup is On, and otherwise the default is 0.",
                       validator = CharValidator("no-alpha"),
                       values = "0")
                       
@@ -142,14 +142,14 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'avoid_eyes',
                       type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
-                      values = ["On","Off"])
+                      values = ["Off","On"])
                       
         self.page.add(label="Use_edge",
                       control = control.CHOICE_BOX,
                       name = 'use_edge',
                       type = dtype.STR,
                       comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
-                      values = ["On","Off"])
+                      values = ["Off","On"])
         
         self.page.add(label="Fractional expansion",
                       control = control.TEXT_BOX,
@@ -164,18 +164,18 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'push_to_edge',
                       type = dtype.STR,
                       comment = "Perform aggressive push to edge, this might cause leakage",
-                      values = ["On","Off"])
+                      values = ["Off","On"])
         
         self.page.add(label= "Use skull",
                       control = control.CHOICE_BOX,
                       name = 'use_skull',
                       type = dtype.STR,
                       comment = "Use outer skull to limit expansion of surface into the skull due to very strong shading artifact. This is buggy, use it only if you have leakage into the skull",
-                      values = ["On","Off"])
+                      values = ["Off","On"])
                       
-        self.page.add(label = "Segments allowed to intersect surface (%)",
+        self.page.add(label = "Perc_init",
                       control = control.TEXT_BOX,
-                      name = 'perc_int',
+                      name = 'perc_init',
                       type = dtype.NUM,
                       comment = "Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection",
                       validator=CharValidator("no-alpha"),
@@ -237,7 +237,7 @@ class BET_options(wx.ScrolledWindow):
                       name='mask_boolean',
                       comment="Mask created along with skull stripping",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
         self.page.add(label="Mesh",
@@ -245,7 +245,7 @@ class BET_options(wx.ScrolledWindow):
                       name='mesh_boolean',
                       comment="Mesh created along with skull stripping",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -254,7 +254,7 @@ class BET_options(wx.ScrolledWindow):
                       name='outline',
                       comment="Create a surface outline image",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -263,7 +263,7 @@ class BET_options(wx.ScrolledWindow):
                       name='padding',
                       comment="Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -281,7 +281,7 @@ class BET_options(wx.ScrolledWindow):
                       name='reduce_bias',
                       comment="Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
         self.page.add(label="Remove_eyes",
@@ -289,7 +289,7 @@ class BET_options(wx.ScrolledWindow):
                       name='remove_eyes',
                       comment="Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -298,7 +298,7 @@ class BET_options(wx.ScrolledWindow):
                       name='robust',
                       comment="Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -307,7 +307,7 @@ class BET_options(wx.ScrolledWindow):
                       name='skull',
                       comment="Create a skull image",
                       type=dtype.STR,
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -316,7 +316,7 @@ class BET_options(wx.ScrolledWindow):
                       name='surfaces',
                       type=dtype.STR,
                       comment="Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes",
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
                       
@@ -325,7 +325,7 @@ class BET_options(wx.ScrolledWindow):
                       name='threshold',
                       type=dtype.STR,
                       comment="Apply thresholding to segmented brain image and mask",
-                      values=["On","Off"],
+                      values=["Off","On"],
                       wkf_switch = True)
                       
         self.page.add(label="Vertical_gradient",
