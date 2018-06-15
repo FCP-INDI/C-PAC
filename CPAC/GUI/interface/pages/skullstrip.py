@@ -39,7 +39,7 @@ class SkullStripOptions(wx.html.HtmlWindow):
         self.page.add(label ="Which function do you want to skull-strip with?",
                       control=control.CHOICE_BOX,
                       name='skullstrip_option',
-                      type=dtype.LSTR,
+                      type=dtype.STR,
                       comment = "Choice of using AFNI or FSL-BET to perform SkullStripping",
                       values = ["AFNI","BET","AFNI & BET"],
                       wkf_switch = True)
@@ -74,12 +74,11 @@ class AFNI_options(wx.ScrolledWindow):
                       name='var_shrink_fac',
                       type=dtype.STR,
                       comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
-                      values=["On","Off"],
-                      wkf_switch = True)
+                      values=["On","Off"])
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
-                      name='shrink_factor_bottom_lim',
+                      name='shrink_factor_bot_lim',
                       type=dtype.NUM,
                       comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.65",
                       validator = CharValidator("no-alpha"),
@@ -90,8 +89,7 @@ class AFNI_options(wx.ScrolledWindow):
                       name='avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["On","Off"],
-                      wkf_switch = True)
+                      values=["On","Off"])
                       
         self.page.add(label="n-iterations",
                       control = control.TEXT_BOX,
@@ -106,16 +104,14 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'pushout',
                       type = dtype.STR,
                       comment="While expanding, consider the voxels above and not only the voxels below",
-                      values=["On","Off"],
-                      wkf_switch=True)
+                      values=["On","Off"])
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name = 'touchup',
                       type=dtype.STR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
-                      values=["On","Off"],
-                      wkf_switch=True)
+                      values=["On","Off"])
                       
         self.page.add(label = "Fill_hole",
                       control=control.TEXT_BOX,
@@ -146,24 +142,36 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'avoid_eyes',
                       type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
-                      values = ["On","Off"],
-                      wkf_switch=True)
+                      values = ["On","Off"])
                       
         self.page.add(label="Use_edge",
                       control = control.CHOICE_BOX,
                       name = 'use_edge',
                       type = dtype.STR,
                       comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
-                      values = ["On","Off"],
-                      wkf_switch=True)
+                      values = ["On","Off"])
+        
+        self.page.add(label="Fractional expansion",
+                      control = control.TEXT_BOX,
+                      name = 'exp_frac',
+                      type=dtype.NUM,
+                      comment="Speed of expansion",
+                      validator = CharValidator("no-alpha"),
+                      values="0.1")
                       
         self.page.add(label = "Push_to_edge",
                       control = control.CHOICE_BOX,
                       name = 'push_to_edge',
                       type = dtype.STR,
                       comment = "Perform aggressive push to edge, this might cause leakage",
-                      values = ["On","Off"],
-                      wkf_switch=True)
+                      values = ["On","Off"])
+        
+        self.page.add(label= "Use skull",
+                      control = control.CHOICE_BOX,
+                      name = 'use_skull',
+                      type = dtype.STR,
+                      comment = "Use outer skull to limit expansion of surface into the skull due to very strong shading artifact. This is buggy, use it only if you have leakage into the skull",
+                      values = ["On","Off"])
                       
         self.page.add(label = "Perc_init",
                       control = control.TEXT_BOX,
@@ -214,43 +222,20 @@ class BET_options(wx.ScrolledWindow):
         
         self.counter = counter
         self.page = GenericClass(self,"BET_options")
-        
+
         self.page.add(label="frac",
                       control=control.TEXT_BOX,
                       name = 'frac',
                       type=dtype.NUM,
-                      comment="Set the fractional intensity threshold value default is 0.5",
+                      comment="Set the threshold value controling the brain vs non-brain voxels\
+                              default is 0.5",
                       validator=CharValidator("no-alpha"),
                       values="0.5")
-        
-        self.page.add(label = "center of gravity ",
-                      control = control.LISTBOX_COMBO,
-                      name = "center",
-                      type = dtype.LOFL,
-                      values = [0.00, 0.00, 0.00],
-                      comment = "Define one or more coordinates by clicking the + button.",
-                      size = (200,100),
-                      combo_type = 2)
-        #self.page.add(label= "center of gravity, y-axis",
-         #        control=control.FLOAT_CTRL, 
-          #       name='center_y', 
-           #      type=dtype.NUM,
-            #     values= 0,
-             #    comment="Identify the y-coordinate of the center of gravity in voxels.")
-
-
-       # self.page.add(label= "center of gravity, z-axis",
-        #         control=control.FLOAT_CTRL, 
-         #        name='center_z', 
-         
-         #        type=dtype.NUM,
-          #       values= 0,
-           #      comment="Identify the z-coordinate of the center of gravity in voxels.")
         
         self.page.add(label="Mask",
                       control=control.CHOICE_BOX,
                       name='mask_boolean',
-                      comment="mask created along with skull stripping",
+                      comment="Mask created along with skull stripping",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -258,7 +243,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Mesh",
                       control=control.CHOICE_BOX,
                       name='mesh_boolean',
-                      comment="mesh created along with skull stripping",
+                      comment="Mesh created along with skull stripping",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -267,7 +252,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Outline",
                       control=control.CHOICE_BOX,
                       name='outline',
-                      comment="create a surface outline image",
+                      comment="Create a surface outline image",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -276,7 +261,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Padding",
                       control=control.CHOICE_BOX,
                       name='padding',
-                      comment="add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      comment="Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -285,7 +270,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Radius",
                       control=control.TEXT_BOX,
                       name='radius',
-                      comment="integer value of head radius",
+                      comment="Integer value of head radius",
                       type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0")
@@ -302,7 +287,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Remove_eyes",
                       control=control.CHOICE_BOX,
                       name='remove_eyes',
-                      comment="eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
+                      comment="Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -320,7 +305,7 @@ class BET_options(wx.ScrolledWindow):
         self.page.add(label="Skull",
                       control=control.CHOICE_BOX,
                       name='skull',
-                      comment="create a skull image",
+                      comment="Create a skull image",
                       type=dtype.STR,
                       values=["On","Off"],
                       wkf_switch = True)
@@ -347,7 +332,7 @@ class BET_options(wx.ScrolledWindow):
                       control=control.TEXT_BOX,
                       name='vertical_gradient',
                       comment="Vertical gradient in fractional intensity threshold (-1,1)",
-                      type=dtype.NUM,
+                      type=dtype.LNUM,
                       validator=CharValidator("no-alpha"),
                       values="0.000")
         self.page.set_sizer()
