@@ -43,9 +43,9 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         use_edge_str = '-no_use_edge'
     
     if push_to_edge:
-        push_to_edge_str = 'push_to_edge'
+        push_to_edge_str = '-push_to_edge'
     else:
-        push_to_edge_str = 'no_push_to_edge'
+        push_to_edge_str = '-no_push_to_edge'
 
 
 
@@ -56,7 +56,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
            '-niter {4}' \
             '{5}' \
             '{6}' \
-            'fill_hole {7} ' \
+            '-fill_hole {7} ' \
             '{8}' \
             '{9}' \
             '-exp_frac{10}' \
