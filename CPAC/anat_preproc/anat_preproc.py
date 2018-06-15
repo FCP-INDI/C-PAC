@@ -1,3 +1,4 @@
+
 from nipype.interfaces.afni import preprocess
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
@@ -5,7 +6,7 @@ import nipype.interfaces.utility as util
 
 
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
-                                   shrink_fac_bot_lim, avoid_vent, niter):
+                                   shrink_fac_bot_lim, avoid_vent, niter,pushout,touchup,fill_hole,avoid_eyes,use_edges,exp_frac,smooth_final,push_to_edge,use_skull,perc_init,max_inter_init,blur_fwhm,fac):
 
     if var_shrink_fac:
         var_shrink_str = '-var_shrink_fac'
@@ -16,16 +17,56 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         avoid_vent_str = '-avoid_vent'
     else:
         avoid_vent_str = '-no_avoid_vent'
+    if pushout:
+        pushout_str = '-pushout'
+    else:
+        pushout_str = '-no_pushout'
+    
+    if touchup:
+        touchup_str = '-touchup'
+    else:
+        touchup_str = '-no_touchup'
+    
+    if use_skull:
+        use_skull_str = '-use_skull'
+    else:
+        use_skull_str = '-no_use_skull'
+    
+    if avoid_eyes:
+        avoid_eyes_str = '-avoid_eyes'
+    else:
+        avoid_eyes_str = '-no_avoid_eyes'
+    
+    if use_edge:
+        use_edge_str = '-use_edge'
+    else:
+        use_edge_str = '-no_use_edge'
+    
+    if push_to_edge:
+        push_to_edge_str = 'push_to_edge'
+    else:
+        push_to_edge_str = 'no_push_to_edge'
+
+
 
     expr = '-shrink_fac {0} ' \
            '{1} ' \
            '-shrink_fac_bot_lim {2} ' \
            '{3} ' \
-           '-max_inter_iter {4}'.format(shrink_fac,
-                                        var_shrink_str,
-                                        shrink_fac_bot_lim,
-                                        avoid_vent_str,
-                                        niter)
+           '-niter {4}' \
+            '{5}' \
+            '{6}' \
+            'fill_hole {7} ' \
+            '{8}' \
+            '{9}' \
+            '-exp_frac{10}' \
+            '-smooth_final {11}' \
+            '{12}' \
+            '{13}' \
+            '-perc_init{14}' \
+            '-max_inter_init{15}' \
+            '-blur_fwhm{16}' \
+            '-fac{17}'.format(shrink_fac,var_shrink_str,shrink_fac_bot_lim,avoid_vent_str,niter,pushout_str,touchup_str,fill_hole,avoid_eyes_str,use_edge_str,exp_frac,smooth_final,push_to_edge_str,use_skull_str,perc_init,max_inter_init,blur_fwhm,fac)
 
     return expr
 
@@ -120,63 +161,41 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
     if not already_skullstripped:
         if use_AFNI == True:
 
-            skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac',
-                                                                 'var_shrink_fac',
-                                                                 'shrink_fac_bot_lim',
-                                                                 'avoid_vent',
-                                                                 'niter'],
+            skullstrip_args = pe.Node(util.Function(input_names=['shrink_fac', 'var_shrink_fac','shrink_fac_bot_lim','avoid_vent','niter','pushout','touchup','fill_hole','avoid_eyes','use_edge','exp_frac','smooth_final','push_to_edge','use_skull','perc_init','max_inter_init','blur_fwhm','fac'],
                                                     output_names=['expr'],
                                                     function=create_3dskullstrip_arg_string),
                                       name='anat_skullstrip_args')
 
-            preproc.connect(inputNode_AFNI, 'shrink_factor',
-                            skullstrip_args, 'shrink_fac')
-            preproc.connect(inputNode_AFNI, 'var_shrink_fac',
-                            skullstrip_args, 'var_shrink_fac')
-            preproc.connect(inputNode_AFNI, 'shrink_fac_bottom_lim',
-                            skullstrip_args, 'shrink_fac_bot_lim')
-            preproc.connect(inputNode_AFNI, 'avoid_vent',
-                            skullstrip_args, 'avoid_vent')
-            preproc.connect(inputNode_AFNI, 'niter',
-                            skullstrip_args, 'niter')
+            preproc.connect(inputNode_AFNI, 'shrink_factor',skullstrip_args, 'shrink_fac')
+            preproc.connect(inputNode_AFNI, 'var_shrink_fac',skullstrip_args, 'var_shrink_fac')
+            preproc.connect(inputNode_AFNI, 'shrink_fac_bottom_lim',skullstrip_args, 'shrink_fac_bot_lim')
+            preproc.connect(inputNode_AFNI, 'avoid_vent',skullstrip_args, 'avoid_vent')
+            preproc.connect(inputNode_AFNI, 'niter',skullstrip_args, 'niter')
+            preproc.connect(inputNode_AFNI,'pushout',skullstrip_args,'pushout')
+            preproc.connect(inputNode_AFNI,'touchup',skullstrip_args,'touchup')
+            preproc.connect(inputNode_AFNI,'fill_hole',skullstrip_args,'fill_hole')
+            preproc.connect(inputNode_AFNI,'avoid_eyes',skullstrip_args,'avoid_eyes')
+            preproc.connect(inputNode_AFNI,'use_edge',skullstrip_args,'use_edge')
+            preproc.connect(inputNode_AFNI,'exp_frac',skullstrip_args,'exp_frac')
+            preproc.connect(inputNode_AFNI,'smooth_final',skullstrip_args,'smooth_final')
+            preproc.connect(inputNode_AFNI,'push_to_edge',skullstrip_args,'push_to_edge')
+            preproc.connect(inputNode_AFNI,'use_skull',skullstrip_args,'use_skull')
+            preproc.connect(inputNode_AFNI,'perc_init',skullstrip_args,'perc_init')
+            preproc.connect(inputNode_AFNI,'max_inter_init',skullstrip_args,'max_inter_init')
+            preproc.connect(inputNode_AFNI,'blur_fwhm',skullstrip_args,'blur_fwhm')
+            preproc.connect(inputNode_AFNI,'fac',skullstrip_args,'fac')
 
             anat_skullstrip = pe.Node(interface=preprocess.SkullStrip(),
                                       name='anat_skullstrip')
             anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
-
+            preproc.connect(anat_reorient, 'out_file',anat_skullstrip, 'in_file')
             preproc.connect(skullstrip_args, 'expr', anat_skullstrip, 'args')
-
-            '''
-            anat_skullstrip.inputs.args.shrink_fac= 'shrink_factor'
-            anat_skullstrip.inputs.args.var_shrink_fac= 'var_shrink_fac'
-            anat_skullstrip.inputs.args.shrink_factor_bot_lim='shrink_fac_bot_lim'
-            anat_skullstrip.inputs.args.avoid_vent='avoid_vent'
-            anat_skullstrip.inputs.args.niter='niter'
-            anat_skullstrip.inputs.args.pushout='pushout'
-            anat_skullstrip.inputs.args.touchup='touchup'
-            anat_skullstrip.inputs.args.fill_hole = 'fill_hole'
-            anat_skullstrip.inputs.args.avoid_eyes='avoid_eyes'
-            anat_skullstrip.inputs.args.use_edge = 'use_edges'
-            anat_skullstrip.inputs.args.exp_frac='exp_frac'
-            anat_skullstrip.inputs.args.smooth_final = 'smooth_final'
-            anat_skullstrip.inputs.args.push_to_edge = 'push_to_edge'
-            anat_skullstrip.inputs.args.use_skull='use_skull'
-            anat_skullstrip.inputs.args.perc_init='perc_init'
-            anat_skullstrip.inputs.args.max_inter_init = 'max_inter_iter'
-            anat_skullstrip.inputs.args.blur_fwhm = 'blur_fwhm'
-            anat_skullstrip.inputs.args.fac = 'fac'
-            '''
+            preproc.connect(anat_skullstrip, 'out_file', outputNode, 'skullstrip')
+            
 
         else:
-            anat_skullstrip = pe.Node(interface=fsl.BET(),
-                                      name='anat_skullstrip')
+            anat_skullstrip = pe.Node(interface=fsl.BET(),name='anat_skullstrip')
 
-            # def mergexyz(x,y,z):
-            #     center = []
-            #     center.append(x)
-            #     center.append(y)
-            #     center.append(z)
-            #     return center
             preproc.connect(anat_reorient, 'out_file', anat_skullstrip, 'in_file')
             preproc.connect(inputNode_BET, 'center', anat_skullstrip, 'center')
             preproc.connect(inputNode_BET, 'frac', anat_skullstrip, 'frac')
@@ -201,28 +220,27 @@ def create_anat_preproc(use_AFNI, already_skullstripped=False,
                             'vertical_gradient')
             preproc.connect(anat_skullstrip, 'out_file', outputNode, 'skullstrip')
 
-    # 3dCalc for skull-stripping
-    try:
-        anat_skullstrip_orig_vol = pe.Node(interface=afni_utils.Calc(),
+    # 3dCalc after skull-stripping
+        try:
+            anat_skullstrip_orig_vol = pe.Node(interface=afni_utils.Calc(),
                                            name='anat_skullstrip_orig_vol')
-    except UnboundLocalError:
-        anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
+        except UnboundLocalError:
+            anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
                                            name='anat_skullstrip_orig_vol')
-    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
-    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
-
-    if not already_skullstripped:
-        preproc.connect(anat_reorient, 'out_file',
-                        anat_skullstrip, 'in_file')
-        preproc.connect(anat_reorient, 'out_file',
-                        anat_skullstrip_orig_vol, 'in_file_a')
-        preproc.connect(anat_skullstrip, 'out_file',
-                        anat_skullstrip_orig_vol, 'in_file_b')
-
-    if not already_skullstripped:
-        preproc.connect(anat_skullstrip, 'out_file',
-                        outputNode, 'skullstrip')
-        preproc.connect(anat_skullstrip_orig_vol, 'out_file',
-                        outputNode, 'brain')
+        anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
+        anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ' 
+        preproc.connect(anat_reorient, 'out_file',anat_skullstrip_orig_vol, 'in_file_a')
+        preproc.connect(anat_skullstrip, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
+        preproc.connect(anat_skullstrip_orig_vol, 'out_file',outputNode, 'brain')
+    else:
+        try:
+            anat_skullstrip_orig_vol = pe.Node(interface=afni_utils.Calc(),
+                                           name='anat_skullstrip_orig_vol')
+        except UnboundLocalError:
+            anat_skullstrip_orig_vol = pe.Node(interface=preprocess.Calc(),
+                                           name='anat_skullstrip_orig_vol')
+        preproc.connect(anat_reorient, 'out_file',anat_skullstrip_orig_vol, 'in_file_a')
+        preproc.connect(anat_reorient, 'out_file',anat_skullstrip_orig_vol, 'in_file_b')
+        preproc.connect(anat_skullstrip_orig_vol, 'out_file',outputNode, 'brain')
 
     return preproc
