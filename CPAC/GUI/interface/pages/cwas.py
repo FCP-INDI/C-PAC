@@ -2,7 +2,6 @@ import wx
 import wx.html
 from ..utils.generic_class import GenericClass
 from ..utils.constants import control, dtype
-from ..utils.validator import CharValidator
 import os
 import pkg_resources as p
     
@@ -20,7 +19,8 @@ class CWASSettings(wx.ScrolledWindow):
                       type=dtype.LSTR,
                       comment="Used to determine if Connectome-wide Association Studies "
                               "will be added to the pipeline or not.",
-                      values=["Off", "On"])
+                      values=["Off", "On"],
+                      wkf_switch = True)
 
         self.page.add(label="Mask ROI File", 
                      control=control.COMBO_BOX,
