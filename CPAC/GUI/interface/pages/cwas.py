@@ -27,6 +27,7 @@ class CWASSettings(wx.ScrolledWindow):
                      name='cwas_roi_file', 
                      type=dtype.STR, 
                      values=str(""),
+                     validation_req=False,
                      comment="Path to a mask file. Voxels outside of the mask will "
                              "be excluded from CWAS.")
                
