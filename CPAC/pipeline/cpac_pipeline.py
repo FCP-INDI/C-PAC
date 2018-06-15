@@ -506,8 +506,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     anat_preproc.inputs.AFNI_options.shrink_factor_bot_lim = c.shrink_factor_bottom_lim
                     anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
                     anat_preproc.inputs.AFNI_options.niter = c.n_iterations
-
-                    '''
                     anat_preproc.inputs.AFNI_options.pushout = c.pushout
                     anat_preproc.inputs.AFNI_options.touchup = c.touchup
                     anat_preproc.inputs.AFNI_options.fill_hole = c.fill_hole
@@ -521,7 +519,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     anat_preproc.inputs.AFNI_options.max_inter_iter = c.max_inter_iter
                     anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
                     anat_preproc.inputs.AFNI_options.fac = c.fac
-                    '''
 
                     '''
                     anat_preproc.get_node('AFNI_options.shrink_factor').iterables = ('shrink_factor',c.shrink_factor)

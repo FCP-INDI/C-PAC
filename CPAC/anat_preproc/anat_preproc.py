@@ -59,7 +59,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
             'fill_hole {7} ' \
             '{8}' \
             '{9}' \
-            '-exp_frac{10}' \
+            '-exp_frac {10}' \
             '-smooth_final {11}' \
             '{12}' \
             '{13}' \
