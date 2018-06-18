@@ -69,7 +69,7 @@ class AFNI_options(wx.ScrolledWindow):
         
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
-                      name = 'shrink_factor',
+                      name = 'skullstrip_shrink_factor',
                       type=dtype.NUM,
                       comment="Set the threshold value controling the brain vs non-brain voxels\
                               default is 0.6",
@@ -78,14 +78,14 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="Vary Shrink Factor?",
                       control=control.CHOICE_BOX,
-                      name='var_shrink_fac',
+                      name='skullstrip_var_shrink_fac',
                       type=dtype.STR,
                       comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
                       values=["Off","On"])
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
-                      name='shrink_factor_bot_lim',
+                      name='skullstrip_shrink_factor_bot_lim',
                       type=dtype.NUM,
                       comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.65",
                       validator = CharValidator("no-alpha"),
@@ -93,7 +93,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="Avoid ventricles",
                       control=control.CHOICE_BOX,
-                      name='avoid_vent',
+                      name='skullstrip_avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
                       values=["Off","On"])
@@ -101,7 +101,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="n-iterations",
                       control = control.TEXT_BOX,
-                      name = 'n_iterations',
+                      name = 'skullstrip_n_iterations',
                       type=dtype.NUM,
                       comment="Set the number of iterations, default is 250 and the number of iterations will depend upon the density of your mesh",
                       validator=CharValidator("no-alpha"),
@@ -109,21 +109,21 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="Pushout",
                       control=control.CHOICE_BOX,
-                      name = 'pushout',
+                      name = 'skullstrip_pushout',
                       type = dtype.STR,
                       comment="While expanding, consider the voxels above and not only the voxels below",
                       values=["Off","On"])
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
-                      name = 'touchup',
+                      name = 'skullstrip_touchup',
                       type=dtype.STR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
                       values=["Off","On"])
                       
         self.page.add(label = "Fill_hole",
                       control=control.TEXT_BOX,
-                      name = 'fill_hole',
+                      name = 'skullstrip_fill_hole',
                       type = dtype.NUM,
                       comment="Give the maximum number of pixels on either side of the hole that can be filled. Please note that the default is 10 ONLY if touchup is On, and otherwise the default is 0.",
                       validator = CharValidator("no-alpha"),
@@ -131,7 +131,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="NN_smooth",
                       control=control.TEXT_BOX,
-                      name = 'NN_smooth',
+                      name = 'skullstrip_NN_smooth',
                       type = dtype.NUM,
                       comment = "Perform nearest neighbor coordinate interpolation every few iterations.Default is 72",
                       validator = CharValidator("no-alpha"),
@@ -139,7 +139,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="Smooth_final",
                       control=control.TEXT_BOX,
-                      name = 'smooth_final',
+                      name = 'skullstrip_smooth_final',
                       type = dtype.NUM,
                       comment = "Perform final surface smoothing after all iterations. Default is 20",
                       validator=CharValidator("no-alpha"),
@@ -147,21 +147,21 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label="Avoid_eyes",
                       control = control.CHOICE_BOX,
-                      name = 'avoid_eyes',
+                      name = 'skullstrip_avoid_eyes',
                       type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
                       values = ["Off","On"])
                       
         self.page.add(label="Use_edge",
                       control = control.CHOICE_BOX,
-                      name = 'use_edge',
+                      name = 'skullstrip_use_edge',
                       type = dtype.STR,
                       comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
                       values = ["Off","On"])
         
         self.page.add(label="Fractional expansion",
                       control = control.TEXT_BOX,
-                      name = 'exp_frac',
+                      name = 'skullstrip_exp_frac',
                       type=dtype.NUM,
                       comment="Speed of expansion",
                       validator = CharValidator("no-alpha"),
@@ -169,21 +169,21 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label = "Push_to_edge",
                       control = control.CHOICE_BOX,
-                      name = 'push_to_edge',
+                      name = 'skullstrip_push_to_edge',
                       type = dtype.STR,
                       comment = "Perform aggressive push to edge, this might cause leakage",
                       values = ["Off","On"])
         
         self.page.add(label= "Use skull",
                       control = control.CHOICE_BOX,
-                      name = 'use_skull',
+                      name = 'skullstrip_use_skull',
                       type = dtype.STR,
                       comment = "Use outer skull to limit expansion of surface into the skull due to very strong shading artifact. This is buggy, use it only if you have leakage into the skull",
                       values = ["Off","On"])
                       
         self.page.add(label = "Perc_int",
                       control = control.TEXT_BOX,
-                      name = 'perc_int',
+                      name = 'skullstrip_perc_int',
                       type = dtype.NUM,
                       comment = "Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection",
                       validator=CharValidator("no-alpha"),
@@ -191,7 +191,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label = "Max_inter_iter",
                       control = control.TEXT_BOX,
-                      name = 'max_inter_iter',
+                      name = 'skullstrip_max_inter_iter',
                       type = dtype.NUM,
                       comment = "Number of iteration to remove intersection \
                       problems. With each iteration, the program \
@@ -202,7 +202,7 @@ class AFNI_options(wx.ScrolledWindow):
                       
         self.page.add(label = "Fac",
                       control = control.TEXT_BOX,
-                      name = 'fac',
+                      name = 'skullstrip_fac',
                       type = dtype.NUM,
                       comment = "Multiply input dataset by FAC if range of values is too small",
                       validator=CharValidator("no-alpha"),
@@ -210,7 +210,7 @@ class AFNI_options(wx.ScrolledWindow):
 
         self.page.add(label = "blur_fwhm",
                       control = control.TEXT_BOX,
-                      name = 'blur_fwhm',
+                      name = 'skullstrip_blur_fwhm',
                       type = dtype.NUM,
                       comment = "Blur dataset after spatial normalization.",
                       validator=CharValidator("no-alpha"),
@@ -233,104 +233,104 @@ class BET_options(wx.ScrolledWindow):
 
         self.page.add(label="frac",
                       control=control.TEXT_BOX,
-                      name = 'frac',
+                      name = 'bet_frac',
                       type=dtype.NUM,
                       comment="Set the threshold value controling the brain vs non-brain voxels\
                               default is 0.5",
                       validator=CharValidator("no-alpha"),
                       values="0.5")
         
-        self.page.add(label="Mask",
+        self.page.add(label="mask",
                       control=control.CHOICE_BOX,
-                      name='mask_boolean',
+                      name='bet_mask_boolean',
                       comment="Mask created along with skull stripping",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
-        self.page.add(label="Mesh",
+        self.page.add(label="mesh",
                       control=control.CHOICE_BOX,
-                      name='mesh_boolean',
+                      name='bet_mesh_boolean',
                       comment="Mesh created along with skull stripping",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Outline",
+        self.page.add(label="outline",
                       control=control.CHOICE_BOX,
-                      name='outline',
+                      name='bet_outline',
                       comment="Create a surface outline image",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Padding",
+        self.page.add(label="padding",
                       control=control.CHOICE_BOX,
-                      name='padding',
+                      name='bet_padding',
                       comment="Add padding to the end of the image, improving BET.Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Radius",
+        self.page.add(label="radius",
                       control=control.TEXT_BOX,
-                      name='radius',
+                      name='bet_radius',
                       comment="Integer value of head radius",
                       type=dtype.NUM,
                       validator=CharValidator("no-alpha"),
                       values="0")
                       
                       
-        self.page.add(label="Reduce_bias",
+        self.page.add(label="reduce_bias",
                       control=control.CHOICE_BOX,
-                      name='reduce_bias',
+                      name='bet_reduce_bias',
                       comment="Reduce bias and cleanup neck. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
-        self.page.add(label="Remove_eyes",
+        self.page.add(label="remove_eyes",
                       control=control.CHOICE_BOX,
-                      name='remove_eyes',
+                      name='bet_remove_eyes',
                       comment="Eyes and optic nerve cleanup. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Robust",
+        self.page.add(label="robust",
                       control=control.CHOICE_BOX,
-                      name='robust',
+                      name='bet_robust',
                       comment="Robust brain center estimation. Mutually exclusive with functional,reduce_bias,robust,padding,remove_eyes,surfaces",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Skull",
+        self.page.add(label="skull",
                       control=control.CHOICE_BOX,
-                      name='skull',
+                      name='bet_skull',
                       comment="Create a skull image",
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Surfaces",
+        self.page.add(label="surfaces",
                       control=control.CHOICE_BOX,
-                      name='surfaces',
+                      name='bet_surfaces',
                       type=dtype.STR,
                       comment="Gets additional skull and scalp surfaces by running bet2 and betsurf. This is mutually exclusive with reduce_bias, robust, padding, remove_eyes",
                       values=["Off","On"],
                       wkf_switch = True)
                       
                       
-        self.page.add(label="Threshold",
+        self.page.add(label="threshold",
                       control=control.CHOICE_BOX,
-                      name='threshold',
+                      name='bet_threshold',
                       type=dtype.STR,
                       comment="Apply thresholding to segmented brain image and mask",
                       values=["Off","On"],
@@ -338,7 +338,7 @@ class BET_options(wx.ScrolledWindow):
                       
         self.page.add(label="Vertical_gradient",
                       control=control.TEXT_BOX,
-                      name='vertical_gradient',
+                      name='bet_vertical_gradient',
                       comment="Vertical gradient in fractional intensity threshold (-1,1)",
                       type=dtype.LNUM,
                       validator=CharValidator("no-alpha"),
