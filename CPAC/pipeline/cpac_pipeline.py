@@ -497,7 +497,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             #try:
             anat_preproc.inputs.AFNI_options.shrink_factor = c.shrink_factor
             anat_preproc.inputs.AFNI_options.var_shrink_fac = c.var_shrink_fac
-            anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.shrink_factor_bottom_lim
+            anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.shrink_factor_bot_lim
             anat_preproc.inputs.AFNI_options.avoid_vent = c.avoid_vent
             anat_preproc.inputs.AFNI_options.niter = c.n_iterations
             anat_preproc.inputs.AFNI_options.pushout = c.pushout
@@ -509,7 +509,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             anat_preproc.inputs.AFNI_options.smooth_final = c.smooth_final
             anat_preproc.inputs.AFNI_options.push_to_edge = c.push_to_edge
             anat_preproc.inputs.AFNI_options.use_skull = c.use_skull
-            anat_preproc.inputs.AFNI_options.perc_init = c.perc_init
+            anat_preproc.inputs.AFNI_options.perc_int = c.perc_int
             anat_preproc.inputs.AFNI_options.max_inter_iter = c.max_inter_iter
             anat_preproc.inputs.AFNI_options.blur_fwhm = c.blur_fwhm
             anat_preproc.inputs.AFNI_options.fac = c.fac
@@ -5122,8 +5122,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             s3_str = 's3://'
             try:
                 # Get path to creds file
-                creds_path = str(c.awsOutputBucketCredentials)
-                creds_path = os.path.abspath(creds_path)
+                creds_path = ''
+                if c.awsOutputBucketCredentials:
+                    creds_path = str(c.awsOutputBucketCredentials)
+                    creds_path = os.path.abspath(creds_path)
                 # Test for s3 write access
                 s3_write_access = \
                     aws_utils.test_bucket_access(creds_path,

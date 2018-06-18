@@ -14,7 +14,8 @@ from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
 from .cwas import CWASSettings
 
-__all__ = ['AnatomicalPreprocessing', 'Segmentation', \
+__all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
+           'AnatomicalPreprocessing', 'Segmentation', \
            'Registration', 'FunctionalPreProcessing',\
            'MotionOptions', 'Scrubbing','AnatToFuncRegistration',\
            'VMHC', 'VMHCSettings', 'ReHo', 'ReHoSettings','TimeSeriesOptions', \
@@ -26,5 +27,4 @@ __all__ = ['AnatomicalPreprocessing', 'Segmentation', \
            'AfterWarping', 'AfterWarpingOptions',\
            'FilteringSettings',\
            'TimeSeries', 'ROITimeseries', \
-           'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'GroupAnalysis', 'GPASettings', 'CWASSettings', 'EPI_DistCorr', 'BASCSettings']
