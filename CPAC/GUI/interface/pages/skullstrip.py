@@ -96,7 +96,7 @@ class AFNI_options(wx.ScrolledWindow):
                       name='avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["Off","On","Twice"])
+                      values=["Off","On"])
 
                       
         self.page.add(label="n-iterations",
