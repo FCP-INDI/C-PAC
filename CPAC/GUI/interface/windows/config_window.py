@@ -76,29 +76,31 @@ class Mybook(wx.Treebook):
         page2 = ComputerSettings(self)
         page3 = DirectorySettings(self)
 
-        page5 = AnatomicalPreprocessing(self)
-        page7 = Registration(self, 1)
-        page8 = Segmentation(self, 2)
+        page4 = SkullStripProcessing(self)
+        page5 = SkullStripOptions(self)
+        page6 = AFNI_options(self)
+        page7 = BET_options(self)
 
-        page9 = FunctionalPreProcessing(self)
-        page10 = TimeSeriesOptions(self)
-        page11 = EPI_DistCorr(self)
-        page12 = AnatToFuncRegistration(self, 5)
-        page13 = FuncToMNIRegistration(self, 6)
+        page8 = AnatomicalPreprocessing(self)
+        page9 = Registration(self, 1)
+        page10 = Segmentation(self, 2)
 
-        page14= Nuisance(self)
-        page15= NuisanceRegression(self, 7)
-        page16= MedianAngleCorrection(self, 8)
+        page11 = FunctionalPreProcessing(self)
+        page12 = TimeSeriesOptions(self)
+        page13 = EPI_DistCorr(self)
+        page14 = AnatToFuncRegistration(self, 5)
+        page15 = FuncToMNIRegistration(self, 6)
 
-        page17 = FilteringSettings(self, 9)
+        page16= Nuisance(self)
+        page17= NuisanceRegression(self, 7)
+        page18= MedianAngleCorrection(self, 8)
+
+        page19 = FilteringSettings(self, 9)
 
         page20 = TimeSeries(self)
         page22 = ROITimeseries(self)
         
-        page23 = SkullStripProcessing(self)
-        page24 = SkullStripOptions(self)
-        page25 = AFNI_options(self)
-        page26 = BET_options(self)
+        
         
         page27 = SCA(self)
         page28 = SCASettings(self)
@@ -128,28 +130,30 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page2, "Computer Settings", wx.ID_ANY)
         self.AddSubPage(page3, "Output Settings", wx.ID_ANY)
 
-        self.AddPage(page5, "Anatomical Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page7, "Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page8, "Tissue Segmentation", wx.ID_ANY)
-        self.AddPage(page9, "Functional Preprocessing", wx.ID_ANY)
-        self.AddSubPage(page10, "Time Series Options", wx.ID_ANY)
-        self.AddSubPage(page11, "Distortion Correction", wx.ID_ANY)
-        self.AddSubPage(page12,"Functional to Anatomical Registration", wx.ID_ANY)
-        self.AddSubPage(page13,"Functional to MNI Registration", wx.ID_ANY)
+        self.AddPage(page4,"Skull-Strip", wx.ID_ANY)
+        self.AddSubPage(page5,"SkullStripOptions", wx.ID_ANY)
+        self.AddSubPage(page6, "AFNI options", wx.ID_ANY)
+        self.AddSubPage(page7,"BET options", wx.ID_ANY)
 
-        self.AddPage(page14,"Nuisance", wx.ID_ANY)
-        self.AddSubPage(page15,"Nuisance Regression", wx.ID_ANY)
-        self.AddSubPage(page16,"Median Angle Correction", wx.ID_ANY)
+        self.AddPage(page8, "Anatomical Preprocessing", wx.ID_ANY)
+        self.AddSubPage(page9, "Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page10, "Tissue Segmentation", wx.ID_ANY)
+        self.AddPage(page11, "Functional Preprocessing", wx.ID_ANY)
+        self.AddSubPage(page12, "Time Series Options", wx.ID_ANY)
+        self.AddSubPage(page13, "Distortion Correction", wx.ID_ANY)
+        self.AddSubPage(page14,"Functional to Anatomical Registration", wx.ID_ANY)
+        self.AddSubPage(page15,"Functional to MNI Registration", wx.ID_ANY)
 
-        self.AddSubPage(page17, "Temporal Filtering Options", wx.ID_ANY)
+        self.AddPage(page16,"Nuisance", wx.ID_ANY)
+        self.AddSubPage(page17,"Nuisance Regression", wx.ID_ANY)
+        self.AddSubPage(page18,"Median Angle Correction", wx.ID_ANY)
+
+        self.AddSubPage(page19, "Temporal Filtering Options", wx.ID_ANY)
 
         self.AddPage(page20, "Time Series Extraction (TSE)", wx.ID_ANY)
         self.AddSubPage(page22, "Region-of-Interest TSE Options", wx.ID_ANY)
         
-        self.AddPage(page23,"Skull-Strip", wx.ID_ANY)
-        self.AddSubPage(page24,"SkullStripOptions", wx.ID_ANY)
-        self.AddSubPage(page25, "AFNI options", wx.ID_ANY)
-        self.AddSubPage(page26,"BET options", wx.ID_ANY)
+        
         
         self.AddPage(page27, "Seed-based Correlation Analysis (SCA)", wx.ID_ANY)
         self.AddSubPage(page28, "SCA Options", wx.ID_ANY)
