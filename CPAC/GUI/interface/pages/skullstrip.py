@@ -36,6 +36,13 @@ class SkullStripOptions(wx.html.HtmlWindow):
         self.counter = counter
         self.page = GenericClass(self, "Skull-Strip options")
 
+        self.page.add(label="Inputs Already Skull-stripped? ",
+                      control=control.CHOICE_BOX,
+                      name='already_skullstripped',
+                      type=dtype.LSTR,
+                      comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
+                      values=["Off", "On"])
+
         self.page.add(label ="Which function do you want to skull-strip with?",
                       control=control.CHOICE_BOX,
                       name='skullstrip_option',
@@ -89,7 +96,8 @@ class AFNI_options(wx.ScrolledWindow):
                       name='avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["Off","On"])
+                      values=["Off","On","Twice"])
+
                       
         self.page.add(label="n-iterations",
                       control = control.TEXT_BOX,
