@@ -1,4 +1,4 @@
-Connectome Wide Association Studies
+Multivariate Distance Matrix Regression
 ===================================
 
 .. automodule:: CPAC.cwas

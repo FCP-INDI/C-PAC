@@ -14,7 +14,7 @@ from CPAC.GUI.interface.pages import AnatomicalPreprocessing, \
     AfterWarping, AfterWarpingOptions,\
     FilteringSettings,\
     TimeSeries, EPI_DistCorr, ROITimeseries, \
-    GroupAnalysis, GPASettings, CWASSettings, TimeSeriesOptions, \
+    GroupAnalysis, GPASettings, MDMRSettings, TimeSeriesOptions, \
     BASCSettings
 
 ID_SUBMIT = 6
@@ -123,7 +123,7 @@ class Mybook(wx.Treebook):
         page45 = GroupAnalysis(self)
         page46 = GPASettings(self)
         page47 = BASCSettings(self)
-        page48 = CWASSettings(self)
+        page48 = MDMRSettings(self)
 
         # add the pages to the notebook with the label to show on the tab
         self.AddPage(page1, "Environment Setup", wx.ID_ANY)
@@ -177,7 +177,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
         self.AddSubPage(page47, "Bootstrapped Analysis of Stable Clusters ",
                         wx.ID_ANY)
-        self.AddSubPage(page48, "CWAS Settings", wx.ID_ANY)
+        self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
 
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_TREEBOOK_PAGE_CHANGING, self.OnPageChanging)

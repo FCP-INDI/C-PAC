@@ -116,9 +116,9 @@ def quickrun(pipeline_dir, roi_file, roi_file_two=None, ref_file=None,
                                         basc_proc, basc_memory, scan=scan)
 
     
-@group.command(name="cwas")
+@group.command(name="mdmr")
 @click.argument("pipeline_config", type=click.Path(exists=True))
-def group_cwas(pipeline_config):
+def group_mdmr(pipeline_config):
     from CPAC.pipeline.cpac_group_runner import run_cwas
     
     run_cwas(pipeline_config)
