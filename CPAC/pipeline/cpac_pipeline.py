@@ -516,10 +516,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             try:
                 node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
+                workflow.connect(node, out_file, anat_preproc,
+                                 'inputspec.anat')
             except:
-                logConnectionError('Anatomical Preprocessing No valid Previous for strat',
-                num_strat, strat.get_resource_pool(), '0001')
+                logConnectionError('Anatomical Preprocessing No valid '
+                                   'Previous for strat', num_strat,
+                                   strat.get_resource_pool(), '0001')
                 continue
 
             if "BET" in c.skullstrip_option:
@@ -539,7 +541,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             {'anatomical_brain': (anat_preproc, 'outputspec.brain')})
             strat.update_resource_pool(
             {'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
-         # write to log
+            # write to log
             create_log_node(anat_preproc, 'outputspec.brain', num_strat)  
             num_strat += 1 
     
@@ -552,7 +554,8 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         nodes = getNodeList(strat)
         if ("BET" in c.skullstrip_option) and ('anat_preproc' not in nodes):
 
-            anat_preproc = create_anat_preproc(False,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(False, already_skullstripped,
+                                               wf_name='anat_preproc_%d' % num_strat)
 
             anat_preproc.inputs.BET_options.frac = c.frac
             anat_preproc.inputs.BET_options.mask_boolean = c.mask_boolean
@@ -570,9 +573,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             try:
                 node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
+                workflow.connect(node, out_file, anat_preproc,
+                                 'inputspec.anat')
             except:
-                logConnectionError('Anatomical Preprocessing No valid Previous for strat',num_strat, strat.get_resource_pool(), '0001')
+                logConnectionError('Anatomical Preprocessing No valid '
+                                   'Previous for strat', num_strat,
+                                   strat.get_resource_pool(), '0001')
                 raise
 
             strat.append_name(anat_preproc.name)
