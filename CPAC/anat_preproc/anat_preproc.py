@@ -1,5 +1,5 @@
 
-from nipype.interfaces import afni 
+from nipype.interfaces import afni, fsl
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
@@ -59,7 +59,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     expr = '-shrink_fac {0} ' \
            '{1} ' \
            '-shrink_fac_bot_lim {2} ' \
-           'avoid_vent {3} ' \
+           '{3} ' \
            '-niter {4} ' \
            '{5} ' \
            '{6} ' \
