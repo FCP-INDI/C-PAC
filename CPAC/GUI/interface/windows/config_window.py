@@ -175,7 +175,7 @@ class Mybook(wx.Treebook):
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
         self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
-        self.AddSubPage(page47, "Bootstrapped Analysis of Stable Clusters ",
+        self.AddSubPage(page47, "PyBASC Settings",
                         wx.ID_ANY)
         self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)
 

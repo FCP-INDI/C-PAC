@@ -893,7 +893,7 @@ def run_cwas_group(output_dir, working_dir, roi_file,
     from CPAC.cwas.pipeline import create_cwas
 
     output_dir = os.path.abspath(output_dir)
-    working_dir = os.path.join(working_dir, 'group_analysis', 'MDMR',
+    working_dir = os.path.join(working_dir, 'cpac_group_analysis', 'MDMR',
                                os.path.basename(output_dir))
 
     inclusion_list = None
@@ -1410,8 +1410,8 @@ def run(config_file, pipeline_output_folder):
     c = load_config_yml(config_file)
 
     # Run MDMR, if selected
-    if 1 in c.run_mdmr:
-        run_mdmr(config_file)
+    if 1 in c.runMDMR:
+        run_cwas(config_file)
 
     # Run PyBASC, if selected
     if 1 in c.run_basc:
