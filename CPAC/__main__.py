@@ -78,10 +78,59 @@ def run(pipe_config, pipe_output_dir):
     cpac_group_runner.run_feat(pipe_config, pipe_output_dir)
 
 
-@feat.command()
+@feat.group()
 def load_preset():
-    # TODO: this
     pass
+
+@load_preset.command()
+@click.argument('group_participants')
+@click.argument('z_thresh')
+@click.argument('p_thresh')
+@click.argument('model_name')
+@click.option('--output_dir', default=None)
+def single_grp_avg(group_participants, z_thresh, p_thresh, model_name,
+                   output_dir=None):
+    from CPAC.utils import create_fsl_flame_preset
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
+    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
+                                'single_grp', output_dir=output_dir,
+                                model_name=model_name)
+
+@load_preset.command()
+@click.argument('group_participants')
+@click.argument('z_thresh')
+@click.argument('p_thresh')
+@click.argument('pheno_file')
+@click.argument('pheno_sub')
+@click.argument('covariate')
+@click.argument('model_name')
+@click.option('--output_dir', default=None)
+def single_grp_cov(group_participants, z_thresh, p_thresh, pheno_file,
+                   pheno_sub, covariate, model_name, output_dir=None):
+    from CPAC.utils import create_fsl_flame_preset
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
+    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
+                                'single_grp_cov', pheno_file=pheno_file,
+                                pheno_sub_label=pheno_sub,
+                                covariate=covariate, output_dir=output_dir,
+                                model_name=model_name)
+
+@load_preset.group()
+def unpaired_two():
+    pass
+
+@load_preset.group()
+def paired_two():
+    pass
+
+@load_preset.group()
+def tripled_two():
+    pass
+
 
 
 # Group analysis - PyBASC

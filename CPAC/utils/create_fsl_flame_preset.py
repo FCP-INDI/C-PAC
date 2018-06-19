@@ -855,6 +855,24 @@ def run(group_list_text_file, derivative_list, z_thresh, p_thresh,
 
     import os
 
+    # make life easy
+    if derivative_list == 'all':
+        derivative_list = ['alff_to_standard_zstd',
+                           'alff_to_standard_zstd_smooth',
+                           'falff_to_standard_zstd',
+                           'falff_to_standard_zstd_smooth',
+                           'reho_to_standard_zstd',
+                           'reho_to_standard_zstd_smooth',
+                           'sca_roi_files_to_standard_fisher_zstd',
+                           'sca_roi_files_to_standard_fisher_zstd_smooth',
+                           'sca_tempreg_maps_zstat_files',
+                           'sca_tempreg_maps_zstat_files_smooth',
+                           'vmhc_fisher_zstd_zstat_map',
+                           'centrality_outputs_zstd',
+                           'centrality_outputs_zstd_smooth',
+                           'dr_tempreg_maps_zstat_files_to_standard',
+                           'dr_tempreg_maps_zstat_files_to_standard_smooth']
+
     if pheno_file and not pheno_sub_label:
         # TODO: message
         raise Exception("pheno file provided, but no pheno sub label")
