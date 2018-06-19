@@ -5,35 +5,35 @@ from ..utils.constants import control, dtype
 import os
 import pkg_resources as p
     
-class CWASSettings(wx.ScrolledWindow):
+class MDMRSettings(wx.ScrolledWindow):
     def __init__(self, parent, counter = 0):
         wx.ScrolledWindow.__init__(self, parent)
         
         self.counter = counter
                 
-        self.page = GenericClass(self, "Connectome-wide Association Studies")
+        self.page = GenericClass(self, "Multivariate Distance Matrix Regression (MDMR)")
 
-        self.page.add(label="Run CWAS?",
+        self.page.add(label="Run MDMR?",
                       control=control.CHOICE_BOX,
-                      name="runCWAS",
+                      name="runMDMR",
                       type=dtype.LSTR,
-                      comment="Used to determine if Connectome-wide Association Studies "
+                      comment="Used to determine if Multivariate Distance Matrix Regression (MDMR) "
                               "will be added to the pipeline or not.",
                       values=["Off", "On"],
                       wkf_switch = True)
 
         self.page.add(label="Mask ROI File", 
                      control=control.COMBO_BOX,
-                     name='cwas_roi_file', 
+                     name='mdmr_roi_file', 
                      type=dtype.STR, 
                      values=str(""),
                      validation_req=False,
                      comment="Path to a mask file. Voxels outside of the mask will "
-                             "be excluded from CWAS.")
+                             "be excluded from MDMR.")
                
         self.page.add(label="Regressor file", 
                      control=control.COMBO_BOX,
-                     name="cwas_regressor_file", 
+                     name="mdmr_regressor_file", 
                      type=dtype.STR, 
                      values="",
                      comment="Path to a CSV file containing the phenotypic "
@@ -41,7 +41,7 @@ class CWASSettings(wx.ScrolledWindow):
         
         self.page.add(label="Regressor Participant Column Name",
                       control=control.TEXT_BOX,
-                      name="cwas_regressor_participant_column",
+                      name="mdmr_regressor_participant_column",
                       type=dtype.STR,
                       comment="Name of the participants column in your "
                               "regressor file.",
@@ -49,7 +49,7 @@ class CWASSettings(wx.ScrolledWindow):
 
         self.page.add(label="Regressor of Interest columns", 
                      control=control.TEXT_BOX, 
-                     name="cwas_regressor_columns", 
+                     name="mdmr_regressor_columns", 
                      type=dtype.STR,
                      values="",
                      comment="Columns from the CSV file indicating factor "
@@ -58,7 +58,7 @@ class CWASSettings(wx.ScrolledWindow):
 
         self.page.add(label="Permutations",
                       control=control.INT_CTRL,
-                      name="cwas_permutations",
+                      name="mdmr_permutations",
                       type=dtype.NUM,
                       comment="Number of permutation tests to run on the "
                               "Pseudo-F statistics.",
@@ -66,10 +66,10 @@ class CWASSettings(wx.ScrolledWindow):
 
         self.page.add(label="Parallel nodes",
                       control=control.INT_CTRL,
-                      name="cwas_parallel_nodes",
+                      name="mdmr_parallel_nodes",
                       type=dtype.NUM,
                       comment="Number of Nipype nodes created while "
-                              "computing CWAS.  Dependent upon computing resources.",
+                              "computing MDMR. Dependent upon computing resources.",
                       values=1)
 
         self.page.set_sizer()

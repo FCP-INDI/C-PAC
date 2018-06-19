@@ -14,10 +14,8 @@ from os.path import expanduser
 
 from nilearn import datasets
 from nilearn.input_data import NiftiMasker
-from nilearn.plotting import plot_roi, show
 from nilearn.image.image import mean_img
 from nilearn.image import resample_img
-from matplotlib import pyplot as plt
 
 
 from sklearn import cluster, datasets
@@ -25,8 +23,6 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler, normalize
 
 home2 = expanduser("~")
-
-
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util

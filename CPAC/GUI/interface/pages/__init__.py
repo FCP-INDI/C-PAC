@@ -12,7 +12,7 @@ from .alff import ALFF, ALFFSettings
 from .smoothing import AfterWarping, AfterWarpingOptions
 from .timeseries import TimeSeries, ROITimeseries
 from .group_analysis import GroupAnalysis, GPASettings, BASCSettings
-from .cwas import CWASSettings
+from .mdmr import MDMRSettings
 
 __all__ = [ 'SkullStripProcessing', 'SkullStripOptions', 'AFNI_options', 'BET_options',\
            'AnatomicalPreprocessing', 'Segmentation', \

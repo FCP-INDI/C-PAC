@@ -1,8 +1,9 @@
 import commands
 import numpy as np
 import matplotlib
-import pkg_resources as p
 matplotlib.use('Agg')
+
+import pkg_resources as p
 import os
 import nipype.pipeline.engine as pe
 from nipype.interfaces import afni

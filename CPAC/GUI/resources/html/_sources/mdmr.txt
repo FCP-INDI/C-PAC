@@ -1,4 +1,4 @@
-Connectome-wide Association Studies (CWAS)
+Multivariate Distance Matrix Regression (MDMR)
 ------------------------------------------
 
 Introduction & Background
