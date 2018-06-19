@@ -1409,6 +1409,10 @@ def run(config_file, pipeline_output_folder):
     # get MAIN pipeline config loaded
     c = load_config_yml(config_file)
 
+    # Run MDMR, if selected
+    if 1 in c.run_mdmr:
+        run_mdmr(config_file)
+
     # Run PyBASC, if selected
     if 1 in c.run_basc:
         run_basc(config_file)
