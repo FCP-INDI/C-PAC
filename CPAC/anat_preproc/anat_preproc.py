@@ -4,15 +4,14 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 
 
-
 def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
-                                   shrink_fac_bot_lim, 
-                                   avoid_vent,niter,
-                                   pushout,touchup,fill_hole,
-                                   avoid_eyes,use_edge,exp_frac,
-                                   smooth_final,push_to_edge,
-                                   use_skull,perc_int,
-                                   max_inter_iter,blur_fwhm,fac):
+                                   shrink_fac_bot_lim,
+                                   avoid_vent, niter,
+                                   pushout, touchup, fill_hole,
+                                   avoid_eyes, use_edge, exp_frac,
+                                   smooth_final, push_to_edge,
+                                   use_skull, perc_int,
+                                   max_inter_iter, blur_fwhm, fac):
 
     if var_shrink_fac:
         var_shrink_str = '-var_shrink_fac'
@@ -28,33 +27,31 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
         pushout_str = '-pushout'
     else:
         pushout_str = '-no_pushout'
-    
+
     if touchup:
         touchup_str = '-touchup'
     else:
         touchup_str = '-no_touchup'
-    
+
     if use_skull:
         use_skull_str = '-use_skull'
     else:
         use_skull_str = '-no_use_skull'
-    
+
     if avoid_eyes:
         avoid_eyes_str = '-avoid_eyes'
     else:
         avoid_eyes_str = '-no_avoid_eyes'
-    
+
     if use_edge:
         use_edge_str = '-use_edge'
     else:
         use_edge_str = '-no_use_edge'
-    
+
     if push_to_edge:
         push_to_edge_str = '-push_to_edge'
     else:
         push_to_edge_str = '-no_push_to_edge'
-
-
 
     expr = '-shrink_fac {0} ' \
            '{1} ' \
@@ -73,7 +70,8 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
            '-perc_int {14} ' \
            '-max_inter_iter {15} ' \
            '-blur_fwhm {16} ' \
-           '-fac {17} '.format(shrink_fac,var_shrink_str,shrink_fac_bot_lim,avoid_vent_str, niter,pushout_str,touchup_str,fill_hole,avoid_eyes_str,use_edge_str,exp_frac,smooth_final,push_to_edge_str,use_skull_str,perc_int,max_inter_iter,blur_fwhm,fac)
+           '-fac {17} '.format(shrink_fac, var_shrink_str, shrink_fac_bot_lim, avoid_vent_str, niter, pushout_str, touchup_str, fill_hole,
+                               avoid_eyes_str, use_edge_str, exp_frac, smooth_final, push_to_edge_str, use_skull_str, perc_int, max_inter_iter, blur_fwhm, fac)
 
     return expr
 
