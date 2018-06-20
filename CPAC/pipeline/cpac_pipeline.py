@@ -222,9 +222,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     outputs_average = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] != 'yes']['Resource'])
     outputs_average_mult = list(keys[keys['Calculate averages'] == 'yes'][keys['Multiple outputs'] == 'yes']['Resource'])
 
-    # outputs to link for QC pages
-    qc_outputs = list(keys[keys['Derivative'] == 'yes']['Resource'])
-
     # Start timing here
     pipeline_start_time = time.time()
     # at end of workflow, take timestamp again, take time elapsed and check
@@ -498,33 +495,31 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             anat_preproc = create_anat_preproc(True,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
 
             #try:
-            anat_preproc.inputs.AFNI_options.shrink_factor = c.skullstrip_shrink_factor
-            anat_preproc.inputs.AFNI_options.var_shrink_fac = c.skullstrip_var_shrink_fac
+            anat_preproc.inputs.AFNI_options.shrink_factor =      c.skullstrip_shrink_factor
+            anat_preproc.inputs.AFNI_options.var_shrink_fac =     c.skullstrip_var_shrink_fac
             anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.skullstrip_shrink_factor_bot_lim
-            anat_preproc.inputs.AFNI_options.avoid_vent = c.skullstrip_avoid_vent
-            anat_preproc.inputs.AFNI_options.niter = c.skullstrip_n_iterations
-            anat_preproc.inputs.AFNI_options.pushout = c.skullstrip_pushout
-            anat_preproc.inputs.AFNI_options.touchup = c.skullstrip_touchup
-            anat_preproc.inputs.AFNI_options.fill_hole = c.skullstrip_fill_hole
-            anat_preproc.inputs.AFNI_options.avoid_eyes = c.skullstrip_avoid_eyes
-            anat_preproc.inputs.AFNI_options.use_edge = c.skullstrip_use_edge
-            anat_preproc.inputs.AFNI_options.exp_frac = c.skullstrip_exp_frac
-            anat_preproc.inputs.AFNI_options.smooth_final = c.skullstrip_smooth_final
-            anat_preproc.inputs.AFNI_options.push_to_edge = c.skullstrip_push_to_edge
-            anat_preproc.inputs.AFNI_options.use_skull = c.skullstrip_use_skull
-            anat_preproc.inputs.AFNI_options.perc_int = c.skullstrip_perc_int
-            anat_preproc.inputs.AFNI_options.max_inter_iter = c.skullstrip_max_inter_iter
-            anat_preproc.inputs.AFNI_options.blur_fwhm = c.skullstrip_blur_fwhm
-            anat_preproc.inputs.AFNI_options.fac = c.skullstrip_fac
+            anat_preproc.inputs.AFNI_options.avoid_vent =         c.skullstrip_avoid_vent
+            anat_preproc.inputs.AFNI_options.niter =              c.skullstrip_n_iterations
+            anat_preproc.inputs.AFNI_options.pushout =            c.skullstrip_pushout
+            anat_preproc.inputs.AFNI_options.touchup =            c.skullstrip_touchup
+            anat_preproc.inputs.AFNI_options.fill_hole =          c.skullstrip_fill_hole
+            anat_preproc.inputs.AFNI_options.avoid_eyes =         c.skullstrip_avoid_eyes
+            anat_preproc.inputs.AFNI_options.use_edge =           c.skullstrip_use_edge
+            anat_preproc.inputs.AFNI_options.exp_frac =           c.skullstrip_exp_frac
+            anat_preproc.inputs.AFNI_options.smooth_final =       c.skullstrip_smooth_final
+            anat_preproc.inputs.AFNI_options.push_to_edge =       c.skullstrip_push_to_edge
+            anat_preproc.inputs.AFNI_options.use_skull =          c.skullstrip_use_skull
+            anat_preproc.inputs.AFNI_options.perc_int =           c.skullstrip_perc_int
+            anat_preproc.inputs.AFNI_options.max_inter_iter =     c.skullstrip_max_inter_iter
+            anat_preproc.inputs.AFNI_options.blur_fwhm =          c.skullstrip_blur_fwhm
+            anat_preproc.inputs.AFNI_options.fac =                c.skullstrip_fac
 
             try:
                 node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, anat_preproc,
-                                 'inputspec.anat')
+                workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
             except:
-                logConnectionError('Anatomical Preprocessing No valid '
-                                   'Previous for strat', num_strat,
-                                   strat.get_resource_pool(), '0001')
+                logConnectionError('Anatomical Preprocessing No valid Previous for strat',
+                num_strat, strat.get_resource_pool(), '0001')
                 continue
 
             if "BET" in c.skullstrip_option:
@@ -544,7 +539,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             {'anatomical_brain': (anat_preproc, 'outputspec.brain')})
             strat.update_resource_pool(
             {'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
-            # write to log
+         # write to log
             create_log_node(anat_preproc, 'outputspec.brain', num_strat)  
             num_strat += 1 
     
@@ -557,31 +552,27 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         nodes = getNodeList(strat)
         if ("BET" in c.skullstrip_option) and ('anat_preproc' not in nodes):
 
-            anat_preproc = create_anat_preproc(False, already_skullstripped,
-                                               wf_name='anat_preproc_%d' % num_strat)
+            anat_preproc = create_anat_preproc(False,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
 
-            anat_preproc.inputs.BET_options.frac = c.bet_frac
-            anat_preproc.inputs.BET_options.mask_boolean = c.bet_mask_boolean
-            anat_preproc.inputs.BET_options.mesh_boolean = c.bet_mesh_boolean
-            anat_preproc.inputs.BET_options.outline = c.bet_outline
-            anat_preproc.inputs.BET_options.padding = c.bet_padding
-            anat_preproc.inputs.BET_options.radius = c.bet_radius
-            anat_preproc.inputs.BET_options.reduce_bias = c.bet_reduce_bias
-            anat_preproc.inputs.BET_options.remove_eyes = c.bet_remove_eyes
-            anat_preproc.inputs.BET_options.robust = c.bet_robust
-            anat_preproc.inputs.BET_options.skull = c.bet_skull
-            anat_preproc.inputs.BET_options.surfaces = c.bet_surfaces
-            anat_preproc.inputs.BET_options.threshold = c.bet_threshold
+            anat_preproc.inputs.BET_options.frac =              c.bet_frac
+            anat_preproc.inputs.BET_options.mask_boolean =      c.bet_mask_boolean
+            anat_preproc.inputs.BET_options.mesh_boolean =      c.bet_mesh_boolean
+            anat_preproc.inputs.BET_options.outline =           c.bet_outline
+            anat_preproc.inputs.BET_options.padding =           c.bet_padding
+            anat_preproc.inputs.BET_options.radius =            c.bet_radius
+            anat_preproc.inputs.BET_options.reduce_bias =       c.bet_reduce_bias
+            anat_preproc.inputs.BET_options.remove_eyes =       c.bet_remove_eyes
+            anat_preproc.inputs.BET_options.robust =            c.bet_robust
+            anat_preproc.inputs.BET_options.skull =             c.bet_skull
+            anat_preproc.inputs.BET_options.surfaces =          c.bet_surfaces
+            anat_preproc.inputs.BET_options.threshold =         c.bet_threshold
             anat_preproc.inputs.BET_options.vertical_gradient = c.bet_vertical_gradient
 
             try:
                 node, out_file = strat.get_leaf_properties()
-                workflow.connect(node, out_file, anat_preproc,
-                                 'inputspec.anat')
+                workflow.connect(node, out_file, anat_preproc, 'inputspec.anat')
             except:
-                logConnectionError('Anatomical Preprocessing No valid '
-                                   'Previous for strat', num_strat,
-                                   strat.get_resource_pool(), '0001')
+                logConnectionError('Anatomical Preprocessing No valid Previous for strat',num_strat, strat.get_resource_pool(), '0001')
                 raise
 
             strat.append_name(anat_preproc.name)
@@ -1392,15 +1383,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
 
             if 'BET' in c.fmap_distcorr_skullstrip:
                epi_distcorr = create_EPI_DistCorr(use_BET = True, wf_name='epi_distcorr_%d' % (num_strat))
+               epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+               epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_frac)
             else:
                epi_distcorr = create_EPI_DistCorr(use_BET = False, wf_name='epi_distcorr_%d' % (num_strat))
-
-            epi_distcorr.inputs.bet_frac_input.bet_frac = c.fmap_distcorr_frac
+               epi_distcorr.inputs.afni_threshold_input.afni_threshold = c.fmap_distcorr_threshold
+               
+            
             epi_distcorr.inputs.deltaTE_input.deltaTE = c.fmap_distcorr_deltaTE
             epi_distcorr.inputs.dwellT_input.dwellT = c.fmap_distcorr_dwell_time
             epi_distcorr.inputs.dwell_asym_ratio_input.dwell_asym_ratio = c.fmap_distcorr_dwell_asym_ratio
 
-            epi_distcorr.get_node('bet_frac_input').iterables = ('bet_frac',c.fmap_distcorr_frac)
             epi_distcorr.get_node('deltaTE_input').iterables = ('deltaTE',
                                                    c.fmap_distcorr_deltaTE)
             epi_distcorr.get_node('dwellT_input').iterables = ('dwellT',
@@ -4788,14 +4781,116 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     print "Error: %s" % e
                     pass
 
-            # Link all the derivatives to the QC pages
-            idx = 7
-            rp = strat.get_resource_pool()
-            for key in sorted(rp.keys()):
-                # qc_outputs is from the outputs CSV
-                if key in qc_outputs:
-                    QA_montages(key, idx)
-                    idx += 1
+            # ALFF and f/ALFF QA montages
+            if 1 in c.runALFF:
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('alff_to_standard', 7)
+                    QA_montages('falff_to_standard', 8)
+
+                    if c.fwhm != None:
+                        QA_montages('alff_to_standard_smooth', 9)
+                        QA_montages('falff_to_standard_smooth', 10)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('alff_to_standard_zstd_smooth', 11)
+                            QA_montages('falff_to_standard_zstd_smooth', 12)
+
+                        else:
+                            QA_montages('alff_to_standard_zstd', 13)
+                            QA_montages('falff_to_standard_zstd', 14)
+
+            # ReHo QA montages
+            if 1 in c.runReHo:
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('reho_to_standard', 15)
+
+                    if c.fwhm != None:
+                        QA_montages('reho_to_standard_smooth', 16)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('reho_to_standard_zstd_smooth', 17)
+
+                        else:
+                            QA_montages('reho_to_standard_fisher_zstd', 18)
+
+            # SCA ROI QA montages
+            if (1 in c.runSCA) and (1 in c.runROITimeseries):
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_roi_to_standard', 19)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_roi_to_standard_smooth', 20)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_roi_to_standard_zstd_fisher_smooth', 22)
+
+                        else:
+                            QA_montages('sca_roi_to_standard_fisher_zstd', 21)
+
+            # SCA Seed QA montages
+            if (1 in c.runSCA) and ("Voxel" in ts_analysis_dict.keys()): #(1 in c.runVoxelTimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('sca_seed_to_standard', 23)
+
+                    if c.fwhm != None:
+                        QA_montages('sca_seed_to_standard_smooth', 24)
+
+                    if 1 in c.runZScoring:
+
+                        if c.fwhm != None:
+                            QA_montages('sca_seed_to_standard_zstd_fisher_smooth', 26)
+
+                        else:
+                            QA_montages('sca_seed_to_standard_fisher_zstd', 25)
+                            
+            # SCA Multiple Regression
+            if "MultReg" in sca_analysis_dict.keys(): #(1 in c.runMultRegSCA) and (1 in c.runROITimeseries):
+
+                if 1 in c.runRegisterFuncToMNI:
+                   QA_montages('sca_tempreg_maps_files', 27)
+                   QA_montages('sca_tempreg_maps_zstat_files', 28)
+
+                   if c.fwhm != None:
+                        QA_montages('sca_tempreg_maps_files_smooth', 29)
+                        QA_montages('sca_tempreg_maps_zstat_files_smooth', 30)
+
+            # Dual Regression QA montages
+            if ("DualReg" in sca_analysis_dict.keys()) and ("SpatialReg" in ts_analysis_dict.keys()):
+
+                QA_montages('dr_tempreg_maps_files', 31)
+                QA_montages('dr_tempreg_maps_zstat_files', 32)
+
+                if 1 in c.runRegisterFuncToMNI:
+                    QA_montages('dr_tempreg_maps_files_to_standard', 33)
+                    QA_montages('dr_tempreg_maps_zstat_files_to_standard', 34)
+
+                    if c.fwhm != None:
+                        QA_montages('dr_tempreg_maps_files_to_standard_smooth', 35)
+                        QA_montages('dr_tempreg_maps_zstat_files_to_standard_smooth', 36)
+
+            # VMHC QA montages
+            if 1 in c.runVMHC:
+
+                QA_montages('vmhc_raw_score', 37)
+                QA_montages('vmhc_fisher_zstd', 38)
+                QA_montages('vmhc_fisher_zstd_zstat_map', 39)
+
+            # Network Centrality QA montages
+            if 1 in c.runNetworkCentrality:
+
+                QA_montages('centrality_outputs', 40)
+                QA_montages('centrality_outputs_zstd', 41)
+
+                if c.fwhm != None:
+                    QA_montages('centrality_outputs_smoothed', 42)
+                    QA_montages('centrality_outputs_smoothed_zstd', 43)
 
             num_strat += 1
 
