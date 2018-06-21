@@ -552,12 +552,13 @@ def preset_paired_two_group(group_list, conditions, condition_type="session",
     for val in condition_ev[0:(len(condition_ev) / 2) - 1]:
         if val != 1:
             # TODO: msg
-            raise Exception
+            raise Exception('Non-equal amount of participants for each '
+                            '{0}.\n'.format(condition_type))
     #   second half
     for val in condition_ev[(len(condition_ev) / 2):]:
         if val != -1:
             # TODO: msg
-            raise Exception
+            raise Exception('second half')
 
     design_df[condition_type] = condition_ev
 
@@ -657,7 +658,8 @@ def preset_tripled_two_group(group_list, conditions, condition_type="session",
 
     if len(conditions) != 3:
         # TODO: msg
-        raise Exception
+        raise Exception('Three conditions are required for the tripled '
+                        't-test.\n')
 
     design_df = create_design_matrix_df(group_list)
 

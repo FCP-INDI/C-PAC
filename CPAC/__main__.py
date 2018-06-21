@@ -119,18 +119,65 @@ def single_grp_cov(group_participants, z_thresh, p_thresh, pheno_file,
                                 covariate=covariate, output_dir=output_dir,
                                 model_name=model_name)
 
-@load_preset.group()
-def unpaired_two():
-    pass
+@load_preset.command()
+@click.argument('group_participants')
+@click.argument('z_thresh')
+@click.argument('p_thresh')
+@click.argument('pheno_file')
+@click.argument('pheno_sub')
+@click.argument('covariate')
+@click.argument('model_name')
+@click.option('--output_dir', default=None)
+def unpaired_two(group_participants, z_thresh, p_thresh, pheno_file,
+                 pheno_sub, covariate, model_name, output_dir=None):
+    from CPAC.utils import create_fsl_flame_preset
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
+    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
+                                'unpaired_two', pheno_file=pheno_file,
+                                pheno_sub_label=pheno_sub,
+                                covariate=covariate, output_dir=output_dir,
+                                model_name=model_name)
 
-@load_preset.group()
-def paired_two():
-    pass
+@load_preset.command()
+@click.argument('group_participants')
+@click.argument('z_thresh')
+@click.argument('p_thresh')
+@click.argument('conditions')
+@click.argument('condition_type')
+@click.argument('model_name')
+@click.option('--output_dir', default=None)
+def paired_two(group_participants, z_thresh, p_thresh, conditions,
+               condition_type, model_name, output_dir=None):
+    from CPAC.utils import create_fsl_flame_preset
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
+    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
+                                'paired_two', covariate=conditions,
+                                condition_type=condition_type,
+                                output_dir=output_dir, model_name=model_name)
 
-@load_preset.group()
-def tripled_two():
-    pass
 
+@load_preset.command()
+@click.argument('group_participants')
+@click.argument('z_thresh')
+@click.argument('p_thresh')
+@click.argument('conditions')
+@click.argument('condition_type')
+@click.argument('model_name')
+@click.option('--output_dir', default=None)
+def tripled_two(group_participants, z_thresh, p_thresh, conditions,
+               condition_type, model_name, output_dir=None):
+    from CPAC.utils import create_fsl_flame_preset
+    if not output_dir:
+        import os
+        output_dir = os.path.join(os.getcwd(), 'cpac_group_analysis')
+    create_fsl_flame_preset.run(group_participants, 'all', z_thresh, p_thresh,
+                                'tripled_two', covariate=conditions,
+                                condition_type=condition_type,
+                                output_dir=output_dir, model_name=model_name)
 
 
 # Group analysis - PyBASC
