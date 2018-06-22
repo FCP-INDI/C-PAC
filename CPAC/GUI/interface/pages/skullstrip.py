@@ -67,20 +67,20 @@ class AFNI_options(wx.ScrolledWindow):
         self.counter = counter
         self.page = GenericClass(self, "AFNI options")
 
-        # self.page.add(label="Spatial Normalization",
-        #               control=control.CHOICE_BOX,
-        #               name='skullstrip_spat_norm',
-        #               type=dtype.STR,
-        #               comment="Perform spatial normalization first.This is the default, unless the image has already been normalized",
-        #               values=["On","Off"])
+        self.page.add(label="Spatial Normalization",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_spat_norm',
+                      type=dtype.STR,
+                      comment="Perform spatial normalization first.This is the default, unless the image has already been normalized",
+                      values=["On","Off"])
         
-        # self.page.add(label="Spatial Normalization dxyz",
-        #               control=control.TEXT_BOX,
-        #               name='skullstrip_spat_norm_dxyz',
-        #               type=dtype.NUM,
-        #               comment="Use DXY for the spatial resolution of the spatially normalized volume. The default is the lowest of all three dimensions.For human brains, use DXYZ of 1.0, for\
-        #                   primate brain, use the default setting.The default here is for human brain",
-        #               values="0.1")
+        self.page.add(label="Spatial Normalization dxyz",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_spat_norm_dxyz',
+                      type=dtype.NUM,
+                      comment="Use DXY for the spatial resolution of the spatially normalized volume. The default is the lowest of all three dimensions.For human brains, use DXYZ of 1.0, for\
+                          primate brain, use the default setting.The default here is for human brain",
+                      values="0.1")
         
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
