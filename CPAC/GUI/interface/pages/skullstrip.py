@@ -66,6 +66,21 @@ class AFNI_options(wx.ScrolledWindow):
         
         self.counter = counter
         self.page = GenericClass(self, "AFNI options")
+
+        # self.page.add(label="Spatial Normalization",
+        #               control=control.CHOICE_BOX,
+        #               name='skullstrip_spat_norm',
+        #               type=dtype.STR,
+        #               comment="Perform spatial normalization first.This is the default, unless the image has already been normalized",
+        #               values=["On","Off"])
+        
+        # self.page.add(label="Spatial Normalization dxyz",
+        #               control=control.TEXT_BOX,
+        #               name='skullstrip_spat_norm_dxyz',
+        #               type=dtype.NUM,
+        #               comment="Use DXY for the spatial resolution of the spatially normalized volume. The default is the lowest of all three dimensions.For human brains, use DXYZ of 1.0, for\
+        #                   primate brain, use the default setting.The default here is for human brain",
+        #               values="0.1")
         
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
@@ -81,22 +96,23 @@ class AFNI_options(wx.ScrolledWindow):
                       name='skullstrip_var_shrink_fac',
                       type=dtype.STR,
                       comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
-                      values=["Off","On"])
+                      values=["On","Off"])
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
                       name='skullstrip_shrink_factor_bot_lim',
                       type=dtype.NUM,
-                      comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.65",
+                      comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, when edge detection is used(which is default), otherwise it is 0.65",
                       validator = CharValidator("no-alpha"),
-                      values="0.65")
+                      values="0.4")
+
                       
         self.page.add(label="Avoid ventricles",
                       control=control.CHOICE_BOX,
                       name='skullstrip_avoid_vent',
                       type=dtype.STR,
                       comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
-                      values=["Off","On"])
+                      values=["On","Off"])
 
                       
         self.page.add(label="n-iterations",
@@ -112,14 +128,14 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'skullstrip_pushout',
                       type = dtype.STR,
                       comment="While expanding, consider the voxels above and not only the voxels below",
-                      values=["Off","On"])
+                      values=["On","Off"])
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
                       name = 'skullstrip_touchup',
                       type=dtype.STR,
                       comment="Perform touchup operations at the end to include areas not covered by surface expansion",
-                      values=["Off","On"])
+                      values=["On","Off"])
                       
         self.page.add(label = "Fill_hole",
                       control=control.TEXT_BOX,
@@ -127,7 +143,7 @@ class AFNI_options(wx.ScrolledWindow):
                       type = dtype.NUM,
                       comment="Give the maximum number of pixels on either side of the hole that can be filled. Please note that the default is 10 ONLY if touchup is On, and otherwise the default is 0.",
                       validator = CharValidator("no-alpha"),
-                      values = "0")
+                      values = "10")
                       
         self.page.add(label="NN_smooth",
                       control=control.TEXT_BOX,
@@ -150,14 +166,14 @@ class AFNI_options(wx.ScrolledWindow):
                       name = 'skullstrip_avoid_eyes',
                       type = dtype.STR,
                       comment = "Avoid eyes while skull stripping,defualt is True",
-                      values = ["Off","On"])
+                      values = ["On","Off"])
                       
         self.page.add(label="Use_edge",
                       control = control.CHOICE_BOX,
                       name = 'skullstrip_use_edge',
                       type = dtype.STR,
                       comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
-                      values = ["Off","On"])
+                      values = ["On","Off"])
         
         self.page.add(label="Fractional expansion",
                       control = control.TEXT_BOX,
