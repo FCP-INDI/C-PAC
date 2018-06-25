@@ -144,9 +144,10 @@ class EPI_DistCorr(wx.ScrolledWindow):
                               "relies on the skull-stripping step, we "
                               "provide a choice of method (AFNI 3dSkullStrip "
                               "or FSL BET).",
-                      values=["BET", "3dSkullStrip"])
+                      values=["BET", "3dSkullStrip"],
+                      wkf_switch=True)
 
-        self.page.add(label="BET threshold/AFNI shrink factor ",
+        self.page.add(label="BET threshold",
                       control=control.TEXT_BOX,
                       name='fmap_distcorr_frac',
                       type=dtype.LNUM,
@@ -158,6 +159,19 @@ class EPI_DistCorr(wx.ScrolledWindow):
                               "\n\nThe default value is 0.5.",
                       validator=CharValidator("no-alpha"),
                       values="0.5")
+
+        self.page.add(label="AFNI threshold",
+                      control=control.TEXT_BOX,
+                      name='fmap_distcorr_threshold',
+                      type=dtype.NUM,
+                      comment="Set the threshold value for the skull-"
+                              "stripping of the magnitude file. Depending "
+                              "on the data, a tighter extraction may be "
+                              "necessary in order to prevent noisy voxels "
+                              "from interfering with preparing the field map."
+                              "\n\nThe default value is 0.5.",
+                      validator=CharValidator("no-alpha"),
+                      values="0.6")
                         
         self.page.add(label="DeltaTE, in ms ",
                       control=control.TEXT_BOX,
