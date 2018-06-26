@@ -3884,7 +3884,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             # Update resource pool with centrality outputs
             try:
                 strat.update_resource_pool(
-                    {'centrality_outputs': (merge_node, 'merged_list')})
+                    {'centrality': (merge_node, 'merged_list')})
             except:
                 logConnectionError('Network Centrality', num_strat,
                                    strat.get_resource_pool(), '0050')
