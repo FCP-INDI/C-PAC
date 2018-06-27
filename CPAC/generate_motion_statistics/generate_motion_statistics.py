@@ -272,7 +272,7 @@ def motion_power_statistics(calculation='Jenkinson',
     
     >>> import generate_motion_statistics
     >>> wf = generate_motion_statistics.motion_power_statistics()
-    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outupts/sub01/func/movement_parameteres/rest_mc.1D'
+    >>> wf.inputs.inputspec.movement_parameters = 'CPAC_outputs/sub01/func/movement_parameteres/rest_mc.1D'
     >>> wf.inputs.inputspec.max_displacement = 'CPAC_outputs/sub01/func/max_dispalcement/max_disp.1D'
     >>> wf.inputs.inputspec.motion_correct = 'CPAC_outputs/sub01/func/motion_correct/rest_mc.nii.gz'
     >>> wf.inputs.inputspec.mask = 'CPAC_outputs/sub01/func/func_mask/rest_mask.nii.gz'
@@ -718,8 +718,8 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters,
         lines = f.readlines()
     list1 = []
 
-    # remove any other information aother than matrix from
-    # max displacement file. afni adds infomration to the file
+    # remove any other information other than matrix from
+    # max displacement file. afni adds information to the file
     for l in lines:
         if re.match("^\d+?\.\d+?$", l.strip()):
             list1.append(float(l.strip()))
