@@ -18,7 +18,6 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     if avoid_vent:
         avoid_vent_str = '-avoid_vent'
-
     else:
         avoid_vent_str = '-no_avoid_vent'
 
@@ -55,7 +54,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     expr = '-shrink_fac {0} ' \
            '{1} ' \
            '-shrink_fac_bot_lim {2} ' \
-           'avoid_vent {3} ' \
+           '{3} ' \
            '-niter {4} ' \
            '{5} ' \
            '{6} ' \
