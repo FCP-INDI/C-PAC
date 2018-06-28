@@ -174,7 +174,7 @@ class Mybook(wx.Treebook):
         self.AddSubPage(page40, "After Warping Options", wx.ID_ANY)
 
         self.AddPage(page45, "Group Analysis Settings", wx.ID_ANY)
-        self.AddSubPage(page46, "FSL FEAT Group Analysis", wx.ID_ANY)
+        self.AddSubPage(page46, "FSL FEAT Settings", wx.ID_ANY)
         self.AddSubPage(page47, "PyBASC Settings",
                         wx.ID_ANY)
         self.AddSubPage(page48, "MDMR Settings", wx.ID_ANY)

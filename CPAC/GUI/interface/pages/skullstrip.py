@@ -43,16 +43,16 @@ class SkullStripOptions(wx.html.HtmlWindow):
                       comment="Disables skull-stripping on the anatomical inputs if they are already skull-stripped outside of C-PAC. Set this to On if your input images are already skull-stripped.",
                       values=["Off", "On"])
 
-        self.page.add(label ="Which function do you want to skull-strip with?",
+        self.page.add(label="Which tool for skull-stripping?",
                       control=control.CHOICE_BOX,
                       name='skullstrip_option',
                       type=dtype.STR,
-                      comment = "Choice of using AFNI or FSL-BET to perform SkullStripping",
-                      values = ["AFNI","BET","AFNI & BET"],
+                      comment="Choice of using AFNI or FSL-BET to perform "
+                              "SkullStripping",
+                      values=["AFNI","BET","AFNI & BET"],
                       wkf_switch = True)
         self.page.set_sizer()
         parent.get_page_list().append(self)
-
 
     def get_counter(self):
         return self.counter
@@ -62,32 +62,16 @@ class AFNI_options(wx.ScrolledWindow):
     
     def __init__(self,parent,counter = 0):
         wx.ScrolledWindow.__init__(self,parent)
-
         
         self.counter = counter
         self.page = GenericClass(self, "AFNI options")
-
-        self.page.add(label="Spatial Normalization",
-                      control=control.CHOICE_BOX,
-                      name='skullstrip_spat_norm',
-                      type=dtype.STR,
-                      comment="Perform spatial normalization first.This is the default, unless the image has already been normalized",
-                      values=["On","Off"])
-        
-        self.page.add(label="Spatial Normalization dxyz",
-                      control=control.TEXT_BOX,
-                      name='skullstrip_spat_norm_dxyz',
-                      type=dtype.NUM,
-                      comment="Use DXY for the spatial resolution of the spatially normalized volume. The default is the lowest of all three dimensions.For human brains, use DXYZ of 1.0, for\
-                          primate brain, use the default setting.The default here is for human brain",
-                      values="0.1")
         
         self.page.add(label="Shrink factor",
                       control=control.TEXT_BOX,
-                      name = 'skullstrip_shrink_factor',
+                      name='skullstrip_shrink_factor',
                       type=dtype.NUM,
-                      comment="Set the threshold value controling the brain vs non-brain voxels\
-                              default is 0.6",
+                      comment="Set the threshold value controlling the "
+                              "brain vs non-brain voxels. Default is 0.6.",
                       validator=CharValidator("no-alpha"),
                       values="0.6")
                       
@@ -95,143 +79,170 @@ class AFNI_options(wx.ScrolledWindow):
                       control=control.CHOICE_BOX,
                       name='skullstrip_var_shrink_fac',
                       type=dtype.STR,
-                      comment="Vary the shrink factor at every iteration of the algorithm? this prevents the likehood of surface from getting stuck in large pools of CSF before reaching the outer surface of the brain. This is the default",
+                      comment="Vary the shrink factor at every iteration of "
+                              "the algorithm. This prevents the likelihood "
+                              "of surface getting stuck in large pools of "
+                              "CSF before reaching the outer surface of "
+                              "the brain. Default is On.",
                       values=["On","Off"])
                       
         self.page.add(label="Shrink Factor Bottom Limit",
                       control=control.TEXT_BOX,
                       name='skullstrip_shrink_factor_bot_lim',
                       type=dtype.NUM,
-                      comment="The shrink factor bottom limit sets the lower threshold when varying the shrink factor. Default is 0.4, when edge detection is used(which is default), otherwise it is 0.65",
+                      comment="The shrink factor bottom limit sets the "
+                              "lower threshold when varying the shrink "
+                              "factor. Default is 0.4, for when edge "
+                              "detection is used (which is On by default), "
+                              "otherwise the default value is 0.65.",
                       validator = CharValidator("no-alpha"),
                       values="0.4")
 
-                      
         self.page.add(label="Avoid ventricles",
                       control=control.CHOICE_BOX,
                       name='skullstrip_avoid_vent',
                       type=dtype.STR,
-                      comment="Avoids ventricles while skullstripping,Use this option twice for more aggressive stripping",
+                      comment="Avoids ventricles while skullstripping.",
                       values=["On","Off"])
-
                       
-        self.page.add(label="n-iterations",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_n_iterations',
+        self.page.add(label="Number of iterations",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_n_iterations',
                       type=dtype.NUM,
-                      comment="Set the number of iterations, default is 250 and the number of iterations will depend upon the density of your mesh",
+                      comment="Set the number of iterations. Default is 250."
+                              "The number of iterations should depend upon "
+                              "the density of your mesh.",
                       validator=CharValidator("no-alpha"),
                       values="250")
                       
         self.page.add(label="Pushout",
                       control=control.CHOICE_BOX,
-                      name = 'skullstrip_pushout',
-                      type = dtype.STR,
-                      comment="While expanding, consider the voxels above and not only the voxels below",
+                      name='skullstrip_pushout',
+                      type=dtype.STR,
+                      comment="While expanding, consider the voxels above "
+                              "and not only the voxels below",
                       values=["On","Off"])
                       
         self.page.add(label="Touchup",
                       control=control.CHOICE_BOX,
-                      name = 'skullstrip_touchup',
+                      name='skullstrip_touchup',
                       type=dtype.STR,
-                      comment="Perform touchup operations at the end to include areas not covered by surface expansion",
+                      comment="Perform touchup operations at the end to "
+                              "include areas not covered by surface "
+                              "expansion.",
                       values=["On","Off"])
                       
-        self.page.add(label = "Fill_hole",
+        self.page.add(label="Fill hole option",
                       control=control.TEXT_BOX,
-                      name = 'skullstrip_fill_hole',
-                      type = dtype.NUM,
-                      comment="Give the maximum number of pixels on either side of the hole that can be filled. Please note that the default is 10 ONLY if touchup is On, and otherwise the default is 0.",
+                      name='skullstrip_fill_hole',
+                      type=dtype.NUM,
+                      comment="Give the maximum number of pixels on either "
+                              "side of the hole that can be filled. The "
+                              "default is 10 only if 'Touchup' is On - "
+                              "otherwise, the default is 0.",
                       validator = CharValidator("no-alpha"),
                       values = "10")
                       
-        self.page.add(label="NN_smooth",
+        self.page.add(label="NN smooth",
                       control=control.TEXT_BOX,
-                      name = 'skullstrip_NN_smooth',
-                      type = dtype.NUM,
-                      comment = "Perform nearest neighbor coordinate interpolation every few iterations.Default is 72",
-                      validator = CharValidator("no-alpha"),
-                      values = "72")
-                      
-        self.page.add(label="Smooth_final",
-                      control=control.TEXT_BOX,
-                      name = 'skullstrip_smooth_final',
-                      type = dtype.NUM,
-                      comment = "Perform final surface smoothing after all iterations. Default is 20",
+                      name='skullstrip_NN_smooth',
+                      type=dtype.NUM,
+                      comment="Perform nearest neighbor coordinate "
+                              "interpolation every few iterations. Default "
+                              "is 72.",
                       validator=CharValidator("no-alpha"),
-                      values = "20")
+                      values="72")
                       
-        self.page.add(label="Avoid_eyes",
-                      control = control.CHOICE_BOX,
-                      name = 'skullstrip_avoid_eyes',
-                      type = dtype.STR,
-                      comment = "Avoid eyes while skull stripping,defualt is True",
+        self.page.add(label="Smooth final",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_smooth_final',
+                      type=dtype.NUM,
+                      comment="Perform final surface smoothing after all "
+                              "iterations. Default is 20.",
+                      validator=CharValidator("no-alpha"),
+                      values="20")
+                      
+        self.page.add(label="Avoid eyes",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_avoid_eyes',
+                      type=dtype.STR,
+                      comment="Avoid eyes while skull stripping. Default is "
+                              "On.",
                       values = ["On","Off"])
                       
-        self.page.add(label="Use_edge",
-                      control = control.CHOICE_BOX,
-                      name = 'skullstrip_use_edge',
-                      type = dtype.STR,
-                      comment = "Use edge detection to reduce leakage into meninges and eyes, default is True",
-                      values = ["On","Off"])
+        self.page.add(label="Use edge",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_use_edge',
+                      type=dtype.STR,
+                      comment="Use edge detection to reduce leakage into "
+                              "meninges and eyes. Default is On.",
+                      values=["On","Off"])
         
         self.page.add(label="Fractional expansion",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_exp_frac',
+                      control=control.TEXT_BOX,
+                      name='skullstrip_exp_frac',
                       type=dtype.NUM,
-                      comment="Speed of expansion",
-                      validator = CharValidator("no-alpha"),
+                      comment="Speed of expansion.",
+                      validator=CharValidator("no-alpha"),
                       values="0.1")
                       
-        self.page.add(label = "Push_to_edge",
-                      control = control.CHOICE_BOX,
-                      name = 'skullstrip_push_to_edge',
-                      type = dtype.STR,
-                      comment = "Perform aggressive push to edge, this might cause leakage",
-                      values = ["Off","On"])
+        self.page.add(label="Push to edge",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_push_to_edge',
+                      type=dtype.STR,
+                      comment="Perform aggressive push to edge. This might "
+                              "cause leakage. Default is Off.",
+                      values=["Off","On"])
         
-        self.page.add(label= "Use skull",
-                      control = control.CHOICE_BOX,
-                      name = 'skullstrip_use_skull',
-                      type = dtype.STR,
-                      comment = "Use outer skull to limit expansion of surface into the skull due to very strong shading artifact. This is buggy, use it only if you have leakage into the skull",
-                      values = ["Off","On"])
+        self.page.add(label="Use skull",
+                      control=control.CHOICE_BOX,
+                      name='skullstrip_use_skull',
+                      type=dtype.STR,
+                      comment="Use outer skull to limit expansion of surface "
+                              "into the skull in case of very strong shading "
+                              "artifacts. Use this only if you have leakage "
+                              "into the skull.",
+                      values=["Off","On"])
                       
-        self.page.add(label = "Perc_int",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_perc_int',
-                      type = dtype.NUM,
-                      comment = "Percentage of segments allowed to intersect surface. It is typically a number between 0 and 0.1, but can include negative values (which implies no testing for intersection",
+        self.page.add(label="Perc_int",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_perc_int',
+                      type=dtype.NUM,
+                      comment="Percentage of segments allowed to intersect "
+                              "surface. It is typically a number between 0 "
+                              "and 0.1, but can include negative values "
+                              "(which implies no testing for intersection).",
                       validator=CharValidator("no-alpha"),
-                      values = "0")
+                      values="0")
                       
-        self.page.add(label = "Max_inter_iter",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_max_inter_iter',
-                      type = dtype.NUM,
-                      comment = "Number of iteration to remove intersection \
-                      problems. With each iteration, the program \
-                      automatically increases the amount of smoothing \
-                      to get rid of intersections. Default is 4",
+        self.page.add(label="Max_inter_iter",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_max_inter_iter',
+                      type=dtype.NUM,
+                      comment="Number of iterations to remove intersection "
+                              "problems. With each iteration, the program "
+                              "automatically increases the amount of "
+                              "smoothing to get rid of intersections. "
+                              "Default is 4.",
                       validator=CharValidator("no-alpha"),
-                      values = "4")
+                      values="4")
                       
-        self.page.add(label = "Fac",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_fac',
-                      type = dtype.NUM,
-                      comment = "Multiply input dataset by FAC if range of values is too small",
+        self.page.add(label="Fac",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_fac',
+                      type=dtype.NUM,
+                      comment="Multiply input dataset by FAC if range of "
+                              "values is too small.",
                       validator=CharValidator("no-alpha"),
-                      values = "1")
+                      values="1")
 
-        self.page.add(label = "blur_fwhm",
-                      control = control.TEXT_BOX,
-                      name = 'skullstrip_blur_fwhm',
-                      type = dtype.NUM,
-                      comment = "Blur dataset after spatial normalization.",
+        self.page.add(label="blur_fwhm",
+                      control=control.TEXT_BOX,
+                      name='skullstrip_blur_fwhm',
+                      type=dtype.NUM,
+                      comment="Blur dataset after spatial normalization.",
                       validator=CharValidator("no-alpha"),
-                      values = "2")
-
+                      values="2")
 
         self.page.set_sizer()
         parent.get_page_list().append(self)
@@ -271,8 +282,7 @@ class BET_options(wx.ScrolledWindow):
                       type=dtype.STR,
                       values=["Off","On"],
                       wkf_switch = True)
-                      
-                      
+
         self.page.add(label="outline",
                       control=control.CHOICE_BOX,
                       name='bet_outline',

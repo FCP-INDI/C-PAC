@@ -497,9 +497,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         if "AFNI" in c.skullstrip_option:
             anat_preproc = create_anat_preproc(True,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
 
-            #try:s
-            anat_preproc.inputs.AFNI_options.spat_norm    =       c.skullstrip_spat_norm
-            anat_preproc.inputs.AFNI_options.spat_norm_dxyz =     c.skullstrip_spat_norm_dxyz
             anat_preproc.inputs.AFNI_options.shrink_factor =      c.skullstrip_shrink_factor
             anat_preproc.inputs.AFNI_options.var_shrink_fac =     c.skullstrip_var_shrink_fac
             anat_preproc.inputs.AFNI_options.shrink_fac_bot_lim = c.skullstrip_shrink_factor_bot_lim

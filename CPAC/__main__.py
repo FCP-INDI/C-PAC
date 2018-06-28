@@ -8,24 +8,24 @@ import click
 # cpac
 #     cpac gui
 # cpac individual
-#     cpac individual run <pipeline config> <data config>
-#     cpac individual quickrun
-#         cpac individual quickrun benchmark
-#         cpac individual quickrun default <data config>
-#         cpac individual quickrun preproc <data config>
+#     cpac --pipe <pipeline config> --data <data config>
+#     cpac --data <data config>  (runs default pipeline)
+#     cpac --benchmark
 # cpac group
 #     cpac group feat
-#         cpac group feat run <pipeline config>
+#         cpac group feat <pipeline config>
 #         cpac group feat load_preset <args...>
 #     cpac group basc
-#         cpac group basc run <pipeline config>
-#         cpac group basc quickrun <pipeline dir> <working dir> ....
+#         cpac group basc <pipeline config>
+#     cpac group mdmr
+#         cpac group mdmr <pipeline config>
 # cpac utils
 #     cpac utils data_config
 #         cpac utils data_config new_template
 #         cpac utils data_config build_data_config <data settings file>
 #     cpac utils pipe_config
 #         cpac utils pipe_config new_template
+#     cpac utils feat_load_preset
 
 
 @click.group()
