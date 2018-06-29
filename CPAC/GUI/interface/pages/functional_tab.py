@@ -187,7 +187,7 @@ class EPI_DistCorr(wx.ScrolledWindow):
                       comment="Set the asymmetric ratio value for FSL Fugue "
                               "input.",
                       validator=CharValidator("no-alpha"),
-                      values="e0.93902439")
+                      values="0.93902439")
 
         self.page.add(label="Phase-encoding direction ",
                       control=control.CHOICE_BOX,
