@@ -491,9 +491,7 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
     workflow_bit_id['anat_preproc'] = workflow_counter
 
     for strat in strat_list:
-        # create a new node, Remember to change its name!
-        # anat_preproc = create_anat_preproc(use_AFNI, already_skullstripped).clone(
-        #    'anat_preproc_%d' % num_strat)
+
         if "AFNI" in c.skullstrip_option:
             anat_preproc = create_anat_preproc(True,already_skullstripped,wf_name = 'anat_preproc_%d' % num_strat)
 
@@ -535,14 +533,16 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
             
             strat.append_name(anat_preproc.name)    
             strat.set_leaf_properties(anat_preproc, 'outputspec.brain')
-            # add stuff to resource pool if we need it
 
+            # add stuff to resource pool
             strat.update_resource_pool(
             {'anatomical_brain': (anat_preproc, 'outputspec.brain')})
             strat.update_resource_pool(
             {'anatomical_reorient': (anat_preproc, 'outputspec.reorient')})
-         # write to log
-            create_log_node(anat_preproc, 'outputspec.brain', num_strat)  
+
+            # write to log
+            create_log_node(anat_preproc, 'outputspec.brain', num_strat)
+
             num_strat += 1 
     
     strat_list += new_strat_list
@@ -4387,7 +4387,10 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         register_pallete(os.path.realpath(
                 os.path.join(CPAC.__path__[0], 'qc', 'cyan_to_yellow.py')), 'cyan_to_yellow')
                 
-        hist = pe.Node(util.Function(input_names=['measure_file','measure'],output_names = ['hist_path'],function = gen_histogram),name = 'histogram')
+        hist = pe.Node(util.Function(input_names=['measure_file','measure'],
+                                     output_names=['hist_path'],
+                                     function=gen_histogram),
+                       name='histogram')
 
         for strat in strat_list:
 
@@ -4762,7 +4765,22 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                     workflow.connect(drop_percent, 'modified_measure_file',
                                      montage, 'inputspec.overlay')
 
-                    histogram = hist.clone('hist_%s_%d' % (measure, num_strat))
+                    if 'centrality' in measure:
+                        histogram = pe.MapNode(
+                            util.Function(input_names=['measure_file',
+                                                       'measure'],
+                                          output_names=['hist_path'],
+                                          function=gen_histogram),
+                            name='hist_{0}_{1}'.format(measure, num_strat),
+                            iterfield=['measure_file'])
+                    else:
+                        histogram = pe.Node(
+                            util.Function(input_names=['measure_file',
+                                                       'measure'],
+                                          output_names=['hist_path'],
+                                          function=gen_histogram),
+                            name='hist_{0}_{1}'.format(measure, num_strat))
+
                     histogram.inputs.measure = measure
 
                     workflow.connect(overlay, out_file,
