@@ -5235,9 +5235,9 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
         cb_logger.addHandler(handler)
 
         # Add status callback function that writes in callback log
-        if nipype.__version__ not in ('0.13.1', '0.14.0'):
+        if nipype.__version__ not in ('0.13.1'):
             err_msg = "This version of nipype may not be compatible with " \
-                      "CPAC v%s, please install version 0.14.0\n" \
+                      "CPAC v%s, please install version 0.13.1\n" \
                        % (CPAC.__version__)
             logger.error(err_msg)
         else:
@@ -5307,19 +5307,17 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 create_log_node(None, None, count, scan).run()
         if 1 in c.generateQualityControlImages:
             for pip_id in pip_ids:
-                try:
-                    pipeline_base = os.path.join(c.outputDirectory, 'pipeline_%s' % pip_id)
-                    qc_output_folder = os.path.join(pipeline_base, subject_id, 'qc_files_here')
-                    generateQCPages(qc_output_folder,qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
-            #create_all_qc.run(pipeline_base)
-                except Exception as e:
-                    print "Error: The QC function page generation is not running"
-                    print ""
-                    print e
-                    print type(e)
-                    raise Exception
-                    
-
+                #try:
+                pipeline_base = os.path.join(c.logDirectory,
+                                             'pipeline_%s' % pip_id)
+                qc_output_folder = os.path.join(pipeline_base, subject_id,
+                                                'qc_files_here')
+                generateQCPages(qc_output_folder, qc_montage_id_a,
+                                qc_montage_id_s, qc_plot_id, qc_hist_id)
+                #except Exception as e:
+                #    print "Error: The QC function page generation did not " \
+                #          "run.\nError details: {0}\n\n".format(e)
+                #    raise Exception
 
             # Generate the QC pages -- this function isn't even running, because there is noparameter for qc_montage_id_a/qc_montage_id_s/qc_plot_id,qc_hist_id
                 #two methods can be done here:
@@ -5329,7 +5327,6 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                 #  qc_montage_id_s, qc_plot_id, qc_hist_id)
                 # Automatically generate QC index page
                 #create_all_qc.run(pipeline_out_base)
-        
 
         # pipeline timing code starts here
 

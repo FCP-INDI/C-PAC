@@ -623,7 +623,14 @@ def get_map_id(str_, id_):
         # TODO: way too reliant on a very specific string format
         # TODO: needs re-factoring
         str_ = str_.split('_a.png')[0]
-        type_, str_ = str_.rsplit(id_, 1)
+
+        if 'lfcd' in str_:
+            type_ = str_.rsplit('lfcd', 1)
+        else:
+            type_ = str_.rsplit(id_, 1)
+            
+        if len(type_) > 1:
+            type_ = type_[1]
 
         if "_99_1mm_" in type_:
             type_ = type_.replace("_99_1mm_", "")
@@ -761,7 +768,10 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
             png_h = None
 
             if id_ in dict_hist:
-                png_h = dict_hist[id_][idx]
+                try:
+                    png_h = dict_hist[id_][idx]
+                except:
+                    pass
 
             measure_name = None
             map_name = None
@@ -780,6 +790,9 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
             if id_ in qc_hist_id:
                 image_name_h_nav = qc_hist_id[id_]
             if map_name is not None:
+                print "\n\nqc montage id name a: {0}\n".format(qc_montage_id_a)
+                print "\n\nmask: {0}\n".format(measure_name)
+                print "\n\nmap name: {0}\n".format(map_name)
                 image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: ' + measure_name + '   Map: ' + map_name
                 if id_ in qc_hist_id:
                     image_name_h = 'Measure: ' + qc_hist_id[id_] + '    Mask:'+ measure_name + '    Map: ' + map_name

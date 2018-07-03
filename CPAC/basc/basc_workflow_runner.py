@@ -9,8 +9,6 @@ import os
 import numpy as np
 import nibabel as nb
 import sys
-
-
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
 

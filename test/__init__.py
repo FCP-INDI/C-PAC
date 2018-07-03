@@ -7,9 +7,11 @@
 This module performs testing on the functions in CPAC
 '''
 # Import packages
+'''
 import CPAC
 import os
 import unittest
+'''
 
 # Init globals/constants for the test package
 '''

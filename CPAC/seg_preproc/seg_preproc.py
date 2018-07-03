@@ -1,8 +1,8 @@
 # Import packages
+
 import os
 import sys
 import commands
-import nipype.pipeline.engine as pe
 from nipype.interfaces.utility import Function
 import nipype.algorithms.rapidart as ra
 import nipype.interfaces.afni as afni
@@ -12,6 +12,8 @@ import nipype.interfaces.utility as util
 import nipype.interfaces.ants as ants
 from nipype.interfaces.ants import WarpImageMultiTransform
 from CPAC.seg_preproc.utils import * 
+import nipype.pipeline.engine as pe
+
 
 def create_seg_preproc(use_ants, wf_name ='seg_preproc'):
 

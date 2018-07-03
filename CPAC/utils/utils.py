@@ -257,7 +257,7 @@ def get_zscore(input_name, map_node=False, wf_name='z_score'):
     wflow.connect(mean, 'out_stat', op_string, 'mean')
     wflow.connect(standard_deviation, 'out_stat', op_string, 'std_dev')
 
-    z_score.inputs.out_file = input_name + '_zstd.nii.gz'
+    #z_score.inputs.out_file = input_name + '_zstd.nii.gz'
 
     wflow.connect(op_string, 'op_string', z_score, 'op_string')
     wflow.connect(inputNode, 'input_file', z_score, 'in_file')
