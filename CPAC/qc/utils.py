@@ -555,10 +555,26 @@ def feed_line_body(image_name, anchor, image, f_html_1):
         image_readable = 'Seed-based Correlation Analysis'
     if image_name == 'sca_roi_smooth_hist':
         image_readable = 'Histogram of Seed-based Correlation Analysis'
-    if image_name == 'centrality_smooth':
+    if image_name == 'centrality':
         image_readable = 'Network Centrality'
-    if image_name == 'centrality_smooth_hist':
+    if image_name == 'centrality_hist':
         image_readable = 'Histogram of Network Centrality'
+    if image_name == 'centrality_smooth':
+        image_readable = 'Network Centrality (smoothed)'
+    if image_name == 'centrality_smooth_hist':
+        image_readable = 'Histogram of Network Centrality (smoothed)'
+    if image_name == 'centrality_zstd':
+        image_readable = 'Network Centrality (z-score standardized)'
+    if image_name == 'centrality_zstd_hist':
+        image_readable = 'Histogram of Network Centrality (z-score standardized)'
+    if image_name == 'centrality_smooth_zstd':
+        image_readable = 'Network Centrality (smoothed, z-score standardized)'
+    if image_name == 'centrality_smooth_zstd_hist':
+        image_readable = 'Histogram of Network Centrality (smoothed, z-score standardized)'
+    if image_name == 'centrality_zstd_smooth':
+        image_readable = 'Network Centrality (z-score standardized, smoothed)'
+    if image_name == 'centrality_zstd_smooth_hist':
+        image_readable = 'Histogram of Network Centrality (z-score standardized, smoothed)'
     if image_name == 'temporal_dual_regression_smooth':
         image_readable = 'Temporal Dual Regression'
     if image_name == 'temporal_dual_regression_smooth_hist':
@@ -628,7 +644,7 @@ def get_map_id(str_, id_):
             type_ = str_.rsplit('lfcd', 1)
         else:
             type_ = str_.rsplit(id_, 1)
-            
+
         if len(type_) > 1:
             type_ = type_[1]
 
@@ -790,9 +806,6 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
             if id_ in qc_hist_id:
                 image_name_h_nav = qc_hist_id[id_]
             if map_name is not None:
-                print "\n\nqc montage id name a: {0}\n".format(qc_montage_id_a)
-                print "\n\nmask: {0}\n".format(measure_name)
-                print "\n\nmap name: {0}\n".format(map_name)
                 image_name_a = 'Measure: ' + qc_montage_id_a[id_].replace('_a', '') + '    Mask: ' + measure_name + '   Map: ' + map_name
                 if id_ in qc_hist_id:
                     image_name_h = 'Measure: ' + qc_hist_id[id_] + '    Mask:'+ measure_name + '    Map: ' + map_name
@@ -873,8 +886,8 @@ def feed_lines_html(id_, dict_a, dict_s, dict_hist, dict_plot,
         feed_line_body(image_name, id_a, png_a, f_html_1)
 
 
-def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-              qc_hist_id):
+def make_page(file_, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+              qc_plot_id, qc_hist_id):
     """Convert a 'qc_files_here' text file in the CPAC output directory into
     a QC HTML page.
 
@@ -882,6 +895,9 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     ----------
     file_ : string
         path to qc path file
+
+    sub_output_dir : string
+        path to subject's output directory
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
@@ -924,7 +940,9 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     # and give it a more obvious name
     html_f_name = "{0}.html".format(html_f_name.replace("qc_scan",
                                                         "QC-interface_scan"))
+    log_dir = html_f_name.split('/qc_files_here')[0]
     html_f_name = html_f_name.replace("/qc_files_here", "")
+    html_f_name = html_f_name.replace(log_dir, sub_output_dir)
 
     f_html_ = open(html_f_name, 'wb')
     f_html_0 = open(html_f_name_0, 'wb')
@@ -950,7 +968,8 @@ def make_page(file_, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     f_html_1.close()
 
     
-def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id):
+def make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+                  qc_plot_id, qc_hist_id):
     """Generates a QC HTML file for each text file in the 'qc_files_here'
     folder in the CPAC output directory.
 
@@ -958,6 +977,9 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
     ----------
     qc_path : string
         path to qc_files_here directory
+
+    sub_output_dir : string
+        path to subject's output directory
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
@@ -989,12 +1011,12 @@ def make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist
     for file_ in qc_files:
         if not (file_.endswith('.txt')):
             continue
-        make_page(os.path.join(qc_path, file_), qc_montage_id_a,
-                  qc_montage_id_s, qc_plot_id, qc_hist_id)
+        make_page(os.path.join(qc_path, file_), sub_output_dir,
+                  qc_montage_id_a, qc_montage_id_s, qc_plot_id, qc_hist_id)
 
 
-def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                    qc_hist_id):
+def generateQCPages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+                    qc_plot_id, qc_hist_id):
     """Generates the QC HTML files populated with the QC images that were
     created during the CPAC pipeline run.
 
@@ -1004,6 +1026,9 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     ----------
     qc_path : string
         path to qc_files_here directory
+
+    sub_output_dir : string
+        path to subject's output directory
 
     qc_montage_id_a : dictionary
         dictionary of axial montages key : id no
@@ -1038,8 +1063,8 @@ def generateQCPages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
     # files
     second_pass_organizing_files(qc_path)
 
-    make_qc_pages(qc_path, qc_montage_id_a, qc_montage_id_s, qc_plot_id,
-                  qc_hist_id)
+    make_qc_pages(qc_path, sub_output_dir, qc_montage_id_a, qc_montage_id_s,
+                  qc_plot_id, qc_hist_id)
 
 
 def afni_edge(in_file):

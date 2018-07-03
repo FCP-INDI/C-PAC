@@ -5312,8 +5312,12 @@ def prep_workflow(sub_dict, c, strategies, run, pipeline_timing_info=None,
                                              'pipeline_%s' % pip_id)
                 qc_output_folder = os.path.join(pipeline_base, subject_id,
                                                 'qc_files_here')
-                generateQCPages(qc_output_folder, qc_montage_id_a,
-                                qc_montage_id_s, qc_plot_id, qc_hist_id)
+                sub_output_dir = os.path.join(c.outputDirectory,
+                                              'pipeline_{0}'.format(pipeline_id),
+                                              subject_id)
+                generateQCPages(qc_output_folder, sub_output_dir,
+                                qc_montage_id_a, qc_montage_id_s, qc_plot_id,
+                                qc_hist_id)
                 #except Exception as e:
                 #    print "Error: The QC function page generation did not " \
                 #          "run.\nError details: {0}\n\n".format(e)
